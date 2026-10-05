@@ -97,10 +97,15 @@ fn lower_messages(
     let mut assistant: Option<serde_json::Value> = None;
     let mut pending_reasoning: Option<(String, String)> = None;
     let flush = |messages: &mut Vec<serde_json::Value>,
-                 assistant: &mut Option<serde_json::Value>| {
+                 assistant: &mut Option<serde_json::Value>,
+                 pending_reasoning: &mut Option<(String, String)>| {
         if let Some(message) = assistant.take() {
             messages.push(message);
         }
+        // Reasoning belongs to this consecutive assistant-output group only.
+        // Tool/user/operator boundaries must not lend it to a later response,
+        // even when the closed group contained reasoning but no visible output.
+        *pending_reasoning = None;
     };
     for item in input {
         if leading
@@ -121,7 +126,7 @@ fn lower_messages(
         }
         match item {
             InputItem::Message { role, content } => {
-                flush(&mut messages, &mut assistant);
+                flush(&mut messages, &mut assistant, &mut pending_reasoning);
                 match role {
                     InputRole::Developer | InputRole::System => messages.push(serde_json::json!({
                         "role": "user",
@@ -175,13 +180,13 @@ fn lower_messages(
                 _ => {}
             },
             InputItem::FunctionCallOutput { call_id, output } => {
-                flush(&mut messages, &mut assistant);
+                flush(&mut messages, &mut assistant, &mut pending_reasoning);
                 messages.push(
                     serde_json::json!({"role": "tool", "tool_call_id": call_id, "content": output}),
                 );
             }
             other => {
-                flush(&mut messages, &mut assistant);
+                flush(&mut messages, &mut assistant, &mut pending_reasoning);
                 // MCP/read results serialize as Responses outputs; Chat tool
                 // content is text only and other modalities refuse explicitly.
                 let value =
@@ -216,7 +221,7 @@ fn lower_messages(
             message[field.as_str()] = text.clone().into();
         }
     }
-    flush(&mut messages, &mut assistant);
+    flush(&mut messages, &mut assistant, &mut pending_reasoning);
     if leading && !initial.is_empty() {
         messages.push(serde_json::json!({"role": "system", "content": initial.join("\n\n")}));
     }

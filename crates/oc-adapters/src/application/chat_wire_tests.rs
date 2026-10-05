@@ -71,6 +71,7 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
             serde_json::json!({"choices":[{"delta":{"reasoning_content":"plan to read"}}]}),
             serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_read","function":{"name":"read","arguments":serde_json::json!({"path": note}).to_string()}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":20,"completion_tokens":5}}),
         ]).await;
+        let mut followed = false;
         loop {
             let (mut stream, path, body) = request(&listener).await;
             let auxiliary =
@@ -78,6 +79,16 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
             seen.push((path, body));
             if auxiliary {
                 respond(&mut stream, &[serde_json::json!({"choices":[{"delta":{"content":"Chat title"},"finish_reason":"stop"}]})]).await;
+                continue;
+            }
+            if !followed {
+                followed = true;
+                // This response intentionally has no reasoning: the next
+                // request must not copy the first response's reasoning onto it.
+                respond(&mut stream, &[
+                    serde_json::json!({"choices":[{"delta":{"content":"reading again"}}]}),
+                    serde_json::json!({"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_again","function":{"name":"read","arguments":serde_json::json!({"path": note}).to_string()}}]},"finish_reason":"tool_calls"}]}),
+                ]).await;
                 continue;
             }
             respond(&mut stream, &[serde_json::json!({"choices":[{"delta":{"content":"CHAT_FINAL"},"finish_reason":"stop"}],"usage":{"prompt_tokens":30,"completion_tokens":3}})]).await;
@@ -119,7 +130,7 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
         .iter()
         .filter(|(_, body)| body.get("tools").is_some())
         .collect();
-    assert_eq!(main.len(), 2, "first request and tool follow-up");
+    assert_eq!(main.len(), 3, "first request and two tool follow-ups");
     for (path, body) in &main {
         assert_eq!(path, "/v1/chat/completions");
         assert_eq!(body["model"], "chat-model");
@@ -144,10 +155,36 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
         .expect("tool result");
     assert_eq!(tool["tool_call_id"], "call_read");
     assert!(tool["content"].as_str().unwrap().contains("CHAT_NOTE"));
-    let history = Db::open(&data).unwrap().read_history("chat-wire").unwrap();
+    let assistants: Vec<_> = main[2].1["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|message| message["role"] == "assistant")
+        .collect();
+    assert_eq!(assistants.len(), 2);
+    assert_eq!(assistants[0]["reasoning_content"], "plan to read");
+    assert_eq!(assistants[1]["content"], "reading again");
+    assert_eq!(assistants[1]["tool_calls"][0]["id"], "call_again");
     assert!(
-        history
-            .iter()
-            .any(|(role, text)| role == "assistant" && text == "CHAT_FINAL")
+        assistants[1].get("reasoning_content").is_none(),
+        "wire replay must not invent reasoning for the second response"
     );
+    let results: Vec<_> = main[2].1["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|message| message["role"] == "tool")
+        .collect();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[1]["tool_call_id"], "call_again");
+    assert!(
+        results[1]["content"]
+            .as_str()
+            .unwrap()
+            .contains("CHAT_NOTE")
+    );
+    let history = Db::open(&data).unwrap().read_history("chat-wire").unwrap();
+    assert!(history.iter().any(|(role, text)| role == "assistant"
+        && text.contains("reading again")
+        && text.ends_with("CHAT_FINAL")));
 }

@@ -130,6 +130,68 @@ fn go03_chat_request_lowers_common_history_in_order() {
 }
 
 #[test]
+fn go03_chat_reasoning_replay_is_scoped_to_its_assistant_group() {
+    let compat = ChatCompat {
+        reasoning_field: Some("reasoning_content".into()),
+        ..ChatCompat::default()
+    };
+    let reasoning = |text: &str| {
+        InputItem::ProviderOutput(serde_json::json!({
+            "type":"reasoning", "text":text, "chat_reasoning_field":"reasoning_content"
+        }))
+    };
+    let message = |text: &str| {
+        InputItem::ProviderOutput(serde_json::json!({
+            "type":"message", "role":"assistant", "content":[{"type":"output_text", "text":text}]
+        }))
+    };
+    let input = vec![
+        InputItem::message(InputRole::User, "first"),
+        reasoning("FIRST_ONLY"),
+        message("looking"),
+        InputItem::ProviderOutput(
+            serde_json::json!({"type":"function_call", "call_id":"c", "name":"read", "arguments":"{}"}),
+        ),
+        InputItem::FunctionCallOutput {
+            call_id: "c".into(),
+            output: "read result".into(),
+        },
+        message("plain follow-up"),
+        InputItem::message(InputRole::User, "next"),
+        reasoning("SECOND_ONLY"),
+        message("second"),
+        InputItem::message(InputRole::System, "updated"),
+        message("plain after update"),
+        InputItem::message(InputRole::Developer, "another update"),
+        reasoning("ORPHAN"),
+        InputItem::message(InputRole::User, "boundary without an assistant"),
+        message("plain after orphan"),
+    ];
+    let body = request_body("m", &input, &[], 50, None, &compat).unwrap();
+    let assistants: Vec<_> = body["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|message| message["role"] == "assistant")
+        .collect();
+    assert_eq!(assistants.len(), 5);
+    assert_eq!(assistants[0]["reasoning_content"], "FIRST_ONLY");
+    assert_eq!(assistants[0]["tool_calls"][0]["id"], "c");
+    assert!(
+        assistants[1].get("reasoning_content").is_none(),
+        "tool result must close the reasoning group"
+    );
+    assert_eq!(assistants[2]["reasoning_content"], "SECOND_ONLY");
+    for message in &assistants[3..] {
+        assert!(
+            message.get("reasoning_content").is_none(),
+            "operator/user boundary must close pending reasoning"
+        );
+    }
+    assert!(!body.to_string().contains("ORPHAN"));
+}
+
+#[test]
 fn go03_chat_stream_assembles_fragmented_parallel_tools_reasoning_and_usage() {
     let compat = ChatCompat {
         reasoning_field: Some("reasoning_content".into()),

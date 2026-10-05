@@ -89,3 +89,52 @@ Executed offline (no live generation):
 Cargo used `CARGO_BUILD_JOBS=3`, tests `RUST_TEST_THREADS=2`, and the pre-approved
 disk-backed `TMPDIR`. Next independent risk: scope Chat reasoning replay to its
 actual assistant group rather than carrying it into later unrelated responses.
+
+## Follow-up slice — assistant-group reasoning replay (2026-10-05)
+
+Base: `9b9482a7d` (the preceding slice was committed and pushed).
+
+- RED: `go03_chat_reasoning_replay_is_scoped_to_its_assistant_group` demonstrated
+  that reasoning from a completed tool-bearing assistant group was assigned to
+  a later plain assistant response after the tool result.
+- GREEN: every existing assistant-group flush also clears pending reasoning.
+  Consecutive text/parallel calls in the same group retain their own reasoning;
+  tool results, user/operator messages and even reasoning-only groups cannot
+  lend it to the next response. Configured-field gating remains unchanged.
+- Extended the real application fake-HTTP roundtrip to three main requests:
+  reasoning + read → plain text + second read → final. Captured follow-up wire
+  keeps both linked call/result pairs, only the first assistant's reasoning,
+  and the second response's actual text. Reopened native history retains the
+  turn's partial text and final answer. No production storage/raw-row mutation.
+
+Wide-gate diagnosis and correction:
+
+- The initial workspace run failed two unrelated R4A PTY assertions under the
+  pre-approved long disk TMPDIR. A bounded synthetic excerpt identified the
+  normal current-project **Location footer**, not config/credential diagnostics.
+  The assertion had forbidden the entire fixture ancestor, including Location.
+  It now checks the private global config, launch trap, project config/AGENTS/
+  definition source paths; all existing secret/URL canaries remain forbidden.
+  Product footer behavior, privacy policy and test deadlines are unchanged.
+  Temporary diagnostic instrumentation was removed.
+- The next full run exceeded the authoring shell's 600-second timeout after
+  earlier targets passed (runtime retries and child guard tests consume real
+  backoff time). No test was disabled and no product/test timeout changed.
+  Re-executed with a 1200-second command allowance: full suite completed.
+
+Final executed checks on this slice, all exit 0:
+
+- `cargo test --workspace --locked`: **1579 passed / 0 failed / 10 ignored**.
+  Existing opt-in live/internal tests remain ignored, not qualified as live PASS.
+  Includes the 11 GO03 owner tests, actual-binary PTY, runtime, subagent,
+  DCP/fork/restart, soak and Responses compatibility regressions.
+- `cargo test -p oc --test pty_t39 --locked inherited_selection::`: **2 passed**.
+- `cargo clippy --workspace --all-targets --locked -- -D warnings`: PASS.
+- `cargo fmt --all -- --check`, `cargo build --locked`,
+  `target/debug/oc --help`, `git diff --check`: PASS.
+
+Same Cargo concurrency/disk TMPDIR as the previous slice. No live requests,
+new dependencies or DCP donor changes. T53 remains active, T44 remains paused;
+these two corrective Chat slices do not close R1–R6/GO01–GO06. Next wire
+implementation is the thin Messages adapter/auth binding, followed by the
+remaining explicit options and protocol-safe durable provenance qualification.

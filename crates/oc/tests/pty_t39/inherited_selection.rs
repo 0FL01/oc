@@ -72,7 +72,21 @@ fn assert_private(f: &Fixture, output: &[u8]) {
     assert!(!shown.contains(CANARY), "raw source leaked to terminal");
     assert!(!shown.contains("private.invalid"));
     assert!(!shown.contains("fixture-not-a-secret"));
-    assert!(!shown.contains(&f.root.path().to_string_lossy().to_string()));
+    // The current project Location is intentionally visible in the footer.
+    // Check private configuration/instruction/launch sources, not their shared
+    // ancestor: otherwise ordinary footer rendering fails under a long TMPDIR.
+    for private in [
+        f.root.path().join("home/config"),
+        f.root.path().join("trap-bin"),
+        project(f).join("opencode.jsonc"),
+        project(f).join("AGENTS.md"),
+        project(f).join(".opencode"),
+    ] {
+        assert!(
+            !shown.contains(private.to_string_lossy().as_ref()),
+            "private source path leaked to terminal"
+        );
+    }
 }
 
 fn home_pty(f: Arc<Fixture>) -> PtySession {

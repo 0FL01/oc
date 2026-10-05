@@ -2,8 +2,8 @@
 
 Status: active
 Source: владелец после RECON и параллельного аудита утвердил план 2026-09-29; «единая логика хранения кред, без деприкейт фич», будущий Codex OAuth и custom llama.cpp/ludka2 учтены как границы общего owner.
-Last updated: 2026-10-02
-Task: T53 (todo; утверждение и доставка плана не являются implementation PASS).
+Last updated: 2026-10-05
+Task: T53 (active; partial backend slices не являются GO01–GO06 PASS).
 
 ## Objective
 
@@ -355,8 +355,15 @@ commits/текущий diff, не переносить чужую незаком
   Active T50, T53 todo, T44 PAUSED, T55 safe-handoff priority/statuses unchanged.
   T51 completed readiness baseline не доказывает новый DCP3.2.0 follow-up;
   T45/R9 owns child semantics, не T53 и не whole-task prerequisite.
-- Next: после scheduling handoff проверить qualified T51 seam; подготовить R1
-  synthetic credential/scope fixture, затем smallest owner/storage slice.
+- 2026-10-05: T53 active после scheduling handoff из T45. `1748ba73b` добавил
+  protocol/chronology seam, `d66db2eaa` — первый native Chat wire; `9b9482a7d`
+  исправил refusal/late-content boundary. Текущий corrective slice ограничивает
+  replay reasoning одной assistant-группой и квалифицирует три actual application
+  requests с двумя read results. Current evidence: `evidence/T53/protocol-seam.md`
+  и `evidence/T53/chat-wire.md`; workspace 1579/0/10, strict Clippy/fmt/build/help
+  PASS. R1–R6/GO01–GO06 remain pending; live не выполнялся, T44 PAUSED.
+- Next: thin Messages wire/auth binding и оставшиеся per-wire options/protocol-safe
+  durable provenance; credential/catalog/connect owners остаются незакрытыми.
 - Route qualification risk: public recon выявил `qwen3.8-max`/`qwen3.7-plus` как
   default Chat в models.dev, но official Go docs называют Messages. Это dated source
   conflict, не hardcoded ID exception. Follow models.dev aliases; bounded probes
