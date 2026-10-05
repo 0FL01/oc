@@ -11,8 +11,34 @@ pub(super) struct ProviderWork {
 }
 
 impl ProviderWork {
-    pub(super) fn start(composition: &Composition) -> Self {
-        let task = if composition.provider_state.catalog_status == ProviderStatus::Pending {
+    pub(super) fn start(composition: &Composition, db: &Db) -> Self {
+        let task = if let Some(owner) = composition.go_catalog.clone() {
+            let db = db.shared_handle();
+            let models = composition.generation.providers[crate::models_dev::PROVIDER]
+                .models
+                .clone();
+            Some(tokio::spawn(async move {
+                let client = crate::discovery::ReqwestDiscoveryClient::new(
+                    std::time::Duration::from_secs(10),
+                )
+                .map_err(|_| {
+                    composition::LoadFailure::Configuration(worker_failure(
+                        oc_core::queries::ServiceStage::ModelCatalog,
+                    ))
+                })?;
+                Ok(composition::go_catalog::outcome(
+                    owner
+                        .refresh(
+                            &db,
+                            &client,
+                            &models,
+                            composition::go_catalog::now_ms(),
+                            false,
+                        )
+                        .await,
+                ))
+            }))
+        } else if composition.provider_state.catalog_status == ProviderStatus::Pending {
             let provider = composition.provider.clone();
             let models = composition.catalog.models.clone();
             Some(tokio::spawn(Composition::discover_provider(

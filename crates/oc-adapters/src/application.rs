@@ -646,7 +646,9 @@ async fn spawn_stages(
     composition
         .resolve_credentials(&db)
         .map_err(SpawnIssue::configuration)?;
+    composition.attach_public_catalog(&db).await;
     if !defer_provider {
+        composition.refresh_public_catalog(&db, false).await;
         composition
             .refresh_provider()
             .await
@@ -1507,7 +1509,7 @@ async fn start_worker_inner(
             .map_err(|error| runtime_issue(runtime.location(), &["mcp"], &error).diagnostic)?;
         return Ok(());
     }
-    let mut provider_work = provider_catalog::ProviderWork::start(&composition);
+    let mut provider_work = provider_catalog::ProviderWork::start(&composition, &db);
     if ready.send(Ok(diagnostics)).is_err() {
         let provider_stop = provider_work.stop().await;
         runtime
@@ -2234,6 +2236,8 @@ async fn switch_target<'a>(
     composition
         .resolve_credentials(db)
         .map_err(SpawnIssue::configuration)?;
+    composition.attach_public_catalog(db).await;
+    composition.refresh_public_catalog(db, true).await;
     composition
         .refresh_provider()
         .await
@@ -3942,6 +3946,12 @@ async fn worker(
                 },
             }
         };
+        if matches!(&message, InboxMsg::Catalog { .. })
+            && composition.go_catalog.is_some()
+            && !provider_work.pending()
+        {
+            *provider_work = provider_catalog::ProviderWork::start(composition, db);
+        }
         // Only this typed command creates an explicit bounded manual trigger.
         // Refusal precedes Submit, turn acceptance and provider dispatch.
         let mut manual_trigger = None;

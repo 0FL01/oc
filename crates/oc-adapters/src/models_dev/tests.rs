@@ -210,6 +210,60 @@ async fn go02_public_refresh_is_single_flight_cancellable_and_source_qualified()
 }
 
 #[tokio::test]
+async fn go02_last_good_reads_do_not_wait_for_the_inflight_public_get() {
+    struct Held {
+        entered: tokio::sync::Notify,
+        release: tokio::sync::Notify,
+    }
+    impl DiscoveryClient for Held {
+        async fn get(
+            &self,
+            _: &str,
+            _: &reqwest::header::HeaderMap,
+            _: Duration,
+        ) -> Result<(u16, Vec<u8>), DiscoveryError> {
+            self.entered.notify_one();
+            self.release.notified().await;
+            Ok((200, serde_json::to_vec(&document()).unwrap()))
+        }
+    }
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    let owner = db.public_catalog();
+    owner
+        .refresh(
+            &db,
+            &PublicFixture::new(document()),
+            &BTreeMap::new(),
+            1,
+            true,
+        )
+        .await;
+    let held = Arc::new(Held {
+        entered: Default::default(),
+        release: Default::default(),
+    });
+    let job = tokio::spawn({
+        let owner = owner.clone();
+        let db = db.shared_handle();
+        let held = held.clone();
+        async move {
+            owner
+                .refresh(&db, held.as_ref(), &BTreeMap::new(), 2, true)
+                .await
+        }
+    });
+    held.entered.notified().await;
+    let read = tokio::time::timeout(Duration::from_millis(100), owner.read(&BTreeMap::new()))
+        .await
+        .unwrap();
+    assert_eq!(read.fetched_at_ms, Some(1));
+    assert_eq!(read.models.len(), 4);
+    held.release.notify_one();
+    assert_eq!(job.await.unwrap().fetched_at_ms, Some(2));
+}
+
+#[tokio::test]
 async fn go02_malformed_public_rows_fail_atomically_without_inferred_controls() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

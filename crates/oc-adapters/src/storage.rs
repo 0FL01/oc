@@ -313,6 +313,7 @@ pub struct Db {
     output_readers: Arc<Mutex<std::collections::HashMap<String, usize>>>,
     // Actual payload transfers: HOT, explicit RAW page, bounded UI window.
     history_reads: Arc<[std::sync::atomic::AtomicU64; 10]>,
+    public_catalog: Arc<std::sync::OnceLock<Arc<crate::models_dev::GoCatalog>>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -558,6 +559,7 @@ impl Db {
             history_reads: Arc::new(std::array::from_fn(|_| {
                 std::sync::atomic::AtomicU64::new(0)
             })),
+            public_catalog: Arc::new(std::sync::OnceLock::new()),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -575,6 +577,7 @@ impl Db {
             output_dir: self.output_dir.clone(),
             output_readers: self.output_readers.clone(),
             history_reads: self.history_reads.clone(),
+            public_catalog: self.public_catalog.clone(),
             _lock: self._lock.clone(),
         }
     }
@@ -582,6 +585,12 @@ impl Db {
     /// Data-root path (owned).
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    pub(crate) fn public_catalog(&self) -> Arc<crate::models_dev::GoCatalog> {
+        self.public_catalog
+            .get_or_init(|| Arc::new(crate::models_dev::GoCatalog::open(self)))
+            .clone()
     }
 
     /// Create a root session; duplicate ids fail.

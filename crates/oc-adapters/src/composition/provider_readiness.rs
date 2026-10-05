@@ -9,6 +9,7 @@ pub(crate) struct ProviderState {
     source: String,
     credential: bool,
     unsupported_oauth: bool,
+    unsupported_wire: bool,
     pub(crate) catalog_status: ProviderStatus,
     diagnostic: Option<ServiceDiagnostic>,
     /// Auth rejection observed for the current admitted binding, not a new candidate key.
@@ -16,12 +17,33 @@ pub(crate) struct ProviderState {
 }
 
 impl ProviderState {
+    pub(super) fn public_pending(&mut self) {
+        self.catalog_status = ProviderStatus::Pending;
+        self.diagnostic = None;
+        self.auth_failure = None;
+    }
+
+    pub(super) fn finish_public(&mut self, outcome: &discovery::DiscoveryOutcome) {
+        self.finish(outcome);
+        // A credential-free public source's HTTP status is never an auth fact
+        // about the separately captured paid provider connection.
+        self.auth_failure = None;
+        if outcome.failure.is_some() {
+            self.catalog_status = ProviderStatus::Failed;
+        }
+    }
+
+    pub(crate) fn set_unsupported(&mut self) {
+        self.credential = false;
+        self.unsupported_wire = true;
+    }
     pub(crate) fn new(provider: &str, source: &str, credential: bool, dynamic: bool) -> Self {
         let mut state = Self {
             service: format!("provider-{:x}", Sha256::digest(provider.as_bytes())),
             source: config::mcp::safe_source_id(source),
             credential,
             unsupported_oauth: false,
+            unsupported_wire: false,
             catalog_status: if dynamic && credential {
                 ProviderStatus::Pending
             } else {
@@ -145,13 +167,15 @@ impl ProviderState {
         };
         let diagnostic = if !self.credential {
             Some(self.diagnostic(
-                if self.unsupported_oauth {
+                if self.unsupported_wire {
+                    "package"
+                } else if self.unsupported_oauth {
                     "authPolicy"
                 } else {
                     "apiKey"
                 },
                 ServiceStage::Config,
-                if self.unsupported_oauth {
+                if self.unsupported_oauth || self.unsupported_wire {
                     ServiceCode::UnsupportedCapability
                 } else {
                     ServiceCode::MissingCredential
@@ -217,6 +241,9 @@ impl Composition {
         let provider = self.provider.for_selection(model, variant);
         let mut state = self.provider_state.clone();
         state.set_auth(provider.auth_ready(), provider.wire.auth_policy);
+        if provider.wire.unsupported {
+            state.set_unsupported();
+        }
         state.for_model(model, self.catalog.models.contains_key(model))
     }
     /// Resolve once per admitted generation, before any discovery or runtime publication.
@@ -293,6 +320,11 @@ impl Composition {
                 )
             })?;
         auth.apply_to(&mut self.provider);
+        if let Some(entry) = self.generation.providers.get_mut(id) {
+            entry.options.redaction_material = std::iter::once(self.provider.api_key.clone())
+                .filter(|value| !value.is_empty())
+                .collect();
+        }
         self.provider_state = ProviderState::new(
             id,
             source,
@@ -307,6 +339,9 @@ impl Composition {
 
     /// Only the original bounded discovery loop performs retries/negotiation.
     pub(crate) async fn refresh_provider(&mut self) -> Result<(), LoadFailure> {
+        if self.catalog.provider == crate::models_dev::PROVIDER {
+            return Ok(());
+        }
         if self.provider_state.catalog_status != ProviderStatus::Pending {
             return Ok(());
         }
@@ -348,8 +383,15 @@ impl Composition {
         } else if let Some(failure) = outcome.failure {
             trace::log("discovery.fail", &format!("class={failure:?}"));
         }
-        self.provider_state.finish(&outcome);
+        if self.catalog.provider == crate::models_dev::PROVIDER {
+            self.provider_state.finish_public(&outcome);
+        } else {
+            self.provider_state.finish(&outcome);
+        }
         self.catalog.models = outcome.models;
+        if self.catalog.provider == crate::models_dev::PROVIDER {
+            self.capture_public_bindings();
+        }
         self.generation.warnings.extend(outcome.warnings);
         self.tui_chrome.provider =
             Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));

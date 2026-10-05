@@ -453,6 +453,20 @@ receipt `evidence/T53/public-catalog.md`. This is partial R2, not GO02/T53 PASS:
 application startup/picker/manual refresh and shared model read-view integration
 are next, followed by metadata/replay/connect and bounded GO06 qualification.
 
+### Public application integration checkpoint (2026-10-05)
+
+Built-in Go preset now starts without a configured provider entry; existing Db
+handles share one public cache owner. Application startup, picker queries and
+explicit reload consume fresh/last-good metadata independently of credentials.
+Finite per-model/variant bindings preserve API IDs, exact declared controls and
+Go Bearer auth on all three wires; unknown aliases refuse before acceptance and
+valid empty records remove bindings. Public HTTP auth statuses never become paid
+connection auth facts. Cached reads remain immediate during in-flight GET.
+Adapter suite **591/0/0**, strict all-target clippy/fmt green; receipt
+`evidence/T53/public-catalog.md`. Partial R2/R3, not GO02/T53 PASS: shared CLI/tool
+read-view, all-lane metadata/chronology/cache, durable replay, accounts/connect and
+bounded GO06 qualification remain. Next slice: selection-independent read-view.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

@@ -158,6 +158,7 @@ pub(super) fn mcp_redactions(
         .map(|(_, value)| value.clone())
         .collect();
     for provider in config.providers.values() {
+        secrets.extend(provider.options.redaction_material.iter().cloned());
         secrets.extend([
             provider.options.api_key.clone(),
             provider.options.base_url.clone(),

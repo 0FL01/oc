@@ -57,3 +57,48 @@ selection-independent `oc models` read-view, with owning-generation late-result
 checks and effective remote model bindings. Then all-lane Go metadata/cache/
 chronology, durable protocol replay, account/connect PTY, final offline gates
 and bounded real Go qualification. No secret/live credential read or new dependency.
+
+## Application integration follow-up (2026-10-05)
+
+Base: `9901d36ad`. Partial R2/R3 qualification, not full GO02/T53 PASS.
+
+- Provider-owned Go preset is local and only activated when requested. Configured
+  source merge/provenance and Go authority validation still precede credential reads.
+- Existing Db owns one lazy public cache shared by its native worker handles;
+  no second lock/store, auth file or client registry. Startup reads last-good before
+  optional asynchronous GET, picker queries trigger TTL-gated refresh, explicit
+  reload forces refresh, and destination admission shares the same owner. Optional
+  catalog work is canceled/joined before old Location disposal; no late result can
+  publish into a replacement composition.
+- Each surviving public ID/variant receives an immutable finite wire/API binding.
+  Remote routes/auth inputs stay discarded; Go Messages uses Bearer, not x-api-key.
+  Unknown aliases remain visible metadata but unavailable and refuse before root,
+  user/turn effects or HTTP. Valid empty records clear metadata and captured bindings.
+- Public fetch failure retains last-good without making a public 401/403 a paid
+  credential fact. Missing credentials do not prevent usable public catalog rows.
+- Separated refresh single-flight lock from state lock: cached reads do not block
+  on network. Root stored material is captured in redaction-only config inputs,
+  never promoted into MCP credential inheritance.
+
+Regression tests cover actual application cached startup without a provider entry,
+missing key refusal, stored-key restart, unknown-alias refusal with no root; all
+three captured native wires, exact controls/Chat reasoning compatibility, Go
+Bearer, current local names, public-401 isolation and retirement; shared cache
+identity and immediate last-good reads while a fake GET is deliberately held.
+First new-test compilation exposed wrong import/ownership assumptions; corrected
+to existing core domain/selection types and owned credential material.
+
+Checks (approved disk TMPDIR, Cargo jobs 3, test threads 2):
+
+```text
+cargo test --locked -p oc-adapters --lib composition::go_catalog  PASS 2/0
+cargo test --locked -p oc-adapters --lib                       PASS 591/0/0
+cargo clippy --locked -p oc-adapters --all-targets -- -D warnings PASS
+cargo fmt --all -- --check                                   PASS
+git diff --check                                            PASS
+```
+
+No real Go generation/live key read, new dependency, disabled test or increased
+deadline. Shared selection-independent CLI/tool read-view and full remaining T53
+gates are still pending; CLI must retain its existing no-history-mutation/second-
+owner invariant rather than opening an already-owned Db just to list models.

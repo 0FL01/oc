@@ -358,6 +358,7 @@ impl std::fmt::Debug for CatalogRead {
 /// One public source/cache owner. Concurrent refreshes coalesce, including force.
 pub struct GoCatalog {
     state: tokio::sync::Mutex<CacheState>,
+    flight: tokio::sync::Mutex<()>,
     revision: AtomicU64,
 }
 impl GoCatalog {
@@ -375,6 +376,7 @@ impl GoCatalog {
                 failure: None,
             }),
             revision: AtomicU64::new(0),
+            flight: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -395,7 +397,8 @@ impl GoCatalog {
         force: bool,
     ) -> CatalogRead {
         let revision = self.revision.load(Ordering::SeqCst);
-        let mut state = self.state.lock().await;
+        let _flight = self.flight.lock().await;
+        let state = self.state.lock().await;
         if revision != self.revision.load(Ordering::SeqCst)
             || (!force
                 && state.cache.as_ref().is_some_and(|c| {
@@ -404,6 +407,7 @@ impl GoCatalog {
         {
             return Self::view(state.cache.as_ref(), local, false, state.failure);
         }
+        drop(state); // Cached reads must not wait for the bounded network job.
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             reqwest::header::ACCEPT,
@@ -430,6 +434,7 @@ impl GoCatalog {
         })
         .await
         .unwrap_or(Err(discovery::DiscoveryError::Network));
+        let mut state = self.state.lock().await;
         self.revision.fetch_add(1, Ordering::SeqCst);
         match fetch {
             Err(error) => {

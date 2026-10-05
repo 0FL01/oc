@@ -1217,6 +1217,9 @@ impl<'a> Runtime<'a> {
             .with_auth_policy(provider.wire.auth_policy)
         });
         state.set_auth(selected.auth_ready(), selected.wire.auth_policy);
+        if selected.wire.unsupported {
+            state.set_unsupported();
+        }
         state
             // With no native owner publication, preserve existing model/budget
             // validation contracts; credential admission is still central.

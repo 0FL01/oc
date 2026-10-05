@@ -84,6 +84,36 @@ enum JsonFormat {
 }
 
 impl WireSettings {
+    pub(crate) fn overlay(
+        &self,
+        protocol: Protocol,
+        overlay: &BTreeMap<String, Value>,
+    ) -> Result<Self, ProviderError> {
+        let mut raw = BTreeMap::new();
+        for (key, value) in [
+            ("reasoningEffort", &self.effort),
+            ("reasoningSummary", &self.summary),
+            ("textVerbosity", &self.verbosity),
+        ] {
+            if let Some(value) = value {
+                raw.insert(key.into(), Value::String(value.clone()));
+            }
+        }
+        if let Some(value) = &self.thinking {
+            raw.insert(
+                "thinking".into(),
+                serde_json::to_value(value).map_err(|_| ProviderError::InvalidConfig)?,
+            );
+        }
+        if let Some(value) = &self.output {
+            raw.insert(
+                "outputConfig".into(),
+                serde_json::to_value(value).map_err(|_| ProviderError::InvalidConfig)?,
+            );
+        }
+        raw.extend(overlay.clone());
+        Self::admit(protocol, &raw, &self.body)
+    }
     pub(crate) fn admit(
         protocol: Protocol,
         raw: &BTreeMap<String, Value>,

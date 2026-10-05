@@ -87,6 +87,9 @@ pub enum Permission {
 /// strict typing.
 #[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ProviderOptions {
+    /// Captured secret inputs used only by redactors, never credential inheritance.
+    #[serde(skip)]
+    pub redaction_material: Vec<String>,
     /// Admitted local model/variant templates; never deserialized from JSON.
     #[serde(skip)]
     pub request_bindings: BTreeMap<(String, Option<String>), crate::provider::ResponsesConfig>,
@@ -832,6 +835,20 @@ fn assemble_with_admission(
     catalog_only: bool,
 ) -> Result<(Generation, Option<oc_core::queries::TerminalCopyMode>), diagnostic::LocatedError> {
     let mut providers: BTreeMap<String, (serde_json::Value, String)> = BTreeMap::new();
+    // Local provider-owned preset, never remote connection/auth metadata. Only
+    // activate it when requested; unrelated static compositions remain offline.
+    if enabled_providers.is_some_and(|ids| ids.contains(crate::models_dev::PROVIDER)) {
+        providers.insert(
+            crate::models_dev::PROVIDER.into(),
+            (
+                serde_json::json!({
+                    "npm":"@ai-sdk/openai-compatible", "name":"OpenCode Go",
+                    "options":{"baseURL":crate::auth::GO_BASE_URL}, "models":{}
+                }),
+                "native OpenCode Go preset".into(),
+            ),
+        );
+    }
     let mut provider_origins: BTreeMap<String, String> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();

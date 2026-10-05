@@ -83,6 +83,8 @@ pub(crate) async fn prepare(
     composition
         .resolve_credentials(db)
         .map_err(|_| "move destination auth admission failed")?;
+    composition.attach_public_catalog(db).await;
+    composition.refresh_public_catalog(db, false).await;
     composition
         .refresh_provider()
         .await

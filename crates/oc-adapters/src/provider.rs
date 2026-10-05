@@ -397,6 +397,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) unsupported: bool,
     pub(crate) requests: BTreeMap<(String, Option<String>), ResponsesConfig>,
     pub(crate) api_model: Option<String>,
     pub(crate) settings: settings::WireSettings,
@@ -448,9 +449,10 @@ impl ResponsesConfig {
     }
     /// Captured authentication readiness, distinct from an empty required key.
     pub fn auth_ready(&self) -> bool {
-        self.wire.auth_policy == crate::auth::AuthPolicy::None
-            || (self.wire.auth_policy == crate::auth::AuthPolicy::Key
-                && !self.api_key.trim().is_empty())
+        !self.wire.unsupported
+            && (self.wire.auth_policy == crate::auth::AuthPolicy::None
+                || (self.wire.auth_policy == crate::auth::AuthPolicy::Key
+                    && !self.api_key.trim().is_empty()))
     }
     /// Exact generation URL: trimmed prefix + `/responses`.
     pub fn generation_url(&self) -> Result<String, ProviderError> {

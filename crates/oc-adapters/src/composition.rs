@@ -21,6 +21,7 @@ mod catalog;
 
 #[cfg(test)]
 mod controls_tests;
+pub(crate) mod go_catalog;
 mod provider_readiness;
 pub use catalog::{CatalogListing, load_catalog};
 pub(crate) use provider_readiness::ProviderState;
@@ -47,6 +48,7 @@ pub struct Composition {
     /// Native Responses connection configuration.
     pub provider: provider::ResponsesConfig,
     pub(crate) provider_state: ProviderState,
+    pub(crate) go_catalog: Option<std::sync::Arc<crate::models_dev::GoCatalog>>,
     /// Canonical admitted project boundary.
     pub project: PathBuf,
     /// Environment snapshot for substitutions and child processes.
@@ -1053,7 +1055,7 @@ async fn load_stages(
         provider: provider_id.to_string(),
         models: entry.models.clone(),
     };
-    if provider_id != discovery::PROVIDER_ID {
+    if provider_id != discovery::PROVIDER_ID && provider_id != crate::models_dev::PROVIDER {
         models::select_model(&catalog, model_id).map_err(|_| {
             failure(
                 &selected_source,
@@ -1461,6 +1463,7 @@ async fn load_stages(
         model_id: model_id.to_string(),
         provider,
         provider_state,
+        go_catalog: None,
         project: project.clone(),
         parent_env,
         instructions,
