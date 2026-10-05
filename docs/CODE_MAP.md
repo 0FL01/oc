@@ -71,8 +71,12 @@ owner with all its handles; `composition/go_catalog.rs` attaches last-good data,
 builds finite model/variant bindings and separates public fetch status from paid
 auth readiness. Application `provider_catalog.rs` owns startup/picker refresh and
 cancels/joins before Location replacement; cached reads do not await GET. Tests
-`composition/go_catalog/tests.rs`; selection-independent CLI/tool read-view wiring
-is next. Authenticated OpenProxy discovery remains independent.
+`composition/go_catalog/tests.rs`. Selection-independent `composition/catalog.rs`
+feeds `oc models` through a bounded read-only public-pref snapshot (no Db startup);
+`models/lookup.rs` feeds the native tool through the existing Db cache owner. Live
+WAL/no-store-mutation CLI test: `oc/tests/configured_workspace/models_cli.rs`;
+public merge/retirement tests: `models/tool_tests.rs`, `models_dev/tests.rs`.
+Authenticated OpenProxy discovery remains independent.
 
 T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
 finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,

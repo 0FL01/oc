@@ -833,6 +833,7 @@ for line in sys.stdin:
             config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
+            public_go_enabled: false,
             mcp: BTreeMap::new(),
             permissions: allow_all(),
             permission_rules: Default::default(),

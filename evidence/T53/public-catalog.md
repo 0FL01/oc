@@ -102,3 +102,75 @@ No real Go generation/live key read, new dependency, disabled test or increased
 deadline. Shared selection-independent CLI/tool read-view and full remaining T53
 gates are still pending; CLI must retain its existing no-history-mutation/second-
 owner invariant rather than opening an already-owned Db just to list models.
+
+## Shared CLI/tool read-view follow-up (2026-10-05)
+
+Base: `765012c97`. Partial R2 qualification; not full GO02/T53 PASS.
+
+- `oc models` now includes enabled public Go independently of a selected model,
+  provider entry or usable key. It consumes only the source-qualified bounded
+  public pref, applies current surviving overrides and performs a bounded public
+  GET on cache miss/staleness. It never starts Db/recovery, creates a data root,
+  changes selection/history/preferences or writes the refreshed cache. Static
+  Chat/Messages aliases now share the finite metadata admission with Responses.
+- Live WAL cache reads use SQLite `mode=ro&readonly_shm=1`. A clean inactive
+  store may use immutable main-file reads only while a short shared existing
+  native root lock excludes writers and no nonempty WAL exists. Missing/unusable
+  cache is a miss, not permission to recover. Owner/regular/no-follow checks and
+  the same 8MiB bounded query precede materialization.
+- Native `opencode_models` uses the existing Db public cache owner, not a second
+  connection. Effective provider filters are captured in the generation; a query
+  for another provider makes no public GET. Public rows override selected/static
+  Go rows, so local-only/retired IDs cannot be resurrected. Safe output includes
+  source/timestamp/status, shared variant ordering, pagination and redaction.
+- Configured Go credentials, env and secret file templates are never resolved by
+  catalog-only admission. No remote endpoint/headers/auth fields reach execution.
+
+Tests cover independent static Chat/Messages + public Go metadata, literal slash
+IDs, local-only retirement, disabled provider zero GET, native lookup priority/
+redaction/failure, inactive read-only cache refresh with no persistence, and
+actual-binary listing of the live owner's committed WAL cache with **byte-for-byte
+unchanged every store file**, unchanged saved selection/history and pending turn.
+
+Substantial experiments / broad gate corrections:
+
+1. Plain read-only SQLite is insufficient for immutable SHM bytes; bundled Unix
+   VFS source confirms `readonly_shm=1`. An in-process live-owner experiment still
+   reused SQLite's existing writable SHM map and changed read-mark byte 104. The
+   actual CLI is a separate process: its live WAL/no-mutation test passed. Inactive
+   cache testing exposed missing SHM initialization; fixed with writer-excluding
+   shared-lock/no-WAL immutable reads, never an unguarded live immutable fallback.
+2. Workspace recovery fixture assumed whole-provider replacement. T53 supplied-
+   field merge now correctly inherits global limits; Location B explicitly sets
+   `limit:null` to retain its unknown-limit scenario, without weakening assertions.
+3. One unrelated MCP fake peer got BrokenPipe; the isolated unchanged test and
+   subsequent broad run passed. No timeout/test suppression was introduced.
+4. Broad runtime gate caught a prior captured-binding regression: arbitrary
+   TurnParams key bypassed a declared missing connection credential. Restored
+   declared/published base authority; only real private captured model bindings
+   may supply independent scoped auth. Preserved legacy metadata-only constructors
+   with no declared baseURL. Both zero-effect missing-key and T47 budget tests pass.
+5. The explicit generation admission field required mechanical `false` additions
+   to standalone fixtures; no assertions, ignored gates or deadlines changed.
+
+Final commands (TMPDIR `/home/opencode/.cache/opencode-tmp/opencode`, jobs 3,
+test threads 2):
+
+```text
+cargo test --locked -p oc-adapters --lib go02_                    PASS 13/0
+cargo test --locked -p oc --test configured_workspace models_cli PASS 1/0
+cargo test --locked -p oc --test recovery_v02                     PASS 1/0
+cargo test --locked -p oc-adapters --test runtime ui07_declared_missing_credential_cannot_be_bypassed_by_turn_config PASS 1/0
+cargo test --locked -p oc-adapters --test runtime t47_admission_counts_tool_schemas_and_rechecks_tool_results PASS 1/0
+cargo test --locked --workspace                                  PASS 1615/0/10
+cargo clippy --locked --workspace --all-targets -- -D warnings     PASS
+cargo fmt --all -- --check                                       PASS
+cargo build --locked                                            PASS
+target/debug/oc --help                                           PASS
+git diff --check                                                PASS
+```
+
+The ten existing opt-in live/internal ignored tests are unchanged and not live
+PASS. No real Go generation, secret read, new dependency or paid request. Remaining:
+all-lane Go metadata/chronology/lineage cache, durable protocol replay, configless
+provider-aware connect/accounts/picker, bounded GO06 qualification and factual finish.

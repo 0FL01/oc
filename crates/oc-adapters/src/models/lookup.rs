@@ -44,11 +44,31 @@ pub(crate) fn parse(args: &Value) -> Result<Input, String> {
     Ok(input)
 }
 
+#[cfg(test)]
 pub(crate) fn execute(
     generation: &Generation,
     selected: &ModelCatalog,
     args: &Value,
     secrets: &[String],
+) -> Result<String, String> {
+    execute_with_public(generation, selected, args, secrets, None)
+}
+
+pub(crate) fn wants_public(generation: &Generation, args: &Value) -> Result<bool, String> {
+    let input = parse(args)?;
+    Ok(generation.public_go_enabled
+        && input.provider.as_deref().is_none_or(|provider| {
+            provider.eq_ignore_ascii_case(crate::models_dev::PROVIDER)
+                || provider.eq_ignore_ascii_case("OpenCode Go")
+        }))
+}
+
+pub(crate) fn execute_with_public(
+    generation: &Generation,
+    selected: &ModelCatalog,
+    args: &Value,
+    secrets: &[String],
+    public: Option<&crate::models_dev::CatalogRead>,
 ) -> Result<String, String> {
     let input = parse(args)?;
     let terms: Vec<_> = input
@@ -67,18 +87,25 @@ pub(crate) fn execute(
         .keys()
         .map(String::as_str)
         .chain(std::iter::once(selected.provider.as_str()))
+        .chain(public.map(|_| crate::models_dev::PROVIDER))
         .collect();
     for provider in providers {
         let configured = generation.providers.get(provider);
-        let name = configured
-            .and_then(|p| p.name.as_deref())
-            .unwrap_or(provider);
+        let name = configured.and_then(|p| p.name.as_deref()).unwrap_or(
+            if provider == crate::models_dev::PROVIDER {
+                "OpenCode Go"
+            } else {
+                provider
+            },
+        );
         if provider_filter.as_ref().is_some_and(|filter| {
             provider.to_lowercase() != *filter && name.to_lowercase() != *filter
         }) {
             continue;
         }
-        let models = if provider == selected.provider {
+        let models = if provider == crate::models_dev::PROVIDER && public.is_some() {
+            public.map(|read| &read.models)
+        } else if provider == selected.provider {
             Some(&selected.models)
         } else {
             configured.map(|p| &p.models)
@@ -144,6 +171,11 @@ pub(crate) fn execute(
     let next = input.offset.saturating_add(input.limit);
     let mut result =
         json!({"providers":groups,"total":total,"nextOffset":(next < total).then_some(next)});
+    if let Some(public) = public {
+        result["publicCatalog"] = json!({"source":crate::models_dev::SOURCE,
+            "fetchedAt":public.fetched_at_ms,"status":if public.failure.is_some() {"failed"}
+                else if public.fetched_at_ms.is_some() {"ready"} else {"unavailable"}});
+    }
     // Only schema-known public fields above survive. Redact before returning;
     // an oversized page fails explicitly rather than corrupting pagination.
     if result.to_string().len() > 65536 {

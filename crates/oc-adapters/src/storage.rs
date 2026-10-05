@@ -2139,6 +2139,75 @@ impl Db {
         })
     }
 
+    /// Catalog-only process, public metadata only. No Db owner, schema/recovery,
+    /// chmod, or SQL writes; an inactive store may take a short shared read lock.
+    /// SQLite's Unix VFS must map existing WAL shared memory read-only too;
+    /// plain mode=ro may otherwise modify the live owner's -shm file.
+    pub(crate) fn public_cache_read_only(root: &Path) -> Option<String> {
+        use std::os::unix::fs::MetadataExt;
+        // SAFETY: geteuid has no preconditions and does not change process state.
+        let uid = unsafe { libc::geteuid() };
+        let root_meta = std::fs::symlink_metadata(root).ok()?;
+        if !root_meta.is_dir() || root_meta.uid() != uid {
+            return None;
+        }
+        for name in ["oc.sqlite", "oc.sqlite-wal", "oc.sqlite-shm"] {
+            match std::fs::symlink_metadata(root.join(name)) {
+                Ok(meta) if meta.is_file() && meta.nlink() == 1 && meta.uid() == uid => {}
+                Err(error)
+                    if error.kind() == std::io::ErrorKind::NotFound && name != "oc.sqlite" => {}
+                _ => return None,
+            }
+        }
+        let mut uri = reqwest::Url::from_file_path(root.join("oc.sqlite")).ok()?;
+        // A clean, inactive store has no WAL/SHM. It can be read immutable only
+        // while a shared existing root lock excludes every native writer. Never
+        // use immutable on the live owner's WAL or as an unguarded fallback.
+        let read_lock = (|| {
+            use std::os::unix::fs::OpenOptionsExt;
+            let file = OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NOFOLLOW)
+                .open(root.join("oc.lock"))
+                .ok()?;
+            let meta = file.metadata().ok()?;
+            if !meta.is_file() || meta.nlink() != 1 || meta.uid() != uid {
+                return None;
+            }
+            fs2::FileExt::try_lock_shared(&file).ok()?;
+            Some(file)
+        })();
+        let no_wal = match std::fs::symlink_metadata(root.join("oc.sqlite-wal")) {
+            Ok(meta) => meta.len() == 0,
+            Err(error) => error.kind() == std::io::ErrorKind::NotFound,
+        };
+        uri.set_query(Some(if read_lock.is_some() && no_wal {
+            "mode=ro&immutable=1"
+        } else {
+            "mode=ro&readonly_shm=1"
+        }));
+        let conn = Connection::open_with_flags(
+            uri.as_str(),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+                | rusqlite::OpenFlags::SQLITE_OPEN_URI
+                | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX
+                | rusqlite::OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )
+        .ok()?;
+        conn.busy_timeout(std::time::Duration::from_millis(100))
+            .ok()?;
+        match Self::get_pref_bounded_in(
+            &conn,
+            crate::models_dev::CACHE_KEY,
+            crate::discovery::DISCOVERY_BODY_CAP,
+        )
+        .ok()?
+        {
+            BoundedPref::Value(raw) => Some(raw),
+            _ => None,
+        }
+    }
+
     /// Begin a turn (durable intent before any side effect).
     pub fn begin_turn(&self, turn: &str, session: &str, prompt: &str) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");

@@ -475,7 +475,7 @@ pub fn builtin_tool_defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "opencode_models".into(),
-            description: "Search the admitted model catalog without changing your model or contacting providers. Own provider first, newest known family by default. Unknown metadata stays null. Variant IDs use the shared effective effort order. Native 64KiB page budget; unselected configured providers expose static metadata only.".into(),
+            description: "Search the admitted model catalog without changing your model or making generation requests. Includes the credential-free public OpenCode Go catalog with a bounded cached metadata GET. Own provider first, newest known family by default. Unknown metadata stays null. Variant IDs use the shared effective effort order. Native 64KiB page budget; other unselected configured providers expose static metadata only.".into(),
             parameters: serde_json::json!({"type":"object","additionalProperties":false,"required":[],"properties":{
                 "query":{"type":"string","maxLength":4096},"provider":{"type":"string","maxLength":4096},
                 "all":{"type":"boolean","default":false},"limit":{"type":"integer","minimum":1,"maximum":100,"default":20},
@@ -1196,13 +1196,32 @@ impl<'a> Runtime<'a> {
         provider: &ResponsesConfig,
     ) -> Result<(), RuntimeError> {
         let selected = provider.for_selection(model, variant);
+        let captured_selection = !std::ptr::eq(selected, provider);
         let published = self.current.read().expect("generation lock").clone();
         let admitted = self.provider_state.read().expect("provider state").clone();
         let availability_known = admitted.is_some();
         let mut state = admitted.unwrap_or_else(|| {
-            // Credentials can come from SQLite rather than config. Admission
-            // uses the captured transport policy, never the unresolved template.
-            let credential = provider.auth_ready();
+            // Standalone public constructors still obey a declared config
+            // policy. TurnParams cannot manufacture a key to bypass it. The
+            // native application publishes resolved auth separately; admitted
+            // model captures may have independent scoped credentials.
+            let declared = published
+                .config
+                .providers
+                .get(&catalog.provider)
+                // Legacy standalone callers may supply budget metadata only;
+                // without a declared connection TurnParams owns the transport.
+                .filter(|entry| !entry.options.base_url.is_empty());
+            let policy = declared
+                .map(|entry| entry.options.auth_policy)
+                .unwrap_or(selected.wire.auth_policy);
+            let credential = declared
+                .map(|entry| {
+                    policy == crate::auth::AuthPolicy::None
+                        || (policy == crate::auth::AuthPolicy::Key
+                            && !entry.options.api_key.trim().is_empty())
+                })
+                .unwrap_or(selected.auth_ready());
             crate::composition::ProviderState::new(
                 &catalog.provider,
                 published
@@ -1214,9 +1233,11 @@ impl<'a> Runtime<'a> {
                 credential,
                 false,
             )
-            .with_auth_policy(provider.wire.auth_policy)
+            .with_auth_policy(policy)
         });
-        state.set_auth(selected.auth_ready(), selected.wire.auth_policy);
+        if captured_selection {
+            state.set_auth(selected.auth_ready(), selected.wire.auth_policy);
+        }
         if selected.wire.unsupported {
             state.set_unsupported();
         }

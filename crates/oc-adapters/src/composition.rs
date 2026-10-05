@@ -23,7 +23,7 @@ mod catalog;
 mod controls_tests;
 pub(crate) mod go_catalog;
 mod provider_readiness;
-pub use catalog::{CatalogListing, load_catalog};
+pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
 pub(crate) use provider_readiness::ProviderState;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
@@ -942,6 +942,10 @@ async fn load_stages(
     generation.providers.retain(|id, _| {
         !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id))
     });
+    generation.public_go_enabled = !disabled.iter().any(|id| id == crate::models_dev::PROVIDER)
+        && enabled
+            .as_ref()
+            .is_none_or(|ids| ids.iter().any(|id| id == crate::models_dev::PROVIDER));
     admit_local_mcp(
         &mut generation,
         &project,

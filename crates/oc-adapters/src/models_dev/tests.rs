@@ -58,6 +58,86 @@ fn document() -> Value {
 }
 
 #[tokio::test]
+async fn go02_read_only_cache_without_owner_mutation_or_root_creation() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("data with spaces");
+    let db = Db::open(&root).unwrap();
+    let client = PublicFixture::new(document());
+    let now = crate::composition::go_catalog::now_ms();
+    GoCatalog::open(&db)
+        .refresh(&db, &client, &BTreeMap::new(), now, false)
+        .await;
+    db.create_session("existing").unwrap();
+    db.begin_turn("pending", "existing", "do not recover")
+        .unwrap();
+    // SQLite reuses an already writable SHM mapping within one process. The
+    // separate CLI process + live WAL case is qualified by models_cli.rs.
+    drop(db);
+    let snapshot = || {
+        let mut files: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.is_file())
+            .map(|path| (path.clone(), std::fs::read(path).unwrap()))
+            .collect();
+        files.sort_by(|a, b| a.0.cmp(&b.0));
+        files
+    };
+    let before = snapshot();
+    let view = GoCatalog::read_only(Some(&root));
+    let read = view
+        .refresh_read_only(&client, &BTreeMap::new(), now + 1)
+        .await;
+    assert_eq!(read.models.len(), 4);
+    assert_eq!(read.fetched_at_ms, Some(now));
+    assert_eq!(client.calls.load(Ordering::SeqCst), 1);
+    let after = snapshot();
+    for ((path, bytes), (old_path, old_bytes)) in after.iter().zip(&before) {
+        assert_eq!(path, old_path);
+        assert!(
+            bytes == old_bytes,
+            "{} changed at {:?}",
+            path.display(),
+            bytes
+                .iter()
+                .zip(old_bytes)
+                .enumerate()
+                .filter(|(_, (a, b))| a != b)
+                .map(|(i, (a, b))| (i, *a, *b))
+                .take(10)
+                .collect::<Vec<_>>()
+        );
+    }
+    assert_eq!(after.len(), before.len());
+    let missing = tmp.path().join("missing");
+    assert!(
+        GoCatalog::read_only(Some(&missing))
+            .read(&BTreeMap::new())
+            .await
+            .models
+            .is_empty()
+    );
+    assert!(!missing.exists());
+    // A refresh may publish its process-local view, but not even the existing
+    // public preference may be updated by the catalog-only process.
+    client.replace(json!({"opencode-go":{"id":"opencode-go","npm":"@ai-sdk/openai","models":{}}}));
+    let retired = view
+        .refresh_read_only(&client, &BTreeMap::new(), now + TTL_MS)
+        .await;
+    assert!(retired.models.is_empty());
+    assert_eq!(snapshot(), before);
+    let db = Db::open(&root).unwrap();
+    assert_eq!(
+        GoCatalog::open(&db)
+            .read(&BTreeMap::new())
+            .await
+            .models
+            .len(),
+        4
+    );
+}
+
+#[tokio::test]
 async fn go02_public_cache_retirement_current_overrides_and_safe_persistence() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

@@ -33,6 +33,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
     let mut generation = crate::config::Generation {
         tool_output: Default::default(),
         providers: BTreeMap::new(),
+        public_go_enabled: false,
         mcp: BTreeMap::new(),
         permissions: BTreeMap::new(),
         permission_rules: Default::default(),
@@ -130,4 +131,81 @@ fn tool18_invalid_input_and_bounded_page() {
         crate::tools::rename_input(&json!({"title":"  Café 🦀  "})).unwrap(),
         ("Café 🦀", None)
     );
+}
+
+#[test]
+fn go02_native_lookup_merges_public_go_before_static_or_selected_rows() {
+    use serde_json::{Value, json};
+    let mut generation = crate::config::Generation {
+        public_go_enabled: true,
+        ..Default::default()
+    };
+    generation.providers.insert(
+        crate::models_dev::PROVIDER.into(),
+        crate::config::ProviderEntry {
+            models: serde_json::from_value(json!({"local-only":{"name":"must not resurrect"}}))
+                .unwrap(),
+            name: None,
+            npm: None,
+            env: Vec::new(),
+            options: Default::default(),
+        },
+    );
+    let selected = super::ModelCatalog {
+        provider: "own".into(),
+        models: serde_json::from_value(json!({"selected":{"name":"Selected"}})).unwrap(),
+    };
+    let mut public = crate::models_dev::CatalogRead {
+        models: serde_json::from_value(json!({"remote/only":{"name":"Public CANARY",
+            "variants":[{"id":"high","settings":{"reasoningEffort":"high","apiKey":"CANARY"}}],
+            "headers":{"Authorization":"CANARY"},"api":"http://never"}}))
+        .unwrap(),
+        fetched_at_ms: Some(1),
+        changed: false,
+        failure: None,
+    };
+    assert!(super::lookup::wants_public(&generation, &json!({})).unwrap());
+    assert!(!super::lookup::wants_public(&generation, &json!({"provider":"own"})).unwrap());
+    let output = super::lookup::execute_with_public(
+        &generation,
+        &selected,
+        &json!({}),
+        &["CANARY".into()],
+        Some(&public),
+    )
+    .unwrap();
+    assert!(
+        !output.contains("CANARY")
+            && !output.contains("Authorization")
+            && !output.contains("apiKey")
+    );
+    assert!(!output.contains("local-only"));
+    let result: Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(result["providers"][0]["id"], "own");
+    assert_eq!(
+        result["providers"][1]["models"][0]["id"],
+        "opencode-go/remote/only"
+    );
+    assert_eq!(
+        result["providers"][1]["models"][0]["variants"],
+        json!(["high"])
+    );
+    assert_eq!(result["publicCatalog"]["status"], "ready");
+    public.models.clear();
+    public.failure = Some(crate::discovery::DiscoveryFailure::Network);
+    let output: Value = serde_json::from_str(
+        &super::lookup::execute_with_public(
+            &generation,
+            &selected,
+            &json!({"provider":"OpenCode Go"}),
+            &[],
+            Some(&public),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(output["total"], 0);
+    assert_eq!(output["publicCatalog"]["status"], "failed");
+    generation.public_go_enabled = false;
+    assert!(!super::lookup::wants_public(&generation, &json!({})).unwrap());
 }

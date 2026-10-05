@@ -206,6 +206,7 @@ fn make_harness() -> (Harness, Generation) {
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),
+        public_go_enabled: false,
         mcp: BTreeMap::new(),
         animations: None,
         permissions: allow_all(),
@@ -492,6 +493,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         compaction: Default::default(),
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),
+        public_go_enabled: false,
         mcp: [(
             "codex".to_string(),
             McpEntry {

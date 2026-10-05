@@ -1,4 +1,4 @@
-//! Selection-independent read-view. Shares source/config/discovery owners; no Db.
+//! Selection-independent read-view. No application/store mutation or recovery.
 use super::*;
 
 /// Complete admitted references plus payload-free catalog diagnostics.
@@ -32,19 +32,51 @@ pub(super) fn provider_filters(
 /// Load metadata before mandatory model selection. Dropping this future cancels
 /// its owned read-only GET; no detached catalog/application tasks are created.
 pub async fn load_catalog(project: &Path) -> Result<CatalogListing, ServiceDiagnostic> {
+    load_catalog_cached(project, None).await
+}
+
+/// Load the same public catalog with an optional read-only native cache snapshot.
+/// Does not acquire a second data-root owner or create a missing data root.
+pub async fn load_catalog_cached(
+    project: &Path,
+    data: Option<&Path>,
+) -> Result<CatalogListing, ServiceDiagnostic> {
     let env = std::env::vars_os()
         .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
         .collect();
-    load_catalog_with_env(project, env)
+    let public = crate::models_dev::GoCatalog::read_only(data);
+    let client =
+        discovery::ReqwestDiscoveryClient::new(Duration::from_secs(10)).map_err(
+            |_| match failure(
+                crate::models_dev::SOURCE,
+                &["models"],
+                ServiceStage::ModelCatalog,
+                ServiceCode::Transport,
+            ) {
+                LoadFailure::Configuration(diagnostic) => diagnostic,
+            },
+        )?;
+    load_catalog_inner(project, env, Some(&public), &client)
         .await
         .map_err(|failure| match failure {
             LoadFailure::Configuration(diagnostic) => diagnostic,
         })
 }
 
+#[cfg(test)]
 async fn load_catalog_with_env(
     project: &Path,
     env: BTreeMap<String, String>,
+) -> Result<CatalogListing, LoadFailure> {
+    let client = discovery::ReqwestDiscoveryClient::new(Duration::from_secs(10)).unwrap();
+    load_catalog_inner(project, env, None, &client).await
+}
+
+async fn load_catalog_inner(
+    project: &Path,
+    env: BTreeMap<String, String>,
+    public: Option<&crate::models_dev::GoCatalog>,
+    client: &impl discovery::DiscoveryClient,
 ) -> Result<CatalogListing, LoadFailure> {
     let admitted = admit_sources(project, &env)?;
     admit_dcp(&admitted.sources, &admitted.admitted_roots)?;
@@ -52,22 +84,21 @@ async fn load_catalog_with_env(
     let (enabled, disabled) = (settings.enabled, settings.disabled);
     let include =
         |id: &String| !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id));
-    let dynamic = if discovery::should_run(&disabled, enabled.as_deref()) {
+    let mut dynamic = if discovery::should_run(&disabled, enabled.as_deref()) {
         HashSet::from([discovery::PROVIDER_ID.to_string()])
     } else {
         HashSet::new()
     };
+    if public.is_some() && include(&crate::models_dev::PROVIDER.to_string()) {
+        dynamic.insert(crate::models_dev::PROVIDER.into());
+    }
     let roots = source_roots(&admitted.admitted_roots, &admitted.source_authority);
     let mut generation =
         config::assemble_catalog_admitted(&admitted.sources, &env, &dynamic, &roots)
             .map_err(LoadFailure::Configuration)?;
     // Foreign protocol metadata is inert, not an admitted native source.
     generation.providers.retain(|id, entry| {
-        include(id)
-            && entry
-                .npm
-                .as_deref()
-                .is_none_or(|npm| npm == "@ai-sdk/openai")
+        include(id) && config::package_protocol(id, entry.npm.as_deref()).is_ok()
     });
     // Validate the independently known snapshot before any GET/publication.
     references(&generation)?;
@@ -126,6 +157,30 @@ async fn load_catalog_with_env(
                 .expect("catalog source")
                 .models = outcome.models;
         }
+    }
+    if let Some(public) = public
+        && let Some(entry) = generation.providers.get_mut(crate::models_dev::PROVIDER)
+    {
+        let read = public
+            .refresh_read_only(client, &entry.models, super::go_catalog::now_ms())
+            .await;
+        complete &= read.failure.is_none() && read.fetched_at_ms.is_some();
+        if let Some(error) = read.failure {
+            diagnostics.push(
+                match failure(
+                    crate::models_dev::SOURCE,
+                    &["models"],
+                    ServiceStage::ModelCatalog,
+                    match error {
+                        discovery::DiscoveryFailure::Network => ServiceCode::Transport,
+                        _ => ServiceCode::InvalidCatalog,
+                    },
+                ) {
+                    LoadFailure::Configuration(diagnostic) => diagnostic,
+                },
+            );
+        }
+        entry.models = read.models;
     }
     Ok(CatalogListing {
         references: references(&generation)?,

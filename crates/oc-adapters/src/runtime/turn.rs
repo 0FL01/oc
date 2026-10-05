@@ -4311,11 +4311,49 @@ impl<'a> Runtime<'a> {
                         let published = self.current.read().expect("generation lock").clone();
                         let secrets =
                             super::mcp::mcp_redactions(&published.config, &self.parent_env);
-                        match crate::models::lookup::execute(
+                        let public = if crate::models::lookup::wants_public(
+                            &published.config,
+                            &call.arguments,
+                        )
+                        .unwrap_or(false)
+                        {
+                            let owner = self.db.public_catalog();
+                            let local = published
+                                .config
+                                .providers
+                                .get(crate::models_dev::PROVIDER)
+                                .map(|entry| entry.models.clone())
+                                .unwrap_or_default();
+                            match crate::discovery::ReqwestDiscoveryClient::new(
+                                std::time::Duration::from_secs(10),
+                            ) {
+                                Ok(client) => Some(
+                                    owner
+                                        .refresh(
+                                            &self.db,
+                                            &client,
+                                            &local,
+                                            crate::composition::go_catalog::now_ms(),
+                                            false,
+                                        )
+                                        .await,
+                                ),
+                                Err(_) => {
+                                    let mut read = owner.read(&local).await;
+                                    read.failure =
+                                        Some(crate::discovery::DiscoveryFailure::Network);
+                                    Some(read)
+                                }
+                            }
+                        } else {
+                            None
+                        };
+                        match crate::models::lookup::execute_with_public(
                             &published.config,
                             catalog,
                             &call.arguments,
                             &secrets,
+                            public.as_ref(),
                         ) {
                             Ok(output) => ("completed", output),
                             Err(error) => ("failed", format!("error: {error}")),

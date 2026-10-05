@@ -583,7 +583,9 @@ async fn scenario(
         serde_json::json!({
             "provider":{"fixture":{"name":"Local B provider","npm":"@ai-sdk/openai",
                 "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
-                "models":{"route/gpt-model/with/slashes":{"name":"Local B model"}}}}
+                // T53 supplied-field merge retains global limits unless this
+                // Location explicitly clears them. Keep B's unknown-limit case.
+                "models":{"route/gpt-model/with/slashes":{"name":"Local B model","limit":null}}}}
         })
         .to_string(),
     )

@@ -49,7 +49,11 @@ pub async fn run(args: Args) -> ExitCode {
         return ExitCode::from(2);
     }
     if matches!(args.command, Some(Command::Models)) {
-        return crate::models_cmd::run().await;
+        let data = args
+            .data_dir
+            .clone()
+            .or_else(|| headless::default_data_dir().ok());
+        return crate::models_cmd::run(data.as_deref()).await;
     }
     let data_dir = match args
         .data_dir

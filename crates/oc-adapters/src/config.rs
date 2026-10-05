@@ -452,6 +452,9 @@ pub struct Generation {
     pub animations: Option<bool>,
     /// Providers by id in sorted order.
     pub providers: BTreeMap<String, ProviderEntry>,
+    /// Public Go read-view admission from effective enabled/disabled filters.
+    /// False for isolated runtime fixtures without source admission.
+    pub public_go_enabled: bool,
     /// MCP entries by id in sorted order.
     pub mcp: BTreeMap<String, McpEntry>,
     /// Legacy scalar policy/summary; runtime also requires `permission_rules`.
@@ -1022,6 +1025,22 @@ fn assemble_with_admission(
             }
             validate_provider(id, &entry)
                 .map_err(|error| diagnostic::LocatedError::new(path, error))?;
+            if id == crate::models_dev::PROVIDER {
+                // The public source is not this connection. Metadata reads
+                // must never resolve even locally configured Go credentials.
+                out_providers.insert(
+                    id.clone(),
+                    ProviderEntry {
+                        npm: entry.npm.clone(),
+                        name: entry.name.clone(),
+                        env: entry.env.clone(),
+                        options: ProviderOptions::default(),
+                        models: entry.models.clone(),
+                    },
+                );
+                provenance.insert(format!("provider.{id}"), path.clone());
+                continue;
+            }
         }
         if let Some(only) = enabled_providers
             && !only.contains(id)
@@ -1177,6 +1196,7 @@ fn assemble_with_admission(
             compaction,
             animations,
             providers: out_providers,
+            public_go_enabled: false,
             mcp: out_mcp,
             permissions: out_perm,
             permission_rules,

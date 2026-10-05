@@ -285,6 +285,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         config_diagnostics: Vec::new(),
         animations: None,
         providers: BTreeMap::new(),
+        public_go_enabled: false,
         mcp: BTreeMap::new(),
         permissions,
         permission_rules: Default::default(),

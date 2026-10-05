@@ -467,6 +467,21 @@ Adapter suite **591/0/0**, strict all-target clippy/fmt green; receipt
 read-view, all-lane metadata/chronology/cache, durable replay, accounts/connect and
 bounded GO06 qualification remain. Next slice: selection-independent read-view.
 
+### Shared public read-view checkpoint (2026-10-05)
+
+Selection-independent `oc models` and native `opencode_models` now share the public
+Go normalizer/cache rules, current surviving local overrides and honest failure
+status. CLI reads only bounded public cache metadata without Db startup/recovery/
+store writes; actual binary byte-compares the entire live-owner WAL store before
+and after listing. Native tool uses the existing Db single-flight owner. Configured
+Go secret templates are not resolved for this public read-view. Broad verification
+also restored standalone declared-key admission while retaining metadata-only
+transport fixtures. Workspace **1615/0/10**, strict workspace clippy/fmt, locked
+build and binary help green; factual receipt `evidence/T53/public-catalog.md`.
+No opt-in live gate ran. This is partial R2, not full T53 PASS: Go all-lane metadata,
+chronology/cache, durable replay, provider-aware connect/selection and bounded
+GO06 qualification remain. Next slice: request metadata/lineage cache/chronology.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

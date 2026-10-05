@@ -1,4 +1,4 @@
-//! Catalog-only command. No application startup, selection or storage access.
+//! Catalog-only command. No application startup, selection or store mutation.
 use std::io::Write;
 use std::os::fd::{AsFd, AsRawFd};
 use std::process::ExitCode;
@@ -35,7 +35,7 @@ impl Drop for Output {
     }
 }
 
-pub async fn run() -> ExitCode {
+pub async fn run(data: Option<&std::path::Path>) -> ExitCode {
     let (mut out, mut err) = match (
         Output::new(std::io::stdout()),
         Output::new(std::io::stderr()),
@@ -56,7 +56,7 @@ pub async fn run() -> ExitCode {
     // it closes the owned GET and releases output without an orphan task.
     tokio::select! {
         exit = async {
-            match oc_adapters::composition::load_catalog(&project).await {
+            match oc_adapters::composition::load_catalog_cached(&project, data).await {
                 Err(diagnostic) => {
                     let _ = write_bytes(&mut err.file, format!("error: {diagnostic}\n").as_bytes()).await;
                     ExitCode::from(1)

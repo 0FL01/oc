@@ -1302,6 +1302,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             config_diagnostics: Vec::new(),
             animations: None,
             providers: BTreeMap::new(),
+            public_go_enabled: false,
             mcp: BTreeMap::new(),
             permissions: [("read".to_string(), Permission::Allow)]
                 .into_iter()
@@ -1340,6 +1341,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
                     config_diagnostics: Vec::new(),
                     animations: None,
                     providers: BTreeMap::new(),
+                    public_go_enabled: false,
                     mcp: BTreeMap::new(),
                     permissions: BTreeMap::new(),
                     permission_rules: Default::default(),

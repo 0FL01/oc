@@ -16,7 +16,7 @@ use std::{
 pub const SOURCE: &str = "https://models.dev/api.json";
 /// Public provider ID, independent of selection and credentials.
 pub const PROVIDER: &str = "opencode-go";
-const CACHE_KEY: &str = "public-catalog:https://models.dev/api.json:opencode-go:v1";
+pub(crate) const CACHE_KEY: &str = "public-catalog:https://models.dev/api.json:opencode-go:v1";
 const TTL_MS: u64 = 300_000;
 const DEADLINE: Duration = Duration::from_secs(15);
 
@@ -364,12 +364,24 @@ pub struct GoCatalog {
 impl GoCatalog {
     /// Read a bounded source-qualified cache. Corrupt/foreign cache is never used.
     pub fn open(db: &Db) -> Self {
-        let record = match db.get_pref_bounded(CACHE_KEY, discovery::DISCOVERY_BODY_CAP) {
-            Ok(BoundedPref::Value(raw)) => serde_json::from_str::<CacheRecord>(&raw)
-                .ok()
-                .filter(|cache| cache.source == SOURCE && cache.record.validate().is_ok()),
+        let raw = match db.get_pref_bounded(CACHE_KEY, discovery::DISCOVERY_BODY_CAP) {
+            Ok(BoundedPref::Value(raw)) => Some(raw),
             _ => None,
         };
+        Self::from_cache(raw.as_deref())
+    }
+
+    /// Catalog-only process: bounded public-pref read, no native store owner or
+    /// mutation. Missing/unusable WAL cache is a cache miss, never recovery.
+    pub(crate) fn read_only(root: Option<&std::path::Path>) -> Self {
+        let raw = root.and_then(Db::public_cache_read_only);
+        Self::from_cache(raw.as_deref())
+    }
+
+    fn from_cache(raw: Option<&str>) -> Self {
+        let record = raw
+            .and_then(|raw| serde_json::from_str::<CacheRecord>(raw).ok())
+            .filter(|cache| cache.source == SOURCE && cache.record.validate().is_ok());
         Self {
             state: tokio::sync::Mutex::new(CacheState {
                 cache: record,
@@ -391,6 +403,28 @@ impl GoCatalog {
     pub async fn refresh(
         &self,
         db: &Db,
+        client: &impl discovery::DiscoveryClient,
+        local: &BTreeMap<String, Value>,
+        now_ms: u64,
+        force: bool,
+    ) -> CatalogRead {
+        self.refresh_inner(Some(db), client, local, now_ms, force)
+            .await
+    }
+
+    /// Same public fetch/read-view in a read-only process. It never persists.
+    pub async fn refresh_read_only(
+        &self,
+        client: &impl discovery::DiscoveryClient,
+        local: &BTreeMap<String, Value>,
+        now_ms: u64,
+    ) -> CatalogRead {
+        self.refresh_inner(None, client, local, now_ms, false).await
+    }
+
+    async fn refresh_inner(
+        &self,
+        db: Option<&Db>,
         client: &impl discovery::DiscoveryClient,
         local: &BTreeMap<String, Value>,
         now_ms: u64,
@@ -450,7 +484,8 @@ impl GoCatalog {
                     fetched_at_ms: now_ms,
                     record,
                 };
-                if let Ok(raw) = serde_json::to_string(&cache)
+                if let Some(db) = db
+                    && let Ok(raw) = serde_json::to_string(&cache)
                     && raw.len() <= discovery::DISCOVERY_BODY_CAP
                 {
                     let _ = db.set_pref(CACHE_KEY, &raw);

@@ -14,6 +14,24 @@ fn tool18_models_does_not_open_locked_native_history_prefs_or_recover_pending_tu
         .unwrap();
     db.begin_turn("catalog-pending", "catalog-existing", "must not recover")
         .unwrap();
+    // A live owner's committed WAL cache is readable without touching any store
+    // file. Public Go is independent of unavailable selection/credentials.
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    db.set_pref(
+        "public-catalog:https://models.dev/api.json:opencode-go:v1",
+        &json!({
+            "source":oc_adapters::models_dev::SOURCE,"fetched_at_ms":now,
+            "record":{"id":"opencode-go","npm":"@ai-sdk/openai-compatible","models":{
+                "cached/public":{"id":"cached/public","name":"Cached Public",
+                    "limit":{"context":10000,"output":1024},"tool_call":true}
+            }}
+        })
+        .to_string(),
+    )
+    .unwrap();
     fs::write(
         fixture.project_a.join("opencode.json"),
         json!({
@@ -62,7 +80,10 @@ fn tool18_models_does_not_open_locked_native_history_prefs_or_recover_pending_tu
         titles: 0,
     };
     assert!(process.wait().success(), "{}", process.diagnostics());
-    assert_eq!(process.output(), "fixture/route/model\n");
+    assert_eq!(
+        process.output(),
+        "fixture/route/model\nopencode-go/cached/public\n"
+    );
     assert!(process.diagnostics().is_empty());
     assert_eq!(snapshot(), before, "native store/recovery mutated");
     assert_eq!(
