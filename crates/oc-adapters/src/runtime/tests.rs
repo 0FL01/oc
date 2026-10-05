@@ -18,6 +18,9 @@ mod identity_tests {
 #[path = "controls_tests.rs"]
 mod controls_tests;
 
+#[path = "binding_replay_tests.rs"]
+mod binding_replay_tests;
+
 #[cfg(test)]
 mod vis38_review_tests {
     use super::*;

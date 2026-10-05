@@ -1513,6 +1513,7 @@ impl<'a> Runtime<'a> {
         Ok((delta, candidate_projection))
     }
 
+    #[cfg(test)]
     #[allow(clippy::too_many_arguments)]
     pub(super) fn wire_history(
         &self,
@@ -1697,11 +1698,14 @@ impl<'a> Runtime<'a> {
             );
             if !moved
                 && id == "session-checkpoint"
-                && let Some((_, _, _, Some(raw))) = self.db.checkpoint_record(session)?
+                && let Some((_, _, Some(route), Some(raw))) = self.db.checkpoint_record(session)?
+                && binding.is_some_and(|binding| {
+                    binding.valid() && route == crate::compaction::route_for_binding(model, binding)
+                })
                 && self
                     .db
                     .checkpoint_model(session)?
-                    .is_none_or(|origin| origin.id == model && origin.provider == provider)
+                    .is_some_and(|origin| origin.id == model && origin.provider == provider)
             {
                 input.push(InputItem::ProviderOutput(
                     serde_json::from_str(&raw).map_err(|_| RuntimeError::Storage)?,

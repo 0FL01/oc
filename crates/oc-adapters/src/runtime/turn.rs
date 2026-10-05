@@ -1228,7 +1228,9 @@ impl<'a> Runtime<'a> {
             &params.session,
             &params.catalog.provider,
             &selection.id,
-            &params.provider,
+            params
+                .provider
+                .for_selection(&selection.id, params.variant.as_deref()),
         )?;
         let workspace = self.workspace.read().expect("workspace lock").clone();
         let mut effort_event_seq = self
@@ -1419,7 +1421,9 @@ impl<'a> Runtime<'a> {
             crate::compaction::route_identity(
                 &params.catalog.provider,
                 &selection.id,
-                &params.provider,
+                params
+                    .provider
+                    .for_selection(&selection.id, params.variant.as_deref()),
             )
             .map_err(|_| RuntimeError::Provider)?,
             &fixed_input,
@@ -1668,6 +1672,7 @@ impl<'a> Runtime<'a> {
         let mut retry_policy = retry::RetryPolicy::default();
         let mut retry_resuming = false;
         let mut prepared_model = selection.id.clone();
+        let mut prepared_binding = binding.clone();
         let fallback = published
             .config
             .providers
@@ -1764,9 +1769,9 @@ impl<'a> Runtime<'a> {
                 &params.session,
                 &params.catalog.provider,
                 &selection.id,
-                &params.provider,
+                request_provider.for_selection(&selection.id, variant.as_deref()),
             )?;
-            if prepared_model != selection.id {
+            if prepared_model != selection.id || prepared_binding != binding {
                 let refreshed = self.active_projection(&params.session)?;
                 let prior = refreshed
                     .projected
@@ -1789,6 +1794,7 @@ impl<'a> Runtime<'a> {
                 )?;
                 projected = refreshed.projected;
                 prepared_model = selection.id.clone();
+                prepared_binding = binding.clone();
             }
             // A busy selection is both a durable event and a fact already
             // captured by this turn. A model-switch history rebuild must not
@@ -1888,7 +1894,7 @@ impl<'a> Runtime<'a> {
                 crate::compaction::route_identity(
                     &params.catalog.provider,
                     &selection.id,
-                    &params.provider,
+                    request_provider.for_selection(&selection.id, variant.as_deref()),
                 )
                 .map_err(|_| RuntimeError::Provider)?,
                 &fixed_input,
@@ -2294,7 +2300,7 @@ impl<'a> Runtime<'a> {
                     &crate::compaction::route_identity(
                         &params.catalog.provider,
                         &selection.id,
-                        &params.provider,
+                        request_provider.for_selection(&selection.id, variant.as_deref()),
                     )
                     .map_err(|_| RuntimeError::Provider)?,
                     &variant,

@@ -207,8 +207,9 @@ async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
     );
     assert_eq!(db.load_compression_blocks("s").unwrap().len(), 1);
     let active = runtime.active_projection("s").unwrap();
+    let binding = provider.provenance("fixture", "m").unwrap();
     let wire = runtime
-        .wire_history(
+        .wire_history_bound(
             "s",
             &active.projected,
             &active.blocks,
@@ -216,6 +217,7 @@ async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
             "fixture",
             None,
             active.after_seq,
+            Some(&binding),
         )
         .unwrap();
     let raw = serde_json::to_string(&wire).unwrap();
@@ -770,7 +772,23 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
     assert!(snapshot.provider_native);
     assert!(snapshot.summary.is_empty());
     let active = runtime.active_projection("s").unwrap();
+    let binding = provider.provenance("fixture", "m").unwrap();
     let wire = runtime
+        .wire_history_bound(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert!(
+        matches!(&wire[0],InputItem::ProviderOutput(v) if v["encrypted_content"]=="opaque provider bytes")
+    );
+    let unbound = runtime
         .wire_history(
             "s",
             &active.projected,
@@ -782,8 +800,37 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
         )
         .unwrap();
     assert!(
-        matches!(&wire[0],InputItem::ProviderOutput(v) if v["encrypted_content"]=="opaque provider bytes")
+        !serde_json::to_string(&unbound)
+            .unwrap()
+            .contains("opaque provider bytes")
     );
+    for change in 0..5 {
+        let mut changed = binding.clone();
+        match change {
+            0 => changed.protocol = oc_core::queries::NativeProtocol::Chat,
+            1 => changed.protocol = oc_core::queries::NativeProtocol::Messages,
+            2 => changed.api_model = "other-api-model".into(),
+            3 => changed.deployment = "e".repeat(64),
+            _ => changed.auth_scope = "a".repeat(64),
+        }
+        let projected = runtime
+            .wire_history_bound(
+                "s",
+                &active.projected,
+                &active.blocks,
+                "m",
+                "fixture",
+                None,
+                active.after_seq,
+                Some(&changed),
+            )
+            .unwrap();
+        assert!(
+            !serde_json::to_string(&projected)
+                .unwrap()
+                .contains("opaque provider bytes")
+        );
+    }
     assert!(
         runtime
             .validate_checkpoint_route("s", "fixture", "another-model", &provider)
@@ -887,6 +934,122 @@ fn compaction_route_hash_uses_effective_case_insensitive_tenant_auth_and_endpoin
     );
     provider.headers.insert("Host".into(), "invalid".into());
     assert!(crate::compaction::route_identity("p", "m", &provider).is_err());
+}
+
+#[tokio::test]
+async fn go04_native_checkpoint_requires_captured_variant_and_explicit_origin() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "old", "ordinary old input");
+    let owner = runtime(&db, project.path(), Generation::default());
+    owner.register_native_compaction(Arc::new(Native(std::sync::atomic::AtomicUsize::new(0))));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut provider = config(&listener);
+    let mut selected = provider.clone();
+    selected.api_key = "variant-key".into();
+    selected.wire.api_model = Some("variant-api-id".into());
+    provider
+        .wire
+        .requests
+        .insert(("m".into(), Some("high".into())), selected.clone());
+    let mut models = catalog();
+    models.models.get_mut("m").unwrap()["variants"] =
+        serde_json::json!([{"id":"high","settings":{"reasoningEffort":"high"}}]);
+    owner
+        .queue_compaction("s", CompactionReason::Manual)
+        .unwrap();
+    assert!(
+        owner
+            .deliver_compaction("s", &models, "m", Some("high"), &provider)
+            .await
+            .unwrap()
+    );
+    let record = db.checkpoint_record("s").unwrap().unwrap();
+    assert_eq!(
+        record.2.as_deref(),
+        Some(
+            crate::compaction::route_identity("fixture", "m", &selected)
+                .unwrap()
+                .as_str()
+        )
+    );
+    assert!(
+        owner
+            .validate_checkpoint_route("s", "fixture", "m", &selected)
+            .is_ok()
+    );
+    assert!(
+        owner
+            .validate_checkpoint_route("s", "fixture", "m", &provider)
+            .is_err()
+    );
+    let binding = selected.provenance("fixture", "m").unwrap();
+    let active = owner.active_projection("s").unwrap();
+    let input = owner
+        .wire_history_bound(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert!(
+        serde_json::to_string(&input)
+            .unwrap()
+            .contains("opaque provider bytes")
+    );
+    let conn = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    conn.execute("UPDATE session_compactions SET snapshot=json_remove(snapshot,'$.model') WHERE session_id='s'", []).unwrap();
+    let input = owner
+        .wire_history_bound(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert!(
+        !serde_json::to_string(&input)
+            .unwrap()
+            .contains("opaque provider bytes")
+    );
+    conn.execute(
+        "UPDATE session_checkpoint SET route=NULL WHERE session_id='s'",
+        [],
+    )
+    .unwrap();
+    let input = owner
+        .wire_history_bound(
+            "s",
+            &active.projected,
+            &active.blocks,
+            "m",
+            "fixture",
+            None,
+            active.after_seq,
+            Some(&binding),
+        )
+        .unwrap();
+    assert!(
+        !serde_json::to_string(&input)
+            .unwrap()
+            .contains("opaque provider bytes")
+    );
+    assert!(
+        tokio::time::timeout(Duration::from_millis(30), listener.accept())
+            .await
+            .is_err()
+    );
 }
 
 #[tokio::test]

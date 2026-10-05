@@ -11,6 +11,7 @@ pub(super) struct Work {
     cancel: Arc<AtomicBool>,
 }
 struct PreparedCheckpoint {
+    binding: oc_core::queries::WireProvenance,
     boundary: String,
     native: Option<(String, String)>,
     removed: BTreeMap<String, u64>,
@@ -64,7 +65,7 @@ impl PreparedCheckpoint {
     ) -> Result<serde_json::Value, RuntimeError> {
         let model = snapshot.model.as_ref().ok_or(RuntimeError::Storage)?;
         let mut input = if let Some(log) = current {
-            log.input_for(&model.id, &model.provider)
+            log.input_for_bound(&model.id, &model.provider, Some(&self.binding))
         } else {
             vec![InputItem::message(InputRole::Developer, &snapshot.summary)]
         };
@@ -90,7 +91,7 @@ impl PreparedCheckpoint {
                 input.extend(
                     crate::tools::TurnLog::from_json(fact)
                         .map_err(|_| RuntimeError::Storage)?
-                        .input_for(&model.id, &model.provider),
+                        .input_for_bound(&model.id, &model.provider, Some(&self.binding)),
                 );
             }
         }
@@ -647,6 +648,10 @@ impl Runtime<'_> {
         snapshot: &mut CompactionSnapshot,
         current: Option<(&crate::tools::TurnLog, [usize; 7])>,
     ) -> Result<Option<PreparedCheckpoint>, RuntimeError> {
+        let provider = provider.for_selection(model, variant);
+        let binding = provider
+            .provenance(&catalog.provider, model)
+            .map_err(|_| RuntimeError::Provider)?;
         self.validate_checkpoint_route(session, &catalog.provider, model, provider)?;
         snapshot.model = Some(oc_core::queries::ModelRef {
             provider: catalog.provider.clone(),
@@ -752,7 +757,7 @@ impl Runtime<'_> {
                 .map_or(context.projected.as_slice(), |index| {
                     &context.projected[..index]
                 });
-            let mut history = self.wire_history(
+            let mut history = self.wire_history_bound(
                 session,
                 prior,
                 &context.blocks,
@@ -760,6 +765,7 @@ impl Runtime<'_> {
                 &catalog.provider,
                 Some("__compaction__"),
                 context.after_seq,
+                Some(&binding),
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
@@ -785,7 +791,7 @@ impl Runtime<'_> {
                 super::context::dcp_call_identities(&logs, None)?,
             );
             apply_dcp_projection(&mut history, &marks);
-            history.extend(prefix.input_for(model, &catalog.provider));
+            history.extend(prefix.input_for_bound(model, &catalog.provider, Some(&binding)));
             (
                 log.user_message.clone().ok_or(RuntimeError::Storage)?,
                 history,
@@ -866,7 +872,7 @@ impl Runtime<'_> {
                     prefix.push(row);
                 }
             }
-            let mut history = self.wire_history(
+            let mut history = self.wire_history_bound(
                 session,
                 &prefix,
                 &context.blocks,
@@ -874,6 +880,7 @@ impl Runtime<'_> {
                 &catalog.provider,
                 Some("__compaction__"),
                 context.after_seq,
+                Some(&binding),
             )?;
             let offset_history = if recover_native {
                 let source_logs =
@@ -884,7 +891,7 @@ impl Runtime<'_> {
                     .session_checkpoint(session)?
                     .map(|(seq, _)| seq)
                     .unwrap_or(0);
-                self.wire_history(
+                self.wire_history_bound(
                     session,
                     &prefix,
                     &context.blocks,
@@ -892,6 +899,7 @@ impl Runtime<'_> {
                     &catalog.provider,
                     Some("__compaction__"),
                     after,
+                    Some(&binding),
                 )?
             } else {
                 let source_logs =
@@ -988,6 +996,7 @@ impl Runtime<'_> {
                 snapshot.summary.clear();
                 snapshot.usage = native.usage;
                 return Ok(Some(PreparedCheckpoint {
+                    binding,
                     boundary,
                     native: Some((route, native.replacement.to_string())),
                     removed,
@@ -1168,6 +1177,7 @@ impl Runtime<'_> {
             }
             snapshot.summary = summary;
             return Ok(Some(PreparedCheckpoint {
+                binding,
                 boundary,
                 native: None,
                 removed,

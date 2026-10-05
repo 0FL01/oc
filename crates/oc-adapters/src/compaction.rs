@@ -124,12 +124,17 @@ pub fn route_identity(
     config: &crate::provider::ResponsesConfig,
 ) -> Result<String, crate::provider::ProviderError> {
     let config = config.for_selection(model, None);
-    Ok(fingerprint(&(
-        "native-route-v3",
+    Ok(route_for_binding(
         model,
-        config.provenance(provider, model)?,
-        config.set_cache_key,
-    )))
+        &config.provenance(provider, model)?,
+    ))
+}
+
+/// Cache placement and per-session affinity are not replay authority. Only
+/// captured wire provenance can authorize a native checkpoint; old route
+/// versions without these facts intentionally cannot match.
+pub(crate) fn route_for_binding(model: &str, binding: &oc_core::queries::WireProvenance) -> String {
+    fingerprint(&("native-route-v4", model, binding))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

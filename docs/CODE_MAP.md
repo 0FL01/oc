@@ -100,7 +100,9 @@ Durable wire authority: core `queries::{NativeProtocol,WireProvenance}` and adap
 withholds opaque state without an exact binding; SQL `storage_dcp_view.rs` and HOT
 `tools/turn_history.rs` preserve original provenance. Nearest tests:
 `tools/model_history_tests.rs`, `storage_turn_history/tests.rs` (`go04_`). Native
-checkpoint and independently selected auxiliary route qualification remains T53.
+checkpoint projection and main/compaction/child fences use captured variant routes;
+`runtime/binding_replay_tests.rs` qualifies real tool pairs across all wires,
+reopen and fork. Native origin/variant cases are in `runtime_compaction_tests.rs`.
 
 `provider/context.rs` captures project/session/parent identity and supported lineage
 cache fields at the common send boundary; `context_tests.rs`, effective-wire title,

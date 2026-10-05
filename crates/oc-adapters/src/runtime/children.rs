@@ -531,7 +531,7 @@ impl Jobs {
                     "version":1,"identity":identity,"parent_turn":parent_turn,"lane":parent_lane,
                     "generation_fingerprint":runtime.child_recovery_fingerprint(),
                     "launch_source":self.db.child_launch_fingerprint(&identity.operation).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child admission source missing".into()})?,
-                    "route":crate::compaction::route_identity(&catalog.provider,&model.id,&provider).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child route invalid".into()})?,
+                    "route":crate::compaction::route_identity(&catalog.provider,&model.id,provider.for_selection(&model.id,model.variant.as_deref())).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child route invalid".into()})?,
                 });
                 fence["fingerprint"] = crate::compaction::fingerprint(&fence).into();
                 self.db
@@ -828,8 +828,12 @@ impl Runtime<'_> {
                 models::select_variant(&base, model.variant.as_deref())
                     .map_err(|_| RuntimeError::Storage)?;
                 if fence["route"]
-                    != crate::compaction::route_identity(provider_id, &model.id, provider)
-                        .map_err(|_| RuntimeError::Provider)?
+                    != crate::compaction::route_identity(
+                        provider_id,
+                        &model.id,
+                        provider.for_selection(&model.id, model.variant.as_deref()),
+                    )
+                    .map_err(|_| RuntimeError::Provider)?
                 {
                     return Err(RuntimeError::Storage);
                 }

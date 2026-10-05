@@ -537,6 +537,19 @@ This is partial R4, not GO04/T53 PASS. Native checkpoint replay, auxiliary/varia
 route consumers, configless/connect/provider-qualified selection and GO06 live remain
 pending. Next slice: native checkpoint and auxiliary captured-route qualification.
 
+### Native/auxiliary captured-route checkpoint
+
+Native opaque replay now requires explicit origin and exact captured wire
+authority; unbound/missing legacy facts cannot authorize it. Main prepared
+fingerprints, compaction and child recovery fences use the actual selected
+model/variant binding. Actual runtime read→tool follow-up→reopen/fork→foreign
+wire continuation qualifies all three protocols without replaying settled tools.
+Workspace **1629/0/10**, strict workspace clippy, fmt, locked build, help and diff
+checks PASS; factual follow-up is in `evidence/T53/durable-binding.md`. This does
+not finish T53: configless/provider-qualified connect/accounts UI, actual binary
+qualification, full acceptance review and bounded GO06 live remain pending.
+Next slice: optional exact selection and configless startup through existing owners.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:
