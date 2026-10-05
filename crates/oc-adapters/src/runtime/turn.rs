@@ -400,6 +400,78 @@ impl TurnSubagent<'_, '_> {
         Ok((agent, model, pack))
     }
 
+    /// R8: the actual quoted child request must fit before any child row,
+    /// job or input exists. Same schema-inclusive probe as execution: the
+    /// child's fixed profile/environment/AGENTS/tools, retained continuation
+    /// history and the output/safety reserve; no turn, dispatch or summary.
+    async fn admit_quoted_child(
+        &self,
+        agent: &SubagentAgent,
+        model: &ResolvedModel,
+        request: &SubagentRequest,
+        child_session: &str,
+        fresh: bool,
+        prompt: &str,
+    ) -> Result<(), ToolError> {
+        let failed = |reason: String| ToolError::Failed {
+            tool: SUBAGENT_TOOL.into(),
+            reason: format!(
+                "selected context does not fit the {} subagent request: {reason}. Select fewer messages or summarize the findings in the prompt",
+                agent.id
+            ),
+        };
+        let lane = self
+            .runtime
+            .child_lane(agent, self.parent_lane, &request.call_id);
+        let published = self
+            .runtime
+            .current
+            .read()
+            .expect("generation lock")
+            .clone();
+        let base = models::select_model(self.catalog, &model.id)
+            .map_err(|error| failed(error.to_string()))?;
+        let fallback = published
+            .config
+            .providers
+            .get(&self.catalog.provider)
+            .map(|provider| provider.options.native_fallback_limits)
+            .unwrap_or_default();
+        let budget = models::budget(&base, 0, fallback);
+        let params = TurnParams {
+            session: child_session.to_string(),
+            prompt: prompt.to_string(),
+            invocation: None,
+            catalog: self.catalog,
+            model_id: model.id.clone(),
+            variant: model.variant.clone(),
+            max_output: 0,
+            provider: self.provider.clone(),
+            cancel: self.cancel,
+        };
+        let proof = Box::pin(self.runtime.run_turn_admitted(
+            params,
+            &lane,
+            self.attached,
+            fresh.then_some(None),
+            &mut |_, _| {},
+            &mut |_, _| {},
+            &mut |_, _| {},
+            &mut |_| {},
+            &mut |_, _| {},
+            &budget,
+            None,
+            None,
+            true,
+        ))
+        .await
+        .map_err(|error| failed(error.to_string()))?;
+        if !matches!(proof, TurnExecution::Admitted) {
+            return Err(failed("admission probe did not complete".into()));
+        }
+        Ok(())
+    }
+
     /// R8 quoted context: resolved read-only before any child row exists.
     fn context_pack(&self, request: &SubagentRequest) -> Result<Option<String>, String> {
         if request.context_message_ids.is_empty() {
@@ -460,6 +532,7 @@ impl TurnSubagent<'_, '_> {
             Some(id) => (id.clone(), false),
             None => (child_id, true),
         };
+        let quoted = pack.is_some();
         let task = match pack {
             Some(pack) => format!("{pack}{}", request.prompt),
             None => request.prompt.clone(),
@@ -469,6 +542,10 @@ impl TurnSubagent<'_, '_> {
         } else {
             task
         };
+        if quoted {
+            self.admit_quoted_child(agent, &model, &request, &child_session, fresh, &prompt)
+                .await?;
+        }
         {
             let operation = self
                 .runtime

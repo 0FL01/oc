@@ -25,12 +25,16 @@ closeout.
   turn log, so first delivery, background recovery and restart replay the same
   snapshot; later parent Revert/compaction cannot change it.
 - The pack is bounded to 256 KiB before admission.
+- Pre-admission model-context cost (second atomic): when a pack is present,
+  `TurnSubagent::admit_quoted_child` runs the same schema-inclusive
+  `run_turn_admitted(..., probe=true)` as native command children against the
+  resolved child model, child lane fixed profile/environment/AGENTS/MCP/tool
+  inputs, retained continuation history and the output/safety reserve, before
+  `Jobs::launch` writes any child row/job/input. Refusal is an actionable tool
+  error ("does not fit … Select fewer messages or summarize the findings").
 
 ## Remaining R8 work (pending)
 
-- Full model-context cost of the pack against the resolved child's fixed
-  inputs/output reserve before child admission (currently bytes/count only,
-  then the existing child-turn admission).
 - Bounded visible ID index that omits notices/system rows (the existing
   "Stable text-message IDs" rendering is reused unchanged).
 - Explicit selection of DCP/compaction-covered raw messages is admitted by the
@@ -46,3 +50,7 @@ closeout.
 - fmt check, strict workspace all-target Clippy: PASS.
 - Full workspace test (3 jobs / 2 threads, bench TMPDIR): **1557 passed /
   0 failed / 10 ignored**.
+- `tests/subagent.rs::r8_oversized_quoted_context_is_refused_before_child_creation`
+  (tiny-context child model: quoted 36 KB message refused with no child;
+  the same agent without a pack runs). RED confirmed by disabling the probe.
+  Full workspace after this atomic: **1558 / 0 / 10**.

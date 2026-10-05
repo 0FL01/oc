@@ -257,6 +257,10 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
             serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
         ),
         (
+            "tiny",
+            serde_json::json!({"limit": {"context": 6_000, "output": 200}}),
+        ),
+        (
             "small",
             serde_json::json!({
                 "limit": {"context": 1_000_000, "output": 100_000},
@@ -1752,5 +1756,70 @@ async fn r8_context_message_ids_quote_exact_parent_messages_in_chronology() {
     assert!(
         stored[0].1.contains("<parent_context"),
         "pack is part of the durable task"
+    );
+}
+
+#[tokio::test]
+async fn r8_oversized_quoted_context_is_refused_before_child_creation() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(
+            1,
+            vec![agent("small-helper", false, Some("test/tiny"))],
+        )))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, _) = Fake::start(vec![sse_delta("ok") + &sse_completed()]);
+    let large = "evidence ".repeat(4_000);
+    runtime
+        .run_turn(params(
+            "parent",
+            &large,
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    let user = message_ids(&harness.db, "parent")[0].0.clone();
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "call-big",
+            serde_json::json!({"agent":"small-helper","description":"Big","prompt":"check","context_message_ids":[user]}),
+        ) + &sse_completed(),
+        subagent_call(
+            "call-plain",
+            serde_json::json!({"agent":"small-helper","description":"Plain","prompt":"check"}),
+        ) + &sse_completed(),
+        sse_delta("child ok") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "delegate",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests);
+    let refusal = function_output(&seen[1], "call-big").expect("refusal");
+    assert!(
+        refusal.contains("does not fit the small-helper subagent request"),
+        "{refusal}"
+    );
+    assert!(refusal.contains("Select fewer messages"), "{refusal}");
+    let children = harness.db.children_of("parent").expect("children");
+    assert_eq!(children.len(), 1, "only the plain call created a child");
+    assert!(
+        seen.iter().all(
+            |request| !request.to_string().contains("evidence evidence evidence")
+                || request["model"] == "m"
+        ),
+        "no oversized quoted request reached the tiny child model"
     );
 }
