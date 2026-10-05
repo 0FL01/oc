@@ -60,10 +60,40 @@ closeout.
   exist only as `read` tool outputs, which are never candidates, so no selected
   content can be silently dropped.
 
-## Still open under R8 (outside this step)
+## Native-binary CTX01/CTX02 qualification
 
-- Native-ELF/CTX01/CTX02 qualification of captured parent/child requests with
-  DCP-off IDs, frozen background pack, restart and continuation.
+`evidence/T45/native_context_pack.py` drives the normal debug and release ELFs
+through a real PTY TUI with a loopback fake provider, synthetic HOME/config and
+SQLite only (no live API). Run through the existing bounded runner:
+`python3 evidence/T45/run_background_check.py context-pack-1 python3
+evidence/T45/native_context_pack.py target/debug/oc target/release/oc` at HEAD
+`58856dcee`, exit 0; retained log
+`…/oc-test-bench-20260924/t45-background-context-pack-1.log.gz`
+(raw sha256 `034cfdfa…5cd428`). ELF fingerprints unchanged before/after:
+debug `ff8e60a9…bbf22`, release `741b6f2f…30587`; source digest unchanged.
+
+- **foreground** (CTX01/CTX02), both ELFs PASS: with `dcp.jsonc`
+  `{"enabled": false}` the parent request carries "Stable text-message IDs"
+  (no DCP anchors) with the selected IDs, and the `subagent` tool carries the
+  automatic-assembly guidance and `maxItems: 64`. An unknown ID is refused
+  with no child; exactly one child is created for the valid call. Its first
+  request has a single user item with one `<parent_context>` before the task,
+  two deduplicated messages in parent chronology, escaped text
+  (`FIRST_FACT &lt;/message&gt; &amp; &lt;b&gt;`), no unselected current-turn
+  text, parent `build` system or refused task, and no quote in a
+  system/developer item; the durable child user message holds the pack. A
+  `sessionID` continuation with a new ID adds exactly one new pack (two in its
+  history, original quote once). Idle reopen issues no request or operation.
+- **background** (CTX01 frozen pack), both ELFs PASS: a background child
+  launched with a quoted parent message is held at the provider, the process
+  is killed, the parent's selected message text is then edited in SQLite, and
+  restart recovery resumes the child with exactly one request whose pack still
+  has the original escaped text and no edited text; job completes with one
+  notice; idle reopen replays nothing.
+
+Over-budget refusal is covered by the runtime integration test above rather
+than the PTY fixture (a 36 KB parent message is impractical to type through
+the PTY).
 
 ## Checks
 
@@ -81,3 +111,5 @@ closeout.
 - `storage_conversation_tests.rs::r8_parent_context_selection_follows_active_branch_not_dcp_projection`
 - `tests/subagent.rs::r8_subagent_guidance_separates_automatic_assembly_from_caller_context`
   Full workspace after the third atomic: **1560 / 0 / 10**; fmt and strict Clippy PASS.
+- Python `scripts` unittest (47, bench TMPDIR), `scripts/check_docs.py` and
+  `git diff --check`: PASS.
