@@ -25,6 +25,7 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
         "plugin": [
             "@tarquinen/opencode-dcp", "@tarquinen/opencode-dcp",
             "@tarquinen/opencode-dcp@latest", "@tarquinen/opencode-dcp@3.1.15",
+            "@tarquinen/opencode-dcp@3.2.0",
             global.join("plugin/openproxy-models.js"),
             project.join("plugins/openproxy-models.js"),
             "@prevalentware/opencode-goal-plugin@0.1.49",
@@ -61,9 +62,9 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
         inventory.active_modules,
         [NativePlugin::Dcp, NativePlugin::OpenProxyModels]
     );
-    assert_eq!(inventory.entries.len(), 11);
+    assert_eq!(inventory.entries.len(), 12);
     assert_eq!(inventory.omitted, 0);
-    for entry in &inventory.entries[..6] {
+    for entry in &inventory.entries[..7] {
         assert_eq!(entry.status, PluginStatus::Active);
         assert!(entry.current.is_some());
         assert!(entry.diagnostic.is_none());
@@ -77,11 +78,22 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
         inventory.entries[2].requested
     );
     assert_eq!(inventory.entries[0].current, inventory.entries[2].current);
-    assert_eq!(inventory.entries[4].current, inventory.entries[5].current);
-    let ignored = &inventory.entries[6];
+    // Exact 3.2.0 and legacy 3.1.15 keep their requested spelling but report the
+    // one current compiled module revision, never a separate old runtime.
+    assert_ne!(
+        inventory.entries[3].requested,
+        inventory.entries[4].requested
+    );
+    assert_eq!(inventory.entries[3].current, inventory.entries[4].current);
+    assert_eq!(
+        inventory.entries[4].current.as_deref(),
+        Some("native-dcp-d637981555a18c3992472268a0657a948925d5fa")
+    );
+    assert_eq!(inventory.entries[5].current, inventory.entries[6].current);
+    let ignored = &inventory.entries[7];
     assert_eq!(ignored.status, PluginStatus::Ignored);
     assert!(ignored.current.is_none() && ignored.module.is_none());
-    for (index, entry) in inventory.entries.iter().enumerate().skip(7) {
+    for (index, entry) in inventory.entries.iter().enumerate().skip(8) {
         assert_eq!(entry.status, PluginStatus::Failed);
         assert!(entry.current.is_none() && entry.module.is_none());
         let diagnostic = entry.diagnostic.as_ref().unwrap();

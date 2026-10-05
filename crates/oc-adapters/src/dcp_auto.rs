@@ -41,8 +41,9 @@ pub const DEFAULT_ITERATION_THRESHOLD: u64 = 15;
 pub const DEFAULT_PURGE_AFTER_TURNS: u64 = 4;
 /// Large error-input bound (bytes).
 pub const LARGE_INPUT_BYTES: usize = 4096;
-/// Visible compiled module revision for both admitted aliases.
-pub const DCP_MODULE_REVISION: &str = "11f6517780a502512a3467645074be447cb0369e";
+/// Visible compiled module revision for every admitted alias: the qualified
+/// DCP 3.2.0 adopted subset (`evidence/T45/dcp320.md`), not full 3.2.0 parity.
+pub const DCP_MODULE_REVISION: &str = "d637981555a18c3992472268a0657a948925d5fa";
 
 /// Typed DCP-auto errors (bounds only, no contents).
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -1144,6 +1145,7 @@ pub fn resolve_dcp_module(identity: &str) -> Result<DcpModuleId, DcpAutoError> {
     if matches!(
         identity,
         "@tarquinen/opencode-dcp"
+            | "@tarquinen/opencode-dcp@3.2.0"
             | "@tarquinen/opencode-dcp@3.1.15"
             | "@tarquinen/opencode-dcp@latest"
     ) {
@@ -1333,9 +1335,22 @@ mod tests {
         let bare = resolve_dcp_module("@tarquinen/opencode-dcp").expect("bare");
         let pinned = resolve_dcp_module("@tarquinen/opencode-dcp@3.1.15").expect("pinned");
         let latest = resolve_dcp_module("@tarquinen/opencode-dcp@latest").expect("latest");
+        let current = resolve_dcp_module("@tarquinen/opencode-dcp@3.2.0").expect("3.2.0");
         assert_eq!(bare, pinned);
         assert_eq!(bare, latest);
-        assert!(!bare.revision.is_empty());
+        assert_eq!(
+            bare, current,
+            "legacy 3.1.15 is an alias of the one compiled module"
+        );
+        assert_eq!(bare.revision, "d637981555a18c3992472268a0657a948925d5fa");
+        for rejected in [
+            "@3.1.14", "@3.1.16", "@3.2.1", "@^3.2.0", "@~3.2.0", "@3.2", "@v3.2.0", "@3.2.0 ",
+        ] {
+            assert!(
+                resolve_dcp_module(&format!("@tarquinen/opencode-dcp{rejected}")).is_err(),
+                "{rejected}"
+            );
+        }
         assert!(resolve_dcp_module("@tarquinen/opencode-dcp@3.1.14").is_err());
         assert!(resolve_dcp_module("https://x.invalid/p.js").is_err());
         let (nested, warnings) = load_config(&serde_json::json!({

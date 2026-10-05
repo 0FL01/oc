@@ -8,12 +8,12 @@
     "verification": "documentary-source-recon-2026-09-20"
   },
   "dcp": {
-    "repo": "Opencode-DCP/opencode-dynamic-context-pruning",
-    "commit": "11f6517780a502512a3467645074be447cb0369e",
+    "repo": "Tarquinen/opencode-dynamic-context-pruning",
+    "commit": "d637981555a18c3992472268a0657a948925d5fa",
     "package": "@tarquinen/opencode-dcp",
-    "version": "3.1.15",
+    "version": "3.2.0",
     "license": "AGPL-3.0-or-later",
-    "verification": "documentary-this-turn"
+    "verification": "source-delta-qualified-2026-10-05 evidence/T45/dcp320.md; previous 3.1.15 11f6517780a502512a3467645074be447cb0369e"
   },
   "openproxy": {
     "repo": "0FL01/openproxy",

@@ -1291,6 +1291,7 @@ pub fn classify_plugin(identity: &str, config_root: &str) -> Result<&'static str
     if matches!(
         identity,
         "@tarquinen/opencode-dcp"
+            | "@tarquinen/opencode-dcp@3.2.0"
             | "@tarquinen/opencode-dcp@3.1.15"
             | "@tarquinen/opencode-dcp@latest"
     ) {
@@ -2454,6 +2455,23 @@ mod tests {
             classify_plugin("/r/plugins/openproxy-models.js", "/r").expect("disc"),
             "discovery"
         );
+        assert_eq!(
+            classify_plugin("@tarquinen/opencode-dcp@3.2.0", "/r").expect("current"),
+            "dcp"
+        );
+        for rejected in [
+            "@3.1.16",
+            "@3.2.1",
+            "@^3.2.0",
+            "@>=3.2.0",
+            "@3.2",
+            "@3.2.0-beta",
+        ] {
+            assert!(
+                classify_plugin(&format!("@tarquinen/opencode-dcp{rejected}"), "/r").is_err(),
+                "{rejected}"
+            );
+        }
         assert!(classify_plugin("@tarquinen/opencode-dcp@3.1.14", "/r").is_err());
         assert!(classify_plugin("/other/openproxy-models.js", "/r").is_err());
         assert!(classify_plugin("https://x.invalid/p.js", "/r").is_err());

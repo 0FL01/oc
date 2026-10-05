@@ -80,7 +80,7 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
         "@tarquinen/opencode-dcp",
         "@tarquinen/opencode-dcp@3.1.15",
         "@tarquinen/opencode-dcp@latest",
-        "@tarquinen/opencode-dcp",
+        "@tarquinen/opencode-dcp@3.2.0",
         native_alias,
         native_alias,
         "@tarquinen/opencode-dcp@3.1.16",

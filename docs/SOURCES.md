@@ -69,6 +69,18 @@ provenance stay accurate; adopted fixtures/derivatives later append their own re
 
 [D19] https://github.com/Tarquinen/opencode-dynamic-context-pruning/blob/d637981555a18c3992472268a0657a948925d5fa/lib/config.ts
 
+Adopted 3.2.0 derivative records (2026-10-05, AGPL-3.0-or-later, commit
+`d637981555a18c3992472268a0657a948925d5fa`; translated to native Rust tests, the TS
+sources/tests were not executed). D14/D15 → `dcp_auto.rs::tool_is_protected` alias
+matching and `dcp_auto/controls_tests.rs::dcp320_protected_tool_names_follow_native_aliases`;
+D16 → existing native projection tests (no product change); D17 →
+`runtime_compaction_tests.rs::compaction_auto_threshold_and_known_overflow_keep_tool_effect_once`
+summary-request assertions; D18 range/restart beyond 9999 →
+`dcp.rs::tests::dcp320_ids_beyond_9999_keep_block_order_nesting_and_restart`
+(normalized to native `m{seq}`/`b{id}`, no compact IDs). Mapping and native
+differences: `evidence/T45/dcp320.md`. D1–D4 and the 3.1.15 display attribution remain
+historical sources of the earlier port.
+
 ## OpenProxy
 
 [P1] https://github.com/0FL01/openproxy/blob/4ef76dbce2cdbb85206cbe5e59acbad9d96ae387/contracts/lean-proxy.md

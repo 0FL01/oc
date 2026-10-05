@@ -70,6 +70,19 @@
    aliases idempotent, без Node/Bun/npm resolution. Completed T51 evidence остаётся
    historical; новые receipts additive, не whole-T45/T44 done-dependency.
 
+### Qualification result — 2026-10-05
+
+Adopted delta qualified in four slices (`evidence/T45/dcp320.md`): protected tool
+aliases (RED fixed), IDs beyond 9999 and nested blocks, compaction summary requests
+without nudges/anchors and unchanged cadence, then the coordinated pin.
+`DCP_MODULE_REVISION` and the DCP operational pin in `planning/baseline.lock.json`
+are now `d637981555a18c3992472268a0657a948925d5fa` (3.2.0); `classify_plugin` and
+`resolve_dcp_module` admit exact `@3.2.0` plus bare/`@latest`/legacy `@3.1.15` as
+names of the one compiled module; other versions, ranges and lookalikes still reject
+before effects. The revision names the source of the adopted subset, not full 3.2.0
+parity; CodeMode, compact IDs and the TS host remain out of scope, and the native
+differences listed above stay authoritative.
+
 T44 остаётся PAUSED: VIS38/display и donor short-terminal fixes квалифицируются
 отдельно после explicit resume. V2 report hook с pending display не переопределяет
 утверждённый compression-card контракт. План не создаёт task/gate/store/framework,
