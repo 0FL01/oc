@@ -2070,3 +2070,217 @@ async fn r10_file_tool_family_follows_each_lane_model_and_next_root_request() {
         assert!(fixed <= 1, "no duplicated fixed lane");
     }
 }
+
+#[tokio::test]
+async fn r9_child_renews_own_task_pack_hot_before_final_and_keeps_raw() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    runtime
+        .publish_subagents(Some(catalog(1, vec![agent("helper", false, None)])))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, _) = Fake::start(vec![sse_delta("PACK_FACT answer") + &sse_completed()]);
+    runtime
+        .run_turn(params(
+            "parent",
+            "PACK_FACT source",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("seed");
+    let user = message_ids(&harness.db, "parent")[0].0.clone();
+    std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
+    // Parent user m0003 → child task m0004 (one global message sequence).
+    let renew = |call: &str, summary: &str| {
+        sse_tool_call(
+            call,
+            "compress",
+            &serde_json::json!({"topic":"renew","content":[{"startId":"m0004","endId":"m0004","summary":summary}]}),
+        ) + &sse_completed()
+    };
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "call-sub",
+            serde_json::json!({"agent":"helper","description":"Renew","prompt":"TASK_DETAIL_OBSOLETE do work","context_message_ids":[user]}),
+        ) + &sse_completed(),
+        sse_tool_call(
+            "child-read",
+            "read",
+            &serde_json::json!({"path":"note.txt"}),
+        ) + &sse_completed(),
+        renew("child-renew-1", "WORKING_SUMMARY_ONE keep PACK_FACT"),
+        renew("child-renew-2", "WORKING_SUMMARY_TWO keep PACK_FACT"),
+        sse_delta("child final") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "delegate",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests);
+    assert_eq!(seen.len(), 6);
+    let first = seen[1]["input"].to_string();
+    assert!(
+        first.contains("TASK_DETAIL_OBSOLETE") && first.contains("parent_context"),
+        "exact first delivery"
+    );
+    let sql = rusqlite::Connection::open(harness.db.root().join("oc.sqlite")).unwrap();
+    let outputs: Vec<String> = sql
+        .prepare("SELECT output FROM tool_operations WHERE name='compress' ORDER BY rowid")
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert_eq!(outputs.len(), 2);
+    assert!(
+        outputs.iter().all(|o| o.contains("task_renewal_accepted")),
+        "{outputs:?}"
+    );
+    assert!(
+        function_output(&seen[3], "child-renew-1").is_none(),
+        "renewal group stays in RAW only"
+    );
+    for (index, current, previous) in [
+        (3, "WORKING_SUMMARY_ONE", None),
+        (4, "WORKING_SUMMARY_TWO", Some("WORKING_SUMMARY_ONE")),
+    ] {
+        let wire = seen[index]["input"].to_string();
+        assert!(wire.contains(current), "renewed HOT in request {index}");
+        assert!(
+            !wire.contains("TASK_DETAIL_OBSOLETE") && !wire.contains("parent_context"),
+            "task/pack replaced in request {index}"
+        );
+        if let Some(previous) = previous {
+            assert!(
+                !wire.contains(previous),
+                "successive renewals replace, not accumulate"
+            );
+        }
+        assert!(
+            function_output(&seen[index], "child-read").is_some(),
+            "closed groups retained"
+        );
+        assert!(
+            !seen[index]["input"].as_array().unwrap().iter().any(|item| {
+                matches!(item["role"].as_str(), Some("developer" | "system"))
+                    && item.to_string().contains(current)
+            }),
+            "summary keeps user-level authority"
+        );
+    }
+    let child = harness.db.children_of("parent").unwrap()[0].clone();
+    let stored = messages(&harness.db, &child);
+    assert!(
+        stored[0].1.contains("TASK_DETAIL_OBSOLETE"),
+        "RAW message unchanged"
+    );
+    let (turn, hot): (String, String) = sql
+        .query_row(
+            "SELECT id,result FROM turns WHERE session_id=?1",
+            [&child],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert!(
+        hot.contains("WORKING_SUMMARY_TWO") && !hot.contains("TASK_DETAIL_OBSOLETE"),
+        "latest HOT committed"
+    );
+    let raw = harness
+        .db
+        .raw_turn_segment(&turn, 1, 1 << 20)
+        .unwrap()
+        .expect("sealed RAW segment");
+    assert!(
+        raw.contains("TASK_DETAIL_OBSOLETE"),
+        "original task sealed in RAW"
+    );
+}
+
+#[tokio::test]
+async fn r9_root_task_renewal_and_spanning_range_keeps_tail_refusal() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    std::fs::write(harness._project.path().join("note.txt"), "note").unwrap();
+    runtime.create_session("root").expect("session");
+    let (base, requests) = Fake::start(vec![
+        sse_tool_call("root-read", "read", &serde_json::json!({"path":"note.txt"}))
+            + &sse_completed(),
+        sse_tool_call(
+            "root-renew",
+            "compress",
+            &serde_json::json!({"topic":"renew","content":[{"startId":"m0001","endId":"m0001","summary":"ROOT_SUMMARY still needed"}]}),
+        ) + &sse_completed(),
+        sse_delta("root final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "root",
+            "ROOT_TASK_OBSOLETE long task",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests);
+    let last = seen[2]["input"].to_string();
+    assert!(
+        last.contains("ROOT_SUMMARY") && !last.contains("ROOT_TASK_OBSOLETE"),
+        "{last}"
+    );
+    assert!(function_output(&seen[2], "root-read").is_some());
+    assert!(
+        messages(&harness.db, "root")[0]
+            .1
+            .contains("ROOT_TASK_OBSOLETE")
+    );
+
+    runtime.create_session("span").expect("span session");
+    let (base, _) = Fake::start(vec![sse_delta("old answer") + &sse_completed()]);
+    runtime
+        .run_turn(params(
+            "span",
+            "OLD question",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("seed");
+    let ids = message_ids(&harness.db, "span");
+    let (base, requests) = Fake::start(vec![
+        sse_tool_call(
+            "span-compress",
+            "compress",
+            &serde_json::json!({"topic":"span","content":[{"startId":ids[0].0,"endId":"m0005","summary":"spanning"}]}),
+        ) + &sse_completed(),
+        sse_delta("span final") + &sse_completed(),
+    ]);
+    assert_eq!(message_ids(&harness.db, "span").len(), 2);
+    runtime
+        .run_turn(params(
+            "span",
+            "SPAN_TASK",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("span turn");
+    assert_eq!(message_ids(&harness.db, "span")[2].0, "m0005");
+    let seen = child_requests(&requests);
+    let output = function_output(&seen[1], "span-compress").expect("output");
+    assert!(output.contains("unfinished tail"), "{output}");
+    assert!(seen[1]["input"].to_string().contains("SPAN_TASK"));
+}

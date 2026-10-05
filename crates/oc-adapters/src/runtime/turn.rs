@@ -716,6 +716,76 @@ fn emit_tool_finish_with_metadata(
     );
 }
 
+impl Runtime<'_> {
+    /// R9: `compress` whose single range is exactly the running turn's
+    /// accepted task message renews that task/pack HOT instead of planning a
+    /// whole-past block (which would cover the unfinished tail).
+    fn task_renewal_summary(
+        &self,
+        turn: &str,
+        call: &crate::tools::ToolCall,
+    ) -> Option<Result<String, String>> {
+        if call.name != COMPRESS_TOOL {
+            return None;
+        }
+        let content = call.arguments.get("content")?.as_array()?;
+        let [range] = content.as_slice() else {
+            return None;
+        };
+        let start = range.get("startId")?.as_str()?;
+        if range.get("endId")?.as_str()? != start {
+            return None;
+        }
+        if self.db.turn_user_message(turn).ok()?.as_deref() != Some(start) {
+            return None;
+        }
+        Some(
+            crate::dcp::validate_range_args(&call.arguments)
+                .map_err(|error| error.to_string())
+                .map(|(_, ranges)| ranges[0].summary.trim().to_string()),
+        )
+    }
+
+    /// Commit an admitted task renewal at a closed boundary: RAW delta is
+    /// sealed unchanged and the new HOT carries the summary in place of the
+    /// task. Any failure leaves the previous HOT in force.
+    fn commit_task_renewal(
+        &self,
+        turn_log: &mut TurnLog,
+        notice_seq: i64,
+    ) -> Result<bool, RuntimeError> {
+        let Some(summary) = turn_log.task_renewal.clone() else {
+            return Ok(false);
+        };
+        let counts = turn_log.closed_counts();
+        // The sealed delta is the exact durable checkpoint (it records the
+        // admitted intent); `prepare_closed_segment` drops it from the new HOT.
+        let prepared = turn_log
+            .renewed_task_checkpoint(&summary, counts)
+            .and_then(|working| turn_log.prepare_closed_segment(counts, working, notice_seq));
+        let committed = match prepared {
+            Ok((segment, hot)) => self
+                .db
+                .commit_closed_turn_segment_selected(turn_log, &segment, &hot, None, &[], None)
+                .ok()
+                .map(|()| hot),
+            Err(_) => None,
+        };
+        match committed {
+            Some(hot) => {
+                *turn_log = hot;
+                Ok(true)
+            }
+            None => {
+                turn_log.task_renewal = None;
+                self.db
+                    .checkpoint_turn(&turn_log.turn_id, &turn_log.to_json().to_string())?;
+                Ok(false)
+            }
+        }
+    }
+}
+
 /// Persist one tool outcome, then notify the live event sink. The event can
 /// never describe an outcome that was not durably recorded.
 #[allow(clippy::too_many_arguments)]
@@ -871,7 +941,17 @@ impl<'a> Runtime<'a> {
                 other => other.to_string(),
             })?;
         }
-        let mut compression_plan = if call.name == COMPRESS_TOOL {
+        let renewal = self.task_renewal_summary(turn, call);
+        if let Some(renewal) = &renewal {
+            if !compress_available {
+                return Err("compress excluded by issuing request".into());
+            }
+            renewal.clone()?;
+            if compression_permission == Some(Permission::Ask) {
+                return Err("in-task task/pack renewal needs an allowed compress; Ask is not offered for it".into());
+            }
+        }
+        let mut compression_plan = if call.name == COMPRESS_TOOL && renewal.is_none() {
             Some(self.preflight_compression(session, call, compress_available)?)
         } else {
             None
@@ -2928,6 +3008,14 @@ impl<'a> Runtime<'a> {
                 anchors = dcp_config_input(&projected, &dcp_config, compress_available);
             }
             closed_boundary = Some((turn_log.closed_counts(), shell_notice_seq));
+            if turn_log.task_renewal.is_some()
+                && self.commit_task_renewal(&mut turn_log, shell_notice_seq)?
+            {
+                // Sealed into RAW; the ongoing report keeps only its hot tail.
+                closed_boundary = None;
+                text.clear();
+                calls.clear();
+            }
             if !units_have_calls(&units) {
                 break;
             }
@@ -3925,6 +4013,39 @@ impl<'a> Runtime<'a> {
                     input: input.clone(),
                 },
             );
+            if rejection.is_none()
+                && let Assembled::Call(call) = unit
+                && let Some(renewal) = self.task_renewal_summary(turn_id, call)
+            {
+                let (state, output) = match renewal {
+                    Ok(summary) => {
+                        turn_log.task_renewal = Some(summary);
+                        (
+                            "completed",
+                            serde_json::json!({
+                                "status": "task_renewal_accepted",
+                                "appliesFrom": "next request",
+                                "note": "Your summary replaces the current task text in working memory; the original task stays durable.",
+                            })
+                            .to_string(),
+                        )
+                    }
+                    Err(reason) => ("failed", format!("error: compress: {reason}")),
+                };
+                turn_log.input.push(InputItem::FunctionCallOutput {
+                    call_id: id.clone(),
+                    output: output.clone(),
+                });
+                record_tool_finish(
+                    &self.db, tool_event, &op, name, state, &output, turn_id, turn_log,
+                )?;
+                records.push(CallRecord {
+                    name: name.into(),
+                    state: state.into(),
+                    output: truncate(&output, REPORT_OUTPUT_CAP),
+                });
+                continue;
+            }
             if rejection.is_none()
                 && let Assembled::Call(call) = unit
                 && call.name == COMPRESS_TOOL

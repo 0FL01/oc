@@ -1465,6 +1465,9 @@ pub struct TurnLog {
     pub(crate) raw_prefix: Option<turn_history::RawPrefix>,
     /// Selected task/checkpoint facts, never re-appended as original RAW.
     pub(crate) working: Option<serde_json::Value>,
+    /// R9: model-authored replacement for the current task/pack HOT, admitted
+    /// by `compress` and committed at the next closed boundary.
+    pub(crate) task_renewal: Option<String>,
     /// Only retained input origins/occurrences; never a lifetime call-id map.
     pub(crate) input_origins: Vec<Option<usize>>,
     pub(crate) call_occurrences: std::collections::BTreeMap<usize, u64>,
@@ -1508,6 +1511,7 @@ impl TurnLog {
         Self {
             raw_prefix: None,
             working: None,
+            task_renewal: None,
             input_origins: Vec::new(),
             call_occurrences: std::collections::BTreeMap::new(),
             requests: Vec::new(),
@@ -1568,6 +1572,9 @@ impl TurnLog {
         if let Some(working) = &self.working {
             value["working"] = working.clone();
         }
+        if let Some(summary) = &self.task_renewal {
+            value["task_renewal"] = summary.clone().into();
+        }
         if !self.input_origins.is_empty() {
             value["input_origins"] = serde_json::to_value(&self.input_origins).expect("origins");
         }
@@ -1597,9 +1604,15 @@ impl TurnLog {
                 return Err("foreign hot working checkpoint".into());
             }
         }
+        let task_renewal = match value.get("task_renewal") {
+            None | Some(serde_json::Value::Null) => None,
+            Some(serde_json::Value::String(summary)) => Some(summary.clone()),
+            Some(_) => return Err("invalid task renewal".into()),
+        };
         let log = Self {
             raw_prefix,
             working,
+            task_renewal,
             input_origins: value
                 .get("input_origins")
                 .map(|v| serde_json::from_value(v.clone()))

@@ -558,6 +558,18 @@ impl Db {
         }))
     }
 
+    /// Accepted task message of one turn, if admitted.
+    pub(crate) fn turn_user_message(&self, turn: &str) -> Result<Option<String>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        conn.query_row(
+            "SELECT user_message FROM turn_acceptances WHERE turn_id=?1",
+            [turn],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(Into::into)
+    }
+
     /// R8: resolve caller-selected parent messages against one read snapshot.
     /// Candidates are active-branch canonical user messages (an admitted turn's
     /// accepted message) and committed assistant answers at or before the
