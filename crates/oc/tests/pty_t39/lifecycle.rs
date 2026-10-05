@@ -1110,6 +1110,20 @@ fn s07_pty_equal_view_archive_resource_samples() {
         "recovered viewport differs"
     );
     assert_eq!(small.request, large.request, "Responses requests differ");
+    // T45/R10: this fixture permits no `skill` action, so neither the skill
+    // tool nor its automatic preview is advertised (deny is not shown as allow).
+    assert!(
+        small.request["tools"]
+            .as_array()
+            .expect("tools")
+            .iter()
+            .all(|tool| tool["name"] != "skill")
+    );
+    assert!(
+        !small.request["input"]
+            .to_string()
+            .contains("Available native skills")
+    );
     assert_eq!(small.requests.len(), 2, "small: two provider responses");
     assert_eq!(large.requests.len(), 2, "large: two provider responses");
     assert_eq!(
@@ -1121,7 +1135,7 @@ fn s07_pty_equal_view_archive_resource_samples() {
             .as_array()
             .expect("Responses input")
             .len(),
-        202,
+        201,
         "200 shared messages, current prompt, and common preamble"
     );
     assert_eq!(

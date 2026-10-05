@@ -459,6 +459,8 @@ pub struct SkillEntry {
     pub description: String,
     /// Bounded body snapshot.
     pub body: String,
+    /// `false` only when the skill opted out of the automatic preview.
+    pub autoinvoke: bool,
 }
 
 /// Model-facing skill view: id/name/description only, never bodies.
@@ -491,6 +493,7 @@ impl SkillSnapshot {
                             name: meta.name,
                             description: meta.description,
                             body: text.clone(),
+                            autoinvoke: meta.autoinvoke != Some(false),
                         },
                     );
                 }
@@ -508,12 +511,13 @@ impl SkillSnapshot {
 
     /// Model projection: bounded id/name/description without bodies.
     ///
-    /// Skills without a description remain callable by id but stay out of
-    /// the auto-invoke guidance (upstream parity).
+    /// Skills without a description or with `autoinvoke: false` remain
+    /// callable by id but stay out of the auto-invoke guidance (upstream
+    /// parity). Entries are ordered by id.
     pub fn projection(&self) -> Vec<SkillView> {
         self.entries
             .iter()
-            .filter(|(_, entry)| !entry.description.trim().is_empty())
+            .filter(|(_, entry)| !entry.description.trim().is_empty() && entry.autoinvoke)
             .map(|(id, entry)| SkillView {
                 id: id.clone(),
                 name: entry.name.clone(),

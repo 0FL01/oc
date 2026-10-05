@@ -40,6 +40,27 @@ pub(super) fn permission_rank(level: Permission) -> u8 {
     }
 }
 
+/// Automatic skills preview for one lane: pinned id order, entries whose
+/// `skill` permission for that id is Deny are omitted (donor
+/// `Skill.available`); explicit `skill` calls keep their own admission.
+pub(super) fn skills_input(
+    skills: &crate::tools::SkillSnapshot,
+    permissions: &BTreeMap<String, Permission>,
+    rules: &crate::permissions::PermissionRules,
+) -> Option<InputItem> {
+    let policy = RuntimePolicy::with_rules(permissions, rules);
+    let visible: Vec<_> = skills
+        .projection()
+        .into_iter()
+        .filter(|view| policy.effect("skill", &view.id) != Permission::Deny)
+        .collect();
+    if visible.is_empty() {
+        return None;
+    }
+    let projection = serde_json::to_string(&visible).ok()?;
+    lane_fixed_input(None, "", Some(&projection)).pop()
+}
+
 /// Developer messages a lane starts from: agent prompt, instructions, skills.
 pub(super) fn lane_fixed_input(
     agent_prompt: Option<&str>,
@@ -3013,15 +3034,23 @@ impl<'a> Runtime<'a> {
                 .as_ref()
                 .filter(|_| agent.color.is_none())
                 .and_then(|catalog| catalog.agents.keys().position(|id| id == &agent.id)),
-            fixed_input: lane_fixed_input(
-                Some(&agent.prompt),
-                if workspace.instruction_roots.is_empty() {
-                    &workspace.instructions
-                } else {
-                    ""
-                },
-                workspace.skills_projection.as_deref(),
-            ),
+            fixed_input: {
+                let mut input = lane_fixed_input(
+                    Some(&agent.prompt),
+                    if workspace.instruction_roots.is_empty() {
+                        &workspace.instructions
+                    } else {
+                        ""
+                    },
+                    None,
+                );
+                input.extend(skills_input(
+                    &workspace.skills,
+                    &permissions,
+                    &permission_rules,
+                ));
+                input
+            },
             agent_digest: agent.digest.clone(),
             permissions,
             permission_rules,

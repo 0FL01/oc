@@ -1790,10 +1790,11 @@ impl<'a> Runtime<'a> {
             .expect("workspace lock")
             .instruction_roots
             .is_empty();
+        // The skills preview is appended per lane after its final policy.
         let fixed_input = lane_fixed_input(
             agent_prompt,
             if shared_sources { "" } else { instructions },
-            skills_projection.as_deref(),
+            None,
         );
         if let Some(home) = self.parent_env.get("HOME") {
             agent_permission_rules.expand_home(home);
@@ -2184,12 +2185,18 @@ impl<'a> Runtime<'a> {
             &workspace.agent_permission_rules,
         );
         permission_rules.bind_plan_project(&self.roots.project);
+        let mut fixed_input = workspace.fixed_input.clone();
+        fixed_input.extend(skills_input(
+            &workspace.skills,
+            &permissions,
+            &permission_rules,
+        ));
         TurnLane {
             manual_compression: false,
             owning_operation: None,
             agent_id: workspace.agent_id.clone(),
             agent_color_index: workspace.agent_color_index,
-            fixed_input: workspace.fixed_input.clone(),
+            fixed_input,
             agent_digest: workspace.agent_digest.clone(),
             permissions,
             permission_rules,
@@ -2274,5 +2281,5 @@ pub(crate) use context::{
     apply_dcp_projection, dcp_call_contents, dcp_call_identities, dcp_contents,
 };
 use mcp::{McpGeneration, mcp_instruction_input};
-use turn::lane_fixed_input;
 pub(crate) use turn::resolve_subagent_model;
+use turn::{lane_fixed_input, skills_input};

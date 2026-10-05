@@ -1863,3 +1863,95 @@ async fn r8_subagent_guidance_separates_automatic_assembly_from_caller_context()
     assert_eq!(ids["type"], "array");
     assert_eq!(ids["maxItems"], 64);
 }
+
+#[tokio::test]
+async fn r10_skill_preview_is_ordered_and_filtered_per_lane_policy() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    let skills = [
+        ("zeta", "---\ndescription: Z skill\n---\nZETA_BODY"),
+        ("alpha", "---\ndescription: A skill\n---\nALPHA_BODY"),
+        ("secret", "---\ndescription: S skill\n---\nSECRET_BODY"),
+        (
+            "manual",
+            "---\ndescription: M skill\nmetadata:\n  opencode/autoinvoke: \"FALSE\"\n---\nMANUAL_BODY",
+        ),
+        ("bare", "---\nname: Bare\n---\nBARE_BODY"),
+    ]
+    .map(|(id, text)| (id.to_string(), text.to_string()))
+    .to_vec();
+    let rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"permission": {"skill": {"secret": "deny"}}}),
+    )
+    .unwrap();
+    runtime
+        .publish_workspace(
+            None,
+            "",
+            skills,
+            BTreeMap::new(),
+            None,
+            Some("build".into()),
+            None,
+            BTreeMap::new(),
+            rules,
+            Default::default(),
+        )
+        .expect("workspace");
+    let mut helper = agent("helper", false, None);
+    helper.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
+        &serde_json::json!({"permission": {"skill": {"zeta": "deny"}}}),
+    )
+    .unwrap();
+    runtime
+        .publish_subagents(Some(catalog(1, vec![helper])))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, requests) = Fake::start(vec![
+        subagent_call(
+            "call-sub",
+            serde_json::json!({"agent": "helper", "description": "Skills", "prompt": "list"}),
+        ) + &sse_completed(),
+        sse_delta("child ok") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "go",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let seen = child_requests(&requests);
+    let preview = |request: &serde_json::Value| {
+        request["input"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.to_string())
+            .find(|text| text.contains("Available native skills"))
+    };
+    let parent = preview(&seen[0]).expect("parent preview");
+    let child = preview(&seen[1]).expect("child preview");
+    assert!(
+        parent.find("alpha").unwrap() < parent.find("zeta").unwrap(),
+        "{parent}"
+    );
+    for absent in ["secret", "manual", "bare", "_BODY"] {
+        assert!(!parent.contains(absent), "{absent}: {parent}");
+        assert!(!child.contains(absent), "{absent}: {child}");
+    }
+    assert!(
+        child.contains("alpha") && !child.contains("zeta"),
+        "{child}"
+    );
+    let whole = serde_json::to_string(&seen).unwrap();
+    assert!(
+        !whole.contains("ALPHA_BODY"),
+        "bodies only through the skill tool"
+    );
+}

@@ -257,6 +257,7 @@ mod tests {
                 id: "s1".to_string(),
                 name: "S1".to_string(),
                 description: "does things".to_string(),
+                autoinvoke: None,
             }],
         )
     }

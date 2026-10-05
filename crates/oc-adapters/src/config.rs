@@ -1328,6 +1328,9 @@ pub struct SkillMeta {
     pub name: String,
     /// Description (empty when frontmatter omits it).
     pub description: String,
+    /// Donor `metadata."opencode/autoinvoke"`; `Some(false)` keeps the skill
+    /// callable by id but out of the automatic preview.
+    pub autoinvoke: Option<bool>,
 }
 
 /// One frontmatter line with its indentation width.
@@ -1600,10 +1603,25 @@ pub fn parse_skill(id: &str, text: &str) -> Result<SkillMeta, ConfigError> {
             });
         }
     };
+    // Pinned config/plugin/skill-file.ts metadataBoolean: boolean or a
+    // case-insensitive "true"/"false" string; anything else is unset.
+    let autoinvoke = object
+        .get("metadata")
+        .and_then(|metadata| metadata.get("opencode/autoinvoke"))
+        .and_then(|value| match value {
+            serde_json::Value::Bool(value) => Some(*value),
+            serde_json::Value::String(value) => match value.trim().to_ascii_lowercase().as_str() {
+                "true" => Some(true),
+                "false" => Some(false),
+                _ => None,
+            },
+            _ => None,
+        });
     Ok(SkillMeta {
         id: id.to_string(),
         name,
         description,
+        autoinvoke,
     })
 }
 
@@ -2309,6 +2327,31 @@ mod tests {
         let generation =
             assemble(&[src("G/opencode.json", g, true)], &env(&[]), None).expect("gen");
         assert_eq!(generation.provenance["permissions.read"], "G/opencode.json");
+    }
+
+    #[test]
+    fn r10_skill_autoinvoke_metadata_follows_pinned_boolean_parsing() {
+        let parse = |metadata: &str| {
+            parse_skill(
+                "s",
+                &format!(
+                    "---\ndescription: d\nmetadata:\n  opencode/autoinvoke: {metadata}\n---\nbody"
+                ),
+            )
+            .expect("skill")
+            .autoinvoke
+        };
+        assert_eq!(parse("false"), Some(false));
+        assert_eq!(parse("true"), Some(true));
+        assert_eq!(parse("\" FaLsE \""), Some(false));
+        assert_eq!(parse("\"no\""), None);
+        assert_eq!(parse("0"), None);
+        assert_eq!(
+            parse_skill("s", "---\ndescription: d\n---\nbody")
+                .unwrap()
+                .autoinvoke,
+            None
+        );
     }
 
     #[test]
