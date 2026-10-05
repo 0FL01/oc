@@ -229,6 +229,37 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
                 .collect::<Vec<_>>(),
             [4096, 2000, 4096]
         );
+        // T45/R10 consumer of the same receipts: model-relative DCP budget and
+        // managed file-tool guidance follow each request's committed model.
+        assert_eq!(
+            log.requests
+                .iter()
+                .map(|r| (r.context_limit, r.dcp_min_context, r.dcp_max_context))
+                .collect::<Vec<_>>(),
+            [
+                (100000, 40000, 55000),
+                (50000, 20000, 27500),
+                (100000, 40000, 55000)
+            ]
+        );
+        let guidance = |request: &serde_json::Value| {
+            let items: Vec<String> = request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|item| item.to_string())
+                .filter(|text| text.contains("Current request file-mutation tools"))
+                .collect();
+            assert_eq!(items.len(), 1, "{items:?}");
+            items[0].clone()
+        };
+        assert!(guidance(&requests[0]).contains("tools: apply_patch."));
+        assert!(guidance(&requests[1]).contains("tools: write, edit."));
+        assert!(guidance(&requests[2]).contains("tools: apply_patch."));
+        assert_eq!(
+            requests[0]["input"][0], requests[1]["input"][0],
+            "one shared base prompt lane across the model switch"
+        );
         assert_ne!(
             log.requests[0].tool_fingerprint,
             log.requests[1].tool_fingerprint
