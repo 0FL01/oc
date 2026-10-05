@@ -1125,7 +1125,7 @@ impl Db {
                 tx.execute(&format!("DELETE FROM {table} WHERE {predicate}"), [])?;
             }
         }
-        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT 'dcp.projection_owned.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
+        tx.execute("DELETE FROM prefs WHERE key IN (SELECT 'tui.session_location.'||id FROM deleting_family) OR key IN (SELECT 'cache.lineage.'||id FROM deleting_family) OR key IN (SELECT 'dcp.projection_owned.'||id FROM deleting_family) OR key IN (SELECT ?1||json_array(?2,id) FROM deleting_family) OR (substr(key,1,22)='tui.selection.session:' AND json_valid(substr(key,23)) AND json_extract(substr(key,23),'$[2]') IN deleting_family) OR EXISTS(SELECT 1 FROM deleting_family f WHERE substr(CAST(key AS BLOB),1,length(CAST('dcp.nudge.'||f.id||char(0) AS BLOB)))=CAST('dcp.nudge.'||f.id||char(0) AS BLOB))", params![TAB_ADOPTION_PREFIX,location])?;
         tx.execute("DELETE FROM sessions WHERE id IN deleting_family", [])?;
         tx.execute_batch("DELETE FROM deleting_family;")?;
         tx.commit()?;
@@ -1149,6 +1149,28 @@ impl Db {
         )
         .optional()?
         .ok_or(StorageError::SessionNotFound)
+    }
+
+    /// Cache lineage is not affinity or routing. Forks copy the original root
+    /// token transactionally; a child has its own session lineage and affinity.
+    pub(crate) fn cache_lineage(&self, session: &str) -> Result<String, StorageError> {
+        Self::cache_lineage_in(&self.conn.lock().expect("db mutex"), session)
+    }
+
+    pub(crate) fn cache_lineage_in(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<String, StorageError> {
+        Self::require_session(conn, session)?;
+        match Self::get_pref_bounded_in(conn, &format!("cache.lineage.{session}"), 4096)? {
+            BoundedPref::Missing => Ok(session.to_owned()),
+            BoundedPref::Value(value)
+                if !value.is_empty() && !value.chars().any(char::is_control) =>
+            {
+                Ok(value)
+            }
+            _ => Err(StorageError::SessionNotFound),
+        }
     }
 
     /// Direct child session ids of `parent` in insertion order.

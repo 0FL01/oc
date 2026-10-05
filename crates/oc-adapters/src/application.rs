@@ -4133,11 +4133,22 @@ async fn worker(
                         .as_millis() as u64,
                 );
                 let cancel = AtomicBool::new(false);
+                let provider = match crate::provider::context::RequestContext::capture(
+                    db,
+                    &composition.project,
+                    &session.0,
+                ) {
+                    Ok(context) => composition.provider.with_context(context),
+                    Err(error) => {
+                        let _ = ack.send(Err(runtime_error(error)));
+                        continue;
+                    }
+                };
                 let operation = async {
                     let generation = tokio::time::timeout(
                         std::time::Duration::from_secs(10),
                         crate::provider::stream_input_counted(
-                            &composition.provider,
+                            &provider,
                             &selection.id,
                             selection.variant.as_ref(),
                             &input,
@@ -4561,7 +4572,13 @@ async fn worker(
                                     let session = session.clone();
                                     let title_operation = id.0.clone();
                                     let sender = (*title_tx).clone();
-                                    let provider = composition.provider.clone();
+                                    let provider =
+                                        crate::provider::context::RequestContext::capture(
+                                            db,
+                                            &composition.project,
+                                            &session.0,
+                                        )
+                                        .map(|context| composition.provider.with_context(context));
                                     let selection = title_selection.clone();
                                     let prompt = title_prompt.clone();
                                     let instructions = title_agent
@@ -4608,6 +4625,7 @@ async fn worker(
                                             session.0.clone(),
                                             tokio::spawn(async move {
                                                 let title = async {
+                                                    let provider = provider.ok()?;
                                                     let cancel = AtomicBool::new(false);
                                                     let generation = tokio::time::timeout(
                                                         std::time::Duration::from_secs(10),

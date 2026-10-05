@@ -304,6 +304,9 @@ impl Db {
         }
         Self::insert_root_session(&tx, &root)?;
         Self::insert_location_binding(&tx, &root, location)?;
+        let lineage =
+            Self::cache_lineage_in(&tx, source).map_err(|_| refuse("invalid cache lineage"))?;
+        Self::upsert_pref(&tx, &format!("cache.lineage.{root}"), &lineage)?;
         tx.execute("UPDATE sessions SET title=(SELECT CASE WHEN title IS NULL THEN NULL ELSE title || ' (fork)' END FROM sessions WHERE id=?2) WHERE id=?1",params![root,source])?;
         let mut ids = HashMap::new();
         let mut seqs = std::collections::BTreeMap::new();
@@ -579,6 +582,7 @@ mod tests {
             .fork_session("source", &second, "/project", "fixture", "{}")
             .unwrap();
         let root = &fork.session.0;
+        assert_eq!(db.cache_lineage(root).unwrap(), "source");
         let copied = db.read_history_full(root).unwrap();
         assert_eq!(copied.len(), 2);
         let historical = db.load_compression_blocks(root).unwrap();
@@ -620,6 +624,7 @@ mod tests {
         drop(db);
         let db = Db::open(tmp.path()).unwrap();
         db.change_conversation(root, Redo).unwrap();
+        assert_eq!(db.cache_lineage(root).unwrap(), "source");
         assert_eq!(
             db.load_compression_blocks(root).unwrap()[0].summary,
             "FIRST SAVED POST"
@@ -633,6 +638,7 @@ mod tests {
         let nested = db
             .fork_session(&two.session.0, &rows[2].0, "/project", "fixture", "{}")
             .unwrap();
+        assert_eq!(db.cache_lineage(&nested.session.0).unwrap(), "source");
         assert_eq!(
             db.load_compression_blocks(&nested.session.0).unwrap()[0].summary,
             "EXACT ADMISSION CUT"

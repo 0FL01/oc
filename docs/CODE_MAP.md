@@ -84,6 +84,11 @@ cancel and one-attempt dispatch; `config.rs::provider_wire` admits explicit
 package/compatibility/static Messages auth. `provider/settings.rs` admits typed
 wire options and consumes provider body overlays across the common dispatch;
 `settings_tests.rs` covers typed failures and all three real fake-server routes.
+`provider/context.rs` captures project/session/parent identity and supported lineage
+cache fields at the common send boundary; `context_tests.rs`, effective-wire title,
+compaction and recursive-fork tests cover it. `application.rs` currently exceeds
+5k because its supervisor/title paths retain one mutation owner; next natural seam
+is title preparation/reader extraction during T53 durable protocol qualification.
 Nearest tests:
 `provider/{chat,messages,protocol}_tests.rs`, `application/{chat,messages}_wire_tests.rs`;
 receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/

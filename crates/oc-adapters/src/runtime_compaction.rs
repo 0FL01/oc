@@ -1043,11 +1043,16 @@ impl Runtime<'_> {
         let mut publication_failed = false;
         let operation = snapshot.id.clone();
         let mut corrected = false;
+        let provider = provider.with_context(crate::provider::context::RequestContext::capture(
+            &self.db,
+            &self.roots.project,
+            session,
+        )?);
         'summary: loop {
             let generation = loop {
                 snapshot.summary.clear();
                 match crate::provider::stream_input_counted(
-                    provider,
+                    &provider,
                     model,
                     selection.variant.as_ref(),
                     &input,

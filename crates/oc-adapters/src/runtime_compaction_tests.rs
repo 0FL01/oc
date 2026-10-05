@@ -91,6 +91,14 @@ async fn read_request(
                 })
                 .unwrap();
             if bytes.len() >= end + 4 + len {
+                let headers = String::from_utf8_lossy(&bytes[..end]).to_ascii_lowercase();
+                if headers.contains("x-opencode-client: oc") {
+                    assert!(headers.contains("x-opencode-session: s\r\n"));
+                    assert!(headers.contains("x-session-affinity: s\r\n"));
+                    assert!(headers.contains("x-session-id: s\r\n"));
+                    assert!(headers.contains("x-opencode-project: "));
+                    assert!(headers.contains(&format!("user-agent: {}\r\n", crate::USER_AGENT)));
+                }
                 return (
                     socket,
                     serde_json::from_slice(&bytes[end + 4..end + 4 + len]).unwrap(),
@@ -151,10 +159,17 @@ async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
     generation.compaction.keep_tokens = 0;
     let runtime = runtime(&db, project.path(), generation);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let provider = config(&listener);
+    let mut provider = config(&listener);
+    provider.wire.go = true;
+    provider.set_cache_key = true;
     let task = tokio::spawn(async move {
         let (mut socket, request) = read_request(&listener).await;
         assert_eq!(request["tools"], serde_json::json!([]));
+        use sha2::Digest as _;
+        assert_eq!(
+            request["prompt_cache_key"],
+            format!("{:x}", sha2::Sha256::digest(b"s"))
+        );
         let wire = request["input"].to_string();
         assert!(wire.contains("DCP retained facts"));
         assert!(!wire.contains("RECENT TAIL"));

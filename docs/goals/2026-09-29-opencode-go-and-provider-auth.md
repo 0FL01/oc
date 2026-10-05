@@ -482,6 +482,20 @@ No opt-in live gate ran. This is partial R2, not full T53 PASS: Go all-lane meta
 chronology/cache, durable replay, provider-aware connect/selection and bounded
 GO06 qualification remain. Next slice: request metadata/lineage cache/chronology.
 
+### Request identity/cache checkpoint (2026-10-05)
+
+Immutable operation context now feeds main/tool-follow-up/retry/child, automatic
+and manual title, and summary-compaction sends. Go reasserts stable approval project
+identity, actual session/parent affinity, native User-Agent and resolved Bearer auth
+after case-insensitive headers. Session/fork cache lineage replaces production body
+hash keys; recursive forks copy the source lineage transactionally, while children
+keep their own session lineage. Responses and explicitly supported Chat emit cache
+keys; Messages emits at most four prioritized explicit breakpoints. Adapter unit
+suite **596/0/0**, strict all-target clippy/fmt green; factual receipt
+`evidence/T53/request-context.md`. Partial R3, not GO03/T53 PASS: chronological effort
+consumers, durable compatibility, configless provider-aware connect/selection and
+bounded GO06 qualification remain. Next slice: chronological capabilities/effort.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

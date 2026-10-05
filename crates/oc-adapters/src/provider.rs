@@ -23,6 +23,7 @@ use thiserror::Error;
 use crate::models::SelectedVariant;
 
 pub(crate) mod chat;
+pub(crate) mod context;
 mod failure;
 pub(crate) mod messages;
 pub(crate) mod protocol;
@@ -388,7 +389,7 @@ pub struct ResponsesConfig {
     pub allow_private: bool,
     /// Extra request headers (values are never included in Debug).
     pub headers: BTreeMap<String, String>,
-    /// Whether to send a deterministic prompt_cache_key.
+    /// Enable supported cache fields using captured session/fork lineage.
     pub set_cache_key: bool,
     /// Admitted wire protocol and per-model compatibility facts.
     pub wire: WireBinding,
@@ -397,6 +398,8 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) go: bool,
+    pub(crate) context: Option<context::RequestContext>,
     pub(crate) unsupported: bool,
     pub(crate) requests: BTreeMap<(String, Option<String>), ResponsesConfig>,
     pub(crate) api_model: Option<String>,
@@ -439,6 +442,15 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    /// Capture once per operation; all selected bindings and retries share it.
+    pub(crate) fn with_context(&self, context: context::RequestContext) -> Self {
+        let mut captured = self.clone();
+        captured.wire.context = Some(context.clone());
+        for binding in captured.wire.requests.values_mut() {
+            binding.wire.context = Some(context.clone());
+        }
+        captured
+    }
     /// Resolve from this immutable generation, never from current UI/storage state.
     pub(crate) fn for_selection(&self, model: &str, variant: Option<&str>) -> &Self {
         self.wire
@@ -1599,6 +1611,11 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
             .settings
             .apply(protocol::Protocol::Messages, &mut body, effort);
         settings::merge(&mut body, &serde_json::json!(overlay.body));
+        if config.set_cache_key
+            && let Some(context) = &config.wire.context
+        {
+            context.cache_body(protocol::Protocol::Messages, &mut body, false);
+        }
         return stream_body(
             config,
             None,
@@ -1642,8 +1659,10 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         .settings
         .apply(protocol::Protocol::Responses, &mut body, effort);
     settings::merge(&mut body, &serde_json::json!(overlay.body));
-    if config.set_cache_key {
-        body["prompt_cache_key"] = format!("{:x}", Sha256::digest(bounded_json(&body)?)).into();
+    if config.set_cache_key
+        && let Some(context) = &config.wire.context
+    {
+        context.cache_body(protocol::Protocol::Responses, &mut body, false);
     }
     stream_body(
         config,
@@ -1715,6 +1734,15 @@ pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderE
         variant.and_then(|v| v.reasoning_effort.as_deref()),
     );
     settings::merge(&mut body, &serde_json::json!(overlay.body));
+    if config.set_cache_key
+        && let Some(context) = &config.wire.context
+    {
+        context.cache_body(
+            protocol::Protocol::Chat,
+            &mut body,
+            compat.supports_prompt_cache_key,
+        );
+    }
     stream_body(
         config,
         Some(compat),
@@ -1776,6 +1804,19 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     }
     if config.wire.protocol == protocol::Protocol::Messages {
         messages_headers(&mut headers)?;
+    }
+    if config.wire.go {
+        let context = config
+            .wire
+            .context
+            .as_ref()
+            .ok_or(ProviderError::InvalidConfig)?;
+        context.go_headers(&mut headers)?;
+        headers.remove("x-api-key");
+        headers.remove("authorization");
+        if let Some(auth) = request_headers(config)?.get("authorization") {
+            headers.insert("authorization", auth.clone());
+        }
     }
     let protocol = if chat.is_some() {
         protocol::Protocol::Chat
@@ -1849,6 +1890,7 @@ pub(crate) fn request_headers(
             HeaderName::from_bytes(name.as_bytes()).map_err(|_| ProviderError::InvalidConfig)?;
         match name.as_str() {
             "authorization" | "accept" | "content-type" => continue,
+            "x-api-key" if config.wire.go => continue,
             "host"
             | "content-length"
             | "transfer-encoding"
@@ -1866,6 +1908,7 @@ pub(crate) fn request_headers(
     }
     let messages = config.wire.protocol == protocol::Protocol::Messages;
     if messages
+        && !config.wire.go
         && config.headers.keys().any(|name| {
             name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
         })
@@ -1873,7 +1916,7 @@ pub(crate) fn request_headers(
         return Err(ProviderError::InvalidConfig);
     }
     if !anonymous {
-        let bearer = !messages || config.wire.messages_bearer;
+        let bearer = config.wire.go || !messages || config.wire.messages_bearer;
         let mut auth = HeaderValue::from_str(&if bearer {
             format!("Bearer {}", config.api_key)
         } else {

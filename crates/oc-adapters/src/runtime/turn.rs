@@ -1660,6 +1660,11 @@ impl<'a> Runtime<'a> {
             .get(&params.catalog.provider)
             .map(|provider| provider.options.native_fallback_limits)
             .unwrap_or_default();
+        let request_context = crate::provider::context::RequestContext::capture(
+            &self.db,
+            &self.roots.project,
+            &params.session,
+        )?;
         'step: loop {
             self.child_jobs.reap().await?;
             self.child_jobs
@@ -1727,6 +1732,7 @@ impl<'a> Runtime<'a> {
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let selection = models::select_variant(&base, variant.as_deref())
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            let request_provider = params.provider.with_context(request_context.clone());
             self.validate_checkpoint_route(
                 &params.session,
                 &params.catalog.provider,
@@ -2447,7 +2453,7 @@ impl<'a> Runtime<'a> {
                         }
                     };
                     crate::provider::stream_input_overlaid(
-                        &params.provider,
+                        &request_provider,
                         &lane.request,
                         &selection.id,
                         selection.variant.as_ref(),

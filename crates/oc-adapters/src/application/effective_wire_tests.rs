@@ -18,7 +18,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
     std::fs::create_dir(&project).unwrap();
     let config = json!({"model":"fixture/catalog#fast", "agent":{"title":{"model":"fixture/title"}},
     "providers":{"fixture":{
-        "package":"@ai-sdk/openai", "settings":{"baseURL":"https://example.com/parent"},
+        "package":"@ai-sdk/openai", "settings":{"baseURL":"https://example.com/parent","setCacheKey":true},
         "headers":{"X-Overlay":"provider"}, "body":{"nested":{"provider":1}},
         "models":{
             "catalog":{"modelID":"API_MESSAGES_ID", "package":"@ai-sdk/anthropic",
@@ -29,6 +29,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
                     "headers":{"X-OVERLAY":"variant"},"body":{"nested":{"variant":3}}},
                     {"id":"blocked","settings":{"authPolicy":"oauth"}}]},
             "title":{"modelID":"API_TITLE_ID", "package":"@ai-sdk/openai-compatible",
+                "compatibility":{"supportsPromptCacheKey":true},
                 "settings":{"baseURL":title_base,"apiKey":"TITLE_KEY_CANARY"},
                 "limit":{"context":32768,"output":4096}},
             "unbound":{"settings":{"baseURL":format!("{base}/unbound")},
@@ -52,6 +53,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
         }
     }
     let peer = tokio::spawn(async move {
+        let mut main_cache = None;
         for title in [false, true] {
             let (mut socket, _) = listener.accept().await.unwrap();
             let mut bytes = Vec::new();
@@ -86,6 +88,11 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
                 assert!(headers.contains("authorization: bearer title_key_canary"));
                 assert!(!headers.contains("model_key_canary"));
                 assert_eq!(body["model"], "API_TITLE_ID");
+                use sha2::Digest as _;
+                assert_eq!(
+                    body["prompt_cache_key"],
+                    format!("{:x}", sha2::Sha256::digest(b"effective-binding"))
+                );
                 format!(
                     "data: {}\n\ndata: [DONE]\n\n",
                     json!({"choices":[{"index":0,"delta":{"content":"Generated title"},"finish_reason":"stop"}]})
@@ -99,6 +106,8 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
                 assert_eq!(body["thinking"], json!({"type":"adaptive"}));
                 assert_eq!(body["output_config"]["effort"], "high");
                 assert_eq!(body["nested"], json!({"provider":1,"model":2,"variant":3}));
+                main_cache = Some(body.to_string().matches("cache_control").count());
+                assert!(main_cache.unwrap() > 0 && main_cache.unwrap() <= 4);
                 [json!({"type":"message_start","message":{"role":"assistant","usage":{"input_tokens":10}}}),
                     json!({"type":"content_block_start","index":0,"content_block":{"type":"text","text":"MODEL_BINDING_OK"}}),
                     json!({"type":"content_block_stop","index":0}),
@@ -107,6 +116,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
             };
             socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",response.len()).as_bytes()).await.unwrap();
         }
+        assert!(main_cache.is_some());
     });
     let (app, guard, _) = spawn_with_env(
         &project,

@@ -1388,6 +1388,7 @@ pub(crate) fn provider_wire(
         _ => Default::default(),
     };
     wire.auth_policy = entry.options.auth_policy;
+    wire.go = id == crate::models_dev::PROVIDER;
     wire.requests = entry.options.request_bindings.clone();
     wire.settings = crate::provider::settings::WireSettings::admit(
         protocol,
