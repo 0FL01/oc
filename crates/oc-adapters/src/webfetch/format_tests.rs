@@ -9,9 +9,19 @@ static ACTIVE: AtomicUsize = AtomicUsize::new(0);
 // No production deadline is moved; total DNS/redirect deadline tests do not inject.
 thread_local! {
     static PREPARED_CLIENT: std::cell::RefCell<Option<reqwest::Client>> = const { std::cell::RefCell::new(None) };
+    static OBSERVED_FETCH: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 pub(super) fn take_prepared_client() -> Option<reqwest::Client> {
-    PREPARED_CLIENT.with(|slot| slot.borrow_mut().take())
+    let client = PREPARED_CLIENT.with(|slot| slot.borrow_mut().take());
+    if client.is_some() {
+        OBSERVED_FETCH.with(|observed| observed.set(true));
+    }
+    client
+}
+/// Only the fetch that consumed this thread's prepared client is counted, so
+/// concurrent fetches of other tests never touch `ACTIVE`/`JOINS`.
+pub(super) fn take_observed_fetch() -> bool {
+    OBSERVED_FETCH.with(|observed| observed.replace(false))
 }
 struct PreparedClient;
 impl PreparedClient {
@@ -33,6 +43,7 @@ impl PreparedClient {
 impl Drop for PreparedClient {
     fn drop(&mut self) {
         let _ = take_prepared_client();
+        take_observed_fetch();
     }
 }
 pub(super) static JOINS: AtomicUsize = AtomicUsize::new(0);

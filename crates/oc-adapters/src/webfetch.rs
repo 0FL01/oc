@@ -510,9 +510,11 @@ async fn fetch_owned(
     }
     let _cleanup = CancelOnDrop(token.clone());
     let worker_token = token.clone();
+    #[cfg(test)]
+    let observed = format_tests::take_observed_fetch();
     let mut worker = tokio::task::spawn_blocking(move || {
         #[cfg(test)]
-        let _observed_worker = format_tests::Worker::enter();
+        let _observed_worker = observed.then(format_tests::Worker::enter);
         if let Some(format) = format {
             render::convert(
                 &body,
@@ -539,7 +541,9 @@ async fn fetch_owned(
         }
     };
     #[cfg(test)]
-    format_tests::JOINS.fetch_add(1, Ordering::SeqCst);
+    if observed {
+        format_tests::JOINS.fetch_add(1, Ordering::SeqCst);
+    }
     // Join precedes terminal outcome, even when cancel races the last token.
     if cancel.load(Ordering::Acquire) {
         return Err(FetchError::Cancelled);
