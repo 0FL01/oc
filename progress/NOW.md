@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-05T10:29:43+00:00
+State updated: 2026-10-05T11:08:18+00:00
 Active: T45
 
 Сверить Git status/diff до выполнения команд.
@@ -13,13 +13,13 @@ Owner-approved R3/R6–R10; full contracts and ordered slices in spec/M8, histor
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
-R8 first atomic qualified (bdd0bdc3d): optional context_message_ids resolve canonical active-branch parent user/assistant messages before child creation and prepend an escaped parent_context pack to the durable child task.
+R8 pre-admission step complete: quoted packs are probed against the resolved child's schema-inclusive request before any child row (09abb3277); resolver branch rules, guidance and attachment/ID-index decisions qualified (latest R8 commit).
 ## Checks
-Workspace 1557/0/10; fmt and strict Clippy PASS. Evidence: evidence/T45/context-pack.md.
+Workspace 1560/0/10; fmt and strict Clippy PASS; RED confirmed for the oversized-pack probe. Evidence: evidence/T45/context-pack.md.
 ## Risks
-Pack is bounded by bytes/count only; full child model-context cost, bounded notice-free ID index, DCP-covered selection test, guidance/preview wording and attachment diagnostics remain pending. T44 PAUSED, T27 allowance unchanged.
+R8 native-ELF/CTX01/CTX02 captured-request qualification (DCP-off IDs, frozen background pack, restart, continuation) is still pending; whole T45 open. T44 PAUSED, T27 allowance unchanged.
 ## Next
-Next R8 atomic: pre-admission model-context cost of the pack against the resolved child's fixed inputs and output reserve; then reverted/DCP-covered selection tests and the bounded ID index.
+Native-binary CTX01/CTX02 qualification for context packs, then DCP 3.2.0 donor qualification and amended-plan items.
 
 
 Ready (до 5): T53, T56
