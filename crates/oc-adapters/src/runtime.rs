@@ -949,6 +949,24 @@ pub struct SubagentAgent {
     pub digest: Option<String>,
 }
 
+impl SubagentAgent {
+    fn model_reference(&self) -> Option<String> {
+        self.model.as_ref().map(|model| {
+            if model.contains('#') {
+                model.clone()
+            } else {
+                format!(
+                    "{model}{}",
+                    self.variant
+                        .as_ref()
+                        .map(|variant| format!("#{variant}"))
+                        .unwrap_or_default()
+                )
+            }
+        })
+    }
+}
+
 /// Published subagent catalog + depth budget for this Location generation.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct SubagentCatalog {

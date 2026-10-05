@@ -15,6 +15,25 @@ pub(crate) mod lookup;
 pub(crate) const CATALOG_ROWS_CAP: usize = 100_000;
 pub(crate) const CATALOG_LABEL_BYTES_CAP: usize = 12288;
 
+/// Pinned model-reference grammar; availability belongs to each consumer's
+/// admitted catalog. Only the first slash separates provider from model.
+pub(crate) fn parse_reference(raw: &str) -> Result<(&str, &str, Option<&str>), &'static str> {
+    let (provider, rest) = raw
+        .split_once('/')
+        .ok_or("model reference requires provider/model")?;
+    let (model, variant) = rest
+        .split_once('#')
+        .map_or((rest, None), |(model, variant)| (model, Some(variant)));
+    if provider.is_empty()
+        || provider.contains('#')
+        || model.is_empty()
+        || variant.is_some_and(|variant| variant.is_empty() || variant.contains('#'))
+    {
+        return Err("invalid model reference");
+    }
+    Ok((provider, model, variant))
+}
+
 /// Exact known effort ranks for the effective variants view.
 pub const STANDARD_VARIANTS: [&str; 7] =
     ["none", "minimal", "low", "medium", "high", "xhigh", "max"];

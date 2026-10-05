@@ -62,6 +62,8 @@ pub struct Composition {
     pub variant: Option<String>,
     /// All admitted agent profiles for this generation (primary and subagent).
     pub agents: BTreeMap<String, defs::AgentDef>,
+    /// First-registration order; overrides keep their original position.
+    pub(crate) agent_order: Vec<String>,
     /// Explicitly configured default agent id, if any.
     pub default_agent: Option<String>,
     /// Maximum subagent nesting depth (`experimental.subagent_depth`, default 1).
@@ -707,9 +709,7 @@ async fn load_stages(
     // Pinned builtin profiles are registered before configured transforms.
     // A real definition participates in selection, policy and durable turn
     // metadata; configured overrides/disable retain their normal precedence.
-    for agent in defs::builtin_agents() {
-        loaded_defs.agents.insert(agent.id.clone(), agent);
-    }
+    defs::register_builtins(&mut loaded_defs);
     if let Some(global) = global.as_ref() {
         let global = admitted_roots[0]
             .as_ref()
@@ -791,6 +791,16 @@ async fn load_stages(
     }
     let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
 
+    // Resource truncation cannot establish absence or a complete profile's
+    // overrides/policy. Refuse admission before any default fallback/selection.
+    if let Some(diagnostic) = loaded_defs
+        .diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.failure.code == ServiceCode::CapacityExceeded)
+    {
+        return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
+    }
+
     // Title is now selected automatically. An explicitly malformed profile
     // cannot be mistaken for absence and replaced with the built-in policy.
     if !loaded_defs.agents.contains_key("title")
@@ -804,16 +814,57 @@ async fn load_stages(
         trace::log("defs.fail", &diagnostic.failure.to_string());
         return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
     }
-    if default_agent.is_none() {
+    let agent_order: Vec<String> = loaded_defs
+        .order
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .strip_prefix("agent.")
+                .and_then(|entry| entry.split_once('@'))
+                .map(|(id, _)| id.to_string())
+        })
+        .filter(|id| loaded_defs.agents.contains_key(id))
+        .collect();
+    // A malformed/security-refused selected definition is not an absent default.
+    let agent_diagnostic = |id: &str| {
+        loaded_defs.diagnostics.iter().find(|diagnostic| {
+            diagnostic.field == format!("agent.{id}")
+                || Path::new(&diagnostic.path)
+                    .file_stem()
+                    .is_some_and(|stem| stem == id)
+                || ["agent", "agents", "mode", "modes"].iter().any(|root| {
+                    Path::new(&diagnostic.path).ends_with(Path::new(root).join(format!("{id}.md")))
+                })
+        })
+    };
+    if let Some(id) = default_agent.as_deref()
+        && !loaded_defs.agents.contains_key(id)
+    {
+        if let Some(diagnostic) = agent_diagnostic(id) {
+            return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
+        }
+        if loaded_defs
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.failure.code == ServiceCode::TrustRefused)
+        {
+            return Err(invalid(&selected_source, &["default_agent"]));
+        }
+    }
+    if default_agent
+        .as_deref()
+        .and_then(|id| loaded_defs.agents.get(id))
+        .is_none_or(|agent| !agent.primary_visible())
+    {
         default_agent = loaded_defs
             .agents
             .get("build")
-            .filter(|agent| agent.primary_capable() && !agent.hidden)
+            .filter(|agent| agent.primary_visible())
             .or_else(|| {
-                loaded_defs
-                    .agents
-                    .values()
-                    .find(|agent| agent.primary_capable() && !agent.hidden)
+                agent_order
+                    .iter()
+                    .filter_map(|id| loaded_defs.agents.get(id))
+                    .find(|agent| agent.primary_visible())
             })
             .map(|agent| agent.id.clone());
     }
@@ -837,12 +888,7 @@ async fn load_stages(
             }
             Some(agent) => Some(agent.clone()),
             None => {
-                let diagnostic = loaded_defs.diagnostics.iter().find(|diagnostic| {
-                    diagnostic.field == format!("agent.{id}")
-                        || Path::new(&diagnostic.path)
-                            .file_stem()
-                            .is_some_and(|stem| stem == id)
-                });
+                let diagnostic = agent_diagnostic(id);
                 trace::log("defs.fail", "category=Agent code=invalid_definition");
                 return Err(match diagnostic {
                     Some(diagnostic) => LoadFailure::Configuration(diagnostic.failure.clone()),
@@ -853,7 +899,11 @@ async fn load_stages(
         None => return Err(invalid(&selected_source, &["default_agent"])),
     };
 
-    let selected = match selected {
+    let selected = match selected_agent
+        .as_ref()
+        .and_then(|agent| agent.model.clone())
+        .or(selected)
+    {
         Some(selected) => selected,
         None => {
             return Err(failure(
@@ -864,14 +914,13 @@ async fn load_stages(
             ));
         }
     };
-    let selected = selected_agent
-        .as_ref()
-        .and_then(|agent| agent.model.clone())
-        .unwrap_or(selected);
-    let (provider_id, model_id) = selected
-        .split_once('/')
-        .filter(|(p, m)| !p.trim().is_empty() && !m.trim().is_empty())
-        .ok_or_else(|| invalid(&selected_source, &["model"]))?;
+    let (provider_id, model_id, embedded_variant) =
+        models::parse_reference(&selected).map_err(|_| invalid(&selected_source, &["model"]))?;
+    let selected_variant = embedded_variant.map(str::to_string).or_else(|| {
+        selected_agent
+            .as_ref()
+            .and_then(|agent| agent.variant.clone())
+    });
     if disabled.iter().any(|id| id == provider_id)
         || enabled
             .as_ref()
@@ -1411,7 +1460,8 @@ async fn load_stages(
         instruction_roots,
         agent_prompt: selected_agent.as_ref().map(|agent| agent.body.clone()),
         agent_digest: selected_agent.as_ref().map(defs::agent_digest),
-        variant: selected_agent.and_then(|agent| agent.variant),
+        variant: selected_variant,
+        agent_order,
         agents: loaded_defs.agents,
         default_agent,
         subagent_depth,
@@ -2673,8 +2723,8 @@ mod tests {
     }
 
     /// Subagent S3: every admitted agent stays in the catalog, the depth knob
-    /// comes from `experimental.subagent_depth`, and a subagent-only
-    /// `default_agent` fails closed instead of becoming a primary.
+    /// comes from `experimental.subagent_depth`, and a subagent-only configured
+    /// `default_agent` falls back without promoting the child to primary.
     #[tokio::test]
     async fn subagent_catalog_depth_and_subagent_only_default_agent() {
         let dir = tempfile::tempdir().expect("fixture");
@@ -2741,15 +2791,11 @@ mod tests {
             ),
         )
         .expect("config");
-        let error = load_with_env(dir.path(), BTreeMap::new())
+        let loaded = load_with_env(dir.path(), BTreeMap::new())
             .await
-            .map(|_| ())
-            .expect_err("subagent-only default agent");
-        assert!(
-            error.contains("invalid_config") && error.contains("default_agent.mode"),
-            "{error}"
-        );
-        assert!(!error.contains("helper"), "{error}");
+            .expect("subagent-only configured default uses pinned fallback");
+        assert_eq!(loaded.default_agent.as_deref(), Some("build"));
+        assert!(!loaded.agents["helper"].primary_capable());
     }
 
     #[tokio::test]

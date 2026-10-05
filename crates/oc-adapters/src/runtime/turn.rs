@@ -101,7 +101,7 @@ fn subagent_tool_def(
                     agent.description.trim()
                 };
                 description.push_str(&format!("\n- {}: {summary}", agent.id));
-                let child_model = match agent.model.as_deref() {
+                let child_model = match agent.model_reference().as_deref() {
                     Some(raw) => match resolve_subagent_model(model_catalog, raw) {
                         Ok(resolved) => resolved.id,
                         Err(_) => {
@@ -206,14 +206,7 @@ pub(crate) fn resolve_subagent_model(
             "Invalid model \"{raw}\". Use \"providerID/modelID\" or \"providerID/modelID#variant\"."
         )
     };
-    let (provider, rest) = raw.split_once('/').ok_or_else(invalid)?;
-    let (id, variant) = match rest.split_once('#') {
-        Some((id, variant)) => (id, Some(variant)),
-        None => (rest, None),
-    };
-    if provider.is_empty() || id.is_empty() {
-        return Err(invalid());
-    }
+    let (provider, id, variant) = models::parse_reference(raw).map_err(|_| invalid())?;
     if provider != catalog.provider || !catalog.models.contains_key(id) {
         return Err(format!(
             "Model \"{provider}/{id}\" is not available. Use the models tool to see what is available."
@@ -383,10 +376,11 @@ impl TurnSubagent<'_, '_> {
         let switched = existing
             .as_ref()
             .is_some_and(|meta| meta.agent.as_deref() != Some(agent.id.as_str()));
+        let agent_reference = agent.model_reference();
         let model = resolve_child_model(
             self.catalog,
             request.model.as_deref(),
-            agent.model.as_deref(),
+            agent_reference.as_deref(),
             existing.as_ref(),
             switched,
             &self.parent_model_id,

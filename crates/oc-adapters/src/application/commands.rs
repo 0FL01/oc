@@ -60,7 +60,7 @@ pub(super) fn prepare(
     let mut selected = parent.clone();
     selected.set_agent_inner(c, id, true)?;
     if let Some(raw) = def.model.as_ref() {
-        let (model, variant) = crate::defs::agent_model(Some(raw)).map_err(app_error)?;
+        let (model, variant) = crate::defs::command_model(Some(raw)).map_err(app_error)?;
         let raw = model
             .as_deref()
             .ok_or_else(|| app_error("command model unavailable"))?;

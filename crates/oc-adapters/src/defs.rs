@@ -2,7 +2,8 @@
 //!
 //! Disk discovery for admitted `.opencode` roots only: skills
 //! (`{skill,skills}/<id>/SKILL.md` and flat `{skill,skills}/<id>.md`),
-//! agents (`{agent,agents}/<id>.md`), commands (`{command,commands}/<id>.md`).
+//! agents (`{agent,agents}/**/<id>.md`, compatibility `{mode,modes}/<id>.md`),
+//! commands (`{command,commands}/<id>.md`).
 //! Singular roots load before plural within one source directory; later
 //! sources replace duplicates with shadowing provenance. Authoritative inline
 //! definitions come from top-level config `agent`/`command` domains through
@@ -30,6 +31,8 @@ use thiserror::Error;
 
 #[cfg(test)]
 mod builtin_tests;
+#[cfg(test)]
+mod profile_tests;
 
 /// Max admitted definition roots per load.
 pub const MAX_DEF_ROOTS: usize = 8;
@@ -125,6 +128,11 @@ impl AgentDef {
         self.mode.as_deref() != Some("subagent")
     }
 
+    /// Automatic picker/cycle/default eligibility; explicit selection is separate.
+    pub(crate) fn primary_visible(&self) -> bool {
+        self.primary_capable() && !self.hidden
+    }
+
     /// Whether this profile may be spawned as a subagent.
     ///
     /// Only explicitly subagent/all profiles are eligible after registration.
@@ -172,6 +180,13 @@ pub(crate) fn builtin_agents() -> [AgentDef; 4] {
         agent.permission_rules.extend(profile_ceiling(&agent.id));
     }
     agents
+}
+
+pub(crate) fn register_builtins(defs: &mut LoadedDefs) {
+    for agent in builtin_agents() {
+        defs.order.push(format!("agent.{}@builtin", agent.id));
+        defs.agents.insert(agent.id.clone(), agent);
+    }
 }
 
 fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
@@ -289,6 +304,10 @@ fn valid_id(id: &str) -> bool {
         && id
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+fn valid_agent_id(id: &str) -> bool {
+    id.len() <= MAX_DEF_ID_LEN && id.split('/').all(valid_id)
 }
 
 /// Read only an already-opened, admitted regular file. The same 4 MiB total
@@ -578,7 +597,9 @@ fn optional_model(
         .transpose()
 }
 
-pub(crate) fn agent_model(
+// Commands retain their pre-R6 native modelID/explicit-variant decoding. Their
+// owner strips an embedded modelID suffix when the command supplies a variant.
+pub(crate) fn command_model(
     value: Option<&serde_json::Value>,
 ) -> Result<(Option<String>, Option<String>), String> {
     let Some(value) = value else {
@@ -602,6 +623,73 @@ pub(crate) fn agent_model(
         Some(format!("{provider}/{model}")),
         optional_string(object, "variant")?,
     ))
+}
+
+fn agent_model(
+    value: Option<&serde_json::Value>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let Some(value) = value else {
+        return Ok((None, None));
+    };
+    if let Some(id) = value.as_str() {
+        if id.contains('/') {
+            let (provider, model, variant) = crate::models::parse_reference(id)?;
+            return Ok((
+                Some(format!("{provider}/{model}")),
+                variant.map(str::to_string),
+            ));
+        }
+        // Existing exact bare-ID aliases remain supported by the native catalog.
+        return Ok((Some(id.into()), None));
+    }
+    let object = value
+        .as_object()
+        .ok_or("model must be a string or object")?;
+    if object
+        .keys()
+        .any(|key| !matches!(key.as_str(), "providerID" | "model" | "modelID" | "variant"))
+    {
+        return Err("unsupported model field".into());
+    }
+    let provider = optional_string(object, "providerID")?.ok_or("model.providerID is required")?;
+    if object.contains_key("model") && object.contains_key("modelID") {
+        return Err("model.model and model.modelID are mutually exclusive".into());
+    }
+    let model = optional_string(object, "model")?
+        .or(optional_string(object, "modelID")?)
+        .ok_or("model.model is required")?;
+    let variant = optional_string(object, "variant")?;
+    let reference = format!(
+        "{provider}/{model}{}",
+        variant
+            .as_ref()
+            .map(|v| format!("#{v}"))
+            .unwrap_or_default()
+    );
+    let (parsed_provider, parsed_model, _) = crate::models::parse_reference(&reference)?;
+    if parsed_provider != provider || parsed_model != model {
+        return Err("invalid structured model reference".into());
+    }
+    Ok((Some(format!("{provider}/{model}")), variant))
+}
+
+fn agent_selection(
+    model: Option<&serde_json::Value>,
+    separate: Option<String>,
+) -> Result<(Option<String>, Option<String>), String> {
+    let (id, embedded) = agent_model(model)?;
+    let variant = match model {
+        Some(serde_json::Value::String(raw)) if !raw.contains('#') => separate,
+        Some(_) => embedded,
+        None => separate,
+    };
+    if variant
+        .as_ref()
+        .is_some_and(|value| value.is_empty() || value.contains('#'))
+    {
+        return Err("invalid model variant".into());
+    }
+    Ok((id, variant))
 }
 
 fn inline_body(
@@ -715,7 +803,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         if let Some(raw_agents) = config.get(domain) {
             if let Some(agents) = raw_agents.as_object() {
                 for (id, raw) in agents {
-                    if !valid_id(id) {
+                    if !valid_agent_id(id) {
                         out.defs.diagnostics.push(diag(
                             source_path,
                             &format!("agent.{id}"),
@@ -774,8 +862,10 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                                     .map(str::to_string)
                             })
                             .unwrap_or_default();
-                        let (model, model_variant) = agent_model(object.get("model"))?;
-                        let variant = optional_string(object, "variant")?.or(model_variant);
+                        let (model, variant) = agent_selection(
+                            object.get("model"),
+                            optional_string(object, "variant")?,
+                        )?;
                         let mode = agent_mode(optional_string(object, "mode")?)?;
                         let permissions = permission_map(object.get("permission"))?;
                         let permission_rules =
@@ -929,13 +1019,39 @@ fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io
 
 fn load_root(out: &mut Collector, root: &DefRoot, dir: &File) {
     load_kind(out, root, dir, "skill", &["skill", "skills"]);
-    load_kind(out, root, dir, "agent", &["agent", "agents"]);
+    load_kind(
+        out,
+        root,
+        dir,
+        "agent",
+        &["agent", "agents", "mode", "modes"],
+    );
     load_kind(out, root, dir, "command", &["command", "commands"]);
 }
 
 fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, subs: &[&str]) {
     for sub in subs {
         let dir = root.dir.join(sub);
+        if kind == "agent" {
+            let mut paths = Vec::new();
+            let mut remaining = 4096;
+            collect_agent_paths(
+                out,
+                root,
+                admitted,
+                &dir,
+                Path::new(""),
+                matches!(*sub, "agent" | "agents"),
+                &mut Vec::new(),
+                &mut remaining,
+                &mut paths,
+            );
+            paths.sort();
+            for path in paths {
+                load_entry(out, root, admitted, kind, &dir, &path);
+            }
+            continue;
+        }
         let pinned = match open_admitted(root, admitted, &dir, libc::O_RDONLY | libc::O_DIRECTORY) {
             Ok(pinned) => pinned,
             Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
@@ -998,6 +1114,118 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
             load_entry(out, root, admitted, kind, &dir, &name);
         }
     }
+}
+
+// Enumerate only admitted pinned directory descriptors. An ancestry identity
+// check stops in-root symlink cycles without suppressing independent aliases.
+#[allow(clippy::too_many_arguments)]
+fn collect_agent_paths(
+    out: &mut Collector,
+    root: &DefRoot,
+    admitted: &File,
+    base: &Path,
+    relative: &Path,
+    recursive: bool,
+    ancestry: &mut Vec<(u64, u64)>,
+    remaining: &mut usize,
+    paths: &mut Vec<String>,
+) {
+    use std::os::unix::fs::MetadataExt as _;
+    let path = base.join(relative);
+    let pinned = match open_admitted(root, admitted, &path, libc::O_RDONLY | libc::O_DIRECTORY) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return,
+        Err(error) => {
+            out.defs.diagnostics.push(diag_code(
+                &path,
+                "agent",
+                "directory unavailable or outside admitted root",
+                if error.kind() == io::ErrorKind::PermissionDenied {
+                    oc_core::queries::ServiceCode::TrustRefused
+                } else {
+                    oc_core::queries::ServiceCode::SourceUnavailable
+                },
+            ));
+            return;
+        }
+    };
+    let meta = match pinned.metadata() {
+        Ok(meta) => meta,
+        Err(_) => return,
+    };
+    let identity = (meta.dev(), meta.ino());
+    if ancestry.contains(&identity) {
+        out.defs
+            .diagnostics
+            .push(diag(&path, "agent", "directory cycle"));
+        return;
+    }
+    ancestry.push(identity);
+    let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
+        Ok(entries) => entries,
+        Err(_) => {
+            ancestry.pop();
+            out.defs
+                .diagnostics
+                .push(diag(&path, "agent", "unreadable directory"));
+            return;
+        }
+    };
+    let mut names = Vec::new();
+    for entry in entries {
+        if *remaining == 0 {
+            out.defs.diagnostics.push(diag_code(
+                &path,
+                "agent",
+                "too many directory entries",
+                oc_core::queries::ServiceCode::CapacityExceeded,
+            ));
+            break;
+        }
+        *remaining -= 1;
+        if let Ok(entry) = entry {
+            names.push(entry.file_name().to_string_lossy().into_owned());
+        }
+    }
+    names.sort();
+    for name in names {
+        let child = relative.join(&name);
+        let candidate = base.join(&child);
+        match open_admitted(
+            root,
+            admitted,
+            &candidate,
+            libc::O_RDONLY | libc::O_NONBLOCK,
+        ) {
+            Ok(file) if file.metadata().is_ok_and(|meta| meta.is_dir()) => {
+                if recursive {
+                    // At zero budget the enumerator stops at its first entry;
+                    // empty directories are complete, nonempty ones are not.
+                    if child.as_os_str().len() <= MAX_DEF_ID_LEN {
+                        collect_agent_paths(
+                            out, root, admitted, base, &child, recursive, ancestry, remaining,
+                            paths,
+                        );
+                    } else {
+                        out.defs
+                            .diagnostics
+                            .push(diag(&candidate, "agent", "invalid id"));
+                    }
+                }
+            }
+            Ok(_) if name.ends_with(".md") => paths.push(child.to_string_lossy().into_owned()),
+            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+                out.defs.diagnostics.push(diag_code(
+                    &candidate,
+                    "agent",
+                    "outside admitted root",
+                    oc_core::queries::ServiceCode::TrustRefused,
+                ))
+            }
+            _ => {}
+        }
+    }
+    ancestry.pop();
 }
 
 fn insert_skill_text(
@@ -1076,6 +1304,8 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         if let Some(previous) = out.defs.agents.remove(&input.id) {
             out.total_bytes = out.total_bytes.saturating_sub(previous.body.len());
         }
+        let prefix = format!("agent.{}@", input.id);
+        out.defs.order.retain(|entry| !entry.starts_with(&prefix));
         return;
     }
     let previous_profile = out.defs.agents.get(&input.id).cloned().or_else(|| {
@@ -1090,9 +1320,7 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         if !input.supplied.contains("model") {
             input.model = previous.model.clone();
         }
-        if !(input.supplied.contains("variant")
-            || input.supplied.contains("model") && input.variant.is_some())
-        {
+        if !(input.supplied.contains("variant") || input.supplied.contains("model")) {
             input.variant = previous.variant.clone();
         }
         if !["prompt", "body", "system"]
@@ -1348,8 +1576,17 @@ fn load_entry(
             if !(name.ends_with(".md") && name.len() > 3) {
                 return; // Ignore foreign files; config domains merge explicitly.
             }
-            let id = name.trim_end_matches(".md").to_string();
-            if !valid_id(&id) {
+            let id = if kind == "agent" {
+                name.strip_suffix(".md").expect("Markdown suffix")
+            } else {
+                name.trim_end_matches(".md")
+            }
+            .to_string();
+            if !(if kind == "agent" {
+                valid_agent_id(&id)
+            } else {
+                valid_id(&id)
+            }) {
                 out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
                 return;
             }
@@ -1413,6 +1650,13 @@ fn load_entry(
                     return;
                 }
                 let parsed = (|| -> Result<AgentInput, String> {
+                    let (model, variant) = agent_selection(
+                        frontmatter.fields.get("model"),
+                        field_string(&frontmatter.fields, "variant")?,
+                    )?;
+                    let compatibility = dir
+                        .file_name()
+                        .is_some_and(|name| name == "mode" || name == "modes");
                     Ok(AgentInput {
                         id: id.clone(),
                         description: field_string(&frontmatter.fields, "description")?
@@ -1423,9 +1667,9 @@ fn load_entry(
                                     .map(str::to_string)
                             })
                             .unwrap_or_default(),
-                        model: field_string(&frontmatter.fields, "model")?,
-                        variant: field_string(&frontmatter.fields, "variant")?,
-                        body: body.to_string(),
+                        model,
+                        variant,
+                        body: body.trim().to_string(),
                         permissions: permission_map(frontmatter.fields.get("permission"))?,
                         permission_rules: crate::permissions::PermissionRules::from_config(
                             &serde_json::Value::Object(
@@ -1436,12 +1680,17 @@ fn load_entry(
                         hidden: metadata_bool(frontmatter.fields.get("hidden"))?,
                         disabled: metadata_bool(frontmatter.fields.get("disable"))?
                             | metadata_bool(frontmatter.fields.get("disabled"))?,
-                        mode: agent_mode(field_string(&frontmatter.fields, "mode")?)?,
+                        mode: if compatibility {
+                            Some("primary".into())
+                        } else {
+                            agent_mode(field_string(&frontmatter.fields, "mode")?)?
+                        },
                         supplied: frontmatter
                             .fields
                             .keys()
                             .cloned()
                             .chain(std::iter::once("body".into()))
+                            .chain(compatibility.then(|| "mode".into()))
                             .collect(),
                     })
                 })();
@@ -1755,7 +2004,7 @@ mod tests {
         assert_eq!(loaded.agents["all"].mode.as_deref(), Some("all"));
         assert_eq!(loaded.agents["ok"].model.as_deref(), Some("m"));
         assert_eq!(loaded.agents["ok"].mode.as_deref(), Some("primary"));
-        assert_eq!(loaded.agents["ok"].body, "body\n");
+        assert_eq!(loaded.agents["ok"].body, "body"); // donor trims Markdown agent bodies
         assert_eq!(
             loaded.agents["ok"].permissions["apply_patch"],
             Permission::Deny
@@ -1876,7 +2125,7 @@ mod tests {
             ),
         );
         let loaded = load_definitions(&[root(&opencode, "P")]);
-        assert_eq!(loaded.agents["build-work"].body.len(), 30 * 1024 + 1);
+        assert_eq!(loaded.agents["build-work"].body, "a".repeat(30 * 1024));
         assert_eq!(loaded.commands["mge"].body.len(), 41 * 1024 + 1);
         assert_eq!(loaded.commands["mge"].agent.as_deref(), Some("build"));
         assert!(

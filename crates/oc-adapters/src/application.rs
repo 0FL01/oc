@@ -1004,23 +1004,19 @@ impl Effective {
             // share the child/title resolver, including IDs with slashes.
             let (model, variant) = if composition.catalog.models.contains_key(model) {
                 (model.to_string(), agent.variant.clone())
-            } else if let Some((provider, rest)) = model.split_once('/')
+            } else if let Ok((provider, id, embedded)) = crate::models::parse_reference(model)
                 && provider == composition.catalog.provider
-                && !rest.is_empty()
             {
                 // A cold/retired exact same-provider profile remains an explicit
                 // choice. Execution admission owns availability; no fallback.
-                let (id, variant) = rest.split_once('#').map_or((rest, None), |(id, variant)| {
-                    (id, Some(variant.to_string()))
-                });
-                if id.is_empty() {
-                    return Err(failed());
-                }
-                (id.to_string(), agent.variant.clone().or(variant))
+                (
+                    id.to_string(),
+                    embedded.map(str::to_string).or(agent.variant.clone()),
+                )
             } else {
                 let resolved = crate::runtime::resolve_subagent_model(&composition.catalog, model)
                     .map_err(|_| failed())?;
-                (resolved.id, agent.variant.clone().or(resolved.variant))
+                (resolved.id, resolved.variant.or(agent.variant.clone()))
             };
             self.model_id = model;
             self.variant = variant;
@@ -1105,10 +1101,17 @@ impl Effective {
             .collect();
         models.sort_by(|a, b| a.id.cmp(&b.id));
         let agents = composition
-            .agents
-            .values()
+            .default_agent
+            .iter()
+            .chain(
+                composition
+                    .agent_order
+                    .iter()
+                    .filter(|id| Some(id.as_str()) != composition.default_agent.as_deref()),
+            )
+            .filter_map(|id| composition.agents.get(id))
             .enumerate()
-            .filter(|(_, agent)| agent.primary_capable())
+            .filter(|(_, agent)| agent.primary_visible())
             .map(|(color_index, agent)| {
                 let mut profile = Self::from_composition(composition);
                 let unavailable = profile.set_agent(composition, &agent.id).is_err()
@@ -4934,6 +4937,8 @@ fn resolve_submission(
     Ok((expanded, Some(text)))
 }
 
+#[cfg(test)]
+mod profile_tests;
 #[cfg(test)]
 mod tests;
 
