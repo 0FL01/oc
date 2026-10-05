@@ -372,7 +372,7 @@ pub enum FinishReason {
 }
 
 /// Adapter configuration (secret `api_key` never appears in `Debug`).
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ResponsesConfig {
     /// Configured base prefix (e.g. `https://proxy/v1`), slash-tolerant.
     pub base_url: String,
@@ -397,6 +397,8 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) requests: BTreeMap<(String, Option<String>), ResponsesConfig>,
+    pub(crate) api_model: Option<String>,
     pub(crate) settings: settings::WireSettings,
     pub(crate) endpoint: Option<crate::endpoint::EndpointBinding>,
     pub(crate) auth_policy: crate::auth::AuthPolicy,
@@ -436,6 +438,14 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    /// Resolve from this immutable generation, never from current UI/storage state.
+    pub(crate) fn for_selection(&self, model: &str, variant: Option<&str>) -> &Self {
+        self.wire
+            .requests
+            .get(&(model.to_owned(), variant.map(str::to_owned)))
+            .or_else(|| self.wire.requests.get(&(model.to_owned(), None)))
+            .unwrap_or(self)
+    }
     /// Captured authentication readiness, distinct from an empty required key.
     pub fn auth_ready(&self) -> bool {
         self.wire.auth_policy == crate::auth::AuthPolicy::None
@@ -472,6 +482,7 @@ impl ResponsesConfig {
         Ok(current == next
             && self.wire.endpoint == other.wire.endpoint
             && self.wire.protocol == other.wire.protocol
+            && self.wire.api_model == other.wire.api_model
             && request_headers(self)? == request_headers(other)?)
     }
 }
@@ -1539,6 +1550,12 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     observe: &mut (dyn FnMut(&StreamItem) + Send),
     dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
+    let config = config.for_selection(model, variant.map(|v| v.name.as_str()));
+    if !config.auth_ready() {
+        return Err(ProviderError::InvalidConfig);
+    }
+    let catalog_model = model;
+    let model = config.wire.api_model.as_deref().unwrap_or(model);
     overlay
         .validate()
         .map_err(|_| ProviderError::InvalidConfig)?;
@@ -1551,7 +1568,12 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     });
     let variant = effective_variant.as_ref();
     if config.wire.protocol == protocol::Protocol::Chat {
-        let compat = config.wire.chat.get(model).cloned().unwrap_or_default();
+        let compat = config
+            .wire
+            .chat
+            .get(catalog_model)
+            .cloned()
+            .unwrap_or_default();
         return stream_chat_overlaid(
             config, &compat, overlay, model, variant, input, tools, max_output, cancel, observe,
             dispatch,

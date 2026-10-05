@@ -817,7 +817,12 @@ impl Runtime<'_> {
                     id: id.into(),
                     variant,
                 };
-                self.admit_provider(catalog, &model.id, provider)?;
+                self.admit_provider_variant(
+                    catalog,
+                    &model.id,
+                    model.variant.as_deref(),
+                    provider,
+                )?;
                 let base =
                     models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
                 models::select_variant(&base, model.variant.as_deref())

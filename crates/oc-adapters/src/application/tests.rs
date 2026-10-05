@@ -1456,5 +1456,7 @@ mod live_switch_tests;
 
 #[path = "chat_wire_tests.rs"]
 mod chat_wire_tests;
+#[path = "effective_wire_tests.rs"]
+mod effective_wire_tests;
 #[path = "messages_wire_tests.rs"]
 mod messages_wire_tests;

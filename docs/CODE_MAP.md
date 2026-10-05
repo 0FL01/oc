@@ -57,7 +57,11 @@ External read/search (TOOL14/TOOL16): `files.rs::{concrete_scope,pin_external,re
 T53 local config: `oc-adapters/src/config/providers.rs` normalizes both provider
 roots and recursively merges supplied overlays, with `providers_tests.rs`.
 `config.rs` retains field provenance; model/variant readers accept canonical arrays.
-Full effective request binding and public Go cache remain separate T53 slices.
+`config/request_bindings.rs` captures provider→model→variant templates with tuple
+source provenance; application resolves each admitted auth scope before publication.
+`provider.rs::for_selection` is the common immutable dispatch/admission consumer;
+catalog IDs stay distinct from wire modelID. Nearest tests: `request_bindings_tests.rs`
+and `application/effective_wire_tests.rs`. Public Go cache remains a separate slice.
 
 T53 native wires: `oc-adapters/src/provider/{chat,messages,protocol}.rs` owns
 finite lowering and independent decoders; `provider.rs` shares HTTP/SSE caps,

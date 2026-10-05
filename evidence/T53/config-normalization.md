@@ -82,3 +82,48 @@ Partial R3 only. Selected model/variant settings/API IDs/auth scope still need
 immutable effective binding capture. Public Go cache, metadata, durable replay,
 connect/PTY qualification and bounded real GO06 are not claimed by this receipt.
 No real API requests, dependencies, secrets or ignored-test changes.
+
+## Effective local request bindings follow-up (2026-10-05)
+
+Base `29ac9af72`. Local model and exact variant overlays now capture immutable
+ResponsesConfig templates after recursive settings/body and case-insensitive header
+merge. Model package wins; API modelID is consumed only by the wire, while catalog
+ID remains selection/history identity. Endpoint/source admission precedes credential
+substitution. Literal provider/model/variant IDs use structured provenance tuples,
+not ambiguous dotted paths. Later unrelated trusted metadata cannot promote a prior
+untrusted file credential or private endpoint.
+
+Application resolves every template independently from its configured inputs and
+admitted scope before publishing the generation. Parent stored/env-resolved secrets
+are not inherited by endpoint-changing templates. The shared stream consumer picks
+from the captured generation; no per-request storage/env lookup. Main, compaction,
+title and child admission now considers the selected variant's auth facts. UI
+readiness follows the same selected binding. Captured credentials join redaction
+inputs but not MCP credential-inheritance inputs. Binding Debug remains secret-safe.
+
+Four focused template/security tests cover recursive variant overlays/package/API
+ID, source trust, Go foreign-authority refusal before a secret read, and literal
+model/variant ID provenance aliasing and zero-dispatch auxiliary auth refusal.
+The actual application test sends two fake
+requests: own Messages model+variant with scoped stored key, then independent title
+Chat model/API ID/configured key. It checks exact prefixes, auth/header/body/thinking/
+effort, absence of parent/foreign Go keys, and fresh-session refusal for missing Key
+and unsupported OAuth before inserting any root. Existing tool/live-switch/retry/
+compaction suites remain unchanged and green.
+
+Final commands with approved disk TMPDIR/jobs=3/test threads=2:
+
+- `cargo test --locked -p oc-adapters --lib`: **584 passed, 0 failed, 0 ignored**.
+- `cargo test --locked -p oc-adapters --lib effective_wire_tests -- --nocapture`: PASS.
+- `cargo clippy --locked -p oc-adapters --all-targets -- -D warnings`: PASS.
+- `cargo fmt --all -- --check`, `git diff --check`: PASS.
+
+Initial compile exposed a too-narrow child-module re-export; visibility now reaches
+only `crate::config`. Strict clippy requested a borrowed one-element source slice;
+fixed without suppression. Review replaced dotted credential provenance with tuple
+keys and added the independent aliasing regression before final full-suite rerun.
+
+Partial local R1/R3 only. Remote Go catalog capture, Go headers/cache/chronological
+effort, complete durable protocol/API/deployment/auth-scope provenance and account
+controls/connect/PTY/bounded live remain required; **no GO01–GO06 or T53 PASS claim**.
+No real API requests, new dependencies, ignored tests or secret files were used.

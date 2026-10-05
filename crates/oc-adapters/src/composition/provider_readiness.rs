@@ -47,6 +47,20 @@ impl ProviderState {
         self
     }
 
+    pub(crate) fn set_auth(&mut self, ready: bool, policy: crate::auth::AuthPolicy) {
+        self.credential = ready;
+        self.unsupported_oauth = policy == crate::auth::AuthPolicy::OAuth;
+        if self.catalog_status == ProviderStatus::Unavailable
+            && self
+                .diagnostic
+                .as_ref()
+                .is_some_and(|d| d.code == ServiceCode::MissingCredential)
+        {
+            self.catalog_status = ProviderStatus::Ready;
+            self.diagnostic = None;
+        }
+    }
+
     fn diagnostic(
         &self,
         field: &str,
@@ -195,6 +209,16 @@ impl ProviderState {
 }
 
 impl Composition {
+    pub(crate) fn selected_provider_readiness(
+        &self,
+        model: &str,
+        variant: Option<&str>,
+    ) -> ProviderReadiness {
+        let provider = self.provider.for_selection(model, variant);
+        let mut state = self.provider_state.clone();
+        state.set_auth(provider.auth_ready(), provider.wire.auth_policy);
+        state.for_model(model, self.catalog.models.contains_key(model))
+    }
     /// Resolve once per admitted generation, before any discovery or runtime publication.
     /// Prepared requests retain this immutable binding across later account mutations.
     pub(crate) fn resolve_credentials(
@@ -208,6 +232,41 @@ impl Composition {
             .get(&format!("provider.{id}"))
             .map(String::as_str)
             .unwrap_or("native config");
+        // Each template still contains configured inputs, not the already-resolved
+        // parent key. An endpoint-changing model must never inherit parent auth.
+        for request in self.provider.wire.requests.values_mut() {
+            let scope = crate::auth::AuthScope::admit(id, &request.base_url)
+                .map_err(|_| invalid(source, &["provider", "models", "settings", "baseURL"]))?;
+            let competing = request.headers.keys().any(|name| {
+                name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+            });
+            scope
+                .resolve(
+                    db,
+                    request.wire.auth_policy,
+                    Some(&request.api_key),
+                    competing,
+                    || self.parent_env.get("OPENCODE_API_KEY").cloned(),
+                )
+                .map_err(|error| {
+                    failure(
+                        source,
+                        &["provider", "models", "settings", "authPolicy"],
+                        ServiceStage::Config,
+                        if matches!(error, crate::auth::AuthError::Storage(_)) {
+                            ServiceCode::StorageUnavailable
+                        } else {
+                            ServiceCode::InvalidConfig
+                        },
+                    )
+                })?
+                .apply_to(request);
+        }
+        if let Some(entry) = self.generation.providers.get_mut(id) {
+            // Redaction-only captured values; MCP credential inheritance does not
+            // inspect this map, and public config Debug never renders its contents.
+            entry.options.request_bindings = self.provider.wire.requests.clone();
+        }
         let scope = crate::auth::AuthScope::admit(id, &self.provider.base_url)
             .map_err(|_| invalid(source, &["provider", "options", "baseURL"]))?;
         let competing = self.provider.headers.keys().any(|name| {
@@ -241,10 +300,8 @@ impl Composition {
             id == discovery::PROVIDER_ID,
         )
         .with_auth_policy(self.provider.wire.auth_policy);
-        self.tui_chrome.provider = Some(self.provider_state.for_model(
-            &self.model_id,
-            self.catalog.models.contains_key(&self.model_id),
-        ));
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
         Ok(())
     }
 
@@ -294,9 +351,7 @@ impl Composition {
         self.provider_state.finish(&outcome);
         self.catalog.models = outcome.models;
         self.generation.warnings.extend(outcome.warnings);
-        self.tui_chrome.provider = Some(self.provider_state.for_model(
-            &self.model_id,
-            self.catalog.models.contains_key(&self.model_id),
-        ));
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
     }
 }

@@ -426,7 +426,7 @@ impl Runtime<'_> {
         {
             return Ok(false);
         }
-        if let Err(error) = self.admit_provider(catalog, model, provider) {
+        if let Err(error) = self.admit_provider_variant(catalog, model, variant, provider) {
             self.refuse_compaction_with_error(session, error.to_string())?;
             return Err(error);
         }

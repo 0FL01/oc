@@ -163,6 +163,10 @@ pub(super) fn mcp_redactions(
             provider.options.base_url.clone(),
         ]);
         secrets.extend(provider.options.headers.values().cloned());
+        for request in provider.options.request_bindings.values() {
+            secrets.extend([request.api_key.clone(), request.base_url.clone()]);
+            secrets.extend(request.headers.values().cloned());
+        }
     }
     for entry in config.mcp.values() {
         secrets.extend(entry.environment.values().cloned());

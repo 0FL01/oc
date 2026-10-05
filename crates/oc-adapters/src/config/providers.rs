@@ -3,6 +3,10 @@ use super::ConfigError;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 
+#[path = "request_bindings.rs"]
+mod bindings;
+pub(super) use bindings::{option_origin_key, record_origins, request_bindings};
+
 fn invalid(field: &str) -> ConfigError {
     ConfigError::Invalid {
         field: field.into(),

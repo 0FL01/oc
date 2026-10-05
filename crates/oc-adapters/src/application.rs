@@ -1157,10 +1157,10 @@ impl Effective {
                     .filter_map(|agent| Some((agent.id.clone(), agent.color.clone()?)))
                     .collect();
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
-                chrome.provider = Some(composition.provider_state.for_model(
-                    &self.model_id,
-                    composition.catalog.models.contains_key(&self.model_id),
-                ));
+                chrome.provider = Some(
+                    composition
+                        .selected_provider_readiness(&self.model_id, self.variant.as_deref()),
+                );
                 chrome.service_diagnostics.retain(|diagnostic| {
                     diagnostic.kind != oc_core::queries::ServiceKind::Provider
                 });
@@ -3775,9 +3775,10 @@ fn query(
                 selection::for_turn(db, composition, effective, &session.0).and_then(|selected| {
                     selected.admit_selection(composition)?;
                     runtime
-                        .admit_provider(
+                        .admit_provider_variant(
                             &composition.catalog,
                             &selected.model_id,
+                            selected.variant.as_deref(),
                             &composition.provider,
                         )
                         .map_err(runtime_error)?;
@@ -4045,9 +4046,10 @@ async fn worker(
                     let selected = selection::for_turn(db, composition, effective, &session.0)?;
                     selected.admit_selection(composition)?;
                     runtime
-                        .admit_provider(
+                        .admit_provider_variant(
                             &composition.catalog,
                             &selected.model_id,
+                            selected.variant.as_deref(),
                             &composition.provider,
                         )
                         .map_err(runtime_error)?;
@@ -4072,7 +4074,12 @@ async fn worker(
                         .and_then(|base| crate::models::select_variant(&base, variant.as_deref()))
                         .map_err(|_| app_error("title agent model/variant unavailable"))?;
                     runtime
-                        .admit_provider(&composition.catalog, &selection.id, &composition.provider)
+                        .admit_provider_variant(
+                            &composition.catalog,
+                            &selection.id,
+                            selection.variant.as_ref().map(|v| v.name.as_str()),
+                            &composition.provider,
+                        )
                         .map_err(runtime_error)?;
                     let fallback = composition
                         .generation
@@ -4445,9 +4452,10 @@ async fn worker(
                         };
                         selected.admit_selection(composition)?;
                         runtime
-                            .admit_provider(
+                            .admit_provider_variant(
                                 &composition.catalog,
                                 &selected.model_id,
+                                selected.variant.as_deref(),
                                 &composition.provider,
                             )
                             .map_err(runtime_error)?;

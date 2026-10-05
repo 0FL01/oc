@@ -418,7 +418,12 @@ impl TurnSubagent<'_, '_> {
         )
         .map_err(failed)?;
         self.runtime
-            .admit_provider(self.catalog, &model.id, self.provider)
+            .admit_provider_variant(
+                self.catalog,
+                &model.id,
+                model.variant.as_deref(),
+                self.provider,
+            )
             .map_err(|error| failed(error.to_string()))?;
         let pack = self.context_pack(request).map_err(failed)?;
         Ok((agent, model, pack))
@@ -1135,7 +1140,12 @@ impl<'a> Runtime<'a> {
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
-        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
+        self.admit_provider_variant(
+            params.catalog,
+            &params.model_id,
+            params.variant.as_deref(),
+            &params.provider,
+        )?;
         let published = self.current.read().expect("generation lock").clone();
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
@@ -1707,7 +1717,12 @@ impl<'a> Runtime<'a> {
             } else {
                 (params.model_id.clone(), params.variant.clone())
             };
-            self.admit_provider(params.catalog, &model_id, &params.provider)?;
+            self.admit_provider_variant(
+                params.catalog,
+                &model_id,
+                variant.as_deref(),
+                &params.provider,
+            )?;
             let base = models::select_model(params.catalog, &model_id)
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let selection = models::select_variant(&base, variant.as_deref())
@@ -3235,7 +3250,7 @@ impl<'a> Runtime<'a> {
             }
         };
         let published = self.current.read().expect("generation").clone();
-        self.admit_provider(catalog, &model.id, &provider)?;
+        self.admit_provider_variant(catalog, &model.id, model.variant.as_deref(), &provider)?;
         let base = models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
         let fallback = published
             .config

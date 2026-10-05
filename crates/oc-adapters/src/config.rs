@@ -87,6 +87,9 @@ pub enum Permission {
 /// strict typing.
 #[derive(Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ProviderOptions {
+    /// Admitted local model/variant templates; never deserialized from JSON.
+    #[serde(skip)]
+    pub request_bindings: BTreeMap<(String, Option<String>), crate::provider::ResponsesConfig>,
     /// Base URL template (may contain `{env:..}` before substitution).
     #[serde(rename = "baseURL", default)]
     pub base_url: String,
@@ -917,6 +920,7 @@ fn assemble_with_admission(
         }
 
         for (id, raw) in providers::document(obj)? {
+                providers::record_origins(&id, &raw, &source.path, &mut provider_origins);
                 for key in unknown_option_keys(raw.get("options")) {
                     unknown_options.push(if require_credential { format!(
                         "provider.{id}.options.{key} is not supported by the native \
@@ -1023,7 +1027,7 @@ fn assemble_with_admission(
             continue;
         }
         let origin = |field: &str| {
-            let key = format!("provider.{id}.options.{field}");
+            let key = providers::option_origin_key(id, field);
             let path = provider_origins.get(&key).unwrap_or(path);
             (path, sources.iter().any(|s| s.path == *path && s.trusted))
         };
@@ -1107,6 +1111,9 @@ fn assemble_with_admission(
             Ok(())
         })()
         .map_err(|error| diagnostic::LocatedError::new(path, error))?;
+        entry.options.request_bindings =
+            providers::request_bindings(id, raw, path, &provider_origins, sources, env, reader)
+                .map_err(|error| diagnostic::LocatedError::new(path, error))?;
         out_providers.insert(id.clone(), entry);
         provenance.insert(format!("provider.{id}"), path.clone());
     }
@@ -1344,6 +1351,7 @@ pub(crate) fn provider_wire(
         _ => Default::default(),
     };
     wire.auth_policy = entry.options.auth_policy;
+    wire.requests = entry.options.request_bindings.clone();
     wire.settings = crate::provider::settings::WireSettings::admit(
         protocol,
         &entry.options.wire_settings,

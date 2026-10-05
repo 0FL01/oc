@@ -426,6 +426,20 @@ roundtrip are green. Adapter suite **579/0/0**, strict all-target clippy/fmt gre
 This is partial R3, not GO03/T53 PASS: effective model/variant binding/API ID,
 Go cache/metadata, durable provenance, connect and bounded GO06 remain pending.
 
+### Effective local request binding checkpoint (2026-10-05)
+
+Local provider→model→variant settings/headers/body, model-level package and API
+modelID now produce immutable admitted templates. Tuple source provenance prevents
+literal IDs from aliasing credential/endpoint trust. Application resolves each scope
+from configured inputs before publication, without inheriting an already-resolved
+parent secret; shared dispatch and variant-aware readiness/admission consume them.
+Actual application main Messages and own-model title Chat routes use separate API
+IDs/keys; missing/OAuth variants refuse fresh acceptance. Adapter suite **584/0/0**,
+strict all-target clippy/fmt green; receipt `evidence/T53/config-normalization.md`.
+This is partial R1/R3, not full GO01/GO03: public Go cache/catalog, all-lane metadata,
+chronological effort/cache, durable protocol/binding replay, accounts/connect and
+bounded GO06 remain pending. Next slice: public models.dev/cache source owner.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

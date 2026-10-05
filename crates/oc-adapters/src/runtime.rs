@@ -1185,10 +1185,21 @@ impl<'a> Runtime<'a> {
         model: &str,
         provider: &ResponsesConfig,
     ) -> Result<(), RuntimeError> {
+        self.admit_provider_variant(catalog, model, None, provider)
+    }
+
+    pub(crate) fn admit_provider_variant(
+        &self,
+        catalog: &ModelCatalog,
+        model: &str,
+        variant: Option<&str>,
+        provider: &ResponsesConfig,
+    ) -> Result<(), RuntimeError> {
+        let selected = provider.for_selection(model, variant);
         let published = self.current.read().expect("generation lock").clone();
         let admitted = self.provider_state.read().expect("provider state").clone();
         let availability_known = admitted.is_some();
-        let state = admitted.unwrap_or_else(|| {
+        let mut state = admitted.unwrap_or_else(|| {
             // Credentials can come from SQLite rather than config. Admission
             // uses the captured transport policy, never the unresolved template.
             let credential = provider.auth_ready();
@@ -1205,6 +1216,7 @@ impl<'a> Runtime<'a> {
             )
             .with_auth_policy(provider.wire.auth_policy)
         });
+        state.set_auth(selected.auth_ready(), selected.wire.auth_policy);
         state
             // With no native owner publication, preserve existing model/budget
             // validation contracts; credential admission is still central.
@@ -1213,7 +1225,7 @@ impl<'a> Runtime<'a> {
                 !availability_known || catalog.models.contains_key(model),
             )
             .map_err(RuntimeError::ProviderUnavailable)?;
-        if !provider.auth_ready() {
+        if !selected.auth_ready() {
             let missing = crate::composition::ProviderState::new(
                 &catalog.provider,
                 published
@@ -1225,12 +1237,12 @@ impl<'a> Runtime<'a> {
                 false,
                 false,
             )
-            .with_auth_policy(provider.wire.auth_policy);
+            .with_auth_policy(selected.wire.auth_policy);
             missing
                 .admit(model, true)
                 .map_err(RuntimeError::ProviderUnavailable)?;
         }
-        crate::provider::request_headers(provider)
+        crate::provider::request_headers(selected)
             .map_err(|_| RuntimeError::InvalidArgs("invalid provider HTTP configuration".into()))?;
         Ok(())
     }
@@ -1994,7 +2006,12 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
-        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
+        self.admit_provider_variant(
+            params.catalog,
+            &params.model_id,
+            params.variant.as_deref(),
+            &params.provider,
+        )?;
         let published = self.current.read().expect("generation lock").clone();
         let mut lane = self.primary_lane(&published);
         if let Some(trigger) = manual {
@@ -2121,7 +2138,12 @@ impl<'a> Runtime<'a> {
     ) -> Result<TurnReport, RuntimeError> {
         let started = std::time::Instant::now();
         let _lease = self.begin_active()?;
-        self.admit_provider(params.catalog, &params.model_id, &params.provider)?;
+        self.admit_provider_variant(
+            params.catalog,
+            &params.model_id,
+            params.variant.as_deref(),
+            &params.provider,
+        )?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
         let attached = self.request_mcp(params.cancel).await?;
