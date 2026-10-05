@@ -1331,6 +1331,7 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
                     permission_rules: agent.permission_rules.clone(),
                     hidden: agent.hidden,
                     digest: Some(crate::defs::agent_digest(agent)),
+                    request: agent.request.clone(),
                 },
             )
         })
@@ -2297,6 +2298,7 @@ fn publish_workspace(
             .map(|agent| agent.permissions.clone())
             .unwrap_or_default(),
         commands::permission_rules(composition, effective, agent),
+        agent.map(|agent| agent.request.clone()).unwrap_or_default(),
     )
 }
 

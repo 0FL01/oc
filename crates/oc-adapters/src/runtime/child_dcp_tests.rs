@@ -47,6 +47,7 @@ fn dcp10_direct_child_query_and_api_cannot_use_root_authority() {
                     permission_rules: profile.permission_rules,
                     hidden: false,
                     digest: None,
+                    request: Default::default(),
                 },
             )]),
             depth_limit: 1,
@@ -93,6 +94,7 @@ fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer(
         permission_rules: builtin.permission_rules,
         hidden: false,
         digest: None,
+        request: Default::default(),
     };
     for (permission, config, consumer, available) in [
         (Permission::Allow, DcpConfig::default(), false, true),

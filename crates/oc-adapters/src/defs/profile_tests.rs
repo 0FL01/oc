@@ -154,3 +154,107 @@ fn r6_markdown_native_structured_variant_and_nested_path_safety() {
             .any(|d| d.body.contains("EXTERNAL_BODY"))
     );
 }
+
+#[test]
+fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("agents/team/tuned.md");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &path,
+        "---\nrequest:\n  headers:\n    X-Team: md\n  body:\n    text:\n      verbosity: low\n---\nmd body",
+    )
+    .unwrap();
+    let mut defs = load_definitions(&[DefRoot {
+        dir: temp.path().into(),
+        origin: "global".into(),
+    }]);
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    merge_config_definitions(
+        &mut defs,
+        &serde_json::json!({
+            "agent":{"legacy":{"options":{"top_p":0.1,"seed":7},"temperature":0.3,"top_p":0.9}},
+            "agents":{"team/tuned":{"request":{"headers":{"x-other":"json"},"body":{"seed":1}}}}
+        }),
+        "project",
+    );
+    assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
+    let legacy = &defs.agents["legacy"].request;
+    assert!(legacy.headers.is_empty());
+    assert_eq!(
+        serde_json::Value::Object(legacy.body.clone()),
+        serde_json::json!({"top_p":0.9,"seed":7,"temperature":0.3})
+    );
+    let tuned = &defs.agents["team/tuned"];
+    assert_eq!(
+        tuned.body, "md body",
+        "request-only override keeps the body"
+    );
+    assert_eq!(
+        tuned.request.headers,
+        BTreeMap::from([
+            ("x-other".to_string(), "json".to_string()),
+            ("x-team".to_string(), "md".to_string()),
+        ])
+    );
+    assert_eq!(
+        serde_json::Value::Object(tuned.request.body.clone()),
+        serde_json::json!({"text":{"verbosity":"low"},"seed":1})
+    );
+    assert!(
+        !format!("{tuned:?}").contains("json\""),
+        "header values stay out of Debug"
+    );
+    let before = agent_digest(tuned);
+    let mut changed = tuned.clone();
+    changed.request.body.insert("seed".into(), 2.into());
+    assert_ne!(before, agent_digest(&changed));
+
+    for (request, reason) in [
+        (
+            serde_json::json!({"settings":{}}),
+            "request.settings: unsupported field",
+        ),
+        (
+            serde_json::json!({"headers":{"Authorization":"x"}}),
+            "reserved header",
+        ),
+        (
+            serde_json::json!({"headers":{"bad name":"x"}}),
+            "invalid header name",
+        ),
+        (serde_json::json!({"headers":{"x-n":1}}), "must be a string"),
+        (
+            serde_json::json!({"body":{"model":"other"}}),
+            "request.body.model: reserved",
+        ),
+        (
+            serde_json::json!({"body":{"reasoning":{}}}),
+            "reserved request field",
+        ),
+        (
+            serde_json::json!({"body":[]}),
+            "request.body must be an object",
+        ),
+    ] {
+        let mut defs = LoadedDefs::default();
+        merge_config_definitions(
+            &mut defs,
+            &serde_json::json!({"agents":{"bad":{"request":request}}}),
+            "global",
+        );
+        assert!(!defs.agents.contains_key("bad"), "{reason}");
+        assert!(
+            defs.diagnostics.iter().any(|d| d.reason.contains(reason)),
+            "{reason}: {:?}",
+            defs.diagnostics
+        );
+    }
+    let mut defs = LoadedDefs::default();
+    merge_config_definitions(
+        &mut defs,
+        &serde_json::json!({"agent":{"bad":{"temperature":"hot"}}}),
+        "global",
+    );
+    assert!(!defs.agents.contains_key("bad"));
+}

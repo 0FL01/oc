@@ -255,6 +255,7 @@ async fn primary_workspace_policy_also_bounds_manual_compress() {
             None,
             BTreeMap::new(),
             rules,
+            Default::default(),
         )
         .unwrap();
     assert_eq!(
@@ -289,6 +290,7 @@ async fn primary_workspace_policy_also_bounds_manual_compress() {
             Some("build".into()),
             None,
             BTreeMap::new(),
+            Default::default(),
             Default::default(),
         )
         .unwrap();

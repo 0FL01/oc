@@ -116,6 +116,8 @@ pub struct AgentDef {
     pub hidden: bool,
     /// Admitted mode (`primary`) when explicitly configured.
     pub mode: Option<String>,
+    /// Request headers/body overlay applied to this profile's own generations.
+    pub request: crate::provider::RequestOverlay,
     /// Winning source origin.
     pub origin: String,
 }
@@ -154,6 +156,7 @@ pub(crate) fn builtin_build() -> AgentDef {
         permission_rules: Default::default(),
         hidden: false,
         mode: Some("primary".into()),
+        request: Default::default(),
         origin: "builtin".into(),
     }
 }
@@ -752,6 +755,69 @@ fn permission_map(
     Ok(permissions)
 }
 
+/// Native `request` headers/body plus V1 `options`/`temperature`/`top_p`,
+/// migrated in donor `migrateAgent` order; native body fields win.
+fn agent_request<'a>(
+    get: impl Fn(&str) -> Option<&'a serde_json::Value>,
+) -> Result<crate::provider::RequestOverlay, String> {
+    let mut overlay = crate::provider::RequestOverlay::default();
+    match get("options") {
+        None | Some(serde_json::Value::Null) => {}
+        Some(serde_json::Value::Object(options)) => overlay.body.extend(options.clone()),
+        Some(_) => return Err("options must be an object".into()),
+    }
+    for key in ["temperature", "top_p"] {
+        match get(key) {
+            None => {}
+            Some(value @ serde_json::Value::Number(_)) => {
+                overlay.body.insert(key.into(), value.clone());
+            }
+            Some(_) => return Err(format!("{key} must be a number")),
+        }
+    }
+    match get("request") {
+        None | Some(serde_json::Value::Null) => {}
+        Some(serde_json::Value::Object(request)) => {
+            if let Some(field) = request
+                .keys()
+                .find(|key| !matches!(key.as_str(), "headers" | "body"))
+            {
+                return Err(format!("request.{field}: unsupported field"));
+            }
+            match request.get("headers") {
+                None | Some(serde_json::Value::Null) => {}
+                Some(serde_json::Value::Object(headers)) => {
+                    for (name, value) in headers {
+                        let value = value
+                            .as_str()
+                            .ok_or_else(|| format!("request.headers.{name} must be a string"))?;
+                        overlay
+                            .headers
+                            .insert(name.to_ascii_lowercase(), value.to_string());
+                    }
+                }
+                Some(_) => return Err("request.headers must be an object".into()),
+            }
+            match request.get("body") {
+                None | Some(serde_json::Value::Null) => {}
+                Some(serde_json::Value::Object(body)) => overlay.body.extend(body.clone()),
+                Some(_) => return Err("request.body must be an object".into()),
+            }
+        }
+        Some(_) => return Err("request must be an object".into()),
+    }
+    overlay.validate()?;
+    if serde_json::to_vec(&(&overlay.headers, &overlay.body))
+        .map_or(usize::MAX, |bytes| bytes.len())
+        > MAX_REQUEST_OVERLAY_BYTES
+    {
+        return Err("request overlay exceeds 64 KiB".into());
+    }
+    Ok(overlay)
+}
+
+const MAX_REQUEST_OVERLAY_BYTES: usize = 64 * 1024;
+
 fn metadata_bool(value: Option<&serde_json::Value>) -> Result<bool, String> {
     match value {
         None => Ok(false),
@@ -836,6 +902,10 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         "disable",
                         "disabled",
                         "mode",
+                        "request",
+                        "options",
+                        "temperature",
+                        "top_p",
                     ];
                     if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str()))
                     {
@@ -874,7 +944,9 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         let hidden = metadata_bool(raw.get("hidden"))?;
                         let disabled = metadata_bool(raw.get("disable"))?
                             | metadata_bool(raw.get("disabled"))?;
+                        let request = agent_request(|key| object.get(key))?;
                         Ok::<_, String>((
+                            request,
                             description,
                             model,
                             variant,
@@ -888,6 +960,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     })();
                     match parsed {
                         Ok((
+                            request,
                             description,
                             model,
                             variant,
@@ -911,6 +984,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                                 permission_rules,
                                 hidden,
                                 disabled,
+                                request,
                                 supplied: object.keys().cloned().collect(),
                             },
                             source_path,
@@ -1296,6 +1370,7 @@ struct AgentInput {
     hidden: bool,
     disabled: bool,
     mode: Option<String>,
+    request: crate::provider::RequestOverlay,
     supplied: std::collections::BTreeSet<String>,
 }
 
@@ -1341,6 +1416,9 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
         let mut rules = previous.permission_rules.clone();
         rules.extend(input.permission_rules);
         input.permission_rules = rules;
+        let mut request = previous.request.clone();
+        request.extend(std::mem::take(&mut input.request));
+        input.request = request;
     }
     input.mode.get_or_insert_with(|| "primary".into());
     if out.defs.agents.len() >= MAX_DEFS_PER_KIND && !out.defs.agents.contains_key(&input.id) {
@@ -1385,6 +1463,7 @@ fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path
             permission_rules: input.permission_rules,
             hidden: input.hidden,
             mode: input.mode,
+            request: input.request,
             origin: root.origin.clone(),
         },
         &root.origin.clone(),
@@ -1640,6 +1719,10 @@ fn load_entry(
                         "hidden",
                         "disable",
                         "disabled",
+                        "request",
+                        "options",
+                        "temperature",
+                        "top_p",
                     ],
                 ) {
                     out.defs.diagnostics.push(diag(
@@ -1685,6 +1768,7 @@ fn load_entry(
                         } else {
                             agent_mode(field_string(&frontmatter.fields, "mode")?)?
                         },
+                        request: agent_request(|key| frontmatter.fields.get(key))?,
                         supplied: frontmatter
                             .fields
                             .keys()
@@ -1801,6 +1885,12 @@ pub fn agent_digest(agent: &AgentDef) -> String {
         &serde_json::to_vec(&agent.permission_rules).expect("serializable permission rules"),
     );
     hash_bytes(if agent.hidden { b"hidden" } else { b"visible" });
+    if !agent.request.is_empty() {
+        hash_bytes(
+            &serde_json::to_vec(&(&agent.request.headers, &agent.request.body))
+                .expect("serializable request overlay"),
+        );
+    }
     let mut out = String::with_capacity(16);
     let _ = write!(out, "{hash:016x}");
     out

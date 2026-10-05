@@ -894,6 +894,7 @@ struct RuntimeWorkspace {
     agent_digest: Option<String>,
     agent_permissions: BTreeMap<String, Permission>,
     agent_permission_rules: crate::permissions::PermissionRules,
+    agent_request: crate::provider::RequestOverlay,
     instructions: String,
     instruction_roots: Vec<crate::instructions::Root>,
     skills_projection: Option<String>,
@@ -916,6 +917,9 @@ struct TurnLane {
     agent_digest: Option<String>,
     permissions: BTreeMap<String, Permission>,
     permission_rules: crate::permissions::PermissionRules,
+    /// Captured profile overlay; configuration, never persisted with the lane.
+    #[serde(skip)]
+    request: crate::provider::RequestOverlay,
 }
 
 /// Created only by the explicit application command owner, never prompt text.
@@ -947,6 +951,9 @@ pub struct SubagentAgent {
     pub hidden: bool,
     /// Behavior digest pinning the child wire lane.
     pub digest: Option<String>,
+    /// Profile request overlay for the child's own generations.
+    #[serde(skip)]
+    pub request: crate::provider::RequestOverlay,
 }
 
 impl SubagentAgent {
@@ -1758,6 +1765,7 @@ impl<'a> Runtime<'a> {
         agent_color_index: Option<usize>,
         agent_permissions: BTreeMap<String, Permission>,
         mut agent_permission_rules: crate::permissions::PermissionRules,
+        agent_request: crate::provider::RequestOverlay,
     ) -> Result<(), RuntimeError> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
@@ -1794,6 +1802,7 @@ impl<'a> Runtime<'a> {
         workspace.agent_digest = agent_digest;
         workspace.agent_permissions = agent_permissions;
         workspace.agent_permission_rules = agent_permission_rules;
+        workspace.agent_request = agent_request;
         workspace.agent_id = agent_id;
         workspace.agent_color_index = agent_color_index;
         workspace.instructions = if shared_sources {
@@ -2181,6 +2190,7 @@ impl<'a> Runtime<'a> {
             agent_digest: workspace.agent_digest.clone(),
             permissions,
             permission_rules,
+            request: workspace.agent_request.clone(),
         }
     }
 

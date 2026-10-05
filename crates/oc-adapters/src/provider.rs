@@ -417,6 +417,89 @@ impl ResponsesConfig {
     }
 }
 
+/// Profile `request` overlay (donor `agents.<id>.request` headers/body; V1
+/// `options`/`temperature`/`top_p` migrate into `body`). Header values are
+/// never included in `Debug`; native request fields stay runtime-owned.
+#[derive(Clone, Default, PartialEq, Eq)]
+pub struct RequestOverlay {
+    /// Extra lowercase request headers, applied over provider headers.
+    pub headers: BTreeMap<String, String>,
+    /// Extra top-level JSON body fields.
+    pub body: serde_json::Map<String, serde_json::Value>,
+}
+
+impl std::fmt::Debug for RequestOverlay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RequestOverlay")
+            .field("headers", &self.headers.keys().collect::<Vec<_>>())
+            .field("body", &self.body.keys().collect::<Vec<_>>())
+            .finish()
+    }
+}
+
+/// Body fields the native Responses adapter owns; an overlay never replaces them.
+pub const RESERVED_BODY_FIELDS: [&str; 9] = [
+    "model",
+    "store",
+    "stream",
+    "input",
+    "include",
+    "max_output_tokens",
+    "tools",
+    "reasoning",
+    "prompt_cache_key",
+];
+
+impl RequestOverlay {
+    /// Explicit load-time refusal for routing/auth/framing headers, invalid
+    /// header syntax and runtime-owned body fields.
+    pub fn validate(&self) -> Result<(), String> {
+        use reqwest::header::{HeaderName, HeaderValue};
+        for (name, value) in &self.headers {
+            let header = HeaderName::from_bytes(name.as_bytes())
+                .map_err(|_| format!("request.headers.{name}: invalid header name"))?;
+            if RESERVED_HEADERS.contains(&header.as_str()) {
+                return Err(format!("request.headers.{name}: reserved header"));
+            }
+            HeaderValue::from_str(value)
+                .map_err(|_| format!("request.headers.{name}: invalid header value"))?;
+        }
+        if let Some(field) = self
+            .body
+            .keys()
+            .find(|key| RESERVED_BODY_FIELDS.contains(&key.as_str()))
+        {
+            return Err(format!("request.body.{field}: reserved request field"));
+        }
+        Ok(())
+    }
+
+    /// Key-level merge, matching donor `Object.assign` for headers and body.
+    pub fn extend(&mut self, other: RequestOverlay) {
+        self.headers.extend(other.headers);
+        self.body.extend(other.body);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.headers.is_empty() && self.body.is_empty()
+    }
+}
+
+const RESERVED_HEADERS: [&str; 12] = [
+    "authorization",
+    "accept",
+    "content-type",
+    "host",
+    "content-length",
+    "transfer-encoding",
+    "connection",
+    "upgrade",
+    "trailer",
+    "te",
+    "proxy-authorization",
+    "proxy-connection",
+];
+
 /// Stable cache key over logical request content (prompt + sorted tools).
 pub fn prompt_cache_key(prompt: &str, tools: &[ToolDef]) -> String {
     let mut sorted: Vec<&ToolDef> = tools.iter().collect();
@@ -1276,6 +1359,7 @@ pub async fn stream_generation_observed(
     }
     stream_body(
         config,
+        &BTreeMap::new(),
         bounded_json(&body)?,
         cancel,
         chunk_timeout.unwrap_or(Duration::from_millis(config.chunk_timeout_ms)),
@@ -1324,6 +1408,38 @@ pub(crate) async fn stream_input_counted<F: Future<Output = Result<(), ProviderE
     observe: &mut (dyn FnMut(&StreamItem) + Send),
     dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
+    stream_input_overlaid(
+        config,
+        &RequestOverlay::default(),
+        model,
+        variant,
+        input,
+        tools,
+        max_output,
+        cancel,
+        observe,
+        dispatch,
+    )
+    .await
+}
+
+/// [`stream_input_counted`] with the selected profile's request overlay.
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), ProviderError>> + Send>(
+    config: &ResponsesConfig,
+    overlay: &RequestOverlay,
+    model: &str,
+    variant: Option<&SelectedVariant>,
+    input: &[InputItem],
+    tools: &[ToolDef],
+    max_output: u64,
+    cancel: &AtomicBool,
+    observe: &mut (dyn FnMut(&StreamItem) + Send),
+    dispatch: &mut (impl FnMut() -> F + Send),
+) -> Result<Generation, ProviderError> {
+    overlay
+        .validate()
+        .map_err(|_| ProviderError::InvalidConfig)?;
     if max_output == 0 {
         return Err(ProviderError::InvalidConfig);
     }
@@ -1346,11 +1462,16 @@ pub(crate) async fn stream_input_counted<F: Future<Output = Result<(), ProviderE
     if let Some(effort) = variant.and_then(|v| v.reasoning_effort.as_deref()) {
         body["reasoning"] = serde_json::json!({"effort": effort});
     }
+    let object = body.as_object_mut().expect("request object");
+    for (key, value) in &overlay.body {
+        object.insert(key.clone(), value.clone());
+    }
     if config.set_cache_key {
         body["prompt_cache_key"] = format!("{:x}", Sha256::digest(bounded_json(&body)?)).into();
     }
     stream_body(
         config,
+        &overlay.headers,
         bounded_json(&body)?,
         cancel,
         Duration::from_millis(config.chunk_timeout_ms),
@@ -1390,6 +1511,7 @@ pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
 
 async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
+    extra_headers: &BTreeMap<String, String>,
     body: Vec<u8>,
     cancel: &AtomicBool,
     chunk_timeout: Duration,
@@ -1399,7 +1521,15 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     if config.timeout == Some(true) {
         return Err(ProviderError::InvalidConfig);
     }
-    let headers = request_headers(config)?;
+    let mut headers = request_headers(config)?;
+    for (name, value) in extra_headers {
+        let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        let mut value = reqwest::header::HeaderValue::from_str(value)
+            .map_err(|_| ProviderError::InvalidConfig)?;
+        value.set_sensitive(true);
+        headers.insert(name, value);
+    }
     let url = config.generation_url()?;
     tokio::select! {
         biased;

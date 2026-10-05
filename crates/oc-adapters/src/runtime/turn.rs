@@ -2196,8 +2196,9 @@ impl<'a> Runtime<'a> {
                             _ => {}
                         }
                     };
-                    crate::provider::stream_input_counted(
+                    crate::provider::stream_input_overlaid(
                         &params.provider,
+                        &lane.request,
                         &selection.id,
                         selection.variant.as_ref(),
                         &input,
@@ -2889,6 +2890,7 @@ impl<'a> Runtime<'a> {
             agent_digest: agent.digest.clone(),
             permissions,
             permission_rules,
+            request: agent.request.clone(),
         }
     }
 

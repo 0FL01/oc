@@ -143,3 +143,20 @@ async fn r6_default_profile_embedded_variant_matches_explicit_and_top_level_refe
         ("org/main", Some("fast"))
     );
 }
+
+#[tokio::test]
+async fn r6_loaded_profile_request_overlay_reaches_child_catalog() {
+    let temp = tempfile::tempdir().unwrap();
+    let mut config = config();
+    config["agents"]["worker"]["request"] =
+        serde_json::json!({"headers":{"X-Worker":"w"},"body":{"seed":3}});
+    std::fs::write(temp.path().join("opencode.json"), config.to_string()).unwrap();
+    let c = composition::load_with_env(temp.path(), BTreeMap::new())
+        .await
+        .unwrap();
+    let catalog = subagent_catalog(&c).unwrap();
+    let worker = &catalog.agents["worker"].request;
+    assert_eq!(worker.headers["x-worker"], "w");
+    assert_eq!(worker.body["seed"], 3);
+    assert!(catalog.agents["build"].request.is_empty());
+}

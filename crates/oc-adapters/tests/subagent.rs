@@ -68,6 +68,19 @@ impl Fake {
     }
 
     fn start_recording(script: Vec<String>) -> (String, Arc<Mutex<usize>>, CapturedRequests) {
+        let (base, hits, requests, _) = Self::start_with_headers(script);
+        (base, hits, requests)
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn start_with_headers(
+        script: Vec<String>,
+    ) -> (
+        String,
+        Arc<Mutex<usize>>,
+        CapturedRequests,
+        Arc<Mutex<Vec<BTreeMap<String, String>>>>,
+    ) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let base = format!(
             "http://127.0.0.1:{}/v1",
@@ -79,14 +92,18 @@ impl Fake {
         let worker_hits = hits.clone();
         let requests = Arc::new(Mutex::new(Vec::new()));
         let worker_requests = requests.clone();
+        let headers = Arc::new(Mutex::new(Vec::new()));
+        let worker_headers = headers.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().filter_map(Result::ok) {
                 let queue = worker_queue.clone();
                 let hits = worker_hits.clone();
                 let requests = worker_requests.clone();
+                let headers = worker_headers.clone();
                 std::thread::spawn(move || {
                     let mut reader = BufReader::new(stream);
                     let mut content_length = 0usize;
+                    let mut seen = BTreeMap::new();
                     loop {
                         let mut line = String::new();
                         match reader.read_line(&mut line) {
@@ -97,16 +114,18 @@ impl Fake {
                         if line.trim().is_empty() {
                             break;
                         }
-                        if let Some((name, value)) = line.split_once(':')
-                            && name.trim().eq_ignore_ascii_case("content-length")
-                        {
-                            content_length = value.trim().parse().unwrap_or(0);
+                        if let Some((name, value)) = line.split_once(':') {
+                            if name.trim().eq_ignore_ascii_case("content-length") {
+                                content_length = value.trim().parse().unwrap_or(0);
+                            }
+                            seen.insert(name.trim().to_ascii_lowercase(), value.trim().to_string());
                         }
                     }
                     let mut body = vec![0u8; content_length];
                     if content_length > 0 {
                         let _ = reader.read_exact(&mut body);
                     }
+                    headers.lock().expect("headers").push(seen);
                     requests
                         .lock()
                         .expect("requests")
@@ -129,7 +148,7 @@ impl Fake {
                 });
             }
         });
-        (base, hits, requests)
+        (base, hits, requests, headers)
     }
 
     /// Serve `first` immediately; every later request stalls with heartbeats
@@ -657,6 +676,7 @@ fn agent(id: &str, primary: bool, model: Option<&str>) -> SubagentAgent {
         permission_rules: Default::default(),
         hidden: false,
         digest: Some(format!("{id}-digest")),
+        request: Default::default(),
     }
 }
 
@@ -1535,3 +1555,82 @@ mod background_children;
 mod command_routing;
 #[path = "fixtures/foreground_children.rs"]
 mod foreground_children;
+
+#[tokio::test]
+async fn r6_profile_request_overlays_reach_root_and_child_requests_only() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation);
+    let root_request = oc_adapters::provider::RequestOverlay {
+        headers: BTreeMap::from([("x-profile".to_string(), "root-value".to_string())]),
+        body: serde_json::json!({"temperature":0.2,"text":{"verbosity":"low"}})
+            .as_object()
+            .unwrap()
+            .clone(),
+    };
+    runtime
+        .publish_workspace(
+            Some("ROOT PROFILE"),
+            "",
+            Vec::new(),
+            BTreeMap::new(),
+            Some("root-digest".into()),
+            Some("tuned".into()),
+            None,
+            BTreeMap::new(),
+            Default::default(),
+            root_request,
+        )
+        .expect("workspace");
+    let mut helper = agent("helper", false, None);
+    helper.request = oc_adapters::provider::RequestOverlay {
+        headers: BTreeMap::from([("x-profile".to_string(), "child-value".to_string())]),
+        body: serde_json::json!({"top_p":0.5})
+            .as_object()
+            .unwrap()
+            .clone(),
+    };
+    runtime
+        .publish_subagents(Some(catalog(1, vec![helper])))
+        .expect("catalog");
+    runtime.create_session("parent").expect("session");
+    let (base, _, requests, headers) = Fake::start_with_headers(vec![
+        subagent_call(
+            "call-sub",
+            serde_json::json!({"agent": "helper", "description": "Say hi", "prompt": "say hi"}),
+        ) + &sse_completed(),
+        sse_delta("child says hi") + &sse_completed(),
+        sse_delta("parent final") + &sse_completed(),
+    ]);
+    let report = runtime
+        .run_turn(params(
+            "parent",
+            "work",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .expect("turn");
+    assert_eq!(report.status, TurnStatus::Completed);
+    let requests = child_requests(&requests);
+    let headers = headers.lock().unwrap().clone();
+    assert_eq!(requests.len(), 3);
+    for index in [0, 2] {
+        assert_eq!(requests[index]["temperature"], 0.2);
+        assert_eq!(requests[index]["text"]["verbosity"], "low");
+        assert!(requests[index].get("top_p").is_none());
+        assert_eq!(headers[index]["x-profile"], "root-value");
+    }
+    assert_eq!(requests[1]["top_p"], 0.5);
+    assert!(
+        requests[1].get("temperature").is_none(),
+        "no parent body leak"
+    );
+    assert_eq!(headers[1]["x-profile"], "child-value");
+    for (request, headers) in requests.iter().zip(&headers) {
+        assert_eq!(request["model"], "m");
+        assert_eq!(request["stream"], true);
+        assert_eq!(headers["authorization"], "Bearer test-key");
+        assert!(request["prompt_cache_key"].as_str().is_some());
+    }
+}
