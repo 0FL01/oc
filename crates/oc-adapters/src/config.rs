@@ -98,6 +98,12 @@ pub struct ProviderOptions {
     /// Auth scheme captured after substitution into the common key slot.
     #[serde(skip)]
     pub messages_bearer: bool,
+    /// Internal captured authority; cannot be injected through config JSON.
+    #[serde(skip)]
+    pub endpoint_source: Option<String>,
+    /// Trust captured by the native source owner, never deserialized from JSON.
+    #[serde(skip)]
+    pub endpoint_trusted: bool,
     /// Explicit anonymous/Key/OAuth policy; omitted preserves required Key.
     #[serde(rename = "authPolicy", default)]
     pub auth_policy: crate::auth::AuthPolicy,
@@ -997,6 +1003,17 @@ fn assemble_with_admission(
                     }
                 })?;
             }
+            // Partial/static catalog documents need not define a connection.
+            // Composition still requires an endpoint before resolving/executing.
+            if !entry.options.base_url.is_empty() {
+                crate::endpoint::EndpointBinding::admit(&entry.options.base_url, trusted, path)
+                    .map_err(|_| ConfigError::Invalid {
+                        field: format!("provider.{id}.options.baseURL"),
+                        reason: "invalid endpoint authority".into(),
+                    })?;
+                entry.options.endpoint_source = Some(path.clone());
+                entry.options.endpoint_trusted = trusted;
+            }
             entry.options.api_key =
                 substitute_with(&entry.options.api_key, path, trusted, env, reader)?;
             if let Some(token) = &mut entry.options.auth_token {
@@ -1257,6 +1274,19 @@ pub(crate) fn provider_wire(
         _ => Default::default(),
     };
     wire.auth_policy = entry.options.auth_policy;
+    if let Some(source) = &entry.options.endpoint_source {
+        wire.endpoint = Some(
+            crate::endpoint::EndpointBinding::admit(
+                &entry.options.base_url,
+                entry.options.endpoint_trusted,
+                source,
+            )
+            .map_err(|_| ConfigError::Invalid {
+                field: format!("provider.{id}.options.baseURL"),
+                reason: "invalid endpoint authority".into(),
+            })?,
+        );
+    }
     Ok(wire)
 }
 

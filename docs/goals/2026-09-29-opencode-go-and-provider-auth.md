@@ -373,6 +373,11 @@ commits/текущий diff, не переносить чужую незаком
   application, private endpoint admission и account UI: GO01 остаётся pending.
 - Next: интеграция scoped auth/endpoint admission и оставшиеся per-wire options/
   protocol-safe durable provenance; catalog/connect owners остаются незакрытыми.
+- Endpoint follow-up:
+  Endpoint follow-up: shared captured origin/prefix/provenance admission, trusted
+  localhost/RFC1918/ULA, DNS pinning before credentials and connected-peer guard;
+  configured anonymous discovery. `evidence/T53/credentials.md`; GO01 remains pending
+  effective canonical overlays/account owner controls, no full T53 PASS.
 - Route qualification risk: public recon выявил `qwen3.8-max`/`qwen3.7-plus` как
   default Chat в models.dev, но official Go docs называют Messages. Это dated source
   conflict, не hardcoded ID exception. Follow models.dev aliases; bounded probes

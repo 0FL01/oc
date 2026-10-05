@@ -15,6 +15,7 @@ pub mod dcp;
 pub mod dcp_auto;
 pub mod defs;
 pub mod discovery;
+mod endpoint;
 pub mod files;
 mod instructions;
 mod mcp_lookup;

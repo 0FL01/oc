@@ -173,22 +173,28 @@ pub trait DiscoveryClient {
 /// Reqwest-backed client: redirects refused, per-attempt total timeout.
 #[derive(Debug, Clone)]
 pub struct ReqwestDiscoveryClient {
-    client: reqwest::Client,
     connect_timeout: Duration,
+    endpoint: Option<crate::endpoint::EndpointBinding>,
+    test_loopback: bool,
 }
 
 impl ReqwestDiscoveryClient {
     /// Build with refused redirects and a bounded connect timeout.
     pub fn new(connect_timeout: Duration) -> Result<Self, DiscoveryError> {
-        let client = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .connect_timeout(connect_timeout)
-            .build()
-            .map_err(|_| DiscoveryError::Network)?;
         Ok(Self {
-            client,
             connect_timeout,
+            endpoint: None,
+            test_loopback: false,
         })
+    }
+
+    pub(crate) fn captured(
+        provider: &crate::provider::ResponsesConfig,
+    ) -> Result<Self, DiscoveryError> {
+        let mut client = Self::new(provider.connect_timeout)?;
+        client.endpoint = provider.wire.endpoint.clone();
+        client.test_loopback = provider.allow_private;
+        Ok(client)
     }
 }
 
@@ -199,36 +205,60 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
         headers: &HeaderMap,
         attempt_timeout: Duration,
     ) -> Result<(u16, Vec<u8>), DiscoveryError> {
-        let req = self
-            .client
-            .get(url)
-            .headers(headers.clone())
-            .timeout(attempt_timeout);
-        let _ = self.connect_timeout;
-        let resp = req.send().await.map_err(|_| DiscoveryError::Network)?;
-        let status = resp.status().as_u16();
-        // The owner-supplied discovery contract checks response.ok before
-        // parsing the body. Error bodies may be huge or never complete;
-        // classify by status without consuming them. The fetch loop owns
-        // retry policy for non-2xx responses.
-        if !(200..300).contains(&status) {
-            return Ok((status, Vec::new()));
-        }
-        let mut body = Vec::new();
-        let mut stream = resp;
-        loop {
-            match stream.chunk().await {
-                Ok(None) => break,
-                Ok(Some(chunk)) => {
-                    if body.len() + chunk.len() > DISCOVERY_BODY_CAP {
-                        return Err(DiscoveryError::InvalidResponse);
-                    }
-                    body.extend_from_slice(&chunk);
-                }
-                Err(_) => return Err(DiscoveryError::Network),
+        tokio::time::timeout(attempt_timeout, async {
+            let (host, addresses) =
+                crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
+                    .await
+                    .map_err(|_| DiscoveryError::InvalidConfig)?;
+            let client = reqwest::Client::builder()
+                .retry(reqwest::retry::never())
+                .redirect(reqwest::redirect::Policy::none())
+                .no_proxy()
+                .user_agent(crate::USER_AGENT)
+                .connect_timeout(self.connect_timeout)
+                .resolve_to_addrs(&host, &addresses)
+                .build()
+                .map_err(|_| DiscoveryError::Network)?;
+            let req = client
+                .get(url)
+                .headers(headers.clone())
+                .timeout(attempt_timeout);
+            let resp = req.send().await.map_err(|_| DiscoveryError::Network)?;
+            if resp.remote_addr().is_some_and(|peer| {
+                !crate::endpoint::peer_allowed(
+                    self.endpoint.as_ref(),
+                    peer.ip(),
+                    self.test_loopback,
+                )
+            }) {
+                return Err(DiscoveryError::InvalidConfig);
             }
-        }
-        Ok((status, body))
+            let status = resp.status().as_u16();
+            // The owner-supplied discovery contract checks response.ok before
+            // parsing the body. Error bodies may be huge or never complete;
+            // classify by status without consuming them. The fetch loop owns
+            // retry policy for non-2xx responses.
+            if !(200..300).contains(&status) {
+                return Ok((status, Vec::new()));
+            }
+            let mut body = Vec::new();
+            let mut stream = resp;
+            loop {
+                match stream.chunk().await {
+                    Ok(None) => break,
+                    Ok(Some(chunk)) => {
+                        if body.len() + chunk.len() > DISCOVERY_BODY_CAP {
+                            return Err(DiscoveryError::InvalidResponse);
+                        }
+                        body.extend_from_slice(&chunk);
+                    }
+                    Err(_) => return Err(DiscoveryError::Network),
+                }
+            }
+            Ok((status, body))
+        })
+        .await
+        .map_err(|_| DiscoveryError::Network)?
     }
 }
 
@@ -747,7 +777,58 @@ pub async fn refresh<C: Clock, D: DiscoveryClient>(
         }
     };
 
-    let (rows, attempts) = match fetch_models(clock, client, &url, &headers, cancel).await {
+    refresh_admitted(clock, client, &url, &headers, local_models, cancel).await
+}
+
+pub(crate) async fn refresh_provider<D: DiscoveryClient>(
+    client: &D,
+    provider: &crate::provider::ResponsesConfig,
+    local_models: &BTreeMap<String, serde_json::Value>,
+    cancel: &AtomicBool,
+) -> DiscoveryOutcome {
+    if provider.wire.auth_policy != crate::auth::AuthPolicy::None {
+        return refresh(
+            &RealClock,
+            client,
+            &provider.base_url,
+            &provider.api_key,
+            &provider.headers,
+            local_models,
+            cancel,
+        )
+        .await;
+    }
+    match (
+        discovery_url(&provider.base_url),
+        crate::provider::request_headers(provider),
+    ) {
+        (Ok(url), Ok(mut headers)) => {
+            headers.insert(
+                "accept",
+                reqwest::header::HeaderValue::from_static("application/json"),
+            );
+            refresh_admitted(&RealClock, client, &url, &headers, local_models, cancel).await
+        }
+        _ => DiscoveryOutcome {
+            models: local_models.clone(),
+            warnings: Vec::new(),
+            attempts: 0,
+            replaced: false,
+            failure: Some(DiscoveryFailure::InvalidConfig),
+        },
+    }
+}
+
+async fn refresh_admitted<C: Clock, D: DiscoveryClient>(
+    clock: &C,
+    client: &D,
+    url: &str,
+    headers: &HeaderMap,
+    local_models: &BTreeMap<String, serde_json::Value>,
+    cancel: &AtomicBool,
+) -> DiscoveryOutcome {
+    let mut warnings = Vec::new();
+    let (rows, attempts) = match fetch_models(clock, client, url, headers, cancel).await {
         Ok(ok) => ok,
         Err(DiscoveryError::Cancelled) => {
             return DiscoveryOutcome {
@@ -937,10 +1018,12 @@ mod tests {
     #[tokio::test]
     async fn reqwest_http_error_status_precedes_oversized_or_slow_body() {
         let local = BTreeMap::from([("kept".to_string(), serde_json::json!({"name": "Kept"}))]);
-        let client = super::ReqwestDiscoveryClient::new(Duration::from_secs(1)).unwrap();
+        let mut client = super::ReqwestDiscoveryClient::new(Duration::from_secs(1)).unwrap();
         for status in [401, 403, 429, 503] {
             let attempts = if status >= 429 { 4 } else { 1 };
             let (base, server) = http_fixture(status, true, attempts).await;
+            client.endpoint =
+                Some(crate::endpoint::EndpointBinding::admit(&base, true, "test fixture").unwrap());
             let outcome = tokio::time::timeout(
                 Duration::from_secs(5),
                 super::refresh(
@@ -975,6 +1058,8 @@ mod tests {
         }
         for status in [401, 403] {
             let (base, server) = http_fixture(status, false, 1).await;
+            client.endpoint =
+                Some(crate::endpoint::EndpointBinding::admit(&base, true, "test fixture").unwrap());
             let url = super::discovery_url(&base).unwrap();
             let result = client
                 .get(&url, &headers(), Duration::from_millis(80))
@@ -990,6 +1075,8 @@ mod tests {
                 .expect("HTTP fixture task");
         }
         let (base, server) = http_fixture(200, true, 1).await;
+        client.endpoint =
+            Some(crate::endpoint::EndpointBinding::admit(&base, true, "test fixture").unwrap());
         let url = super::discovery_url(&base).unwrap();
         assert_eq!(
             client.get(&url, &headers(), Duration::from_secs(3)).await,

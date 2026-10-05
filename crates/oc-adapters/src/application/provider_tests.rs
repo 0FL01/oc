@@ -213,13 +213,9 @@ async fn go01_explicit_anonymous_application_sends_no_auth_and_completes() {
         let body = format!("data: {event}\n\n");
         socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
     });
-    let (app, guard, _) = spawn_with_env(
-        &project,
-        &root.path().join("data"),
-        BTreeMap::from([("OC_TEST_ALLOW_LOOPBACK".into(), "1".into())]),
-    )
-    .await
-    .unwrap();
+    let (app, guard, _) = spawn_with_env(&project, &root.path().join("data"), BTreeMap::new())
+        .await
+        .unwrap();
     assert_eq!(
         app.catalog()
             .await

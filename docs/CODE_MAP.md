@@ -64,8 +64,12 @@ replay/metadata qualification remains T53.
 
 T53 accounts: `oc-adapters/src/storage_credentials.rs` owns the additive account
 schema/lifecycle in `Db`, with `storage_credentials/tests.rs`; `auth.rs` is the narrow
-admitted Go/custom credential resolver. Config/application integration and connect UI
-remain pending.
+admitted Go/custom credential resolver. Application startup/reload resolves once per
+generation; account controls/connect UI remain pending.
+
+Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source trust;
+generation and configured discovery share its DNS pin and peer guard. Private boundary,
+redirect/no-forwarding and anonymous discovery tests: `endpoint/tests.rs`.
 
 ## Как обновлять
 

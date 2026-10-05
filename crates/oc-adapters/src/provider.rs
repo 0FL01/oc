@@ -396,6 +396,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) endpoint: Option<crate::endpoint::EndpointBinding>,
     pub(crate) auth_policy: crate::auth::AuthPolicy,
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
@@ -467,6 +468,7 @@ impl ResponsesConfig {
         let next = reqwest::Url::parse(&other.generation_url()?)
             .map_err(|_| ProviderError::InvalidConfig)?;
         Ok(current == next
+            && self.wire.endpoint == other.wire.endpoint
             && self.wire.protocol == other.wire.protocol
             && request_headers(self)? == request_headers(other)?)
     }
@@ -1757,19 +1759,20 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
             .map(|base| format!("{base}/messages"))
             .expect("Responses suffix"),
     };
-    tokio::select! {
+    let (host, addresses) = tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-        result = tokio::time::timeout(config.connect_timeout, guard_private_url(&url, config.allow_private)) => {
-            result.map_err(|_| ProviderError::Deadline)??;
+        result = tokio::time::timeout(config.connect_timeout, crate::endpoint::resolve(&url, config.wire.endpoint.as_ref(), config.allow_private)) => {
+            result.map_err(|_| ProviderError::Deadline)??
         }
-    }
+    };
 
     let builder = reqwest::Client::builder()
         .retry(reqwest::retry::never())
         .redirect(reqwest::redirect::Policy::none())
         .no_proxy()
         .user_agent(crate::USER_AGENT)
+        .resolve_to_addrs(&host, &addresses)
         .connect_timeout(config.connect_timeout);
     // timeout:false (or absent) means no total deadline: never set one.
     let client = builder.build().map_err(|_| ProviderError::InvalidConfig)?;
@@ -1782,6 +1785,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         &headers,
         &body,
         config.allow_private,
+        config.wire.endpoint.as_ref(),
         cancel,
         chunk_timeout,
         observe,
@@ -1879,42 +1883,6 @@ fn messages_headers(headers: &mut reqwest::header::HeaderMap) -> Result<(), Prov
     Ok(())
 }
 
-async fn guard_private_url(url: &str, allow_private: bool) -> Result<(), ProviderError> {
-    let url = reqwest::Url::parse(url).map_err(|_| ProviderError::InvalidConfig)?;
-    if !matches!(url.scheme(), "http" | "https")
-        || !url.username().is_empty()
-        || url.password().is_some()
-    {
-        return Err(ProviderError::InvalidConfig);
-    }
-    let host = url
-        .host_str()
-        .ok_or(ProviderError::InvalidConfig)?
-        .trim_matches(['[', ']']);
-    let port = url
-        .port_or_known_default()
-        .ok_or(ProviderError::InvalidConfig)?;
-    let addrs = tokio::net::lookup_host((host, port))
-        .await
-        .map_err(|_| ProviderError::PrivateHost)?;
-    let mut any = false;
-    for addr in addrs {
-        any = true;
-        let ip = addr.ip();
-        if allow_private && ip.is_loopback() {
-            continue;
-        }
-        if !crate::webfetch::ip_is_public(ip) {
-            return Err(ProviderError::PrivateHost);
-        }
-    }
-    if any {
-        Ok(())
-    } else {
-        Err(ProviderError::PrivateHost)
-    }
-}
-
 /// One POST→SSE attempt. Returns the terminal error plus whether any event
 /// was already committed (which forbids retry).
 #[allow(clippy::too_many_arguments)]
@@ -1926,6 +1894,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     headers: &reqwest::header::HeaderMap,
     body: &[u8],
     allow_private: bool,
+    endpoint: Option<&crate::endpoint::EndpointBinding>,
     cancel: &AtomicBool,
     chunk_timeout: Duration,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
@@ -1961,8 +1930,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         })?;
     // Post-dial rebinding guard on the connected peer.
     if let Some(peer) = resp.remote_addr()
-        && !crate::webfetch::ip_is_public(peer.ip())
-        && !(allow_private && peer.ip().is_loopback())
+        && !crate::endpoint::peer_allowed(endpoint, peer.ip(), allow_private)
     {
         return Err((ProviderError::PrivateHost, false));
     }

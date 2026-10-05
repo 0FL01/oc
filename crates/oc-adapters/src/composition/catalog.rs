@@ -83,13 +83,12 @@ async fn load_catalog_with_env(
             .provenance
             .get(&format!("provider.{}", discovery::PROVIDER_ID))
             .expect("provider source");
-        let mut state = ProviderState::new(
-            discovery::PROVIDER_ID,
-            source,
-            !entry.options.api_key.trim().is_empty(),
-            true,
-        );
-        if entry.options.api_key.trim().is_empty() {
+        let ready = entry.options.auth_policy == crate::auth::AuthPolicy::None
+            || (entry.options.auth_policy == crate::auth::AuthPolicy::Key
+                && !entry.options.api_key.trim().is_empty());
+        let mut state = ProviderState::new(discovery::PROVIDER_ID, source, ready, true)
+            .with_auth_policy(entry.options.auth_policy);
+        if !ready {
             complete = false;
             diagnostics.push(
                 state
@@ -112,7 +111,8 @@ async fn load_catalog_with_env(
                 connect_timeout: Duration::from_secs(10),
                 allow_private: env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
                 set_cache_key: entry.options.set_cache_key.unwrap_or(false),
-                wire: Default::default(),
+                wire: config::provider_wire(discovery::PROVIDER_ID, entry)
+                    .map_err(|_| invalid(source, &["provider", "options"]))?,
             };
             let outcome = Composition::discover_provider(provider, entry.models.clone()).await?;
             state.finish(&outcome);

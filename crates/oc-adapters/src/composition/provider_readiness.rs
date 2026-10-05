@@ -263,7 +263,7 @@ impl Composition {
         provider: provider::ResponsesConfig,
         models: BTreeMap<String, serde_json::Value>,
     ) -> Result<discovery::DiscoveryOutcome, LoadFailure> {
-        let client = match discovery::ReqwestDiscoveryClient::new(provider.connect_timeout) {
+        let client = match discovery::ReqwestDiscoveryClient::captured(&provider) {
             Ok(client) => client,
             Err(error) => {
                 return Ok(discovery::DiscoveryOutcome {
@@ -275,16 +275,7 @@ impl Composition {
                 });
             }
         };
-        Ok(discovery::refresh(
-            &discovery::RealClock,
-            &client,
-            &provider.base_url,
-            &provider.api_key,
-            &provider.headers,
-            &models,
-            &AtomicBool::new(false),
-        )
-        .await)
+        Ok(discovery::refresh_provider(&client, &provider, &models, &AtomicBool::new(false)).await)
     }
 
     pub(crate) fn accept_provider_catalog(&mut self, outcome: discovery::DiscoveryOutcome) {
