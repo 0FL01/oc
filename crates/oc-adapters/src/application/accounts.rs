@@ -4,9 +4,13 @@ use oc_core::queries::{
     AccountAction, AccountAuthSource, AccountKind, ProviderAccount, ProviderAccounts,
 };
 
-fn scope(c: &Composition, provider: &str) -> Result<crate::auth::AuthScope, CoreError> {
+pub(super) fn scope(c: &Composition, provider: &str) -> Result<crate::auth::AuthScope, CoreError> {
     let base = if provider == crate::models_dev::PROVIDER && c.generation.public_go_enabled {
         crate::auth::GO_BASE_URL
+    } else if provider == "openai" && !c.generation.providers.contains_key(provider) {
+        // Well-known auth requires no model/configuration. Custom endpoint
+        // entries below still retain their separate admitted namespace.
+        crate::auth::OPENAI_BASE_URL
     } else {
         let entry = c
             .provider_views
@@ -156,6 +160,7 @@ pub(super) fn read(
                     crate::storage::CredentialKind::Key => AccountKind::Key,
                     crate::storage::CredentialKind::OAuth => AccountKind::OAuth,
                 },
+                method_id: a.method_id,
                 active: a.active,
                 created_at: a.created_at,
             })

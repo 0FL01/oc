@@ -40,7 +40,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: source-derived fake issuer + real loopback tests, затем rebuilt
     native binary с callback/error/cancel/occupied-port barriers; никакого реального входа.
   - Status: in_progress
-  - Evidence: evidence/T57/attempts.md — real owned loopback/fake issuer PKCE, callback/error/ports/cancel/expiry and durable single-account ack; rebuilt native consumer qualification remains pending.
+  - Evidence: evidence/T57/attempts.md / application.md — real owned loopback/fake issuer PKCE, callback/error/ports/cancel/expiry and durable single-account ack; Core actions and joined application lifetime across Location/busy stream verified, rebuilt native consumer qualification remains pending.
 - R2: полноценный device OAuth и headless CLI.
   - Source: явный запрос headless; `openai.ts:169–228`, CLI `handlers/auth/login.ts`.
   - Acceptance: AUTH02 доказывает usercode → pending polling → code exchange → stored
@@ -49,7 +49,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake-clock/issuer + actual binary с pipes и PTY; inspect request
     counters/intervals, CLI exit/status и account reopen.
   - Status: in_progress
-  - Evidence: evidence/T57/attempts.md — actual usercode/pending polling/exchange/cancel/expiry/reopen owner proof; no-TTY CLI/PTY consumer qualification remains pending.
+  - Evidence: evidence/T57/attempts.md / application.md — actual usercode/pending polling/exchange/cancel/expiry/reopen owner proof and typed Core/application method/action bridge; no-TTY CLI/PTY consumer qualification remains pending.
 - R3: общие accounts, OAuth metadata и automatic refresh.
   - Source: полный backend parity; donor `integration.ts`/`credential.ts`, existing T53 GO01.
   - Acceptance: AUTH03 доказывает transactional add/activate/rename/remove, Key/OAuth
@@ -58,7 +58,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
   - Status: in_progress
-  - Evidence: evidence/T57/credentials.md and attempts.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay plus store-once login and per-namespace stale selection/empty-ABA guard; shared consumers and full AUTH03 remain pending.
+  - Evidence: evidence/T57/credentials.md / attempts.md / application.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay, store-once login/per-namespace stale fences and safe acknowledged method/account projection; executable bindings/consumers and full AUTH03 remain pending.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -277,8 +277,14 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current owning checks: auth0 12/0 and full adapters lib 641/0/1, strict workspace
   all-target Clippy/fmt/diff green; evidence/T57/attempts.md. This is partial owner
   evidence, not rebuilt application/CLI/TUI or WS/live qualification.
-- Next checkpoint: application/Core auth actions and built-in OpenAI Key/OAuth
-  catalog/bindings, native Responses WS/HTTP and all captured request/history lanes.
+- Third checked slice: typed Core method/auth actions and safe account method ID;
+  one application-lifetime attempt owner with joined cleanup after all worker exits,
+  no Location/endpoint rebinding and no model cancellation during auth commands.
+- Current application checks: auth0 15/0, adapters lib 644/0/1, Core 32/0, TUI 444/0;
+  strict workspace all-target Clippy/fmt/diff green. `evidence/T57/application.md` is
+  backend bridge evidence, not rebuilt login consumers, OAuth execution or live PASS.
+- Next checkpoint: built-in OpenAI Key/OAuth catalog/bindings, native Responses
+  WS/HTTP and all captured request/history lanes, then actual CLI/TUI consumers.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

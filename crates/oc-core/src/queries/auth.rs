@@ -19,6 +19,27 @@ impl OAuthMethod {
     }
 }
 
+/// Selectable methods only: inherited environment credentials are not an action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AuthMethod {
+    OAuth(OAuthMethod),
+    Key,
+}
+impl AuthMethod {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::OAuth(method) => method.id(),
+            Self::Key => "key",
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::OAuth(method) => method.label(),
+            Self::Key => "API key",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthAttemptFailure {
     Cancelled,

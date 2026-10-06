@@ -36,6 +36,8 @@ pub struct ProviderAccount {
     pub id: String,
     pub label: String,
     pub kind: AccountKind,
+    /// Known OAuth method identity, never routing metadata or token contents.
+    pub method_id: Option<String>,
     pub active: bool,
     pub created_at: i64,
 }

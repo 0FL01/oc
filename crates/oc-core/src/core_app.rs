@@ -388,6 +388,15 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    AuthMethods {
+        provider: String,
+        ack: oneshot::Sender<Result<Vec<crate::queries::AuthMethod>, CoreError>>,
+    },
+    Authenticate {
+        provider: String,
+        action: crate::queries::AuthAction,
+        ack: oneshot::Sender<Result<crate::queries::AuthAttempt, CoreError>>,
+    },
     Terminal {
         session: SessionId,
         action: crate::queries::TerminalAction,
@@ -1412,6 +1421,37 @@ impl CoreApp {
         receipt.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Current admitted methods, without initiating authorization or reading secrets.
+    pub async fn auth_methods(
+        &self,
+        provider: String,
+    ) -> Result<Vec<crate::queries::AuthMethod>, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::AuthMethods { provider, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Explicit built-in OpenAI login/status/cancel through the native owner.
+    pub async fn authenticate(
+        &self,
+        provider: String,
+        action: crate::queries::AuthAction,
+    ) -> Result<crate::queries::AuthAttempt, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Authenticate {
+                provider,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Native session terminal command/query with an acknowledged owner receipt.
     pub async fn terminal(
         &self,
@@ -2239,6 +2279,12 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ShellJobs { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::AuthMethods { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::Authenticate { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Terminal { ack, .. } => {

@@ -9,6 +9,7 @@ fn snapshot() -> ProviderAccounts {
             id: "first".into(),
             label: "First".into(),
             kind: AccountKind::Key,
+            method_id: None,
             active: true,
             created_at: 1,
         }],

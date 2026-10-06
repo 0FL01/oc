@@ -33,6 +33,9 @@ use crate::trace;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
 mod accounts;
+mod authentication;
+#[cfg(test)]
+mod authentication_tests;
 #[path = "application/commands.rs"]
 mod commands;
 #[cfg(test)]
@@ -1450,6 +1453,8 @@ async fn start_worker(
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let children = crate::runtime::children::Jobs::new(&db);
     let root = db.root().to_owned();
+    let authentication = authentication::new(&db);
+    let authentication_location = composition.project.to_string_lossy().into_owned();
     let result = start_worker_inner(
         db,
         composition,
@@ -1457,11 +1462,21 @@ async fn start_worker(
         events.clone(),
         ready,
         children.clone(),
+        &authentication,
     )
     .await;
     // Covers every return/failed publication, including errors after a move.
+    let authentication_stop = authentication::shutdown(&authentication).await;
     let joined = children.shutdown().await;
     let delivered = children.deliver(Some(&events));
+    authentication_stop.map_err(|_| {
+        runtime_issue(
+            &authentication_location,
+            &["authentication", "cleanup"],
+            &RuntimeError::Storage,
+        )
+        .diagnostic
+    })?;
     joined.map_err(|error| storage_diagnostic(&root, &error))?;
     delivered.map_err(|error| storage_diagnostic(&root, &error))?;
     result
@@ -1474,6 +1489,7 @@ async fn start_worker_inner(
     events: broadcast::Sender<CoreEvent>,
     ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
     children: Arc<crate::runtime::children::Jobs>,
+    authentication: &authentication::Owner,
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
     let mut runtime = match build_runtime(&db, &composition) {
         Ok(runtime) => runtime,
@@ -1602,6 +1618,7 @@ async fn start_worker_inner(
             &title_work,
             &mut provider_work,
             &terminals,
+            authentication,
         )
         .await;
         let outcome = match outcome {
@@ -1850,9 +1867,11 @@ async fn start_worker_inner(
                         &suggestion_queue,
                         &title_work,
                         &terminals,
+                        authentication,
                         session,
                         old_deck,
-                    );
+                    )
+                    .await;
                     let _ = ack.send(receipt);
                     continue;
                 }
@@ -1909,9 +1928,11 @@ async fn start_worker_inner(
                     &suggestion_queue,
                     &title_work,
                     &terminals,
+                    authentication,
                     session.clone(),
                     old_deck,
-                );
+                )
+                .await;
                 let mut receipt = match receipt {
                     Ok(receipt) => receipt,
                     Err(error) => {
@@ -2648,7 +2669,7 @@ fn project_model_switch(
 /// Prepare the selected root and atomically save the old and target decks.
 /// All fallible target reads precede the commit and Location publication.
 #[allow(clippy::too_many_arguments)]
-fn prepare_picker_open(
+async fn prepare_picker_open(
     db: &Db,
     runtime: &Runtime<'_>,
     composition: &Composition,
@@ -2660,6 +2681,7 @@ fn prepare_picker_open(
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
     title_work: &Mutex<AutomaticTitles>,
     terminals: &terminals::Owner,
+    authentication: &authentication::Owner,
     session: SessionId,
     old_deck: oc_core::queries::TabDeckSnapshot,
 ) -> Result<oc_core::queries::SessionPickerOpen, CoreError> {
@@ -2701,6 +2723,7 @@ fn prepare_picker_open(
         suggestion_queue,
         title_work,
         terminals,
+        authentication,
         InboxMsg::History {
             session: session.clone(),
             before_seq: None,
@@ -2708,7 +2731,8 @@ fn prepare_picker_open(
             limit: HISTORY_PAGE_LIMIT,
             ack,
         },
-    );
+    )
+    .await;
     let page = result
         .try_recv()
         .map_err(|_| app_error("picker history unavailable"))??;
@@ -2784,7 +2808,7 @@ fn picker_target(
 
 #[allow(clippy::too_many_arguments)]
 /// Handle one owner-only query or action; streaming admits read snapshots.
-fn query(
+async fn query(
     db: &Db,
     runtime: &Runtime<'_>,
     composition: &Composition,
@@ -2796,9 +2820,21 @@ fn query(
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
     title_work: &Mutex<AutomaticTitles>,
     terminals: &terminals::Owner,
+    authentication: &authentication::Owner,
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::AuthMethods { provider, ack } => {
+            let _ = ack.send(authentication::methods(composition, &provider));
+        }
+        InboxMsg::Authenticate {
+            provider,
+            action,
+            ack,
+        } => {
+            let _ = ack
+                .send(authentication::action(authentication, composition, &provider, action).await);
+        }
         InboxMsg::Terminal {
             session,
             action,
@@ -3997,6 +4033,7 @@ async fn worker(
     title_work: &Mutex<AutomaticTitles>,
     provider_work: &mut provider_catalog::ProviderWork,
     terminals: &terminals::Owner,
+    authentication: &authentication::Owner,
 ) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
@@ -4078,7 +4115,7 @@ async fn worker(
                             else if let InboxMsg::ChangeConversation { ack,.. } = command { let _=ack.send(Err(CoreError::TurnBusy)); }
                         }
                         Some(command @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. })) if pending_inputs.len()<MAX_QUEUE_ITEMS => pending_inputs.push_back(command),
-                        Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,terminals,command),
+                        Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,terminals,authentication,command).await,
                     }
                 }
             }
@@ -4095,8 +4132,10 @@ async fn worker(
                     suggestion_queue,
                     title_work,
                     terminals,
+                    authentication,
                     command,
-                );
+                )
+                .await;
             }
             if shutdown {
                 break 'worker;
@@ -4443,7 +4482,7 @@ async fn worker(
                                 }
                             }
                             Some(command) => {
-                                query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, terminals, command);
+                                query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, terminals, authentication, command).await;
                                 if matches!(db.session_meta(&session.0), Err(StorageError::SessionNotFound)) {
                                     cancel.store(true,Ordering::Relaxed);
                                     // Dropping the pinned provider operation closes the
@@ -4467,8 +4506,10 @@ async fn worker(
                         suggestion_queue,
                         title_work,
                         terminals,
+                        authentication,
                         command,
-                    );
+                    )
+                    .await;
                 }
                 let _ = ack.send(result);
                 if shutdown {
@@ -5075,8 +5116,9 @@ async fn worker(
                                     suggestion_queue,
                                     title_work,
                                     terminals,
+                                    authentication,
                                     command,
-                                ),
+                                ).await,
                             }
                         }
                     };
@@ -5176,27 +5218,33 @@ async fn worker(
                         suggestion_queue,
                         title_work,
                         terminals,
+                        authentication,
                         command,
-                    );
+                    )
+                    .await;
                 }
                 if shutdown {
                     break;
                 }
             }
-            message => query(
-                db,
-                runtime,
-                composition,
-                effective,
-                registry,
-                sessions,
-                home_choices,
-                location_epoch,
-                suggestion_queue,
-                title_work,
-                terminals,
-                message,
-            ),
+            message => {
+                query(
+                    db,
+                    runtime,
+                    composition,
+                    effective,
+                    registry,
+                    sessions,
+                    home_choices,
+                    location_epoch,
+                    suggestion_queue,
+                    title_work,
+                    terminals,
+                    authentication,
+                    message,
+                )
+                .await
+            }
         }
     }
     runtime.cancel_all_compactions();
