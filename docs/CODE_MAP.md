@@ -237,6 +237,10 @@ ephemeral device code; no prose parsing. Native account/model previews are in
 `composition/{provider_readiness,provider_views}.rs`, without mutating issued requests
 or exchanging tokens. Nearest `app/accounts_tests.rs`, `auth_controls/tests.rs` and
 `composition/openai_catalog/tests.rs`; receipt `evidence/T57/tui.md`.
+Normal native TUI PTYs are `oc/tests/auth_tui.rs` / `support/auth_tui.py`, filter
+`auth05_`: real masked keys/account actions/cached picker and owned browser open,
+copy, refusal/cancel/quit, not successful real issuer/device/model authorization;
+receipt `evidence/T57/tui-binary.md`.
 
 ## Как обновлять
 

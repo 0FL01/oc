@@ -79,7 +79,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: source-derived key/OAuth separation fixtures + actual binary
     PTY/pipe actions и captured requests; token/key never enters transcript/composer.
   - Status: in_progress
-  - Evidence: evidence/T57/cli.md / tui.md — shared native CLI plus mounted TUI methods/pending/cancel/accounts and acknowledged provider-filtered picker/no model commit; metadata-only previews leave held requests intact. Rebuilt TUI PTY/release and real provider qualification remain pending. Presentation — only T44/VIS45.
+  - Evidence: evidence/T57/cli.md / tui.md / tui-binary.md — shared native CLI and actual normal TUI PTY methods/masked keys/accounts/picker/no model commit, owned browser open/copy/refusal/cancel/quit and restart; metadata-only previews leave held requests intact. Release and real provider qualification remain pending. Presentation — only T44/VIS45.
 - R6: current offline и bounded real authorization/request qualification.
   - Source: полноценный backend и визуальный результат, existing A01–A13/live rules.
   - Acceptance: AUTH06 требует current nearest/impacted/final gates и opt-in native
@@ -337,7 +337,13 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current TUI checks: adapters lib665/0/1, auth0_36/0, TUI446/0, binary unit97/0 and
   strict workspace all-target Clippy/fmt/diff green; evidence/T57/tui.md. No rebuilt
   TUI login, release, real authorization or VIS45/full AUTH05/AUTH06 claim.
-- Next checkpoint: rebuilt normal TUI PTY and current debug/release/workspace gates,
+- Eleventh checked slice: actual normal debug TUI PTYs qualify ordered methods,
+  masked keys, durable account actions, cached provider-filtered picker without
+  selection/collision retarget, restart, explicit sanitized open/copy and owned
+  callback refusal/cancel/quit cleanup. Zero history/model effects; active URL stays
+  in memory. Current actual TUI target1/0 and strict workspace Clippy/fmt/diff green;
+  evidence/T57/tui-binary.md. No real issuer/device/model or paired VIS45 claim.
+- Next checkpoint: current release binaries/CLI-TUI fixtures and workspace gates,
   then bounded dedicated live authorization/request proof.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
