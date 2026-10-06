@@ -129,6 +129,16 @@ clearing привязан к смысловому началу следующе�
 Точный contract/owners: [T54](goals/2026-09-29-provider-retry-parity.md),
 T53/GO03 для будущих wires и T44/VIS43 для visual parity.
 
+Owner-approved 2026-10-06 [restricted-error follow-up](goals/2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
+adds `cyber_policy` to existing ContentPolicy/default terminal with unchanged observed
+override; one bounded provider-error-message fallback is not free LLM-text parsing.
+Existing safe message/span/retry fields carry request-local redacted guidance before
+publication, with narrow exact provider-supplied Daybreak URI exception and truthful
+clipping. No subtype/new DTO/schema/raw payload archive or retry owner. T57/AUTH04
+qualifies WS attempt-local provenance; T45 delivers child diagnostics, T44/VIS43/VIS39
+show explicit details without dispatch/cancel/restart or historical retry resurrection.
+Completed baseline unchanged; new outcomes pending, not a general URL/redaction relaxation.
+
 ## Permissions
 
 Default product profile: read/search в trusted project allow; file mutations (canonical apply_patch permission, including T50 edit/write target), bash/webfetch ask; skill/compress allow. Прежний default MCP ask superseded только утверждённым ниже T45 target; текущий runtime ещё не квалифицирован на новый default. Для live tests выделенный temporary fixture workspace с явно allowlisted operations. Режим полномочий authoring-agent не меняет автоматически permissions самого `oc`.

@@ -1462,9 +1462,11 @@ history-PASS или NOT_RUN→PASS по обновлению registry.
    bytes/rows, checkpoint processing and DB/WAL/I/O; retry/model switch/compact/
    restart preserve selected facts/effects, raw history and absent forgotten wire
    data. Schema-free feasibility is not assumed, A10 thresholds/caps are not raised.
-4. **VIS43 seam, not a new visual campaign.** Existing PartState/query/event exposes
-   recorded optional owning span, original sequence and bounded current/latest
-   facts plus referenced metadata. Partial reasoning across a new span tests the
+4. **VIS43 seam, not a new visual campaign.** Expose missing recorded optional owning
+   span in existing PartState/query/event, preserving original sequence. Audited
+   2026-10-06: latest_turn_spans/parts already serve bounded latest windows; reuse them
+   and supply necessary referenced metadata within existing budgets, not a new reader.
+   Partial reasoning across a new span tests the
    producer association; unknown legacy association is not guessed. Historical
    completed failed-span retry does not confer busy/cancel authority. Nearest scoped
    live/park/reopen/stale checks precede the same mandatory original/native paired
@@ -1474,6 +1476,29 @@ history-PASS или NOT_RUN→PASS по обновлению registry.
 No new detailed IDs, task/store/retry framework/global limiter, duplicated policy
 matrix or paid failure campaign. Use existing owners and affected integration gates;
 active dirty T50 must reach safe handoff, PAUSED T44 is not resumed by this plan.
+
+### Restricted provider errors and details — approved 2026-10-06, pending
+
+Canonical [RET01 follow-up](goals/2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
+and [VIS43/VIS39 consumer](../tui-recovery/T44_CONTRACT_AMENDMENT.md#restricted-provider-error-details--approved-2026-10-06-pending).
+OC2 remains global oracle; U129 is supplemental OC1 interaction, U130 OC2 shared
+DialogAlert, U131–U132 structured cyber-policy source evidence. OCR does not identify
+actual status/headers/wire or require attempt5. New assertions pending/NOT_RUN;
+historical T54/R1–R4 reports and execution statuses are not requalified by docs checks.
+
+| Evidence owner | Minimum additional proof, without repeating the whole retry matrix |
+| --- | --- |
+| RET01 provider owner | Structured cyber_policy/missing message; known phrase only in one bounded provider error field, absent/4xx event guard and context/payload precedence; negative 5xx phrase, joined-fields/body/generated/refusal/user/tool/generic security text. Default terminal plus absent/false/true observed override. Quoted explanation survives HTTP/SSE paths, including response.error.message, within existing bounds. |
+| RET01 safety | Exact provider-supplied Daybreak HTTPS URI preserved; wrong/extra path, lookalike/encoded host/path, explicit port/userinfo, query/fragment (including empty delimiters), private second URL, auth/header/credential canaries and control-normalization attacks stay fail-closed. No synthetic link on other policy errors. Input/output limits, Unicode and truthful clipping/omission before Display/events/history/SQL; do not add universal URL sanitizer tests. |
+| Runtime / SUB01–SUB02 | Extend the existing root/child mixed/effect fixture for refusal before first token and after partial output, terminal versus observed-true eligible continuation; safe terminal child completion/event/final projection, correct span/operation and bounded live/reopen/stale/restart history, one committed effect/no replay. Do not promise preservation of every cleared successful retry or add an events reader. |
+| AUTH04 | Short admitted HTTP/WS lowering/provenance fixtures: response.failed/error and bare error envelope, policy then close remains policy, no policy-triggered HTTP fallback. Successful handshake headers are not per-request retry authority; captured binding/attempt/delivery knowledge retained. Reuse RET01 eligibility and existing transport/cancel/affinity proof. |
+| VIS43 / narrow VIS39 delta | One rebuilt-binary PTY scenario: footer/error and keyboard details, parent→linked retry child→details, failed-row inline toggle preserved; captured payload, Esc/Enter/ok, drag/selection/paste, resize, draft/caret/parent/PTY restoration and scoped form preemption. Runtime barrier proves no UI-caused dispatch/cancel/restart/deadline reset while allowing independent scheduled retry. Bounded historical detail never restores active wait. |
+| Visual | Keep mandatory full matched styled-cell/PNG/cursor OC2/native footer sequences; compare shared DialogAlert surface against OC2 and supplemental OC1 activation behavior separately. Declare native trigger/terminal/form-preemption differences, no hybrid full-OC1 claim, crops/masks/relaxed footer tolerance or native-only golden substitute. Reuse representative existing widths/profiles/idle gates. |
+
+Use existing targeted and affected integration/workspace gates for the eventual code
+slice; docs delivery runs planning/JSON/link/diff checks only. No new task/gate/store,
+retry engine, whole-T57/T45 dependency or paid/live cyber-refusal campaign. Active T57
+continues; T44 presentation requires explicit resume, without modifying historical PASS.
 
 ## Completed Responses compatibility — T55/PROV09/PROV10 (baseline completed)
 

@@ -1434,6 +1434,42 @@
       "locator": "63–79 methods; 83–179 OAuth catalog/headers; 181–217 ordinary key separation",
       "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/test/plugin/provider-openai.test.ts",
       "purpose": "AUTH source-derived exact subscription filter/limits/costs and normal API-key regression oracle"
+    },
+    {
+      "id": "U129",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "4473fc3c9055046183990a965d68df3db7ea6f62",
+      "locator": "OC1 v1.17.20: enterChild 425–432; Task retry 2239–2321; InlineTool click 2298–2304; formatSubagentRetry 2319–2321",
+      "url": "https://github.com/anomalyco/opencode/blob/4473fc3c9055046183990a965d68df3db7ea6f62/packages/tui/src/routes/session/index.tsx",
+      "purpose": "VIS43 native explicit Retry Error activation and VIS39 current-child consumer supplemental interaction source; not global OC2 repin, user's version, retry eligibility or full OC1 frame parity"
+    },
+    {
+      "id": "U130",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/ui/dialog-alert.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "DialogAlert 12–58: modal return/clear, title/esc, muted message, action-semantic right-aligned ok and padding",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/ui/dialog-alert.tsx",
+      "purpose": "VIS43 shared OC2 alert surface with U52 Dialog geometry and U49 semantic palette; added request/retry trigger remains native extension, not an existing OC2 AssistantRetry modal"
+    },
+    {
+      "id": "U131",
+      "repository": "openai/codex",
+      "path": "codex-rs/codex-api/src/api_bridge.rs",
+      "commit": "dab2cd60568dedac5b226e9fafdf1523474d5cb8",
+      "locator": "map_api_error_details HTTP BAD_REQUEST cyber_policy; CYBER_POLICY_ERROR_CODE/FALLBACK_MESSAGE",
+      "url": "https://github.com/openai/codex/blob/dab2cd60568dedac5b226e9fafdf1523474d5cb8/codex-rs/codex-api/src/api_bridge.rs",
+      "purpose": "Supplemental structured cyber-policy code/message evidence for RET01 native ContentPolicy extension; not importing Codex retry policy, raw body handling or proving the OCR wire/status"
+    },
+    {
+      "id": "U132",
+      "repository": "openai/codex",
+      "path": "codex-rs/codex-api/src/sse/responses_error.rs",
+      "commit": "dab2cd60568dedac5b226e9fafdf1523474d5cb8",
+      "locator": "parse_failed_response cyber_policy branch; cyber_policy_message/fallback; responses_error_parser_tests.rs test module",
+      "url": "https://github.com/openai/codex/blob/dab2cd60568dedac5b226e9fafdf1523474d5cb8/codex-rs/codex-api/src/sse/responses_error.rs",
+      "purpose": "Supplemental structured Responses failed-event cyber_policy evidence only; RET01 keeps its own bounded observed-header authority, no new JSON-header retry inference or unrelated policy-code expansion"
     }
   ],
   "external_primary_sources": [

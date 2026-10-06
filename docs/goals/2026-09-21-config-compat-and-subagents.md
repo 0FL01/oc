@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instruction 2026-09-21 ("исправить баги и убрать лимиты; далее реализовать систему саб агентов полностью"), plus upstream reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (tree SHA `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-10-03
+Last updated: 2026-10-06
 
 ## Objective
 
@@ -41,6 +41,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance supplement: narrowly replace existing blanket child SwitchSession/navigation refusal with owner-backed linked-child/parent/family navigation and control. Preserve the child guard against arbitrary new root-like turns, profile/model mutation and conversation Undo; opening a child does not grant root-tab authority or silently select a new Location. Root deck/draft/focus and pinned execution context survive round trips. Pending descendant permission/question routing keeps the existing real binding and parent attention owner; navigation/close/hide/filter alone never approves, answers or cancels work.
   - Primary evidence: SUB01/SUB02 scripted provider barriers prove overlapping child execution and background progress before parent completion; fake-server spawn/continuation/model/depth/deny/cancel/command/restart tests prove effects and durable outcomes, plus the existing bounded live run spawning one subagent. Include actual Ctrl+B conversion, launch/current-state distinction, structured completion metadata and parent continuation/delivery dedup; reuse this actual-binary/protocol/SQLite evidence for T44 VIS39, without claiming visual PASS. Time-independent ordering barriers, not fragile elapsed-time claims; rebuild/exercise the actual binary.
   - Primary evidence supplement: rebuilt actual-binary PTY opens a linked live child before parent completion, observes its real shell/text/reasoning events, returns to the parent and interrupts precisely one selected child with another still running. Assert no duplicate history/deltas/notice/parent continuation, correct source Location after parent move and stale/late/restart safety. T50 supplies its own TOOL13 shell conversion/list/live-output seam; T56 supplies TERM01 PTYs. T45 does not absorb those owners or wait for complete T44 visual qualification.
+  - Acceptance supplement (owner-approved 2026-10-06; pending): consume [T54 safe restricted-error facts](2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending). Preserve the actual safe terminal diagnostic/final span through child completion/events instead of only `child turn failed`; reconcile current operation/turn/span versus historical retry via existing bounded routing/parked views/query. New child fields only for a demonstrated missing fact, not a new retry/diagnostic DTO. T44 VIS39/VIS43 own the details consumer and source-specific gestures; opening/dismissing never changes child lifecycle or creates provider/tool work.
+  - Primary evidence supplement: extend existing root/child refusal and partial/effect fixture for live safe explanation and bounded reopen, stale/restarted state and no retry resurrection/replay; reuse RET01 owner classification/redaction proof, no duplicate policy matrix or paid campaign. SUB01–SUB02 ownership/status and historical evidence stay unchanged.
   - Status: pending
   - Evidence:
 

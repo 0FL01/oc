@@ -170,6 +170,16 @@ partial output. Do not replay a sent request/effect simply because the channel d
 Use T54's single logical-step retry owner, not another generation retry loop.
 Transport fallback cannot change credential/model/protocol/endpoint. This narrow
 WebSocket scope is required for AUTH04, not a generic daemon/serve/attach service.
+
+Owner-approved 2026-10-06 [restricted-error contract](2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
+extends this AUTH04 consumer: normalize source-approved `response.failed`/`error` and
+bare `{error}` envelopes through the common classifier/request-local redactor. Keep
+policy failure through channel close; it neither becomes retryable EOF nor authorizes
+HTTP fallback. A successful handshake is not per-request retry-override evidence for
+later responses; require source-approved attempt-local provenance or terminal default.
+Qualify this on the minimal transport slice without a second retry loop, raw error/header
+archive, full T54/T45/T44 dependency or new auth gate. New assertions remain pending/NOT_RUN.
+
 Codex beta header does not itself authorize hosted tools or a new remote-compaction
 feature; existing compact/DCP compatibility remains under its owners.
 

@@ -1000,6 +1000,10 @@ spinner и VIS41 hover-marquee; их утверждённый срез опис�
    before navigation, expanded detail is indented as source. Text selection blocks
    clicks; hover alone does not expand. VIS36 supplies real root/child permission
    routing and attention, not an auto-grant; VIS37 question priority remains distinct.
+   Owner-approved 2026-10-06 [restricted-error details](#restricted-provider-error-details--approved-2026-10-06-pending)
+   adds current owner-backed retry preview/optional child→details on a normal linked
+   retry row, not a replacement for this failed-row toggle. VIS43 owns the common
+   dialog; VIS39 only its child consumer/route, no extra gate or whole-T45 dependency.
 4. **Thought and parent footer.** Reuse VIS15/17 spacing and metadata qualification:
    actual nonempty public reasoning groups, completed collapsed `+` / expanded `-`,
    unfinished spinner. Thought step count is reasoning parts, NOT children; duration
@@ -1758,7 +1762,8 @@ U69–U73; startup/MCP retry VIS19/VIS40/VIS42 is a separate feature.
    never `in 0s`. Update immediately, then at 1s intervals until due/clear,
    even with animations off; stop the timer at due and use existing UI deadline
    scheduler, not a new spinner or idle poll. Ordinary text wrapping; no
-   truncation/detail modal. Suppress a simultaneous `Error:` line, place one
+   footer truncation or automatically opened modal. Explicit details are the narrow
+   2026-10-06 native extension below. Suppress a simultaneous `Error:` line, place one
    blank row before agent/model footer and mute the agent only if the assistant
    actually has an error. Preserve normal model/width/timing/usage footer rules,
    disabled animation and surrounding busy indicators without adding a retry badge.
@@ -1806,9 +1811,10 @@ and treat missing/legacy ownership as unknown. `sequence` is a display ordinal,
 not RequestIdentity's wire input index; never infer identity from ordinals, models
 or safe error strings. No new persistence/schema/event family or retry authority.
 
-The current oldest-first 192-span/240-part windows may omit the latest active span;
-they are presentation bounds, not runtime round stops. Serve a bounded current/latest
-window with each part's referenced span metadata and current active facts. Historical
+**2026-10-06 audited correction:** `latest_turn_spans/parts` already serve bounded
+latest 192-span/240-part windows; do not replace them or introduce an archive reader.
+The remaining seam exposes recorded owning span and necessary referenced metadata
+alongside current active facts within existing serving budgets. Historical
 completed failed-span retry after successful continuation remains display only,
 never busy/cancel/dispatch authority. Before claiming reliable attribution, extend
 the nearest partial-continuation test for an unfinished reasoning tail followed by
@@ -1819,6 +1825,65 @@ Reuse the existing span/tab/reopen/stale-event tests, then the mandatory paired
 countdown/footer frames above. No additional UI matrix/campaign, whole-T45/T44
 completion dependency or status/PASS change; current-task hot/raw boundedness is
 T45/R9/DCP11/A10-owned, and T54 completed baseline does not qualify this seam.
+
+### Restricted provider-error details — approved 2026-10-06, pending
+
+Source: owner cybersecurity-restriction/`Retry Error` example and approval of the
+independently audited plan. [T54 canonical contract](../docs/goals/2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
+owns classification/redaction/span facts; T45 owns safe child completion delivery,
+T57 consumes the shared owner on admitted WS/HTTP. No new diagnostic DTO/schema/store,
+retry loop or obligation to preserve all overwritten successful retry notices.
+
+1. **Scope/oracles.** Keep OC2 U69–U73 footer/countdown parity. Supplemental U129
+   (OC1 v1.17.20 `4473fc3c9055046183990a965d68df3db7ea6f62`) supplies Task retry
+   activation/child navigation and passive alert interaction, not the user's version
+   or backend eligibility. U130 supplies pinned OC2 DialogAlert surface; U52 supplies
+   shared Dialog geometry/backdrop and U49 semantic palette. The added trigger/terminal
+   details are a native extension. Do not globally repin, port OC1 prompt thresholds/hotkeys or claim a
+   whole OC1 frame equals the OC2-based native frame. Only the blanket prohibition
+   of an explicitly opened detail modal is superseded; other VIS39/VIS43 gates remain.
+2. **One passive surface.** Explicit footer/error action and existing palette path
+   open the captured safe message for the selected session/turn/span; mouse and keyboard
+   both work. Active retry title `Retry Error`; terminal/historical failure is request
+   error detail, not active retry. Reuse the shared dialog: bold title/text.base,
+   muted explanation/`esc`, action-semantic right-aligned `ok`, source padding/wrapping.
+   All admitted safe text is accessible within the existing bound, with scrolling
+   when narrow/short and truthful clipping/omission, never raw response continuation.
+   Keep captured payload immutable until close despite reschedule/clear/terminal events.
+   Do not automatically open on every error/retry or add copy/open-browser controls.
+3. **Child consumer.** Show the current authoritative attempt/short safe preview in
+   Task/General linked presentation using operation/child/turn/span facts, not launch
+   metadata or error/model text. Normal linked retry-row activation can open the
+   actual child then its current captured detail after route reconciliation. Preserve
+   failed-row inline-detail toggle before navigation; terminal detail is also reachable
+   by explicit action in the child. Reuse existing parked child views/events/bounded
+   reads; add a field only for a demonstrated missing fact. Historical/missing/legacy
+   association is not inferred, never busy/control/dispatch authority.
+4. **Input/focus/lifecycle.** Esc/Enter/ok dismiss once without submit, Reply, Cancel,
+   ReturnParent, provider/tool dispatch, deadline reset or retry pause. Scheduled runtime
+   retry may proceed independently while details are open. Preserve composer draft/chips/
+   caret/selection/scroll, child-parent linkage and PTY visibility/process. One gesture
+   is not replayed into `ok`, a form or terminal; drag/selection is not activation,
+   paste in read-only details is consumed. Dismiss/resize/replacement invalidate pending
+   pointer/hit state. Keep existing permission/question priority: refuse open over an
+   active visible form; after scoped owner reconciliation, a newly active form closes
+   only details and takes focus through existing routing. No deferred-form queue,
+   form reply/cancel or automatic details reopen. Dismiss restores prior permissible
+   focus in the current view, not a child-composer close/parent navigation.
+5. **Qualification.** Reuse RET01/AUTH04/SUB01–SUB02 producer/consumer/effect receipts,
+   nearest span/input/child/reopen tests and one bounded rebuilt-binary PTY scenario.
+   Hold runtime clock/barrier for UI causality assertions; independent deadline dispatch
+   is not a modal side effect. Compare full matched OC2/native footer and shared-alert
+   styled-cell/PNG/cursor captures at representative existing profiles; record supplemental
+   OC1 activation/interaction proof and predeclared native trigger/overflow/form-preemption
+   differences. Compare the declared surfaces/contracts, never crop/mask a hybrid frame
+   into OC1 parity or relax existing footer tolerance. History covers only facts served
+   by existing bounded projection and never resurrects countdown/work. No new matrix,
+   events/archive reader, paid cyber-refusal campaign or native-golden visual PASS.
+
+VIS43/VIS39 additions stay mandatory pending/NOT_RUN with empty evidence until executed.
+T54 completed baseline and U69–U73/global donor pin remain unchanged; active T57 and
+PAUSED T44 are not switched by this plan. Explicit resume still gates T44 execution.
 
 ## Middle Click tab close — VIS44
 

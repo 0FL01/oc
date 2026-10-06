@@ -1,11 +1,11 @@
 # Goal: LLM-provider retry и безопасное продолжение как в OC2
 
-Status: complete (assigned Responses/common-runtime backend; GO03/VIS43 separate)
+Status: complete (assigned Responses/common-runtime baseline; additive follow-ups pending; GO03/VIS43 separate)
 Source: требование владельца о полном parity provider-error retry (лимиты и 5xx)
 и его TUI-представления; утверждение исправленного после RECON/параллельного аудита
 плана 2026-09-29. Reference: `opencode` v2.0.12,
 `2670273ff17da96f85c5826ced57aa1b368754fa`.
-Last updated: 2026-09-29
+Last updated: 2026-10-06
 Task: T54; current qualification — evidence/T54/report.md.
 
 ## Objective
@@ -200,6 +200,94 @@ not retain full headers; do not promise historical recovery or add telemetry by 
 Completed T54 baseline/status/report and RET01 ownership stay unchanged; these
 additive regressions are pending/NOT_RUN until scheduled qualification with the
 runtime slice. No new task/gate/store/retry framework or paid failure campaign.
+
+## Restricted provider errors and safe details — approved 2026-10-06, pending
+
+Source: owner cybersecurity-restriction OCR/`Retry Error` report, independent audit
+and explicit approval to amend the work plan and commit/push on 2026-10-06.
+The report supplies display prose, not its actual wire/status/headers/version;
+`attempt 5` does not establish retry eligibility or an obligatory attempt count.
+OC2 remains pinned. Supplemental frozen sources U129–U132 in
+[`SOURCES.json`](../../tui-recovery/SOURCES.json) identify OC1 interaction, OC2 shared
+DialogAlert and OpenAI Codex HTTP/SSE `cyber_policy` parsing; they are not runtime
+qualification. The additional classifier/modal behavior is a **native extension**,
+not exact parity with behavior absent from the pinned OC2 classifier/retry footer.
+
+Owner-reported display text to preserve in a synthetic bounded fixture (not a
+capture proving HTTP400/SSE/WS or observed headers):
+
+> This content was flagged for possible cybersecurity risk. If this seems wrong,
+> try rephrasing your request. If you're doing authorized security work that requires
+> more cyber permissive safeguards, apply for Daybreak access via
+> https://platform.openai.com/settings/organization/status-and-access before retrying.
+
+### Minimal backend contract — RET01 owner, new assertions pending/NOT_RUN
+
+1. **Classification, not a new policy.** Add structured `cyber_policy` to existing
+   ContentPolicy; no new FailureKind/subtype is required. When a gateway omits the
+   code, permit only the known `This content was flagged for possible cybersecurity
+   risk` phrase in one bounded provider error message, with the existing absent/4xx
+   event-status guard and context/payload/policy precedence. Never match across
+   joined fields, serialized body, ordinary user/tool/assistant/refusal text, or
+   generic `restricted`/`security` words. A 5xx carrying only the phrase remains a
+   server failure. A missing/blank explanation retains the safe category, not invented
+   Daybreak prose. HTTP JSON means an error body, not a new successful JSON protocol.
+2. **Eligibility/provenance.** ContentPolicy is terminal by default; preserve the
+   existing exact bounded observed `x-should-retry` override and finite allowance.
+   Partial output alone does not make policy retryable. SSE uses event status/code,
+   not outer HTTP200, while existing observed HTTP headers remain attempt-scoped.
+   T57/AUTH04 normalizes source-approved WS error envelopes, including bare `{error}`,
+   into this owner. Successful connection handshake headers are not per-request
+   overrides for later responses; without source-approved attempt-local evidence
+   keep terminal default. A policy error followed by close stays the provider error,
+   never retryable EOF or permission for same-route HTTP fallback/unknown-effect replay.
+3. **Safe explanation before publication.** Populate existing PhysicalFailure.message
+   from structured HTTP/SSE/admitted-WS error fields using captured request-local
+   redactions **before** public Debug/Display, runtime logs, events or SQL. Retain the
+   current input/output bounds; show truthful clipping/omission within the bounded
+   string, not a promise of raw/full response recovery. Allow the exact provider-supplied
+   `https://platform.openai.com/settings/organization/status-and-access` URI only as
+   a whole safe HTTPS URI: exact host/path, no userinfo/explicit port/query/fragment,
+   extra path, lookalike host or control-normalized escape. It does not disable secret/
+   private-URL checks elsewhere in the message. Other unsafe content may retain the
+   current redacted-message fallback; no general prose sanitizer/URL registry. Do not
+   synthesize guidance, append this link to all policy errors, check organization
+   access, launch a browser or treat provider instructions as local authority.
+4. **Existing durable facts and child delivery.** PhysicalFailure.message → existing
+   AssistantSpan.error / RetryFact.safe_error → current bounded query/events/history.
+   No new diagnostic DTO, DB migration, retry store or event family. Preserve safe
+   terminal diagnostics in the T45 child completion wrapper instead of the generic
+   `child turn failed`; publish/reconcile final recorded span facts through existing
+   TurnPresentation/query. Reuse current child routing/parked views before adding any
+   child projection field. Current operation/turn/span differs from historical retry;
+   legacy/missing ownership stays unknown. Successful semantic-start cleanup need not
+   preserve every overwritten retry; accessible pending/failed facts suffice, without
+   an events/archive reader or historical-header reconstruction.
+
+### Minimal slices, dependencies and evidence
+
+- Classification + request-local safe message: nearest provider owner fixtures,
+  including the quoted message/Daybreak URI on HTTP and SSE, guards/negative cases,
+  blank message, absent/false/true override and redaction/bounds. Existing HTTP/SSE
+  and admitted Chat/Messages lowering share the owner; do not duplicate its matrix.
+- Root/child delivery: extend existing mixed/effect runtime and actual-binary fixture
+  for refusal before the first token and after partial output, terminal versus
+  explicitly eligible continuation, one committed effect, live diagnostic and bounded
+  reopen. T45/SUB01–SUB02 own child lifecycle fixes; RET01 retains policy/detail ownership.
+- WS: T57/AUTH04 consumes this contract after its **minimal qualified transport seam**;
+  short envelope/delivery/override-provenance/close/fallback fixtures, not a second
+  exhaustion/jitter/cancel matrix. HTTP/SSE fixes and root details do not wait for all T57.
+- Recorded-span presentation: reuse `latest_turn_spans/parts` current/latest windows;
+  only expose missing optional PartState owning span and necessary referenced metadata
+  within existing serving budgets. T44/VIS43 independently qualifies footer/dialog,
+  VIS39 the child consumer, per [UI contract](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#restricted-provider-error-details--approved-2026-10-06-pending)
+  and [method](../TEST_PLAN.md#restricted-provider-errors-and-details--approved-2026-10-06-pending).
+
+This additive contract does not reopen all completed R1–R4/T54, change task/gate IDs,
+dependencies, progress or historical evidence. T57 remains active, T44 PAUSED until
+explicit resume; implementation and new RET01/AUTH04/SUB01–SUB02/VIS43/VIS39 assertions
+are pending/NOT_RUN. No paid cyber-refusal campaign, whole-task dependency, policy bypass
+or product/visual PASS follows from plan validation.
 
 ## Historical planning checkpoint / state
 

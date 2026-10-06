@@ -839,6 +839,38 @@ T57 todo/implementation NOT_STARTED; AUTH01–AUTH06/VIS45 pending/NOT_RUN. Пл
 Full auth parity требует backend evidence **и** VIS45; READY/final T30 учитывает оба
 в дополнение ко всем прежним mandatory gates. Plan delivery не выполняет live login.
 
+## Owner amendment (2026-10-06 — restricted provider errors / safe details)
+
+После read-only RECON и параллельного аудита владелец утвердил исправленный план
+и commit/push текущей ветки: provider cybersecurity restriction должен иметь
+правильный исход и доступное безопасное объяснение, включая Task/General ребёнка.
+[T54/RET01 follow-up](docs/goals/2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending)
+владеет общими classification/redaction/facts; T57/AUTH04 потребляет их в HTTP/WS,
+T45/R3/SUB01–SUB02 сохраняет child diagnostic/lifecycle. [T44/VIS43](tui-recovery/T44_CONTRACT_AMENDMENT.md#restricted-provider-error-details--approved-2026-10-06-pending)
+добавляет один request-error details-dialog, VIS39 — child consumer после минимальных
+qualified seams и **explicit resume**, не завершения всех backend tasks.
+
+`cyber_policy` по умолчанию terminal ContentPolicy; узкий provider-error-message
+fallback не классифицирует обычную LLM-прозу. Existing bounded observed retry override,
+finite allowance, captured binding, cancel и no unknown-effect replay сохраняются.
+Весь admitted safe message доступен в пределах прежних bounds с честным clipping;
+точная provider-supplied Daybreak public URI не уничтожает объяснение, но secrets/
+опасные URLs/terminal controls не проходят. Никакой синтезированной guidance,
+organization check, нового subtype/DTO/store/schema/retry engine или paid campaign.
+
+OC2 pin/footer/countdown остаются; dialog surface — общий OC2 DialogAlert, OC1
+`4473fc3c9055046183990a965d68df3db7ea6f62` — только supplemental interaction source.
+Это native extension, не global repin/full OC1 или отсутствующий OC2 modal parity.
+Узко superseded только VIS43 blanket «no detail modal»; failed-row inline toggle,
+permission/question priority и прочие VIS39/VIS43 требования сохраняются. Details
+не dispatch/cancel/restart action и не приостанавливают scheduled retry; history
+не возрождает countdown. Existing latest windows переиспользуются, добавляется
+только missing recorded-span связь/metadata, не новый archive reader.
+
+Метод/порядок — TEST_PLAN и M8/M9. Новые assertions pending/NOT_RUN, T54 completed
+baseline/evidence и task/gate ownership неизменны; active T57 и PAUSED T44 сохраняются.
+Публикация плана не запускает реализацию, не меняет progress и не даёт runtime/visual PASS.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.
