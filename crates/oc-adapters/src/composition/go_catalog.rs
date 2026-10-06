@@ -158,8 +158,9 @@ fn public_bindings(
                             })?;
                     }
                     request.wire.protocol = protocol;
-                    // Go auth is always Bearer, including the Messages endpoint.
-                    request.wire.messages_bearer = true;
+                    // Go uses the native Messages x-api-key scheme; custom
+                    // authToken/Bearer metadata must not override that policy.
+                    request.wire.messages_bearer = false;
                     {
                         let entry = config::ProviderEntry {
                             npm: package.map(str::to_owned),

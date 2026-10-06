@@ -695,6 +695,17 @@ Workspace **1648/0/10** and strict final gates pass. This does not qualify real
 fixed-authority Go generation: authorized live credentials lack OPENCODE_API_KEY.
 No T53 finish or GO06 PASS is claimed.
 
+Live corrective checkpoint 2026-10-06 (base `43f836eb6`): authorized `OC_API_KEY`
+campaign `t53-go-20261006` completed actual native read→function-result→final on
+catalog-selected Responses/Chat/Messages plus both dated Qwen targets. All five
+representatives PASS; 13/24 charged physical requests, including failed experiments,
+no budget reset/fallback/uncertain effect. Go Messages auth corrected to native
+x-api-key from pinned server authority and real 401 evidence; other Go wires use
+Bearer, custom static Messages schemes remain unchanged. Current workspace
+1651/0/11 (new explicit Go opt-in separately PASS), strict final gates green.
+`evidence/T53/go-live.md` / `live-campaign.json` record failures and results;
+R6 final factual report/closure remains the next checkpoint, not another paid run.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

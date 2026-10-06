@@ -2,22 +2,348 @@
   "schema_version": 1,
   "campaign_id": "t53-go-20261006",
   "provider": "opencode-go",
-  "status": "ready_preflight",
-  "generation_started": false,
+  "status": "qualified",
+  "generation_started": true,
   "required_authorized_input": "OC_API_KEY (mapped only in test process to OPENCODE_API_KEY)",
   "authorized_input_confirmed": true,
   "generation_limit": 24,
   "smoke_output_token_limit": 2048,
-  "physical_generation_requests": 0,
-  "main": 0,
-  "tool_followup": 0,
+  "physical_generation_requests": 13,
+  "main": 6,
+  "tool_followup": 3,
   "title": 0,
   "summary_compaction": 0,
   "child": 0,
   "retry": 0,
-  "protocol_probe": 0,
+  "protocol_probe": 4,
   "mcp_search_requests": 0,
   "uncertain_external_effects": 0,
   "accounting_enforcement_qualified": true,
-  "resume": "Reuse this campaign ledger and fixed-authority test-only pre-DNS durable accounting. Do not reset counters across restart."
+  "resume": "Reuse this campaign ledger and fixed-authority test-only pre-DNS durable accounting. Do not reset counters across restart.",
+  "attempts": [
+    {
+      "sequence": 1,
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "tool_calls": 0
+    },
+    {
+      "sequence": 2,
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "failed",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": true,
+      "failure": {
+        "kind": "InvalidRequest",
+        "http_status": 400,
+        "output_committed": false
+      }
+    },
+    {
+      "sequence": 3,
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 43,
+      "item_types": [
+        "reasoning",
+        "message",
+        "function_call"
+      ],
+      "tool_calls": 1
+    },
+    {
+      "sequence": 4,
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "lane": "tool_followup",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 24,
+      "item_types": [
+        "reasoning",
+        "message"
+      ],
+      "tool_calls": 0
+    },
+    {
+      "sequence": 5,
+      "model": "longcat-2.5-preview-free",
+      "protocol": "chat/completions",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 0,
+      "item_types": [
+        "reasoning",
+        "function_call"
+      ],
+      "tool_calls": 1
+    },
+    {
+      "sequence": 6,
+      "model": "longcat-2.5-preview-free",
+      "protocol": "chat/completions",
+      "lane": "tool_followup",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 24,
+      "item_types": [
+        "reasoning",
+        "message"
+      ],
+      "tool_calls": 0
+    },
+    {
+      "sequence": 7,
+      "model": "qwen3.8-flash",
+      "protocol": "messages",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "failed",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "failure": {
+        "kind": "Authentication",
+        "http_status": 401,
+        "output_committed": false
+      }
+    },
+    {
+      "sequence": 8,
+      "model": "qwen3.8-flash",
+      "protocol": "messages",
+      "lane": "main",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 0,
+      "item_types": [
+        "function_call"
+      ],
+      "tool_calls": 1
+    },
+    {
+      "sequence": 9,
+      "model": "qwen3.8-flash",
+      "protocol": "messages",
+      "lane": "tool_followup",
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 24,
+      "item_types": [
+        "message"
+      ],
+      "tool_calls": 0
+    },
+    {
+      "sequence": 10,
+      "model": "qwen3.8-max",
+      "protocol": "messages",
+      "lane": "protocol_probe",
+      "has_tool_result": false,
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 0,
+      "item_types": [
+        "function_call"
+      ],
+      "tool_calls": 1
+    },
+    {
+      "sequence": 11,
+      "model": "qwen3.8-max",
+      "protocol": "messages",
+      "lane": "protocol_probe",
+      "has_tool_result": true,
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 24,
+      "item_types": [
+        "message"
+      ],
+      "tool_calls": 0
+    },
+    {
+      "sequence": 12,
+      "model": "qwen3.7-plus",
+      "protocol": "messages",
+      "lane": "protocol_probe",
+      "has_tool_result": false,
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 0,
+      "item_types": [
+        "function_call"
+      ],
+      "tool_calls": 1
+    },
+    {
+      "sequence": 13,
+      "model": "qwen3.7-plus",
+      "protocol": "messages",
+      "lane": "protocol_probe",
+      "has_tool_result": true,
+      "max_output_tokens": 2048,
+      "outcome": "complete",
+      "offered_tools": [
+        "read"
+      ],
+      "forced_read": false,
+      "finish": "Stop",
+      "text_bytes": 24,
+      "item_types": [
+        "message"
+      ],
+      "tool_calls": 0
+    }
+  ],
+  "results": [
+    {
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "variant": null,
+      "pass": false,
+      "native_read_calls": 0,
+      "usage": [
+        1688,
+        1113
+      ]
+    },
+    {
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "variant": null,
+      "pass": false,
+      "native_read_calls": 0,
+      "usage": null
+    },
+    {
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "variant": null,
+      "pass": false,
+      "native_read_calls": 0,
+      "usage": null
+    },
+    {
+      "model": "muse-spark-1.2-contributor",
+      "protocol": "responses",
+      "variant": null,
+      "pass": true,
+      "native_read_calls": 1,
+      "usage": [
+        1329,
+        348
+      ]
+    },
+    {
+      "model": "longcat-2.5-preview-free",
+      "protocol": "chat",
+      "variant": null,
+      "pass": true,
+      "native_read_calls": 1,
+      "usage": [
+        756,
+        98
+      ]
+    },
+    {
+      "model": "qwen3.8-flash",
+      "protocol": "messages",
+      "variant": "none",
+      "pass": false,
+      "native_read_calls": 0,
+      "usage": null
+    },
+    {
+      "model": "qwen3.8-flash",
+      "protocol": "messages",
+      "variant": "none",
+      "pass": true,
+      "native_read_calls": 1,
+      "usage": [
+        863,
+        36
+      ]
+    },
+    {
+      "model": "qwen3.8-max",
+      "protocol": "messages",
+      "variant": "none",
+      "pass": true,
+      "native_read_calls": 1,
+      "usage": [
+        863,
+        36
+      ]
+    },
+    {
+      "model": "qwen3.7-plus",
+      "protocol": "messages",
+      "variant": "none",
+      "pass": true,
+      "native_read_calls": 1,
+      "usage": [
+        863,
+        36
+      ]
+    }
+  ]
 }

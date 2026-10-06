@@ -56,6 +56,42 @@ fn update<T>(
     Ok(result)
 }
 
+fn is_followup(request: &Value) -> bool {
+    request["input"]
+        .as_array()
+        .is_some_and(|a| a.iter().any(|i| i["type"] == "function_call_output"))
+        || request["messages"].as_array().is_some_and(|a| {
+            a.iter().any(|i| {
+                i["role"] == "tool"
+                    || i["content"]
+                        .as_array()
+                        .is_some_and(|b| b.iter().any(|p| p["type"] == "tool_result"))
+            })
+        })
+}
+
+pub(super) fn tool_smoke_body(
+    body: &[u8],
+    protocol: protocol::Protocol,
+) -> Result<Vec<u8>, ProviderError> {
+    let request: Value = serde_json::from_slice(body).map_err(|_| ProviderError::InvalidConfig)?;
+    let read_present = request["tools"].as_array().is_some_and(|tools| {
+        tools.iter().any(|tool| match protocol {
+            protocol::Protocol::Chat => tool["function"]["name"] == "read",
+            protocol::Protocol::Responses | protocol::Protocol::Messages => tool["name"] == "read",
+        })
+    });
+    if !read_present {
+        return Err(ProviderError::InvalidConfig);
+    }
+    // Validate actual tool exposure, not merely the fixture's scalar permissions.
+    // Preserve the product's native body; no provider-dependent forced choice.
+    Ok(body.to_vec())
+}
+
+// These are explicit dated qualification targets, never protocol routing rules.
+const CONFLICT_PROBES: [&str; 2] = ["qwen3.8-max", "qwen3.7-plus"];
+
 pub(super) fn reserve(
     path: &Path,
     url: &str,
@@ -90,31 +126,46 @@ pub(super) fn reserve(
             return Err(ProviderError::DispatchRefused);
         }
         let sequence = count + 1;
-        let followup = request["input"]
-            .as_array()
-            .is_some_and(|a| a.iter().any(|i| i["type"] == "function_call_output"))
-            || request["messages"].as_array().is_some_and(|a| {
-                a.iter().any(|i| {
-                    i["role"] == "tool"
-                        || i["content"]
-                            .as_array()
-                            .is_some_and(|b| b.iter().any(|p| p["type"] == "tool_result"))
-                })
-            });
-        let lane = if followup { "tool_followup" } else { "main" };
+        let followup = is_followup(&request);
+        let lane = if request["model"]
+            .as_str()
+            .is_some_and(|model| CONFLICT_PROBES.contains(&model))
+        {
+            "protocol_probe"
+        } else if followup {
+            "tool_followup"
+        } else {
+            "main"
+        };
         ledger["physical_generation_requests"] = sequence.into();
         ledger[lane] = (ledger[lane].as_u64().unwrap_or(0) + 1).into();
         ledger["generation_started"] = true.into();
         ledger["status"] = "running".into();
         ledger["accounting_enforcement_qualified"] = true.into();
         ledger.as_object_mut().unwrap().remove("blocker");
+        let offered_tools = request["tools"]
+            .as_array()
+            .map(|tools| {
+                tools
+                    .iter()
+                    .filter_map(|tool| {
+                        tool["name"]
+                            .as_str()
+                            .or_else(|| tool["function"]["name"].as_str())
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
         let attempt = json!({
             "sequence": sequence,
             "model": request["model"],
             "protocol": suffix,
             "lane": lane,
+            "has_tool_result": followup,
             "max_output_tokens": tokens,
             "outcome": "reserved_before_dns",
+            "offered_tools": offered_tools,
+            "forced_read": request.get("tool_choice").is_some(),
         });
         ledger
             .as_object_mut()
@@ -141,6 +192,15 @@ pub(super) fn finish(
         match result {
             Ok(output) => {
                 entry["outcome"] = "complete".into();
+                entry["finish"] = format!("{:?}", output.finish).into();
+                entry["text_bytes"] = output.text.len().into();
+                entry["item_types"] = json!(
+                    output
+                        .output
+                        .iter()
+                        .filter_map(|i| i["type"].as_str())
+                        .collect::<Vec<_>>()
+                );
                 entry["tool_calls"] = output
                     .output
                     .iter()
@@ -260,7 +320,11 @@ async fn go06_exhausted_campaign_blocks_every_wire_before_transport_dispatch() {
             "catalog-model",
             None,
             &[InputItem::message(InputRole::User, "must not send")],
-            &[],
+            &[ToolDef {
+                name: "read".into(),
+                description: "read".into(),
+                parameters: json!({"type":"object"}),
+            }],
             2048,
             &AtomicBool::new(false),
             &mut |_| {},
@@ -272,6 +336,42 @@ async fn go06_exhausted_campaign_blocks_every_wire_before_transport_dispatch() {
         .await;
         assert_eq!(result, Err(ProviderError::DispatchRefused));
         assert_eq!(dispatched, 0);
+    }
+}
+
+#[test]
+fn go06_smoke_validates_read_exposure_without_altering_any_wire_body() {
+    for (protocol, tools, result) in [
+        (
+            protocol::Protocol::Responses,
+            json!([{"name":"read"}]),
+            json!({"input":[{"type":"function_call_output"}]}),
+        ),
+        (
+            protocol::Protocol::Chat,
+            json!([{"function":{"name":"read"}}]),
+            json!({"messages":[{"role":"tool"}]}),
+        ),
+        (
+            protocol::Protocol::Messages,
+            json!([{"name":"read"}]),
+            json!({"messages":[{"role":"user","content":[{"type":"tool_result"}]}]}),
+        ),
+    ] {
+        let first = json!({"tools":tools,"model":"exact","stream":true,"max_tokens":2048});
+        let body: Value = serde_json::from_slice(
+            &tool_smoke_body(&serde_json::to_vec(&first).unwrap(), protocol).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(body, first);
+        let mut followup = result;
+        followup["tools"] = tools;
+        let body: Value = serde_json::from_slice(
+            &tool_smoke_body(&serde_json::to_vec(&followup).unwrap(), protocol).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(body, followup);
+        assert!(tool_smoke_body(br#"{"tools":[]}"#, protocol).is_err());
     }
 }
 
@@ -357,7 +457,7 @@ async fn go06_bounded_native_go_live() {
             .expect("required exact protocol representative absent");
         choices.push(selected);
     }
-    for id in ["qwen3.8-max", "qwen3.7-plus"] {
+    for id in CONFLICT_PROBES {
         assert!(
             composition.catalog.models.contains_key(id),
             "dated conflict row absent; no guessed replacement"
@@ -375,8 +475,18 @@ async fn go06_bounded_native_go_live() {
             ("*".into(), Permission::Deny),
             ("read".into(), Permission::Allow),
         ]),
+        // This is a programmatic fixture authority, not a scalar override of
+        // Composition's independently compiled ordered default rules.
+        permission_rules: Default::default(),
         ..composition.generation.clone()
     };
+    assert!(
+        crate::permissions::PermissionRules::default().actions_visible(
+            &generation.permissions,
+            &["read"],
+            false
+        )
+    );
     let runtime = Runtime::new(
         &db,
         "go-live",

@@ -2,6 +2,7 @@
 /opencode/
 /.local/
 /evidence/raw/
+/evidence/T53/.go-live.lock
 /progress/.lock
 .env
 .env.*

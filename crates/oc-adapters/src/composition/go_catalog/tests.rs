@@ -170,8 +170,13 @@ async fn go02_public_models_capture_independent_native_wires_and_retire_bindings
         assert_eq!(request.base_url, GO_BASE_URL);
         assert_eq!(request.api_key, "GO_KEY_CANARY");
         let headers = provider::request_headers(request).unwrap();
-        assert_eq!(headers["authorization"], "Bearer GO_KEY_CANARY");
-        assert!(!headers.contains_key("x-api-key"));
+        if protocol == provider::protocol::Protocol::Messages {
+            assert_eq!(headers["x-api-key"], "GO_KEY_CANARY");
+            assert!(!headers.contains_key("authorization"));
+        } else {
+            assert_eq!(headers["authorization"], "Bearer GO_KEY_CANARY");
+            assert!(!headers.contains_key("x-api-key"));
+        }
         let mut body = json!({});
         request.wire.settings.apply(protocol, &mut body, None);
         if protocol == provider::protocol::Protocol::Messages {

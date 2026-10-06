@@ -61,18 +61,20 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 ("x-session-affinity", "child-session"),
                 ("x-session-id", "child-session"),
                 ("x-parent-session-id", "root-session"),
-                ("authorization", "Bearer resolved-key"),
             ] {
                 assert!(
                     headers.contains(&format!("{name}: {}\r\n", value.to_ascii_lowercase())),
                     "missing {name}"
                 );
             }
-            assert!(
-                !headers.contains("spoof")
-                    && !headers.contains("x-api-key:")
-                    && !headers.contains(root.path().to_str().unwrap())
-            );
+            assert!(!headers.contains("spoof") && !headers.contains(root.path().to_str().unwrap()));
+            if protocol == Protocol::Messages {
+                assert!(headers.contains("x-api-key: resolved-key\r\n"));
+                assert!(!headers.contains("authorization:"));
+            } else {
+                assert!(headers.contains("authorization: bearer resolved-key\r\n"));
+                assert!(!headers.contains("x-api-key:"));
+            }
             let body: serde_json::Value =
                 serde_json::from_slice(&bytes[head..head + length]).unwrap();
             match protocol {
@@ -139,6 +141,8 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
             wire: WireBinding {
                 go: true,
                 protocol,
+                // A custom authToken flag cannot replace the Go native scheme.
+                messages_bearer: true,
                 chat: BTreeMap::from([(
                     "model".into(),
                     crate::provider::chat::ChatCompat {

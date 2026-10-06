@@ -1976,8 +1976,11 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         context.go_headers(&mut headers)?;
         headers.remove("x-api-key");
         headers.remove("authorization");
-        if let Some(auth) = request_headers(config)?.get("authorization") {
-            headers.insert("authorization", auth.clone());
+        let resolved = request_headers(config)?;
+        for name in ["authorization", "x-api-key"] {
+            if let Some(auth) = resolved.get(name) {
+                headers.insert(name, auth.clone());
+            }
         }
     }
     let protocol = if chat.is_some() {
@@ -1996,6 +1999,12 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     };
     // Test campaigns reserve durably before DNS/dial without changing authority,
     // proxies, peer checks, production retry policy or successful-step limits.
+    #[cfg(test)]
+    let body = if config.wire.live_campaign.is_some() {
+        go_live_tests::tool_smoke_body(&body, protocol)?
+    } else {
+        body
+    };
     #[cfg(test)]
     let live_sequence = config
         .wire
@@ -2107,7 +2116,7 @@ pub(crate) fn request_headers(
         return Err(ProviderError::InvalidConfig);
     }
     if !anonymous {
-        let bearer = config.wire.go || !messages || config.wire.messages_bearer;
+        let bearer = !messages || (!config.wire.go && config.wire.messages_bearer);
         let mut auth = HeaderValue::from_str(&if bearer {
             format!("Bearer {}", config.api_key)
         } else {
