@@ -631,6 +631,19 @@ clippy, fmt, build/help and diff checks pass. Evidence:
 qualified fork/child edge cases and frozen GO01–GO05 requirements before bounded Go
 live and final report/finish. T44 stays PAUSED; T57 scope is unchanged.
 
+### Qualified fork/child checkpoint
+
+The existing fork transaction accepts the application's frozen admitted provider
+set, validates root/request/span/acceptance authority and retains ordinary settled
+pairs plus original binding receipts. The single-provider test path still refuses
+foreign provenance. Profile pins, explicit subagent overrides and background
+commands independently resolve immutable target catalog/config before child
+admission/launch. Actual mixed-wire child and application fork/reopen tests pass;
+adapter unit 616/0/0, runtime 120/0/0, subagent 38/0/0 and strict workspace
+all-target clippy/fmt/diff are green. Evidence: `evidence/T53/qualified-selection.md`.
+Full GO05 actual-binary generation/cancel and GO06 bounded live/final acceptance
+remain pending; this is not T53 finish or T44/T57 status change.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

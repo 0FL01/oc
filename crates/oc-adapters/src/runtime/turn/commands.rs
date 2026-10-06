@@ -67,7 +67,7 @@ impl Runtime<'_> {
             agent: child.agent.clone(),
             description: child.description.clone(),
             prompt: params.prompt.clone(),
-            model: Some(model.stored(&params.catalog.provider)),
+            model: Some(model.stored(&child.provider)),
             session_id: None,
             context_message_ids: Vec::new(),
         };
@@ -85,7 +85,7 @@ impl Runtime<'_> {
             parent_lane: lane,
             fresh_parent: fresh,
         };
-        let (agent, _, _) = runner.resolve_request(&request).map_err(failed)?;
+        let (agent, target, _) = runner.resolve_request(&request).map_err(failed)?;
         let child_id = self.new_child_id(&params.session);
         let child_lane = self.child_lane(agent, lane, &request.call_id);
         let child_params = TurnParams {
@@ -95,19 +95,19 @@ impl Runtime<'_> {
                 params.prompt
             ),
             invocation: None,
-            catalog: params.catalog,
+            catalog: target.catalog,
             model_id: model.id.clone(),
             variant: model.variant.clone(),
             max_output: 0,
-            provider: params.provider.clone(),
+            provider: child_provider(target.provider, &params.provider),
             cancel: params.cancel,
         };
         let published = self.current.read().expect("generation lock").clone();
-        let base = models::select_model(params.catalog, &model.id).map_err(failed)?;
+        let base = models::select_model(target.catalog, &model.id).map_err(failed)?;
         let fallback = published
             .config
             .providers
-            .get(&params.catalog.provider)
+            .get(&target.catalog.provider)
             .map(|p| p.options.native_fallback_limits)
             .unwrap_or_default();
         let budget = models::budget(&base, 0, fallback);

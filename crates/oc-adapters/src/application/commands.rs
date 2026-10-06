@@ -69,8 +69,10 @@ pub(super) fn prepare(
         } else {
             raw
         };
-        let resolved =
-            crate::runtime::resolve_subagent_model(&c.catalog, raw).map_err(app_error)?;
+        let resolved = c
+            .model_reference(&selected.provider_id, raw)
+            .map_err(app_error)?;
+        selected.provider_id = resolved.provider;
         selected.model_id = resolved.id;
         selected.variant = variant.or(resolved.variant);
     }
@@ -91,6 +93,7 @@ pub(super) fn prepare(
     // Background is eligible for primary profiles too, but never widens the model-tool catalog.
     let child = background.then(|| crate::runtime::CommandChild {
         agent: id.into(),
+        provider: selected.provider_id.clone(),
         model_id: selected.model_id.clone(),
         variant: selected.variant.clone(),
         description: def.description.clone(),

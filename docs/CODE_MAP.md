@@ -153,7 +153,11 @@ PTYs. `Composition::request_provider` captures a finite map of admitted leaf vie
 each runtime prepared attempt selects exactly one catalog/config from that map.
 `application/provider_view_tests.rs` qualifies a real Responses→Messages→Responses
 busy switch, same slash-containing ID, independent credentials, receipts and restart.
-Qualified fork/child edge cases remain the next T53 acceptance audit.
+Qualified child/profile/command targets resolve from the issuer's immutable map
+in `runtime/turn.rs` and `runtime/turn/commands.rs`; application forks pass the
+frozen admitted provider set to `storage_fork.rs`, preserving original receipts
+and settled pairs. The same provider-view test owner covers actual mixed-wire
+child and qualified fork/reopen regressions.
 
 ## Как обновлять
 

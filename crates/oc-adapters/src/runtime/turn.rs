@@ -87,11 +87,13 @@ pub(super) fn lane_fixed_input(
 }
 
 /// `subagent` tool definition with the upstream `Available subagents` list.
+#[allow(clippy::too_many_arguments)]
 fn subagent_tool_def(
     catalog: &SubagentCatalog,
     policy: &RuntimePolicy<'_>,
     model: &str,
     model_catalog: &ModelCatalog,
+    provider: Option<&ResponsesConfig>,
     home: Option<&str>,
     dcp: &DcpConfig,
     approval_consumer: bool,
@@ -126,7 +128,13 @@ fn subagent_tool_def(
                 };
                 description.push_str(&format!("\n- {}: {summary}", agent.id));
                 let child_model = match agent.model_reference().as_deref() {
-                    Some(raw) => match resolve_subagent_model(model_catalog, raw) {
+                    Some(raw) => match provider.map_or_else(
+                        || resolve_subagent_model(model_catalog, raw),
+                        |provider| {
+                            resolve_child_target(model_catalog, provider, raw)
+                                .map(|(_, _, model)| model)
+                        },
+                    ) {
                         Ok(resolved) => resolved.id,
                         Err(_) => {
                             description.push_str("\n  Effective permission preview unavailable: configured model is unavailable.");
@@ -274,43 +282,56 @@ pub(crate) fn resolve_subagent_model(
 /// child agent's model, else the existing child's stored model, else the
 /// parent session model.
 #[allow(clippy::too_many_arguments)]
-fn resolve_child_model(
-    catalog: &ModelCatalog,
-    request_model: Option<&str>,
-    agent_model: Option<&str>,
-    existing: Option<&SessionMeta>,
+fn child_model_reference<'a>(
+    request_model: Option<&'a str>,
+    agent_model: Option<&'a str>,
+    existing: Option<&'a SessionMeta>,
     switched: bool,
-    parent_model_id: &str,
-    parent_variant: Option<&str>,
-) -> Result<ResolvedModel, String> {
-    let parent = || ResolvedModel {
-        id: parent_model_id.to_string(),
-        variant: parent_variant.map(str::to_string),
-    };
-    let resolve = |raw: &str| resolve_subagent_model(catalog, raw);
+) -> Option<&'a str> {
     if let Some(raw) = request_model {
-        return resolve(raw);
+        return Some(raw);
     }
     match existing {
-        None => match agent_model {
-            Some(raw) => resolve(raw),
-            None => Ok(parent()),
-        },
-        Some(meta) if switched => match agent_model {
-            Some(raw) => resolve(raw),
-            None => match meta.model.as_deref() {
-                Some(raw) => resolve(raw),
-                None => Ok(parent()),
-            },
-        },
-        Some(meta) => match meta.model.as_deref() {
-            Some(raw) => resolve(raw),
-            None => match agent_model {
-                Some(raw) => resolve(raw),
-                None => Ok(parent()),
-            },
-        },
+        None => agent_model,
+        Some(meta) if switched => agent_model.or(meta.model.as_deref()),
+        Some(meta) => meta.model.as_deref().or(agent_model),
     }
+}
+
+fn resolve_child_target<'a>(
+    catalog: &'a ModelCatalog,
+    provider: &'a ResponsesConfig,
+    raw: &str,
+) -> Result<(&'a ModelCatalog, &'a ResponsesConfig, ResolvedModel), String> {
+    let (id, model_id, _) = models::parse_reference(raw).map_err(|_| {
+        format!(
+            "Invalid model \"{raw}\". Use \"providerID/modelID\" or \"providerID/modelID#variant\"."
+        )
+    })?;
+    let (catalog, provider) = if id == catalog.provider {
+        (catalog, provider)
+    } else {
+        let captured = provider
+            .wire
+            .providers
+            .get(id)
+            .ok_or_else(|| format!("Model \"{id}/{model_id}\" is not available. Use the models tool to see what is available."))?;
+        (&captured.catalog, &captured.config)
+    };
+    let model = resolve_subagent_model(catalog, raw)?;
+    Ok((catalog, provider, model))
+}
+
+struct ChildTarget<'a> {
+    catalog: &'a ModelCatalog,
+    provider: &'a ResponsesConfig,
+    model: ResolvedModel,
+}
+
+fn child_provider(target: &ResponsesConfig, issuer: &ResponsesConfig) -> ResponsesConfig {
+    let mut target = target.clone();
+    target.wire.providers = issuer.wire.providers.clone();
+    target
 }
 
 /// Foreground child runner for one calling turn.
@@ -349,7 +370,7 @@ impl TurnSubagent<'_, '_> {
     fn resolve_request(
         &self,
         request: &SubagentRequest,
-    ) -> Result<(&SubagentAgent, ResolvedModel, Option<String>), ToolError> {
+    ) -> Result<(&SubagentAgent, ChildTarget<'_>, Option<String>), ToolError> {
         let failed = |reason: String| ToolError::Failed {
             tool: SUBAGENT_TOOL.into(),
             reason,
@@ -407,26 +428,36 @@ impl TurnSubagent<'_, '_> {
             .as_ref()
             .is_some_and(|meta| meta.agent.as_deref() != Some(agent.id.as_str()));
         let agent_reference = agent.model_reference();
-        let model = resolve_child_model(
-            self.catalog,
+        let raw = child_model_reference(
             request.model.as_deref(),
             agent_reference.as_deref(),
             existing.as_ref(),
             switched,
-            &self.parent_model_id,
-            self.parent_variant.as_deref(),
-        )
-        .map_err(failed)?;
-        self.runtime
-            .admit_provider_variant(
+        );
+        let (catalog, provider, model) = match raw {
+            Some(raw) => resolve_child_target(self.catalog, self.provider, raw).map_err(failed)?,
+            None => (
                 self.catalog,
-                &model.id,
-                model.variant.as_deref(),
                 self.provider,
-            )
+                ResolvedModel {
+                    id: self.parent_model_id.clone(),
+                    variant: self.parent_variant.clone(),
+                },
+            ),
+        };
+        self.runtime
+            .admit_provider_variant(catalog, &model.id, model.variant.as_deref(), provider)
             .map_err(|error| failed(error.to_string()))?;
         let pack = self.context_pack(request).map_err(failed)?;
-        Ok((agent, model, pack))
+        Ok((
+            agent,
+            ChildTarget {
+                catalog,
+                provider,
+                model,
+            },
+            pack,
+        ))
     }
 
     /// R8: the actual quoted child request must fit before any child row,
@@ -436,7 +467,7 @@ impl TurnSubagent<'_, '_> {
     async fn admit_quoted_child(
         &self,
         agent: &SubagentAgent,
-        model: &ResolvedModel,
+        target: &ChildTarget<'_>,
         request: &SubagentRequest,
         child_session: &str,
         fresh: bool,
@@ -458,12 +489,13 @@ impl TurnSubagent<'_, '_> {
             .read()
             .expect("generation lock")
             .clone();
-        let base = models::select_model(self.catalog, &model.id)
+        let model = &target.model;
+        let base = models::select_model(target.catalog, &model.id)
             .map_err(|error| failed(error.to_string()))?;
         let fallback = published
             .config
             .providers
-            .get(&self.catalog.provider)
+            .get(&target.catalog.provider)
             .map(|provider| provider.options.native_fallback_limits)
             .unwrap_or_default();
         let budget = models::budget(&base, 0, fallback);
@@ -471,11 +503,11 @@ impl TurnSubagent<'_, '_> {
             session: child_session.to_string(),
             prompt: prompt.to_string(),
             invocation: None,
-            catalog: self.catalog,
+            catalog: target.catalog,
             model_id: model.id.clone(),
             variant: model.variant.clone(),
             max_output: 0,
-            provider: self.provider.clone(),
+            provider: child_provider(target.provider, self.provider),
             cancel: self.cancel,
         };
         let proof = Box::pin(self.runtime.run_turn_admitted(
@@ -556,7 +588,7 @@ impl TurnSubagent<'_, '_> {
         child_id: String,
         reservation: children::Reservation,
     ) -> Result<SubagentOutcome, ToolError> {
-        let (agent, model, pack) = self.resolve_request(&request)?;
+        let (agent, target, pack) = self.resolve_request(&request)?;
         let (child_session, fresh) = match &request.session_id {
             Some(id) => (id.clone(), false),
             None => (child_id, true),
@@ -572,7 +604,7 @@ impl TurnSubagent<'_, '_> {
             task
         };
         if quoted {
-            self.admit_quoted_child(agent, &model, &request, &child_session, fresh, &prompt)
+            self.admit_quoted_child(agent, &target, &request, &child_session, fresh, &prompt)
                 .await?;
         }
         {
@@ -592,7 +624,7 @@ impl TurnSubagent<'_, '_> {
                 generation: self.runtime.generation_id(),
                 location: self.runtime.location.clone(),
                 agent: agent.id.clone(),
-                model: model.stored(&self.catalog.provider),
+                model: target.model.stored(&target.catalog.provider),
                 description: request.description.clone(),
                 state: oc_core::queries::ChildState::Admitted,
                 background: request.background,
@@ -610,9 +642,9 @@ impl TurnSubagent<'_, '_> {
                     self.parent_lane.clone(),
                     identity.clone(),
                     prompt,
-                    model,
-                    self.catalog.clone(),
-                    self.provider.clone(),
+                    target.model,
+                    target.catalog.clone(),
+                    child_provider(target.provider, self.provider),
                     self.attached.clone(),
                     reservation,
                     fresh,
@@ -1367,6 +1399,7 @@ impl<'a> Runtime<'a> {
                 &policy,
                 &selection.id,
                 params.catalog,
+                Some(&params.provider),
                 self.parent_env.get("HOME").map(String::as_str),
                 &dcp_config,
                 self.approvals.has_consumer(),
@@ -1754,7 +1787,10 @@ impl<'a> Runtime<'a> {
             // mutate its transport, tools, receipts or issued child batch.
             let capture = params.provider.wire.providers.get(&choice.provider);
             let (catalog, provider) = if let Some(capture) = capture {
-                (&capture.catalog, capture.config.clone())
+                (
+                    &capture.catalog,
+                    child_provider(&capture.config, &params.provider),
+                )
             } else if choice.provider == params.catalog.provider {
                 (params.catalog, params.provider.clone())
             } else {
@@ -1911,6 +1947,7 @@ impl<'a> Runtime<'a> {
                     &policy,
                     &selection.id,
                     params.catalog,
+                    Some(&params.provider),
                     self.parent_env.get("HOME").map(String::as_str),
                     &dcp_config,
                     self.approvals.has_consumer(),

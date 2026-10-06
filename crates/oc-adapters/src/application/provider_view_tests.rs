@@ -3,6 +3,157 @@ use oc_core::queries::{AccountAction, AccountAuthSource, KeyInput};
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+async fn request(stream: &mut tokio::net::TcpStream) -> (String, serde_json::Value) {
+    let mut bytes = Vec::new();
+    let mut buffer = [0; 4096];
+    let boundary = loop {
+        let n = stream.read(&mut buffer).await.unwrap();
+        assert!(n > 0);
+        bytes.extend_from_slice(&buffer[..n]);
+        if let Some(i) = bytes.windows(4).position(|x| x == b"\r\n\r\n") {
+            break i + 4;
+        }
+    };
+    let headers = String::from_utf8_lossy(&bytes[..boundary]).to_ascii_lowercase();
+    let length: usize = headers
+        .lines()
+        .find_map(|line| line.strip_prefix("content-length:"))
+        .unwrap()
+        .trim()
+        .parse()
+        .unwrap();
+    while bytes.len() < boundary + length {
+        let n = stream.read(&mut buffer).await.unwrap();
+        assert!(n > 0);
+        bytes.extend_from_slice(&buffer[..n]);
+    }
+    (
+        headers,
+        serde_json::from_slice(&bytes[boundary..boundary + length]).unwrap(),
+    )
+}
+
+#[tokio::test]
+async fn go05_qualified_child_pins_overrides_and_commands_capture_own_authority() {
+    for mode in ["profile", "override", "command"] {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        std::fs::write(project.join("opencode.json"),serde_json::json!({
+            "model":"alpha/same/slash","disabled_providers":["opencode-go"],"permission":{"*":"allow"},
+            "agent":{"scout":{"mode":"subagent","model":if mode=="profile" {"beta/same/slash"} else {"alpha/same/slash"}}},
+            "command":{"inspect":{"template":"child task","agent":"scout","model":"beta/same/slash","subtask":true}},
+            "providers":{
+                "alpha":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("{base}/alpha"),"apiKey":"PARENT_KEY"},"models":{"same/slash":{"modelID":"parent-api","limit":{"context":100000,"output":2048}}}},
+                "beta":{"package":"@ai-sdk/anthropic","settings":{"baseURL":format!("{base}/beta"),"apiKey":"CHILD_KEY"},"models":{"same/slash":{"modelID":"child-api","limit":{"context":100000,"output":2048}}}}
+            }
+        }).to_string()).unwrap();
+        let peer = tokio::spawn(async move {
+            let count = if mode == "command" { 1 } else { 3 };
+            for step in 0..count {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let (headers, body) = request(&mut stream).await;
+                let child = mode == "command" || step == 1;
+                let sse = if child {
+                    assert!(headers.starts_with("post /beta/messages "));
+                    assert!(headers.contains("x-api-key: child_key"));
+                    assert!(!headers.contains("parent_key"));
+                    assert_eq!(body["model"], "child-api");
+                    [serde_json::json!({"type":"message_start","message":{"role":"assistant"}}),
+                     serde_json::json!({"type":"content_block_start","index":0,"content_block":{"type":"text","text":"QUALIFIED_CHILD_FINAL"}}),
+                     serde_json::json!({"type":"content_block_stop","index":0}),
+                     serde_json::json!({"type":"message_delta","delta":{"stop_reason":"end_turn"}}),
+                     serde_json::json!({"type":"message_stop"})]
+                     .iter().map(|frame|format!("data: {frame}\n\n")).collect::<String>()
+                } else {
+                    assert!(headers.starts_with("post /alpha/responses "));
+                    assert!(headers.contains("authorization: bearer parent_key"));
+                    assert!(!headers.contains("child_key"));
+                    assert_eq!(body["model"], "parent-api");
+                    let output = if step == 0 {
+                        let mut args = serde_json::json!({"agent":"scout","description":"qualified child","prompt":"child task"});
+                        if mode == "override" {
+                            args["model"] = "beta/same/slash".into();
+                        }
+                        serde_json::json!([{"type":"function_call","id":"child-item","call_id":"child-call","name":"subagent","arguments":args.to_string()}])
+                    } else {
+                        assert!(body.to_string().contains("QUALIFIED_CHILD_FINAL"));
+                        serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"QUALIFIED_PARENT_FINAL"}]}])
+                    };
+                    format!(
+                        "data: {}\n\n",
+                        serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}})
+                    )
+                };
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}",sse.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+            .await
+            .unwrap();
+        let session = SessionId::new("parent").unwrap();
+        app.create_session(session.clone()).await.unwrap();
+        app.rename_session(session.clone(), "fixed".into())
+            .await
+            .unwrap();
+        app.submit(
+            session.clone(),
+            if mode == "command" {
+                "/inspect"
+            } else {
+                "child task"
+            }
+            .into(),
+        )
+        .await
+        .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), peer)
+            .await
+            .unwrap()
+            .unwrap();
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let jobs = app.child_jobs(session.clone()).await.unwrap();
+                if jobs
+                    .iter()
+                    .any(|job| job.state == oc_core::queries::ChildState::Completed)
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap();
+        let jobs = app.child_jobs(session).await.unwrap();
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].model, "beta/same/slash");
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        let db = Db::open(&data).unwrap();
+        let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+        let raw: String = conn
+            .query_row(
+                "SELECT result FROM turns WHERE session_id=?1",
+                [&jobs[0].child.0],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+        assert_eq!(log.binding.unwrap().provider, "beta");
+        assert!(
+            db.session_meta(&jobs[0].child.0)
+                .unwrap()
+                .model
+                .unwrap()
+                .starts_with("beta/")
+        );
+    }
+}
+
 fn commit(
     snapshot: &oc_core::queries::CatalogSnapshot,
     provider: &str,
@@ -196,18 +347,55 @@ async fn go05_qualified_busy_switch_keeps_prepared_authority_and_reopens_home_an
         .unwrap();
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
+    let boundary;
+    let original;
     {
         let db = Db::open(&data).unwrap();
         assert_eq!(db.list_tool_ops("qualified-owner").unwrap().len(), 2);
         let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
         let raw:String=conn.query_row("SELECT result FROM turns WHERE session_id='qualified-owner' AND status='completed'",[],|row|row.get(0)).unwrap();
         let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+        original = raw;
         assert_eq!(
             log.requests
                 .iter()
                 .map(|receipt| receipt.binding.as_ref().unwrap().provider.as_str())
                 .collect::<Vec<_>>(),
             ["alpha", "beta", "alpha"]
+        );
+        boundary = db
+            .accept_turn(
+                "fork-boundary",
+                "qualified-owner",
+                "next prompt",
+                "next prompt",
+                &oc_core::queries::ModelRef {
+                    provider: "beta".into(),
+                    id: "same/slash".into(),
+                    variant: None,
+                },
+            )
+            .unwrap()
+            .user_message;
+        let mut tail = crate::tools::TurnLog::new("same/slash", "beta", "next prompt");
+        tail.turn_id = "fork-boundary".into();
+        tail.user_message = Some(boundary.clone());
+        db.finish_turn(
+            "fork-boundary",
+            "completed",
+            Some(&tail.to_json().to_string()),
+        )
+        .unwrap();
+        // A single-provider caller must still reject foreign receipt authority.
+        assert!(
+            db.fork_session(
+                "qualified-owner",
+                &boundary,
+                &project.to_string_lossy(),
+                "alpha",
+                "{}"
+            )
+            .is_err()
         );
     }
     let (app, guard, _) = spawn_with_env(&project, &data, env).await.unwrap();
@@ -216,7 +404,7 @@ async fn go05_qualified_busy_switch_keeps_prepared_authority_and_reopens_home_an
             .await
             .unwrap(),
         app.session_selection(
-            session,
+            session.clone(),
             false,
             oc_core::queries::SessionSelectionAction::Current,
         )
@@ -229,8 +417,36 @@ async fn go05_qualified_busy_switch_keeps_prepared_authority_and_reopens_home_an
             ("beta", "same/slash")
         );
     }
+    let fork = app
+        .fork_session(session, MessageId(boundary))
+        .await
+        .unwrap();
+    let fork_choice = app
+        .session_selection(
+            fork.session.clone(),
+            false,
+            oc_core::queries::SessionSelectionAction::Current,
+        )
+        .await
+        .unwrap();
+    assert_eq!(fork_choice.selected_model().unwrap().provider, "beta");
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
+    let db = Db::open(&data).unwrap();
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let copy: String = conn
+        .query_row(
+            "SELECT result FROM turns WHERE session_id=?1 AND prompt='one task'",
+            [&fork.session.0],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let copy = crate::tools::TurnLog::from_json(&serde_json::from_str(&copy).unwrap()).unwrap();
+    let original =
+        crate::tools::TurnLog::from_json(&serde_json::from_str(&original).unwrap()).unwrap();
+    assert_eq!(copy.requests, original.requests);
+    assert_eq!(copy.binding, original.binding);
+    assert_eq!(db.list_tool_ops(&fork.session.0).unwrap().len(), 2);
 }
 
 #[tokio::test]

@@ -198,6 +198,7 @@ fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer(
             "own-model",
             &models,
             None,
+            None,
             &config,
             consumer,
         )

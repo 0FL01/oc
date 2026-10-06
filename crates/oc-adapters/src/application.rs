@@ -2876,11 +2876,18 @@ fn query(
                     .open_session(&source.0)
                     .map_err(|_| CoreError::SessionNotFound)?;
                 let choice = selection::fork_choice(db, composition, effective, &source.0)?;
-                db.fork_session(
+                let providers = composition
+                    .provider_views
+                    .keys()
+                    .cloned()
+                    .chain(std::iter::once(composition.catalog.provider.clone()))
+                    .collect();
+                db.fork_session_admitted(
                     &source.0,
                     &before.0,
                     runtime.location(),
                     &composition.catalog.provider,
+                    &providers,
                     &choice,
                 )
             })();

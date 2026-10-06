@@ -204,6 +204,7 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         "gpt-future",
         &models,
         None,
+        None,
         &DcpConfig::default(),
         false,
     );
@@ -227,6 +228,7 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         &policy,
         "gpt-future",
         &models,
+        None,
         None,
         &DcpConfig::default(),
         false,

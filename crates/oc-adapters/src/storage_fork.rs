@@ -31,6 +31,7 @@ fn accepted_model_for_user(
 }
 
 impl Db {
+    #[cfg(test)]
     pub(crate) fn fork_session(
         &self,
         source: &str,
@@ -39,7 +40,26 @@ impl Db {
         provider: &str,
         choice: &str,
     ) -> Result<ForkSessionSnapshot, CoreError> {
-        self.fork_transaction(source, before, location, provider, choice)
+        self.fork_session_admitted(
+            source,
+            before,
+            location,
+            provider,
+            &HashSet::from([provider.to_string()]),
+            choice,
+        )
+    }
+
+    pub(crate) fn fork_session_admitted(
+        &self,
+        source: &str,
+        before: &str,
+        location: &str,
+        provider: &str,
+        providers: &HashSet<String>,
+        choice: &str,
+    ) -> Result<ForkSessionSnapshot, CoreError> {
+        self.fork_transaction(source, before, location, provider, providers, choice)
             .map_err(|error| match error {
                 ForkError::Refusal(error) => error,
                 ForkError::Storage => refuse("storage unavailable"),
@@ -52,6 +72,7 @@ impl Db {
         before: &str,
         location: &str,
         provider: &str,
+        providers: &HashSet<String>,
         choice: &str,
     ) -> Result<ForkSessionSnapshot, ForkError> {
         let mut conn = self.conn.lock().expect("db mutex");
@@ -190,7 +211,14 @@ impl Db {
             }
             let wire =
                 crate::tools::TurnLog::from_json(&log).map_err(|_| refuse("invalid wire log"))?;
-            if wire.provider != provider {
+            if !providers.contains(&wire.provider)
+                || wire
+                    .requests
+                    .iter()
+                    .chain(wire.spans.iter().filter_map(|span| span.request.as_ref()))
+                    .filter_map(|request| request.binding.as_ref())
+                    .any(|binding| !providers.contains(&binding.provider))
+            {
                 return Err(refuse("prefix belongs to another provider").into());
             }
             if let Some(assistant) = log.get("assistant_message") {
@@ -289,7 +317,7 @@ impl Db {
                 }
                 let model: oc_core::queries::ModelRef =
                     serde_json::from_str(&raw).map_err(|_| refuse("invalid accepted model"))?;
-                if model.provider != provider {
+                if !providers.contains(&model.provider) {
                     return Err(refuse("accepted model belongs to another provider").into());
                 }
                 if let Some(turn) = prepared.iter().find(|turn| &turn.3 == old)

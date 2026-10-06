@@ -880,6 +880,7 @@ pub(crate) struct NativeCommand {
 
 pub(crate) struct CommandChild {
     pub agent: String,
+    pub provider: String,
     pub model_id: String,
     pub variant: Option<String>,
     pub description: String,
@@ -2338,5 +2339,4 @@ pub(crate) use context::{
     apply_dcp_projection, dcp_call_contents, dcp_call_identities, dcp_contents,
 };
 use mcp::{McpGeneration, mcp_instruction_input};
-pub(crate) use turn::resolve_subagent_model;
 use turn::{lane_fixed_input, skills_input};

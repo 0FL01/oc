@@ -56,3 +56,34 @@ test threads 2. No test-stack override, timeout increase, ignore or error suppre
 Audit qualified fork/child/pinned-reference edge cases and the full frozen GO01–GO05
 acceptance matrix, then bounded real Go qualification and final report/finish. This slice
 does not claim those checks, T44 pixel parity, Codex OAuth or T57 completion.
+
+## Qualified fork and child follow-up
+
+Base: `b4b9266d5`. The application supplies the frozen admitted provider set to
+the existing atomic fork transaction. Root journal, request/span receipts and
+accepted models must belong to that set; call/result completeness, settlement,
+Location, quotas and rollback checks are unchanged. The single-provider test
+entry still rejects foreign authority before inserting a fork. Mixed Alpha /
+Beta / Alpha receipts and two settled reads survive application fork/reopen,
+with the exact qualified Beta choice and original binding receipts.
+
+Child profile pins, explicit overrides and native background command models now
+resolve their own catalog/config from the issuer's immutable admitted map. Tool
+preview, preflight, quoted-context admission, Jobs launch, stored model and wire
+receipt use the same target. Captured maps have finite leaf configs; copying the
+map onto a child does not introduce recursive cycles or inherit a parent's key.
+Actual fake Responses parent / Messages child tests cover all three routes and
+assert independent endpoint/API model/auth plus durable child provenance.
+
+Checks (approved disk TMPDIR, jobs=3, test threads=2):
+
+- `cargo test --locked -p oc-adapters --lib --test runtime --test subagent`:
+  unit **616/0/0**, runtime **120/0/0**; first subagent run **37/1/0** exposed
+  a changed unknown-provider diagnostic, not an admission/effect failure.
+- Restored the existing actionable model-unavailable error contract; reran
+  `cargo test --locked -p oc-adapters --test subagent`: **38/0/0**.
+- Strict workspace all-target clippy, workspace fmt check and diff check: PASS.
+
+No real generation, new dependency, changed ignore, raised timeout, or secret
+output. Remaining GO05 qualification: complete actual-binary generation/cancel
+after the account/filtered-picker flow; GO06 bounded real Go and final report.
