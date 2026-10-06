@@ -107,8 +107,11 @@ reopen and fork. Native origin/variant cases are in `runtime_compaction_tests.rs
 `provider/context.rs` captures project/session/parent identity and supported lineage
 cache fields at the common send boundary; `context_tests.rs`, effective-wire title,
 compaction and recursive-fork tests cover it. `application.rs` currently exceeds
-5k because its supervisor/title paths retain one mutation owner; next natural seam
-is title preparation/reader extraction during T53 durable protocol qualification.
+5k because its supervisor/title paths retain one mutation owner; its qualified
+selection growth is still owner-local. Next natural seam is title preparation and
+catalog/query projection, not another supervisor or credential owner. `runtime/turn.rs`
+also exceeds 5k after qualified prepared attempts; target capture/preparation is its
+next natural seam. Large turn/child futures are heap-pinned at execution boundaries.
 Nearest tests:
 `provider/{chat,messages,protocol}_tests.rs`, `application/{chat,messages}_wire_tests.rs`;
 receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/
@@ -121,7 +124,8 @@ generation. `application/accounts.rs` routes typed `CoreApp::provider_accounts`
 through that same owner; safe DTOs live in core `queries/accounts.rs`. Credential-only
 idle publication retains configured auth inputs and does not restart MCP or select
 a model. Tests: `application/accounts_tests.rs` and held live-switch regression.
-Qualified cross-provider execution/selection remains pending.
+Qualified model choices use `application_selection.rs` and `Effective::request`;
+legacy unqualified records remain bound to their original provider namespace.
 
 Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source trust;
 generation and configured discovery share its DNS pin and peer guard. Private boundary,
@@ -145,7 +149,11 @@ Public and configured discovery jobs are independently joined/cancelled by
 `TuiState::apply_picker_catalog` updates a filtered browse scope without replacing
 the committed composer. Tests: `application/provider_view_tests.rs`,
 `application/provider_catalog/tests.rs`, `app/model_selection_tests.rs` and account
-PTYs. Executable cross-provider switching is the next selection-owner seam.
+PTYs. `Composition::request_provider` captures a finite map of admitted leaf views;
+each runtime prepared attempt selects exactly one catalog/config from that map.
+`application/provider_view_tests.rs` qualifies a real Responses→Messages→Responses
+busy switch, same slash-containing ID, independent credentials, receipts and restart.
+Qualified fork/child edge cases remain the next T53 acceptance audit.
 
 ## Как обновлять
 

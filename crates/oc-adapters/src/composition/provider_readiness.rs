@@ -3,7 +3,7 @@ use super::*;
 use oc_core::queries::{ProviderReadiness, ProviderStatus};
 use sha2::{Digest, Sha256};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProviderState {
     service: String,
     source: String,

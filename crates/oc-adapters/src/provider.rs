@@ -434,6 +434,9 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) selection_scope: Option<String>,
+    pub(crate) provider_state: Option<crate::composition::ProviderState>,
+    pub(crate) providers: BTreeMap<String, CapturedProvider>,
     pub(crate) auth_input: Option<AuthInput>,
     pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
@@ -448,6 +451,18 @@ pub struct WireBinding {
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
     pub(crate) messages_bearer: bool,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct CapturedProvider {
+    pub(crate) catalog: crate::models::ModelCatalog,
+    pub(crate) config: ResponsesConfig,
+}
+
+impl std::fmt::Debug for CapturedProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CapturedProvider").finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, PartialEq, Eq)]

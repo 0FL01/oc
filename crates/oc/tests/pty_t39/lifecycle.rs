@@ -811,7 +811,7 @@ async fn v04_legacy_headless_api_supersedes_older_scoped_session_drafts() {
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
         saved_selection(&db, &fixture, &session.0, DEFAULT_AGENT),
-        serde_json::json!({"id":ALT_MODEL,"variant":"fast"}),
+        serde_json::json!({"provider":"fixture","id":ALT_MODEL,"variant":"fast"}),
         "legacy API does not erase old scoped records"
     );
     drop(db);
@@ -985,7 +985,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
         saved_selection(&db, &fixture, "scope-a", "plain"),
-        serde_json::json!({"id":ALT_MODEL,"variant":null})
+        serde_json::json!({"provider":"fixture","id":ALT_MODEL,"variant":null})
     );
     assert_eq!(
         saved_selection(&db, &fixture, "scope-a", "t39agent")["id"],

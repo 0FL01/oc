@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct ModelChoice {
+    #[serde(default)]
+    provider: Option<String>,
     id: String,
     variant: Option<String>,
 }
@@ -83,8 +85,8 @@ fn home_agent_key(c: &Composition) -> String {
     )
 }
 
-fn variant_key(c: &Composition, id: &str) -> String {
-    key("variant", &[&c.catalog.provider, id])
+fn variant_key(provider: &str, id: &str) -> String {
+    key("variant", &[provider, id])
 }
 
 fn load<T: serde::de::DeserializeOwned>(db: &Db, key: &str) -> Result<Option<T>, CoreError> {
@@ -104,6 +106,7 @@ fn record<T: Serialize>(key: String, value: &T) -> Result<(String, String), Core
 
 fn model(e: &Effective) -> ModelChoice {
     ModelChoice {
+        provider: Some(e.provider_id.clone()),
         id: e.model_id.clone(),
         variant: e.variant.clone(),
     }
@@ -131,11 +134,16 @@ fn unavailable(c: &Composition, field: &str) -> CoreError {
 }
 
 fn set_model(e: &mut Effective, c: &Composition, choice: ModelChoice) -> Result<(), CoreError> {
+    let provider = choice.provider.as_deref().unwrap_or(&c.catalog.provider);
+    let catalog = c
+        .catalog_for(provider)
+        .ok_or_else(|| unavailable(c, "model"))?;
     let selected =
-        crate::models::select_model(&c.catalog, &choice.id).map_err(|_| unavailable(c, "model"))?;
+        crate::models::select_model(catalog, &choice.id).map_err(|_| unavailable(c, "model"))?;
     let selected = crate::models::select_variant(&selected, choice.variant.as_deref())
         .map_err(|_| unavailable(c, "variant"))?;
     e.model_id = selected.id;
+    e.provider_id = provider.to_owned();
     e.variant = selected.variant.map(|v| v.name);
     // An explicit admitted model repairs a profile's blocked pin, while an
     // absent/nonprimary agent still requires a separate agent choice.
@@ -155,17 +163,22 @@ fn preferred(
     id: String,
 ) -> Result<ModelChoice, CoreError> {
     // Some(None) is an explicit Default preference, distinct from no preference.
-    let variant = if let Some(preferred) = load::<Option<String>>(db, &variant_key(c, &id))? {
-        preferred
-    } else if e.model_id == id {
-        e.variant.clone()
-    } else if c.model_id == id {
-        c.variant.clone()
-    } else {
-        None
-    };
+    let variant =
+        if let Some(preferred) = load::<Option<String>>(db, &variant_key(&e.provider_id, &id))? {
+            preferred
+        } else if e.model_id == id {
+            e.variant.clone()
+        } else if c.catalog.provider == e.provider_id && c.model_id == id {
+            c.variant.clone()
+        } else {
+            None
+        };
     // A retired preference must remain visible until an explicit choice.
-    Ok(ModelChoice { id, variant })
+    Ok(ModelChoice {
+        provider: Some(e.provider_id.clone()),
+        id,
+        variant,
+    })
 }
 
 fn base_for_agent(
@@ -182,6 +195,7 @@ fn base_for_agent(
             // Explicitly changing primary cannot inherit the previous agent's
             // model/variant. Scoped drafts are applied only after this base.
             selected.model_id = c.model_id.clone();
+            selected.provider_id = c.catalog.provider.clone();
             selected.variant = c.variant.clone();
         }
         if selected.set_agent(c, agent).is_err() {
@@ -218,14 +232,10 @@ fn resolve(
         Some(model) => model.clone(),
         None => {
             let draft = load::<ModelChoice>(db, &draft_key(c, choice.agent.as_deref()))?;
-            preferred(
-                db,
-                c,
-                &selected,
-                draft
-                    .map(|m| m.id)
-                    .unwrap_or_else(|| selected.model_id.clone()),
-            )?
+            match draft {
+                Some(draft) => draft,
+                None => preferred(db, c, &selected, selected.model_id.clone())?,
+            }
         }
     };
     // Project a retired choice honestly: only turn acceptance validates it.
@@ -239,6 +249,7 @@ fn resolve(
         selected.profile_issue = None;
     }
     selected.model_id = model.id;
+    selected.provider_id = model.provider.unwrap_or_else(|| c.catalog.provider.clone());
     selected.variant = model.variant;
     Ok(selected)
 }
@@ -264,7 +275,7 @@ pub(crate) fn request_choice(
     provider: &str,
     session: &str,
     agent: Option<&str>,
-) -> Result<Option<(String, Option<String>)>, crate::runtime::RuntimeError> {
+) -> Result<Option<oc_core::queries::ModelRef>, crate::runtime::RuntimeError> {
     let project = project.to_string_lossy();
     let session_record = key("session", &[&project, provider, session]);
     let epoch = load::<u64>(db, &key("legacy_epoch", &[&project, provider]))
@@ -284,7 +295,11 @@ pub(crate) fn request_choice(
     Ok(choice
         .filter(|choice| choice.epoch >= epoch && choice.agent.as_deref() == agent)
         .and_then(|choice| choice.models.get(agent.unwrap_or("")).cloned())
-        .map(|model| (model.id, model.variant)))
+        .map(|model| oc_core::queries::ModelRef {
+            provider: model.provider.unwrap_or_else(|| provider.to_owned()),
+            id: model.id,
+            variant: model.variant,
+        }))
 }
 
 /// Bounded, read-only fork selection: preserve this session's other agent
@@ -324,7 +339,12 @@ pub(super) fn fork_choice(
         fallback,
         session,
         FreshSelection {
-            binding: None,
+            binding: Some(oc_core::queries::SelectionBinding {
+                location: Some(c.project.to_string_lossy().into_owned()),
+                generation: 0,
+                provider: selected.provider_id,
+                agent_id: selected.agent_id.clone(),
+            }),
             agent_id: selected.agent_id,
             model_id: selected.model_id,
             variant: selected.variant,
@@ -352,6 +372,7 @@ pub(super) fn fresh(
         &mut selected,
         c,
         ModelChoice {
+            provider: choice.binding.map(|binding| binding.provider),
             id: choice.model_id,
             variant: choice.variant,
         },
@@ -390,6 +411,9 @@ fn home_for_agent(
         selected.profile_issue = None;
     }
     selected.model_id = choice.id;
+    selected.provider_id = choice
+        .provider
+        .unwrap_or_else(|| c.catalog.provider.clone());
     selected.variant = choice.variant;
     Ok(selected)
 }
@@ -418,7 +442,37 @@ pub(super) fn home(
     action: Action,
 ) -> Result<Effective, CoreError> {
     match action {
-        Action::Commit(_) => Err(app_error("model commit requires an existing session")),
+        Action::Commit(commit) => {
+            let mut selected = current.clone();
+            if commit.binding.location.as_deref() != Some(c.project.to_string_lossy().as_ref())
+                || commit.binding.agent_id != current.agent_id
+                || c.catalog_for(&commit.binding.provider).is_none()
+            {
+                return Err(app_error("stale model commit scope"));
+            }
+            set_model(
+                &mut selected,
+                c,
+                ModelChoice {
+                    provider: Some(commit.binding.provider),
+                    id: commit.model_id,
+                    variant: commit.variant.filter(|name| name != "default"),
+                },
+            )?;
+            selected.admit_selection(c)?;
+            db.set_prefs(&[
+                record(
+                    key("variant", &[&selected.provider_id, &selected.model_id]),
+                    &selected.variant,
+                )?,
+                record(
+                    draft_key(c, selected.agent_id.as_deref()),
+                    &model(&selected),
+                )?,
+            ])
+            .map_err(|error| CoreError::Diagnostic(storage_diagnostic(db.root(), &error)))?;
+            Ok(selected)
+        }
         Action::Current => Ok(current.clone()),
         Action::Agent(agent) | Action::New(Some(agent)) => {
             let selected = home_for_agent(db, c, fallback, Some(&agent))?;
@@ -452,11 +506,18 @@ pub(super) fn home(
             };
             let mut records = Vec::new();
             if let Some(variant) = choice.variant.as_deref() {
-                let base = crate::models::select_model(&c.catalog, &id)
-                    .map_err(|_| unavailable(c, "model"))?;
+                let base = crate::models::select_model(
+                    c.catalog_for(&current.provider_id)
+                        .ok_or_else(|| unavailable(c, "model"))?,
+                    &id,
+                )
+                .map_err(|_| unavailable(c, "model"))?;
                 if crate::models::select_variant(&base, Some(variant)).is_err() {
                     choice.variant = None;
-                    records.push(record(variant_key(c, &id), &Option::<String>::None)?);
+                    records.push(record(
+                        variant_key(&current.provider_id, &id),
+                        &Option::<String>::None,
+                    )?);
                 }
             }
             let mut selected = current.clone();
@@ -476,13 +537,17 @@ pub(super) fn home(
                 &mut selected,
                 c,
                 ModelChoice {
+                    provider: Some(current.provider_id.clone()),
                     id: current.model_id.clone(),
                     variant: variant.clone(),
                 },
             )?;
             selected.admit_selection(c)?;
             db.set_prefs(&[
-                record(variant_key(c, &selected.model_id), &variant)?,
+                record(
+                    variant_key(&selected.provider_id, &selected.model_id),
+                    &variant,
+                )?,
                 record(
                     draft_key(c, selected.agent_id.as_deref()),
                     &model(&selected),
@@ -507,7 +572,8 @@ pub(super) fn apply(
     if let Action::Commit(commit) = &action {
         validate_commit(db, c, &previous, session, generation, commit)?;
         let visible = previous.snapshot(c, generation);
-        if visible.model_id == commit.model_id
+        if visible.provider == commit.binding.provider
+            && visible.model_id == commit.model_id
             && normalized_variant(&visible.variant) == normalized_variant(&commit.variant)
         {
             // An unchanged captured projection can carry an opaque retired
@@ -572,12 +638,13 @@ pub(super) fn apply(
                 &mut selected,
                 c,
                 ModelChoice {
+                    provider: Some(commit.binding.provider.clone()),
                     id: commit.model_id.clone(),
                     variant: commit.variant.clone().filter(|name| name != "default"),
                 },
             )?;
             records.push(record(
-                variant_key(c, &selected.model_id),
+                variant_key(&selected.provider_id, &selected.model_id),
                 &selected.variant,
             )?);
         }
@@ -597,28 +664,43 @@ pub(super) fn apply(
                 )?
             };
             if let Some(variant) = preferred.variant.as_deref() {
-                let base = crate::models::select_model(&c.catalog, id)
-                    .map_err(|_| unavailable(c, "model"))?;
+                let base = crate::models::select_model(
+                    c.catalog_for(preferred.provider.as_deref().unwrap_or(&c.catalog.provider))
+                        .ok_or_else(|| unavailable(c, "model"))?,
+                    id,
+                )
+                .map_err(|_| unavailable(c, "model"))?;
                 if crate::models::select_variant(&base, Some(variant)).is_err() {
                     // The explicit model choice accepts Default for a retired
                     // variant; persist that remediation, not an implicit fallback.
                     preferred.variant = None;
-                    records.push(record(variant_key(c, id), &Option::<String>::None)?);
+                    records.push(record(
+                        variant_key(
+                            preferred.provider.as_deref().unwrap_or(&c.catalog.provider),
+                            id,
+                        ),
+                        &Option::<String>::None,
+                    )?);
                 }
             }
             set_model(&mut selected, c, preferred)?;
         }
         Action::Variant(variant) => {
             let id = selected.model_id.clone();
+            let provider = selected.provider_id.clone();
             set_model(
                 &mut selected,
                 c,
                 ModelChoice {
+                    provider: Some(provider),
                     id,
                     variant: variant.clone(),
                 },
             )?;
-            records.push(record(variant_key(c, &selected.model_id), variant)?);
+            records.push(record(
+                variant_key(&selected.provider_id, &selected.model_id),
+                variant,
+            )?);
         }
         _ => {}
     }
@@ -628,6 +710,7 @@ pub(super) fn apply(
         Action::Model(_) | Action::Variant(_) | Action::Commit(_)
     );
     if model_action
+        && selected.provider_id == previous.provider_id
         && selected.model_id == previous.model_id
         && selected.agent_id == previous.agent_id
         && normalized_variant(&selected.variant) == normalized_variant(&previous.variant)
@@ -652,15 +735,17 @@ pub(super) fn apply(
                 .variant
                 .as_ref()
                 .and_then(|variant| {
-                    crate::models::select_model(&c.catalog, &choice.model_id)
-                        .ok()
+                    c.catalog_for(&choice.provider_id)
+                        .and_then(|catalog| {
+                            crate::models::select_model(catalog, &choice.model_id).ok()
+                        })
                         .and_then(|model| crate::models::select_variant(&model, Some(variant)).ok())
                         .and_then(|model| {
                             model.variant.and_then(|variant| variant.reasoning_effort)
                         })
                 })
                 .or_else(|| {
-                    c.provider
+                    c.provider_for(&choice.provider_id)?
                         .for_selection(&choice.model_id, choice.variant.as_deref())
                         .wire
                         .settings
@@ -724,6 +809,7 @@ pub(super) fn command_commit(
         &mut selected,
         c,
         ModelChoice {
+            provider: Some(commit.binding.provider.clone()),
             id: commit.model_id.clone(),
             variant: commit.variant.clone(),
         },
@@ -746,7 +832,7 @@ pub(super) fn publication(
         binding: oc_core::queries::SelectionBinding {
             location: Some(c.project.to_string_lossy().into_owned()),
             generation,
-            provider: c.catalog.provider.clone(),
+            provider: selected.provider_id.clone(),
             agent_id: selected.agent_id.clone(),
         },
         model_id: selected.model_id.clone(),
@@ -769,7 +855,7 @@ fn validate_commit(
 ) -> Result<(), CoreError> {
     if commit.binding.location.as_deref() != Some(c.project.to_string_lossy().as_ref())
         || commit.binding.generation != generation
-        || commit.binding.provider != c.catalog.provider
+        || c.catalog_for(&commit.binding.provider).is_none()
         || commit.binding.agent_id != current.snapshot(c, generation).agent_id
     {
         return Err(app_error("stale model commit scope"));

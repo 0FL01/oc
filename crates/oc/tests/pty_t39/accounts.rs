@@ -150,10 +150,31 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     pty.send(b"/accounts\r");
     wait_screen_row(&pty, "Provider: fixture", DEADLINE);
     // The connect ACK changed only Go credentials, not the current connection/model.
+    pty.send(b"\x1b");
+    dismissed(&pty, "Connect / accounts");
+    pty.send(b"/connect\r");
+    wait_screen_row(&pty, "Account label", DEADLINE);
+    paste(&mut pty, "Explicit Go choice");
+    pty.send(b"\r");
+    wait_screen_row(&pty, "API key (masked)", DEADLINE);
+    paste(&mut pty, KEY);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "GO05 independent Go choice", DEADLINE);
+    pty.send(b"\r");
+    dismissed(&pty, "Select model");
+    // Picker choice is a draft. Blank Enter is the existing explicit commit.
+    pty.send(b"\r");
+    pty.send(b"/accounts\r");
+    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
+    close(&mut pty);
+    let mut pty = PtySession::spawn(fixture.clone(), "go05-custom-connect", None);
+    pty.wait_visible(READY, DEADLINE);
+    pty.send(b"/accounts\r");
+    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
     close(&mut pty);
     let db = Db::open(&fixture.data_dir()).unwrap();
     let scope = AuthScope::admit("opencode-go", GO_BASE_URL).unwrap();
-    assert_eq!(db.credential_accounts(scope.namespace()).unwrap().len(), 1);
+    assert_eq!(db.credential_accounts(scope.namespace()).unwrap().len(), 2);
     assert!(
         db.session_meta("go05-custom-connect")
             .unwrap()

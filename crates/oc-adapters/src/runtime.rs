@@ -1200,15 +1200,6 @@ impl<'a> Runtime<'a> {
     }
 
     /// One shared admission for root/profile/child lanes and direct runtime callers.
-    pub(crate) fn admit_provider(
-        &self,
-        catalog: &ModelCatalog,
-        model: &str,
-        provider: &ResponsesConfig,
-    ) -> Result<(), RuntimeError> {
-        self.admit_provider_variant(catalog, model, None, provider)
-    }
-
     pub(crate) fn admit_provider_variant(
         &self,
         catalog: &ModelCatalog,
@@ -1219,7 +1210,11 @@ impl<'a> Runtime<'a> {
         let selected = provider.for_selection(model, variant);
         let captured_selection = !std::ptr::eq(selected, provider);
         let published = self.current.read().expect("generation lock").clone();
-        let admitted = self.provider_state.read().expect("provider state").clone();
+        let admitted = provider
+            .wire
+            .provider_state
+            .clone()
+            .or_else(|| self.provider_state.read().expect("provider state").clone());
         let availability_known = admitted.is_some();
         let mut state = admitted.unwrap_or_else(|| {
             // Standalone public constructors still obey a declared config

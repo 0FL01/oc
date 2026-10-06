@@ -1153,27 +1153,28 @@ impl<'a> Runtime<'a> {
             .config
             .providers
             .get(&params.catalog.provider)
-            .map(|provider| provider.options.native_fallback_limits)
+            .map(|entry| entry.options.native_fallback_limits)
             .unwrap_or_default();
         let budget = models::budget(&base, params.max_output, fallback);
-        let mut report = self
-            .run_turn_admitted(
-                params,
-                lane,
-                attached,
-                fresh_selection,
-                accepted,
-                text_delta,
-                reasoning_delta,
-                reasoning_item_ended,
-                tool_event,
-                &budget,
-                None,
-                command,
-                false,
-            )
-            .await?
-            .report()?;
+        // Keep the prepared-attempt state machine out of the caller's inline
+        // future; direct callers use the same bounded stack as spawned lanes.
+        let mut report = Box::pin(self.run_turn_admitted(
+            params,
+            lane,
+            attached,
+            fresh_selection,
+            accepted,
+            text_delta,
+            reasoning_delta,
+            reasoning_item_ended,
+            tool_event,
+            &budget,
+            None,
+            command,
+            false,
+        ))
+        .await?
+        .report()?;
         if let Some(warning) = budget.warning {
             report.warnings.push(warning);
         }
@@ -1673,12 +1674,6 @@ impl<'a> Runtime<'a> {
         let mut retry_resuming = false;
         let mut prepared_model = selection.id.clone();
         let mut prepared_binding = binding.clone();
-        let fallback = published
-            .config
-            .providers
-            .get(&params.catalog.provider)
-            .map(|provider| provider.options.native_fallback_limits)
-            .unwrap_or_default();
         let request_context = crate::provider::context::RequestContext::capture(
             &self.db,
             &self.roots.project,
@@ -1729,18 +1724,63 @@ impl<'a> Runtime<'a> {
             }
             // The owner record is re-read exactly once for this prepared attempt.
             // Configuration, agent lane, route and issued batch remain captured.
-            let (model_id, variant) = if primary_request {
+            let choice = if primary_request {
                 crate::application::request_choice(
                     &self.db,
                     &self.roots.project,
-                    &params.catalog.provider,
+                    params
+                        .provider
+                        .wire
+                        .selection_scope
+                        .as_deref()
+                        .unwrap_or(&params.catalog.provider),
                     &params.session,
                     lane.agent_id.as_deref(),
                 )?
-                .unwrap_or_else(|| (params.model_id.clone(), params.variant.clone()))
+                .unwrap_or_else(|| oc_core::queries::ModelRef {
+                    provider: params.catalog.provider.clone(),
+                    id: params.model_id.clone(),
+                    variant: params.variant.clone(),
+                })
             } else {
-                (params.model_id.clone(), params.variant.clone())
+                oc_core::queries::ModelRef {
+                    provider: params.catalog.provider.clone(),
+                    id: params.model_id.clone(),
+                    variant: params.variant.clone(),
+                }
             };
+            // All work issued by this attempt shares one frozen provider view.
+            // The shadow ends at the iteration boundary; a later commit cannot
+            // mutate its transport, tools, receipts or issued child batch.
+            let capture = params.provider.wire.providers.get(&choice.provider);
+            let (catalog, provider) = if let Some(capture) = capture {
+                (&capture.catalog, capture.config.clone())
+            } else if choice.provider == params.catalog.provider {
+                (params.catalog, params.provider.clone())
+            } else {
+                return Err(RuntimeError::InvalidArgs(
+                    "selected provider unavailable".into(),
+                ));
+            };
+            let params = Box::new(TurnParams {
+                session: params.session.clone(),
+                prompt: params.prompt.clone(),
+                invocation: params.invocation.clone(),
+                catalog,
+                model_id: choice.id.clone(),
+                variant: choice.variant.clone(),
+                max_output: params.max_output,
+                provider,
+                cancel: params.cancel,
+            });
+            let model_id = choice.id;
+            let variant = choice.variant;
+            let fallback = published
+                .config
+                .providers
+                .get(&catalog.provider)
+                .map(|entry| entry.options.native_fallback_limits)
+                .unwrap_or_default();
             self.admit_provider_variant(
                 params.catalog,
                 &model_id,

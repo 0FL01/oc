@@ -102,7 +102,7 @@ pub enum SelectError {
 }
 
 /// Effective model catalog: merged discovery + static entries.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ModelCatalog {
     /// Provider id this catalog belongs to.
     pub provider: String,

@@ -323,12 +323,21 @@ impl TuiState {
     fn acknowledge_model(&mut self, session: &SessionId, commit: &ModelCommit) {
         if self.session.as_ref() != Some(session)
             || self.model_selection.caller != commit.caller
-            || self.model_selection.binding.as_ref() != Some(&commit.binding)
+            || !self
+                .model_selection
+                .binding
+                .as_ref()
+                .is_some_and(|binding| {
+                    binding.location == commit.binding.location
+                        && binding.generation == commit.binding.generation
+                        && binding.agent_id == commit.binding.agent_id
+                })
             || commit.draft_revision < self.model_selection.acknowledged
         {
             return;
         }
         self.model_selection.acknowledged = commit.draft_revision;
+        self.model_selection.binding = Some(commit.binding.clone());
         let model = ModelRef {
             provider: commit.binding.provider.clone(),
             id: commit.model_id.clone(),

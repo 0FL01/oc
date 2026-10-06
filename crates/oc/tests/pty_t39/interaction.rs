@@ -150,7 +150,7 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
         saved_selection(&db, &fixture, "var01-cycle", DEFAULT_AGENT),
-        serde_json::json!({"id":MODEL,"variant":"none"})
+        serde_json::json!({"provider":"fixture","id":MODEL,"variant":"none"})
     );
 }
 
@@ -322,7 +322,10 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
         saved_provider_selection(&db, &fixture, "var01-refresh", DEFAULT_AGENT, "ludka2")
     };
-    assert_eq!(before, serde_json::json!({"id":MODEL,"variant":"fast"}));
+    assert_eq!(
+        before,
+        serde_json::json!({"provider":"ludka2","id":MODEL,"variant":"fast"})
+    );
     let mut pty = PtySession::spawn_sized(fixture.clone(), "var01-refresh", None, 100, 40);
     wait_screen_row(&pty, "Canonical probe 1 ludka2 · fast", DEADLINE);
     pty.send(b"/new\r");
@@ -422,7 +425,7 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
     let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
     assert_eq!(
         saved_provider_selection(&db, &fixture, "var01-refresh", DEFAULT_AGENT, "ludka2"),
-        serde_json::json!({"id":MODEL,"variant":null})
+        serde_json::json!({"provider":"ludka2","id":MODEL,"variant":null})
     );
     assert!(
         db.read_history("var01-refresh").unwrap().is_empty(),
@@ -1567,7 +1570,10 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
             let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
             saved_selection(&db, &fixture, "retired", DEFAULT_AGENT)
         };
-        assert_eq!(before, serde_json::json!({"id":ALT_MODEL,"variant":"fast"}));
+        assert_eq!(
+            before,
+            serde_json::json!({"provider":"fixture","id":ALT_MODEL,"variant":"fast"})
+        );
         if retired_model {
             config["provider"]["fixture"]["models"]
                 .as_object_mut()
@@ -1657,7 +1663,7 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
         assert_eq!(
             saved_selection(&db, &fixture, "retired", DEFAULT_AGENT),
-            serde_json::json!({"id":if retired_model {MODEL} else {ALT_MODEL},"variant":null})
+            serde_json::json!({"provider":"fixture","id":if retired_model {MODEL} else {ALT_MODEL},"variant":null})
         );
     }
 }

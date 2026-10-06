@@ -557,7 +557,9 @@ impl Jobs {
             let runtime = Arc::new(runtime);
             let mcp = runtime.mcp_owner();
             let child_runtime = runtime.clone();
-            let task = tokio::spawn(async move {
+            // The captured request future is large; transfer a heap-pinned
+            // future rather than moving it through spawn's stack frames.
+            let task = tokio::spawn(Box::pin(async move {
                 let _reservation = reservation;
                 // Poll the actual child future before releasing the launch waiter.
                 // Its first physical request is fenced by the ordinary durable
@@ -633,7 +635,7 @@ impl Jobs {
                 }
                 wake.notify_one();
                 ok
-            });
+            }));
             let completion = async move { task.await.unwrap_or(false) }.boxed().shared();
             work.insert(
                 identity.operation.clone(),

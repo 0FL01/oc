@@ -618,6 +618,19 @@ provider-qualified recent-draft review. Evidence: `evidence/T53/connect-ui.md`.
 Partial R2/R5, not GO05/T53 PASS: executable qualified selection/persistence,
 next-request provider capture and bounded Go generation qualification remain.
 
+### Provider-qualified executable selection checkpoint
+
+The application now persists provider/id/variant choices and captures independent
+admitted provider leaves for each prepared request. A real held-request tool loop
+switches Responses→Messages→Responses for the same slash-containing catalog ID,
+retains settled outcomes without alien opaque replay, and records producing binding
+receipts. Home/session selections and explicit Go picker commit survive restart.
+Workspace gates: 1644 passed / 0 failed / 10 existing opt-in ignored; strict workspace
+clippy, fmt, build/help and diff checks pass. Evidence:
+`evidence/T53/qualified-selection.md`. Partial R4/R5, not full acceptance: next audit
+qualified fork/child edge cases and frozen GO01–GO05 requirements before bounded Go
+live and final report/finish. T44 stays PAUSED; T57 scope is unchanged.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

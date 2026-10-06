@@ -125,11 +125,15 @@ pub(crate) async fn prepare(
         .map_err(|_| "move destination session selection unavailable")?;
     publish_workspace(&runtime, &composition, &effective)
         .map_err(|_| "move destination workspace admission failed")?;
+    let (catalog, provider) = future
+        .request(&composition)
+        .map_err(|_| "move destination provider unavailable")?;
     runtime
-        .admit_provider(
-            &composition.catalog,
+        .admit_provider_variant(
+            catalog,
             &future.model_id,
-            &composition.provider,
+            future.variant.as_deref(),
+            &provider,
         )
         .map_err(|_| "move destination provider unavailable")?;
     if composition

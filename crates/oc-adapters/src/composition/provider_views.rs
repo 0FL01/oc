@@ -79,6 +79,93 @@ impl ProviderView {
 }
 
 impl Composition {
+    pub(crate) fn model_reference(
+        &self,
+        fallback: &str,
+        raw: &str,
+    ) -> Result<oc_core::queries::ModelRef, &'static str> {
+        if self
+            .catalog_for(fallback)
+            .is_some_and(|catalog| catalog.models.contains_key(raw))
+        {
+            return Ok(oc_core::queries::ModelRef {
+                provider: fallback.into(),
+                id: raw.into(),
+                variant: None,
+            });
+        }
+        let (provider, id, variant) = models::parse_reference(raw)?;
+        if self.catalog_for(provider).is_none() {
+            return Err("model provider unavailable");
+        }
+        Ok(oc_core::queries::ModelRef {
+            provider: provider.into(),
+            id: id.into(),
+            variant: variant.map(str::to_owned),
+        })
+    }
+    /// Finite leaf captures: never nest another provider map inside a leaf.
+    pub(crate) fn request_provider(&self, id: &str) -> Option<provider::ResponsesConfig> {
+        let leaf = |config: &provider::ResponsesConfig, state: &ProviderState| {
+            let mut config = config.clone();
+            config.wire.providers.clear();
+            config.wire.provider_state = Some(state.clone());
+            config
+        };
+        let mut providers = BTreeMap::new();
+        providers.insert(
+            self.catalog.provider.clone(),
+            provider::CapturedProvider {
+                catalog: self.catalog.clone(),
+                config: leaf(&self.provider, &self.provider_state),
+            },
+        );
+        for (id, view) in &self.provider_views {
+            providers.insert(
+                id.clone(),
+                provider::CapturedProvider {
+                    catalog: view.catalog.clone(),
+                    config: leaf(&view.provider, &view.state),
+                },
+            );
+        }
+        let mut config = providers.get(id)?.config.clone();
+        config.wire.selection_scope = Some(self.catalog.provider.clone());
+        config.wire.providers = providers;
+        Some(config)
+    }
+
+    pub(crate) fn catalog_for(&self, id: &str) -> Option<&models::ModelCatalog> {
+        if id == self.catalog.provider {
+            Some(&self.catalog)
+        } else {
+            self.provider_views.get(id).map(|view| &view.catalog)
+        }
+    }
+
+    pub(crate) fn provider_for(&self, id: &str) -> Option<&provider::ResponsesConfig> {
+        if id == self.catalog.provider {
+            Some(&self.provider)
+        } else {
+            self.provider_views.get(id).map(|view| &view.provider)
+        }
+    }
+
+    pub(crate) fn readiness_for(
+        &self,
+        id: &str,
+        model: &str,
+        variant: Option<&str>,
+    ) -> oc_core::queries::ProviderReadiness {
+        if id == self.catalog.provider {
+            self.selected_provider_readiness(model, variant)
+        } else if let Some(view) = self.provider_views.get(id) {
+            view.readiness(model, variant)
+        } else {
+            ProviderState::new(id, "saved provider choice", false, false).for_model(model, false)
+        }
+    }
+
     /// Freeze only connection views. Reassembling normalized provider inputs does
     /// not publish policy, activate MCP, read new config files or open another Db.
     pub(crate) fn admit_provider_views(&mut self) {
@@ -174,6 +261,22 @@ impl Composition {
     ) -> Result<(), LoadFailure> {
         for view in self.provider_views.values_mut() {
             view.resolve(db, &self.parent_env)?;
+            // Only redaction captures enter the runtime config. Its inert view
+            // must never become a configured credential for MCP inheritance.
+            let entry = self
+                .generation
+                .providers
+                .entry(view.catalog.provider.clone())
+                .or_insert_with(|| config::ProviderEntry {
+                    npm: view.entry.npm.clone(),
+                    name: view.entry.name.clone(),
+                    env: Vec::new(),
+                    models: view.entry.models.clone(),
+                    options: config::ProviderOptions::default(),
+                });
+            entry.options.redaction_material = view.entry.options.redaction_material.clone();
+            entry.options.request_bindings = view.entry.options.request_bindings.clone();
+            entry.options.native_fallback_limits = view.entry.options.native_fallback_limits;
         }
         Ok(())
     }
