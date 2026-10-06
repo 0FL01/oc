@@ -156,7 +156,7 @@ async fn go02_public_models_capture_independent_native_wires_and_retire_bindings
     let mut composition = load_local_with_env(&project, BTreeMap::new())
         .await
         .unwrap();
-    composition.resolve_credentials(&db).unwrap();
+    composition.resolve_credentials(&db).await.unwrap();
     composition.attach_public_catalog(&db).await;
     assert_eq!(composition.catalog.models["messages"]["name"], "Local name");
     for (model, protocol) in [

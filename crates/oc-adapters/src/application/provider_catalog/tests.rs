@@ -66,7 +66,7 @@ async fn go05_independent_public_job_publishes_only_its_view_and_stops_without_l
     let mut c = composition::load_local_with_env(&project, BTreeMap::new())
         .await
         .unwrap();
-    c.resolve_credentials(&db).unwrap();
+    c.resolve_credentials(&db).await.unwrap();
     c.attach_public_catalog(&db).await;
     let original = (
         c.catalog.provider.clone(),

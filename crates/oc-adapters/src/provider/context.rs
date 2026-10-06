@@ -62,6 +62,18 @@ impl RequestContext {
         Ok(())
     }
 
+    pub(super) fn openai_headers(
+        &self,
+        headers: &mut reqwest::header::HeaderMap,
+    ) -> Result<(), ProviderError> {
+        headers.insert(
+            "session-id",
+            reqwest::header::HeaderValue::from_str(&self.session)
+                .map_err(|_| ProviderError::InvalidConfig)?,
+        );
+        Ok(())
+    }
+
     pub(super) fn cache_body(
         &self,
         protocol: Protocol,

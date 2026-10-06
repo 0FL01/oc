@@ -438,6 +438,7 @@ pub struct WireBinding {
     pub(crate) provider_state: Option<crate::composition::ProviderState>,
     pub(crate) providers: BTreeMap<String, CapturedProvider>,
     pub(crate) auth_input: Option<AuthInput>,
+    pub(crate) openai: Option<crate::auth::OpenAiBinding>,
     pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
     pub(crate) go: bool,
@@ -472,6 +473,9 @@ impl std::fmt::Debug for CapturedProvider {
 pub(crate) struct AuthInput {
     policy: crate::auth::AuthPolicy,
     key: String,
+    base_url: String,
+    endpoint: Option<crate::endpoint::EndpointBinding>,
+    unsupported: bool,
 }
 impl std::fmt::Debug for AuthInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -517,9 +521,16 @@ impl ResponsesConfig {
         let input = self.wire.auth_input.get_or_insert_with(|| AuthInput {
             policy: self.wire.auth_policy,
             key: self.api_key.clone(),
+            base_url: self.base_url.clone(),
+            endpoint: self.wire.endpoint.clone(),
+            unsupported: self.wire.unsupported,
         });
         self.api_key = input.key.clone();
         self.wire.auth_policy = input.policy;
+        self.base_url = input.base_url.clone();
+        self.wire.endpoint = input.endpoint.clone();
+        self.wire.openai = None;
+        self.wire.unsupported = input.unsupported;
     }
     /// Capture replay authority from the same immutable binding that will send
     /// this request. No session/cache/affinity metadata or plaintext secrets.
@@ -535,8 +546,19 @@ impl ResponsesConfig {
         let headers = request_headers(self)?;
         let headers = headers
             .iter()
+            .filter(|(name, _)| {
+                self.wire.openai.is_none()
+                    || !matches!(name.as_str(), "authorization" | "session-id")
+            })
             .map(|(name, value)| (name.as_str(), value.as_bytes()))
             .collect::<BTreeMap<_, _>>();
+        let policy = format!("{:?}", self.wire.auth_policy);
+        let auth_scope = if let Some(binding) = &self.wire.openai {
+            crate::compaction::fingerprint(&(policy, &binding.scope, &headers))
+        } else {
+            // Preserve existing Go/custom receipt identity byte-for-byte.
+            crate::compaction::fingerprint(&(policy, &headers))
+        };
         Ok(WireProvenance {
             provider: provider.into(),
             api_model: self.wire.api_model.as_deref().unwrap_or(model).into(),
@@ -549,10 +571,7 @@ impl ResponsesConfig {
                 url.as_str(),
                 self.wire.endpoint.as_ref().map(|e| e.provenance()),
             )),
-            auth_scope: crate::compaction::fingerprint(&(
-                format!("{:?}", self.wire.auth_policy),
-                headers,
-            )),
+            auth_scope,
         })
     }
     /// Capture once per operation; all selected bindings and retries share it.
@@ -576,7 +595,9 @@ impl ResponsesConfig {
     pub fn auth_ready(&self) -> bool {
         !self.wire.unsupported
             && (self.wire.auth_policy == crate::auth::AuthPolicy::None
-                || (self.wire.auth_policy == crate::auth::AuthPolicy::Key
+                || ((self.wire.auth_policy == crate::auth::AuthPolicy::Key
+                    || (self.wire.auth_policy == crate::auth::AuthPolicy::OAuth
+                        && self.wire.openai.as_ref().is_some_and(|b| b.subscription)))
                     && !self.api_key.trim().is_empty()))
     }
     /// Exact generation URL: trimmed prefix + `/responses`.
@@ -2081,7 +2102,11 @@ pub(crate) fn request_headers(
     {
         return Err(ProviderError::InvalidConfig);
     }
-    if config.wire.auth_policy == crate::auth::AuthPolicy::OAuth {
+    if config.wire.auth_policy == crate::auth::AuthPolicy::OAuth
+        && !config.wire.openai.as_ref().is_some_and(|b| {
+            b.subscription && config.wire.protocol == protocol::Protocol::Responses
+        })
+    {
         return Err(ProviderError::InvalidConfig);
     }
     let mut headers = HeaderMap::new();
@@ -2090,7 +2115,7 @@ pub(crate) fn request_headers(
             HeaderName::from_bytes(name.as_bytes()).map_err(|_| ProviderError::InvalidConfig)?;
         match name.as_str() {
             "authorization" | "accept" | "content-type" => continue,
-            "x-api-key" if config.wire.go => continue,
+            "x-api-key" if config.wire.go || config.wire.openai.is_some() => continue,
             "host"
             | "content-length"
             | "transfer-encoding"
@@ -2128,6 +2153,32 @@ pub(crate) fn request_headers(
     }
     if messages {
         messages_headers(&mut headers)?;
+    }
+    if let Some(binding) = &config.wire.openai {
+        for name in [
+            "originator",
+            "x-codex-beta-features",
+            "chatgpt-account-id",
+            "session-id",
+        ] {
+            headers.remove(name);
+        }
+        if binding.subscription {
+            headers.insert("originator", HeaderValue::from_static("opencode"));
+            headers.insert(
+                "x-codex-beta-features",
+                HeaderValue::from_static("remote_compaction_v2"),
+            );
+            if let Some(account) = &binding.account {
+                let mut value =
+                    HeaderValue::from_str(account).map_err(|_| ProviderError::InvalidConfig)?;
+                value.set_sensitive(true);
+                headers.insert("chatgpt-account-id", value);
+            }
+            if let Some(context) = &config.wire.context {
+                context.openai_headers(&mut headers)?;
+            }
+        }
     }
     headers.insert("accept", HeaderValue::from_static("text/event-stream"));
     headers.insert("content-type", HeaderValue::from_static("application/json"));

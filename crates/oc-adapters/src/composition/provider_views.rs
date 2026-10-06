@@ -10,50 +10,34 @@ pub(crate) struct ProviderView {
 }
 
 impl ProviderView {
-    fn resolve(
+    async fn resolve(
         &mut self,
         db: &crate::storage::Db,
         env: &BTreeMap<String, String>,
     ) -> Result<(), LoadFailure> {
         let id = &self.catalog.provider;
-        let resolve = |request: &mut provider::ResponsesConfig| -> Result<(), LoadFailure> {
-            if request.base_url.is_empty() {
-                request.wire.unsupported = true;
-                return Ok(());
-            }
-            request.restore_auth_input();
-            let scope = crate::auth::AuthScope::admit(id, &request.base_url)
-                .map_err(|_| invalid("native provider view", &["provider", "baseURL"]))?;
-            let competing = request.headers.keys().any(|name| {
-                name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
-            });
-            scope
-                .resolve(
-                    db,
-                    request.wire.auth_policy,
-                    Some(&request.api_key),
-                    competing,
-                    || env.get("OPENCODE_API_KEY").cloned(),
-                )
-                .map_err(|error| {
-                    failure(
-                        "native provider view",
-                        &["provider", "authPolicy"],
-                        ServiceStage::Admission,
-                        if matches!(error, crate::auth::AuthError::Storage(_)) {
-                            ServiceCode::StorageUnavailable
-                        } else {
-                            ServiceCode::InvalidConfig
-                        },
-                    )
-                })?
-                .apply_to(request);
-            Ok(())
-        };
         for request in self.provider.wire.requests.values_mut() {
-            resolve(request)?;
+            super::provider_readiness::resolve_binding(
+                request,
+                id,
+                db,
+                env,
+                "native provider view",
+                &["provider", "authPolicy"],
+                ServiceStage::Admission,
+            )
+            .await?;
         }
-        resolve(&mut self.provider)?;
+        super::provider_readiness::resolve_binding(
+            &mut self.provider,
+            id,
+            db,
+            env,
+            "native provider view",
+            &["provider", "authPolicy"],
+            ServiceStage::Admission,
+        )
+        .await?;
         self.entry.options.request_bindings = self.provider.wire.requests.clone();
         self.entry.options.redaction_material = std::iter::once(self.provider.api_key.clone())
             .filter(|key| !key.is_empty())
@@ -255,12 +239,12 @@ impl Composition {
         }
     }
 
-    pub(crate) fn resolve_provider_views(
+    pub(crate) async fn resolve_provider_views(
         &mut self,
         db: &crate::storage::Db,
     ) -> Result<(), LoadFailure> {
         for view in self.provider_views.values_mut() {
-            view.resolve(db, &self.parent_env)?;
+            view.resolve(db, &self.parent_env).await?;
             // Only redaction captures enter the runtime config. Its inert view
             // must never become a configured credential for MCP inheritance.
             let entry = self

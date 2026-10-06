@@ -1,0 +1,185 @@
+use super::*;
+use crate::provider::{ResponsesConfig, WireBinding, context::RequestContext, request_headers};
+use std::collections::BTreeMap;
+
+fn config() -> ResponsesConfig {
+    ResponsesConfig {
+        base_url: OPENAI_BASE_URL.into(),
+        api_key: "CONFIG_KEY_CANARY".into(),
+        timeout: None,
+        chunk_timeout_ms: 1000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: false,
+        set_cache_key: false,
+        headers: BTreeMap::from([
+            ("Originator".into(), "INJECTED_ORIGIN".into()),
+            ("ChatGPT-Account-Id".into(), "INJECTED_ACCOUNT".into()),
+            ("Session-Id".into(), "INJECTED_SESSION".into()),
+            ("x-codex-beta-features".into(), "INJECTED_BETA".into()),
+            ("OpenAI-Organization".into(), "test-organization".into()),
+            ("OpenAI-Project".into(), "test-project".into()),
+        ]),
+        wire: WireBinding::default(),
+    }
+}
+
+#[tokio::test]
+async fn auth04_admitted_oauth_key_capture_route_headers_and_actor_partition() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    let db = Db::open(&root.path().join("data")).unwrap();
+    let scope = AuthScope::admit("openai", OPENAI_BASE_URL).unwrap();
+    let material = |access: &str, account: &str| CredentialMaterial::OAuth {
+        access: access.into(),
+        refresh: Some("REFRESH_CANARY".into()),
+        expires_at: Some(i64::MAX),
+        method_id: Some(BROWSER.into()),
+        metadata: Some(OAuthAccountMetadata {
+            account_id: account.into(),
+        }),
+    };
+    let a = db
+        .add_credential(
+            scope.namespace(),
+            "a",
+            material("ACCESS_A_CANARY", "ACCOUNT_A_CANARY"),
+        )
+        .unwrap();
+    let mut captured = config();
+    captured.restore_auth_input();
+    scope
+        .resolve_request(
+            &db,
+            AuthPolicy::Key,
+            Some("CONFIG_KEY_CANARY"),
+            false,
+            || panic!("stored OAuth cannot fall back to environment"),
+        )
+        .await
+        .unwrap()
+        .apply_to(&mut captured);
+    assert!(captured.auth_ready());
+    assert_eq!(captured.base_url, CODEX_BASE_URL);
+    let root_session = "root";
+    let child = "other-session";
+    db.create_session(root_session).unwrap();
+    db.create_session(child).unwrap();
+    let first =
+        captured.with_context(RequestContext::capture(&db, &project, root_session).unwrap());
+    let followup =
+        captured.with_context(RequestContext::capture(&db, &project, root_session).unwrap());
+    let nested = captured.with_context(RequestContext::capture(&db, &project, child).unwrap());
+    for request in [&first, &followup, &nested] {
+        let headers = request_headers(request).unwrap();
+        assert_eq!(headers["authorization"], "Bearer ACCESS_A_CANARY");
+        assert_eq!(headers["originator"], "opencode");
+        assert_eq!(headers["x-codex-beta-features"], "remote_compaction_v2");
+        assert_eq!(headers["chatgpt-account-id"], "ACCOUNT_A_CANARY");
+        assert!(
+            !headers
+                .values()
+                .any(|v| v.as_bytes().starts_with(b"INJECTED"))
+        );
+        assert!(!format!("{request:?} {:?}", request.wire).contains("CANARY"));
+    }
+    assert_eq!(request_headers(&first).unwrap()["session-id"], root_session);
+    assert_eq!(request_headers(&nested).unwrap()["session-id"], child);
+    let provenance = first.provenance("openai", "gpt-5.5").unwrap();
+    assert_eq!(provenance, nested.provenance("openai", "gpt-5.5").unwrap());
+    // Refresh changes the secret, not the admitted account/opaque authority.
+    let old = db.credential_snapshot(scope.namespace()).unwrap().unwrap();
+    assert!(db.begin_credential_refresh(&old).unwrap());
+    assert!(
+        db.rotate_credential(&old, material("ACCESS_ROTATED_CANARY", "ACCOUNT_A_CANARY"))
+            .unwrap()
+    );
+    let mut later = captured.clone();
+    later.restore_auth_input();
+    scope
+        .resolve_request(&db, AuthPolicy::Key, Some(&later.api_key), false, || None)
+        .await
+        .unwrap()
+        .apply_to(&mut later);
+    assert_eq!(later.provenance("openai", "gpt-5.5").unwrap(), provenance);
+    assert_eq!(
+        request_headers(&first).unwrap()["authorization"],
+        "Bearer ACCESS_A_CANARY"
+    );
+    assert_eq!(
+        request_headers(&later).unwrap()["authorization"],
+        "Bearer ACCESS_ROTATED_CANARY"
+    );
+    let b = db
+        .add_credential(
+            scope.namespace(),
+            "b",
+            material("ACCESS_B_CANARY", "ACCOUNT_B_CANARY"),
+        )
+        .unwrap();
+    later.restore_auth_input();
+    scope
+        .resolve_request(&db, AuthPolicy::Key, Some(&later.api_key), false, || None)
+        .await
+        .unwrap()
+        .apply_to(&mut later);
+    assert_ne!(later.provenance("openai", "gpt-5.5").unwrap(), provenance);
+    let key = db
+        .add_credential(
+            scope.namespace(),
+            "key",
+            CredentialMaterial::Key {
+                key: "KEY_STORED_CANARY".into(),
+            },
+        )
+        .unwrap();
+    later.restore_auth_input();
+    scope
+        .resolve_request(&db, AuthPolicy::Key, Some(&later.api_key), false, || None)
+        .await
+        .unwrap()
+        .apply_to(&mut later);
+    assert_eq!(later.base_url, OPENAI_BASE_URL);
+    let headers = request_headers(&later).unwrap();
+    assert_eq!(headers["authorization"], "Bearer KEY_STORED_CANARY");
+    assert_eq!(headers["openai-organization"], "test-organization");
+    for name in [
+        "originator",
+        "chatgpt-account-id",
+        "session-id",
+        "x-codex-beta-features",
+    ] {
+        assert!(!headers.contains_key(name));
+    }
+    assert_ne!(later.provenance("openai", "gpt-5.5").unwrap(), provenance);
+    assert_eq!(db.credential_accounts(scope.namespace()).unwrap().len(), 3);
+    assert!(a.id != b.id && b.id != key.id);
+    let foreign = AuthScope::admit("openai", "https://foreign.invalid/v1").unwrap();
+    let foreign_auth = foreign
+        .resolve_request(
+            &db,
+            AuthPolicy::Key,
+            Some("FOREIGN_CONFIG_CANARY"),
+            false,
+            || panic!("foreign scope must not read own OpenAI environment"),
+        )
+        .await
+        .unwrap();
+    assert_eq!(foreign_auth.source, AuthSource::Configured);
+    assert!(!foreign_auth.openai);
+    let mut generic = config();
+    foreign_auth.apply_to(&mut generic);
+    let generic_headers = request_headers(&generic).unwrap();
+    let generic_headers = generic_headers
+        .iter()
+        .map(|(name, value)| (name.as_str(), value.as_bytes()))
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        generic.provenance("custom", "m").unwrap().auth_scope,
+        crate::compaction::fingerprint(&("Key", generic_headers))
+    );
+    let mut rejected = config();
+    rejected.wire.auth_policy = AuthPolicy::OAuth;
+    assert!(!rejected.auth_ready());
+    assert!(request_headers(&rejected).is_err());
+}

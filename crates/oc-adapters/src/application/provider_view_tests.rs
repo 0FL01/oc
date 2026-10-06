@@ -536,7 +536,7 @@ async fn go05_provider_views_keep_same_slash_id_and_scoped_auth_without_selectio
     let mut c = composition::load_local_with_env(&project, env.clone())
         .await
         .unwrap();
-    c.resolve_credentials(&db).unwrap();
+    c.resolve_credentials(&db).await.unwrap();
     c.attach_public_catalog(&db).await;
     let beta_view = &c.provider_views["beta"];
     assert_eq!(beta_view.provider.api_key, "BETA_PRIVATE_CANARY");

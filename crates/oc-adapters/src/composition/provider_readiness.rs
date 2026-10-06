@@ -3,6 +3,63 @@ use super::*;
 use oc_core::queries::{ProviderReadiness, ProviderStatus};
 use sha2::{Digest, Sha256};
 
+pub(super) async fn resolve_binding(
+    request: &mut provider::ResponsesConfig,
+    id: &str,
+    db: &crate::storage::Db,
+    env: &BTreeMap<String, String>,
+    source: &str,
+    fields: &[&str],
+    stage: ServiceStage,
+) -> Result<(), LoadFailure> {
+    if request.base_url.is_empty() {
+        request.wire.unsupported = true;
+        return Ok(());
+    }
+    request.restore_auth_input();
+    let authority_fields = fields
+        .iter()
+        .copied()
+        .take(fields.len().saturating_sub(1))
+        .chain(std::iter::once("baseURL"))
+        .collect::<Vec<_>>();
+    let scope = crate::auth::AuthScope::admit(id, &request.base_url)
+        .map_err(|_| invalid(source, &authority_fields))?;
+    let competing = request.headers.keys().any(|name| {
+        name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
+    });
+    scope
+        .resolve_request(
+            db,
+            request.wire.auth_policy,
+            Some(&request.api_key),
+            competing,
+            || {
+                env.get(if scope.is_openai() {
+                    "OPENAI_API_KEY"
+                } else {
+                    "OPENCODE_API_KEY"
+                })
+                .cloned()
+            },
+        )
+        .await
+        .map_err(|error| {
+            failure(
+                source,
+                fields,
+                stage,
+                if matches!(error, crate::auth::AuthError::Storage(_)) {
+                    ServiceCode::StorageUnavailable
+                } else {
+                    ServiceCode::InvalidConfig
+                },
+            )
+        })?
+        .apply_to(request);
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ProviderState {
     service: String,
@@ -248,11 +305,11 @@ impl Composition {
     }
     /// Resolve once per admitted generation, before any discovery or runtime publication.
     /// Prepared requests retain this immutable binding across later account mutations.
-    pub(crate) fn resolve_credentials(
+    pub(crate) async fn resolve_credentials(
         &mut self,
         db: &crate::storage::Db,
     ) -> Result<(), LoadFailure> {
-        self.resolve_provider_views(db)?;
+        self.resolve_provider_views(db).await?;
         let id = &self.catalog.provider;
         let source = self
             .generation
@@ -263,33 +320,16 @@ impl Composition {
         // Each template still contains configured inputs, not the already-resolved
         // parent key. An endpoint-changing model must never inherit parent auth.
         for request in self.provider.wire.requests.values_mut() {
-            request.restore_auth_input();
-            let scope = crate::auth::AuthScope::admit(id, &request.base_url)
-                .map_err(|_| invalid(source, &["provider", "models", "settings", "baseURL"]))?;
-            let competing = request.headers.keys().any(|name| {
-                name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
-            });
-            scope
-                .resolve(
-                    db,
-                    request.wire.auth_policy,
-                    Some(&request.api_key),
-                    competing,
-                    || self.parent_env.get("OPENCODE_API_KEY").cloned(),
-                )
-                .map_err(|error| {
-                    failure(
-                        source,
-                        &["provider", "models", "settings", "authPolicy"],
-                        ServiceStage::Config,
-                        if matches!(error, crate::auth::AuthError::Storage(_)) {
-                            ServiceCode::StorageUnavailable
-                        } else {
-                            ServiceCode::InvalidConfig
-                        },
-                    )
-                })?
-                .apply_to(request);
+            resolve_binding(
+                request,
+                id,
+                db,
+                &self.parent_env,
+                source,
+                &["provider", "models", "settings", "authPolicy"],
+                ServiceStage::Config,
+            )
+            .await?;
         }
         if let Some(entry) = self.generation.providers.get_mut(id) {
             // Redaction-only captured values; MCP credential inheritance does not
@@ -301,33 +341,16 @@ impl Composition {
             // connection, local views remain usable but the base cannot send.
             return Ok(());
         }
-        self.provider.restore_auth_input();
-        let scope = crate::auth::AuthScope::admit(id, &self.provider.base_url)
-            .map_err(|_| invalid(source, &["provider", "options", "baseURL"]))?;
-        let competing = self.provider.headers.keys().any(|name| {
-            name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
-        });
-        let auth = scope
-            .resolve(
-                db,
-                self.provider.wire.auth_policy,
-                Some(&self.provider.api_key),
-                competing,
-                || self.parent_env.get("OPENCODE_API_KEY").cloned(),
-            )
-            .map_err(|error| {
-                failure(
-                    source,
-                    &["provider", "options", "authPolicy"],
-                    ServiceStage::Config,
-                    if matches!(error, crate::auth::AuthError::Storage(_)) {
-                        ServiceCode::StorageUnavailable
-                    } else {
-                        ServiceCode::InvalidConfig
-                    },
-                )
-            })?;
-        auth.apply_to(&mut self.provider);
+        resolve_binding(
+            &mut self.provider,
+            id,
+            db,
+            &self.parent_env,
+            source,
+            &["provider", "options", "authPolicy"],
+            ServiceStage::Config,
+        )
+        .await?;
         if let Some(entry) = self.generation.providers.get_mut(id) {
             entry.options.redaction_material = std::iter::once(self.provider.api_key.clone())
                 .filter(|value| !value.is_empty())
@@ -345,12 +368,12 @@ impl Composition {
         Ok(())
     }
 
-    pub(crate) fn refresh_credentials(
+    pub(crate) async fn refresh_credentials(
         &mut self,
         db: &crate::storage::Db,
     ) -> Result<(), LoadFailure> {
         let mut state = self.provider_state.clone();
-        self.resolve_credentials(db)?;
+        self.resolve_credentials(db).await?;
         state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
         self.provider_state = state;
         if self.catalog.provider == crate::models_dev::PROVIDER {

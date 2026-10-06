@@ -9,6 +9,102 @@ use sha2::Digest;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
+pub(crate) const CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct OpenAiBinding {
+    pub(crate) scope: String,
+    pub(crate) subscription: bool,
+    pub(crate) account: Option<String>,
+}
+impl std::fmt::Debug for OpenAiBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OpenAiBinding")
+            .field("subscription", &self.subscription)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Metadata-only consumers never perform refresh or report server validation.
+pub(super) fn capture(
+    db: &Db,
+    namespace: &str,
+    policy: AuthPolicy,
+    configured: Option<&str>,
+    environment: impl FnOnce() -> Option<String>,
+) -> Result<ResolvedAuth, AuthError> {
+    if policy == AuthPolicy::None {
+        return Err(AuthError::Conflict);
+    }
+    let result = |source, namespace, key, oauth| ResolvedAuth {
+        source,
+        namespace,
+        key,
+        oauth,
+        openai: true,
+    };
+    if let Some(current) = db.credential_snapshot(namespace)? {
+        return Ok(match current.material {
+            CredentialMaterial::Key { key } if policy != AuthPolicy::OAuth => result(
+                AuthSource::Stored,
+                serde_json::to_string(&(namespace, current.id, "key"))
+                    .map_err(|_| AuthError::Authority)?,
+                Some(key),
+                None,
+            ),
+            CredentialMaterial::OAuth {
+                access,
+                method_id,
+                metadata,
+                expires_at: Some(expiry),
+                ..
+            } if !current.refresh_pending
+                && expiry > 0
+                && method_id
+                    .as_deref()
+                    .is_some_and(|m| matches!(m, BROWSER | DEVICE)) =>
+            {
+                let scope = serde_json::to_string(&(
+                    namespace,
+                    current.id,
+                    "oauth",
+                    method_id,
+                    metadata.as_ref().map(|m| &m.account_id),
+                ))
+                .map_err(|_| AuthError::Authority)?;
+                result(AuthSource::StoredOAuth, scope, Some(access), metadata)
+            }
+            _ => result(AuthSource::UnsupportedOAuth, namespace.into(), None, None),
+        });
+    }
+    if policy == AuthPolicy::OAuth {
+        return Ok(result(
+            AuthSource::UnsupportedOAuth,
+            namespace.into(),
+            None,
+            None,
+        ));
+    }
+    let env = environment().filter(|v| !v.trim().is_empty());
+    let source = if env.is_some() {
+        AuthSource::OpenAiEnvironment
+    } else if configured.is_some_and(|v| !v.trim().is_empty()) {
+        AuthSource::Configured
+    } else {
+        AuthSource::Missing
+    };
+    let key = env.or_else(|| {
+        configured
+            .filter(|v| !v.trim().is_empty())
+            .map(String::from)
+    });
+    Ok(result(
+        source,
+        key_scope(namespace, source, key.as_deref())?,
+        key,
+        None,
+    ))
+}
 pub(super) const ISSUER: &str = "https://auth.openai.com";
 pub(super) const CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 pub(super) const BROWSER: &str = "chatgpt-browser";
@@ -97,24 +193,76 @@ impl Tokens {
 /// Native bounded token HTTP client. Endpoint overrides are private test fixtures;
 /// production always uses the pinned issuer and disables redirects and retries.
 pub struct OpenAiAuth {
+    #[cfg(test)]
     pub(super) client: reqwest::Client,
     pub(super) issuer: String,
 }
 
 impl OpenAiAuth {
     pub fn new() -> Result<Self, AuthError> {
+        #[cfg(test)]
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())
+            .no_proxy()
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10))
             .user_agent(format!("opencode/{}", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|_| AuthError::Remote)?;
         Ok(Self {
+            #[cfg(test)]
             client,
             issuer: ISSUER.into(),
         })
+    }
+
+    pub(super) async fn post(&self, path: &str) -> Result<reqwest::RequestBuilder, AuthError> {
+        if !matches!(
+            path,
+            "/oauth/token" | "/api/accounts/deviceauth/usercode" | "/api/accounts/deviceauth/token"
+        ) {
+            return Err(AuthError::Authority);
+        }
+        let url = format!("{}{path}", self.issuer);
+        if self.issuer != ISSUER {
+            #[cfg(test)]
+            return Ok(self.client.post(url));
+            #[cfg(not(test))]
+            return Err(AuthError::Authority);
+        }
+        let binding =
+            crate::endpoint::EndpointBinding::admit(ISSUER, false, "native OpenAI authorization")
+                .map_err(|_| AuthError::Authority)?;
+        let (host, addresses) = tokio::time::timeout(
+            Duration::from_secs(10),
+            crate::endpoint::resolve(&url, Some(&binding), false),
+        )
+        .await
+        .map_err(|_| AuthError::Remote)?
+        .map_err(|_| AuthError::Authority)?;
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .retry(reqwest::retry::never())
+            .no_proxy()
+            .timeout(Duration::from_secs(30))
+            .connect_timeout(Duration::from_secs(10))
+            .user_agent(format!("opencode/{}", env!("CARGO_PKG_VERSION")))
+            .resolve_to_addrs(&host, &addresses)
+            .build()
+            .map_err(|_| AuthError::Remote)?;
+        Ok(client.post(url))
+    }
+
+    pub(super) fn check_peer(&self, response: &reqwest::Response) -> Result<(), AuthError> {
+        if self.issuer == ISSUER
+            && response
+                .remote_addr()
+                .is_some_and(|p| !crate::endpoint::peer_allowed(None, p.ip(), false))
+        {
+            return Err(AuthError::Authority);
+        }
+        Ok(())
     }
 
     pub(super) async fn tokens(&self, fields: &[(&str, &str)]) -> Result<Tokens, AuthError> {
@@ -123,8 +271,8 @@ impl OpenAiAuth {
         let mut form = reqwest::Url::parse(&self.issuer).map_err(|_| AuthError::Authority)?;
         form.query_pairs_mut().extend_pairs(fields.iter().copied());
         let response = self
-            .client
-            .post(format!("{}/oauth/token", self.issuer))
+            .post("/oauth/token")
+            .await?
             .header(
                 reqwest::header::CONTENT_TYPE,
                 "application/x-www-form-urlencoded",
@@ -133,6 +281,7 @@ impl OpenAiAuth {
             .send()
             .await
             .map_err(|_| AuthError::Remote)?;
+        self.check_peer(&response)?;
         if !response.status().is_success() {
             return Err(AuthError::Remote);
         }
@@ -209,6 +358,7 @@ impl OpenAiAuth {
                 namespace: key_scope(scope.namespace(), source, key.as_deref())?,
                 key,
                 oauth: None,
+                openai: true,
             });
         };
         if let CredentialMaterial::Key { key } = &captured.material {
@@ -221,6 +371,7 @@ impl OpenAiAuth {
                     .map_err(|_| AuthError::Authority)?,
                 key: Some(key.clone()),
                 oauth: None,
+                openai: true,
             });
         }
         let _flight = db.credential_refresh.lock().await;
@@ -300,9 +451,12 @@ impl OpenAiAuth {
             .map_err(|_| AuthError::Authority)?,
             key: Some(access),
             oauth: metadata,
+            openai: true,
         })
     }
 }
 
+#[cfg(test)]
+mod binding_tests;
 #[cfg(test)]
 mod tests;

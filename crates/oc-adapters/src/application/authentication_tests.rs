@@ -92,10 +92,10 @@ async fn auth01_application_owns_attempts_across_locations_and_projects_method_m
     ] {
         assert!(!format!("{accounts:?}").contains(canary));
     }
-    // This slice exposes durable method metadata, not yet OAuth wire execution.
+    // Admitted OAuth is a stored account, not server-validated connectivity.
     assert_eq!(
         accounts.effective,
-        oc_core::queries::AccountAuthSource::UnsupportedOAuth
+        oc_core::queries::AccountAuthSource::Stored
     );
     let first = app
         .authenticate(

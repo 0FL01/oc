@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub const GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 
 mod openai;
+pub(crate) use openai::OpenAiBinding;
 pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
 mod attempts;
 pub use attempts::OpenAiAttempts;
@@ -40,6 +41,7 @@ pub struct ResolvedAuth {
     pub namespace: String,
     pub(crate) key: Option<String>,
     pub(crate) oauth: Option<crate::storage::OAuthAccountMetadata>,
+    pub(crate) openai: bool,
 }
 
 impl std::fmt::Debug for ResolvedAuth {
@@ -60,6 +62,22 @@ impl ResolvedAuth {
             _ => AuthPolicy::Key,
         };
         provider.api_key = self.key.unwrap_or_default();
+        provider.wire.openai = self.openai.then(|| openai::OpenAiBinding {
+            scope: crate::compaction::fingerprint(&self.namespace),
+            subscription: self.source == AuthSource::StoredOAuth,
+            account: self.oauth.map(|m| m.account_id),
+        });
+        if self.source == AuthSource::StoredOAuth && self.openai {
+            provider.base_url = openai::CODEX_BASE_URL.into();
+            provider.wire.endpoint = crate::endpoint::EndpointBinding::admit(
+                openai::CODEX_BASE_URL,
+                false,
+                "native OpenAI subscription",
+            )
+            .ok();
+            provider.wire.unsupported |=
+                provider.wire.protocol != crate::provider::protocol::Protocol::Responses;
+        }
     }
 }
 
@@ -68,6 +86,7 @@ impl ResolvedAuth {
 pub struct AuthScope {
     namespace: String,
     go: bool,
+    openai: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -113,11 +132,55 @@ impl AuthScope {
         // JSON tuple avoids delimiter collisions in provider IDs/path prefixes.
         let namespace =
             serde_json::to_string(&(provider, url.as_str())).map_err(|_| AuthError::Authority)?;
-        Ok(Self { namespace, go })
+        let openai = provider == "openai" && url.as_str() == OPENAI_BASE_URL;
+        Ok(Self {
+            namespace,
+            go,
+            openai,
+        })
     }
 
     pub fn namespace(&self) -> &str {
         &self.namespace
+    }
+
+    pub(crate) fn is_openai(&self) -> bool {
+        self.openai
+    }
+
+    /// Refresh only an admitted built-in authority. Foreign endpoints never read
+    /// OpenAI environment or subscription material, even when named `openai`.
+    pub(crate) async fn resolve_request(
+        &self,
+        db: &Db,
+        policy: AuthPolicy,
+        configured: Option<&str>,
+        competing_auth: bool,
+        environment: impl FnOnce() -> Option<String>,
+    ) -> Result<ResolvedAuth, AuthError> {
+        if !self.openai {
+            return self.resolve(db, policy, configured, competing_auth, environment);
+        }
+        let result = OpenAiAuth::new()?
+            .resolve(db, policy, configured, environment)
+            .await;
+        match result {
+            Err(
+                AuthError::UnsupportedMethod
+                | AuthError::StaleCredential
+                | AuthError::Reauthenticate
+                | AuthError::InvalidTokens
+                | AuthError::Authority
+                | AuthError::Remote,
+            ) => Ok(ResolvedAuth {
+                source: AuthSource::UnsupportedOAuth,
+                namespace: self.namespace.clone(),
+                key: None,
+                oauth: None,
+                openai: true,
+            }),
+            other => other,
+        }
     }
 
     /// Env is lazy: foreign/rejected endpoints never cause OPENCODE_API_KEY reads.
@@ -129,6 +192,9 @@ impl AuthScope {
         competing_auth: bool,
         go_env: impl FnOnce() -> Option<String>,
     ) -> Result<ResolvedAuth, AuthError> {
+        if self.openai {
+            return openai::capture(db, &self.namespace, policy, configured, go_env);
+        }
         let configured = configured.filter(|key| !key.trim().is_empty());
         if policy == AuthPolicy::None {
             if configured.is_some() || competing_auth {
@@ -139,6 +205,7 @@ impl AuthScope {
                 namespace: self.namespace.clone(),
                 key: None,
                 oauth: None,
+                openai: false,
             });
         }
         let result = |source, key| ResolvedAuth {
@@ -146,6 +213,7 @@ impl AuthScope {
             namespace: self.namespace.clone(),
             key,
             oauth: None,
+            openai: false,
         };
         if policy == AuthPolicy::OAuth {
             return Ok(result(AuthSource::UnsupportedOAuth, None));

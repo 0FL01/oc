@@ -652,6 +652,7 @@ async fn spawn_stages(
     };
     composition
         .resolve_credentials(&db)
+        .await
         .map_err(SpawnIssue::configuration)?;
     composition.attach_public_catalog(&db).await;
     if !defer_provider {
@@ -1672,7 +1673,8 @@ async fn start_worker_inner(
                 ack,
             } => {
                 let changed = action.is_some();
-                let result = accounts::apply(&db, &runtime, &mut composition, provider, action);
+                let result =
+                    accounts::apply(&db, &runtime, &mut composition, provider, action).await;
                 if changed && result.is_ok() {
                     let _ = events.send(CoreEvent::ProviderChanged);
                 }
@@ -2353,6 +2355,7 @@ async fn switch_target<'a>(
         .map_err(SpawnIssue::configuration)?;
     composition
         .resolve_credentials(db)
+        .await
         .map_err(SpawnIssue::configuration)?;
     composition.attach_public_catalog(db).await;
     composition.refresh_public_catalog(db, true).await;

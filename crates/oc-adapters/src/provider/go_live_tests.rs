@@ -425,7 +425,7 @@ async fn go06_bounded_native_go_live() {
     )
     .await
     .unwrap();
-    composition.resolve_credentials(&db).unwrap();
+    composition.resolve_credentials(&db).await.unwrap();
     composition.attach_public_catalog(&db).await;
     let mut choices = Vec::new();
     for protocol in [

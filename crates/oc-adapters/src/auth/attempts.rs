@@ -531,12 +531,14 @@ async fn device(
     settings: &Settings,
 ) -> Result<Authorized, Failure> {
     let response = auth
-        .client
-        .post(format!("{}/api/accounts/deviceauth/usercode", auth.issuer))
+        .post("/api/accounts/deviceauth/usercode")
+        .await
+        .map_err(failure)?
         .json(&serde_json::json!({"client_id":CLIENT_ID}))
         .send()
         .await
         .map_err(|_| Failure::Remote)?;
+    auth.check_peer(&response).map_err(failure)?;
     if !response.status().is_success() {
         return Err(Failure::Remote);
     }
@@ -551,9 +553,10 @@ async fn device(
         format!("Enter code: {}", code.user_code),
     );
     loop {
-        let response = auth.client.post(format!("{}/api/accounts/deviceauth/token", auth.issuer))
+        let response = auth.post("/api/accounts/deviceauth/token").await.map_err(failure)?
             .json(&serde_json::json!({"device_auth_id":code.device_auth_id,"user_code":code.user_code}))
             .send().await.map_err(|_| Failure::Remote)?;
+        auth.check_peer(&response).map_err(failure)?;
         if response.status().is_success() {
             let token: DeviceToken = OpenAiAuth::json(response).await.map_err(failure)?;
             if !bounded_field(&token.authorization_code, 4096)

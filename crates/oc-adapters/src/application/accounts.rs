@@ -54,7 +54,7 @@ pub(super) fn connections(c: &Composition) -> Vec<oc_core::queries::ProviderConn
         .collect()
 }
 
-pub(super) fn apply(
+pub(super) async fn apply(
     db: &Db,
     runtime: &Runtime<'_>,
     c: &mut Composition,
@@ -95,6 +95,7 @@ pub(super) fn apply(
         };
         result.map_err(|error| query_storage_error(db, error))?;
         c.refresh_credentials(db)
+            .await
             .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
         // Redaction follows every newly captured scoped key, including an
         // unselected connection that a subsequent child/request may use.
@@ -131,7 +132,15 @@ pub(super) fn read(
                     n.eq_ignore_ascii_case("authorization") || n.eq_ignore_ascii_case("x-api-key")
                 })
             }),
-            || c.parent_env.get("OPENCODE_API_KEY").cloned(),
+            || {
+                c.parent_env
+                    .get(if scope.is_openai() {
+                        "OPENAI_API_KEY"
+                    } else {
+                        "OPENCODE_API_KEY"
+                    })
+                    .cloned()
+            },
         )
         .map_err(|_| CoreError::Application("account resolution unavailable".into()))?;
     let effective = match resolved.source {
