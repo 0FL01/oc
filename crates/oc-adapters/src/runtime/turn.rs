@@ -1250,8 +1250,39 @@ impl<'a> Runtime<'a> {
         // Exact model selection + admission before any side effect.
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-        let selection = models::select_variant(&base, params.variant.as_deref())
+        let mut selection = models::select_variant(&base, params.variant.as_deref())
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let params = TurnParams {
+            provider: crate::auth::prepare_request(
+                &params.provider,
+                &self.db,
+                &self.parent_env,
+                &params.catalog.provider,
+                &params.model_id,
+                params.variant.as_deref(),
+                params.cancel,
+            )
+            .await?,
+            ..params
+        };
+        crate::composition::openai_catalog::prepare_selection(&mut selection, &params.provider);
+        let native_budget = params
+            .provider
+            .for_selection(&selection.id, params.variant.as_deref())
+            .subscription()
+            .then(|| {
+                models::budget(
+                    &selection,
+                    params.max_output,
+                    published
+                        .config
+                        .providers
+                        .get(&params.catalog.provider)
+                        .map(|entry| entry.options.native_fallback_limits)
+                        .unwrap_or_default(),
+                )
+            });
+        let budget = native_budget.as_ref().unwrap_or(budget);
         let binding = params
             .provider
             .for_selection(&selection.id, params.variant.as_deref())
@@ -1798,6 +1829,26 @@ impl<'a> Runtime<'a> {
                     "selected provider unavailable".into(),
                 ));
             };
+            let base = models::select_model(catalog, &choice.id)
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            let mut selection = models::select_variant(&base, choice.variant.as_deref())
+                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+            let provider = match crate::auth::prepare_request(
+                &provider,
+                &self.db,
+                &self.parent_env,
+                &choice.provider,
+                &choice.id,
+                choice.variant.as_deref(),
+                params.cancel,
+            )
+            .await
+            {
+                Ok(provider) => provider,
+                Err(crate::auth::AuthError::Cancelled) => continue 'step,
+                Err(error) => return Err(error.into()),
+            };
+            crate::composition::openai_catalog::prepare_selection(&mut selection, &provider);
             let params = Box::new(TurnParams {
                 session: params.session.clone(),
                 prompt: params.prompt.clone(),
@@ -1823,10 +1874,6 @@ impl<'a> Runtime<'a> {
                 variant.as_deref(),
                 &params.provider,
             )?;
-            let base = models::select_model(params.catalog, &model_id)
-                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-            let selection = models::select_variant(&base, variant.as_deref())
-                .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let request_provider = params.provider.with_context(request_context.clone());
             let binding = request_provider
                 .for_selection(&selection.id, variant.as_deref())

@@ -190,6 +190,51 @@ impl From<StorageError> for RuntimeError {
     }
 }
 
+impl From<crate::auth::AuthError> for RuntimeError {
+    fn from(error: crate::auth::AuthError) -> Self {
+        use oc_core::queries::{
+            ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,
+        };
+        match error {
+            crate::auth::AuthError::Storage(_) => Self::Storage,
+            crate::auth::AuthError::Cancelled => Self::Cancelled,
+            other => {
+                let (code, action) = match other {
+                    crate::auth::AuthError::ModelUnavailable => {
+                        (ServiceCode::ModelUnavailable, ServiceAction::SelectModel)
+                    }
+                    crate::auth::AuthError::Authority | crate::auth::AuthError::Conflict => (
+                        ServiceCode::InvalidConfig,
+                        ServiceAction::ReviewConfiguration,
+                    ),
+                    _ => (
+                        ServiceCode::MissingCredential,
+                        ServiceAction::Reauthenticate,
+                    ),
+                };
+                Self::ProviderUnavailable(ServiceDiagnostic {
+                    kind: ServiceKind::Provider,
+                    service: "openai".into(),
+                    source: "native OpenAI request".into(),
+                    field: vec![
+                        "provider".into(),
+                        "openai".into(),
+                        if code == ServiceCode::ModelUnavailable {
+                            "model"
+                        } else {
+                            "authPolicy"
+                        }
+                        .into(),
+                    ],
+                    stage: ServiceStage::Admission,
+                    code,
+                    action,
+                })
+            }
+        }
+    }
+}
+
 /// One published immutable generation (monotonic id, atomic swap).
 #[derive(Debug, Clone)]
 pub struct PublishedGeneration {

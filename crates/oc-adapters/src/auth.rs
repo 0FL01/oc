@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 pub const GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 
 mod openai;
-pub(crate) use openai::OpenAiBinding;
 pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
+pub(crate) use openai::{OpenAiBinding, prepare_request};
 mod attempts;
 pub use attempts::OpenAiAttempts;
 
@@ -97,6 +97,8 @@ pub enum AuthError {
     Conflict,
     #[error("OpenAI OAuth method is unsupported; choose an admitted login method")]
     UnsupportedMethod,
+    #[error("selected model unavailable for OpenAI subscription")]
+    ModelUnavailable,
     #[error("OpenAI credential changed during resolution")]
     StaleCredential,
     #[error("OpenAI OAuth unavailable; explicit reauthentication required")]
@@ -105,6 +107,8 @@ pub enum AuthError {
     InvalidTokens,
     #[error("OpenAI authorization request failed")]
     Remote,
+    #[error("authorization preparation cancelled")]
+    Cancelled,
     #[error("credential storage unavailable")]
     Storage(#[from] StorageError),
 }

@@ -4384,16 +4384,17 @@ async fn worker(
                         input,
                         budget.output,
                         provider,
+                        provider_id,
                     ))
                 })();
-                let (expected, expected_event, selection, input, output, provider) = match prepared
-                {
-                    Ok(prepared) => prepared,
-                    Err(error) => {
-                        let _ = ack.send(Err(error));
-                        continue;
-                    }
-                };
+                let (expected, expected_event, selection, input, output, provider, provider_id) =
+                    match prepared {
+                        Ok(prepared) => prepared,
+                        Err(error) => {
+                            let _ = ack.send(Err(error));
+                            continue;
+                        }
+                    };
                 let title_operation = crate::runtime::next_turn_id(
                     "title",
                     std::time::SystemTime::now()
@@ -4413,27 +4414,42 @@ async fn worker(
                         continue;
                     }
                 };
+                let title_env = composition.parent_env.clone();
                 let operation = async {
-                    let generation = tokio::time::timeout(
-                        std::time::Duration::from_secs(10),
-                        crate::provider::stream_input_counted(
-                            &provider,
-                            &selection.id,
-                            selection.variant.as_ref(),
-                            &input,
-                            &[],
-                            output,
-                            &cancel,
-                            &mut |_| {},
-                            &mut || async {
-                                db.generation_dispatch(&session.0, &title_operation, "title")
-                                    .map_err(|_| crate::provider::ProviderError::DispatchRefused)
-                            },
-                        ),
-                    )
-                    .await
-                    .map_err(|_| app_error("title request timed out"))?
-                    .map_err(|_| app_error("title request failed"))?;
+                    let generation =
+                        tokio::time::timeout(std::time::Duration::from_secs(10), async {
+                            let provider = crate::auth::prepare_request(
+                                &provider,
+                                db,
+                                &title_env,
+                                &provider_id,
+                                &selection.id,
+                                selection.variant.as_ref().map(|v| v.name.as_str()),
+                                &cancel,
+                            )
+                            .await
+                            .map_err(|_| crate::provider::ProviderError::InvalidConfig)?;
+                            crate::provider::stream_input_counted(
+                                &provider,
+                                &selection.id,
+                                selection.variant.as_ref(),
+                                &input,
+                                &[],
+                                output,
+                                &cancel,
+                                &mut |_| {},
+                                &mut || async {
+                                    db.generation_dispatch(&session.0, &title_operation, "title")
+                                        .map_err(|_| {
+                                            crate::provider::ProviderError::DispatchRefused
+                                        })
+                                },
+                            )
+                            .await
+                        })
+                        .await
+                        .map_err(|_| app_error("title request timed out"))?
+                        .map_err(|_| app_error("title request failed"))?;
                     if cancel.load(Ordering::Relaxed) {
                         return Err(app_error("title request cancelled"));
                     }
@@ -4922,6 +4938,9 @@ async fn worker(
                                             .push(format!("title generation skipped: {error}"));
                                         work.pending.remove(&session.0);
                                     } else {
+                                        let title_db = db.shared_handle();
+                                        let title_env = composition.parent_env.clone();
+                                        let provider_id = title_provider_id.clone();
                                         work.tasks.push((
                                             session.0.clone(),
                                             tokio::spawn(async move {
@@ -4930,6 +4949,18 @@ async fn worker(
                                                     let cancel = AtomicBool::new(false);
                                                     let generation = tokio::time::timeout(
                                                         std::time::Duration::from_secs(10),
+                                                        async {
+                                                            let provider = crate::auth::prepare_request(
+                                                                &provider,
+                                                                &title_db,
+                                                                &title_env,
+                                                                &provider_id,
+                                                                &selection.id,
+                                                                selection.variant.as_ref().map(|v| v.name.as_str()),
+                                                                &cancel,
+                                                            )
+                                                            .await
+                                                            .map_err(|_| crate::provider::ProviderError::InvalidConfig)?;
                                                         crate::provider::stream_input_counted(
                                                             &provider,
                                                             &selection.id,
@@ -4950,7 +4981,8 @@ async fn worker(
                                                                     receipt.await.map_err(|_|crate::provider::ProviderError::DispatchRefused)?
                                                                 }
                                                             },
-                                                        ),
+                                                        ).await
+                                                        },
                                                     )
                                                     .await
                                                     .ok()?

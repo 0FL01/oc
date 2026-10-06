@@ -18,17 +18,39 @@ pub(crate) fn transform(models: &mut BTreeMap<String, Value>, subscription: bool
         if !eligible(api) {
             return false;
         }
-        model["cost"] = json!([]);
-        if !model.get("limit").is_some_and(Value::is_object) {
-            model["limit"] = json!({});
-        }
-        model["limit"]["context"] = json!(400_000);
-        model["limit"]["input"] = json!(272_000);
+        limits(model);
         true
     });
 }
 
-fn eligible(api: &str) -> bool {
+/// Account changes before preparation must also change the local request budget,
+/// not merely its bearer/endpoint. Eligibility was checked by the same native
+/// preparation boundary; variant/API aliases remain the captured wire's choice.
+pub(crate) fn prepare_selection(
+    selection: &mut crate::models::Selection,
+    provider: &crate::provider::ResponsesConfig,
+) {
+    if provider
+        .for_selection(
+            &selection.id,
+            selection.variant.as_ref().map(|v| v.name.as_str()),
+        )
+        .subscription()
+    {
+        limits(&mut selection.entry);
+    }
+}
+
+fn limits(model: &mut Value) {
+    model["cost"] = json!([]);
+    if !model.get("limit").is_some_and(Value::is_object) {
+        model["limit"] = json!({});
+    }
+    model["limit"]["context"] = json!(400_000);
+    model["limit"]["input"] = json!(272_000);
+}
+
+pub(crate) fn eligible(api: &str) -> bool {
     // Exactly the donor's explicit allow/deny precedence and numeric prefix regex.
     if matches!(api, "gpt-5.5" | "gpt-5.3-codex-spark") {
         return true;

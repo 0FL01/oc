@@ -648,7 +648,22 @@ impl Runtime<'_> {
         snapshot: &mut CompactionSnapshot,
         current: Option<(&crate::tools::TurnLog, [usize; 7])>,
     ) -> Result<Option<PreparedCheckpoint>, RuntimeError> {
-        let provider = provider.for_selection(model, variant);
+        let base = models::select_model(catalog, model)
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let mut selection = models::select_variant(&base, variant)
+            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
+        let prepared_provider = crate::auth::prepare_request(
+            provider,
+            &self.db,
+            &self.parent_env,
+            &catalog.provider,
+            model,
+            variant,
+            cancel,
+        )
+        .await?;
+        crate::composition::openai_catalog::prepare_selection(&mut selection, &prepared_provider);
+        let provider = prepared_provider.for_selection(model, variant);
         let binding = provider
             .provenance(&catalog.provider, model)
             .map_err(|_| RuntimeError::Provider)?;
@@ -659,10 +674,6 @@ impl Runtime<'_> {
             variant: variant.map(str::to_owned),
         });
         let config = self.current.read().expect("generation lock").config.clone();
-        let base = models::select_model(catalog, model)
-            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
-        let selection = models::select_variant(&base, variant)
-            .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let fallback = config
             .providers
             .get(&catalog.provider)
@@ -1060,8 +1071,30 @@ impl Runtime<'_> {
         'summary: loop {
             let generation = loop {
                 snapshot.summary.clear();
-                match crate::provider::stream_input_counted(
+                let prepared = crate::auth::prepare_request(
                     &provider,
+                    &self.db,
+                    &self.parent_env,
+                    &catalog.provider,
+                    model,
+                    variant,
+                    cancel,
+                )
+                .await?;
+                let prepared = prepared.for_selection(model, variant);
+                if prepared
+                    .provenance(&catalog.provider, model)
+                    .map_err(|_| RuntimeError::Provider)?
+                    != binding
+                {
+                    // This summary's selected checkpoint/transcript was already
+                    // projected for the original authority. Never retry it under
+                    // an account/route switch or publish a falsely bound result.
+                    snapshot.error = Some("summary request authority changed".into());
+                    return Err(RuntimeError::Provider);
+                }
+                match crate::provider::stream_input_counted(
+                    prepared,
                     model,
                     selection.variant.as_ref(),
                     &input,

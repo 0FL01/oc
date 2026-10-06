@@ -2010,6 +2010,24 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
             }
         }
     }
+    if config.wire.openai.is_some() {
+        // Admitted profile overlays cannot replace captured credential/account/
+        // actor identity. Key requests also strip Codex-only injected headers.
+        let resolved = request_headers(config)?;
+        for name in [
+            "authorization",
+            "x-api-key",
+            "originator",
+            "x-codex-beta-features",
+            "chatgpt-account-id",
+            "session-id",
+        ] {
+            headers.remove(name);
+            if let Some(value) = resolved.get(name) {
+                headers.insert(name, value.clone());
+            }
+        }
+    }
     let protocol = if chat.is_some() {
         protocol::Protocol::Chat
     } else {
@@ -2506,6 +2524,7 @@ pub fn describe_request(
 
 #[cfg(test)]
 mod tests {
+    mod openai;
     mod reconciliation;
     mod typed_failures;
 

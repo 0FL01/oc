@@ -840,6 +840,7 @@ pub enum ServiceAction {
     ReviewConfiguration,
     RetryConnection,
     SignInUnsupported,
+    Reauthenticate,
     RestartApplication,
     RefreshCatalog,
     SelectModel,
@@ -883,6 +884,8 @@ impl std::fmt::Display for ServiceDiagnostic {
                 ServiceAction::RetryConnection => "retry connection",
                 ServiceAction::SignInUnsupported =>
                     "native OAuth sign-in unsupported; review credentials",
+                ServiceAction::Reauthenticate =>
+                    "explicit OpenAI reauthentication required; review accounts",
                 ServiceAction::RestartApplication => "restart application; retry unsafe",
                 ServiceAction::RefreshCatalog => "reload configuration to refresh catalog",
                 ServiceAction::SelectModel => "select an admitted model",

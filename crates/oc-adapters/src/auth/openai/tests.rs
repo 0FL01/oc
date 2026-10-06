@@ -28,7 +28,7 @@ fn scope() -> AuthScope {
     AuthScope::admit("openai", OPENAI_BASE_URL).unwrap()
 }
 
-async fn issuer(
+pub(super) async fn issuer(
     status: u16,
     hold: Option<Arc<tokio::sync::Notify>>,
 ) -> (OpenAiAuth, Arc<AtomicUsize>, tokio::task::JoinHandle<()>) {

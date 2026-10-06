@@ -6,10 +6,70 @@ use crate::storage::{CredentialMaterial, Db, OAuthAccountMetadata};
 use base64::Engine;
 use serde::Deserialize;
 use sha2::Digest;
+use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub const OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
 pub(crate) const CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";
+
+/// The execution boundary, not a late mutation of a sending request. Only the
+/// selected native OpenAI leaf is resolved; Go/custom and other captured leaves
+/// keep their established source semantics. Every caller keeps the returned
+/// clone for provenance, input projection and the complete physical attempt.
+pub(crate) async fn prepare_request(
+    config: &crate::provider::ResponsesConfig,
+    db: &Db,
+    env: &BTreeMap<String, String>,
+    provider: &str,
+    model: &str,
+    variant: Option<&str>,
+    cancel: &AtomicBool,
+) -> Result<crate::provider::ResponsesConfig, AuthError> {
+    if provider != "openai" {
+        return Ok(config.clone());
+    }
+    let mut selected = config.for_selection(model, variant).clone();
+    selected.restore_auth_input();
+    let scope = AuthScope::admit(provider, &selected.base_url)?;
+    if !scope.is_openai() {
+        return Ok(config.clone());
+    }
+    if cancel.load(Ordering::Relaxed) {
+        return Err(AuthError::Cancelled);
+    }
+    let auth = OpenAiAuth::new()?;
+    let selected = tokio::select! {
+        biased;
+        () = crate::provider::wait_cancel(cancel) => return Err(AuthError::Cancelled),
+        result = auth.prepare_target(db, env, selected, model) => result?,
+    };
+    Ok(install_prepared(config, selected, model, variant))
+}
+
+fn install_prepared(
+    config: &crate::provider::ResponsesConfig,
+    selected: crate::provider::ResponsesConfig,
+    model: &str,
+    variant: Option<&str>,
+) -> crate::provider::ResponsesConfig {
+    let exact = (model.to_owned(), variant.map(str::to_owned));
+    let default = (model.to_owned(), None);
+    let key = if config.wire.requests.contains_key(&exact) {
+        Some(exact)
+    } else if config.wire.requests.contains_key(&default) {
+        Some(default)
+    } else {
+        None
+    };
+    if let Some(key) = key {
+        let mut prepared = config.clone();
+        prepared.wire.requests.insert(key, selected);
+        prepared
+    } else {
+        selected
+    }
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) struct OpenAiBinding {
@@ -199,6 +259,44 @@ pub struct OpenAiAuth {
 }
 
 impl OpenAiAuth {
+    async fn prepare_target(
+        &self,
+        db: &Db,
+        env: &BTreeMap<String, String>,
+        mut selected: crate::provider::ResponsesConfig,
+        model: &str,
+    ) -> Result<crate::provider::ResponsesConfig, AuthError> {
+        self.resolve(
+            db,
+            selected.wire.auth_policy,
+            Some(&selected.api_key),
+            || env.get("OPENAI_API_KEY").cloned(),
+        )
+        .await?
+        .apply_to(&mut selected);
+        if !selected.auth_ready() {
+            return Err(AuthError::Reauthenticate);
+        }
+        // A Key-era captured model cannot bypass the pinned subscription filter
+        // after an account change. This is the same narrow catalog exception,
+        // never a route/model fallback or general reasoning-name heuristic.
+        if selected.subscription()
+            && (!crate::composition::openai_catalog::eligible(
+                selected.wire.api_model.as_deref().unwrap_or(model),
+            ) || selected
+                .wire
+                .settings
+                .body
+                .get("reasoning")
+                .and_then(|value| value.get("mode"))
+                .and_then(serde_json::Value::as_str)
+                == Some("pro"))
+        {
+            return Err(AuthError::ModelUnavailable);
+        }
+        Ok(selected)
+    }
+
     pub fn new() -> Result<Self, AuthError> {
         #[cfg(test)]
         let client = reqwest::Client::builder()

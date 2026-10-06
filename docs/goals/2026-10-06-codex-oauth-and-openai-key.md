@@ -58,7 +58,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
   - Status: in_progress
-  - Evidence: evidence/T57/credentials.md / attempts.md / application.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay, store-once login/per-namespace stale fences and safe acknowledged method/account projection; executable bindings/consumers and full AUTH03 remain pending.
+  - Evidence: evidence/T57/credentials.md / attempts.md / application.md / preparation.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay, store-once login/per-namespace stale fences, safe acknowledged method/account projection and selected per-request native refresh/capture; end-to-end consumers and full AUTH03 remain pending.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -69,7 +69,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: in_progress
-  - Evidence: evidence/T57/bindings.md / catalog.md — admitted fixed OpenAI Key/OAuth templates, Codex/native headers/stable account authority, one public source/cache and exact subscription-only model overlay through shared views/lookup/read-only listing; default WS/fallback, full per-request preparation/runtime/actual-binary lanes remain pending.
+  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md — admitted fixed Key/OAuth templates, native headers/stable account authority, shared public subscription catalog and selected per-request main/follow-up/retry/child/title/summary preparation/header guards; default WS/fallback and full runtime/actual-binary lanes remain pending.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -297,8 +297,17 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current metadata checks: adapters lib649/0/1, auth04_5/0, go02_13/0, go05_8/0;
   strict workspace all-target Clippy/fmt/diff green. `evidence/T57/catalog.md` remains
   partial AUTH04, not native WS/actual request/login/live evidence.
-- Next checkpoint: native Responses WS/HTTP and request preparation/all captured
-  lanes with the restricted-error amendment, then actual CLI/TUI consumers.
+- Sixth checked slice: native selected-leaf request preparation uses the existing
+  refresh/capture owner before main/follow-up/retry/child/title/summary attempts.
+  Issued credentials/actor/model remain immutable; subscription budgets/gate match
+  catalog, profile overlays cannot replace native identity. Summary retries refuse
+  changed authority rather than replaying already-projected opaque state.
+- Current preparation checks: auth04_ 8/0, adapters lib 652/0/1, Core 32/0, TUI 444/0
+  and strict workspace all-target Clippy/fmt/diff green; evidence/T57/preparation.md.
+  A reproduced non-native pre-cancel regression was fixed without changing its test.
+  No WS/default transport, rebuilt consumer, real OAuth/key or complete AUTH04 claim.
+- Next checkpoint: native Responses WS/HTTP affinity/checkpoint/fallback and full
+  captured runtime lanes with the restricted-error amendment, then actual CLI/TUI.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.
