@@ -187,6 +187,13 @@ debug/release PTY/process/crash fixture: `oc/tests/terminals.rs` with
 `evidence/T56/report.md` closes R1–R4 with actual debug/release TERM01 and final
 workspace gates. T44/VIS39 paired presentation remains a separate owner.
 
+T57 OpenAI credentials: `auth/openai.rs` owns source-derived bounded token parsing
+and one shared-Db refresh flight; `storage_credentials.rs` owns additive tagged
+method/metadata, identity/version CAS and durable unknown-refresh reservation.
+Nearest tests `auth/openai/tests.rs` and `storage_credentials/tests.rs`, filters
+`auth03_` / `auth05_`; existing `go01_` remains T53-owned. Partial receipt
+`evidence/T57/credentials.md`; login/consumer/WS/live qualification still pending.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.

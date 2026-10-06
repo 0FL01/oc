@@ -131,8 +131,12 @@ pub(super) fn read(
         )
         .map_err(|_| CoreError::Application("account resolution unavailable".into()))?;
     let effective = match resolved.source {
-        crate::auth::AuthSource::Stored => AccountAuthSource::Stored,
-        crate::auth::AuthSource::GoEnvironment => AccountAuthSource::Environment,
+        crate::auth::AuthSource::Stored | crate::auth::AuthSource::StoredOAuth => {
+            AccountAuthSource::Stored
+        }
+        crate::auth::AuthSource::GoEnvironment | crate::auth::AuthSource::OpenAiEnvironment => {
+            AccountAuthSource::Environment
+        }
         crate::auth::AuthSource::Configured => AccountAuthSource::Configured,
         crate::auth::AuthSource::Anonymous => AccountAuthSource::Anonymous,
         crate::auth::AuthSource::UnsupportedOAuth => AccountAuthSource::UnsupportedOAuth,

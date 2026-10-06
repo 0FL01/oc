@@ -1,52 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-06T11:20:41+00:00
-Active: нет
+State updated: 2026-10-06T11:27:22+00:00
+Active: T57
 
 Сверить Git status/diff до выполнения команд.
+Task: T57 — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers
+Spec: docs/goals/2026-10-06-codex-oauth-and-openai-key.md
+Evidence target: evidence/T57/report.md
 
-Последний срез: T56 [done]; сверить незакоммиченный diff.
+T57 active after owner-requested chronological T56 closure 0879e199b; frozen R1-R6/AUTH01-AUTH06 unchanged. First checked native slice extends the same SQLite credential table with legacy-compatible methodID/accountID, selection/material CAS revisions and durable unknown-refresh reservation (migration13); shared-handle refresh coalesces, uses pinned token/claim/expiry semantics, rotates safely and cannot restore removed/switched/ABA rows or fall back to keys/env after OAuth failure. Source/key capture owner tests auth03_5/0, auth05_1/0, existing go01_13/0 and child_schema_3/0 plus strict impacted Clippy/fmt green; partial evidence/T57/credentials.md, not full login/execution PASS. Next implement cancellable browser PKCE/owned loopback and device polling, then built-in openai Key/OAuth catalog/native Responses WS/admitted HTTP and all captured lanes, then shared CLI/TUI actual-binary consumers. AUTH06 dedicated owner-operated browser/device confirmation and explicitly supplied OpenAI test key remain required, no runner/user auth extraction or paid planning calls. T44 independently owns VIS45 after explicit resume and stays PAUSED; no backend-only visual/full product READY claim. T53/T56 complete, other task contracts/statuses and historical evidence unchanged.
 
-## Result
-
-T56 COMPLETE: frozen R1–R4 / TERM01 verified. Implementation/correction slices
-88e6631d0, 5b165af61, 0babd4e5e, 87106ea5c, 5ce0b9baf and be5ec25fb all reviewed,
-committed/pushed. Primary closure: evidence/T56/report.md and component receipts.
-Real native session PTYs/consumer, scoped source/epoch controls, VT/theme/replay/
-resize, raw focus/leader, child-close-before-captured-target and owned lifecycle.
-
-## Checks
-
-Final locked workspace 1665 passed / 0 failed / 11 unchanged opt-in ignored,
-43 result records. Current actual debug 1/0 and complete rebuilt release TERM01
-PASS with ignored/masked parent signal regression. Actual Ctrl+C/D, Unicode/VT/DSR/
-host-escape/flood/gap, two-PTY hide/last/remount, real native child route, process/
-cwd/env/resize, removal/exit/shutdown and two-orphan crash/no replay/stale PID checked.
-Resource facts: two PTYs add two threads/two FDs, bounded RSS, idle 1 tick/300 ms
-in debug/release. Strict workspace all-target Clippy/fmt, locked debug/release builds,
-both help, diff/journal checks green. Full final marker T56_WORKSPACE_GATES_PASS
-in /home/opencode/.cache/opencode-tmp/opencode/t56-workspace-final.log.
-
-## Risks
-
-No known T56 blocker or failed gate remains. Native PTYs are application-owned,
-not donor daemon handoff; restart never recreates/replays an old command. Cleanup
-failures remain non-success and retain unproved identity. Existing raw history,
-trust/source/generation/env, provider and shell/child ownership retained. No paid
-API/real-key read, new model terminal tool/store/framework or JS/WASM host. User
-.opencode/ unread/unstaged; T53 campaign unchanged. This is not product READY or
-T44/VIS39 paired visual/grammar PASS. T44 PAUSED; T57/other tasks untouched.
-
-## Next
-
-Stop substantive T56 work. Commit/push this factual closure/progress slice and
-complete todos; do not start another task or live campaign under this one-task
-request. The next chronological ready task remains T57 for a subsequent request.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T57
+Ready (до 5): нет
 Blocked: T27, T43, T44, T45
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

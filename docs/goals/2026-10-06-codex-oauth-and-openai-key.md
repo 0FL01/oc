@@ -1,6 +1,6 @@
 # Goal: Codex / ChatGPT OAuth и обычный OpenAI API key
 
-Status: pending (approved frozen plan; execution todo, implementation NOT_STARTED)
+Status: active (T57 explicitly started after completed T56; implementation in progress)
 Source: владелец 2026-10-06 потребовал полноценный Codex OAuth, headless авторизацию,
 обычный OpenAI API key, донорскую логику, полный backend и визуальный паритет,
 исправление конфликтов плана и commit/push текущей ветки.
@@ -57,8 +57,8 @@ required outcome is resolved and affected constraints remain satisfied.
     concurrent resolution и stale completion protection без второй credential DB.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
-  - Status: pending
-  - Evidence: pending — evidence/T57/report.md.
+  - Status: in_progress
+  - Evidence: evidence/T57/credentials.md — native token/metadata parser, shared-handle refresh coalescing, protected rotation/CAS/reopen and no unknown refresh replay; consumers/attempts and full AUTH03 remain pending.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -247,11 +247,21 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 
 ## Current State / checkpoint
 
-- 2026-10-06: read-only pinned donor RECON, frozen plan registered; AUTH01–AUTH06 and
-  VIS45 pending/NOT_RUN, no implementation or live authorization performed.
-- Current scheduling: T53 active, T44 PAUSED; no start/resume/finish follows from this
-  plan. T57 todo, no historical reports/baselines rewritten. Next execution checkpoint:
-  shared-seam review and source-derived auth fixture slice after safe scheduling handoff.
+- 2026-10-06: owner explicitly requested T57 after T56 closure `0879e199b`;
+  T57 active, T53/T56 complete, T44 PAUSED. Frozen R1–R6 unchanged; VIS45 remains
+  independent, no historical reports/baselines rewritten.
+- First implementation slice: same SQLite credential table additively preserves
+  legacy OAuth and adds methodID/accountID metadata, separate selection/material
+  revisions and durable refresh reservation (migration13). Native resolver uses one
+  shared refresh flight, exact account/epoch CAS, trusted structured claim priority,
+  five-minute refresh and rotation; unknown/failed/cancelled refresh requires reauth,
+  never implicit key/env fallback. Native expiry remains Unix seconds (donor ms
+  converted at the boundary); public summaries contain no tokens/routing account ID.
+- Current checked evidence: `evidence/T57/credentials.md`; owning auth03_ 5/0,
+  auth05_ 1/0, existing go01_ 13/0 and child_schema_ 3/0; strict impacted all-target
+  Clippy/fmt/diff green. This does not prove login, connected TUI, WS or live access.
+- Next checkpoint: native cancellable browser PKCE/owned loopback and device
+  usercode/poll/exchange attempt lifecycle with fake issuer/clock and real sockets.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

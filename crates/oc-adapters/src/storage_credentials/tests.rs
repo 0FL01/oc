@@ -19,6 +19,8 @@ fn go01_credentials_atomic_lifecycle_reopen_and_secret_safe_projection() {
         access: "OAUTH_ACCESS_CANARY".into(),
         refresh: Some("OAUTH_REFRESH_CANARY".into()),
         expires_at: Some(1234),
+        method_id: None,
+        metadata: None,
     };
     let third = db
         .add_credential("scope-a", "third", oauth.clone())
@@ -198,6 +200,8 @@ fn go01_auth_authority_priority_scope_and_unsupported_oauth() {
         access: "ACCESS_CANARY".into(),
         refresh: None,
         expires_at: None,
+        method_id: None,
+        metadata: None,
     };
     db.add_credential(custom.namespace(), "OAuth", oauth)
         .unwrap();
@@ -278,4 +282,85 @@ fn go01_sqlite_secret_files_are_private_and_symlinks_refused() {
     )
     .unwrap();
     assert!(Db::open(other.path()).is_err());
+}
+
+#[test]
+fn auth03_legacy_oauth_additive_upgrade_method_metadata_and_cas_identity() {
+    let root = tempfile::tempdir().unwrap();
+    {
+        let db = Db::open(root.path()).unwrap();
+        let conn = db.conn.lock().unwrap();
+        conn.execute_batch("ALTER TABLE credential_accounts DROP COLUMN selection_revision;
+            ALTER TABLE credential_accounts DROP COLUMN material_revision;
+            ALTER TABLE credential_accounts DROP COLUMN refresh_pending;
+            DELETE FROM schema_migrations WHERE version=13;
+            INSERT INTO credential_accounts(id,provider_namespace,label,tagged_value_json,active,created_at)
+            VALUES('legacy','scope','legacy','{\"type\":\"oauth\",\"access\":\"LEGACY_ACCESS_CANARY\",\"refresh\":\"LEGACY_REFRESH_CANARY\",\"expires_at\":1234}',1,1);").unwrap();
+    }
+    let db = Db::open(root.path()).unwrap();
+    let legacy = db.credential_snapshot("scope").unwrap().unwrap();
+    assert_eq!(legacy.selection_revision, 0);
+    assert_eq!(legacy.material_revision, 0);
+    assert!(!legacy.refresh_pending);
+    assert!(matches!(
+        &legacy.material,
+        CredentialMaterial::OAuth {
+            method_id: None,
+            metadata: None,
+            ..
+        }
+    ));
+    assert!(!format!("{legacy:?}").contains("CANARY"));
+    let material = CredentialMaterial::OAuth {
+        access: "ACCESS_CANARY".into(),
+        refresh: Some("REFRESH_CANARY".into()),
+        expires_at: Some(4600),
+        method_id: Some("chatgpt-browser".into()),
+        metadata: Some(OAuthAccountMetadata {
+            account_id: "fixture-account".into(),
+        }),
+    };
+    let account = db.add_credential("scope", "new", material.clone()).unwrap();
+    assert_eq!(account.method_id.as_deref(), Some("chatgpt-browser"));
+    let captured = db.credential_snapshot("scope").unwrap().unwrap();
+    assert!(db.begin_credential_refresh(&captured).unwrap());
+    db.rename_credential("scope", &account.id, "renamed during refresh")
+        .unwrap();
+    assert!(db.rotate_credential(&captured, material.clone()).unwrap());
+    assert!(!db.rotate_credential(&captured, material.clone()).unwrap());
+    let fresh = db.credential_snapshot("scope").unwrap().unwrap();
+    assert_eq!(fresh.material_revision, captured.material_revision + 1);
+    assert_eq!(fresh.selection_revision, captured.selection_revision);
+    assert!(!fresh.refresh_pending);
+    db.activate_credential("scope", &account.id).unwrap(); // same active identity is idempotent
+    assert_eq!(
+        db.credential_snapshot("scope")
+            .unwrap()
+            .unwrap()
+            .selection_revision,
+        fresh.selection_revision
+    );
+    assert!(db.begin_credential_refresh(&fresh).unwrap());
+    db.activate_credential("scope", "legacy").unwrap();
+    db.activate_credential("scope", &account.id).unwrap();
+    assert!(!db.rotate_credential(&fresh, material).unwrap());
+    let summaries = db.credential_accounts("scope").unwrap();
+    assert_eq!(summaries[0].label, "renamed during refresh");
+    assert!(!format!("{summaries:?}").contains("CANARY"));
+    drop(db);
+    let db = Db::open(root.path()).unwrap();
+    let row = db.credential_snapshot("scope").unwrap().unwrap();
+    assert!(row.refresh_pending);
+    assert_eq!(row.selection_revision, fresh.selection_revision + 2);
+    assert_eq!(row.material_revision, fresh.material_revision);
+    let conn = db.conn.lock().unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM schema_migrations WHERE version=13",
+            [],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
+        1
+    );
 }

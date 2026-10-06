@@ -126,6 +126,8 @@ async fn go01_application_resolves_scoped_accounts_on_restart_and_reload() {
                 access: "GO01_OAUTH_SECRET_82c".into(),
                 refresh: None,
                 expires_at: None,
+                method_id: None,
+                metadata: None,
             },
         )
         .unwrap();

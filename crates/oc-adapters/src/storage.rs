@@ -34,7 +34,7 @@ mod conversation;
 mod credentials;
 #[path = "storage_effort.rs"]
 mod effort;
-pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial};
+pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial, OAuthAccountMetadata};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;
 #[path = "storage_fork.rs"]
@@ -318,6 +318,8 @@ pub struct Db {
     // Actual payload transfers: HOT, explicit RAW page, bounded UI window.
     history_reads: Arc<[std::sync::atomic::AtomicU64; 10]>,
     public_catalog: Arc<std::sync::OnceLock<Arc<crate::models_dev::GoCatalog>>>,
+    // One built-in OpenAI refresh flight across every same-root shared handle.
+    pub(crate) credential_refresh: Arc<tokio::sync::Mutex<()>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -565,6 +567,7 @@ impl Db {
                 std::sync::atomic::AtomicU64::new(0)
             })),
             public_catalog: Arc::new(std::sync::OnceLock::new()),
+            credential_refresh: Arc::new(tokio::sync::Mutex::new(())),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -583,6 +586,7 @@ impl Db {
             output_readers: self.output_readers.clone(),
             history_reads: self.history_reads.clone(),
             public_catalog: self.public_catalog.clone(),
+            credential_refresh: self.credential_refresh.clone(),
             _lock: self._lock.clone(),
         }
     }

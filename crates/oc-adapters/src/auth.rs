@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 
 pub const GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 
+mod openai;
+pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
+
 /// Omitted policy retains legacy required Key behavior.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -21,7 +24,9 @@ pub enum AuthSource {
     Anonymous,
     Configured,
     Stored,
+    StoredOAuth,
     GoEnvironment,
+    OpenAiEnvironment,
     Missing,
     UnsupportedOAuth,
 }
@@ -32,12 +37,14 @@ pub struct ResolvedAuth {
     pub source: AuthSource,
     pub namespace: String,
     pub(crate) key: Option<String>,
+    pub(crate) oauth: Option<crate::storage::OAuthAccountMetadata>,
 }
 
 impl std::fmt::Debug for ResolvedAuth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResolvedAuth")
             .field("source", &self.source)
+            .field("oauth_metadata", &self.oauth.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -47,7 +54,7 @@ impl ResolvedAuth {
     pub fn apply_to(self, provider: &mut crate::provider::ResponsesConfig) {
         provider.wire.auth_policy = match self.source {
             AuthSource::Anonymous => AuthPolicy::None,
-            AuthSource::UnsupportedOAuth => AuthPolicy::OAuth,
+            AuthSource::UnsupportedOAuth | AuthSource::StoredOAuth => AuthPolicy::OAuth,
             _ => AuthPolicy::Key,
         };
         provider.api_key = self.key.unwrap_or_default();
@@ -67,6 +74,16 @@ pub enum AuthError {
     Authority,
     #[error("conflicting authentication inputs")]
     Conflict,
+    #[error("OpenAI OAuth method is unsupported; choose an admitted login method")]
+    UnsupportedMethod,
+    #[error("OpenAI credential changed during resolution")]
+    StaleCredential,
+    #[error("OpenAI OAuth unavailable; explicit reauthentication required")]
+    Reauthenticate,
+    #[error("OpenAI token response is invalid")]
+    InvalidTokens,
+    #[error("OpenAI authorization request failed")]
+    Remote,
     #[error("credential storage unavailable")]
     Storage(#[from] StorageError),
 }
@@ -119,12 +136,14 @@ impl AuthScope {
                 source: AuthSource::Anonymous,
                 namespace: self.namespace.clone(),
                 key: None,
+                oauth: None,
             });
         }
         let result = |source, key| ResolvedAuth {
             source,
             namespace: self.namespace.clone(),
             key,
+            oauth: None,
         };
         if policy == AuthPolicy::OAuth {
             return Ok(result(AuthSource::UnsupportedOAuth, None));
