@@ -1,4 +1,4 @@
-//! Public Go metadata, distinct from authenticated OpenProxy discovery.
+//! Shared public Go/OpenAI metadata, distinct from authenticated discovery.
 //! No remote connection inputs survive this owner, including in persisted cache.
 use crate::{
     discovery,
@@ -16,12 +16,13 @@ use std::{
 pub const SOURCE: &str = "https://models.dev/api.json";
 /// Public provider ID, independent of selection and credentials.
 pub const PROVIDER: &str = "opencode-go";
+pub const OPENAI: &str = "openai";
 pub(crate) const CACHE_KEY: &str = "public-catalog:https://models.dev/api.json:opencode-go:v1";
 const TTL_MS: u64 = 300_000;
 const DEADLINE: Duration = Duration::from_secs(15);
 
 #[derive(Clone, Serialize, Deserialize)]
-struct GoRecord {
+struct ProviderRecord {
     id: String,
     npm: String,
     models: BTreeMap<String, SourceModel>,
@@ -45,6 +46,18 @@ struct SourceModel {
     interleaved: Option<Interleaved>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     reasoning_options: Option<Vec<ReasoningOption>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    body: Option<ModelBody>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+struct ModelBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reasoning: Option<ReasoningBody>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+struct ReasoningBody {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    mode: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 struct ModelProvider {
@@ -107,10 +120,10 @@ fn label(value: &str) -> bool {
         && !value.chars().any(char::is_control)
 }
 
-impl GoRecord {
+impl ProviderRecord {
     fn validate(&self) -> Result<(), discovery::DiscoveryError> {
         use discovery::DiscoveryError::InvalidResponse;
-        if self.id != PROVIDER
+        if !matches!(self.id.as_str(), PROVIDER | OPENAI)
             || !label(&self.npm)
             || self.models.len() > discovery::DISCOVERY_ROWS_CAP
         {
@@ -141,6 +154,15 @@ impl GoRecord {
                 .into_iter()
                 .flatten()
                 .any(|v| !v.is_finite() || v < 0.0)
+            {
+                return Err(InvalidResponse);
+            }
+            if model
+                .body
+                .as_ref()
+                .and_then(|b| b.reasoning.as_ref())
+                .and_then(|r| r.mode.as_deref())
+                .is_some_and(|v| !label(v))
             {
                 return Err(InvalidResponse);
             }
@@ -198,7 +220,7 @@ impl GoRecord {
                 .and_then(|m| m.get("package"))
                 .and_then(Value::as_str)
                 .unwrap_or(package);
-            let protocol = crate::config::package_protocol(PROVIDER, Some(effective_package)).ok();
+            let protocol = crate::config::package_protocol(&self.id, Some(effective_package)).ok();
             let mut metadata = json!({"modelID": id, "name": model.name, "package": package,
                 "limit": model.limit, "tool_call": model.tool_call,
                 "capabilities": {"tools": model.tool_call}, "variants": []});
@@ -215,6 +237,9 @@ impl GoRecord {
             }
             if let Some(options) = &model.reasoning_options {
                 metadata["reasoning_options"] = json!(options);
+            }
+            if let Some(body) = &model.body {
+                metadata["body"] = json!(body);
             }
             if let Some(Interleaved::Field(s) | Interleaved::Object { field: s }) =
                 &model.interleaved
@@ -325,7 +350,27 @@ impl GoRecord {
 struct CacheRecord {
     source: String,
     fetched_at_ms: u64,
-    record: GoRecord,
+    record: Option<ProviderRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    openai: Option<ProviderRecord>,
+}
+impl CacheRecord {
+    fn provider(&self, id: &str) -> Option<&ProviderRecord> {
+        match id {
+            PROVIDER => self.record.as_ref(),
+            OPENAI => self.openai.as_ref(),
+            _ => None,
+        }
+    }
+    fn valid(&self) -> bool {
+        (self.record.is_some() || self.openai.is_some())
+            && [(PROVIDER, &self.record), (OPENAI, &self.openai)]
+                .into_iter()
+                .all(|(id, r)| {
+                    r.as_ref()
+                        .is_none_or(|r| r.id == id && r.validate().is_ok())
+                })
+    }
 }
 struct CacheState {
     cache: Option<CacheRecord>,
@@ -355,7 +400,8 @@ impl std::fmt::Debug for CatalogRead {
     }
 }
 
-/// One public source/cache owner. Concurrent refreshes coalesce, including force.
+/// One public source/cache owner. The historical Go name preserves existing users;
+/// both provider slices share its fetch, bounded cache and single flight.
 pub struct GoCatalog {
     state: tokio::sync::Mutex<CacheState>,
     flight: tokio::sync::Mutex<()>,
@@ -381,7 +427,7 @@ impl GoCatalog {
     fn from_cache(raw: Option<&str>) -> Self {
         let record = raw
             .and_then(|raw| serde_json::from_str::<CacheRecord>(raw).ok())
-            .filter(|cache| cache.source == SOURCE && cache.record.validate().is_ok());
+            .filter(|cache| cache.source == SOURCE && cache.valid());
         Self {
             state: tokio::sync::Mutex::new(CacheState {
                 cache: record,
@@ -394,8 +440,16 @@ impl GoCatalog {
 
     /// Immediately usable public last-good data, independent of credential readiness.
     pub async fn read(&self, local: &BTreeMap<String, Value>) -> CatalogRead {
+        self.read_provider(PROVIDER, local).await
+    }
+
+    pub async fn read_provider(
+        &self,
+        provider: &str,
+        local: &BTreeMap<String, Value>,
+    ) -> CatalogRead {
         let state = self.state.lock().await;
-        Self::view(state.cache.as_ref(), local, false, state.failure)
+        Self::view(state.cache.as_ref(), provider, local, false, state.failure)
     }
 
     /// One bounded credential-free GET. The caller owns cancellation by dropping
@@ -408,7 +462,20 @@ impl GoCatalog {
         now_ms: u64,
         force: bool,
     ) -> CatalogRead {
-        self.refresh_inner(Some(db), client, local, now_ms, force)
+        self.refresh_inner(Some(db), client, PROVIDER, local, now_ms, force)
+            .await
+    }
+
+    pub async fn refresh_provider(
+        &self,
+        db: &Db,
+        client: &impl discovery::DiscoveryClient,
+        provider: &str,
+        local: &BTreeMap<String, Value>,
+        now_ms: u64,
+        force: bool,
+    ) -> CatalogRead {
+        self.refresh_inner(Some(db), client, provider, local, now_ms, force)
             .await
     }
 
@@ -419,27 +486,51 @@ impl GoCatalog {
         local: &BTreeMap<String, Value>,
         now_ms: u64,
     ) -> CatalogRead {
-        self.refresh_inner(None, client, local, now_ms, false).await
+        self.refresh_inner(None, client, PROVIDER, local, now_ms, false)
+            .await
+    }
+
+    pub async fn refresh_provider_read_only(
+        &self,
+        client: &impl discovery::DiscoveryClient,
+        provider: &str,
+        local: &BTreeMap<String, Value>,
+        now_ms: u64,
+    ) -> CatalogRead {
+        self.refresh_inner(None, client, provider, local, now_ms, false)
+            .await
     }
 
     async fn refresh_inner(
         &self,
         db: Option<&Db>,
         client: &impl discovery::DiscoveryClient,
+        provider: &str,
         local: &BTreeMap<String, Value>,
         now_ms: u64,
         force: bool,
     ) -> CatalogRead {
+        if !matches!(provider, PROVIDER | OPENAI) {
+            return Self::view(
+                None,
+                provider,
+                local,
+                false,
+                Some(discovery::DiscoveryFailure::InvalidConfig),
+            );
+        }
         let revision = self.revision.load(Ordering::SeqCst);
         let _flight = self.flight.lock().await;
         let state = self.state.lock().await;
         if revision != self.revision.load(Ordering::SeqCst)
             || (!force
                 && state.cache.as_ref().is_some_and(|c| {
-                    now_ms >= c.fetched_at_ms && now_ms - c.fetched_at_ms < TTL_MS
+                    c.provider(provider).is_some()
+                        && now_ms >= c.fetched_at_ms
+                        && now_ms - c.fetched_at_ms < TTL_MS
                 }))
         {
-            return Self::view(state.cache.as_ref(), local, false, state.failure);
+            return Self::view(state.cache.as_ref(), provider, local, false, state.failure);
         }
         drop(state); // Cached reads must not wait for the bounded network job.
         let mut headers = reqwest::header::HeaderMap::new();
@@ -457,14 +548,29 @@ impl GoCatalog {
             }
             let root: Value = serde_json::from_slice(&body)
                 .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
-            let record: GoRecord = serde_json::from_value(
-                root.get(PROVIDER)
-                    .cloned()
-                    .ok_or(discovery::DiscoveryError::InvalidResponse)?,
-            )
-            .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
-            record.validate()?;
-            Ok(record)
+            let slice = |id: &str| -> Result<Option<ProviderRecord>, discovery::DiscoveryError> {
+                root.get(id)
+                    .map(|value| {
+                        let record: ProviderRecord = serde_json::from_value(value.clone())
+                            .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
+                        if record.id != id {
+                            return Err(discovery::DiscoveryError::InvalidResponse);
+                        }
+                        record.validate()?;
+                        Ok(record)
+                    })
+                    .transpose()
+            };
+            let cache = CacheRecord {
+                source: SOURCE.into(),
+                fetched_at_ms: now_ms,
+                record: slice(PROVIDER)?,
+                openai: slice(OPENAI)?,
+            };
+            if cache.provider(provider).is_none() {
+                return Err(discovery::DiscoveryError::InvalidResponse);
+            }
+            Ok(cache)
         })
         .await
         .unwrap_or(Err(discovery::DiscoveryError::Network));
@@ -473,17 +579,13 @@ impl GoCatalog {
         match fetch {
             Err(error) => {
                 state.failure = Some(discovery::DiscoveryFailure::from(&error));
-                Self::view(state.cache.as_ref(), local, false, state.failure)
+                Self::view(state.cache.as_ref(), provider, local, false, state.failure)
             }
-            Ok(record) => {
+            Ok(cache) => {
                 let changed = state.cache.as_ref().is_none_or(|c| {
-                    serde_json::to_value(&c.record).ok() != serde_json::to_value(&record).ok()
+                    serde_json::to_value(c.provider(provider)).ok()
+                        != serde_json::to_value(cache.provider(provider)).ok()
                 });
-                let cache = CacheRecord {
-                    source: SOURCE.into(),
-                    fetched_at_ms: now_ms,
-                    record,
-                };
                 if let Some(db) = db
                     && let Ok(raw) = serde_json::to_string(&cache)
                     && raw.len() <= discovery::DISCOVERY_BODY_CAP
@@ -492,24 +594,37 @@ impl GoCatalog {
                 }
                 state.cache = Some(cache);
                 state.failure = None;
-                Self::view(state.cache.as_ref(), local, changed, None)
+                Self::view(state.cache.as_ref(), provider, local, changed, None)
             }
         }
     }
     fn view(
         cache: Option<&CacheRecord>,
+        provider: &str,
         local: &BTreeMap<String, Value>,
         changed: bool,
         failure: Option<discovery::DiscoveryFailure>,
     ) -> CatalogRead {
         CatalogRead {
-            models: cache.map(|c| c.record.models(local)).unwrap_or_default(),
-            fetched_at_ms: cache.map(|c| c.fetched_at_ms),
+            models: cache
+                .and_then(|c| c.provider(provider))
+                .map(|r| r.models(local))
+                .unwrap_or_default(),
+            fetched_at_ms: cache
+                .filter(|c| c.provider(provider).is_some())
+                .map(|c| c.fetched_at_ms),
             changed,
-            failure,
+            failure: failure.or_else(|| {
+                cache
+                    .filter(|c| c.provider(provider).is_none())
+                    .map(|_| discovery::DiscoveryFailure::InvalidResponse)
+            }),
         }
     }
 }
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod openai_tests;

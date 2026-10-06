@@ -69,7 +69,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: in_progress
-  - Evidence: evidence/T57/bindings.md — admitted fixed OpenAI Key/OAuth generation templates, Codex/native headers and stable account/captured token authority; public subscription catalog, default WS/fallback, full request preparation/runtime/actual-binary lanes remain pending.
+  - Evidence: evidence/T57/bindings.md / catalog.md — admitted fixed OpenAI Key/OAuth templates, Codex/native headers/stable account authority, one public source/cache and exact subscription-only model overlay through shared views/lookup/read-only listing; default WS/fallback, full per-request preparation/runtime/actual-binary lanes remain pending.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -290,8 +290,15 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
   source priority remain unchanged; `evidence/T57/bindings.md` is partial AUTH04.
 - Current binding checks: final adapters lib 645/0/1, auth04_ 1/0, strict workspace
   all-target Clippy/fmt/diff green. No actual model request or WS/live proof here.
-- Next checkpoint: public OpenAI catalog/subscription transform, native Responses
-  WS/HTTP and request preparation/all captured lanes, then actual CLI/TUI consumers.
+- Fifth checked slice: shared credential-free models.dev OpenAI slice/cache and exact
+  subscription-only catalog transform, finite captured leaves, connection/model/lookup
+  and protected metadata-only read-only listing. Independent previews do not refresh
+  unrelated accounts; shared cache changes publish without an unchanged-cache loop.
+- Current metadata checks: adapters lib649/0/1, auth04_5/0, go02_13/0, go05_8/0;
+  strict workspace all-target Clippy/fmt/diff green. `evidence/T57/catalog.md` remains
+  partial AUTH04, not native WS/actual request/login/live evidence.
+- Next checkpoint: native Responses WS/HTTP and request preparation/all captured
+  lanes with the restricted-error amendment, then actual CLI/TUI consumers.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

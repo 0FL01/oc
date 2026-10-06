@@ -10,21 +10,30 @@ pub(super) struct ProviderWork {
     task: Option<JoinHandle<Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure>>>,
     public_task:
         Option<JoinHandle<Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure>>>,
+    public_provider: &'static str,
 }
 
 pub(super) enum CatalogOutcome {
     Selected(crate::discovery::DiscoveryOutcome),
     Public(crate::discovery::DiscoveryOutcome),
+    OpenAi(crate::discovery::DiscoveryOutcome),
 }
 
 impl ProviderWork {
     pub(super) fn start(composition: &Composition, db: &Db) -> Self {
+        Self::start_requested(composition, db, None)
+    }
+
+    pub(super) fn start_requested(
+        composition: &Composition,
+        db: &Db,
+        requested: Option<&str>,
+    ) -> Self {
         let task = if composition.go_catalog.is_some() {
             let db = db.shared_handle();
-            let models = composition.generation.providers[crate::models_dev::PROVIDER]
-                .models
-                .clone();
-            Some(tokio::spawn(refresh_public(db, models)))
+            let id = composition.catalog.provider.clone();
+            let models = composition.generation.providers[&id].models.clone();
+            Some(tokio::spawn(refresh_public(db, id, models)))
         } else if composition.provider_state.catalog_status == ProviderStatus::Pending {
             let provider = composition.provider.clone();
             let models = composition.catalog.models.clone();
@@ -34,16 +43,28 @@ impl ProviderWork {
         } else {
             None
         };
-        let public_task = (composition.catalog.provider != crate::models_dev::PROVIDER
-            && composition.generation.public_go_enabled)
-            .then(|| composition.provider_views.get(crate::models_dev::PROVIDER))
-            .flatten()
-            .map(|view| {
-                let db = db.shared_handle();
-                let models = view.entry.models.clone();
-                tokio::spawn(refresh_public(db, models))
-            });
-        Self { task, public_task }
+        // Default background work remains Go's existing public GET. OpenAI uses
+        // that same cached response, or an explicit catalog request, not a new
+        // unrequested network job in unrelated/offline compositions.
+        let public_provider = if requested == Some(crate::models_dev::OPENAI) {
+            crate::models_dev::OPENAI
+        } else {
+            crate::models_dev::PROVIDER
+        };
+        let public_task = (composition.catalog.provider != public_provider
+            && composition.public_provider(public_provider))
+        .then(|| composition.provider_views.get(public_provider))
+        .flatten()
+        .map(|view| {
+            let db = db.shared_handle();
+            let models = view.entry.models.clone();
+            tokio::spawn(refresh_public(db, public_provider.into(), models))
+        });
+        Self {
+            task,
+            public_task,
+            public_provider,
+        }
     }
 
     pub(super) fn pending(&self) -> bool {
@@ -74,9 +95,10 @@ impl ProviderWork {
                     composition::LoadFailure::Configuration(diagnostic) => diagnostic,
                 })
         }
+        let openai = self.public_provider == crate::models_dev::OPENAI;
         tokio::select! {
             result = wait_task(&mut self.task) => result.map(CatalogOutcome::Selected),
-            result = wait_task(&mut self.public_task) => result.map(CatalogOutcome::Public),
+            result = wait_task(&mut self.public_task) => result.map(|o| if openai { CatalogOutcome::OpenAi(o) } else { CatalogOutcome::Public(o) }),
         }
     }
 
@@ -104,6 +126,7 @@ impl ProviderWork {
 
 async fn refresh_public(
     db: Db,
+    provider: String,
     models: BTreeMap<String, serde_json::Value>,
 ) -> Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure> {
     let owner = db.public_catalog();
@@ -111,9 +134,10 @@ async fn refresh_public(
         match crate::discovery::ReqwestDiscoveryClient::new(std::time::Duration::from_secs(10)) {
             Ok(client) => {
                 owner
-                    .refresh(
+                    .refresh_provider(
                         &db,
                         &client,
+                        &provider,
                         &models,
                         composition::go_catalog::now_ms(),
                         false,
@@ -121,7 +145,7 @@ async fn refresh_public(
                     .await
             }
             Err(_) => {
-                let mut read = owner.read(&models).await;
+                let mut read = owner.read_provider(&provider, &models).await;
                 read.failure = Some(crate::discovery::DiscoveryFailure::Network);
                 read
             }

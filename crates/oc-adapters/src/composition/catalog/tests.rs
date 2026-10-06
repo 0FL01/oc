@@ -60,6 +60,124 @@ async fn catalog_static_is_selection_independent_and_does_not_resolve_connection
 }
 
 #[tokio::test]
+async fn auth04_catalog_only_applies_method_overlay_without_resolving_credentials_or_mutating_store()
+ {
+    use crate::{
+        auth::{AuthScope, OPENAI_BASE_URL},
+        storage::{CredentialMaterial, Db},
+    };
+    struct Public;
+    impl discovery::DiscoveryClient for Public {
+        async fn get(
+            &self,
+            url: &str,
+            headers: &reqwest::header::HeaderMap,
+            _: Duration,
+        ) -> Result<(u16, Vec<u8>), discovery::DiscoveryError> {
+            assert_eq!(url, crate::models_dev::SOURCE);
+            assert_eq!(headers.len(), 1);
+            let models = ["gpt-5.4", "gpt-5.5"]
+                .into_iter()
+                .map(|id| {
+                    (
+                        id,
+                        json!({"id":id,
+                "name":id,"tool_call":true,"limit":{"context":10000,"output":2048}}),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            Ok((
+                200,
+                serde_json::to_vec(
+                    &json!({"openai":{"id":"openai","npm":"@ai-sdk/openai", "models":models}}),
+                )
+                .unwrap(),
+            ))
+        }
+    }
+    let (project, env) = fixture(
+        json!({"disabled_providers":["opencode-go"], "model":"openai/gpt-5.5",
+        "providers":{"openai":{"settings":{"apiKey":"{file:must-not-read}"}}}}),
+    );
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let owner = db.public_catalog();
+    owner
+        .refresh_provider(
+            &db,
+            &Public,
+            "openai",
+            &BTreeMap::new(),
+            super::super::go_catalog::now_ms(),
+            true,
+        )
+        .await;
+    let scope = AuthScope::admit("openai", OPENAI_BASE_URL).unwrap();
+    let key = db
+        .add_credential(
+            scope.namespace(),
+            "Key",
+            CredentialMaterial::Key {
+                key: "CANARY".into(),
+            },
+        )
+        .unwrap();
+    db.add_credential(
+        scope.namespace(),
+        "Subscription",
+        CredentialMaterial::OAuth {
+            access: "CANARY".into(),
+            refresh: Some("CANARY".into()),
+            expires_at: Some(i64::MAX),
+            method_id: Some("chatgpt-headless".into()),
+            metadata: None,
+        },
+    )
+    .unwrap();
+    db.create_session("pending-session").unwrap();
+    db.begin_turn("pending-turn", "pending-session", "do not recover")
+        .unwrap();
+    let before = db.get_pref(crate::models_dev::CACHE_KEY).unwrap();
+    let public = crate::models_dev::GoCatalog::read_only(Some(data.path()));
+    let listing = load_catalog_inner(
+        project.path(),
+        env.clone(),
+        Some(&public),
+        &Public,
+        Db::openai_subscription_read_only(data.path()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(listing.references, ["openai/gpt-5.5"]);
+    assert!(listing.complete);
+    let cold = crate::models_dev::GoCatalog::read_only(None);
+    let listing = load_catalog_inner(
+        project.path(),
+        env.clone(),
+        Some(&cold),
+        &Public,
+        Db::openai_subscription_read_only(data.path()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(listing.references, ["openai/gpt-5.5"]);
+    assert!(listing.complete);
+    db.activate_credential(scope.namespace(), &key.id).unwrap();
+    let listing = load_catalog_inner(
+        project.path(),
+        env,
+        Some(&public),
+        &Public,
+        Db::openai_subscription_read_only(data.path()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(listing.references, ["openai/gpt-5.4", "openai/gpt-5.5"]);
+    assert_eq!(db.get_pref(crate::models_dev::CACHE_KEY).unwrap(), before);
+    assert_eq!(db.list_sessions().unwrap().len(), 1);
+}
+
+#[tokio::test]
 async fn catalog_empty_disabled_and_missing_dynamic_key_have_distinct_outcomes() {
     for config in [
         json!({}),
@@ -142,7 +260,7 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
                 "local-only":{}, "remote/only":{"name":"Local Name"}}}
         }}),
     );
-    let listing = load_catalog_inner(root.path(), env, Some(&public), &client)
+    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false)
         .await
         .unwrap();
     assert!(listing.complete);
@@ -156,7 +274,7 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
     );
     assert_eq!(client.0.load(std::sync::atomic::Ordering::SeqCst), 1);
     let (root, env) = fixture(json!({"disabled_providers":["opencode-go"]}));
-    let listing = load_catalog_inner(root.path(), env, Some(&public), &client)
+    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false)
         .await
         .unwrap();
     assert!(listing.complete && listing.references.is_empty());

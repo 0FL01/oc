@@ -2186,6 +2186,42 @@ impl Db {
     /// SQLite's Unix VFS must map existing WAL shared memory read-only too;
     /// plain mode=ro may otherwise modify the live owner's -shm file.
     pub(crate) fn public_cache_read_only(root: &Path) -> Option<String> {
+        let conn = Self::public_read_only_connection(root)?;
+        match Self::get_pref_bounded_in(
+            &conn,
+            crate::models_dev::CACHE_KEY,
+            crate::discovery::DISCOVERY_BODY_CAP,
+        )
+        .ok()?
+        {
+            BoundedPref::Value(raw) => Some(raw),
+            _ => None,
+        }
+    }
+
+    /// A catalog-only consumer needs only the admitted method identity, never
+    /// token material or a refresh. Reuses the same protected read-only SQLite path.
+    pub(crate) fn openai_subscription_read_only(root: &Path) -> bool {
+        let Some(conn) = Self::public_read_only_connection(root) else {
+            return false;
+        };
+        let Ok(scope) =
+            crate::auth::AuthScope::admit(crate::models_dev::OPENAI, crate::auth::OPENAI_BASE_URL)
+        else {
+            return false;
+        };
+        conn.query_row(
+            "SELECT json_extract(tagged_value_json, '$.type') = 'oauth' AND refresh_pending = 0
+            AND json_extract(tagged_value_json, '$.methodID') IN ('chatgpt-browser', 'chatgpt-headless')
+            AND json_extract(tagged_value_json, '$.expires_at') > 0
+            FROM credential_accounts WHERE provider_namespace = ?1 AND active = 1",
+            [scope.namespace()],
+            |row| row.get::<_, bool>(0),
+        )
+        .unwrap_or(false)
+    }
+
+    fn public_read_only_connection(root: &Path) -> Option<Connection> {
         use std::os::unix::fs::MetadataExt;
         // SAFETY: geteuid has no preconditions and does not change process state.
         let uid = unsafe { libc::geteuid() };
@@ -2238,16 +2274,7 @@ impl Db {
         .ok()?;
         conn.busy_timeout(std::time::Duration::from_millis(100))
             .ok()?;
-        match Self::get_pref_bounded_in(
-            &conn,
-            crate::models_dev::CACHE_KEY,
-            crate::discovery::DISCOVERY_BODY_CAP,
-        )
-        .ok()?
-        {
-            BoundedPref::Value(raw) => Some(raw),
-            _ => None,
-        }
+        Some(conn)
     }
 
     /// Begin a turn (durable intent before any side effect).

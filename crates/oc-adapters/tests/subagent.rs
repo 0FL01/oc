@@ -286,6 +286,7 @@ fn make_harness(permissions: BTreeMap<String, Permission>) -> (Harness, Generati
         animations: None,
         providers: BTreeMap::new(),
         public_go_enabled: false,
+        public_openai_enabled: false,
         mcp: BTreeMap::new(),
         permissions,
         permission_rules: Default::default(),

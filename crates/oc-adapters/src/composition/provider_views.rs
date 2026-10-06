@@ -17,7 +17,7 @@ impl ProviderView {
     ) -> Result<(), LoadFailure> {
         let id = &self.catalog.provider;
         for request in self.provider.wire.requests.values_mut() {
-            super::provider_readiness::resolve_binding(
+            super::provider_readiness::capture_binding(
                 request,
                 id,
                 db,
@@ -28,7 +28,7 @@ impl ProviderView {
             )
             .await?;
         }
-        super::provider_readiness::resolve_binding(
+        super::provider_readiness::capture_binding(
             &mut self.provider,
             id,
             db,
@@ -157,6 +157,9 @@ impl Composition {
         if self.generation.public_go_enabled {
             ids.insert(crate::models_dev::PROVIDER.into());
         }
+        if self.generation.public_openai_enabled {
+            ids.insert(crate::models_dev::OPENAI.into());
+        }
         let roots = self
             .mcp_activation
             .roots
@@ -256,7 +259,14 @@ impl Composition {
                     name: view.entry.name.clone(),
                     env: Vec::new(),
                     models: view.entry.models.clone(),
-                    options: config::ProviderOptions::default(),
+                    options: config::ProviderOptions {
+                        base_url: if view.catalog.provider == crate::models_dev::OPENAI {
+                            view.entry.options.base_url.clone()
+                        } else {
+                            String::new()
+                        },
+                        ..config::ProviderOptions::default()
+                    },
                 });
             entry.options.redaction_material = view.entry.options.redaction_material.clone();
             entry.options.request_bindings = view.entry.options.request_bindings.clone();

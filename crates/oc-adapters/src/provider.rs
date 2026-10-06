@@ -516,6 +516,12 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    pub(crate) fn subscription(&self) -> bool {
+        self.wire
+            .openai
+            .as_ref()
+            .is_some_and(|binding| binding.subscription)
+    }
     /// Restore configured inputs, never reuse a previously resolved account key.
     pub(crate) fn restore_auth_input(&mut self) {
         let input = self.wire.auth_input.get_or_insert_with(|| AuthInput {

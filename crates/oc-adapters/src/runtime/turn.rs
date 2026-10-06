@@ -4484,12 +4484,57 @@ impl<'a> Runtime<'a> {
                         } else {
                             None
                         };
-                        match crate::models::lookup::execute_with_public(
+                        let openai = if crate::models::lookup::wants_openai_public(
+                            &published.config,
+                            &call.arguments,
+                        )
+                        .unwrap_or(false)
+                        {
+                            let owner = self.db.public_catalog();
+                            let entry = &published.config.providers[crate::models_dev::OPENAI];
+                            let mut read = match crate::discovery::ReqwestDiscoveryClient::new(
+                                std::time::Duration::from_secs(10),
+                            ) {
+                                Ok(client) => {
+                                    owner
+                                        .refresh_provider(
+                                            &self.db,
+                                            &client,
+                                            crate::models_dev::OPENAI,
+                                            &entry.models,
+                                            crate::composition::go_catalog::now_ms(),
+                                            false,
+                                        )
+                                        .await
+                                }
+                                Err(_) => {
+                                    let mut read = owner
+                                        .read_provider(crate::models_dev::OPENAI, &entry.models)
+                                        .await;
+                                    read.failure =
+                                        Some(crate::discovery::DiscoveryFailure::Network);
+                                    read
+                                }
+                            };
+                            crate::composition::openai_catalog::transform(
+                                &mut read.models,
+                                entry
+                                    .options
+                                    .request_bindings
+                                    .values()
+                                    .any(ResponsesConfig::subscription),
+                            );
+                            Some(read)
+                        } else {
+                            None
+                        };
+                        match crate::models::lookup::execute_with_catalogs(
                             &published.config,
                             catalog,
                             &call.arguments,
                             &secrets,
                             public.as_ref(),
+                            openai.as_ref(),
                         ) {
                             Ok(output) => ("completed", output),
                             Err(error) => ("failed", format!("error: {error}")),

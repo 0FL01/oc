@@ -34,6 +34,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
         tool_output: Default::default(),
         providers: BTreeMap::new(),
         public_go_enabled: false,
+        public_openai_enabled: false,
         mcp: BTreeMap::new(),
         permissions: BTreeMap::new(),
         permission_rules: Default::default(),

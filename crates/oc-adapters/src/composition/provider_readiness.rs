@@ -12,6 +12,30 @@ pub(super) async fn resolve_binding(
     fields: &[&str],
     stage: ServiceStage,
 ) -> Result<(), LoadFailure> {
+    resolve_binding_inner(request, id, db, env, (source, fields, stage), true).await
+}
+
+pub(super) async fn capture_binding(
+    request: &mut provider::ResponsesConfig,
+    id: &str,
+    db: &crate::storage::Db,
+    env: &BTreeMap<String, String>,
+    source: &str,
+    fields: &[&str],
+    stage: ServiceStage,
+) -> Result<(), LoadFailure> {
+    resolve_binding_inner(request, id, db, env, (source, fields, stage), false).await
+}
+
+async fn resolve_binding_inner(
+    request: &mut provider::ResponsesConfig,
+    id: &str,
+    db: &crate::storage::Db,
+    env: &BTreeMap<String, String>,
+    origin: (&str, &[&str], ServiceStage),
+    refresh: bool,
+) -> Result<(), LoadFailure> {
+    let (source, fields, stage) = origin;
     if request.base_url.is_empty() {
         request.wire.unsupported = true;
         return Ok(());
@@ -28,22 +52,34 @@ pub(super) async fn resolve_binding(
     let competing = request.headers.keys().any(|name| {
         name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
     });
-    scope
-        .resolve_request(
+    let environment = || {
+        env.get(if scope.is_openai() {
+            "OPENAI_API_KEY"
+        } else {
+            "OPENCODE_API_KEY"
+        })
+        .cloned()
+    };
+    let resolved = if refresh {
+        scope
+            .resolve_request(
+                db,
+                request.wire.auth_policy,
+                Some(&request.api_key),
+                competing,
+                environment,
+            )
+            .await
+    } else {
+        scope.resolve(
             db,
             request.wire.auth_policy,
             Some(&request.api_key),
             competing,
-            || {
-                env.get(if scope.is_openai() {
-                    "OPENAI_API_KEY"
-                } else {
-                    "OPENCODE_API_KEY"
-                })
-                .cloned()
-            },
+            environment,
         )
-        .await
+    };
+    resolved
         .map_err(|error| {
             failure(
                 source,
@@ -376,9 +412,7 @@ impl Composition {
         self.resolve_credentials(db).await?;
         state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
         self.provider_state = state;
-        if self.catalog.provider == crate::models_dev::PROVIDER {
-            self.capture_public_bindings();
-        }
+        self.attach_public_catalog(db).await;
         self.tui_chrome.provider =
             Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
         Ok(())
@@ -386,7 +420,7 @@ impl Composition {
 
     /// Only the original bounded discovery loop performs retries/negotiation.
     pub(crate) async fn refresh_provider(&mut self) -> Result<(), LoadFailure> {
-        if self.catalog.provider == crate::models_dev::PROVIDER {
+        if self.go_catalog.is_some() {
             return Ok(());
         }
         if self.provider_state.catalog_status != ProviderStatus::Pending {
@@ -430,13 +464,19 @@ impl Composition {
         } else if let Some(failure) = outcome.failure {
             trace::log("discovery.fail", &format!("class={failure:?}"));
         }
-        if self.catalog.provider == crate::models_dev::PROVIDER {
+        if self.public_provider(&self.catalog.provider) {
             self.provider_state.finish_public(&outcome);
         } else {
             self.provider_state.finish(&outcome);
         }
         self.catalog.models = outcome.models;
-        if self.catalog.provider == crate::models_dev::PROVIDER {
+        if self.catalog.provider == crate::models_dev::OPENAI {
+            super::openai_catalog::transform(
+                &mut self.catalog.models,
+                self.provider.subscription(),
+            );
+        }
+        if self.public_provider(&self.catalog.provider) {
             self.capture_public_bindings();
         }
         self.generation.warnings.extend(outcome.warnings);

@@ -63,12 +63,40 @@ pub(crate) fn wants_public(generation: &Generation, args: &Value) -> Result<bool
         }))
 }
 
+pub(crate) fn wants_openai_public(generation: &Generation, args: &Value) -> Result<bool, String> {
+    let input = parse(args)?;
+    Ok(generation.public_openai_enabled
+        && generation
+            .providers
+            .get(crate::models_dev::OPENAI)
+            .is_some_and(|entry| {
+                crate::auth::AuthScope::admit(crate::models_dev::OPENAI, &entry.options.base_url)
+                    .is_ok_and(|scope| scope.is_openai())
+            })
+        && input
+            .provider
+            .as_deref()
+            .is_none_or(|provider| provider.eq_ignore_ascii_case(crate::models_dev::OPENAI)))
+}
+
+#[cfg(test)]
 pub(crate) fn execute_with_public(
     generation: &Generation,
     selected: &ModelCatalog,
     args: &Value,
     secrets: &[String],
     public: Option<&crate::models_dev::CatalogRead>,
+) -> Result<String, String> {
+    execute_with_catalogs(generation, selected, args, secrets, public, None)
+}
+
+pub(crate) fn execute_with_catalogs(
+    generation: &Generation,
+    selected: &ModelCatalog,
+    args: &Value,
+    secrets: &[String],
+    public: Option<&crate::models_dev::CatalogRead>,
+    openai: Option<&crate::models_dev::CatalogRead>,
 ) -> Result<String, String> {
     let input = parse(args)?;
     let terms: Vec<_> = input
@@ -88,6 +116,7 @@ pub(crate) fn execute_with_public(
         .map(String::as_str)
         .chain(std::iter::once(selected.provider.as_str()))
         .chain(public.map(|_| crate::models_dev::PROVIDER))
+        .chain(openai.map(|_| crate::models_dev::OPENAI))
         .collect();
     for provider in providers {
         let configured = generation.providers.get(provider);
@@ -105,6 +134,8 @@ pub(crate) fn execute_with_public(
         }
         let models = if provider == crate::models_dev::PROVIDER && public.is_some() {
             public.map(|read| &read.models)
+        } else if provider == crate::models_dev::OPENAI && openai.is_some() {
+            openai.map(|read| &read.models)
         } else if provider == selected.provider {
             Some(&selected.models)
         } else {
@@ -158,7 +189,7 @@ pub(crate) fn execute_with_public(
             }
         }
         let model = json!({"id":format!("{provider}/{id}"),"name":model_name,"released":released,"family":family,
-            "variants":variants,"cost":if cost.is_empty(){Value::Null}else{Value::Object(cost)},
+            "variants":variants,"cost":if entry.get("cost").is_some_and(|v| v.as_array().is_some_and(Vec::is_empty)) {json!([])} else if cost.is_empty(){Value::Null}else{Value::Object(cost)},
             "status":entry.get("status").and_then(Value::as_str)});
         if groups.last().is_none_or(|g| g["id"] != provider) {
             groups.push(json!({"id":provider,"name":name,"models":[]}));
@@ -175,6 +206,11 @@ pub(crate) fn execute_with_public(
         result["publicCatalog"] = json!({"source":crate::models_dev::SOURCE,
             "fetchedAt":public.fetched_at_ms,"status":if public.failure.is_some() {"failed"}
                 else if public.fetched_at_ms.is_some() {"ready"} else {"unavailable"}});
+    }
+    if let Some(openai) = openai {
+        result["openaiPublicCatalog"] = json!({"source":crate::models_dev::SOURCE,
+            "fetchedAt":openai.fetched_at_ms,"status":if openai.failure.is_some() {"failed"}
+                else if openai.fetched_at_ms.is_some() {"ready"} else {"unavailable"}});
     }
     // Only schema-known public fields above survive. Redact before returning;
     // an oversized page fails explicitly rather than corrupting pagination.

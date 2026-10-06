@@ -22,6 +22,7 @@ mod catalog;
 #[cfg(test)]
 mod controls_tests;
 pub(crate) mod go_catalog;
+pub(crate) mod openai_catalog;
 mod provider_readiness;
 mod provider_views;
 pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
@@ -942,6 +943,10 @@ async fn load_stages(
         && enabled
             .as_ref()
             .is_none_or(|ids| ids.iter().any(|id| id == crate::models_dev::PROVIDER));
+    generation.public_openai_enabled = !disabled.iter().any(|id| id == crate::models_dev::OPENAI)
+        && enabled
+            .as_ref()
+            .is_none_or(|ids| ids.iter().any(|id| id == crate::models_dev::OPENAI));
     admit_local_mcp(
         &mut generation,
         &project,

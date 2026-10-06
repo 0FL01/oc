@@ -11,7 +11,7 @@
 | Markdown / transcript rendering и wrapping | `crates/oc-tui/src/messages.rs`; `styled.rs`, `history.rs`, `tools.rs`, `dcp_view.rs` только по зависимости | `messages/tests.rs`; `cargo test -p oc-tui --lib messages::`. Shared wrapping в `styled.rs`, не создавать второй renderer. |
 | Геометрия кадра, prompt/sidebar/tabs/toast | `crates/oc-tui/src/shell.rs`, затем `layout.rs` | `shell/tests.rs`; `cargo test -p oc-tui --lib shell::`. Не путать с shell executor в adapters. |
 | TUI lifecycle, bounded event loop, PanelIntent и tab deck | `crates/oc/src/tui_cmd.rs`; `clipboard.rs`/`bootstrap.rs` при необходимости; `headless.rs` — one SIGINT subscription across submit acknowledgement and event consumption | `tui_cmd/tests.rs` + `tui_cmd/tests/{routing,lifecycle}.rs`. `src/approval_tests.rs` сохраняет прежнее подключение; `cargo test -p oc --bin oc tui_cmd::`; target `responses` / AUD12 for headless cancellation. |
-| Application worker, generations, queries, title/session ownership | `crates/oc-adapters/src/application.rs`, `application_selection.rs`, `application_tab_deck.rs` | Review/file_suggestion/reload packs в `application/tests.rs`; existing conversation/fork test-файлы сохранены. `cargo test -p oc-adapters --lib application::`. Existing facade 5,312 lines: shared worker/generation admission remains coupled; T57 acknowledged auth bridge plus async binding calls grow it 51 lines, scoped behavior is in owner children. Next natural seam on substantial growth: acknowledged query dispatch versus worker transition loop, retaining one owner. |
+| Application worker, generations, queries, title/session ownership | `crates/oc-adapters/src/application.rs`, `application_selection.rs`, `application_tab_deck.rs` | Review/file_suggestion/reload packs в `application/tests.rs`; existing conversation/fork test-файлы сохранены. `cargo test -p oc-adapters --lib application::`. Existing facade 5,331 lines: shared worker/generation admission remains coupled; T57 auth bridge/bindings/public catalog grow it 70 lines, scoped behavior is in owner children. Next natural seam on substantial growth: acknowledged query dispatch versus worker transition loop, retaining one owner. |
 | Provider turn + admission + tool execution | `crates/oc-adapters/src/runtime.rs` — owner/entry API; `runtime/turn.rs` — admission/turn/tool/child flow; `runtime/tool_stream.rs` по stream | `runtime/tests.rs` сохраняет identity/VIS38 packs; `cargo test -p oc-adapters --lib runtime::`, target `runtime`. |
 | Owned concurrent foreground children / linked controls (T45/R3 atomic) | `runtime/turn/foreground.rs` — ordered admission/intents and explicit-child actual predecessor join; `runtime/children.rs` — same bounded owned execution for FG/BG, exact conversion releases only waiter, selected cancellation and plain permission-rejection propagation; `storage_children.rs` — immutable launch/current mode/terminal/notice projection; `application.rs` — exact linked read without Location selection; `oc-tui/src/child_view.rs`, `oc/src/tui_cmd/child_controls.rs` — bounded live family consumer, captured child view and parked parent | Existing `subagent` target and `tests/fixtures/{foreground_children,background_children}.rs`; owner `runtime/children/tests.rs`, `storage_children/tests.rs`, binary `tui_cmd/child_controls/tests.rs`. Actual normal ELF PTY `evidence/T45/native_child_controls.py`; frozen/current `child-controls.md`. Ctrl+G opens children after configured key priority; Ctrl+B converts exact child unless real Shell selected; Ctrl+C/Ctrl+D interrupt exact selected child; Esc hides/returns. Same-child continuation joins execution after conversion. |
 | Application-owned background children (T45/R3 atomic) | `runtime/children.rs` — same `Db::shared_handle`, retained actual joins and captured source resources; `storage_children.rs` — atomic admission/current terminal/delivery/recovery facts; `runtime/turn.rs`, `application.rs` — safe continuation notices and idle/fatal/shutdown ownership; `storage_fork.rs` — native launch provenance copied without child ownership; `oc-core/src/{queries,core_app}.rs` — typed family inventory/read/conversion/interrupt | Existing `subagent` target, `tests/fixtures/background_children.rs`, private `storage_children/tests.rs`; normal ELF `evidence/T45/native_background_children.py`, receipt `background-children.md`. Immutable running launch differs from current state; unknown effects never replay. Parent placement readiness waits for actual family terminal (`storage_session_move.rs`), preserving the transactional family guard and child source. Safe unfinished resumption and command routing remain subsequent atomics. |
@@ -110,7 +110,8 @@ compaction and recursive-fork tests cover it. `application.rs` currently exceeds
 5k because its supervisor/title paths retain one mutation owner; its qualified
 selection growth is still owner-local. Next natural seam is title preparation and
 catalog/query projection, not another supervisor or credential owner. `runtime/turn.rs`
-also exceeds 5k after qualified prepared attempts; target capture/preparation is its
+also exceeds 5k (5,109 lines after the shared public lookup, +45 in that slice);
+target capture/preparation is its
 next natural seam. Large turn/child futures are heap-pinned at execution boundaries.
 Nearest tests:
 `provider/{chat,messages,protocol}_tests.rs`, `application/{chat,messages}_wire_tests.rs`;
@@ -204,7 +205,14 @@ metadata is projected through `application/accounts.rs`. Nearest scenarios
 scope resolution with independent views; `provider.rs`/`provider/context.rs` project
 captured OpenAI account/session headers and replay authority. Nearest
 `auth/openai/binding_tests.rs`, `auth04_`, receipt `evidence/T57/bindings.md`.
-Public OpenAI catalog/default WS, actual CLI/TUI and live qualification still pending.
+`models_dev.rs` is the single public Go/OpenAI source/cache/flight owner;
+`composition/openai_catalog.rs` the exact subscription-only numeric overlay.
+`composition/{catalog,go_catalog,provider_views}.rs` and `models/lookup.rs` project
+that same source through read-only listings/captured views/model lookup. Protected
+metadata-only SQLite reads share `storage.rs`'s existing read-only connection guard.
+Nearest `models_dev/openai_tests.rs`, `composition/openai_catalog/tests.rs` and
+`composition/catalog/tests.rs`, filter `auth04_`; receipt `evidence/T57/catalog.md`.
+Default WS/all-lane preparation, actual CLI/TUI and live qualification still pending.
 
 ## Как обновлять
 

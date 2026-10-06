@@ -1832,15 +1832,29 @@ async fn start_worker_inner(
                         return Err(error);
                     }
                 };
-                let changed = match outcome {
+                let mut changed = match outcome {
                     provider_catalog::CatalogOutcome::Selected(outcome) => {
+                        let previous = (
+                            composition.catalog.models.clone(),
+                            composition.provider_state.clone(),
+                        );
                         composition.accept_provider_catalog(outcome);
-                        true
+                        previous
+                            != (
+                                composition.catalog.models.clone(),
+                                composition.provider_state.clone(),
+                            )
                     }
                     provider_catalog::CatalogOutcome::Public(outcome) => {
                         composition.accept_public_view(outcome)
                     }
+                    provider_catalog::CatalogOutcome::OpenAi(outcome) => {
+                        composition.accept_public_view_for(crate::models_dev::OPENAI, outcome)
+                    }
                 };
+                // The sole public source fetch contains both slices. Publish
+                // current cache projections without creating another GET.
+                changed |= composition.attach_public_catalog(&db).await;
                 runtime
                     .publish_provider_state(composition.provider_state.clone())
                     .map_err(|error| {
@@ -4165,10 +4179,15 @@ async fn worker(
             }
         };
         if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
-            || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if provider == crate::models_dev::PROVIDER && composition.generation.public_go_enabled))
+            || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if composition.public_provider(provider)))
             && !provider_work.pending()
         {
-            *provider_work = provider_catalog::ProviderWork::start(composition, db);
+            let requested = match &message {
+                InboxMsg::ProviderCatalog { provider, .. } => Some(provider.as_str()),
+                _ => None,
+            };
+            *provider_work =
+                provider_catalog::ProviderWork::start_requested(composition, db, requested);
         }
         // Only this typed command creates an explicit bounded manual trigger.
         // Refusal precedes Submit, turn acceptance and provider dispatch.

@@ -483,7 +483,7 @@ async fn go05_provider_views_keep_same_slash_id_and_scoped_auth_without_selectio
             .iter()
             .map(|row| row.provider.as_str())
             .collect::<Vec<_>>(),
-        ["opencode-go", "alpha", "beta"]
+        ["opencode-go", "alpha", "beta", "openai"]
     );
     assert!(!format!("{connections:?}").contains("PRIVATE_CANARY"));
     assert!(!format!("{connections:?}").contains("https://"));

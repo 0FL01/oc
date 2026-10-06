@@ -14,6 +14,7 @@ async fn ui07_completed_catalog_join_failure_is_not_suppressed_on_stop() {
     let mut work = ProviderWork {
         task: Some(task),
         public_task: None,
+        public_provider: crate::models_dev::PROVIDER,
     };
     let result = work.stop().await;
     let diagnostic = result.unwrap_err();
@@ -87,6 +88,7 @@ async fn go05_independent_public_job_publishes_only_its_view_and_stops_without_l
     let mut work = ProviderWork {
         task: Some(selected),
         public_task: Some(public_task),
+        public_provider: crate::models_dev::PROVIDER,
     };
     let CatalogOutcome::Public(outcome) =
         tokio::time::timeout(std::time::Duration::from_secs(1), work.wait())
@@ -129,6 +131,7 @@ async fn go05_independent_public_job_publishes_only_its_view_and_stops_without_l
     let mut retired = ProviderWork {
         task: None,
         public_task: Some(public_task),
+        public_provider: crate::models_dev::PROVIDER,
     };
     assert!(retired.pending() && !retired.selected_pending());
     notify.notified().await;

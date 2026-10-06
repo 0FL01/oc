@@ -361,6 +361,7 @@ fn generation() -> Generation {
         animations: None,
         providers: BTreeMap::new(),
         public_go_enabled: false,
+        public_openai_enabled: false,
         mcp: BTreeMap::new(),
         permissions: allow_all(),
         permission_rules: Default::default(),

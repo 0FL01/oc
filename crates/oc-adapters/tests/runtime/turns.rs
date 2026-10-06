@@ -1303,6 +1303,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
             animations: None,
             providers: BTreeMap::new(),
             public_go_enabled: false,
+            public_openai_enabled: false,
             mcp: BTreeMap::new(),
             permissions: [("read".to_string(), Permission::Allow)]
                 .into_iter()
@@ -1342,6 +1343,7 @@ async fn reload_applies_new_policy_and_guards_active_turn() {
                     animations: None,
                     providers: BTreeMap::new(),
                     public_go_enabled: false,
+                    public_openai_enabled: false,
                     mcp: BTreeMap::new(),
                     permissions: BTreeMap::new(),
                     permission_rules: Default::default(),

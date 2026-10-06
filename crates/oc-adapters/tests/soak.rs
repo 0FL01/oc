@@ -207,6 +207,7 @@ fn make_harness() -> (Harness, Generation) {
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),
         public_go_enabled: false,
+        public_openai_enabled: false,
         mcp: BTreeMap::new(),
         animations: None,
         permissions: allow_all(),
@@ -494,6 +495,7 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         config_diagnostics: Vec::new(),
         providers: BTreeMap::new(),
         public_go_enabled: false,
+        public_openai_enabled: false,
         mcp: [(
             "codex".to_string(),
             McpEntry {

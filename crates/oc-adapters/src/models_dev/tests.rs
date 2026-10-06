@@ -2,12 +2,12 @@ use super::*;
 use crate::discovery::{DiscoveryClient, DiscoveryError, DiscoveryFailure};
 use std::sync::{Arc, Mutex, atomic::AtomicUsize};
 
-struct PublicFixture {
+pub(super) struct PublicFixture {
     body: Mutex<Vec<u8>>,
-    calls: AtomicUsize,
+    pub(super) calls: AtomicUsize,
 }
 impl PublicFixture {
-    fn new(body: Value) -> Self {
+    pub(super) fn new(body: Value) -> Self {
         Self {
             body: Mutex::new(serde_json::to_vec(&body).unwrap()),
             calls: AtomicUsize::new(0),
@@ -33,7 +33,7 @@ impl DiscoveryClient for PublicFixture {
         Ok((200, self.body.lock().unwrap().clone()))
     }
 }
-fn model(id: &str, package: &str) -> Value {
+pub(super) fn model(id: &str, package: &str) -> Value {
     json!({"id":id,"name":id,"provider":{"npm":package,"api":"http://169.254.169.254/SECRET_API"},
         "limit":{"context":200000,"output":8192},"tool_call":true,
         "modalities":{"input":["text","image","pdf"],"output":["text"]},
@@ -42,7 +42,7 @@ fn model(id: &str, package: &str) -> Value {
         "headers":{"Authorization":"REMOTE_SECRET"},"env":["REMOTE_SECRET"],
         "settings":{"apiKey":"REMOTE_SECRET"}})
 }
-fn document() -> Value {
+pub(super) fn document() -> Value {
     let mut messages = model("messages", "@ai-sdk/anthropic");
     messages["reasoning_options"] =
         json!([{"type":"toggle"},{"type":"budget_tokens","min":1024,"max":4096}]);

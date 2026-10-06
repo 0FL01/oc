@@ -56,7 +56,8 @@ pub async fn load_catalog_cached(
                 LoadFailure::Configuration(diagnostic) => diagnostic,
             },
         )?;
-    load_catalog_inner(project, env, Some(&public), &client)
+    let subscription = data.is_some_and(crate::storage::Db::openai_subscription_read_only);
+    load_catalog_inner(project, env, Some(&public), &client, subscription)
         .await
         .map_err(|failure| match failure {
             LoadFailure::Configuration(diagnostic) => diagnostic,
@@ -69,7 +70,7 @@ async fn load_catalog_with_env(
     env: BTreeMap<String, String>,
 ) -> Result<CatalogListing, LoadFailure> {
     let client = discovery::ReqwestDiscoveryClient::new(Duration::from_secs(10)).unwrap();
-    load_catalog_inner(project, env, None, &client).await
+    load_catalog_inner(project, env, None, &client, false).await
 }
 
 async fn load_catalog_inner(
@@ -77,6 +78,7 @@ async fn load_catalog_inner(
     env: BTreeMap<String, String>,
     public: Option<&crate::models_dev::GoCatalog>,
     client: &impl discovery::DiscoveryClient,
+    subscription: bool,
 ) -> Result<CatalogListing, LoadFailure> {
     let admitted = admit_sources(project, &env)?;
     admit_dcp(&admitted.sources, &admitted.admitted_roots)?;
@@ -91,6 +93,27 @@ async fn load_catalog_inner(
     };
     if public.is_some() && include(&crate::models_dev::PROVIDER.to_string()) {
         dynamic.insert(crate::models_dev::PROVIDER.into());
+    }
+    let openai_requested = enabled
+        .as_ref()
+        .is_some_and(|ids| ids.iter().any(|id| id == crate::models_dev::OPENAI))
+        || admitted.sources.iter().any(|s| {
+            config::parse_jsonc(&s.text, &s.path).ok().is_some_and(|v| {
+                v.pointer("/provider/openai").is_some()
+                    || v.pointer("/providers/openai").is_some()
+                    || v.get("model")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|s| {
+                            models::parse_reference(s)
+                                .is_ok_and(|(p, _, _)| p == crate::models_dev::OPENAI)
+                        })
+            })
+        });
+    if public.is_some()
+        && include(&crate::models_dev::OPENAI.to_string())
+        && (include(&crate::models_dev::PROVIDER.to_string()) || openai_requested)
+    {
+        dynamic.insert(crate::models_dev::OPENAI.into());
     }
     let roots = source_roots(&admitted.admitted_roots, &admitted.source_authority);
     let mut generation =
@@ -161,29 +184,60 @@ async fn load_catalog_inner(
                 .models = outcome.models;
         }
     }
-    if let Some(public) = public
-        && let Some(entry) = generation.providers.get_mut(crate::models_dev::PROVIDER)
-    {
-        let read = public
-            .refresh_read_only(client, &entry.models, super::go_catalog::now_ms())
-            .await;
-        complete &= read.failure.is_none() && read.fetched_at_ms.is_some();
-        if let Some(error) = read.failure {
-            diagnostics.push(
-                match failure(
-                    crate::models_dev::SOURCE,
-                    &["models"],
-                    ServiceStage::ModelCatalog,
-                    match error {
-                        discovery::DiscoveryFailure::Network => ServiceCode::Transport,
-                        _ => ServiceCode::InvalidCatalog,
+    for id in [crate::models_dev::PROVIDER, crate::models_dev::OPENAI] {
+        if let Some(public) = public
+            && let Some(entry) = generation.providers.get_mut(id)
+            && (id == crate::models_dev::PROVIDER
+                || crate::auth::AuthScope::admit(id, &entry.options.base_url)
+                    .is_ok_and(|s| s.is_openai()))
+        {
+            if id == crate::models_dev::OPENAI
+                && entry.models.is_empty()
+                && generation
+                    .provenance
+                    .get(&format!("provider.{id}"))
+                    .map(String::as_str)
+                    == Some("native OpenAI preset")
+                && !openai_requested
+                && public
+                    .read_provider(id, &entry.models)
+                    .await
+                    .fetched_at_ms
+                    .is_none()
+            {
+                continue;
+            }
+            let read = public
+                .refresh_provider_read_only(client, id, &entry.models, super::go_catalog::now_ms())
+                .await;
+            if id == crate::models_dev::OPENAI
+                && read.fetched_at_ms.is_none()
+                && !openai_requested
+                && entry.models.is_empty()
+            {
+                continue;
+            }
+            complete &= read.failure.is_none() && read.fetched_at_ms.is_some();
+            if let Some(error) = read.failure {
+                diagnostics.push(
+                    match failure(
+                        crate::models_dev::SOURCE,
+                        &["models"],
+                        ServiceStage::ModelCatalog,
+                        match error {
+                            discovery::DiscoveryFailure::Network => ServiceCode::Transport,
+                            _ => ServiceCode::InvalidCatalog,
+                        },
+                    ) {
+                        LoadFailure::Configuration(diagnostic) => diagnostic,
                     },
-                ) {
-                    LoadFailure::Configuration(diagnostic) => diagnostic,
-                },
-            );
+                );
+            }
+            entry.models = read.models;
+            if id == crate::models_dev::OPENAI {
+                super::openai_catalog::transform(&mut entry.models, subscription);
+            }
         }
-        entry.models = read.models;
     }
     Ok(CatalogListing {
         references: references(&generation)?,

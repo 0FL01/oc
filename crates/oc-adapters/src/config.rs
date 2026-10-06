@@ -517,6 +517,8 @@ pub struct Generation {
     /// Public Go read-view admission from effective enabled/disabled filters.
     /// False for isolated runtime fixtures without source admission.
     pub public_go_enabled: bool,
+    /// Built-in public OpenAI metadata; never a foreign endpoint named openai.
+    pub public_openai_enabled: bool,
     /// MCP entries by id in sorted order.
     pub mcp: BTreeMap<String, McpEntry>,
     /// Legacy scalar policy/summary; runtime also requires `permission_rules`.
@@ -914,6 +916,16 @@ fn assemble_with_admission(
             ),
         );
     }
+    if enabled_providers.is_some_and(|ids| ids.contains(crate::models_dev::OPENAI)) {
+        providers.insert(
+            crate::models_dev::OPENAI.into(),
+            (
+                serde_json::json!({"npm":"@ai-sdk/openai", "name":"OpenAI",
+                "options":{"baseURL":crate::auth::OPENAI_BASE_URL}, "models":{}}),
+                "native OpenAI preset".into(),
+            ),
+        );
+    }
     let mut provider_origins: BTreeMap<String, String> = BTreeMap::new();
     // Unknown provider option keys: visible warnings, never a hard failure.
     let mut unknown_options: Vec<String> = Vec::new();
@@ -1087,7 +1099,11 @@ fn assemble_with_admission(
             }
             validate_provider(id, &entry)
                 .map_err(|error| diagnostic::LocatedError::new(path, error))?;
-            if id == crate::models_dev::PROVIDER {
+            if id == crate::models_dev::PROVIDER
+                || (id == crate::models_dev::OPENAI
+                    && crate::auth::AuthScope::admit(id, &entry.options.base_url)
+                        .is_ok_and(|s| s.is_openai()))
+            {
                 // The public source is not this connection. Metadata reads
                 // must never resolve even locally configured Go credentials.
                 out_providers.insert(
@@ -1096,7 +1112,14 @@ fn assemble_with_admission(
                         npm: entry.npm.clone(),
                         name: entry.name.clone(),
                         env: entry.env.clone(),
-                        options: ProviderOptions::default(),
+                        options: ProviderOptions {
+                            base_url: if id == crate::models_dev::OPENAI {
+                                entry.options.base_url.clone()
+                            } else {
+                                String::new()
+                            },
+                            ..ProviderOptions::default()
+                        },
                         models: entry.models.clone(),
                     },
                 );
@@ -1259,6 +1282,7 @@ fn assemble_with_admission(
             animations,
             providers: out_providers,
             public_go_enabled: false,
+            public_openai_enabled: false,
             mcp: out_mcp,
             permissions: out_perm,
             permission_rules,
