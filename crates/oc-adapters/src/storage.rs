@@ -47,6 +47,8 @@ mod instructions;
 mod session_move;
 #[path = "storage_shell_jobs.rs"]
 mod shell_jobs;
+#[path = "storage_terminals.rs"]
+mod terminals;
 #[path = "storage_tool_output.rs"]
 pub(crate) mod tool_output;
 #[path = "storage_turn_history.rs"]
@@ -534,6 +536,7 @@ impl Db {
         Self::tool_output_schema(&conn)?;
         Self::apply_turn_history_schema(&conn)?;
         Self::credentials_schema(&conn)?;
+        Self::terminals_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {
             Ok(()) => {}

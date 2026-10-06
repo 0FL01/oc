@@ -1,13 +1,13 @@
 # Goal: Native session-local interactive terminals
 
 Status: active
-Contract status freezes the approved finish line; execution status is `todo` in
-`progress/STATE.json`. T50 remains active and T44 remains PAUSED.
+Contract status freezes the approved finish line; execution status is `active` in
+`progress/STATE.json`. T53 is complete; T56 is next chronologically ready. T44 remains PAUSED.
 Source: owner request for full OC2 child-TUI/Subagents/Shell/Terminals parity,
 explicit choice «Включить Terminals» and instruction to record the detailed plan
 and commit/push, 2026-10-01. Donor OC2 v2.0.12 at
 `2670273ff17da96f85c5826ced57aa1b368754fa`.
-Last updated: 2026-10-01
+Last updated: 2026-10-06
 
 ## Objective
 
@@ -158,11 +158,15 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint and State
 
-- Plan frozen; T56 todo, R1–R4 pending, TERM01 NOT_RUN. No implementation/capture/live
-  calls performed for this amendment. Active T50 and PAUSED T44 are unchanged.
-- Next after an explicit safe scheduling handoff: one real create/input/output/exit
-  fixture and native dependency spike; establish owner/provenance/bounds, then add
-  selection/pane focus and resize/replay. Do not implement a visual-only tab first.
+- Execution authorized 2026-10-06: owner requests the next chronological logical T*
+  completed fully, commit/push each checked slice. HEAD `ea6b0b2cc`, tracked baseline
+  clean, T53 done, ready T56 precedes T57; `progress.py start T56` succeeded.
+- R1–R4 pending, TERM01 NOT_RUN. Next: existing libc Linux PTY primitives and pinned
+  MIT vt100 0.16.2 compile/provenance spike, then real create/input/output/exit fixture.
+  Bound control strings before the emulator (vte std OSC buffer otherwise grows).
+  No second store/framework or PTY library is required; reuse shell admission/env.
+- Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
+  impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
 - Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment
   and qualification order in T44 amendment and roadmap/M8.md. Consume qualified
   existing owner slices without requiring completion of all T45/T50/T44.

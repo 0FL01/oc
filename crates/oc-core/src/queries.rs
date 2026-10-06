@@ -13,6 +13,8 @@ mod mcp_lookup;
 pub use mcp_lookup::*;
 mod accounts;
 pub use accounts::*;
+mod terminals;
+pub use terminals::*;
 
 /// Bounded root-session picker projection; IDs remain routing keys.
 #[derive(Debug, Clone, PartialEq, Eq)]

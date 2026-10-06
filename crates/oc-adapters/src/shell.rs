@@ -127,6 +127,9 @@ pub struct PinnedCwd {
     pub(crate) path: PathBuf,
 }
 impl PinnedCwd {
+    pub(crate) fn descriptor(&self) -> std::os::fd::RawFd {
+        self.cwd.as_raw_fd()
+    }
     pub(crate) fn identity(&self) -> Result<[u64; 4], ShellError> {
         let root = self.root.metadata().map_err(|_| ShellError::BadCwd)?;
         let cwd = self.cwd.metadata().map_err(|_| ShellError::BadCwd)?;
@@ -477,7 +480,7 @@ impl Shell {
     }
 }
 
-fn exited_without_reap(pid: i32) -> Result<bool, ShellError> {
+pub(crate) fn exited_without_reap(pid: i32) -> Result<bool, ShellError> {
     // SAFETY: Linux siginfo_t accepts the all-zero empty WNOHANG result.
     let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
     // SAFETY: pid identifies this supervisor's live/unreaped child; info is a

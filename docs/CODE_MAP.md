@@ -172,6 +172,13 @@ retry or successful-step change. Evidence/receipt: `evidence/T53/go-live.md` and
 
 ## Как обновлять
 
+T56 PTY foundation: `oc-adapters/src/terminals.rs` owns bounded Linux descriptors,
+interactive process groups, joined drains and pinned vt100 cells/cursor/replay;
+`storage_terminals.rs` adds identity/selection/lifecycle only in the existing Db;
+`oc-core/src/queries/terminals.rs` is OS/UI-free DTOs. Nearest tests:
+`terminals/tests.rs`, filter `terminals::tests::`; partial receipt
+`evidence/T56/owner.md`. Application/frontend qualification remains T56 pending.
+
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.
 
 Обоснованное временное превышение 5k указывать в строке владельца: `path — причина связанности/риска — следующий естественный шов или условие пересмотра`. Это warning, не бессрочное разрешение растить монолит. Текущий список предупреждений и размерные изменения доступны через `python3 scripts/code_size.py --base <commit> --changed`.

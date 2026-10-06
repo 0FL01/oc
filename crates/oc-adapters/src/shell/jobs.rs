@@ -49,7 +49,7 @@ pub(crate) struct ProcessIdentity {
 }
 
 impl ProcessIdentity {
-    fn read(pid: i32, root: &Path) -> Option<Self> {
+    pub(crate) fn read(pid: i32, root: &Path) -> Option<Self> {
         if pid <= 1 {
             return None;
         }
@@ -103,6 +103,17 @@ impl ProcessIdentity {
         // This leader is not a child after restart; no invented successful wait.
         // Recovery always reports unknown execution, even after verified cleanup.
         "verified owned process group quarantined"
+    }
+
+    pub(crate) fn matches(&self, root: &Path) -> bool {
+        Self::read(self.pid, root).is_some_and(|p| {
+            p.start_ticks == self.start_ticks
+                && p.boot == self.boot
+                && p.uid == self.uid
+                && p.owner_root == self.owner_root
+                && p.owner_dev == self.owner_dev
+                && p.owner_ino == self.owner_ino
+        })
     }
 }
 

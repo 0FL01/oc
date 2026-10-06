@@ -32,6 +32,7 @@ pub mod runtime;
 pub mod shell;
 pub mod smoke;
 pub mod storage;
+pub mod terminals;
 pub mod tools;
 pub mod trace;
 pub mod tui_workspace;
