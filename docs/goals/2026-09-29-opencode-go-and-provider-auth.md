@@ -575,6 +575,22 @@ Evidence: `evidence/T53/accounts.md`; adapter 612/0/0, core 32/0/0, strict works
 clippy/fmt green. Partial R1/R5, not GO01/GO05/T53 PASS. Next: masked connect/account
 UI, qualified picker/selection and actual-binary full flow.
 
+### Masked account TUI checkpoint (2026-10-06)
+
+- Native `/connect` and `/accounts` use dedicated ephemeral masked input and
+  typed owner actions, never composer/editor history/copy. Cancellation and
+  rejection clear the key; activation, rename and confirmed removal use actual
+  SQLite accounts. Priority approval/question overlays retire secret input
+  without forwarding the triggering key/paste into another editor.
+- Actual configless binary PTY verifies cancel, masked add, ACK before model
+  picker (dismissed without selecting), rename, restart and final removal;
+  complete captured terminal output contains neither synthetic key. No generation
+  or configured discovery is dispatched.
+- Current gates: all native binary tests passed in the affected-crate run;
+  final TUI 439/0/0, actual account PTY 1/0, strict workspace all-target clippy,
+  fmt and diff checks pass. GO05 remains pending: qualified provider selection
+  and Go-filtered picker from a non-Go current connection are the next seam.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

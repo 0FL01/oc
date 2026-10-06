@@ -292,7 +292,7 @@ impl TuiState {
                     )
                 })
                 .collect(),
-            TuiPanel::Rename => Vec::new(),
+            TuiPanel::Rename | TuiPanel::Accounts => Vec::new(),
             TuiPanel::Mcps => self.mcp_options(),
             TuiPanel::None => Vec::new(),
             _ => crate::views::panel_lines(self)
@@ -1079,6 +1079,7 @@ impl TuiState {
 
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
+        self.clear_accounts();
         let was_open = self.panel != TuiPanel::None;
         self.wheel_motion = None;
         self.clear_transcript_selection();
@@ -1510,6 +1511,9 @@ impl TuiState {
         self.tab_down = None;
         self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
+        if self.panel == TuiPanel::Accounts {
+            return KeyOutcome::default();
+        }
         if self.panel == TuiPanel::Rename {
             let rect = crate::dialog::rename_geometry(area);
             let hit = if !rect.contains((event.column, event.row).into()) {
@@ -1671,6 +1675,13 @@ impl TuiState {
 
     /// Handle a bracketed paste as one bounded event (never per-char).
     pub fn handle_paste(&mut self, text: &str) -> KeyOutcome {
+        if self.panel == TuiPanel::Accounts {
+            if self.approvals.active().is_some() || self.questions.active().is_some() {
+                self.close_panel();
+                return KeyOutcome::default();
+            }
+            return self.paste_accounts(text);
+        }
         if self.approvals.active().is_some() {
             self.approvals.paste(text);
             return KeyOutcome::default();
@@ -1909,6 +1920,13 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.panel == TuiPanel::Accounts {
+            if self.approvals.active().is_some() || self.questions.active().is_some() {
+                self.close_panel();
+                return KeyOutcome::default();
+            }
+            return self.accounts_key(action);
+        }
         let mut action = action;
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
@@ -2568,6 +2586,7 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        self.clear_accounts();
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
@@ -2577,6 +2596,8 @@ impl TuiState {
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
+            CommandAction::OpenConnect => return self.open_accounts(true),
+            CommandAction::OpenAccounts => return self.open_accounts(false),
             CommandAction::OpenSettings => self.panel = TuiPanel::Settings,
             CommandAction::OpenPermissions => self.panel = TuiPanel::Settings,
             CommandAction::UndoConversation | CommandAction::RedoConversation => {
@@ -2700,6 +2721,13 @@ impl TuiState {
     /// Panel navigation: Up/Down move the panel cursor, Enter chooses,
     /// Esc closes; text and paste belong to the focused modal search.
     pub fn handle_panel_key(&mut self, action: KeyAction) -> KeyOutcome {
+        if self.panel == TuiPanel::Accounts {
+            if self.approvals.active().is_some() || self.questions.active().is_some() {
+                self.close_panel();
+                return KeyOutcome::default();
+            }
+            return self.accounts_key(action);
+        }
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
         }
@@ -3140,6 +3168,7 @@ impl TuiState {
                 }
             }
             TuiPanel::Rename => return self.handle_rename_key(KeyAction::Enter),
+            TuiPanel::Accounts => return self.accounts_key(KeyAction::Enter),
             TuiPanel::Agents if self.is_busy() => {
                 outcome.note = self
                     .command_unavailable(&CommandAction::OpenAgents)

@@ -2025,6 +2025,8 @@ fn measure_s07(archive: usize) -> S07Run {
     }
 }
 
+#[path = "pty_t39/accounts.rs"]
+mod accounts;
 #[path = "pty_t39/fatal_diagnostics.rs"]
 mod fatal_diagnostics;
 #[path = "pty_t39/inherited_selection.rs"]

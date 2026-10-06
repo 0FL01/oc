@@ -133,6 +133,12 @@ legacy display id only for absence. Tests: `application/configless_tests.rs`,
 `oc-tui/src/app/model_selection_tests.rs`, actual-binary configured-workspace and
 startup PTY. Missing optional connections are local state; invalid policy stays fatal.
 
+T53 masked connection UI lives in `oc-tui/src/app/accounts.rs` (ephemeral field,
+safe metadata and confirmation), with `dialog.rs` painting and binary
+`tui_cmd.rs` typed owner ACK routing. Tests: `app/accounts_tests.rs` and actual
+`oc/tests/pty_t39/accounts.rs`. It does not reuse composer/editor undo or copy.
+Cross-provider catalog switching remains the next selection-owner seam.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.

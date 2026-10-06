@@ -42,6 +42,13 @@ impl Default for ComposerSelection {
 }
 
 impl TuiState {
+    pub(super) fn account_provider(&self) -> String {
+        self.model_selection
+            .binding
+            .as_ref()
+            .map(|b| b.provider.clone())
+            .unwrap_or_else(|| "opencode-go".into())
+    }
     /// A new same-Location composer may remember an actually committed choice;
     /// another session's uncommitted picker draft never crosses this boundary.
     pub fn inherit_committed_model_choice(&mut self, old: &Self) {

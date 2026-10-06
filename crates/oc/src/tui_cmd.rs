@@ -2113,6 +2113,14 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::ProviderAccounts { provider, action } => {
+            let result = app.provider_accounts(provider, action).await;
+            if state.apply_provider_accounts(result.map_err(|_| ())) {
+                // Storage ACK precedes the picker; no model is committed here.
+                let snapshot = selection(app, state, SelectionAction::Current).await?;
+                state.apply_catalog(snapshot);
+            }
+        }
         PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,
         PanelIntent::OpenChild { selected } => {
             child_controls::open(app, state, loop_state, selected).await?

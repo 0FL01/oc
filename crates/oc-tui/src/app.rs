@@ -125,6 +125,8 @@ pub enum TuiPanel {
     Sessions,
     /// Focused single-line session title editor.
     Rename,
+    /// Masked connection and safe account metadata, outside composer state.
+    Accounts,
     /// Skill catalog (UI06).
     Skills,
     /// Current Location's actual MCP resource inventory and controls.
@@ -178,6 +180,10 @@ pub enum PanelIntent {
     },
     /// Load the model/agent catalog snapshot.
     LoadCatalog,
+    ProviderAccounts {
+        provider: String,
+        action: Option<oc_core::queries::AccountAction>,
+    },
     /// Rebuild the current Location without replacing the session or draft.
     ReloadConfiguration,
     /// Load the session list snapshot.
@@ -618,6 +624,7 @@ pub struct TuiState {
     input: String,
     editor: crate::editor::Editor,
     rename_input: String,
+    accounts: accounts::AccountsView,
     rename_editor: crate::editor::Editor,
     rename_pending: Option<String>,
     rename_selected: Option<String>,
@@ -823,6 +830,7 @@ impl TuiState {
             input: String::new(),
             editor: Default::default(),
             rename_input: String::new(),
+            accounts: accounts::AccountsView::default(),
             rename_editor: Default::default(),
             rename_pending: None,
             rename_selected: None,
@@ -1354,6 +1362,7 @@ impl TuiState {
     }
 }
 
+mod accounts;
 mod input;
 mod live;
 mod mcp;

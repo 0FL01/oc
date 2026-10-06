@@ -153,6 +153,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
             .collect(),
         TuiPanel::None => Vec::new(),
         TuiPanel::Rename => Vec::new(),
+        TuiPanel::Accounts => state.account_lines(),
         TuiPanel::Model => match &state.picker {
             Some(picker) => {
                 let mut out = vec![format!("model | {}", picker.status_line())];

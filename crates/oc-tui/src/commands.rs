@@ -30,6 +30,8 @@ pub enum CommandAction {
     Quit,
     /// Open the model picker.
     OpenModelPicker,
+    OpenConnect,
+    OpenAccounts,
     /// Open the declared variants of the effective model.
     OpenVariants,
     /// Create and attach a genuine empty application session.
@@ -186,6 +188,22 @@ pub const COMMANDS_BINDING: &str = "ctrl+p";
 pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "provider.connect",
+        title: "Connect OpenCode Go",
+        group: "System",
+        shortcuts: &[],
+        aliases: &["connect"],
+        action: CommandAction::OpenConnect,
+    },
+    CommandSpec {
+        id: "provider.accounts",
+        title: "Provider accounts",
+        group: "System",
+        shortcuts: &[],
+        aliases: &["accounts"],
+        action: CommandAction::OpenAccounts,
+    },
     CommandSpec {
         id: "settings.open",
         title: "Open settings",
@@ -508,7 +526,7 @@ mod tests {
             complete("/s"),
             ["sessions", "settings", "sidebar", "skills"]
         );
-        assert_eq!(complete("/a"), ["agent", "agents"]);
+        assert_eq!(complete("/a"), ["accounts", "agent", "agents"]);
         assert_eq!(complete("/d"), ["dcp", "dcp-compress"]);
         for command in super::REGISTRY {
             for alias in command.aliases {

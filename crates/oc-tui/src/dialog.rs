@@ -648,6 +648,21 @@ impl SelectList {
 }
 
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
+    if state.panel() == &TuiPanel::Accounts {
+        let rect = DialogFrame::rect(frame.area(), DialogSize::Medium, 16);
+        DialogFrame::paint(frame, rect, Theme::dark());
+        if rect.width >= 8 && rect.height >= 4 {
+            frame.render_widget(
+                Paragraph::new("Connect / accounts"),
+                Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1),
+            );
+            frame.render_widget(
+                Paragraph::new(state.account_lines().join("\n")),
+                Rect::new(rect.x + 2, rect.y + 3, rect.width - 4, rect.height - 3),
+            );
+        }
+        return;
+    }
     if state.panel() == &TuiPanel::Rename {
         render_rename(frame, state);
         return;
@@ -665,7 +680,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         TuiPanel::Variant => "Select variant",
         TuiPanel::Agents => "Select agent",
         TuiPanel::Sessions => "Sessions",
-        TuiPanel::Rename => unreachable!("rendered above"),
+        TuiPanel::Rename | TuiPanel::Accounts => unreachable!("rendered above"),
         TuiPanel::Skills => "Skills",
         TuiPanel::Mcps => "MCP servers",
         TuiPanel::Cards => "Tool cards",
