@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-06T22:49:38+00:00
-Active: T45
-
-Сверить Git status/diff до выполнения команд.
-Task: T45 — Остаток subagent system (T43 slices 5-8), DCP 3.2.0 donor qualification и defaults/controls (DCP12)
-Spec: docs/goals/2026-09-21-config-compat-and-subagents.md
-Evidence target: evidence/T45/report.md
-
-Frozen R3/R6–R10 and all supplements remain in the linked spec/M8, with SUB01/SUB02/CTX01/CTX02/PRM01/DCP10–DCP12 and mandatory workspace/resource gates unchanged. Existing foreground/background controls/recovery, builtins/Plan/profile binding/permissions, host context, quoted packs, RAW/HOT renewal/defaults/controls/DCP3.2.0 and shared instruction/file-family slices retain component receipts under evidence/T45. T53 is delivered: current normal debug/release chronological root/own-model-child consumer and nested instructions pass, workspace1712/0/11. Next approved remainder: preserve safe final restricted-provider diagnostic via existing child event/result/span owners, prove bounded reopen with historical retry inactive/no replay, then frozen outcome closure and checked commit/push. T44 visuals remain separately PAUSED; AUTH06 explicitly deferred, not waived/PASS; no new parser/store/DTO/retry owner, credential search or paid campaign. This compact navigation summary supersedes stale scheduling hints only, not the source contract.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 # T45 — chronological consumer qualified; safe child terminal event next
 
 ## Result
@@ -49,9 +35,3 @@ Commit/push this checked slice, then use existing `TurnReport.diagnostic` in the
 failed child live event with a fixed fallback. Prove restricted final reason after
 an earlier retry through Core events/bounded child read/reopen, no new generation
 or settled effect; run the mandatory gates and commit/push the next major slice.
-
-
-Ready (до 5): нет
-Blocked: T27, T43, T44, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

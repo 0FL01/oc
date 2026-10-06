@@ -1664,16 +1664,32 @@ impl<'a> Runtime<'a> {
                 "agent_color_index":lane.agent_color_index,
             });
             turn_log.agent_digest = lane.agent_digest.clone();
+            // Idle selection facts originally trail history. Acceptance gives
+            // them a next-message boundary at this new input, which is excluded
+            // from the rebuilt prior history below. Capture them in the owning
+            // journal before that input, for root and child continuation alike.
+            turn_log.input.extend(
+                self.db
+                    .effort_facts(&params.session, 0)?
+                    .into_iter()
+                    .filter(|fact| fact.before_message.as_deref() == Some(user_message.as_str()))
+                    .map(|fact| fact.item),
+            );
             turn_log.user_message = Some(user_message);
             turn_log
                 .input
                 .push(InputItem::message(InputRole::User, &params.prompt));
+            let instruction_position = if instruction_revision != 0 {
+                turn_log.input.len()
+            } else {
+                0
+            };
             self.db.checkpoint_instructions(
                 &turn_id,
                 &mut turn_log,
                 instruction_revision,
                 &instruction_sources,
-                usize::from(instruction_revision != 0),
+                instruction_position,
                 None,
             )?;
         }

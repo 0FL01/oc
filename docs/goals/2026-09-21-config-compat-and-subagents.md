@@ -2,7 +2,7 @@
 
 Status: active
 Source: user instruction 2026-09-21 ("исправить баги и убрать лимиты; далее реализовать систему саб агентов полностью"), plus upstream reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (tree SHA `2670273ff17da96f85c5826ced57aa1b368754fa`).
-Last updated: 2026-10-06
+Last updated: 2026-10-07
 
 ## Objective
 
@@ -138,8 +138,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: PRM01 pinned source-derived fixtures and captured requests for Build/custom/General/Explore, initial/nested AGENTS, changed/removed files, repeated read, compaction/Revert/restart and Location A→B. Assert actual content/order/roles/provenance, policy-filtered previews, no stale instructions and truthful tools; declared native differences remain separate from donor parity evidence.
   - Primary evidence supplement: reuse TOOL12's provider/tool-barrier same-task A→B→A and real draft/blank-Enter/captured-commit receipts. Assert the next root/own-model-child base/custom prompt, schemas/guidance, model-relative DCP budget and capability view agree, without duplicate fixed lanes, lost retained outcomes, foreign child changes or old-request reattribution. Model choice does not reload config or widen Plan/grants. T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired presentation remains separate and PAUSED.
   - Acceptance/evidence supplement (2026-10-02): consume T53/GO03's ordered chronological system/effort seam, distinct from initial system and top-level variant selection. PRM01 captures actual root/child instruction order with Responses developer updates, Chat escaped in-place user-text fallback and Messages native updates only when explicitly supported, otherwise the same lower-authority fallback. Unsupported or final-marker-mismatched effort history strips markers and uses captured current effort; supported matching history retains first marker.previous as top-level baseline and lowers updates, including reset/default, in position. Reuse GO03/GO04 wire/reopen receipts rather than own a second protocol/history parser; no guessed model allowlist or lost completed tool outcomes.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: delivered prompt/instruction/profile/file-family receipts under `evidence/T45/`; chronological consumer `evidence/T45/chronology.md` reproduces and fixes idle marker boundary loss and qualifies current normal debug/release root/own-model-child Responses/Chat/Messages requests plus nested-instruction regressions. Workspace1712/0/11, strict Clippy/fmt/release PASS; full task outcome review remains pending, no visual/live PASS.
 
 ### Long Horizon runtime and retry follow-up — approved 2026-10-02, pending
 
@@ -371,16 +371,16 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 - Built-ins/MCP follow-up (owner-approved 2026-10-01): after safe handoff, first freeze a no-custom-profile fixture for missing Plan/General/Explore and absent central MCP authority. Implement the shared builtin/default policy view, then captured schema/preview/effects and Plan lifecycle using the ordered M8 slices. Existing T50 dirty work, T55 scheduling priority, T44 PAUSED and all task statuses are unchanged; this delivery is plan-only.
 - CLI/profile follow-up (owner-approved 2026-10-01): after T50's minimum `oc models` catalog consumer, qualify one exact listed reference through R6 JSON/Markdown profile selection/request/reopen. Basic loader/profile normalization may proceed with shared fixtures before the CLI lands, but final binding evidence must cite the real CLI receipt. T50 active, T44 PAUSED, current dirty work and T55 safe-handoff priority are unchanged; no historical profile PASS qualifies this new end-to-end scenario.
 - Closes: smallest unresolved T45 slice of R3/R6–R10, not already verified R1/R2.
-- Smallest next action: after a safe scheduling handoff to T45, reconcile actual HEAD/foreground prerequisites and choose one unresolved slice from roadmap/M8.md. For R9/DCP11, first freeze kept/forgotten control facts and reproduce replacement resurrection; do not start with cap increases or a full archive rewrite. This plan-only amendment does not switch the active task (T50 at approval) or resume PAUSED T44.
+- Smallest next action: commit/push the checked R10 chronological consumer slice, then preserve the R3 safe terminal diagnostic via the existing child event/result/span owners and prove bounded reopen without retry resurrection. T53/GO03 is delivered; the previous T45 dependency is removed. AUTH06 is deferred, not waived; T44 remains PAUSED.
 - Expected evidence: assigned targeted scenario plus relevant crate/workspace gates; plan validators are not implementation PASS.
 - Stop or replan if: a slice crosses the stated authority/trust boundary or requires unknown side-effect replay; retain historical tests and record the precise donor/native difference.
 
 ## Current State
 
-- Resolved: R1/R2 warning fixtures remain verified by their historical evidence; T43 foreground prerequisites landed, but full R3/R6–R10 qualification is pending.
-- Last relevant evidence: pinned OC2/DCP research and read-only code inspection at b88dc0fe8; existing release/one-compression reports do not qualify the newly approved outcomes. No lifetime compress-call cap was found. Recursive summaries, covered-ID materialization, retained closed tool wire, inherited protection, asymmetric checkpoint measurement, stale reminders and full-before recovery are source-derived risks, not executed RED/PASS evidence. The 2026-09-30 amendment changes the target from mere flattening to intentional hot forgetting.
+- Resolved: historical R1/R2 and delivered T45 R3/R6–R10 component slices retain their factual receipts; full closure awaits the two remaining chronological/terminal diagnostic supplements, current gates and outcome review.
+- Last relevant evidence: current workspace **1712/0/11**, strict Clippy/fmt/release and actual normal debug/release chronological root/child six-case and nested-instruction proof in `evidence/T45/chronology.md`. The earlier delivered HOT/RAW/renewal/defaults/controls/profiles/context/child lifecycle receipts remain historical component evidence, not a new visual or real OAuth claim.
 - Blocker: none.
-- Next: T45 independently implements the ordered slices; T44 consumes owner-backed child/profile surfaces. Keep task statuses/dependencies and executed evidence unchanged in the plan-only delivery.
+- Next: finish/push the chronological slice, then the R3 terminal diagnostic slice and frozen outcome closure. T44 independently consumes the owner-backed surfaces only after explicit resume; no live AUTH06 requests or credential search.
 
 ## Material Decisions
 
@@ -413,6 +413,8 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 - 2026-09-21: `mode: subagent`/`all` definitions must load now (no diagnostic) even before execution lands, because the owner config uses them and requested "не блокировать".
 
 ## Checkpoint History
+
+- 2026-10-07: owner defers AUTH06 and requests accessible iterative work/checked commit+push slices. Resume T45 after delivered T53; actual normal ELF reproduces idle marker loss at nonprojected notice/current-input boundaries. Minimal existing storage/runtime fix and six root/child wire/reopen plus nested-instruction cases pass current normal debug/release, workspace1712/0/11, strict Clippy/fmt/release. Next: checked commit/push, R3 safe terminal event, then contract closure.
 
 - 2026-09-21: contract frozen; R1–R5 recorded; implementation delegated to subagents with orchestrator verification.
 - 2026-09-21: R1/R2 verified (`evidence/T43/report.md`); discovered extra owner shape `tavily-local_*` permission key and the 4 KiB `COMMAND_BYTES_CAP` invocation blocker, both fixed in-slice. Next: R3 slices 1–8.

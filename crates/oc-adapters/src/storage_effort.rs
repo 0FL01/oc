@@ -18,8 +18,9 @@ impl Db {
         let conn = self.conn.lock().expect("db mutex");
         let mut query = conn.prepare_cached(
             "SELECT e.seq, json_extract(e.payload, '$.effort_update'),
-               (SELECT m.payload FROM events m WHERE m.session_id=e.session_id
-                AND m.kind='message' AND m.seq>e.seq ORDER BY m.seq LIMIT 1)
+               (SELECT m.payload FROM events m JOIN messages text ON text.id=m.payload
+                WHERE m.session_id=e.session_id AND m.kind='message' AND m.seq>e.seq
+                AND text.role!='model_switch' ORDER BY m.seq LIMIT 1)
              FROM events e WHERE e.session_id=?1 AND e.kind='session_model_selected'
              AND e.seq>?2 AND json_valid(e.payload)
              AND json_type(e.payload,'$.effort_update')='object' ORDER BY e.seq",
@@ -47,3 +48,7 @@ impl Db {
         .collect()
     }
 }
+
+#[cfg(test)]
+#[path = "storage_effort/tests.rs"]
+mod tests;

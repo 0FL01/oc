@@ -91,9 +91,12 @@ wire binding and consumed by the common `provider.rs::stream_body` transport.
 
 Chronology: `application_selection.rs` commits typed effort metadata through the
 existing event transaction; `storage_effort.rs` and `runtime/context.rs` project
-durable positions, `runtime/turn.rs` captures busy updates, `provider/protocol.rs`
-lowers declared capabilities. Tests: `provider/protocol_tests.rs`,
-`application/live_switch_tests.rs`, `runtime/tests.rs` (`go03_` filters).
+durable positions (skipping nonprojected model-switch notices), `runtime/turn.rs`
+captures idle accepted-input and busy updates, `provider/protocol.rs` lowers declared
+capabilities. Tests: `provider/protocol_tests.rs`, `application/live_switch_tests.rs`,
+`runtime/tests.rs` (`go03_` filters), `storage_effort/tests.rs` (`prm01_`). Actual
+normal debug/release root/child wire/reopen consumer: `evidence/T45/native_chronology.py`,
+receipt `evidence/T45/chronology.md`.
 
 Durable wire authority: core `queries::{NativeProtocol,WireProvenance}` and adapter
 `ResponsesConfig::provenance` feed prepared receipts/TurnLog. `tools/model_history.rs`
