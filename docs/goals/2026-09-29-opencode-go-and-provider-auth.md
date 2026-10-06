@@ -550,6 +550,19 @@ not finish T53: configless/provider-qualified connect/accounts UI, actual binary
 qualification, full acceptance review and bounded GO06 live remain pending.
 Next slice: optional exact selection and configless startup through existing owners.
 
+### Unchosen local startup checkpoint (2026-10-06)
+
+Missing configuration/model and missing optional connection now preserve local
+Home/history without selecting a fallback. Optional composer query returns no
+model; unchosen submit/headless refuses before root/turn/title/tools. Invalid
+policy, malformed/security-refused transport and storage/recovery remain fatal.
+Existing Location rollback fixtures now exercise malformed mandatory policy,
+while actual startup PTY separately qualifies configless success and restoration.
+Evidence: `evidence/T53/configless.md`; workspace **1633 PASS / 0 FAIL / 10 IGNORED**,
+strict clippy/fmt/build/help green. Final adapter fence checks: 610 PASS.
+This is partial R5, not GO05/T53 PASS. Next: masked connect/account owner actions,
+provider-qualified selection and complete actual-binary connect flow.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

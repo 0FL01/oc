@@ -3340,11 +3340,11 @@ async fn home_location_switch_restores_choices_without_roots_and_first_turn_bind
     };
     std::fs::write(a.path().join("opencode.json"), config("main").to_string()).unwrap();
     std::fs::write(b.path().join("opencode.json"), config("other").to_string()).unwrap();
-    std::fs::write(
-        bad.path().join("opencode.json"),
-        config("missing").to_string(),
-    )
-    .unwrap();
+    // Missing optional selection is now a usable local view; malformed policy
+    // remains the fatal configuration case whose publication must roll back.
+    let mut bad_config = config("missing");
+    bad_config["permission"] = serde_json::json!({"read":123});
+    std::fs::write(bad.path().join("opencode.json"), bad_config.to_string()).unwrap();
     let (app, guard, _) = application::spawn_with_env(
         a.path(),
         data.path(),

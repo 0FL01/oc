@@ -27,7 +27,7 @@ pub(crate) fn now_ms() -> u64 {
 
 impl Composition {
     pub(crate) async fn attach_public_catalog(&mut self, db: &crate::storage::Db) {
-        if self.catalog.provider != PROVIDER {
+        if self.catalog.provider != PROVIDER || !self.generation.public_go_enabled {
             return;
         }
         let owner = db.public_catalog();

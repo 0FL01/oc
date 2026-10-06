@@ -294,6 +294,11 @@ impl Composition {
             // inspect this map, and public config Debug never renders its contents.
             entry.options.request_bindings = self.provider.wire.requests.clone();
         }
+        if self.provider.base_url.is_empty() {
+            // Model overrides were resolved independently above. With no base
+            // connection, local views remain usable but the base cannot send.
+            return Ok(());
+        }
         let scope = crate::auth::AuthScope::admit(id, &self.provider.base_url)
             .map_err(|_| invalid(source, &["provider", "options", "baseURL"]))?;
         let competing = self.provider.headers.keys().any(|name| {

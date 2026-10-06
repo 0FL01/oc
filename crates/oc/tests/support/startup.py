@@ -147,7 +147,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             code = child.wait(timeout=5)
             assert (code == 0) == (label in ('success', 'lock released', 'warning',
                                             'credential present', 'credential missing',
-                                            'credential empty env', 'credential empty literal')), (label, code)
+                                            'credential empty env', 'credential empty literal', 'missing config')), (label, code)
             assert termios.tcgetattr(slave) == original, (label, 'terminal not restored')
             print(f'{label}: exit {code}, terminal restored')
         finally:
@@ -235,7 +235,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     target = root / 'bad-location'
     target.mkdir()
     (target / 'opencode.json').write_text(json.dumps({
-        **fixture, 'model': 'fixture/LEAKME-MODEL-SECRET'}))
+        **fixture, 'model': 'fixture/LEAKME-MODEL-SECRET', 'permission': {'read': 123}}))
     broken = root / 'broken-location'
     broken.mkdir()
     (broken / 'opencode.json').write_text('{"apiKey":"LEAKME-CONFIG-SECRET", INVALID}')
@@ -248,7 +248,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
                        [str(damaged), 'fixture'], separators=(',', ':')),
                     'LEAKME-SELECTION-SECRET', 'fixture'))
     for name, destination, marker, reason in [
-        ('unknown model', target, 'LEAKME-MODEL-SECRET', 'Location configuration failed'),
+        ('malformed mandatory policy', target, 'LEAKME-MODEL-SECRET', 'Location configuration failed'),
         ('malformed config', broken, 'LEAKME-CONFIG-SECRET', 'Location configuration failed'),
         ('damaged selection', damaged, 'LEAKME-SELECTION-SECRET', 'Location storage failed'),
     ]:
@@ -297,7 +297,16 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
                      'Check opencode.json/jsonc'])
     config_file.write_text(json.dumps(fixture))
     config_file.unlink()
-    check('missing config', ['Native startup error', 'Configuration load failed'])
+    # No config is an unchosen local Home, not malformed mandatory policy. Keep
+    # this PTY qualification offline with the native owner's public-only cache.
+    with sqlite3.connect(data / 'oc.sqlite') as db:
+        db.execute('INSERT OR REPLACE INTO prefs(key,value,updated_at) VALUES (?,?,?)',
+                   ('public-catalog:https://models.dev/api.json:opencode-go:v1',
+                    json.dumps({'source': 'https://models.dev/api.json',
+                                'fetched_at_ms': int(time.time() * 1000),
+                                'record': {'id': 'opencode-go', 'npm': '@ai-sdk/openai-compatible', 'models': {}}}),
+                    'fixture'))
+    check('missing config', ['█▀▀█'], forbidden=('Native startup error', 'Configuration load failed'))
     config_file.write_text(json.dumps(fixture))
     (config / 'cli.json').write_text('{"session": INVALID}')
     check('cli config', ['Native startup error', 'Configuration load failed'])

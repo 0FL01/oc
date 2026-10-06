@@ -934,8 +934,14 @@ impl Effective {
                     Action::SelectAgent,
                 ),
             )
-        } else if !composition.catalog.models.contains_key(&self.model_id)
-            && composition.provider_state.catalog_status == oc_core::queries::ProviderStatus::Ready
+        } else if self.model_id.is_empty()
+            || (!composition.catalog.models.contains_key(&self.model_id)
+                && (composition.provider_state.catalog_status
+                    == oc_core::queries::ProviderStatus::Ready
+                    || !matches!(
+                        composition.catalog.provider.as_str(),
+                        crate::discovery::PROVIDER_ID | crate::models_dev::PROVIDER
+                    )))
         {
             (
                 self.model_id.as_str(),
@@ -1188,7 +1194,9 @@ impl Effective {
             },
             provider: composition.catalog.provider.clone(),
             models,
-            model_id: if issue.as_ref().is_some_and(|s| {
+            model_id: if self.model_id.is_empty() {
+                String::new()
+            } else if issue.as_ref().is_some_and(|s| {
                 s.diagnostic.code == oc_core::queries::ServiceCode::ModelUnavailable
             }) || (!composition.catalog.models.contains_key(&self.model_id)
                 && composition.provider_state.catalog_status

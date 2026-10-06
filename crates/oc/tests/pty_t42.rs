@@ -2080,7 +2080,13 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     assert!(render_screen(&restart.snapshot()).rows()[0].contains("Fixture session title"));
     let bad = fixture.root.path().join("invalid-deck-location");
     std::fs::create_dir(&bad).unwrap();
-    std::fs::write(bad.join("opencode.json"), r#"{"model":"fixture/unknown"}"#).unwrap();
+    // T53 makes unavailable model references local-view state. A malformed
+    // mandatory policy still exercises the atomic fatal-Location boundary.
+    std::fs::write(
+        bad.join("opencode.json"),
+        r#"{"model":"fixture/unknown","permission":{"read":123}}"#,
+    )
+    .unwrap();
     restart.send(format!("/location {}\r", bad.display()).as_bytes());
     wait_screen_row(&restart, "Location configuration failed", DEADLINE);
     assert!(
@@ -2777,7 +2783,11 @@ fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
     wait_screen_row(&pty, "draft after turn", DEADLINE);
     let bad = fixture.root.path().join("bad-deck-location");
     std::fs::create_dir(&bad).unwrap();
-    std::fs::write(bad.join("opencode.json"), r#"{"model":"fixture/unknown"}"#).unwrap();
+    std::fs::write(
+        bad.join("opencode.json"),
+        r#"{"model":"fixture/unknown","permission":{"read":123}}"#,
+    )
+    .unwrap();
     pty.send(&[0x7f; 64]);
     pty.send(format!("/location {}\r", bad.display()).as_bytes());
     wait_screen_row(&pty, "Location configuration failed", DEADLINE);
@@ -3025,7 +3035,7 @@ fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
     std::fs::create_dir(&bad).unwrap();
     std::fs::write(
         bad.join("opencode.json"),
-        r#"{"model":"fixture/LEAKME-MODEL"}"#,
+        r#"{"model":"fixture/LEAKME-MODEL","permission":{"read":123}}"#,
     )
     .unwrap();
     let metrics = fixture.root.path().join("location-home-metrics.json");

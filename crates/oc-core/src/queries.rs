@@ -501,7 +501,8 @@ pub struct CatalogSnapshot {
     pub provider: String,
     /// Sorted models.
     pub models: Vec<ModelEntry>,
-    /// Effective model id.
+    /// Legacy presentation id; empty when no model is selected. Execution must
+    /// use an explicitly committed reference, not choose a catalog candidate.
     pub model_id: String,
     /// Effective variant.
     pub variant: Option<String>,
@@ -513,6 +514,18 @@ pub struct CatalogSnapshot {
     pub commands: Vec<String>,
     /// Descriptions for the admitted commands in this generation; no templates.
     pub command_descriptions: BTreeMap<String, String>,
+}
+
+impl CatalogSnapshot {
+    /// Optional provider-qualified composer selection, independent of the
+    /// catalog/connection view. An empty first-run display is not a model.
+    pub fn selected_model(&self) -> Option<ModelRef> {
+        (!self.model_id.is_empty()).then(|| ModelRef {
+            provider: self.provider.clone(),
+            id: self.model_id.clone(),
+            variant: self.variant.clone(),
+        })
+    }
 }
 
 /// Presentation-only settings; no runtime policy or credentials.

@@ -123,6 +123,12 @@ Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source 
 generation and configured discovery share its DNS pin and peer guard. Private boundary,
 redirect/no-forwarding and anonymous discovery tests: `endpoint/tests.rs`.
 
+T53 unchosen startup stays in `composition.rs` and application selection admission;
+`CatalogSnapshot::selected_model()` is the optional composer query, with empty
+legacy display id only for absence. Tests: `application/configless_tests.rs`,
+`oc-tui/src/app/model_selection_tests.rs`, actual-binary configured-workspace and
+startup PTY. Missing optional connections are local state; invalid policy stays fatal.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.

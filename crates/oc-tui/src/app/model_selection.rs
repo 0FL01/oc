@@ -4,6 +4,10 @@ use super::*;
 use oc_core::queries::{ModelCommit, ModelRef, SelectionBinding};
 use std::collections::{BTreeMap, VecDeque};
 
+#[cfg(test)]
+#[path = "model_selection_tests.rs"]
+mod tests;
+
 pub(super) struct ComposerSelection {
     caller: u64,
     binding: Option<SelectionBinding>,
@@ -87,11 +91,7 @@ impl TuiState {
         if !compatible {
             self.model_selection = ComposerSelection::default();
         }
-        self.model_selection.committed = Some(ModelRef {
-            provider: snapshot.provider.clone(),
-            id: snapshot.model_id.clone(),
-            variant: snapshot.variant.clone(),
-        });
+        self.model_selection.committed = snapshot.selected_model();
         if !snapshot.model_id.is_empty() {
             self.remember_committed_model(
                 binding.agent_id.clone(),

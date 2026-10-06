@@ -666,14 +666,6 @@ async fn load_stages(
         source_authority,
     } = admit_sources(project, &parent_env)?;
     let source_roots = source_roots(&admitted_roots, &source_authority);
-    if sources.is_empty() {
-        return Err(failure(
-            &project.to_string_lossy(),
-            &["document"],
-            ServiceStage::Config,
-            ServiceCode::MissingConfiguration,
-        ));
-    }
     let DcpAdmission {
         config: dcp_config,
         warnings: dcp_warnings,
@@ -901,36 +893,36 @@ async fn load_stages(
         None => return Err(invalid(&selected_source, &["default_agent"])),
     };
 
-    let selected = match selected_agent
+    let selected = selected_agent
         .as_ref()
         .and_then(|agent| agent.model.clone())
-        .or(selected)
-    {
-        Some(selected) => selected,
-        None => {
-            return Err(failure(
-                &selected_source,
-                &["model"],
-                ServiceStage::Config,
-                ServiceCode::MissingConfiguration,
-            ));
+        .or(selected);
+    // The connection/catalog view is independent of selection. An empty legacy
+    // display id means no model, never an invented executable model reference.
+    let (provider_id, model_id, embedded_variant) = match selected.as_deref() {
+        Some(selected) => {
+            models::parse_reference(selected).map_err(|_| invalid(&selected_source, &["model"]))?
         }
+        None => (crate::models_dev::PROVIDER, "", None),
     };
-    let (provider_id, model_id, embedded_variant) =
-        models::parse_reference(&selected).map_err(|_| invalid(&selected_source, &["model"]))?;
-    let selected_variant = embedded_variant.map(str::to_string).or_else(|| {
-        selected_agent
-            .as_ref()
-            .and_then(|agent| agent.variant.clone())
-    });
-    if disabled.iter().any(|id| id == provider_id)
+    let selected_variant = (!model_id.is_empty())
+        .then(|| {
+            embedded_variant.map(str::to_string).or_else(|| {
+                selected_agent
+                    .as_ref()
+                    .and_then(|agent| agent.variant.clone())
+            })
+        })
+        .flatten();
+    let provider_enabled = !(disabled.iter().any(|id| id == provider_id)
         || enabled
             .as_ref()
-            .is_some_and(|ids| !ids.iter().any(|id| id == provider_id))
-    {
-        return Err(invalid(&selected_source, &["enabled_providers"]));
-    }
-    let selected_providers = HashSet::from([provider_id.to_string()]);
+            .is_some_and(|ids| !ids.iter().any(|id| id == provider_id)));
+    let selected_providers = if provider_enabled {
+        HashSet::from([provider_id.to_string()])
+    } else {
+        HashSet::new()
+    };
     trace::log("provider.selected", "configured=true");
     let (mut generation, terminal_copy) = config::assemble_admitted_with_terminal_copy(
         &sources,
@@ -993,15 +985,23 @@ async fn load_stages(
             "native dcp config".to_string(),
         );
     }
+    let missing_entry = config::ProviderEntry {
+        npm: None,
+        name: None,
+        env: Vec::new(),
+        options: Default::default(),
+        models: Default::default(),
+    };
     let entry = generation
         .providers
         .get(provider_id)
-        .ok_or_else(|| invalid(&selected_source, &["model", "provider"]))?;
+        .unwrap_or(&missing_entry);
     let provider_source = generation
         .provenance
         .get(&format!("provider.{provider_id}"))
-        .expect("provider provenance");
-    let provider = provider::ResponsesConfig {
+        .map(String::as_str)
+        .unwrap_or("unavailable configured provider");
+    let mut provider = provider::ResponsesConfig {
         headers: entry.options.headers.clone(),
         set_cache_key: entry.options.set_cache_key.unwrap_or(false),
         wire: config::provider_wire(provider_id, entry)
@@ -1019,18 +1019,25 @@ async fn load_stages(
         connect_timeout: Duration::from_secs(10),
         allow_private: parent_env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
     };
-    let url = reqwest::Url::parse(&provider.base_url).map_err(|_| {
-        invalid(
-            provider_source,
-            &["provider", "entry", "options", "baseURL"],
-        )
-    })?;
-    if !matches!(url.scheme(), "http" | "https")
-        || url.host_str().is_none()
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.query().is_some()
-        || url.fragment().is_some()
+    if provider.base_url.is_empty() {
+        provider.wire.unsupported = true;
+    }
+    let url = (!provider.base_url.is_empty())
+        .then(|| reqwest::Url::parse(&provider.base_url))
+        .transpose()
+        .map_err(|_| {
+            invalid(
+                provider_source,
+                &["provider", "entry", "options", "baseURL"],
+            )
+        })?;
+    if let Some(url) = &url
+        && (!matches!(url.scheme(), "http" | "https")
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.query().is_some()
+            || url.fragment().is_some())
     {
         return Err(invalid(
             provider_source,
@@ -1052,7 +1059,7 @@ async fn load_stages(
     })?;
     trace::log(
         "provider.base_url",
-        &format!("scheme={} configured=true", url.scheme()),
+        &format!("configured={}", url.is_some()),
     );
     trace::log(
         "provider.headers",
@@ -1062,16 +1069,6 @@ async fn load_stages(
         provider: provider_id.to_string(),
         models: entry.models.clone(),
     };
-    if provider_id != discovery::PROVIDER_ID && provider_id != crate::models_dev::PROVIDER {
-        models::select_model(&catalog, model_id).map_err(|_| {
-            failure(
-                &selected_source,
-                &["model"],
-                ServiceStage::Admission,
-                ServiceCode::ModelUnavailable,
-            )
-        })?;
-    }
     let provider_state = ProviderState::new(
         provider_id,
         generation
@@ -2724,19 +2721,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn missing_config_and_missing_model_are_errors() {
+    async fn missing_config_and_missing_model_preserve_an_unchosen_local_view() {
         let dir = tempfile::tempdir().expect("fixture");
-        let error = load_with_env(dir.path(), BTreeMap::new())
+        let local = load_with_env(dir.path(), BTreeMap::new())
             .await
-            .map(|_| ())
-            .expect_err("missing config");
-        assert!(error.contains("missing_configuration") && error.contains("document"));
+            .expect("configless local composition");
+        assert!(local.model_id.is_empty());
+        assert!(local.variant.is_none());
+        assert_eq!(local.catalog.provider, crate::models_dev::PROVIDER);
+        assert!(local.catalog.models.is_empty());
         std::fs::write(dir.path().join("opencode.json"), "{}").expect("config");
-        let error = load_with_env(dir.path(), BTreeMap::new())
+        let local = load_with_env(dir.path(), BTreeMap::new())
             .await
-            .map(|_| ())
-            .expect_err("missing model");
-        assert!(error.contains("missing_configuration") && error.contains("model"));
+            .expect("empty config is not malformed policy");
+        assert!(local.model_id.is_empty());
+        assert!(local.variant.is_none());
     }
 
     /// Subagent S3: every admitted agent stays in the catalog, the depth knob
