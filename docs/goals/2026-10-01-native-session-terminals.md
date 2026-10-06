@@ -1,8 +1,8 @@
 # Goal: Native session-local interactive terminals
 
-Status: active
-Contract status freezes the approved finish line; execution status is `active` in
-`progress/STATE.json`. T53 is complete; T56 is next chronologically ready. T44 remains PAUSED.
+Status: complete
+Frozen R1–R4 / TERM01 verified; execution closure is recorded in progress/STATE.json
+and evidence/T56/report.md. T56 followed completed T53 chronologically. T44 remains PAUSED.
 Source: owner request for full OC2 child-TUI/Subagents/Shell/Terminals parity,
 explicit choice «Включить Terminals» and instruction to record the detailed plan
 and commit/push, 2026-10-01. Donor OC2 v2.0.12 at
@@ -50,8 +50,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: TERM01 real PTY fixture verifies shell/cwd, IDs/ownership,
     inventory, genuine byte exchange and exit/reap; existing shell security and
     A02/A10/A13 regressions are reused, not reimplemented.
-  - Status: in_progress
-  - Evidence: evidence/T56/owner.md, application.md, frontend.md and term01.md — real native owner, acknowledged source/epoch controls, retained-child creation and current debug/release actual-binary shell/cwd/env/identity/byte exchange; final workspace/closure pending.
+  - Status: verified
+  - Evidence: evidence/T56/report.md and owner/application/frontend/term01 receipts — actual native owner, scoped acknowledged controls, retained-child source, current debug/release shell/cwd/env/identity/byte exchange, full final workspace green.
 
 - R2: The real frontend selects, creates, hides/shows and focuses terminals.
   - Source: donor Terminals/session-terminal/session-frame/keymap U80–U83/U88.
@@ -87,8 +87,8 @@ required outcome is resolved and affected constraints remain satisfied.
     control bytes, observes child output, switches/hides/reopens, and independently
     checks process identity, no duplicate creation and focus/draft preservation.
     T44 reuses the same fixture for paired visual qualification, not a reverse gate.
-  - Status: in_progress
-  - Evidence: evidence/T56/frontend.md, term01.md and signals.md — lower composer, captured child close/target, raw control/leader/focus/draft, last-toggle, remount/exit and real-owner consumer; inherited-ignore/mask correction checked in debug, fresh release/full workspace/closure pending.
+  - Status: verified
+  - Evidence: evidence/T56/report.md and frontend/term01/signals receipts — actual lower composer and captured child route/target, raw controls/configured leader/focus/draft, last-toggle/remount/exit; forced ignored/masked parent policy passes current debug/release and full workspace.
 
 - R3: VT screen, output replay and resize are native and bounded.
   - Source: donor terminal-pane/session-frame and schema U82/U83/U85.
@@ -109,8 +109,8 @@ required outcome is resolved and affected constraints remain satisfied.
     output, delayed attach, bounded floods, input during attach and resize; assert
     screen/cursor/ordered bytes and actual child size, then resource/cleanup facts.
     T44 owns full paired pane/list geometry, RGB/attributes and cursor evidence.
-  - Status: in_progress
-  - Evidence: evidence/T56/owner.md, frontend.md and term01.md — native VT/Unicode/styles/cursor, atomic byte-cursor screen/gap, owned DSR, host escape protection, flood/hidden drain and actual child resize in both binaries; final workspace/closure pending.
+  - Status: verified
+  - Evidence: evidence/T56/report.md and owner/frontend/term01 receipts — native VT/Unicode/styles/cursor, atomic replay/ready/gap, owned DSR, host escape protection/flood/hidden drain and actual resize in both binaries; semantic dark/light ANSI mapping and final workspace green.
 
 - R4: Lifecycle remains safe across view changes, shutdown and crash/restart.
   - Source: GOAL A02/A10/no unknown-effect replay and explicit no-daemon boundary.
@@ -128,8 +128,8 @@ required outcome is resolved and affected constraints remain satisfied.
     hidden-pane output and stale/session-target controls, plus independent process/
     descriptor checks and A10 measurements. Runtime difference from donor daemon
     persistence is disclosed; it cannot waive pane/list visual qualification.
-  - Status: in_progress
-  - Evidence: evidence/T56/owner.md, application.md and term01.md — original PTY across Location/reload, checked bounded cleanup/failure identity retention, real remove/exit/shutdown, two-orphan crash reconciliation/no replay, stale PID survives and independent FD/thread/RSS/idle facts; final workspace/closure pending.
+  - Status: verified
+  - Evidence: evidence/T56/report.md and application/term01/signals receipts — original PTY across Location/reload, checked bounded/sticky failure handling, actual remove/exit/shutdown/two-orphan crash/no replay/stale PID plus independent FD/thread/RSS/idle facts; all final gates green.
 
 ### Constraints and non-goals
 
@@ -158,6 +158,15 @@ required outcome is resolved and affected constraints remain satisfied.
 
 ## Current Checkpoint and State
 
+Authoritative closure 2026-10-06, reviewed/pushed implementation `be5ec25fb`:
+**COMPLETE**, every frozen R1–R4 / TERM01 verified. Current workspace **1665/0/11**
+(43 result records), current real debug/rebuilt release full PTY fixture PASS,
+strict workspace all-target Clippy/fmt/locked builds/both help green. No known
+T56 blocker remains. [Report](../../evidence/T56/report.md) is primary closure;
+component receipts preserve failed experiments and their actual corrections.
+Stop substantive T56 work. T44 PAUSED, paired VIS39 not waived/PASS, no overall
+READY and no T57/adjacent-task completion. The checkpoints below are historical.
+
 - Execution authorized 2026-10-06: owner requests the next chronological logical T*
   completed fully, commit/push each checked slice. HEAD `ea6b0b2cc`, tracked baseline
   clean, T53 done, ready T56 precedes T57; `progress.py start T56` succeeded.
@@ -184,8 +193,9 @@ required outcome is resolved and affected constraints remain satisfied.
   migration12. Test-only correction preserves all schema/legacy/idempotence
   assertions; `child_schema_` 3/0 and strict impacted Clippy/fmt green, documented
   in evidence/T56/migrations.md. The full final gates must still be rerun.
-- Next: current full locked workspace gates, frozen-outcome closure and finish
-  report/checkpoint. All R1–R4 remain in_progress until that closure; no DONE claim.
+- Final full workspace/final gates passed after the migration test-only slice
+  `be5ec25fb`; exact totals and the final success marker were independently checked.
+  The closure above supersedes earlier in_progress/pending checkpoints.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
   impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
 - Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment
@@ -197,5 +207,7 @@ required outcome is resolved and affected constraints remain satisfied.
 - 2026-10-01: owner explicitly includes Terminals. Narrowly supersede the old T50
   arbitrary-terminal-manager exclusion only for user-controlled session PTYs T56;
   shell-tool semantics and credential/permission boundaries are unchanged.
-- Final implementation status: pending. Plan checks/commit/push are not TERM01,
-  T44/VIS39 visual PASS or product READY.
+- Final implementation status: complete. All R1–R4 verified with current primary
+  evidence, affected constraints retained and diff inside the approved envelope.
+  Every checked implementation slice pushed; factual report/progress closes T56.
+  This does not claim T44/VIS39 visual PASS or overall product READY.

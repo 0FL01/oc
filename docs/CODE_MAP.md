@@ -182,8 +182,10 @@ including child-close-before-target. Nearest tests: `terminals/tests.rs`,
 `application/terminal_tests.rs`, `runtime/children/tests.rs`, `terminal_view/tests.rs`
 and binary `tui_cmd/terminal_controls/tests.rs`, filter `term01_`. Actual native
 debug/release PTY/process/crash fixture: `oc/tests/terminals.rs` with
-`support/terminals.py`. Receipts: `evidence/T56/{owner,application,frontend,term01}.md`;
-full workspace/closure remains the final T56 gate, VIS39 is still T44-owned.
+`support/terminals.py`. Receipts:
+`evidence/T56/{owner,application,frontend,term01,signals,migrations}.md`;
+`evidence/T56/report.md` closes R1–R4 with actual debug/release TERM01 and final
+workspace gates. T44/VIS39 paired presentation remains a separate owner.
 
 ## Как обновлять
 
