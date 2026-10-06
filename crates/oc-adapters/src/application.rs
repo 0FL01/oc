@@ -32,6 +32,7 @@ use crate::storage::{Db, StorageError};
 use crate::trace;
 use crate::tui_workspace::{AgentEntry as WorkspaceAgent, WorkspaceError, WorkspaceRegistry};
 
+mod accounts;
 #[path = "application/commands.rs"]
 mod commands;
 #[cfg(test)]
@@ -1368,6 +1369,11 @@ fn subagent_catalog(composition: &Composition) -> Option<SubagentCatalog> {
 
 /// What the command loop returns to the supervisor.
 enum WorkerOutcome {
+    Accounts {
+        provider: String,
+        action: Option<oc_core::queries::AccountAction>,
+        ack: oneshot::Sender<Result<oc_core::queries::ProviderAccounts, CoreError>>,
+    },
     Move(Box<session_move::Prepared>),
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
@@ -1593,6 +1599,18 @@ async fn start_worker_inner(
             }
         };
         match outcome {
+            WorkerOutcome::Accounts {
+                provider,
+                action,
+                ack,
+            } => {
+                let changed = action.is_some();
+                let result = accounts::apply(&db, &runtime, &mut composition, provider, action);
+                if changed && result.is_ok() {
+                    let _ = events.send(CoreEvent::ProviderChanged);
+                }
+                let _ = ack.send(result);
+            }
             WorkerOutcome::Move(prepared) => {
                 let prepared = *prepared;
                 let moved: Result<(), oc_core::queries::ServiceDiagnostic> = async {
@@ -3300,6 +3318,18 @@ fn query(
             let snapshot = effective.snapshot(composition, location_epoch.load(Ordering::SeqCst));
             let _ = ack.send(Ok(snapshot));
         }
+        InboxMsg::ProviderAccounts {
+            provider,
+            action,
+            ack,
+        } => {
+            let result = if action.is_some() {
+                Err(CoreError::TurnBusy)
+            } else {
+                accounts::read(db, composition, provider)
+            };
+            let _ = ack.send(result);
+        }
         InboxMsg::SessionSelection {
             session,
             home,
@@ -4000,6 +4030,17 @@ async fn worker(
                 .cancel(&session.0);
         }
         match message {
+            InboxMsg::ProviderAccounts {
+                provider,
+                action,
+                ack,
+            } => {
+                return Ok(WorkerOutcome::Accounts {
+                    provider,
+                    action,
+                    ack,
+                });
+            }
             InboxMsg::OpenPickerSession {
                 session,
                 search,

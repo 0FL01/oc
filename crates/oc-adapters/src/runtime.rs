@@ -1178,6 +1178,27 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
+    /// Credential-only idle publication: no MCP restart, policy reload, or selection change.
+    pub(crate) fn publish_provider_credentials(
+        &self,
+        generation: &Generation,
+    ) -> Result<(), RuntimeError> {
+        let _lease = self.begin_active()?;
+        let mut current = self.current.write().expect("generation lock");
+        let mut next = current.config.clone();
+        for (id, entry) in &generation.providers {
+            if let Some(target) = next.providers.get_mut(id) {
+                target.options.request_bindings = entry.options.request_bindings.clone();
+                target.options.redaction_material = entry.options.redaction_material.clone();
+            }
+        }
+        *current = Arc::new(PublishedGeneration {
+            id: current.id,
+            config: next,
+        });
+        Ok(())
+    }
+
     /// One shared admission for root/profile/child lanes and direct runtime callers.
     pub(crate) fn admit_provider(
         &self,

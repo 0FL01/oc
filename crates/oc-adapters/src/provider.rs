@@ -434,6 +434,7 @@ pub struct ResponsesConfig {
 /// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
+    pub(crate) auth_input: Option<AuthInput>,
     pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
     pub(crate) go: bool,
@@ -447,6 +448,19 @@ pub struct WireBinding {
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
     pub(crate) messages_bearer: bool,
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct AuthInput {
+    policy: crate::auth::AuthPolicy,
+    key: String,
+}
+impl std::fmt::Debug for AuthInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthInput")
+            .field("policy", &self.policy)
+            .finish_non_exhaustive()
+    }
 }
 
 impl WireBinding {
@@ -480,6 +494,15 @@ impl std::fmt::Debug for ResponsesConfig {
 }
 
 impl ResponsesConfig {
+    /// Restore configured inputs, never reuse a previously resolved account key.
+    pub(crate) fn restore_auth_input(&mut self) {
+        let input = self.wire.auth_input.get_or_insert_with(|| AuthInput {
+            policy: self.wire.auth_policy,
+            key: self.api_key.clone(),
+        });
+        self.api_key = input.key.clone();
+        self.wire.auth_policy = input.policy;
+    }
     /// Capture replay authority from the same immutable binding that will send
     /// this request. No session/cache/affinity metadata or plaintext secrets.
     pub(crate) fn provenance(

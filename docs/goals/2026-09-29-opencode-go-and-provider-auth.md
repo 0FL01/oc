@@ -563,6 +563,18 @@ strict clippy/fmt/build/help green. Final adapter fence checks: 610 PASS.
 This is partial R5, not GO05/T53 PASS. Next: masked connect/account owner actions,
 provider-qualified selection and complete actual-binary connect flow.
 
+### Typed account owner checkpoint (2026-10-06)
+
+Core account commands now expose only safe metadata and effective stored/env/config/
+anonymous/unsupported/missing source. Native owner add/activate/rename/confirmed
+remove use existing SQLite transactions; idle credential publication restores
+configured inputs, retains catalog state and does not select a model or restart MCP.
+Held requests refuse mutation while safe account queries remain responsive. Restart,
+rollback and last-key removal checks pass without stale-key reuse or root creation.
+Evidence: `evidence/T53/accounts.md`; adapter 612/0/0, core 32/0/0, strict workspace
+clippy/fmt green. Partial R1/R5, not GO01/GO05/T53 PASS. Next: masked connect/account
+UI, qualified picker/selection and actual-binary full flow.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

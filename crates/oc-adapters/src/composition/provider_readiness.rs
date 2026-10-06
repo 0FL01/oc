@@ -262,6 +262,7 @@ impl Composition {
         // Each template still contains configured inputs, not the already-resolved
         // parent key. An endpoint-changing model must never inherit parent auth.
         for request in self.provider.wire.requests.values_mut() {
+            request.restore_auth_input();
             let scope = crate::auth::AuthScope::admit(id, &request.base_url)
                 .map_err(|_| invalid(source, &["provider", "models", "settings", "baseURL"]))?;
             let competing = request.headers.keys().any(|name| {
@@ -299,6 +300,7 @@ impl Composition {
             // connection, local views remain usable but the base cannot send.
             return Ok(());
         }
+        self.provider.restore_auth_input();
         let scope = crate::auth::AuthScope::admit(id, &self.provider.base_url)
             .map_err(|_| invalid(source, &["provider", "options", "baseURL"]))?;
         let competing = self.provider.headers.keys().any(|name| {
@@ -337,6 +339,22 @@ impl Composition {
             id == discovery::PROVIDER_ID,
         )
         .with_auth_policy(self.provider.wire.auth_policy);
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+        Ok(())
+    }
+
+    pub(crate) fn refresh_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        let mut state = self.provider_state.clone();
+        self.resolve_credentials(db)?;
+        state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        self.provider_state = state;
+        if self.catalog.provider == crate::models_dev::PROVIDER {
+            self.capture_public_bindings();
+        }
         self.tui_chrome.provider =
             Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
         Ok(())

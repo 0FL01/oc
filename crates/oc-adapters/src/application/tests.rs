@@ -1,6 +1,8 @@
 //! Application review, file suggestion and reload regression packs.
 
 use super::*;
+#[path = "accounts_tests.rs"]
+mod accounts_tests;
 
 #[cfg(test)]
 mod review_tests {

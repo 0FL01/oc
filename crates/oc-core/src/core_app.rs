@@ -384,6 +384,11 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    ProviderAccounts {
+        provider: String,
+        action: Option<crate::queries::AccountAction>,
+        ack: oneshot::Sender<Result<crate::queries::ProviderAccounts, CoreError>>,
+    },
     McpStatus {
         ack: oneshot::Sender<Result<crate::queries::McpSnapshot, CoreError>>,
     },
@@ -1618,6 +1623,24 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Read or mutate scoped accounts through the existing application owner.
+    pub async fn provider_accounts(
+        &self,
+        provider: String,
+        action: Option<crate::queries::AccountAction>,
+    ) -> Result<crate::queries::ProviderAccounts, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ProviderAccounts {
+                provider,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read/change the durable session/agent selection. Home model choices also
     /// remember the Location/agent draft; no transcript is copied or modified.
     pub async fn session_selection(
@@ -2179,6 +2202,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::Catalog { ack }
         | InboxMsg::SessionSelection { ack, .. }
         | InboxMsg::HomeSelection { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ProviderAccounts { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {

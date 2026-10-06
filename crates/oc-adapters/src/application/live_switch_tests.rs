@@ -171,6 +171,24 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
             .await
             .unwrap();
         arrival.await.unwrap();
+        assert_eq!(
+            app.provider_accounts(
+                "fixture".into(),
+                Some(oc_core::queries::AccountAction::AddKey {
+                    label: "Must not mutate".into(),
+                    key: oc_core::queries::KeyInput::new("BUSY_ACCOUNT_CANARY".into()),
+                })
+            )
+            .await,
+            Err(oc_core::session::CoreError::TurnBusy),
+        );
+        assert!(
+            app.provider_accounts("fixture".into(), None)
+                .await
+                .unwrap()
+                .accounts
+                .is_empty()
+        );
         let mut release = Some(release);
         let approval = if ask {
             release.take().unwrap().send(()).unwrap();

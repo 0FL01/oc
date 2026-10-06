@@ -117,7 +117,11 @@ replay/metadata qualification remains T53.
 T53 accounts: `oc-adapters/src/storage_credentials.rs` owns the additive account
 schema/lifecycle in `Db`, with `storage_credentials/tests.rs`; `auth.rs` is the narrow
 admitted Go/custom credential resolver. Application startup/reload resolves once per
-generation; account controls/connect UI remain pending.
+generation. `application/accounts.rs` routes typed `CoreApp::provider_accounts`
+through that same owner; safe DTOs live in core `queries/accounts.rs`. Credential-only
+idle publication retains configured auth inputs and does not restart MCP or select
+a model. Tests: `application/accounts_tests.rs` and held live-switch regression.
+Masked connect UI and qualified cross-provider selection remain pending.
 
 Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source trust;
 generation and configured discovery share its DNS pin and peer guard. Private boundary,
