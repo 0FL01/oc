@@ -81,6 +81,8 @@ pub struct AuthAttempt {
     pub state: AuthAttemptState,
     pub url: Option<String>,
     pub instructions: Option<String>,
+    /// Structured device code for an explicit copy action, never parsed from prose.
+    pub user_code: Option<String>,
     pub created_at: i64,
     pub expires_at: i64,
     /// Local SQLite account ID, not ChatGPT routing metadata.

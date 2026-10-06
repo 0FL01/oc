@@ -1557,7 +1557,7 @@ impl TuiState {
         self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         if self.panel == TuiPanel::Accounts {
-            return KeyOutcome::default();
+            return self.accounts_mouse(event, area);
         }
         if self.panel == TuiPanel::Rename {
             let rect = crate::dialog::rename_geometry(area);

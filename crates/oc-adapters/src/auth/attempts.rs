@@ -122,6 +122,7 @@ impl OpenAiAttempts {
             state: State::Pending,
             url: None,
             instructions: None,
+            user_code: None,
             created_at: now,
             expires_at: now.saturating_add(self.settings.lifetime.as_secs() as i64),
             account_id: None,
@@ -322,13 +323,20 @@ fn finish(entry: &mut Attempt, state: State) {
     entry.view.state = state;
     entry.view.url = None;
     entry.view.instructions = None;
+    entry.view.user_code = None;
     entry.ended = Some(Instant::now());
 }
-fn present(entry: &Arc<Mutex<Attempt>>, url: String, instructions: String) {
+fn present(
+    entry: &Arc<Mutex<Attempt>>,
+    url: String,
+    instructions: String,
+    user_code: Option<String>,
+) {
     let mut entry = entry.lock().expect("auth attempt");
     if entry.view.state == State::Pending {
         entry.view.url = Some(url);
         entry.view.instructions = Some(instructions);
+        entry.view.user_code = user_code;
     }
 }
 fn unix_seconds() -> i64 {
@@ -410,6 +418,7 @@ async fn browser(
         entry,
         url.into(),
         "Complete authorization in your browser. This window will close automatically.".into(),
+        None,
     );
     loop {
         let (mut socket, _) = listener.accept().await.map_err(|_| Failure::Unavailable)?;
@@ -551,6 +560,7 @@ async fn device(
         entry,
         format!("{}/codex/device", auth.issuer),
         format!("Enter code: {}", code.user_code),
+        Some(code.user_code.clone()),
     );
     loop {
         let response = auth.post("/api/accounts/deviceauth/token").await.map_err(failure)?

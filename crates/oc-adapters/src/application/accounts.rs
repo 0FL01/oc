@@ -107,6 +107,18 @@ pub(super) async fn apply(
                 .publish_provider_state(c.provider_state.clone())
                 .map_err(runtime_error)?;
         }
+    } else if provider == "openai" {
+        c.refresh_credential_preview(db)
+            .await
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
+        runtime
+            .publish_provider_credentials(&c.generation)
+            .map_err(runtime_error)?;
+        if c.catalog.provider == provider {
+            runtime
+                .publish_provider_state(c.provider_state.clone())
+                .map_err(runtime_error)?;
+        }
     }
     read(db, c, provider)
 }

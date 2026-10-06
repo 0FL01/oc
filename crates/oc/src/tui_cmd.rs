@@ -37,6 +37,7 @@ use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
 use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
 use oc_tui::views::{cursor_color, render_frame};
 
+mod auth_controls;
 mod child_controls;
 mod terminal_controls;
 
@@ -293,6 +294,7 @@ type CompactionAdmission = tokio::task::JoinHandle<
 /// Loop-local application state that is not part of the view-model.
 #[derive(Default)]
 struct LoopState {
+    authentication: auth_controls::Controls,
     questions: oc_tui::question_view::QuestionView,
     cli_auto: bool,
     permission_auto: Option<bool>,
@@ -426,6 +428,20 @@ async fn apply_conversation_refresh(
 }
 
 impl LoopState {
+    fn retire_parked_auth(&mut self) {
+        for view in self
+            .tabs
+            .iter_mut()
+            .flatten()
+            .chain(self.home.iter_mut())
+            .chain(self.child_views.values_mut())
+        {
+            view.retire_auth_surface();
+        }
+        if let Some(parent) = self.child_parent.as_deref_mut() {
+            parent.retire_auth_surface();
+        }
+    }
     fn has_jobs(&self) -> bool {
         self.job_lanes() != 0
     }
@@ -437,12 +453,15 @@ impl LoopState {
             | (u8::from(self.title_job.is_some()) << 3)
             | (u8::from(self.reload_job.is_some()) << 4)
             | (u8::from(self.compaction_job.is_some()) << 5)
+            | (u8::from(self.authentication.pending()) << 6)
     }
 
     fn ready_job(&self) -> bool {
-        self.compaction_job
-            .as_ref()
-            .is_some_and(|job| job.is_finished())
+        self.authentication.ready()
+            || self
+                .compaction_job
+                .as_ref()
+                .is_some_and(|job| job.is_finished())
             || self
                 .conversation_job
                 .as_ref()
@@ -1034,6 +1053,8 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         let job_lanes = loop_state.job_lanes();
         let job_ready = loop_state.ready_job();
         dirty |= state.tick_ui(Instant::now());
+        loop_state.retire_parked_auth();
+        dirty |= loop_state.authentication.sync(app, &mut state).await;
         poll_and_sync(app, &mut state, &mut loop_state).await;
         if state.terminals_need_refresh() {
             terminal_controls::refresh_or_report(app, &mut state).await;
@@ -1288,6 +1309,9 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             continue;
         }
         let mut deadline = state.next_ui_deadline();
+        if let Some(at) = loop_state.authentication.deadline() {
+            deadline = Some(deadline.map_or(at, |d| d.min(at)));
+        }
         if dirty {
             deadline = Some(deadline.map_or(paint_at, |at| at.min(paint_at)));
         }
@@ -1338,6 +1362,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             }
         }
     }
+    loop_state.authentication.shutdown(app).await?;
     if let Some((session, job)) = loop_state.title_job.take() {
         let _ = app.cancel_title(session).await;
         let _ = job.await;
@@ -2125,10 +2150,19 @@ async fn apply_intent_with_origin(
             ..
         }
     );
-    if loop_state.conversation_job.is_some() && !terminal_control {
+    let auth_control = matches!(
+        &intent,
+        PanelIntent::BeginAuthentication(_)
+            | PanelIntent::LoadAuthMethods { .. }
+            | PanelIntent::OpenAuthorization
+            | PanelIntent::CopyAuthorization
+            | PanelIntent::LoadProviderConnections
+            | PanelIntent::ProviderAccounts { action: None, .. }
+    );
+    if loop_state.conversation_job.is_some() && !terminal_control && !auth_control {
         return Err("conversation operation pending".into());
     }
-    if loop_state.reload_job.is_some() && !terminal_control {
+    if loop_state.reload_job.is_some() && !terminal_control && !auth_control {
         return Err("configuration reload pending".into());
     }
     if loop_state.read_only
@@ -2154,6 +2188,29 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::LoadAuthMethods { provider, revision } => {
+            let methods = app.auth_methods(provider.clone()).await.map_err(|_| ());
+            state.apply_auth_methods(&provider, revision, methods);
+        }
+        PanelIntent::BeginAuthentication(request) => {
+            if state.auth_request() == Some(&request) {
+                loop_state.authentication.sync(app, state).await;
+            }
+        }
+        PanelIntent::OpenAuthorization => loop_state.authentication.open(state),
+        PanelIntent::CopyAuthorization => {
+            if let Some(detail) = state.auth_detail(true) {
+                let result = crate::clipboard::copy(detail);
+                state.push_transient_note(
+                    if result.is_ok() {
+                        "Clipboard request sent"
+                    } else {
+                        "Clipboard unavailable"
+                    },
+                    NoteVariant::Info,
+                );
+            }
+        }
         PanelIntent::Terminal {
             session,
             action,
@@ -2181,6 +2238,10 @@ async fn apply_intent_with_origin(
                     .await
                     .map_err(|e| e.to_string())?;
                 state.apply_picker_catalog(snapshot);
+            }
+            if let Some((provider, revision)) = state.account_methods_request() {
+                let methods = app.auth_methods(provider.clone()).await.map_err(|_| ());
+                state.apply_auth_methods(&provider, revision, methods);
             }
         }
         PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,

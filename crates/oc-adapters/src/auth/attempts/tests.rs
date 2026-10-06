@@ -312,12 +312,15 @@ async fn auth02_device_pending_intervals_exchange_and_durable_reopen() {
         .unwrap();
     let view = presented(&owner, &begun.id).await;
     assert!(view.url.as_deref().unwrap().ends_with("/codex/device"));
+    assert_eq!(view.user_code.as_deref(), Some("USER_CODE_CANARY"));
     assert_eq!(
         view.instructions.as_deref(),
         Some("Enter code: USER_CODE_CANARY")
     );
     assert!(!format!("{view:?}").contains("CANARY"));
-    assert_eq!(terminal(&owner, &begun.id).await.state, State::Complete);
+    let completed = terminal(&owner, &begun.id).await;
+    assert_eq!(completed.state, State::Complete);
+    assert!(completed.user_code.is_none() && completed.url.is_none());
     server.worker.await.unwrap();
     let requests = server.requests.lock().unwrap().clone();
     assert_eq!(requests.len(), 5);

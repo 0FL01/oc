@@ -63,6 +63,64 @@ impl ProviderView {
 }
 
 impl Composition {
+    /// A pending turn retains its issued captures. Auth-model browsing reads a
+    /// fresh metadata-only projection instead of rebinding that in-flight turn.
+    pub(crate) async fn auth_catalog_preview(
+        &self,
+        db: &crate::storage::Db,
+        id: &str,
+        model: &str,
+    ) -> Result<Option<(models::ModelCatalog, oc_core::queries::ProviderReadiness)>, LoadFailure>
+    {
+        if id != "openai" || !self.public_provider(id) {
+            return Ok(None);
+        }
+        let Some(mut catalog) = self.catalog_for(id).cloned() else {
+            return Ok(None);
+        };
+        let Some(mut config) = self.provider_for(id).cloned() else {
+            return Ok(None);
+        };
+        super::provider_readiness::capture_binding(
+            &mut config,
+            id,
+            db,
+            &self.parent_env,
+            "native auth model view",
+            &["provider", "authPolicy"],
+            ServiceStage::Admission,
+        )
+        .await?;
+        let local = self
+            .generation
+            .providers
+            .get(id)
+            .map(|entry| entry.models.clone())
+            .unwrap_or_default();
+        let read = db.public_catalog().read_provider(id, &local).await;
+        if read.fetched_at_ms.is_some() {
+            catalog.models = read.models;
+        }
+        super::openai_catalog::transform(&mut catalog.models, config.subscription());
+        let mut state = if id == self.catalog.provider {
+            self.provider_state.clone()
+        } else {
+            self.provider_views
+                .get(id)
+                .expect("admitted auth catalog view")
+                .state
+                .clone()
+        };
+        state.set_auth(config.auth_ready(), config.wire.auth_policy);
+        if config.wire.unsupported {
+            state.set_unsupported();
+        }
+        Ok(Some((
+            catalog.clone(),
+            state.for_model(model, catalog.models.contains_key(model)),
+        )))
+    }
+
     pub(crate) fn model_reference(
         &self,
         fallback: &str,

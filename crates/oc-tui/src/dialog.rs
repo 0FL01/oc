@@ -657,6 +657,10 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
                 Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1),
             );
             frame.render_widget(
+                Paragraph::new("esc"),
+                Rect::new(rect.right() - 5, rect.y + 1, 3, 1),
+            );
+            frame.render_widget(
                 Paragraph::new(state.account_lines().join("\n")),
                 Rect::new(rect.x + 2, rect.y + 3, rect.width - 4, rect.height - 3),
             );

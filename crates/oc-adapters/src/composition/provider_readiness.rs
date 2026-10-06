@@ -3,18 +3,6 @@ use super::*;
 use oc_core::queries::{ProviderReadiness, ProviderStatus};
 use sha2::{Digest, Sha256};
 
-pub(super) async fn resolve_binding(
-    request: &mut provider::ResponsesConfig,
-    id: &str,
-    db: &crate::storage::Db,
-    env: &BTreeMap<String, String>,
-    source: &str,
-    fields: &[&str],
-    stage: ServiceStage,
-) -> Result<(), LoadFailure> {
-    resolve_binding_inner(request, id, db, env, (source, fields, stage), true).await
-}
-
 pub(super) async fn capture_binding(
     request: &mut provider::ResponsesConfig,
     id: &str,
@@ -345,6 +333,14 @@ impl Composition {
         &mut self,
         db: &crate::storage::Db,
     ) -> Result<(), LoadFailure> {
+        self.resolve_current_credentials(db, true).await
+    }
+
+    async fn resolve_current_credentials(
+        &mut self,
+        db: &crate::storage::Db,
+        refresh: bool,
+    ) -> Result<(), LoadFailure> {
         self.resolve_provider_views(db).await?;
         let id = &self.catalog.provider;
         let source = self
@@ -356,14 +352,17 @@ impl Composition {
         // Each template still contains configured inputs, not the already-resolved
         // parent key. An endpoint-changing model must never inherit parent auth.
         for request in self.provider.wire.requests.values_mut() {
-            resolve_binding(
+            resolve_binding_inner(
                 request,
                 id,
                 db,
                 &self.parent_env,
-                source,
-                &["provider", "models", "settings", "authPolicy"],
-                ServiceStage::Config,
+                (
+                    source,
+                    &["provider", "models", "settings", "authPolicy"],
+                    ServiceStage::Config,
+                ),
+                refresh,
             )
             .await?;
         }
@@ -377,14 +376,17 @@ impl Composition {
             // connection, local views remain usable but the base cannot send.
             return Ok(());
         }
-        resolve_binding(
+        resolve_binding_inner(
             &mut self.provider,
             id,
             db,
             &self.parent_env,
-            source,
-            &["provider", "options", "authPolicy"],
-            ServiceStage::Config,
+            (
+                source,
+                &["provider", "options", "authPolicy"],
+                ServiceStage::Config,
+            ),
+            refresh,
         )
         .await?;
         if let Some(entry) = self.generation.providers.get_mut(id) {
@@ -410,6 +412,22 @@ impl Composition {
     ) -> Result<(), LoadFailure> {
         let mut state = self.provider_state.clone();
         self.resolve_credentials(db).await?;
+        state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        self.provider_state = state;
+        self.attach_public_catalog(db).await;
+        self.tui_chrome.provider =
+            Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
+        Ok(())
+    }
+
+    /// Login already persisted/acknowledged its tokens. Account browsing projects
+    /// current metadata without refreshing an unrelated selected account or dialing.
+    pub(crate) async fn refresh_credential_preview(
+        &mut self,
+        db: &crate::storage::Db,
+    ) -> Result<(), LoadFailure> {
+        let mut state = self.provider_state.clone();
+        self.resolve_current_credentials(db, false).await?;
         state.set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
         self.provider_state = state;
         self.attach_public_catalog(db).await;

@@ -201,6 +201,24 @@ async fn auth04_cached_openai_views_accounts_readonly_listing_and_lookup_share_t
         )
         .unwrap()
     );
+    let held = c.provider.clone();
+    let (preview_catalog, _) = c
+        .auth_catalog_preview(&db, "openai", "gpt-5.5")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(preview_catalog.models.len(), 2);
+    assert_eq!(c.catalog.models.len(), 4); // Held composition/issued requests unchanged.
+    c.refresh_credential_preview(&db).await.unwrap();
+    assert_eq!(c.catalog.models.len(), 2);
+    assert!(c.provider.subscription());
+    assert!(!held.subscription());
+    assert!(
+        !db.credential_snapshot(scope.namespace())
+            .unwrap()
+            .unwrap()
+            .refresh_pending
+    );
     std::fs::write(
         project.join("opencode.json"),
         json!({"model":"fixture/m",

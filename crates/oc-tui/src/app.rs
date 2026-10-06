@@ -142,6 +142,13 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    LoadAuthMethods {
+        provider: String,
+        revision: u64,
+    },
+    BeginAuthentication(AuthRequest),
+    OpenAuthorization,
+    CopyAuthorization,
     Terminal {
         session: SessionId,
         action: crate::terminal_view::TerminalIntent,
@@ -632,7 +639,7 @@ pub struct TuiState {
     input: String,
     editor: crate::editor::Editor,
     rename_input: String,
-    accounts: accounts::AccountsView,
+    accounts: Box<accounts::AccountsView>,
     rename_editor: crate::editor::Editor,
     rename_pending: Option<String>,
     rename_selected: Option<String>,
@@ -839,7 +846,7 @@ impl TuiState {
             input: String::new(),
             editor: Default::default(),
             rename_input: String::new(),
-            accounts: accounts::AccountsView::default(),
+            accounts: Box::default(),
             rename_editor: Default::default(),
             rename_pending: None,
             rename_selected: None,
@@ -1373,6 +1380,7 @@ impl TuiState {
 }
 
 mod accounts;
+pub use accounts::AuthRequest;
 mod input;
 mod live;
 mod mcp;

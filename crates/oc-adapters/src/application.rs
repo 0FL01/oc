@@ -1682,7 +1682,7 @@ async fn start_worker_inner(
                 action,
                 ack,
             } => {
-                let changed = action.is_some();
+                let changed = action.is_some() || provider == "openai";
                 let result =
                     accounts::apply(&db, &runtime, &mut composition, provider, action).await;
                 if changed && result.is_ok() {
@@ -3476,7 +3476,32 @@ async fn query(
             let _ = ack.send(Ok(snapshot));
         }
         InboxMsg::ProviderCatalog { provider, ack } => {
-            let result = if provider == composition.catalog.provider {
+            let preview = composition
+                .auth_catalog_preview(
+                    db,
+                    &provider,
+                    if provider == composition.catalog.provider {
+                        &effective.model_id
+                    } else {
+                        ""
+                    },
+                )
+                .await;
+            let result = if let Ok(Some((catalog, readiness))) = &preview {
+                let mut unchosen = effective.clone();
+                if provider != composition.catalog.provider {
+                    unchosen.model_id.clear();
+                    unchosen.variant = None;
+                }
+                Ok(unchosen.snapshot_catalog(
+                    composition,
+                    location_epoch.load(Ordering::SeqCst),
+                    catalog,
+                    readiness.clone(),
+                ))
+            } else if let Err(composition::LoadFailure::Configuration(diagnostic)) = preview {
+                Err(CoreError::Diagnostic(diagnostic))
+            } else if provider == composition.catalog.provider {
                 Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))
             } else {
                 composition

@@ -1,6 +1,22 @@
 //! One ephemeral secret input, separate from composer, editor undo and copying.
 use super::*;
-use oc_core::queries::{AccountAction, KeyInput, ProviderAccounts, ProviderConnection};
+use oc_core::queries::{
+    AccountAction, AuthAttempt, AuthAttemptState, AuthMethod, KeyInput, OAuthMethod,
+    ProviderAccounts, ProviderConnection,
+};
+
+/// Correlates a mounted auth surface, never its URL/code/token, with owned work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthRequest {
+    pub revision: u64,
+    pub provider: String,
+    pub method: OAuthMethod,
+}
+
+fn revision() -> u64 {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
 
 #[derive(Default)]
 pub(super) struct AccountsView {
@@ -13,8 +29,15 @@ pub(super) struct AccountsView {
     key: String,
     pending: bool,
     adding: bool,
+    removing: bool,
     confirmation: Option<String>,
     failed: bool,
+    revision: u64,
+    connecting: bool,
+    methods: Vec<AuthMethod>,
+    auth: Option<AuthRequest>,
+    attempt: Option<AuthAttempt>,
+    mouse_down: Option<AccountHit>,
 }
 
 // Never make ephemeral secret material available to Debug or serialization.
@@ -33,18 +56,29 @@ enum Form {
     Providers,
     Label,
     Key,
+    Methods,
+    OAuth,
     Rename(String),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum AccountHit {
+    Close,
+    Backdrop,
+    Row(usize),
 }
 
 impl TuiState {
     pub(super) fn open_accounts(&mut self, connect: bool) -> KeyOutcome {
-        self.accounts = AccountsView {
+        *self.accounts = AccountsView {
             provider: if connect {
                 "opencode-go".into()
             } else {
                 self.account_provider()
             },
             form: if connect { Form::Providers } else { Form::List },
+            revision: revision(),
+            connecting: connect,
             ..Default::default()
         };
         self.panel = TuiPanel::Accounts;
@@ -63,7 +97,7 @@ impl TuiState {
     }
 
     pub(super) fn clear_accounts(&mut self) {
-        self.accounts = AccountsView::default();
+        *self.accounts = AccountsView::default();
     }
 
     pub fn apply_provider_connections(&mut self, result: Result<Vec<ProviderConnection>, ()>) {
@@ -82,11 +116,30 @@ impl TuiState {
             return false;
         }
         let adding = self.accounts.adding && self.accounts.pending;
+        let removing = self.accounts.removing && self.accounts.pending;
         self.accounts.pending = false;
         self.accounts.adding = false;
+        self.accounts.removing = false;
         self.accounts.key.clear();
         match result {
-            Ok(snapshot) if snapshot.provider == self.accounts.provider => {
+            Ok(mut snapshot) if snapshot.provider == self.accounts.provider => {
+                snapshot
+                    .accounts
+                    .sort_by(|a, b| a.label.cmp(&b.label).then(a.id.cmp(&b.id)));
+                if removing && snapshot.provider == "openai" && snapshot.accounts.is_empty() {
+                    self.close_panel();
+                    self.push_transient_note("Disconnected OpenAI", NoteVariant::Success);
+                    return false;
+                }
+                if self.accounts.connecting && snapshot.provider == "openai" {
+                    self.accounts.form = if snapshot.accounts.is_empty() {
+                        Form::Methods
+                    } else {
+                        Form::List
+                    };
+                    self.accounts.connecting = false;
+                    self.accounts.cursor = 0;
+                }
                 self.accounts.snapshot = Some(snapshot);
                 self.accounts.failed = false;
                 if adding {
@@ -104,8 +157,197 @@ impl TuiState {
         false
     }
 
+    pub fn account_methods_request(&self) -> Option<(String, u64)> {
+        (self.panel == TuiPanel::Accounts && self.accounts.form == Form::Methods)
+            .then(|| (self.accounts.provider.clone(), self.accounts.revision))
+    }
+
+    pub fn apply_auth_methods(
+        &mut self,
+        provider: &str,
+        revision: u64,
+        result: Result<Vec<AuthMethod>, ()>,
+    ) {
+        if self.account_methods_request().as_ref() != Some(&(provider.to_owned(), revision)) {
+            return;
+        }
+        self.accounts.methods = result.unwrap_or_default();
+        self.accounts.failed = self.accounts.methods.is_empty();
+        self.accounts.cursor = 0;
+        if self.accounts.methods.as_slice() == [AuthMethod::Key] {
+            self.accounts.form = Form::Label;
+        }
+    }
+
+    pub fn auth_request(&self) -> Option<&AuthRequest> {
+        (self.panel == TuiPanel::Accounts && self.accounts.form == Form::OAuth)
+            .then_some(self.accounts.auth.as_ref())
+            .flatten()
+    }
+
+    /// A parked view is unmounted: discard its active URL/code immediately.
+    pub fn retire_auth_surface(&mut self) {
+        if self.auth_request().is_some() {
+            self.close_panel();
+        }
+    }
+
+    /// A URL/code is accessible only while this exact active surface is pending.
+    pub fn auth_detail(&self, copy: bool) -> Option<&str> {
+        self.auth_request()?;
+        let attempt = self.accounts.attempt.as_ref()?;
+        if attempt.state != AuthAttemptState::Pending {
+            return None;
+        }
+        if copy {
+            attempt.user_code.as_deref().or(attempt.url.as_deref())
+        } else {
+            attempt.url.as_deref()
+        }
+    }
+
+    pub fn apply_auth_attempt(&mut self, request: &AuthRequest, attempt: AuthAttempt) {
+        if self.auth_request() != Some(request) {
+            return;
+        }
+        let failure = match attempt.state {
+            AuthAttemptState::Failed(failure) => Some(failure.message()),
+            AuthAttemptState::Expired => Some("Authorization expired"),
+            _ => None,
+        };
+        if let Some(message) = failure {
+            self.auth_failure(request, message);
+            return;
+        }
+        self.accounts.attempt = Some(attempt);
+    }
+
+    pub fn auth_failure(&mut self, request: &AuthRequest, message: &'static str) {
+        if self.auth_request() == Some(request) {
+            self.close_panel();
+            self.push_transient_note(message, NoteVariant::Error);
+        }
+    }
+
+    pub(super) fn accounts_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        use crate::dialog::{DialogFrame, DialogSize};
+        let rect = DialogFrame::rect(area, DialogSize::Medium, 16);
+        let hit = if !rect.contains((event.column, event.row).into()) {
+            Some(AccountHit::Backdrop)
+        } else if event.row == rect.y + 1 && event.column >= rect.right().saturating_sub(7) {
+            Some(AccountHit::Close)
+        } else {
+            let header = 1
+                + usize::from(self.accounts.snapshot.is_some())
+                + usize::from(self.accounts.failed);
+            let start = self.accounts.cursor.saturating_sub(3);
+            let (offset, visible, count) = match self.accounts.form {
+                Form::Providers => {
+                    let count = self.accounts.connections.len();
+                    (header + 1, count.saturating_sub(start).min(8), count)
+                }
+                Form::Methods => {
+                    let count = self.accounts.methods.len();
+                    (header + 1, count, count)
+                }
+                Form::List => {
+                    let count = self
+                        .accounts
+                        .snapshot
+                        .as_ref()
+                        .map_or(0, |s| s.accounts.len());
+                    let add = usize::from(self.accounts.provider == "openai");
+                    (
+                        header,
+                        count.saturating_sub(start).min(8) + add,
+                        count + add,
+                    )
+                }
+                _ => (0, 0, 0),
+            };
+            usize::from(event.row.saturating_sub(rect.y + 3))
+                .checked_sub(offset)
+                .filter(|row| *row < visible && !self.accounts.pending)
+                .map(|row| match self.accounts.form {
+                    Form::Providers => row + start,
+                    Form::List if self.accounts.provider == "openai" && row == 0 => 0,
+                    Form::List => row + start,
+                    _ => row,
+                })
+                .filter(|row| *row < count)
+                .map(AccountHit::Row)
+        };
+        match event.kind {
+            MouseEventKind::Down(MouseButton::Left) => self.accounts.mouse_down = hit,
+            MouseEventKind::Up(MouseButton::Left) => {
+                if self.accounts.mouse_down.take() == hit {
+                    match hit {
+                        Some(AccountHit::Close | AccountHit::Backdrop) => self.close_panel(),
+                        Some(AccountHit::Row(index)) => {
+                            self.accounts.cursor = index;
+                            self.accounts.confirmation = None;
+                            return self.accounts_key(KeyAction::Enter);
+                        }
+                        None => {}
+                    }
+                }
+            }
+            MouseEventKind::ScrollUp => return self.accounts_key(KeyAction::Up),
+            MouseEventKind::ScrollDown => return self.accounts_key(KeyAction::Down),
+            _ => {}
+        }
+        KeyOutcome::default()
+    }
+
+    /// Only a matching durable account receipt can leave auth for model browsing.
+    pub fn auth_connected(
+        &mut self,
+        request: &AuthRequest,
+        id: &str,
+        result: Result<ProviderAccounts, ()>,
+    ) -> bool {
+        if self.auth_request() != Some(request) {
+            return false;
+        }
+        if !result
+            .as_ref()
+            .is_ok_and(|s| s.provider == request.provider && s.accounts.iter().any(|a| a.id == id))
+        {
+            self.auth_failure(request, "Authorization acknowledgement unavailable");
+            return false;
+        }
+        self.clear_accounts();
+        self.panel = TuiPanel::Model;
+        self.select.reset();
+        true
+    }
+
+    fn choose_account_method(&mut self) -> KeyOutcome {
+        self.accounts.form = if self.accounts.provider == "openai" {
+            Form::Methods
+        } else {
+            Form::Label
+        };
+        self.accounts.methods.clear();
+        self.accounts.label.clear();
+        self.accounts.cursor = 0;
+        self.accounts.revision = revision();
+        self.accounts.confirmation = None;
+        KeyOutcome {
+            intent: self
+                .account_methods_request()
+                .map(|(provider, revision)| PanelIntent::LoadAuthMethods { provider, revision }),
+            ..Default::default()
+        }
+    }
+
     pub(super) fn paste_accounts(&mut self, text: &str) -> KeyOutcome {
-        if self.accounts.pending || self.accounts.form == Form::Providers {
+        if self.accounts.pending
+            || !matches!(
+                self.accounts.form,
+                Form::Label | Form::Key | Form::Rename(_)
+            )
+        {
             return KeyOutcome::default();
         }
         let value = if self.accounts.form == Form::Key {
@@ -141,6 +383,11 @@ impl TuiState {
             return KeyOutcome::default();
         }
         let mut request = None;
+        let action = match (&self.accounts.form, action) {
+            (Form::List | Form::Providers | Form::Methods, KeyAction::Char('j')) => KeyAction::Down,
+            (Form::List | Form::Providers | Form::Methods, KeyAction::Char('k')) => KeyAction::Up,
+            (_, action) => action,
+        };
         match (&self.accounts.form, &action) {
             (Form::Providers, KeyAction::Up | KeyAction::Down) => {
                 self.accounts.cursor = self
@@ -163,6 +410,45 @@ impl TuiState {
                     };
                 }
             }
+            (Form::Methods, KeyAction::Up | KeyAction::Down) => {
+                self.accounts.cursor = self
+                    .accounts
+                    .cursor
+                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
+                    .min(self.accounts.methods.len().saturating_sub(1));
+            }
+            (Form::Methods, KeyAction::Enter) => {
+                match self.accounts.methods.get(self.accounts.cursor).copied() {
+                    Some(AuthMethod::Key) => self.accounts.form = Form::Label,
+                    Some(AuthMethod::OAuth(method)) => {
+                        self.accounts.form = Form::OAuth;
+                        self.accounts.revision = revision();
+                        let request = AuthRequest {
+                            revision: self.accounts.revision,
+                            provider: self.accounts.provider.clone(),
+                            method,
+                        };
+                        self.accounts.auth = Some(request.clone());
+                        return KeyOutcome {
+                            intent: Some(PanelIntent::BeginAuthentication(request)),
+                            ..Default::default()
+                        };
+                    }
+                    None => {}
+                }
+            }
+            (Form::OAuth, KeyAction::Char('o')) if self.auth_detail(false).is_some() => {
+                return KeyOutcome {
+                    intent: Some(PanelIntent::OpenAuthorization),
+                    ..Default::default()
+                };
+            }
+            (Form::OAuth, KeyAction::Char('c')) if self.auth_detail(true).is_some() => {
+                return KeyOutcome {
+                    intent: Some(PanelIntent::CopyAuthorization),
+                    ..Default::default()
+                };
+            }
             (Form::Label, KeyAction::Enter) if !self.accounts.label.trim().is_empty() => {
                 self.accounts.form = Form::Key;
             }
@@ -182,16 +468,15 @@ impl TuiState {
                 self.accounts.form = Form::List;
             }
             (Form::List, KeyAction::Char('a')) => {
-                self.accounts.form = Form::Label;
-                self.accounts.label.clear();
-                self.accounts.confirmation = None;
+                return self.choose_account_method();
             }
             (Form::List, KeyAction::Up | KeyAction::Down) => {
                 let count = self
                     .accounts
                     .snapshot
                     .as_ref()
-                    .map_or(0, |s| s.accounts.len());
+                    .map_or(0, |s| s.accounts.len())
+                    + usize::from(self.accounts.provider == "openai");
                 self.accounts.cursor = self
                     .accounts
                     .cursor
@@ -207,13 +492,20 @@ impl TuiState {
                 | KeyAction::Rename
                 | KeyAction::DeleteOrQuit,
             ) => {
-                if let Some(account) = self
-                    .accounts
-                    .snapshot
-                    .as_ref()
-                    .and_then(|s| s.accounts.get(self.accounts.cursor))
-                {
+                if self.accounts.provider == "openai" && self.accounts.cursor == 0 {
                     if action == KeyAction::Enter {
+                        return self.choose_account_method();
+                    }
+                    return KeyOutcome::default();
+                }
+                if let Some(account) = self.accounts.snapshot.as_ref().and_then(|s| {
+                    s.accounts
+                        .get(self.accounts.cursor - usize::from(self.accounts.provider == "openai"))
+                }) {
+                    if action == KeyAction::Enter {
+                        if self.accounts.provider == "openai" && account.active {
+                            return KeyOutcome::default();
+                        }
                         request = Some(AccountAction::Activate {
                             id: account.id.clone(),
                         });
@@ -225,6 +517,7 @@ impl TuiState {
                             id: account.id.clone(),
                             confirmed: true,
                         });
+                        self.accounts.removing = true;
                         self.accounts.confirmation = None;
                     } else {
                         self.accounts.confirmation = Some(account.id.clone());
@@ -232,13 +525,18 @@ impl TuiState {
                 }
             }
             (_, KeyAction::Char(c))
-                if !matches!(self.accounts.form, Form::List | Form::Providers)
-                    && !c.is_control() =>
+                if matches!(
+                    self.accounts.form,
+                    Form::Label | Form::Key | Form::Rename(_)
+                ) && !c.is_control() =>
             {
                 return self.paste_accounts(&c.to_string());
             }
             (_, KeyAction::Backspace)
-                if !matches!(self.accounts.form, Form::List | Form::Providers) =>
+                if matches!(
+                    self.accounts.form,
+                    Form::Label | Form::Key | Form::Rename(_)
+                ) =>
             {
                 if self.accounts.form == Form::Key {
                     self.accounts.key.pop();
@@ -264,6 +562,39 @@ impl TuiState {
     /// Rendering gets masked glyphs, never a reference to the key.
     pub(crate) fn account_lines(&self) -> Vec<String> {
         let view = &self.accounts;
+        if view.form == Form::OAuth {
+            let mut lines = vec![
+                view.auth
+                    .as_ref()
+                    .map_or("OpenAI authorization", |a| a.method.label())
+                    .into(),
+            ];
+            if let Some(attempt) = &view.attempt {
+                if let Some(url) = &attempt.url {
+                    lines.push(url.clone());
+                }
+                if let Some(instructions) = &attempt.instructions {
+                    lines.push(instructions.clone());
+                }
+                lines.push(
+                    if attempt.state == AuthAttemptState::Complete {
+                        "Refreshing accounts…"
+                    } else if attempt.url.is_some() {
+                        "Waiting for authorization…"
+                    } else {
+                        "Starting authorization…"
+                    }
+                    .into(),
+                );
+                if self.auth_detail(false).is_some() {
+                    lines.push("o open · c copy".into());
+                }
+            } else {
+                lines.push("Starting authorization…".into());
+            }
+            lines.push("esc cancel".into());
+            return lines;
+        }
         let mut lines = vec![format!("Provider: {}", view.provider)];
         if let Some(snapshot) = &view.snapshot {
             lines.push(format!("Effective auth: {:?}", snapshot.effective));
@@ -276,6 +607,17 @@ impl TuiState {
             return lines;
         }
         match &view.form {
+            Form::Methods => {
+                lines.push("Choose authentication method".into());
+                for (index, method) in view.methods.iter().enumerate() {
+                    lines.push(format!(
+                        "{} {}",
+                        if index == view.cursor { ">" } else { " " },
+                        method.label()
+                    ));
+                }
+            }
+            Form::OAuth => unreachable!("active auth surface rendered separately"),
             Form::Providers => {
                 lines.push("Choose provider connection".into());
                 for (index, connection) in view
@@ -306,6 +648,12 @@ impl TuiState {
                 lines.push(view.label.clone());
             }
             Form::List => {
+                if view.provider == "openai" {
+                    lines.push(format!(
+                        "{} Add account",
+                        if view.cursor == 0 { ">" } else { " " }
+                    ));
+                }
                 if let Some(snapshot) = &view.snapshot {
                     for (index, account) in snapshot
                         .accounts
@@ -316,7 +664,11 @@ impl TuiState {
                     {
                         lines.push(format!(
                             "{} {}{} ({:?})",
-                            if index == view.cursor { ">" } else { " " },
+                            if index + usize::from(view.provider == "openai") == view.cursor {
+                                ">"
+                            } else {
+                                " "
+                            },
                             account.label,
                             if account.active { " [active]" } else { "" },
                             account.kind
