@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-06T23:40:04+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T45 [blocked]; сверить незакоммиченный diff.
-
 # T45 — offline backend qualified; original live child allowance exhausted
 
 ## Result
@@ -47,11 +38,3 @@ existing owned scope, current gates and historical direct owner receipt. Unlock
 R3 live only with explicit original-provider allowance/campaign authorization
 and durable existing pre-dial caps, or explicit owner deferral/waiver; reuse the
 immutable ledger facts and never infer authorization from AUTH06 deferral.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): нет
-Blocked: T27, T43, T44, T45, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

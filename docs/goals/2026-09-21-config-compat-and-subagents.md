@@ -1,6 +1,6 @@
 # Goal: Config compatibility parity + full subagent system
 
-Status: active
+Status: blocked
 Source: user instruction 2026-09-21 ("исправить баги и убрать лимиты; далее реализовать систему саб агентов полностью"), plus upstream reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (tree SHA `2670273ff17da96f85c5826ced57aa1b368754fa`).
 Last updated: 2026-10-07
 
@@ -43,22 +43,22 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence supplement: rebuilt actual-binary PTY opens a linked live child before parent completion, observes its real shell/text/reasoning events, returns to the parent and interrupts precisely one selected child with another still running. Assert no duplicate history/deltas/notice/parent continuation, correct source Location after parent move and stale/late/restart safety. T50 supplies its own TOOL13 shell conversion/list/live-output seam; T56 supplies TERM01 PTYs. T45 does not absorb those owners or wait for complete T44 visual qualification.
   - Acceptance supplement (owner-approved 2026-10-06; pending): consume [T54 safe restricted-error facts](2026-09-29-provider-retry-parity.md#restricted-provider-errors-and-safe-details--approved-2026-10-06-pending). Preserve the actual safe terminal diagnostic/final span through child completion/events instead of only `child turn failed`; reconcile current operation/turn/span versus historical retry via existing bounded routing/parked views/query. New child fields only for a demonstrated missing fact, not a new retry/diagnostic DTO. T44 VIS39/VIS43 own the details consumer and source-specific gestures; opening/dismissing never changes child lifecycle or creates provider/tool work.
   - Primary evidence supplement: extend existing root/child refusal and partial/effect fixture for live safe explanation and bounded reopen, stale/restarted state and no retry resurrection/replay; reuse RET01 owner classification/redaction proof, no duplicate policy matrix or paid campaign. SUB01–SUB02 ownership/status and historical evidence stay unchanged.
-  - Status: pending
-  - Evidence:
+  - Status: blocked
+  - Evidence: offline backend and safe terminal supplement qualified in `evidence/T45/report.md` / `child-diagnostic.md`; current workspace1713/0/11 and normal debug/release child controls/recovery/chronology PASS. Original configured-OpenProxy live subagent facet remains NOT_RUN: current guarded campaign generation24/24, unknown17 remains spent, no reset/refund/new authorization. T44 paired visuals remain independently PAUSED.
 
 - R4: Every slice is committed and pushed to `origin agent/oc-rust-port`.
   - Source: owner instruction "коммиты пуши делай".
   - Acceptance: `git status` clean, each slice has a commit, branch pushed.
   - Primary evidence: `git log --oneline`, `git status`, push output.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: historical checked component commits plus current `3e9325d1b` / `25df7dc6e`, each pushed to verified origin/agent/oc-rust-port; current factual report/progress closeout is a separate reviewed commit. User `.opencode/` remains unread/untracked/unstaged.
 
 - R5: Workspace gates stay green after each slice.
   - Source: repo AGENTS.md / GOAL.md A01.
   - Acceptance: `cargo fmt --all` clean, `cargo clippy --locked --workspace --all-targets -- -D warnings` exit 0, `cargo test --locked --workspace --no-fail-fast` 0 failures, `cargo build --locked --release` succeeds.
   - Primary evidence: command output captured per slice.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `evidence/T45/report.md`, current final-source fmt/strict locked workspace Clippy, no-fail-fast workspace1713/0/11, normal debug/release builds and direct binary gates PASS; no watchdog/stack/threshold/baseline/ignore changes.
 
 - R6: Primary-agent profiles match pinned OC2 v2.0.12 except the owner-approved Long Horizon step-budget divergence.
   - Source: owner-approved 2026-09-27 RECON/plan for Build, Plan and custom Markdown profiles; pinned references below.
@@ -72,8 +72,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Agent-cycle clarification (owner-approved 2026-09-30): supply the smallest real ordered primary catalog/selection slice for [T44/VIS06/VIS10/VIS17](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#agent-cycle-keybindings--уточнение-2026-09-30). Current primary_capable() alone does not exclude hidden profiles; automatic cycle/picker eligibility must omit hidden, disabled and subagent-only definitions while explicit addressing retains its separate rules. Reuse session/Home selection validation and model/variant persistence; never change an in-flight profile or silently repair a saved unavailable choice. Existing config composition admits canonical/legacy agent list/forward/reverse bindings for the same immutable Location generation, not a new keymap/config/profile store. T44 supplies direct-cycle input and paired visual evidence after explicit resume; no all-T45 completion dependency or new acceptance ID.
   - Primary evidence: pinned TS fixtures for normalized definitions/merge/default selection plus captured fake-provider requests, independently verified tool effects and session/restart assertions; T44 paired picker/prompt captures prove UI parity separately. Rebuild and exercise target/release/oc. Existing workspace/live gates remain mandatory.
   - Primary evidence supplement: reuse TOOL18's actual CLI stdout receipt, bind its synthetic exact ID into JSON canonical/legacy and Markdown fixtures through the real config loader, select the profile and capture actual provider/model/variant plus profile body in a fake-provider request. Verify reopen/restart and unavailable pre-effect refusal, including a model ID with additional slashes and colliding IDs in admitted providers. Profile semantics remain T45/R6/PRM01/A03/A13-owned; T50 only owns listing, not a duplicate binding test owner or all-T45 completion dependency. New scenario pending/NOT_RUN.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `evidence/T45/report.md` R6 matrix references builtin/Plan/discovery/request/color/binding/round-removal direct receipts; current workspace preserves those actual config/provider/effect/reopen guards. T44 paired presentation remains separate, no full visual parity claim.
 
 - R7: Every model request receives truthful Linux execution-environment context.
   - Source: owner-approved Linux host-environment proposal and plan diff, 2026-09-27.
@@ -85,8 +85,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: architecture and CPU parallelism describe the execution environment, not an assumed physical host. Distinguish machine and process architecture; do not equate online CPU count with available parallelism or advertise filesystem/tool access as granted.
   - Acceptance: restart and workspace switching refresh the relevant context. Each request uses one immutable snapshot; tool continuation does not accumulate duplicate environment messages. Preserve the existing immutable Location/config-generation boundary.
   - Primary evidence: collector fixtures covering available/unavailable fields, captured fake-provider root/child requests with default and custom profiles and workspace switching, plus target/release/oc exercised under a non-root account with no effective capabilities. Verify the fallback/environment/date and absence of duplicate or unselected metadata in actual requests.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `evidence/T45/host-context.md` native collector and actual normal debug/release root/custom/own-model-child/restart/Location captures; existing current tests and report R7 matrix. No shell inference, privilege, environment dump or access grant.
 
 - R8: Delegation attaches exact selected parent context without duplicating automatic child instructions.
   - Source: owner-approved 2026-09-27 context_message_ids and child-context/capability-preview discussion. This is a native extension; omission preserves OC2 fresh-context delegation.
@@ -97,8 +97,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Acceptance: count IDs, payload bytes and actual quoted-request model-context cost explicitly, including the resolved child's fixed profile/environment/tools inputs, retained continuation history and output/safety reserve. Reject an oversized pack before child/input admission with an actionable outcome, not a late child-turn check, truncation or hidden summarizer calls. Fix the exact original snapshot/digest and source fence durably with the child's admitted task and deliver it exactly in its first child request; background, parent Revert/compaction, restart and sessionID continuation cannot change it retroactively. Immutable RAW admission does not require verbatim HOT retention: subsequent task/pack working representation follows R9 renewal. A continuation adds its new pack once with its new task; dedup uses native operation/task and call-occurrence identity, not provider call_id alone. Durable replay cannot duplicate the admission.
   - Acceptance: subagent guidance tells the orchestrator that own profile, environment, applicable AGENTS, permitted tool schemas, skill metadata and allowed MCP guidance are assembled automatically, while conversation/findings must be supplied in prompt/IDs. Skill bodies are loaded through native skill, not copied automatically; nested AGENTS may load on read. The existing subagent preview reports effective tools/restrictions and own-history compress availability from policy/config owners, including depth/config gates, not description claims. Conditional/ask/resource rules are not advertised as unconditional access; deny is never advertised as allow. Shared workspace is not a separate filesystem sandbox. Do not semantically strip exact selected user quotations merely because they mention AGENTS or earlier instructions.
   - Primary evidence: CTX01/CTX02 captured parent/child requests prove exact selected text/roles/order and absence of unselected or duplicate harness content; invalid/reverted/foreign/over-budget IDs create no child or input; DCP-off IDs, frozen background pack, restart and continuation remain valid; preview and actual deny/ask execution agree.
-  - Status: pending
-  - Evidence: [evidence/T45/context-pack.md](../../evidence/T45/context-pack.md) — 2026-10-05 implementation commits bdd0bdc3d/09abb3277/58cafe83a and normal debug/release CTX01/CTX02 receipts (649049718); acceptance review pending.
+  - Status: verified
+  - Evidence: [evidence/T45/context-pack.md](../../evidence/T45/context-pack.md) — implementation commits bdd0bdc3d/09abb3277/58cafe83a and normal debug/release CTX01/CTX02 receipts (649049718), with `task-renewal.md` and current report R8 matrix qualifying exact immutable RAW versus renewable same-task HOT, source/branch/admission/quote-authority guards.
 
 - R9: DCP has owner-approved defaults, is default-enabled for children and supports infinite hot-context renewal through intentional forgetting, with optional cold memory and compatible manual `/compact`.
   - Source: owner-approved 2026-09-27 child compress default and removal of lifetime-exhaustion behavior. No total compress-call quota was found in audited native code or pinned DCP 3.1.15; the owner's historical OC1 failure is not attributed to a specific cause without its version/error. This outcome prevents exhaustion rather than inventing a counter to remove.
@@ -125,8 +125,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence supplement: DCP12 no-file/default/override/buffer/boundary/cadence fixtures, then rebuilt actual-binary fake-provider reminders and owner snapshots for known/missing/zero/partial model metadata, source precedence, restart and safe-boundary Location generations. Reuse DCP05/DCP07/DCP10/DCP11/AUD41 and existing gates; T44 presentation is separate, no all-T45 dependency or new paid campaign. New qualification remains pending; earlier T19/T36/T39 evidence is unchanged.
   - Acceptance supplement (2026-10-02 host-config RECON, refined 2026-10-03): T45/R9 qualifies3.2.0 input/metadata-aware protections, protocol-safe project/restore/compaction and anchored nudge replay through source-derived Rust fixtures and rebuilt wire/SQLite/restart evidence. Preserve parsed native paths, typed child outcomes, stable MessageIds, genuine Ask/Deny, native defaults/controls and all RAW/HOT/forgetting contracts; no CodeMode, compact-ID migration or child-archive reinjection. After that delta is qualified, coordinate compiled revision/DCP-only operational pin/AGPL provenance with both exact gates in existing T51/CFG09/CFG10 follow-up; legacy3.1.15/bare/latest remain truthful aliases of one current module. R9/DCP10–DCP12 still qualify child isolation/protections/strategies and thresholds, not parser warning/ignore. Historical evidence/T51 completion remain intact; accepting the name or new revision is not full3.2.0, VIS38 or Long Horizon PASS.
   - Primary evidence supplement (2026-10-02 config controls): DCP12 owns switch/manual/commands/debug fixtures and rebuilt fake-provider binary receipts; DCP05–DCP07 remain their original owners/regressions, DCP10/CTX02 reuse child/preview evidence and T44/VIS38 qualifies visuals separately. Prove actual off/no-request refusal, successful manual compression plus continuation, direct-entry guards, preserved Ask/Deny/projection across re-enable/restart/reload/Location. Freeze source-derived protection/default and context/turn/iteration timing fixtures; keep declared native roots/array replacement and DCP11 forgetting, no silent weakening/default change or full-parity claim from parsed fields.
-  - Status: pending
-  - Evidence:
+  - Status: verified
+  - Evidence: `evidence/T45/report.md` R9 matrix links HOT/RAW/renewal/defaults/controls/child-DCP/qualified3.2.0 direct receipts and measured A10 workload; current workspace and actual normal debug/release recovery/chronology regressions remain green. Historical failed helper/baselines and AGPL provenance preserved; no infinite-resource/full-DCP/visual claim.
 
 - R10: The shared prompt/instruction lifecycle follows OC2 within the native tool/trust contracts.
   - Source: owner request for the complete system/tools/AGENTS/profiles/skills/subagents assembly scheme and approval to update all discussed work, 2026-09-27; supplements R6/R7 rather than declaring their existing implementation complete.
@@ -138,8 +138,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and Prima
   - Primary evidence: PRM01 pinned source-derived fixtures and captured requests for Build/custom/General/Explore, initial/nested AGENTS, changed/removed files, repeated read, compaction/Revert/restart and Location A→B. Assert actual content/order/roles/provenance, policy-filtered previews, no stale instructions and truthful tools; declared native differences remain separate from donor parity evidence.
   - Primary evidence supplement: reuse TOOL12's provider/tool-barrier same-task A→B→A and real draft/blank-Enter/captured-commit receipts. Assert the next root/own-model-child base/custom prompt, schemas/guidance, model-relative DCP budget and capability view agree, without duplicate fixed lanes, lost retained outcomes, foreign child changes or old-request reattribution. Model choice does not reload config or widen Plan/grants. T44 VIS09/VIS29/VIS17/VIS35/VIS36 paired presentation remains separate and PAUSED.
   - Acceptance/evidence supplement (2026-10-02): consume T53/GO03's ordered chronological system/effort seam, distinct from initial system and top-level variant selection. PRM01 captures actual root/child instruction order with Responses developer updates, Chat escaped in-place user-text fallback and Messages native updates only when explicitly supported, otherwise the same lower-authority fallback. Unsupported or final-marker-mismatched effort history strips markers and uses captured current effort; supported matching history retains first marker.previous as top-level baseline and lowers updates, including reset/default, in position. Reuse GO03/GO04 wire/reopen receipts rather than own a second protocol/history parser; no guessed model allowlist or lost completed tool outcomes.
-  - Status: in_progress
-  - Evidence: delivered prompt/instruction/profile/file-family receipts under `evidence/T45/`; chronological consumer `evidence/T45/chronology.md` reproduces and fixes idle marker boundary loss and qualifies current normal debug/release root/own-model-child Responses/Chat/Messages requests plus nested-instruction regressions. Workspace1712/0/11, strict Clippy/fmt/release PASS; full task outcome review remains pending, no visual/live PASS.
+  - Status: verified
+  - Evidence: `evidence/T45/report.md` R10 matrix and delivered prompt/instruction/skill/profile/file-family receipts; `chronology.md` / `3e9325d1b` qualifies current normal debug/release root/own-model-child Responses/Chat/Messages chronology/reopen plus nested-instruction regressions. Latest workspace1713/0/11, strict Clippy/fmt/release PASS; no visual/live PASS.
 
 ### Long Horizon runtime and retry follow-up — approved 2026-10-02, pending
 
@@ -366,21 +366,17 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 
 ## Current Checkpoint
 
-- Selected-context/active-task follow-up (owner-approved 2026-10-03): after the existing dirty T45 HOT work reaches a safe handoff, use qualified immutable RAW/latest-HOT owners, freeze first-request exact admission and compress/continue before the same delegation's final response. Implement foreground IDs/pack preflight and the minimum addressable task/pack renewal seam without waiting for all PRM01/R3/T45; background snapshot qualification joins when the minimal SUB01/SUB02 lifecycle is ready. See M8. No implementation/PASS or task-state change in this plan-only delivery.
-- DCP config-control follow-up (owner-approved 2026-10-02): after safe T45 handoff, first freeze off/no-provider and manual-mode explicit-trigger regressions against current HEAD. Deliver strict default-true compress.enabled/shared availability, owner-admitted manual route, then commands/debug and captured restart/Location/child facts in the M8 order. Existing dirty T50, T44 PAUSED, task states/baselines/evidence stay unchanged; plan validation is not runtime PASS.
-- Built-ins/MCP follow-up (owner-approved 2026-10-01): after safe handoff, first freeze a no-custom-profile fixture for missing Plan/General/Explore and absent central MCP authority. Implement the shared builtin/default policy view, then captured schema/preview/effects and Plan lifecycle using the ordered M8 slices. Existing T50 dirty work, T55 scheduling priority, T44 PAUSED and all task statuses are unchanged; this delivery is plan-only.
-- CLI/profile follow-up (owner-approved 2026-10-01): after T50's minimum `oc models` catalog consumer, qualify one exact listed reference through R6 JSON/Markdown profile selection/request/reopen. Basic loader/profile normalization may proceed with shared fixtures before the CLI lands, but final binding evidence must cite the real CLI receipt. T50 active, T44 PAUSED, current dirty work and T55 safe-handoff priority are unchanged; no historical profile PASS qualifies this new end-to-end scenario.
-- Closes: smallest unresolved T45 slice of R3/R6–R10, not already verified R1/R2.
-- Smallest next action: commit/push the checked R10 chronological consumer slice, then preserve the R3 safe terminal diagnostic via the existing child event/result/span owners and prove bounded reopen without retry resurrection. T53/GO03 is delivered; the previous T45 dependency is removed. AUTH06 is deferred, not waived; T44 remains PAUSED.
-- Expected evidence: assigned targeted scenario plus relevant crate/workspace gates; plan validators are not implementation PASS.
-- Stop or replan if: a slice crosses the stated authority/trust boundary or requires unknown side-effect replay; retain historical tests and record the precise donor/native difference.
+- Closes: independent offline R3 terminal supplement and R6–R10 outcome reconciliation, qualified in `evidence/T45/report.md`.
+- Smallest next action: factual blocker handoff, no false T45 finish; continue independently owned T43 config/foreground prerequisite closeout. No speculative backend cleanup or extra paid campaign.
+- Remaining R3 evidence: original configured-OpenProxy bounded live subagent request needs explicit additional allowance/campaign authorization or explicit owner deferral/waiver. Current original ledger24/24 and unknown17 remain spent; fake/Go/anonymous/paid substitution and counter reset are not permitted alternatives.
+- T57 AUTH06 is owner-deferred, not waived; T44 remains independently PAUSED. No credential search or real requests in this delivery.
 
 ## Current State
 
-- Resolved: historical R1/R2 and delivered T45 R3/R6–R10 component slices retain their factual receipts; full closure awaits the two remaining chronological/terminal diagnostic supplements, current gates and outcome review.
-- Last relevant evidence: current workspace **1712/0/11**, strict Clippy/fmt/release and actual normal debug/release chronological root/child six-case and nested-instruction proof in `evidence/T45/chronology.md`. The earlier delivered HOT/RAW/renewal/defaults/controls/profiles/context/child lifecycle receipts remain historical component evidence, not a new visual or real OAuth claim.
-- Blocker: none.
-- Next: finish/push the chronological slice, then the R3 terminal diagnostic slice and frozen outcome closure. T44 independently consumes the owner-backed surfaces only after explicit resume; no live AUTH06 requests or credential search.
+- Resolved: R1/R2 and R4–R10, plus all independent offline R3 backend/safe diagnostic outcomes; checked/pushed current slices `3e9325d1b` / `25df7dc6e`. Component receipts and historical leaves remain unchanged.
+- Last relevant evidence: current workspace **1713/0/11**, strict Clippy/fmt/release, actual normal debug/release child controls4/recovery20/chronology6 cases each, nested instructions15requests/13facts each and final Core terminal/reopen barrier1 PASS; `evidence/T45/report.md` is the primary matrix.
+- Blocker: original R3 configured-OpenProxy live subagent facet NOT_RUN; read-only existing guarded ledger confirms generation24/control15/MCP1, generation remaining0, unknown17 still spent, ledger unchanged/network0. Existing root-only T27 and Go T53 do not contain a child or substitute authority.
+- Next: preserve T45 BUILD_READY_LIVE_BLOCKED/no finish and continue T43 independent prerequisites. T44 after explicit resume only; AUTH06 deferred/no live/credential search.
 
 ## Material Decisions
 
@@ -413,6 +409,8 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 - 2026-09-21: `mode: subagent`/`all` definitions must load now (no diagnostic) even before execution lands, because the owner config uses them and requested "не блокировать".
 
 ## Checkpoint History
+
+- 2026-10-07: `25df7dc6e` preserves owner-safe final child diagnostic; actual Core read/partial-retry/final-error/family-read/reopen and parent barrier PASS, current workspace1713/0/11 plus normal debug/release controls/recovery/chronology. Frozen review resolves R6–R10; original R3 live facet remains NOT_RUN at observed immutable generation24/24/unknown17 spent. Record BUILD_READY_LIVE_BLOCKED, no false finish; T43 prerequisites are independently closable.
 
 - 2026-10-07: owner defers AUTH06 and requests accessible iterative work/checked commit+push slices. Resume T45 after delivered T53; actual normal ELF reproduces idle marker loss at nonprojected notice/current-input boundaries. Minimal existing storage/runtime fix and six root/child wire/reopen plus nested-instruction cases pass current normal debug/release, workspace1712/0/11, strict Clippy/fmt/release. Next: checked commit/push, R3 safe terminal event, then contract closure.
 
@@ -457,7 +455,7 @@ DCP defaults/config reference [D4](../SOURCES.md#dcp) pins lib/config.ts at the 
 
 ## Completion
 
-- Resolved outcomes:
-- Commands and artifacts:
-- Constraint and diff-scope check:
-- Final status:
+- Resolved outcomes: R1/R2/R4–R10 and independent offline R3 implementation; original R3 live facet remains blocked, not waived or PASS.
+- Commands and artifacts: `evidence/T45/report.md`, component receipts and final-source workspace1713/0/11 / strict Clippy/fmt / normal debug/release native gates.
+- Constraint and diff-scope check: reviewed existing-owner storage/turn/event changes, nearby tests/native fixture/factual docs only; no new store/schema/DTO/retry framework, raw purge, authority/guard weakening, credential access or budget reset. T44 independently PAUSED.
+- Final status: BUILD_READY_LIVE_BLOCKED, not DONE; R3 original live allowance prerequisite unresolved, no `finish`.

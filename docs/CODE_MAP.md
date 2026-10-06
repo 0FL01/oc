@@ -101,6 +101,8 @@ Safe child report diagnostics are forwarded by the existing `runtime/turn.rs`
 terminal callback; `evidence/T45/child-diagnostic.md` maps the actual CoreApp
 partial-retry/final-error/linked-read/reopen consumer regression in the existing
 `subagent` target. Classification/redaction and retries stay RET01-owned.
+Current T45 outcome/gate matrix and exact exhausted original live prerequisite:
+`evidence/T45/report.md`; offline qualification is not whole-task/visual/live PASS.
 
 Durable wire authority: core `queries::{NativeProtocol,WireProvenance}` and adapter
 `ResponsesConfig::provenance` feed prepared receipts/TurnLog. `tools/model_history.rs`
