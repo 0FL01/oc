@@ -667,6 +667,17 @@ help/diff pass. Evidence: `evidence/T53/retry-wires.md`. Go credential preflight
 found no `OPENCODE_API_KEY` in process or permitted repo-local test input; real
 Go generation/route probes are NOT_RUN, not PASS. Final factual report follows.
 
+### Combined configless and unavailable-reload checkpoint (2026-10-06)
+
+The same actual binary now qualifies configless Go account/selection followed by
+explicit custom connection selection, local fake generation/cancel and reopen.
+Optional retired/disabled choices survive reload as unavailable; profile/policy/
+storage errors remain mandatory refusals. Absent Go does not panic or resurrect
+bindings during another account ACK. Evidence: `evidence/T53/connect-ui.md`.
+Workspace **1648/0/10** and strict final gates pass. This does not qualify real
+fixed-authority Go generation: authorized live credentials lack OPENCODE_API_KEY.
+No T53 finish or GO06 PASS is claimed.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

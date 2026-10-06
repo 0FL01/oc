@@ -98,11 +98,14 @@ impl Composition {
     }
 
     pub(super) fn capture_public_bindings(&mut self) {
-        self.provider.wire.requests = public_bindings(
-            &self.generation.providers[PROVIDER],
-            &self.catalog,
-            &self.provider,
-        );
+        let Some(entry) = self.generation.providers.get(PROVIDER) else {
+            // A retained Go choice may be explicitly disabled in this
+            // generation. Another connection's account ACK must not recreate
+            // its bindings or assume that the optional entry exists.
+            self.provider.wire.requests.clear();
+            return;
+        };
+        self.provider.wire.requests = public_bindings(entry, &self.catalog, &self.provider);
     }
 }
 

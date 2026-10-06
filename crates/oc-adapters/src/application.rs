@@ -2202,8 +2202,9 @@ async fn start_worker_inner(
 
 /// A reload retains the same Location's tab deck and scoped session choices.
 /// Resolve them through the owner's Current path before publishing the new
-/// generation; a configured fallback is allowed only where that path really
-/// replaces the old choice (for example an unpinned session model).
+/// generation. Missing model/provider/variant availability is optional: retain
+/// the exact choice as unavailable, not the old executable configuration or a
+/// substitute model. Profile/policy and storage admission remain mandatory.
 fn validate_reload_selections(
     db: &Db,
     old: &Runtime<'_>,
@@ -2263,17 +2264,9 @@ fn validate_reload_selections(
         let turn = selection::for_turn(db, composition, effective, &session.0)
             .map_err(|_| selection_error())?;
         for selected in [&selected, &turn] {
-            if selected.selection_issue(composition).is_some() {
+            if selected.profile_issue.is_some() {
                 return Err(selection_error());
             }
-            crate::models::select_model(
-                composition
-                    .catalog_for(&selected.provider_id)
-                    .ok_or_else(selection_error)?,
-                &selected.model_id,
-            )
-            .and_then(|base| crate::models::select_variant(&base, selected.variant.as_deref()))
-            .map_err(|_| selection_error())?;
         }
     }
     Ok(())

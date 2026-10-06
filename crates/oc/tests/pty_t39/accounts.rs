@@ -7,6 +7,7 @@ use oc_adapters::{
 
 const KEY: &str = "GO05_PTY_KEY_NEVER_RENDER_54c1";
 const CANCELLED: &str = "GO05_CANCELLED_NEVER_SAVE_8e43";
+const GO_KEY: &str = "GO05_GO_SCOPE_NOT_CUSTOM_901c";
 
 fn paste(pty: &mut PtySession, text: &str) {
     pty.send(format!("\x1b[200~{text}\x1b[201~").as_bytes());
@@ -29,6 +30,7 @@ fn close(pty: &mut PtySession) {
     assert!(contains(&output, ALT_LEAVE));
     assert!(!String::from_utf8_lossy(&output).contains(KEY));
     assert!(!String::from_utf8_lossy(&output).contains(CANCELLED));
+    assert!(!String::from_utf8_lossy(&output).contains(GO_KEY));
 }
 
 #[test]
@@ -194,7 +196,7 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
 }
 
 #[test]
-fn go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_owner() {
+fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_owner() {
     let fixture = Fixture::new();
     *fixture.expected_auth.lock().unwrap() = KEY.into();
     let path = fixture
@@ -209,7 +211,9 @@ fn go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_own
         .as_object_mut()
         .unwrap()
         .remove("apiKey");
-    std::fs::write(&path, config.to_string()).unwrap();
+    // Begin truly configless. The local peer is admitted later by an explicit
+    // config reload; it never replaces or redirects the fixed Go authority.
+    std::fs::remove_file(&path).unwrap();
     let db = Db::open(&fixture.data_dir()).unwrap();
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -219,7 +223,10 @@ fn go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_own
         "public-catalog:https://models.dev/api.json:opencode-go:v1",
         &serde_json::json!({
             "source":"https://models.dev/api.json", "fetched_at_ms":now,
-            "record":{"id":"opencode-go","npm":"@ai-sdk/openai-compatible","models":{}}
+            "record":{"id":"opencode-go","npm":"@ai-sdk/openai-compatible","models":{
+                "offline-go":{"id":"offline-go","name":"GO05 offline Go selection","tool_call":true,
+                    "limit":{"context":32000,"output":2048}}
+            }}
         })
         .to_string(),
     )
@@ -228,10 +235,59 @@ fn go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_own
     let session = "go05-connected-generation";
     let mut pty = PtySession::spawn(fixture.clone(), session, None);
     pty.wait_visible(READY, DEADLINE);
+    connect_go(&mut pty);
+    paste(&mut pty, "Go bootstrap account");
+    pty.send(b"\r");
+    wait_screen_row(&pty, "API key (masked)", DEADLINE);
+    paste(&mut pty, GO_KEY);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "GO05 offline Go selection", DEADLINE);
+    pty.send(b"\r");
+    dismissed(&pty, "Select model");
+    pty.send(b"\r");
+    pty.send(b"/accounts\r");
+    wait_screen_row(&pty, "Provider: opencode-go", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Connect / accounts");
+    assert!(fixture.requests.lock().unwrap().is_empty());
+    // Retain the exact Go choice as unavailable, rather than replacing it. The
+    // next executable choice is an explicit custom-provider commit below.
+    config["disabled_providers"] = serde_json::json!(["opencode-go"]);
+    std::fs::write(&path, config.to_string()).unwrap();
+    wait_idle(&pty);
+    pty.send(b"/reload\r");
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    {
+        let sql = rusqlite::Connection::open_with_flags(
+            fixture.data_dir().join("oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let retained: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM prefs WHERE json_valid(value) \
+                 AND json_extract(value,'$.models.build.provider')='opencode-go' \
+                 AND json_extract(value,'$.models.build.id')='offline-go'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            retained > 0,
+            "reload must preserve the unavailable Go choice"
+        );
+        let turns: i64 = sql
+            .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            turns, 0,
+            "no Go generation was accepted before custom selection"
+        );
+    }
     pty.send(b"/connect\r");
     wait_screen_row(&pty, "Choose provider connection", DEADLINE);
     wait_screen_row(&pty, "(fixture)", DEADLINE);
-    pty.send(b"\x1b[B\r");
+    pty.send(b"\r");
     wait_screen_row(&pty, "Account label", DEADLINE);
     wait_screen_row(&pty, "Provider: fixture", DEADLINE);
     paste(&mut pty, "Executable local account");
@@ -290,6 +346,15 @@ fn go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_own
         .unwrap();
     let stored: oc_core::queries::ModelRef = serde_json::from_str(&raw).unwrap();
     assert_eq!(stored.provider, "fixture");
+    let accounts: i64 = sql
+        .query_row("SELECT count(*) FROM credential_accounts", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(
+        accounts, 2,
+        "Go and custom credentials have independent scopes"
+    );
     assert_eq!(fixture.wait_requests(2).len(), 2);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 0);
 }

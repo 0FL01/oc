@@ -1297,26 +1297,46 @@ mod reload_tests {
             .unwrap();
         let initial = app.file_suggestions("".into(), 1).await.unwrap();
         std::fs::write(&path, config(true)).unwrap();
-        assert!(matches!(
-            app.reload_location().await,
-            Err(CoreError::LocationSwitch {
-                category: LocationSwitchFailure::Configuration,
-                ..
-            })
-        ));
+        app.reload_location().await.unwrap();
+        let selected = app
+            .session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap();
+        // T53 keeps the exact retired preference, but exposes an unavailable
+        // presentation instead of the old executable catalog or a substitute.
+        assert_ne!(selected.model_id, "new");
         assert_eq!(
-            app.session_selection(session, false, Action::Current)
+            selected.chrome.selection.as_ref().unwrap().diagnostic.code,
+            oc_core::queries::ServiceCode::ModelUnavailable
+        );
+        assert!(app.file_suggestions("".into(), 1).await.unwrap().generation > initial.generation);
+        assert!(
+            app.submit(session.clone(), "must refuse before effects".into())
                 .await
-                .unwrap()
-                .model_id,
-            "old"
+                .is_err()
         );
-        assert_eq!(
-            app.file_suggestions("".into(), 1).await.unwrap().generation,
-            initial.generation
-        );
+        assert!(app.read_history(session).await.unwrap().is_empty());
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
+        let sql = rusqlite::Connection::open_with_flags(
+            data.join("oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let retained: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM prefs WHERE json_valid(value) \
+             AND json_extract(value,'$.models.build.provider')='fixture' \
+             AND json_extract(value,'$.models.build.id')='old'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(retained, 1);
+        let turns: i64 = sql
+            .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(turns, 0);
     }
 
     #[tokio::test]

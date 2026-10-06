@@ -182,3 +182,42 @@ is its existing `echo:` script, not guessed `answer:`; reopen uses actual persis
 title, and accepted ModelRef is checked in `turn_acceptances`, not child-only session
 metadata. No product guard, test deadline or ignored gate was changed.
 Frozen matrix/live/final report remain pending; this section is not full T53 PASS.
+
+## Combined configless flow and unavailable reload (2026-10-06)
+
+Base: `6a3a469b9`. The same actual-binary PTY now begins without any config,
+uses source-qualified cached Go metadata, explicitly connects a masked synthetic
+Go account and commits its Go model, then admits a separate custom connection
+through explicit configuration reload. Go is explicitly disabled at that boundary:
+the original exact Go preference remains unavailable, not silently substituted.
+The user then explicitly connects and commits the custom model, completes one
+local fake generation, cancels one held generation and reopens durable history.
+Two independent account namespaces and distinct synthetic credentials survive;
+the peer checks only the custom credential. All captured terminal bytes exclude
+both keys and the canceled-input canary. Before the custom selection SQL proves
+zero accepted turns. Exactly two local generation sockets and zero configured
+discovery sockets occur. No Go authority override, fake Go endpoint or paid Go
+generation is used; real Go requests remain a separate GO06 requirement.
+
+This test exposed two production defects. Reload incorrectly rejected an optional
+retired/disabled model instead of preserving the unavailable choice; validation
+now retains exact model/provider/variant preferences while profile/policy/storage
+admission remains mandatory. A subsequent account ACK indexed a removed optional
+Go config entry; absent Go now clears captured bindings without resurrection or
+panic. The existing removed-primary reload refusal still passes. The retired-model
+regression now proves successful publication, explicit unavailable readiness, the
+original saved identity, rejected submission and zero history/turn effects.
+
+Experiments: an initial reload-timeout hypothesis and an idle wait did not fix the
+failure. Temporary bounded owner markers identified the actual retained-selection
+refusal; all markers were removed. The next ACK exposed the missing-entry panic.
+The first SQL assertion inspected a root model choice instead of the existing
+session's `models.build` record; the query was corrected, not the storage shape.
+One broad run found the old reload-refusal expectation, updated only as required
+by T53's optional-choice contract with stronger no-substitution/no-effect checks.
+
+Final normal-stack gates, `CARGO_BUILD_JOBS=3`, `RUST_TEST_THREADS=2`, approved disk
+TMPDIR: `cargo test --locked --workspace` **1648 passed / 0 failed / 10 ignored**;
+`cargo clippy --locked --workspace --all-targets -- -D warnings`,
+`cargo fmt --all -- --check`, `cargo build --locked`, `target/debug/oc --help`,
+and `git diff --check` PASS. Existing opt-in ignores do not count as live evidence.
