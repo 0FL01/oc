@@ -1051,9 +1051,23 @@ impl Effective {
 
     /// Catalog plus this effective selection.
     fn snapshot(&self, composition: &Composition, generation: u64) -> CatalogSnapshot {
+        self.snapshot_catalog(
+            composition,
+            generation,
+            &composition.catalog,
+            composition.selected_provider_readiness(&self.model_id, self.variant.as_deref()),
+        )
+    }
+
+    fn snapshot_catalog(
+        &self,
+        composition: &Composition,
+        generation: u64,
+        catalog: &crate::models::ModelCatalog,
+        readiness: oc_core::queries::ProviderReadiness,
+    ) -> CatalogSnapshot {
         let issue = self.selection_issue(composition);
-        let mut models: Vec<ModelEntry> = composition
-            .catalog
+        let mut models: Vec<ModelEntry> = catalog
             .models
             .iter()
             .map(|(id, spec)| ModelEntry {
@@ -1066,9 +1080,9 @@ impl Effective {
                 provider_name: composition
                     .generation
                     .providers
-                    .get(&composition.catalog.provider)
+                    .get(&catalog.provider)
                     .and_then(|p| p.name.clone())
-                    .unwrap_or_else(|| composition.catalog.provider.clone()),
+                    .unwrap_or_else(|| catalog.provider.clone()),
                 price: (|| {
                     let input = spec.pointer("/cost/input")?;
                     let output = spec.pointer("/cost/output")?;
@@ -1166,10 +1180,7 @@ impl Effective {
                     .filter_map(|agent| Some((agent.id.clone(), agent.color.clone()?)))
                     .collect();
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
-                chrome.provider = Some(
-                    composition
-                        .selected_provider_readiness(&self.model_id, self.variant.as_deref()),
-                );
+                chrome.provider = Some(readiness);
                 chrome.service_diagnostics.retain(|diagnostic| {
                     diagnostic.kind != oc_core::queries::ServiceKind::Provider
                 });
@@ -1193,7 +1204,7 @@ impl Effective {
             } else {
                 oc_core::queries::AutoAcceptState::Disabled
             },
-            provider: composition.catalog.provider.clone(),
+            provider: catalog.provider.clone(),
             models,
             model_id: if self.model_id.is_empty() {
                 String::new()
@@ -3317,6 +3328,28 @@ fn query(
         InboxMsg::Catalog { ack } => {
             let snapshot = effective.snapshot(composition, location_epoch.load(Ordering::SeqCst));
             let _ = ack.send(Ok(snapshot));
+        }
+        InboxMsg::ProviderCatalog { provider, ack } => {
+            let result = if provider == composition.catalog.provider {
+                Ok(effective.snapshot(composition, location_epoch.load(Ordering::SeqCst)))
+            } else {
+                composition
+                    .provider_views
+                    .get(&provider)
+                    .map(|view| {
+                        let mut unchosen = Effective::from_composition(composition);
+                        unchosen.model_id.clear();
+                        unchosen.variant = None;
+                        unchosen.snapshot_catalog(
+                            composition,
+                            location_epoch.load(Ordering::SeqCst),
+                            &view.catalog,
+                            view.readiness("", None),
+                        )
+                    })
+                    .ok_or_else(|| app_error("provider catalog unavailable"))
+            };
+            let _ = ack.send(result);
         }
         InboxMsg::ProviderAccounts {
             provider,

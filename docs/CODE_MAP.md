@@ -137,7 +137,11 @@ T53 masked connection UI lives in `oc-tui/src/app/accounts.rs` (ephemeral field,
 safe metadata and confirmation), with `dialog.rs` painting and binary
 `tui_cmd.rs` typed owner ACK routing. Tests: `app/accounts_tests.rs` and actual
 `oc/tests/pty_t39/accounts.rs`. It does not reuse composer/editor undo or copy.
-Cross-provider catalog switching remains the next selection-owner seam.
+Independent frozen connection views: `composition/provider_views.rs` admits and
+resolves connection inputs under the existing Location/source/Db owners;
+`CoreApp::provider_catalog` exposes cached safe rows without committing selection.
+Tests: `application/provider_view_tests.rs`. Executable cross-provider switching
+and independent public refresh are the next selection-owner consumer seam.
 
 ## Как обновлять
 

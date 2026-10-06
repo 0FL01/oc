@@ -3,6 +3,8 @@
 use super::*;
 #[path = "accounts_tests.rs"]
 mod accounts_tests;
+#[path = "provider_view_tests.rs"]
+mod provider_view_tests;
 
 #[cfg(test)]
 mod review_tests {

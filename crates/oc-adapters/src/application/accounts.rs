@@ -9,9 +9,10 @@ fn scope(c: &Composition, provider: &str) -> Result<crate::auth::AuthScope, Core
         crate::auth::GO_BASE_URL
     } else {
         let entry = c
-            .generation
-            .providers
+            .provider_views
             .get(provider)
+            .map(|view| &view.entry)
+            .or_else(|| c.generation.providers.get(provider))
             .ok_or_else(|| CoreError::Application("provider connection unavailable".into()))?;
         crate::endpoint::EndpointBinding::admit(
             &entry.options.base_url,
@@ -65,9 +66,9 @@ pub(super) fn apply(
             }
         };
         result.map_err(|error| query_storage_error(db, error))?;
+        c.refresh_credentials(db)
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
         if c.catalog.provider == provider {
-            c.refresh_credentials(db)
-                .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
             runtime
                 .publish_provider_credentials(&c.generation)
                 .map_err(runtime_error)?;
@@ -85,7 +86,11 @@ pub(super) fn read(
     provider: String,
 ) -> Result<ProviderAccounts, CoreError> {
     let scope = scope(c, &provider)?;
-    let options = c.generation.providers.get(&provider).map(|e| &e.options);
+    let options = c
+        .provider_views
+        .get(&provider)
+        .map(|view| &view.entry.options)
+        .or_else(|| c.generation.providers.get(&provider).map(|e| &e.options));
     let resolved = scope
         .resolve(
             db,

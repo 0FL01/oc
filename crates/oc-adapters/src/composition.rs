@@ -23,6 +23,7 @@ mod catalog;
 mod controls_tests;
 pub(crate) mod go_catalog;
 mod provider_readiness;
+mod provider_views;
 pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
 pub(crate) use provider_readiness::ProviderState;
 
@@ -49,6 +50,7 @@ pub struct Composition {
     pub provider: provider::ResponsesConfig,
     pub(crate) provider_state: ProviderState,
     pub(crate) go_catalog: Option<std::sync::Arc<crate::models_dev::GoCatalog>>,
+    pub(crate) provider_views: BTreeMap<String, provider_views::ProviderView>,
     /// Canonical admitted project boundary.
     pub project: PathBuf,
     /// Environment snapshot for substitutions and child processes.
@@ -198,7 +200,9 @@ pub(crate) async fn load_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    load_stages(project, parent_env).await
+    let mut composition = load_stages(project, parent_env).await?;
+    composition.admit_provider_views();
+    Ok(composition)
 }
 
 fn failure_category(failure: &LoadFailure) -> String {
@@ -1437,6 +1441,7 @@ async fn load_stages(
     tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
+        provider_views: BTreeMap::new(),
         mcp_activation: std::sync::Arc::new(McpActivation {
             sources: sources.clone(),
             global: global.as_ref().and_then(|root| root.canonicalize().ok()),

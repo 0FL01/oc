@@ -656,6 +656,11 @@ pub enum InboxMsg {
         /// Query result.
         ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
     },
+    /// Read another admitted connection's catalog without committing a selection.
+    ProviderCatalog {
+        provider: String,
+        ack: oneshot::Sender<Result<CatalogSnapshot, CoreError>>,
+    },
     /// Read/change a session/agent model draft in the existing application owner.
     SessionSelection {
         /// Owning session.
@@ -1623,6 +1628,16 @@ impl CoreApp {
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Read an admitted provider view without selecting or dispatching a model.
+    pub async fn provider_catalog(&self, provider: String) -> Result<CatalogSnapshot, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ProviderCatalog { provider, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read or mutate scoped accounts through the existing application owner.
     pub async fn provider_accounts(
         &self,
@@ -2200,6 +2215,7 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(CoreError::Shutdown));
         }
         InboxMsg::Catalog { ack }
+        | InboxMsg::ProviderCatalog { ack, .. }
         | InboxMsg::SessionSelection { ack, .. }
         | InboxMsg::HomeSelection { ack, .. } => {
             let _ = ack.send(Err(error()));

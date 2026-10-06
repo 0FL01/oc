@@ -51,3 +51,36 @@ fixture correction. Final focused PTY was rerun after priority input isolation.
 No real generation calls, secret reads, new dependencies, ignored-test changes or
 deadline changes. Remaining T53 gates include full provider-qualified selection,
 final offline workspace, bounded real Go qualification and factual task finish.
+
+## Admitted provider views foundation
+
+Base: `d3c3a26ae`. The local composition now retains independent connection views
+for supported enabled providers, admitted from the same frozen source bytes and
+descriptor-root authority. This does not publish another policy/Location, restart
+MCP, open another Db, execute foreign packages or select a model. Optional invalid
+views retain bounded safe diagnostics instead of blocking the healthy selection.
+Each view resolves its own configured/scoped stored auth, never the current
+connection's resolved key. Go uses the fixed Go authority and its public last-good
+cache, independent of the selected custom provider.
+
+`CoreApp::provider_catalog` exposes a safe cached view without changing selection.
+Account commands now address independently admitted nonselected connections; their
+metadata and credential-only refresh use the same owner. Querying another view
+has no session/turn/tool or preference-selection effects. Same slash-containing ID
+under Alpha, Beta and Go stays provider-qualified in separate snapshots. Source
+edits do not change the frozen view until an admitted reload.
+
+Checks (approved TMPDIR, jobs=3, test threads=2):
+
+```text
+cargo test --locked -p oc-adapters --lib go05_                  5 / 0 / 0
+cargo test --locked -p oc-adapters --lib -p oc-core            613 + 32 / 0 / 0
+cargo clippy --locked --workspace --all-targets -- -D warnings PASS
+```
+
+The first integration run found that assigning the selected-provider catalog job
+to a nonselected Go view addressed the wrong generation entry. The new view reads
+the shared last-good cache but does not commandeer that job. Explicit cold/stale
+refresh and executable cross-provider selection are the following consumer slice;
+this foundation does not claim full GO05 or change the currently selected wire.
+No live generation, new dependencies, ignored-test or deadline changes.

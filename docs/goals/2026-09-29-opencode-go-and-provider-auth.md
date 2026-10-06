@@ -591,6 +591,19 @@ UI, qualified picker/selection and actual-binary full flow.
   fmt and diff checks pass. GO05 remains pending: qualified provider selection
   and Go-filtered picker from a non-Go current connection are the next seam.
 
+### Independent connection views checkpoint (2026-10-06)
+
+Frozen local provider views and `CoreApp::provider_catalog` are admitted separately
+from the current selection/policy owner. Each view has its own API/protocol/settings
+and scoped auth; Go reads shared public last-good metadata without taking over the
+current provider's discovery worker. Same slash ID under different providers remains
+separate, with no query-created session/turn/selection. Optional foreign/invalid
+views are unavailable, not executable fallback. Account metadata/mutations now use
+these admitted scopes. Tests: `application/provider_view_tests.rs`, 613 adapter +
+32 core tests and strict workspace all-target clippy PASS. Partial R1/R5, not GO05
+or T53 PASS; qualified executable selection and independent cold/stale public refresh
+remain the next consumer slice.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

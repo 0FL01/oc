@@ -252,6 +252,7 @@ impl Composition {
         &mut self,
         db: &crate::storage::Db,
     ) -> Result<(), LoadFailure> {
+        self.resolve_provider_views(db)?;
         let id = &self.catalog.provider;
         let source = self
             .generation
