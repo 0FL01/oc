@@ -246,6 +246,8 @@ loopback origin only, shared native issuer/request guards, no default override.
 Actual fake approval and native request captures: `oc/tests/auth_oauth.rs` /
 `support/auth_oauth.py`, feature `oc/auth-fixture`, filter `auth02_auth04_`;
 `evidence/T57/binary-fixture.md` distinguishes fixture ELF from real authorization.
+`evidence/T57/qualification.md` records current normal/feature release gates and
+separate headless own-env/config request roots; fixtures remain in the same targets.
 
 ## Как обновлять
 

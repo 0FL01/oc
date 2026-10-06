@@ -69,7 +69,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: in_progress
-  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md / runtime-ws.md — admitted Key/OAuth authority/catalog, selected all-lane preparation, checked local native channel ownership and actual runtime read/result/final/fork/opaque/retry/child/summary effects; rebuilt headless/PTY consumers and live provider qualification remain pending.
+  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md / runtime-ws.md / binary-fixture.md / qualification.md — captured authority/catalog/all-lane preparation, checked local native channels/runtime effects and rebuilt fixture ELF Key/OAuth WS/HTTP read/result/final/reopen; real provider authorization remains separate under R6.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -79,7 +79,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: source-derived key/OAuth separation fixtures + actual binary
     PTY/pipe actions и captured requests; token/key never enters transcript/composer.
   - Status: in_progress
-  - Evidence: evidence/T57/cli.md / tui.md / tui-binary.md — shared native CLI and actual normal TUI PTY methods/masked keys/accounts/picker/no model commit, owned browser open/copy/refusal/cancel/quit and restart; metadata-only previews leave held requests intact. Release and real provider qualification remain pending. Presentation — only T44/VIS45.
+  - Evidence: evidence/T57/cli.md / tui.md / tui-binary.md / qualification.md — current normal debug/release CLI/TUI methods/masked keys/accounts/picker/no model commit and owned browser controls/restart; fixture ELF proves separate own-env/config headless native requests without stored accounts. Metadata-only previews leave held requests intact. Real provider qualification is R6; presentation only T44/VIS45.
 - R6: current offline и bounded real authorization/request qualification.
   - Source: полноценный backend и визуальный результат, existing A01–A13/live rules.
   - Acceptance: AUTH06 требует current nearest/impacted/final gates и opt-in native
@@ -87,8 +87,8 @@ required outcome is resolved and affected constraints remain satisfied.
     receipts. Full auth-segment parity заявляется только вместе с T44/VIS45 PASS.
   - Primary evidence: factual report с commits/commands/exits, sanitized durable
     campaign counters и ссылкой на independent paired VIS45 evidence.
-  - Status: pending
-  - Evidence: pending; этот plan delivery не запускает live login или generation.
+  - Status: in_progress
+  - Evidence: evidence/T57/qualification.md — current normal debug/release/workspace and explicit fixture-release offline gates green; dedicated real browser/device/key authorization/request/reopen NOT_RUN, not inferred from fake/local captures.
 
 ### Donor behavior to port
 
@@ -363,8 +363,12 @@ test-build seam closes the two original offline gates, not AUTH06 live or VIS45.
   four device controls), feature all-target Clippy, default auth0_36/0 and strict
   workspace Clippy/fmt/diff green; evidence/T57/binary-fixture.md. Fake approval and
   feature flags are explicit, not real provider authorization or AUTH06 PASS.
-- Next checkpoint: final current normal debug/release/workspace and fixture release
-  gates, followed by the mandatory bounded dedicated live proof.
+- Thirteenth checked test-only slice: partial-write CLI menu barrier fixed within
+  its original deadline; fixture release proves own-env/config headless native
+  requests in empty credential roots. Current normal debug/release/full workspace
+  1711/0/11, default and feature strict gates all green; evidence/T57/qualification.md.
+- Next checkpoint: factual AUTH06 dedicated live prerequisite assessment and
+  sanitized counters; never replace required real proof with the local campaign.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

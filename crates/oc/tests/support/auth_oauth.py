@@ -199,8 +199,9 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-binary-', dir=os.environ['TMPD
            'TERM': 'xterm-256color', 'LANG': 'C.UTF-8', 'OC_AUTH_FIXTURE_ORIGIN': origin}
     args = [BINARY, '--data-dir', str(root / 'data')]
 
-    def run(extra):
-        result = subprocess.run(args + extra, cwd=root / 'project', env=env, stdin=subprocess.DEVNULL,
+    def run(extra, directory=None, environment=None):
+        command = args if directory is None else [BINARY, '--data-dir', str(directory)]
+        result = subprocess.run(command + extra, cwd=root / 'project', env=env if environment is None else environment, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
         assert result.returncode == 0, 'native command exit (private diagnostics withheld)'
         assert not any(value.encode() in result.stdout + result.stderr for value in (ACCESS, REFRESH, ACCOUNT, KEY)), 'no credential output'
@@ -261,10 +262,11 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-binary-', dir=os.environ['TMPD
         finish(browser)
         assert TOKENS[1]['grant_type'] == ['authorization_code'] and len(TOKENS[1]['code_verifier'][0]) == 43, 'native browser exchange'
 
-        def write_config(http=False):
+        def write_config(http=False, configured_key=False):
             value = {'model': 'openai/gpt-5.5', 'disabled_providers': ['opencode-go'], 'permissions': {'read': 'allow'},
                      'provider': {'openai': {'npm': '@ai-sdk/openai', 'options': {'baseURL': 'https://api.openai.com/v1',
-                      **({'transport': 'http'} if http else {})}, 'models': {'gpt-5.5': {'name': 'Native fixture'}}}}}
+                       **({'transport': 'http'} if http else {}), **({'apiKey': KEY} if configured_key else {})},
+                       'models': {'gpt-5.5': {'name': 'Native fixture'}}}}}
             (config / 'opencode.json').write_text(json.dumps(value))
 
         write_config()
@@ -302,6 +304,25 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-binary-', dir=os.environ['TMPD
         before_http = len(HTTP)
         assert b'FINAL_NATIVE_NOTE' in run(['run', 'Read note and finish', '--session', 'oauth-http']), 'native explicit OAuth HTTP'
         assert len(HTTP) >= before_http + 2 and len(FRAMES) == before_ws, 'explicit OAuth HTTP is physically SSE, never WS'
+        # AUTH05 also requires headless own-env/config generation without a stored
+        # account. Separate protected roots keep the earlier OAuth/Key selection
+        # from masking either source; both still use the native channel/runtime.
+        for name, configured_key in [('environment', False), ('configuration', True)]:
+            directory = root / (name + '-data')
+            environment = dict(env)
+            if not configured_key:
+                environment['OPENAI_API_KEY'] = KEY
+            write_config(configured_key=configured_key)
+            assert json.loads(run(['auth', 'list', '--format', 'json'], directory, environment)) == []
+            with sqlite3.connect(directory / 'oc.sqlite') as db:
+                db.execute('INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)',
+                           ('public-catalog:https://models.dev/api.json:opencode-go:v1', json.dumps(source), '1'))
+            start_ws, start_http = len(FRAMES), len(HTTP)
+            assert b'FINAL_NATIVE_NOTE' in run(['run', 'Read note and finish', '--session', name + '-root'], directory, environment), 'native headless credential source roundtrip'
+            assert len(FRAMES) >= start_ws + 2 and len(HTTP) == start_http, 'own-env/config default is physical WS'
+            with sqlite3.connect('file:' + str(directory / 'oc.sqlite') + '?mode=ro', uri=True) as db:
+                assert db.execute('SELECT count(*) FROM credential_accounts').fetchone()[0] == 0, 'headless sources never create an account'
+                assert db.execute('SELECT count(*) FROM tool_operations').fetchone()[0] == 1, 'one settled source-scoped native read'
         for path, headers, value in FRAMES + HTTP:
             lower = {key.lower(): val for key, val in headers.items()}
             assert lower['session-id'] if path.startswith('/codex') else 'session-id' not in lower, 'captured actor versus normal Key'
@@ -310,7 +331,7 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-binary-', dir=os.environ['TMPD
         with sqlite3.connect('file:' + str(root / 'data/oc.sqlite') + '?mode=ro', uri=True) as db:
             assert db.execute('SELECT count(*) FROM tool_operations').fetchone()[0] == 4, 'four settled native reads, no replay'
             assert db.execute('SELECT count(*) FROM credential_accounts').fetchone()[0] == 3, 'durable shared native accounts'
-        print('AUTH02/AUTH04 fixture-feature ELF: browser/device durable approval, native Key/OAuth WS+HTTP read/result/final/reopen PASS; no real issuer/provider')
+        print('AUTH02/AUTH04/AUTH05 fixture-feature ELF: browser/device durable approval, native Key/OAuth WS+HTTP and own-env/config read/result/final/reopen PASS; no real issuer/provider')
         print('Local fixture counters:', json.dumps({'ws_frames': len(FRAMES), 'http_requests': len(HTTP),
               'token_exchanges': len(TOKENS), 'device_controls': len(CONTROL)}))
     finally:

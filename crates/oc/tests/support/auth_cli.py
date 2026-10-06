@@ -54,7 +54,10 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-cli-', dir=os.environ['TMPDIR'
         try:
             if choose:
                 deadline = time.monotonic()+8
-                while b'OpenAI authentication method' not in transcript and time.monotonic()<deadline: drain()
+                # Each menu line is a separate write/flush; its title is not a
+                # receipt that all choices have reached the outer PTY yet.
+                while b'3: API key' not in transcript and time.monotonic()<deadline: drain()
+                assert b'3: API key' in transcript
                 assert b'ChatGPT Pro/Plus (browser)' in transcript and b'ChatGPT Pro/Plus (headless)' in transcript
                 os.write(master, b'3\r')
             deadline = time.monotonic()+8
