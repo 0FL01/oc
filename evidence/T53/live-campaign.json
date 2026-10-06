@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "campaign_id": "t53-go-20261006",
+  "provider": "opencode-go",
+  "status": "blocked_preflight",
+  "generation_started": false,
+  "required_authorized_input": "OPENCODE_API_KEY",
+  "blocker": "Go key absent from process and approved test input file",
+  "generation_limit": 24,
+  "smoke_output_token_limit": 2048,
+  "physical_generation_requests": 0,
+  "main": 0,
+  "tool_followup": 0,
+  "title": 0,
+  "summary_compaction": 0,
+  "child": 0,
+  "retry": 0,
+  "protocol_probe": 0,
+  "mcp_search_requests": 0,
+  "uncertain_external_effects": 0,
+  "accounting_enforcement_qualified": false,
+  "resume": "Reuse this campaign ledger; install and verify pre-dial durable accounting before any authorized Go generation. Do not reset counters across restart."
+}

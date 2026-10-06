@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-06T05:13:25+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T53 [blocked]; сверить незакоммиченный diff.
-
 ## Result
 
 T53 implementation through reviewed/pushed `42b49e180`; R1–R5/GO01–GO05 verified
@@ -47,11 +38,3 @@ smoke <=2048 tokens, no all-model sweep/fallback. Execute required exact current
 Responses/Chat/Messages text/tool and dated Qwen probes, record sanitized facts,
 rerun affected final gates, resolve R6, then finish. No independent T53 code/gate is
 left unverified; do not start unrelated T56/T57 under this T53-only user request.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): T56, T57
-Blocked: T27, T43, T44, T45, T53
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

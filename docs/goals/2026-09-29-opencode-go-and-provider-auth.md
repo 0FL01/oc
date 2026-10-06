@@ -1,9 +1,9 @@
 # Goal: OpenCode Go, единые credentials и connect/model TUI
 
-Status: active
+Status: blocked
 Source: владелец после RECON и параллельного аудита утвердил план 2026-09-29; «единая логика хранения кред, без деприкейт фич», будущий Codex OAuth и custom llama.cpp/ludka2 учтены как границы общего owner.
-Last updated: 2026-10-05
-Task: T53 (active; partial backend slices не являются GO01–GO06 PASS).
+Last updated: 2026-10-06
+Task: T53 (blocked on real Go key; GO01–GO05 offline verified, GO06 live NOT_RUN).
 
 ## Scope boundary clarification (2026-10-06)
 
@@ -47,8 +47,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Acceptance: GO01 доказывает общий native SQLite owner, labeled accounts add/activate/rename/remove и restart; tagged Key/OAuth material без `auth.json`/import/dual-write. Auth None отличается от missing Key и unsupported OAuth; Go и custom precedence/endpoint authority соответствуют таблице ниже. Нет автоматической отправки stored/default-env key на новый endpoint. Safe DTO и secret form не раскрывают material.
   - Acceptance clarification (2026-10-02): static Messages `authToken` — Key material с Bearer scheme, не OAuth execution; `apiKey` — x-api-key, оба вместе диагностируются. Explicit admitted localhost/LAN scope действует во всех lanes/discovery, не ослабляя credential/trust/redirect admission.
   - Primary evidence: synthetic-secret owner/storage tests с reopen, transactional activation/removal, precedence/scope refusal и zero unauthorized requests.
-  - Status: pending
-  - Evidence: pending — evidence/T53/report.md.
+  - Status: verified
+  - Evidence: evidence/T53/report.md — GO01 offline owning credentials/accounts/scope and actual TUI tests.
 
 - R2: public Go catalog из models.dev, независимый от credentials.
   - Source: «модели фетчить с models.dev»; donor models-dev normalization, approved audit simplification.
@@ -56,38 +56,38 @@ required outcome is resolved and affected constraints remain satisfied.
   - Acceptance clarification (2026-10-02): source-derived legacy `provider` и canonical `providers` fixtures дают одинаковые normalized connection/model/variant facts и captured wire. Model package/API ID, overlays/headers/body, capabilities/compatibility и variants следуют precedence ниже; custom static/configured discovery и public Go не смешиваются.
   - Primary evidence: source fixtures + fake-clock/client catalog tests, включая coexistence с неизменным OpenProxy discovery.
   - Consumer clarification (owner-approved 2026-10-01 CLI plan): admitted Go/custom metadata is published into the same provider-qualified read-view consumed by T50/R7 `oc models`, TUI and model-facing lookup. Public/no-key visibility does not authorize generation; auth rejection, endpoint scope, retirement and local merge remain unchanged. T50 owns complete ID-only CLI output/TOOL18, T53 GO02 owns catalog fetch/cache and GO05 owns provider-qualified selection. Basic OpenProxy CLI does not wait for whole-T53 or new protocol/live qualification; no second catalog/cache/credential owner or CLI auth/bind command.
-  - Status: pending
-  - Evidence: pending — evidence/T53/report.md.
+  - Status: verified
+  - Evidence: evidence/T53/report.md — GO02 public source/cache, normalization and shared read-view tests.
 
 - R3: три native wires и все Go request metadata lanes.
   - Source: «нюансы интеграции OpenCode Go, например хедеры»; pinned native AI routes и common model-request owner.
   - Acceptance: GO03 доказывает Responses/Chat/Messages text, complete tool roundtrip, reasoning/usage, terminal/error/cancel и повторное использование T54/RET01 typed provider-error policy: bounded pre-output retry либо continuation после записанного partial output, без replay effects. Every Go request lane получает immutable binding/metadata; custom providers переиспользуют admitted adapters, но не Go-only headers. Нет guessed route/model/paid fallback.
   - Acceptance clarification (2026-10-02): exact per-wire options/chronological system/effort/cache/media semantics и synthetic host-shaped custom matrix из TEST_PLAN обязательны, а не только generic text smoke. Каждый adapter call — один physical attempt; Chat/Messages failures интегрируются с существующим retry owner.
   - Primary evidence: parameterized fake wire/runtime tests; captured requests main/follow-up/title/summary-compaction/child/retry и concurrent-session barriers.
-  - Status: pending
-  - Evidence: pending — evidence/T53/report.md.
+  - Status: verified
+  - Evidence: evidence/T53/report.md — GO03 three fake native wires, all-lane metadata, chronology/options and durable retry tests; not Go live.
 
 - R4: protocol-safe durable replay, DCP и forks.
   - Source: существующие immutable history/tool-causality contracts A02/A04/A07/A10 и необходимый multi-protocol boundary.
   - Acceptance: GO04 доказывает protocol/binding preservation через TurnLog, SQL projection, checkpoints и fork/reopen. Absent protocol читается как legacy Responses; explicit unknown protocol fail-safe. Incompatible opaque state не конвертируется/не отправляется другой deployment; raw rows и completed tool pairs сохраняются, unknown effects не переисполняются.
   - Acceptance clarification (2026-10-02): chronology system/effort updates сохраняется через DCP/compact/fork/reopen. Next-request committed switch той же задачи сохраняет ordinary outcomes, но не alien opaque/signatures/checkpoints; prepared requests/tools сохраняют captured identity/view по T50.
   - Primary evidence: owning storage/runtime tests legacy/new logs → projection/DCP/fork → restart/next captured request, с raw-history integrity assertions.
-  - Status: pending
-  - Evidence: pending — evidence/T53/report.md.
+  - Status: verified
+  - Evidence: evidence/T53/report.md — GO04 owning SQL/HOT/RAW/DCP/native-checkpoint/fork/reopen and captured qualified request tests.
 
 - R5: fresh-start `/connect` и provider-qualified model selection.
   - Source: Go authorization «как у опенкод 2 ts (с TUI паритетом)»; donor account/connect/model flow.
   - Acceptance: GO05 доказывает usable TUI/history/connect при отсутствии config/key/catalog, реальное account management и acknowledged connect → Go-filtered picker. Optional exact ModelRef не выбирается автоматически; provider-ID collisions, variants/drafts/tabs/agents и restart/fork сохраняют выбор. Unready submission/headless отказывает до root/turn acceptance, generation/title/tools; malformed mandatory policy/storage/recovery остаются fatal.
   - Primary evidence: actual-binary PTY flow fresh offline → masked/cancelled input → accounts → explicit model → fake generation/cancel → reopen; headless refusal и held-request binding test.
-  - Status: pending
-  - Evidence: pending — evidence/T53/report.md.
+  - Status: verified
+  - Evidence: evidence/T53/report.md — GO05 actual-binary configless masked/accounts/explicit Go selection, additional explicit custom fake generation/cancel/reopen and qualified selection tests; real Go belongs to unresolved R6.
 
 - R6: current offline и bounded Go live qualification.
   - Source: API smoke permission владельца; A01–A13 и runbook live envelope.
   - Acceptance: GO06 требует green impacted regressions/workspace gates и bounded real Go text/tool representatives для трёх protocols, плюс проверку известных catalog/docs conflicts. Report различает fake/live/NOT_RUN и exact selection; отсутствующий/revoked key блокирует только live, не превращает его в PASS.
   - Primary evidence: factual evidence/T53/report.md с implementation commits, commands/exits и sanitized durable live-campaign counters.
-  - Status: pending
-  - Evidence: pending; API smoke не запускался при подготовке плана.
+  - Status: blocked
+  - Evidence: evidence/T53/report.md and evidence/T53/live-campaign.json — workspace 1648/0/10 and final gates green; Go key absent, 0 real generation requests, live NOT_RUN.
 
 ### Credentials, connection config и authority
 
@@ -355,6 +355,16 @@ CoreApp/queries ModelRef и binary/TUI consumers. Naming follows фактиче�
 commits/текущий diff, не переносить чужую незакоммиченную работу вслепую.
 
 ## Current Checkpoint / State
+
+Authoritative current state (2026-10-06, implementation `42b49e180`): R1–R5
+verified offline; R6 blocked solely on authorized real Go Console key. Presence-only
+preflight found no `OPENCODE_API_KEY` in process or approved `.local/live.env`;
+foreign OpenProxy test material is not Go authority. All current offline gates are
+green (workspace 1648/0/10), real Go dispatch count is zero. See the factual
+[report](../../evidence/T53/report.md) and [ledger](../../evidence/T53/live-campaign.json).
+No finish/complete claim; T44 remains PAUSED. Resume only after authorized Go input,
+with verified pre-dial durable accounting <=24 requests and smoke <=2048 tokens.
+The dated checkpoints below are history, not remaining implementation todos.
 
 - 2026-09-29: read-only RECON + independent general audit завершены; frozen docs-only
   план утверждён с единым storage и custom-auth уточнением. Implementation NOT_STARTED;
