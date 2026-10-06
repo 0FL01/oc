@@ -6,7 +6,7 @@
 
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 /// Native `oc` command line.
 #[derive(Debug, Parser)]
@@ -30,6 +30,11 @@ pub struct Args {
 /// Native runtime and read-only catalog commands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Manage native OpenAI authentication without a model or session.
+    Auth {
+        #[command(subcommand)]
+        action: AuthCommand,
+    },
     /// List all enabled admitted model references without selecting a model.
     Models,
     /// Run one headless prompt through the local runtime.
@@ -67,6 +72,53 @@ pub enum Command {
 pub enum SessionsAction {
     /// List known session ids.
     List,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AuthCommand {
+    /// Sign in to built-in OpenAI using browser, device authorization, or a key.
+    Login(AuthLogin),
+    /// List stored OpenAI account metadata; never prints credentials.
+    List {
+        #[arg(long, value_enum, default_value_t = AuthFormat::Default)]
+        format: AuthFormat,
+    },
+    /// Remove a stored OpenAI account after selecting its local ID.
+    Logout {
+        target: Option<String>,
+        credential: Option<String>,
+    },
+    /// Activate a stored OpenAI account by its local ID or unambiguous label.
+    Switch {
+        target: Option<String>,
+        credential: Option<String>,
+    },
+}
+
+#[derive(clap::Args)]
+pub struct AuthLogin {
+    pub target: Option<String>,
+    #[arg(long)]
+    pub method: Option<String>,
+    /// Non-secret form answers (label=value); API keys must use the TTY prompt.
+    #[arg(long = "answer", value_name = "KEY=VALUE")]
+    pub answers: Vec<String>,
+}
+impl std::fmt::Debug for AuthLogin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthLogin")
+            .field("target", &self.target)
+            .field("method", &self.method)
+            .field("answers", &"[REDACTED]")
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
+pub enum AuthFormat {
+    #[default]
+    Default,
+    Json,
 }
 
 #[cfg(test)]

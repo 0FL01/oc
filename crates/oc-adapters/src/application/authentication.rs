@@ -1,6 +1,6 @@
 //! One application-lifetime OpenAI attempt owner, independent of Location/runtime.
 use super::*;
-use oc_core::queries::{AuthAction, AuthAttempt, AuthMethod, OAuthMethod};
+use oc_core::queries::{AuthAction, AuthAttempt, AuthMethod};
 
 pub(super) type Owner = Result<crate::auth::OpenAiAttempts, CoreError>;
 
@@ -14,18 +14,7 @@ fn error(error: crate::auth::AuthError) -> CoreError {
 }
 
 pub(super) fn methods(c: &Composition, provider: &str) -> Result<Vec<AuthMethod>, CoreError> {
-    let scope = accounts::scope(c, provider)?;
-    let builtin =
-        crate::auth::AuthScope::admit("openai", crate::auth::OPENAI_BASE_URL).map_err(error)?;
-    if scope.namespace() == builtin.namespace() {
-        Ok(vec![
-            AuthMethod::OAuth(OAuthMethod::Browser),
-            AuthMethod::OAuth(OAuthMethod::Device),
-            AuthMethod::Key,
-        ])
-    } else {
-        Ok(vec![AuthMethod::Key])
-    }
+    Ok(accounts::scope(c, provider)?.methods())
 }
 
 pub(super) async fn action(

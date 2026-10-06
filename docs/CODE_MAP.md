@@ -224,6 +224,12 @@ own delivery/retry/classification/redaction facts. Nearest real-peer scenarios
 local channel evidence. The same coarse fixture now qualifies actual Runtime
 read/follow-up/fork/opaque/retry/child/ordinary-summary consumers;
 `evidence/T57/runtime-ws.md` records those effects, not rebuilt CLI/TUI or live login.
+`oc/src/auth_cmd.rs` is the built-in auth CLI consumer of the same credential/attempt
+owner, without runtime model/session/MCP startup. `auth.rs::AuthScope::methods` shares
+selectable method labels/order with Core/application. Nearest `auth_cmd/tests.rs` and
+actual-binary `oc/tests/auth_cli.rs` / `support/auth_cli.py`, filter `auth05_`;
+`evidence/T57/cli.md` qualifies metadata, masked TTY inputs and owned callback/cancel,
+not successful real authorization or T44/VIS45 presentation.
 
 ## Как обновлять
 

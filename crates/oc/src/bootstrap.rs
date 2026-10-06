@@ -11,6 +11,21 @@ pub async fn run(args: Args) -> ExitCode {
     if args.smoke && args.command.is_none() {
         return legacy_smoke();
     }
+    // Authentication uses the credential/attempt owner directly: no selected
+    // model, configuration generation, MCP connection or session is required.
+    if let Some(Command::Auth { action }) = args.command {
+        let data = args
+            .data_dir
+            .map(Ok)
+            .unwrap_or_else(headless::default_data_dir);
+        return match data {
+            Ok(data) => crate::auth_cmd::run(action, &data).await,
+            Err(_) => {
+                eprintln!("error: authentication data directory unavailable");
+                ExitCode::from(1)
+            }
+        };
+    }
     // The catalog command is read-only even under a fresh HOME. The ordinary
     // startup trace creates/truncates files and belongs to application startup.
     if !matches!(args.command, Some(Command::Models)) {
@@ -72,6 +87,7 @@ pub async fn run(args: Args) -> ExitCode {
         }
     };
     match args.command {
+        Some(Command::Auth { .. }) => unreachable!("auth-only dispatch precedes runtime"),
         Some(Command::Models) => unreachable!("catalog-only dispatch precedes storage"),
         None => crate::tui_cmd::run_tui(&data_dir, None, args.auto).await,
         Some(Command::Run {
@@ -114,6 +130,7 @@ fn subcommand_kind(command: &Option<Command>) -> &'static str {
         Some(Command::Sessions { .. }) => "sessions",
         Some(Command::Tui { .. }) => "tui",
         Some(Command::Models) => "models",
+        Some(Command::Auth { .. }) => "auth",
     }
 }
 

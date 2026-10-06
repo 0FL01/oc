@@ -78,8 +78,8 @@ required outcome is resolved and affected constraints remain satisfied.
     picker, CLI list/login/logout/switch и restart. Key↔OAuth выбор явный, без fallback.
   - Primary evidence: source-derived key/OAuth separation fixtures + actual binary
     PTY/pipe actions и captured requests; token/key never enters transcript/composer.
-  - Status: pending
-  - Evidence: pending — evidence/T57/report.md. Presentation — only T44/VIS45.
+  - Status: in_progress
+  - Evidence: evidence/T57/cli.md — shared native CLI login/list/logout/switch, metadata-only JSON, explicit no-TTY inputs, masked real-PTY Key and owned browser failure/cancel; TUI methods/pending/accounts/picker and real provider qualification remain pending. Presentation — only T44/VIS45.
 - R6: current offline и bounded real authorization/request qualification.
   - Source: полноценный backend и визуальный результат, existing A01–A13/live rules.
   - Acceptance: AUTH06 требует current nearest/impacted/final gates и opt-in native
@@ -322,7 +322,14 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current runtime checks: auth04_21/0, adapters lib665/0/1 and strict workspace
   all-target Clippy/fmt/diff green; evidence/T57/runtime-ws.md. These local native
   runtime effects are not real OpenAI/Codex authorization or rebuilt CLI/TUI/live.
-- Next checkpoint: shared CLI/TUI consumers and actual-binary pipe/PTY qualification,
+- Ninth checked slice: native built-in OpenAI CLI login/list/logout/switch through
+  the same credential/attempt owner, independent of runtime config/model/session/MCP.
+  Safe explicit non-TTY method/target, masked TTY-only keys and metadata-only JSON;
+  owned browser failure/cancel and durable account actions in current native ELF.
+- Current CLI checks: binary unit94/0, actual auth CLI pipe/PTY1/0, adapter auth0_36/0
+  and strict workspace all-target Clippy/fmt/diff green; evidence/T57/cli.md. No real
+  issuer/device/model authorization, release or full AUTH05/AUTH06 claim.
+- Next checkpoint: TUI methods/pending/cancel/accounts/picker and actual-binary PTY,
   then current final gates and bounded dedicated live authorization/request proof.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;

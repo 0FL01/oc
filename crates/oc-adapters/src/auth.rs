@@ -114,6 +114,20 @@ pub enum AuthError {
 }
 
 impl AuthScope {
+    /// Shared selectable methods. Environment credentials are never a method.
+    pub fn methods(&self) -> Vec<oc_core::queries::AuthMethod> {
+        use oc_core::queries::{AuthMethod, OAuthMethod};
+        if self.openai {
+            vec![
+                AuthMethod::OAuth(OAuthMethod::Browser),
+                AuthMethod::OAuth(OAuthMethod::Device),
+                AuthMethod::Key,
+            ]
+        } else {
+            vec![AuthMethod::Key]
+        }
+    }
+
     /// Must be called only for the effective locally admitted connection, not remote metadata.
     pub fn admit(provider: &str, base_url: &str) -> Result<Self, AuthError> {
         let mut url = reqwest::Url::parse(base_url).map_err(|_| AuthError::Authority)?;

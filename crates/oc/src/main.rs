@@ -3,6 +3,7 @@
 //! Stdout carries only the answer (text or NDJSON); diagnostics go to
 //! stderr. Exit codes: 0 success, 1 error/usage, 130 interrupted.
 
+mod auth_cmd;
 mod bootstrap;
 mod cli;
 mod clipboard;
