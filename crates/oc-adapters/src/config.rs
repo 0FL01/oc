@@ -1490,6 +1490,28 @@ pub(crate) fn provider_wire(
         });
     }
     wire.auth_policy = entry.options.auth_policy;
+    wire.transport = entry
+        .options
+        .wire_settings
+        .get("transport")
+        .map(|value| match value.as_str() {
+            Some("http") => Ok(crate::provider::websocket::Transport::Http),
+            Some("websocket") if protocol == Protocol::Responses => {
+                Ok(crate::provider::websocket::Transport::WebSocket)
+            }
+            _ => Err(ConfigError::Invalid {
+                field: format!("provider.{id}.options.transport"),
+                reason: "must be http, or websocket for native Responses".into(),
+            }),
+        })
+        .transpose()?;
+    // This task admits channels only for the built-in native OpenAI authority.
+    // A syntactically valid but unsupported channel must refuse before a root
+    // turn/effect, not become a late dispatch-time configuration failure.
+    if wire.transport == Some(crate::provider::websocket::Transport::WebSocket) {
+        wire.unsupported = !crate::auth::AuthScope::admit(id, &entry.options.base_url)
+            .is_ok_and(|scope| scope.is_openai());
+    }
     wire.chronology = entry
         .models
         .iter()

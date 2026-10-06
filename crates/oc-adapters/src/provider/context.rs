@@ -11,9 +11,20 @@ pub(crate) struct RequestContext {
     session: String,
     parent: Option<String>,
     cache: String,
+    operation: Option<String>,
 }
 
 impl RequestContext {
+    pub(super) fn session(&self) -> &str {
+        &self.session
+    }
+    pub(crate) fn for_operation(mut self, operation: &str) -> Self {
+        self.operation = Some(operation.into());
+        self
+    }
+    pub(super) fn operation(&self) -> Option<&str> {
+        self.operation.as_deref()
+    }
     pub(crate) fn capture(
         db: &crate::storage::Db,
         project: &Path,
@@ -31,6 +42,7 @@ impl RequestContext {
                 "{:x}",
                 Sha256::digest(db.cache_lineage(session)?.as_bytes())
             ),
+            operation: None,
         })
     }
 

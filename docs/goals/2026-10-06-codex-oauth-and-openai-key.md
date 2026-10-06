@@ -69,7 +69,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: in_progress
-  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md — admitted fixed Key/OAuth templates, native headers/stable account authority, shared public subscription catalog and selected per-request main/follow-up/retry/child/title/summary preparation/header guards; default WS/fallback and full runtime/actual-binary lanes remain pending.
+  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md — admitted Key/OAuth authority/catalog, selected all-lane preparation and checked local native default WS/HTTP affinity/continuation/fallback/rejection/privacy ownership; full runtime/actual-binary lanes and live provider qualification remain pending.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -306,8 +306,17 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
   and strict workspace all-target Clippy/fmt/diff green; evidence/T57/preparation.md.
   A reproduced non-native pre-cancel regression was fixed without changing its test.
   No WS/default transport, rebuilt consumer, real OAuth/key or complete AUTH04 claim.
-- Next checkpoint: native Responses WS/HTTP affinity/checkpoint/fallback and full
-  captured runtime lanes with the restricted-error amendment, then actual CLI/TUI.
+- Seventh checked slice: native session-owned Responses channel, default Key/OAuth
+  WS and explicit HTTP, same-authority safe fallback/pin, 55-minute affinity and
+  fully consumed continuation proof. Unknown channel delivery cannot replay;
+  continuation rejection uses the existing finite retry owner. Common restricted
+  classification/redaction preserves terminal policy and older unknown-message
+  privacy. Foreign WS is unready before admission; joined channel cleanup is owned.
+- Current channel checks: auth04_18/0, adapters lib662/0/1, strict workspace all-target
+  Clippy/fmt/diff green; evidence/T57/websocket.md. Real local WS/HTTP peer captures
+  are not real OpenAI/Codex, rebuilt CLI/TUI or complete AUTH04/AUTH06 evidence.
+- Next checkpoint: full captured runtime/actual-binary lanes, then shared CLI/TUI
+  consumers and bounded dedicated live authorization/request qualification.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

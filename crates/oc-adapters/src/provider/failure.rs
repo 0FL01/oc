@@ -104,6 +104,18 @@ impl PhysicalFailure {
             self.kind,
             FailureKind::Transport | FailureKind::IncompleteStream
         ) {
+            // An observed 101 identifies the upgraded physical channel, not an
+            // attempt-local override. Once sent, channel loss cannot authorize
+            // replay, including a partial-output continuation. HTTP facts retain
+            // their existing finite retry semantics.
+            if self.http_status == Some(101) {
+                if self.delivery == Delivery::Rejected {
+                    return !self.output_committed;
+                }
+                if self.delivery != Delivery::NotSent {
+                    return false;
+                }
+            }
             if self.output_committed && self.operation == Operation::Read {
                 return true;
             }
@@ -247,7 +259,14 @@ pub(super) fn classified(
         "content_policy_violation",
         "image_content_policy_violation",
         "refusal",
-    ]) || (client && policy_text)
+        "cyber_policy",
+    ]) || (client
+        && (policy_text
+            || messages.iter().any(|message| {
+                message
+                    .to_ascii_lowercase()
+                    .contains("this content was flagged for possible cybersecurity risk")
+            })))
     {
         FailureKind::ContentPolicy
     } else if status == Some(402)
@@ -332,11 +351,17 @@ pub(super) fn classified(
 }
 
 pub(super) fn event_failure(value: &serde_json::Value) -> ProviderError {
-    let status = value
-        .get("status")
-        .and_then(serde_json::Value::as_u64)
-        .or_else(|| value.get("status_code").and_then(serde_json::Value::as_u64))
-        .and_then(|s| u16::try_from(s).ok());
+    let status = [
+        "/status",
+        "/status_code",
+        "/error/status",
+        "/error/status_code",
+        "/response/error/status",
+        "/response/error/status_code",
+    ]
+    .iter()
+    .find_map(|path| value.pointer(path).and_then(serde_json::Value::as_u64))
+    .and_then(|s| u16::try_from(s).ok());
     let mut failure = classified(Some(value), status, true);
     // Donor's bare error frame is affirmative ProviderInternal evidence.
     if value["type"] == "error"

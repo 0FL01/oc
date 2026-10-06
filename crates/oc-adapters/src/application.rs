@@ -1455,6 +1455,7 @@ async fn start_worker(
     let children = crate::runtime::children::Jobs::new(&db);
     let root = db.root().to_owned();
     let authentication = authentication::new(&db);
+    let response_channels = db.response_channels.clone();
     let authentication_location = composition.project.to_string_lossy().into_owned();
     let result = start_worker_inner(
         db,
@@ -1470,6 +1471,7 @@ async fn start_worker(
     let authentication_stop = authentication::shutdown(&authentication).await;
     let joined = children.shutdown().await;
     let delivered = children.deliver(Some(&events));
+    let channel_stop = response_channels.shutdown().await;
     authentication_stop.map_err(|_| {
         runtime_issue(
             &authentication_location,
@@ -1480,6 +1482,14 @@ async fn start_worker(
     })?;
     joined.map_err(|error| storage_diagnostic(&root, &error))?;
     delivered.map_err(|error| storage_diagnostic(&root, &error))?;
+    channel_stop.map_err(|_| {
+        runtime_issue(
+            &authentication_location,
+            &["provider", "openai", "cleanup"],
+            &RuntimeError::Provider,
+        )
+        .diagnostic
+    })?;
     result
 }
 
@@ -4408,7 +4418,7 @@ async fn worker(
                     &composition.project,
                     &session.0,
                 ) {
-                    Ok(context) => provider.with_context(context),
+                    Ok(context) => provider.with_context(context.for_operation(&title_operation)),
                     Err(error) => {
                         let _ = ack.send(Err(runtime_error(error)));
                         continue;
@@ -4895,7 +4905,11 @@ async fn worker(
                                             &composition.project,
                                             &session.0,
                                         )
-                                        .map(|context| title_provider.with_context(context));
+                                        .map(|context| {
+                                            title_provider.with_context(
+                                                context.for_operation(&title_operation),
+                                            )
+                                        });
                                     let selection = title_selection.clone();
                                     let prompt = title_prompt.clone();
                                     let instructions = title_agent

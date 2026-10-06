@@ -28,6 +28,7 @@ mod failure;
 pub(crate) mod messages;
 pub(crate) mod protocol;
 pub(crate) mod settings;
+pub(crate) mod websocket;
 pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeaders, TransportKind};
 
 #[cfg(test)]
@@ -439,6 +440,8 @@ pub struct WireBinding {
     pub(crate) providers: BTreeMap<String, CapturedProvider>,
     pub(crate) auth_input: Option<AuthInput>,
     pub(crate) openai: Option<crate::auth::OpenAiBinding>,
+    pub(crate) transport: Option<websocket::Transport>,
+    pub(crate) channels: Option<websocket::Channels>,
     pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
     pub(crate) go: bool,
@@ -794,6 +797,8 @@ struct CompletedItem {
 
 #[derive(Debug, Default)]
 pub struct SseParser {
+    /// Ephemeral request-local redactions, never response/header archives.
+    redactions: reqwest::header::HeaderMap,
     finish: FinishReason,
     compaction_usage: Option<oc_core::compaction::CompactionUsage>,
     /// Pending bytes (incomplete UTF-8 tail or partial line).
@@ -952,6 +957,10 @@ impl SseParser {
         self.retained += cost;
         let value: serde_json::Value = serde_json::from_str(&payload)
             .map_err(|_| structural(OutputStage::Decode, OutputCode::InvalidJson))?;
+        if value.get("type").is_none() && value.get("error").is_some() {
+            self.terminal = true;
+            return Err(self.provider_failure(&value));
+        }
         if value["type"].as_str().is_none() {
             return Err(structural(OutputStage::Decode, OutputCode::InvalidField));
         }
@@ -1003,7 +1012,7 @@ impl SseParser {
             }
             Some("response.failed" | "error") => {
                 self.terminal = true;
-                return Err(failure::event_failure(&value));
+                return Err(self.provider_failure(&value));
             }
             Some("response.incomplete") => {
                 self.terminal = true;
@@ -1118,6 +1127,22 @@ impl SseParser {
             _ => {}
         }
         Ok(map_event(&value))
+    }
+
+    fn provider_failure(&self, value: &serde_json::Value) -> ProviderError {
+        let mut error = failure::event_failure(value);
+        if let ProviderError::Request(failure) = &mut error
+            && !matches!(
+                failure.kind,
+                FailureKind::UnknownProvider | FailureKind::IncompleteStream
+            )
+        {
+            // Unclassified/incomplete raw explanations retain their existing
+            // withheld contract. An admitted policy/category explanation is
+            // redacted before any Debug, runtime event or durable publication.
+            failure.message = error_message(value, &self.redactions);
+        }
+        error
     }
 
     fn complete_response(&mut self, value: &serde_json::Value) -> Result<(), ProviderError> {
@@ -2042,6 +2067,34 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
             .map(|base| format!("{base}/messages"))
             .expect("Responses suffix"),
     };
+    let channel = config.wire.transport == Some(websocket::Transport::WebSocket)
+        || (config.wire.transport.is_none()
+            && config.wire.openai.is_some()
+            && protocol == protocol::Protocol::Responses);
+    if channel {
+        if config.wire.openai.is_none() || protocol != protocol::Protocol::Responses {
+            return Err(ProviderError::InvalidConfig);
+        }
+        let channels = config.wire.channels.clone().unwrap_or_default();
+        if let Some(generation) = channels
+            .exchange(
+                config,
+                &url,
+                &headers,
+                &body,
+                cancel,
+                chunk_timeout,
+                total_deadline,
+                observe,
+                dispatch,
+            )
+            .await?
+        {
+            return Ok(generation);
+        }
+        // Affirmative connect/not-sent/size rejection only. The same final
+        // captured URL, body, model and credential continue through HTTP below.
+    }
     // Test campaigns reserve durably before DNS/dial without changing authority,
     // proxies, peer checks, production retry policy or successful-step limits.
     #[cfg(test)]
@@ -2317,13 +2370,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         ) {
             failure.headers.retry_after_ms = None;
         }
-        if failure.kind == FailureKind::InvalidRequest {
-            failure.message = diagnostic
-                .as_ref()
-                .and_then(|v| v.pointer("/error/message").or_else(|| v.get("message")))
-                .and_then(|v| v.as_str())
-                .and_then(|message| safe_diagnostic(message, headers));
-        }
+        failure.message = diagnostic.as_ref().and_then(|v| error_message(v, headers));
         return Err((ProviderError::Request(Box::new(failure)), false));
     }
 
@@ -2331,6 +2378,7 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         protocol::Protocol::Messages => SseParser::messages(),
         _ => chat.map_or_else(SseParser::default, SseParser::chat),
     };
+    parser.redactions = headers.clone();
     let mut items: Vec<StreamItem> = Vec::new();
     let mut committed = false;
     let read_failure = |error, committed| {
@@ -2431,7 +2479,10 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     if !parser.completed {
         return Err(read_failure(ProviderError::Incomplete, committed));
     }
+    Ok(collect_generation(parser, items))
+}
 
+fn collect_generation(parser: SseParser, items: Vec<StreamItem>) -> Generation {
     let mut text = String::new();
     let mut usage = None;
     for item in &items {
@@ -2457,21 +2508,40 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
             .map(|done| done.item)
             .collect()
     });
-    Ok(Generation {
+    Generation {
         finish: parser.finish,
         compaction_usage: parser.compaction_usage,
         output,
         items,
         text,
         usage,
-    })
+    }
+}
+
+fn error_message(
+    value: &serde_json::Value,
+    headers: &reqwest::header::HeaderMap,
+) -> Option<String> {
+    [
+        "/error/message",
+        "/response/error/message",
+        "/message",
+        "/error",
+        "/response/error",
+    ]
+    .iter()
+    .find_map(|path| value.pointer(path).and_then(serde_json::Value::as_str))
+    .and_then(|message| safe_diagnostic(message, headers))
 }
 
 fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Option<String> {
     // Only the structured error.message field is projected, never headers or
     // the raw body. Bound it before processing and remove configured secrets.
-    if message.is_empty() || message.len() > 4096 {
+    if message.trim().is_empty() {
         return None;
+    }
+    if message.len() > 4096 {
+        return Some("provider diagnostic omitted (input exceeded 4096 bytes)".into());
     }
     let mut message = message.to_owned();
     for secret in headers.values().filter_map(|value| value.to_str().ok()) {
@@ -2480,7 +2550,22 @@ fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Optio
             message = message.replace(secret, "[redacted]");
         }
     }
-    let lower = message.to_ascii_lowercase();
+    const PUBLIC_URI: &str = "https://platform.openai.com/settings/organization/status-and-access";
+    let boundary = |c: char| c.is_whitespace() || matches!(c, '(' | ')' | '[' | ']' | '\'' | '"');
+    let safe_uri = message.match_indices(PUBLIC_URI).all(|(start, uri)| {
+        message[..start].chars().next_back().is_none_or(boundary)
+            && message[start + uri.len()..]
+                .chars()
+                .next()
+                .is_none_or(boundary)
+    });
+    let lower = if safe_uri {
+        message
+            .replace(PUBLIC_URI, "[public provider URI]")
+            .to_ascii_lowercase()
+    } else {
+        message.to_ascii_lowercase()
+    };
     if [
         "authorization:",
         "bearer ",
@@ -2493,16 +2578,22 @@ fn safe_diagnostic(message: &str, headers: &reqwest::header::HeaderMap) -> Optio
     ]
     .iter()
     .any(|key| lower.contains(key))
+        || message
+            .chars()
+            .any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
     {
         return Some("provider diagnostic contained private data (redacted)".into());
     }
-    Some(
-        message
-            .chars()
-            .filter(|c| !c.is_control() || *c == ' ')
-            .take(512)
-            .collect(),
-    )
+    let mut chars = message
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c });
+    let mut safe: String = chars.by_ref().take(512).collect();
+    if chars.next().is_some() {
+        // Keep the existing 512-character output ceiling, with honest clipping.
+        safe = safe.chars().take(502).collect();
+        safe.push_str(" [clipped]");
+    }
+    Some(safe)
 }
 
 /// Redacted request preview for diagnostics (auth/contents withheld).

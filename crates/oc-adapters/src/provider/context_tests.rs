@@ -197,6 +197,7 @@ fn go03_custom_headers_and_identity_compatibility_are_not_go_policy() {
         session: "a".into(),
         parent: None,
         cache: "lineage".into(),
+        operation: None,
     };
     let b = RequestContext {
         session: "b".into(),

@@ -322,6 +322,7 @@ pub struct Db {
     pub(crate) credential_refresh: Arc<tokio::sync::Mutex<()>>,
     // Ephemeral authorization fences; live attempts never survive root reopen.
     credential_epochs: Arc<Mutex<std::collections::BTreeMap<String, u64>>>,
+    pub(crate) response_channels: crate::provider::websocket::Channels,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -571,6 +572,7 @@ impl Db {
             public_catalog: Arc::new(std::sync::OnceLock::new()),
             credential_refresh: Arc::new(tokio::sync::Mutex::new(())),
             credential_epochs: Arc::new(Mutex::new(std::collections::BTreeMap::new())),
+            response_channels: Default::default(),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -591,6 +593,7 @@ impl Db {
             public_catalog: self.public_catalog.clone(),
             credential_refresh: self.credential_refresh.clone(),
             credential_epochs: self.credential_epochs.clone(),
+            response_channels: self.response_channels.clone(),
             _lock: self._lock.clone(),
         }
     }

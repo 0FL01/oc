@@ -1742,7 +1742,8 @@ impl<'a> Runtime<'a> {
             &self.db,
             &self.roots.project,
             &params.session,
-        )?;
+        )?
+        .for_operation(&turn_id);
         'step: loop {
             self.child_jobs.reap().await?;
             self.child_jobs

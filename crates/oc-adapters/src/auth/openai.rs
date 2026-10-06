@@ -39,11 +39,12 @@ pub(crate) async fn prepare_request(
         return Err(AuthError::Cancelled);
     }
     let auth = OpenAiAuth::new()?;
-    let selected = tokio::select! {
+    let mut selected = tokio::select! {
         biased;
         () = crate::provider::wait_cancel(cancel) => return Err(AuthError::Cancelled),
         result = auth.prepare_target(db, env, selected, model) => result?,
     };
+    selected.wire.channels = Some(db.response_channels.clone());
     Ok(install_prepared(config, selected, model, variant))
 }
 

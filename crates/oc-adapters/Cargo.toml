@@ -17,7 +17,7 @@ anyhow.workspace = true
 rusqlite = { workspace = true, features = ["functions"] }
 reqwest.workspace = true
 rmcp.workspace = true
-futures-util.workspace = true
+futures-util = { workspace = true, features = ["sink"] }
 fs2.workspace = true
 sha2.workspace = true
 libc.workspace = true
@@ -28,6 +28,7 @@ ignore.workspace = true
 image = { version = "=0.25.9", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 html5ever = "=0.35.0"
 vt100 = "=0.16.2"
+tokio-tungstenite = { version = "=0.28.0", default-features = false, features = ["handshake", "rustls-tls-native-roots"] }
 
 [dev-dependencies]
 tempfile.workspace = true
