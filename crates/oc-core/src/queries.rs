@@ -13,6 +13,8 @@ mod mcp_lookup;
 pub use mcp_lookup::*;
 mod accounts;
 pub use accounts::*;
+mod auth;
+pub use auth::*;
 mod terminals;
 pub use terminals::*;
 

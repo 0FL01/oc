@@ -192,7 +192,11 @@ and one shared-Db refresh flight; `storage_credentials.rs` owns additive tagged
 method/metadata, identity/version CAS and durable unknown-refresh reservation.
 Nearest tests `auth/openai/tests.rs` and `storage_credentials/tests.rs`, filters
 `auth03_` / `auth05_`; existing `go01_` remains T53-owned. Partial receipt
-`evidence/T57/credentials.md`; login/consumer/WS/live qualification still pending.
+`evidence/T57/credentials.md`. `auth/attempts.rs` owns bounded ephemeral browser/device
+workers/listeners/cancel/expiry and store-once acknowledgement; `queries/auth.rs`
+contains redacted typed projections, `auth/callback.html` the source-derived local
+page. Nearest `auth/attempts/tests.rs`, filters `auth01_`/`auth02_`/`auth03_`, receipt
+`evidence/T57/attempts.md`. Application/CLI/TUI/WS/live qualification still pending.
 
 ## Как обновлять
 

@@ -39,8 +39,8 @@ required outcome is resolved and affected constraints remain satisfied.
     callback/state/code validation, token exchange, truthful terminal status и cleanup.
   - Primary evidence: source-derived fake issuer + real loopback tests, затем rebuilt
     native binary с callback/error/cancel/occupied-port barriers; никакого реального входа.
-  - Status: pending
-  - Evidence: pending — evidence/T57/report.md.
+  - Status: in_progress
+  - Evidence: evidence/T57/attempts.md — real owned loopback/fake issuer PKCE, callback/error/ports/cancel/expiry and durable single-account ack; rebuilt native consumer qualification remains pending.
 - R2: полноценный device OAuth и headless CLI.
   - Source: явный запрос headless; `openai.ts:169–228`, CLI `handlers/auth/login.ts`.
   - Acceptance: AUTH02 доказывает usercode → pending polling → code exchange → stored
@@ -48,8 +48,8 @@ required outcome is resolved and affected constraints remain satisfied.
     или browser launch в no-TTY. Login не сообщает success до durable owner ack.
   - Primary evidence: fake-clock/issuer + actual binary с pipes и PTY; inspect request
     counters/intervals, CLI exit/status и account reopen.
-  - Status: pending
-  - Evidence: pending — evidence/T57/report.md.
+  - Status: in_progress
+  - Evidence: evidence/T57/attempts.md — actual usercode/pending polling/exchange/cancel/expiry/reopen owner proof; no-TTY CLI/PTY consumer qualification remains pending.
 - R3: общие accounts, OAuth metadata и automatic refresh.
   - Source: полный backend parity; donor `integration.ts`/`credential.ts`, existing T53 GO01.
   - Acceptance: AUTH03 доказывает transactional add/activate/rename/remove, Key/OAuth
@@ -58,7 +58,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
   - Status: in_progress
-  - Evidence: evidence/T57/credentials.md — native token/metadata parser, shared-handle refresh coalescing, protected rotation/CAS/reopen and no unknown refresh replay; consumers/attempts and full AUTH03 remain pending.
+  - Evidence: evidence/T57/credentials.md and attempts.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay plus store-once login and per-namespace stale selection/empty-ABA guard; shared consumers and full AUTH03 remain pending.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -260,8 +260,15 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current checked evidence: `evidence/T57/credentials.md`; owning auth03_ 5/0,
   auth05_ 1/0, existing go01_ 13/0 and child_schema_ 3/0; strict impacted all-target
   Clippy/fmt/diff green. This does not prove login, connected TUI, WS or live access.
-- Next checkpoint: native cancellable browser PKCE/owned loopback and device
-  usercode/poll/exchange attempt lifecycle with fake issuer/clock and real sockets.
+- Second checked slice: owned native browser PKCE/loopback and device usercode/poll/
+  exchange, typed redacted snapshots, finite deadlines/retention/idle cleanup,
+  joined cancel/shutdown and store-once stale-account fences. Same SQLite owner;
+  issuer/socket tests only, no browser/profile imports or real authorization.
+- Current owning checks: auth0 12/0 and full adapters lib 641/0/1, strict workspace
+  all-target Clippy/fmt/diff green; evidence/T57/attempts.md. This is partial owner
+  evidence, not rebuilt application/CLI/TUI or WS/live qualification.
+- Next checkpoint: application/Core auth actions and built-in OpenAI Key/OAuth
+  catalog/bindings, native Responses WS/HTTP and all captured request/history lanes.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

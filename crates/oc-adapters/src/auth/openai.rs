@@ -13,7 +13,7 @@ pub(super) const ISSUER: &str = "https://auth.openai.com";
 pub(super) const CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 pub(super) const BROWSER: &str = "chatgpt-browser";
 pub(super) const DEVICE: &str = "chatgpt-headless";
-const TOKEN_BODY_BYTES: usize = 64 * 1024;
+pub(super) const TOKEN_BODY_BYTES: usize = 64 * 1024;
 
 fn key_scope(namespace: &str, source: AuthSource, key: Option<&str>) -> Result<String, AuthError> {
     let fingerprint = key.map(|key| {
@@ -122,7 +122,7 @@ impl OpenAiAuth {
         // is not enabled. This URL is only a bounded body encoder, never dialled.
         let mut form = reqwest::Url::parse(&self.issuer).map_err(|_| AuthError::Authority)?;
         form.query_pairs_mut().extend_pairs(fields.iter().copied());
-        let mut response = self
+        let response = self
             .client
             .post(format!("{}/oauth/token", self.issuer))
             .header(
@@ -133,12 +133,20 @@ impl OpenAiAuth {
             .send()
             .await
             .map_err(|_| AuthError::Remote)?;
-        if !response.status().is_success()
-            || response
-                .content_length()
-                .is_some_and(|n| n > TOKEN_BODY_BYTES as u64)
-        {
+        if !response.status().is_success() {
             return Err(AuthError::Remote);
+        }
+        Self::json(response).await
+    }
+
+    pub(super) async fn json<T: serde::de::DeserializeOwned>(
+        mut response: reqwest::Response,
+    ) -> Result<T, AuthError> {
+        if response
+            .content_length()
+            .is_some_and(|n| n > TOKEN_BODY_BYTES as u64)
+        {
+            return Err(AuthError::InvalidTokens);
         }
         let mut bytes = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(|_| AuthError::Remote)? {

@@ -165,11 +165,52 @@ impl Db {
         label: &str,
         material: CredentialMaterial,
     ) -> Result<AccountSummary, StorageError> {
+        self.store_credential(namespace, label, material, None)?
+            .ok_or(StorageError::CredentialStorage)
+    }
+
+    /// Capture under the same connection lock as mutations, including None→A→None.
+    /// A login is ephemeral, so this fence needs no second persistent store.
+    pub(crate) fn credential_epoch(&self, namespace: &str) -> u64 {
+        let _conn = self.conn.lock().expect("db mutex");
+        self.credential_epochs
+            .lock()
+            .expect("credential epochs")
+            .get(namespace)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    pub(crate) fn add_credential_if_epoch(
+        &self,
+        namespace: &str,
+        label: &str,
+        material: CredentialMaterial,
+        epoch: u64,
+    ) -> Result<Option<AccountSummary>, StorageError> {
+        self.store_credential(namespace, label, material, Some(epoch))
+    }
+
+    fn store_credential(
+        &self,
+        namespace: &str,
+        label: &str,
+        material: CredentialMaterial,
+        expected: Option<u64>,
+    ) -> Result<Option<AccountSummary>, StorageError> {
         if !metadata(namespace, 4096) || !metadata(label, 128) || !material.valid() {
             return Err(StorageError::InvalidCredential);
         }
         let raw = serde_json::to_string(&material).map_err(|_| StorageError::InvalidCredential)?;
         let mut conn = self.conn.lock().expect("db mutex");
+        let mut epochs = self.credential_epochs.lock().expect("credential epochs");
+        let epoch = epochs.get(namespace).copied().unwrap_or(0);
+        if expected.is_some_and(|expected| expected != epoch) {
+            return Ok(None);
+        }
+        let next_epoch = epoch
+            .checked_add(1)
+            .ok_or(StorageError::CredentialStorage)?;
         let tx = conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(credential_error)?;
@@ -184,7 +225,8 @@ impl Db {
         .map_err(credential_error)?;
         tx.execute("INSERT INTO credential_accounts(id,provider_namespace,label,tagged_value_json,active,created_at) VALUES(?1,?2,?3,?4,1,?5)", params![id,namespace,label,raw,created_at]).map_err(credential_error)?;
         tx.commit().map_err(credential_error)?;
-        Ok(AccountSummary {
+        epochs.insert(namespace.into(), next_epoch);
+        Ok(Some(AccountSummary {
             id,
             provider_namespace: namespace.into(),
             label: label.into(),
@@ -195,7 +237,7 @@ impl Db {
             },
             active: true,
             created_at,
-        })
+        }))
     }
 
     /// Metadata-only listing. JSON extraction avoids reading token material into DTOs.
@@ -339,6 +381,12 @@ impl Db {
         if active && label.is_none() && !remove {
             return Ok(());
         }
+        let selection_changed = label.is_none() && (!remove || active);
+        let mut epochs = self.credential_epochs.lock().expect("credential epochs");
+        let epoch = epochs.get(namespace).copied().unwrap_or(0);
+        let next_epoch = epoch
+            .checked_add(u64::from(selection_changed))
+            .ok_or(StorageError::CredentialStorage)?;
         if let Some(label) = label {
             tx.execute(
                 "UPDATE credential_accounts SET label=?3 WHERE provider_namespace=?1 AND id=?2",
@@ -367,6 +415,9 @@ impl Db {
             .map_err(credential_error)?;
         }
         tx.commit().map_err(credential_error)?;
+        if selection_changed {
+            epochs.insert(namespace.into(), next_epoch);
+        }
         Ok(())
     }
 }

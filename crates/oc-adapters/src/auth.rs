@@ -6,6 +6,8 @@ pub const GO_BASE_URL: &str = "https://opencode.ai/zen/go/v1";
 
 mod openai;
 pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
+mod attempts;
+pub use attempts::OpenAiAttempts;
 
 /// Omitted policy retains legacy required Key behavior.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]

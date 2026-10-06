@@ -320,6 +320,8 @@ pub struct Db {
     public_catalog: Arc<std::sync::OnceLock<Arc<crate::models_dev::GoCatalog>>>,
     // One built-in OpenAI refresh flight across every same-root shared handle.
     pub(crate) credential_refresh: Arc<tokio::sync::Mutex<()>>,
+    // Ephemeral authorization fences; live attempts never survive root reopen.
+    credential_epochs: Arc<Mutex<std::collections::BTreeMap<String, u64>>>,
     // Fields drop in declaration order: release ownership after SQLite closes.
     _lock: Arc<RootLock>,
 }
@@ -568,6 +570,7 @@ impl Db {
             })),
             public_catalog: Arc::new(std::sync::OnceLock::new()),
             credential_refresh: Arc::new(tokio::sync::Mutex::new(())),
+            credential_epochs: Arc::new(Mutex::new(std::collections::BTreeMap::new())),
             _lock: Arc::new(lock),
         };
         db.expire_tool_outputs(tool_output::timestamp())?;
@@ -587,6 +590,7 @@ impl Db {
             history_reads: self.history_reads.clone(),
             public_catalog: self.public_catalog.clone(),
             credential_refresh: self.credential_refresh.clone(),
+            credential_epochs: self.credential_epochs.clone(),
             _lock: self._lock.clone(),
         }
     }
