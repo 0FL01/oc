@@ -254,6 +254,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
                 crate::commands::REGISTRY
                     .iter()
                     .filter(|c| c.registered(state.chrome.dcp.commands_enabled))
+                    .filter(|c| !c.action.is_terminal() || state.chrome.session_terminal)
                     .map(|c| format!("/{}", c.aliases[0]))
                     .collect::<Vec<_>>()
                     .join(" "),

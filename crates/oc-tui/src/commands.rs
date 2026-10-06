@@ -13,6 +13,12 @@ pub const COMMAND_ARGS_MAX: usize = 512;
 /// Dispatched built-in command.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandAction {
+    CreateTerminal,
+    SelectTerminal,
+    ToggleTerminal,
+    CloseTerminal,
+    FocusSessionPane,
+    FocusTerminalPane,
     OpenSettings,
     OpenPermissions,
     CompactSession,
@@ -67,6 +73,22 @@ pub enum CommandAction {
         /// Focus instruction (possibly empty).
         focus: String,
     },
+}
+
+impl CommandAction {
+    pub fn terminal_binding(&self) -> Option<usize> {
+        match self {
+            Self::FocusSessionPane => Some(0),
+            Self::FocusTerminalPane => Some(1),
+            Self::SelectTerminal => Some(2),
+            Self::ToggleTerminal => Some(3),
+            Self::CloseTerminal => Some(4),
+            _ => None,
+        }
+    }
+    pub fn is_terminal(&self) -> bool {
+        *self == Self::CreateTerminal || self.terminal_binding().is_some()
+    }
 }
 
 /// Parse input; `None` when it is not a slash command.
@@ -188,6 +210,54 @@ pub const COMMANDS_BINDING: &str = "ctrl+p";
 pub const AGENTS_BINDING: &str = "shift+tab";
 
 pub const REGISTRY: &[CommandSpec] = &[
+    CommandSpec {
+        id: "terminal.create",
+        title: "New terminal",
+        group: "Session",
+        shortcuts: &[],
+        aliases: &["terminal"],
+        action: CommandAction::CreateTerminal,
+    },
+    CommandSpec {
+        id: "terminal.select",
+        title: "Select terminal",
+        group: "Session",
+        shortcuts: &["ctrl+x down"],
+        aliases: &["terminals"],
+        action: CommandAction::SelectTerminal,
+    },
+    CommandSpec {
+        id: "terminal.toggle",
+        title: "Toggle terminal pane",
+        group: "Session",
+        shortcuts: &["ctrl+x t"],
+        aliases: &["terminal-toggle"],
+        action: CommandAction::ToggleTerminal,
+    },
+    CommandSpec {
+        id: "terminal.close",
+        title: "Hide terminal pane",
+        group: "Session",
+        shortcuts: &["ctrl+x up"],
+        aliases: &["terminal-hide"],
+        action: CommandAction::CloseTerminal,
+    },
+    CommandSpec {
+        id: "pane.focus.left",
+        title: "Focus session pane",
+        group: "Session",
+        shortcuts: &["ctrl+x left"],
+        aliases: &["focus-session"],
+        action: CommandAction::FocusSessionPane,
+    },
+    CommandSpec {
+        id: "pane.focus.right",
+        title: "Focus terminal pane",
+        group: "Session",
+        shortcuts: &["ctrl+x right"],
+        aliases: &["focus-terminal"],
+        action: CommandAction::FocusTerminalPane,
+    },
     CommandSpec {
         id: "provider.connect",
         title: "Connect OpenCode Go",

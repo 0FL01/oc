@@ -37,6 +37,7 @@ fn storage(_: StorageError) -> CoreError {
 enum Control {
     Input(Vec<u8>),
     Resize(TerminalSize),
+    Scroll(i16),
 }
 
 struct OwnedPty {
@@ -160,6 +161,17 @@ impl Terminals {
         parent: &BTreeMap<String, String>,
         size: TerminalSize,
     ) -> Result<TerminalEntry, CoreError> {
+        let shell = Shell::new(Path::new(&source.location)).map_err(|_| refused())?;
+        self.create_admitted(source, parent, size, &shell)
+    }
+
+    pub(crate) fn create_admitted(
+        &mut self,
+        source: TerminalRef,
+        parent: &BTreeMap<String, String>,
+        size: TerminalSize,
+        shell: &Shell,
+    ) -> Result<TerminalEntry, CoreError> {
         self.reap()?;
         if self.live.len() >= TERMINAL_CAP {
             return Err(CoreError::QueueFull);
@@ -172,11 +184,10 @@ impl Terminals {
             .selected_terminal(&source.session.0)
             .map_err(storage)?;
         let root = Path::new(&source.location);
-        if root.starts_with(self.db.root()) {
+        if root != shell.root() || root.starts_with(self.db.root()) {
             return Err(refused());
         }
         let argv = command_argv(parent, ":").map_err(|_| refused())?;
-        let shell = Shell::new(root).map_err(|_| refused())?;
         let pinned = shell.pin_cwd(&argv, ".").map_err(|_| refused())?;
         if pinned.path.starts_with(self.db.root()) {
             return Err(refused());
@@ -352,6 +363,21 @@ impl Terminals {
             .snapshot())
     }
 
+    pub fn scroll(
+        &self,
+        actor: &SessionId,
+        target: &TerminalRef,
+        lines: i16,
+    ) -> Result<(), CoreError> {
+        if lines.unsigned_abs() > SCROLLBACK as u16 {
+            return Err(refused());
+        }
+        self.target(actor, target)?
+            .input
+            .try_send(Control::Scroll(lines))
+            .map_err(|_| CoreError::QueueFull)
+    }
+
     pub fn replay(
         &self,
         actor: &SessionId,
@@ -370,6 +396,7 @@ impl Terminals {
                 next: s.cursor,
                 bytes: Vec::new(),
                 reset: Some(s.snapshot()),
+                screen: Box::new(s.snapshot()),
             });
         }
         Ok(TerminalReplay {
@@ -382,6 +409,7 @@ impl Terminals {
                 .copied()
                 .collect(),
             reset: None,
+            screen: Box::new(s.snapshot()),
         })
     }
 
@@ -749,7 +777,7 @@ impl Screen {
             size: TerminalSize { rows, cols },
             cells,
             cursor: s.cursor_position(),
-            hide_cursor: s.hide_cursor(),
+            hide_cursor: s.hide_cursor() || s.scrollback() > 0,
             application_cursor: s.application_cursor(),
             bracketed_paste: s.bracketed_paste(),
             output_cursor: self.cursor,
@@ -774,11 +802,31 @@ fn drain(
     let mut failed = false;
     let mut ended = false;
     let mut bytes = [0u8; 4096];
+    let mut announced = 0;
+    let mut announce_at = std::time::Instant::now();
     while !stop.load(Ordering::Acquire) && !ended {
         if pending.len() < PENDING_INPUT - TERMINAL_INPUT_BYTES {
             for _ in 0..4 {
                 match rx.try_recv() {
-                    Ok(Control::Input(bytes)) => pending.extend(bytes),
+                    Ok(Control::Input(bytes)) => {
+                        let mut s = state.lock().expect("terminal mutex");
+                        if s.parser.screen().scrollback() > 0 {
+                            s.parser.screen_mut().set_scrollback(0);
+                            s.revision += 1;
+                        }
+                        pending.extend(bytes);
+                    }
+                    Ok(Control::Scroll(lines)) => {
+                        let mut s = state.lock().expect("terminal mutex");
+                        let rows = s
+                            .parser
+                            .screen()
+                            .scrollback()
+                            .saturating_add_signed(isize::from(lines))
+                            .min(SCROLLBACK);
+                        s.parser.screen_mut().set_scrollback(rows);
+                        s.revision += 1;
+                    }
                     Ok(Control::Resize(size)) => {
                         if set_size(master.as_raw_fd(), size).is_err() {
                             failed = true;
@@ -837,6 +885,18 @@ fn drain(
         }
         if crate::shell::exited_without_reap(child.process.id() as i32).map_err(|_| refused())? {
             ended = true;
+        }
+        if let Some(events) = &events
+            && std::time::Instant::now() >= announce_at
+        {
+            let s = state.lock().expect("terminal mutex");
+            if s.revision != announced {
+                announced = s.revision;
+                let _ = events.send(oc_core::core_app::CoreEvent::TerminalChanged {
+                    session: s.entry.target.session.clone(),
+                });
+                announce_at = std::time::Instant::now() + Duration::from_millis(33);
+            }
         }
         if !ended {
             std::thread::sleep(Duration::from_millis(10));

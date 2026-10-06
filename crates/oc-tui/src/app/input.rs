@@ -92,6 +92,7 @@ impl TuiState {
                         .iter()
                         .filter(|c| {
                             c.registered(self.chrome.dcp.commands_enabled)
+                                && (!c.action.is_terminal() || self.chrome.session_terminal)
                                 && c.in_palette(
                                     self.picker.as_ref().is_some_and(|p| p.has_variants()),
                                 )
@@ -306,6 +307,14 @@ impl TuiState {
     }
 
     pub fn command_unavailable(&self, action: &CommandAction) -> Option<&'static str> {
+        if action.is_terminal() {
+            if !self.chrome.session_terminal {
+                return Some("session terminals unavailable on this platform");
+            }
+            if self.attached_session().is_none() {
+                return Some("no session yet");
+            }
+        }
         if self.linked_child().is_some()
             && matches!(
                 action,
@@ -407,6 +416,13 @@ impl TuiState {
     /// The Commands hints and builtin chord resolver use the same effective
     /// leader projection. Direct keys and explicit owner overrides stay literal.
     fn command_shortcuts(&self, command: &crate::commands::CommandSpec) -> Vec<String> {
+        if let Some(index) = command.action.terminal_binding() {
+            return self.chrome.terminal_shortcuts.bindings[index]
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .map(str::to_owned)
+                .collect();
+        }
         let override_binding = match command.action {
             CommandAction::UndoConversation => Some(self.conversation_shortcut(true)),
             CommandAction::RedoConversation => Some(self.conversation_shortcut(false)),
@@ -480,36 +496,7 @@ impl TuiState {
         if event.kind != KeyEventKind::Press {
             return None;
         }
-        let key = match event.code {
-            KeyCode::Char(key) => key.to_ascii_lowercase().to_string(),
-            KeyCode::Enter => "enter".into(),
-            KeyCode::Esc => "esc".into(),
-            KeyCode::Tab | KeyCode::BackTab => "tab".into(),
-            KeyCode::Backspace => "backspace".into(),
-            KeyCode::Delete => "delete".into(),
-            KeyCode::Insert => "insert".into(),
-            KeyCode::Home => "home".into(),
-            KeyCode::End => "end".into(),
-            KeyCode::PageUp => "pageup".into(),
-            KeyCode::PageDown => "pagedown".into(),
-            KeyCode::Left => "left".into(),
-            KeyCode::Right => "right".into(),
-            KeyCode::Up => "up".into(),
-            KeyCode::Down => "down".into(),
-            KeyCode::F(number) => format!("f{number}"),
-            _ => return None,
-        };
-        let mut binding = String::new();
-        for (flag, prefix) in [
-            (KeyModifiers::CONTROL, "ctrl+"),
-            (KeyModifiers::ALT, "alt+"),
-            (KeyModifiers::SHIFT, "shift+"),
-        ] {
-            if event.modifiers.contains(flag) {
-                binding.push_str(prefix);
-            }
-        }
-        binding.push_str(&key);
+        let binding = crate::events::binding(event)?;
         if self
             .leader_deadline()
             .is_some_and(|until| Instant::now() >= until)
@@ -519,6 +506,32 @@ impl TuiState {
         let chord = self
             .leader
             .map(|_| format!("{} {binding}", self.leader_key));
+        if self.chrome.session_terminal
+            && self.panel == TuiPanel::None
+            && let Some(index) = self
+                .chrome
+                .terminal_shortcuts
+                .bindings
+                .iter()
+                .position(|s| {
+                    s.split(',').any(|b| {
+                        !b.is_empty()
+                            && b.eq_ignore_ascii_case(chord.as_deref().unwrap_or(&binding))
+                    })
+                })
+        {
+            self.leader = None;
+            return Some(
+                [
+                    KeyAction::TerminalFocusLeft,
+                    KeyAction::TerminalFocusRight,
+                    KeyAction::TerminalSelect,
+                    KeyAction::TerminalToggle,
+                    KeyAction::TerminalClose,
+                ][index]
+                    .clone(),
+            );
+        }
         let action = [true, false]
             .into_iter()
             .find(|undo| {
@@ -591,6 +604,11 @@ impl TuiState {
     }
 
     pub fn terminal_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        if self.terminal_focused()
+            && let Some(action) = self.conversation_key(event)
+        {
+            return Some(action);
+        }
         if self.approvals.active().is_some() {
             return self
                 .approvals
@@ -641,6 +659,23 @@ impl TuiState {
                     && self.panel == TuiPanel::None
                     && self.chrome.command_palette_shortcut.is_some())
         })
+    }
+
+    pub(crate) fn terminal_leader_bypass(&mut self, event: crossterm::event::KeyEvent) -> bool {
+        if self
+            .leader_deadline()
+            .is_some_and(|until| Instant::now() >= until)
+        {
+            self.leader = None;
+        }
+        self.leader.is_some()
+            || crate::events::binding(event).is_some_and(|binding| {
+                self.chrome
+                    .conversation_shortcuts
+                    .leader
+                    .split(',')
+                    .any(|value| !value.is_empty() && value.eq_ignore_ascii_case(&binding))
+            })
     }
 
     fn selected_diagnostic(&self) -> Option<oc_core::queries::ServiceDiagnostic> {
@@ -852,13 +887,18 @@ impl TuiState {
         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
         // Home does not register the session-only rename action. Inventory
         // padding must be measured after that route exclusion, before search.
-        Some(crate::autocomplete::options(
-            filter,
-            &self.commands,
-            &self.command_descriptions,
-            self.home,
-            self.chrome.dcp.commands_enabled,
-        ))
+        Some(
+            crate::autocomplete::options(
+                filter,
+                &self.commands,
+                &self.command_descriptions,
+                self.home,
+                self.chrome.dcp.commands_enabled,
+                self.chrome.session_terminal,
+            )
+            .into_iter()
+            .collect(),
+        )
     }
 
     /// Keep selection and activation aligned when caret movement or a catalog
@@ -1108,6 +1148,11 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.panel == TuiPanel::None
+            && let Some(outcome) = self.terminal_mouse(event, area)
+        {
+            return outcome;
+        }
         if self.panel == TuiPanel::None {
             self.prepare_tabs(area, Instant::now());
             if matches!(
@@ -1694,7 +1739,7 @@ impl TuiState {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
-        if self.panel == TuiPanel::None && self.shells.open {
+        if self.panel == TuiPanel::None && (self.shells.open || self.terminals.open) {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
@@ -1920,6 +1965,17 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        let terminal_command = match action {
+            KeyAction::TerminalFocusLeft => Some(CommandAction::FocusSessionPane),
+            KeyAction::TerminalFocusRight => Some(CommandAction::FocusTerminalPane),
+            KeyAction::TerminalSelect => Some(CommandAction::SelectTerminal),
+            KeyAction::TerminalToggle => Some(CommandAction::ToggleTerminal),
+            KeyAction::TerminalClose => Some(CommandAction::CloseTerminal),
+            _ => None,
+        };
+        if let Some(command) = terminal_command {
+            return self.run_command(command);
+        }
         if self.panel == TuiPanel::Accounts {
             if self.approvals.active().is_some() || self.questions.active().is_some() {
                 self.close_panel();
@@ -1928,10 +1984,16 @@ impl TuiState {
             return self.accounts_key(action);
         }
         let mut action = action;
-        if self.approvals.active().is_some() {
+        if self.approvals.active().is_some()
+            && !(self.terminal_focused()
+                && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
+        {
             return self.approvals.key(action);
         }
-        if self.questions.active().is_some() {
+        if self.questions.active().is_some()
+            && !(self.terminal_focused()
+                && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
+        {
             return self.questions.key(action);
         }
         self.poll_submission();
@@ -2010,9 +2072,14 @@ impl TuiState {
         }
         if self.panel == TuiPanel::None && action == KeyAction::Shells {
             self.children.open = false;
+            self.close_terminal_composer();
         }
         if self.panel == TuiPanel::None && action == KeyAction::Children {
             self.shells.open = false;
+            self.close_terminal_composer();
+        }
+        if self.panel == TuiPanel::None && self.terminals.open && action != KeyAction::Leader {
+            return self.terminal_composer_key(action);
         }
         if self.panel == TuiPanel::None && (self.shells.open || action == KeyAction::Shells) {
             return self.shells.key(action);
@@ -2140,6 +2207,11 @@ impl TuiState {
         }
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
+            KeyAction::TerminalFocusLeft
+            | KeyAction::TerminalFocusRight
+            | KeyAction::TerminalSelect
+            | KeyAction::TerminalToggle
+            | KeyAction::TerminalClose => unreachable!("handled before global focus"),
             KeyAction::UndoConversation => self.run_command(CommandAction::UndoConversation),
             KeyAction::RedoConversation => self.run_command(CommandAction::RedoConversation),
             KeyAction::Agents => self.run_command(CommandAction::OpenAgents),
@@ -2525,6 +2597,11 @@ impl TuiState {
                 ..KeyOutcome::default()
             };
         }
+        if action.is_terminal() {
+            let mut outcome = self.terminal_command(action);
+            outcome.consumed_input = self.input.trim().starts_with('/');
+            return outcome;
+        }
         if matches!(
             action,
             CommandAction::UndoConversation | CommandAction::RedoConversation
@@ -2596,6 +2673,14 @@ impl TuiState {
         self.leader = None;
         let mut outcome = KeyOutcome::default();
         match action {
+            CommandAction::CreateTerminal
+            | CommandAction::SelectTerminal
+            | CommandAction::ToggleTerminal
+            | CommandAction::CloseTerminal
+            | CommandAction::FocusSessionPane
+            | CommandAction::FocusTerminalPane => {
+                unreachable!("terminal command returned before modal reset")
+            }
             CommandAction::OpenConnect => return self.open_accounts(true),
             CommandAction::OpenAccounts => return self.open_accounts(false),
             CommandAction::OpenSettings => self.panel = TuiPanel::Settings,

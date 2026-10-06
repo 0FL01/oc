@@ -1196,6 +1196,7 @@ impl Effective {
             chrome: {
                 let mut chrome = composition.tui_chrome.clone();
                 chrome.selection_generation = generation;
+                chrome.terminal_generation = generation;
                 chrome.agent_colors = composition
                     .agents
                     .values()
@@ -1950,6 +1951,8 @@ async fn start_worker_inner(
                 sessions.insert(path, session.0);
                 receipt.catalog.chrome.selection_generation =
                     location_epoch.fetch_add(1, Ordering::SeqCst) + 1;
+                receipt.catalog.chrome.terminal_generation =
+                    receipt.catalog.chrome.selection_generation;
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
@@ -2804,7 +2807,6 @@ fn query(
             let _ = ack.send(terminals::action(
                 terminals,
                 runtime,
-                composition,
                 location_epoch.load(Ordering::SeqCst),
                 session,
                 action,

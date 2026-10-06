@@ -1,7 +1,7 @@
 //! Application admission for user terminals; existing processes never rebind on
 //! Location/config replacement. No turn/tool admission and no provider effects.
 use super::*;
-use oc_core::queries::{TerminalAction, TerminalReceipt, TerminalRef};
+use oc_core::queries::{TerminalAction, TerminalReceipt};
 
 pub(super) type Owner = Mutex<Result<crate::terminals::Terminals, CoreError>>;
 
@@ -17,7 +17,6 @@ pub(super) fn shutdown(owner: &Owner) -> Result<(), CoreError> {
 pub(super) fn action(
     owner: &Owner,
     runtime: &Runtime<'_>,
-    composition: &Composition,
     epoch: u64,
     session: SessionId,
     action: TerminalAction,
@@ -26,30 +25,9 @@ pub(super) fn action(
     let owner = guard.as_mut().map_err(|error| error.clone())?;
     match action {
         TerminalAction::List => owner.inventory(&session).map(TerminalReceipt::Inventory),
-        TerminalAction::Create {
-            location,
-            generation,
-            size,
-        } => {
-            if location != runtime.location() || generation != epoch {
-                return Err(app_error("terminal source changed"));
-            }
-            runtime
-                .open_session(&session.0)
-                .map_err(|_| CoreError::SessionNotFound)?;
-            owner
-                .create(
-                    TerminalRef {
-                        id: String::new(),
-                        session,
-                        location,
-                        generation,
-                    },
-                    &composition.parent_env,
-                    size,
-                )
-                .map(TerminalReceipt::Created)
-        }
+        action @ (TerminalAction::Create { .. } | TerminalAction::CreateChild { .. }) => runtime
+            .create_terminal(owner, session, action, epoch)
+            .map(TerminalReceipt::Created),
         TerminalAction::Select(target) => {
             owner.select(&session, target.as_ref())?;
             Ok(TerminalReceipt::Applied)
@@ -60,6 +38,10 @@ pub(super) fn action(
         }
         TerminalAction::Resize { target, size } => {
             owner.resize(&session, &target, size)?;
+            Ok(TerminalReceipt::Applied)
+        }
+        TerminalAction::Scroll { target, lines } => {
+            owner.scroll(&session, &target, lines)?;
             Ok(TerminalReceipt::Applied)
         }
         TerminalAction::Snapshot(target) => owner

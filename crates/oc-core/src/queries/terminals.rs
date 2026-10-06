@@ -103,6 +103,29 @@ pub struct TerminalReplay {
     pub next: u64,
     pub bytes: Vec<u8>,
     pub reset: Option<TerminalSnapshot>,
+    /// Owner-emulated checkpoint at exactly `next`. Consumers never interpret
+    /// replay escapes on the host or maintain another divergent VT parser.
+    pub screen: Box<TerminalSnapshot>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminalShortcuts {
+    /// pane.focus.left/right, terminal.select/toggle/close, in that order.
+    pub bindings: [String; 5],
+}
+impl Default for TerminalShortcuts {
+    fn default() -> Self {
+        Self {
+            bindings: [
+                "ctrl+x left",
+                "ctrl+x right",
+                "ctrl+x down",
+                "ctrl+x t",
+                "ctrl+x up",
+            ]
+            .map(str::to_owned),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -110,6 +133,13 @@ pub enum TerminalAction {
     List,
     Create {
         location: String,
+        generation: u64,
+        size: TerminalSize,
+    },
+    /// A linked child keeps its actual admitted source, not the parent's current
+    /// Location. The owner verifies this receipt against its retained child lane.
+    CreateChild {
+        source: Box<super::ChildJob>,
         generation: u64,
         size: TerminalSize,
     },
@@ -121,6 +151,10 @@ pub enum TerminalAction {
     Resize {
         target: TerminalRef,
         size: TerminalSize,
+    },
+    Scroll {
+        target: TerminalRef,
+        lines: i16,
     },
     Snapshot(TerminalRef),
     Replay {

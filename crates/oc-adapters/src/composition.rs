@@ -1440,6 +1440,7 @@ async fn load_stages(
     tui_chrome.permission_shortcuts = conversation_keybinds.permission_shortcuts();
     tui_chrome.leader_timeout_ms = conversation_keybinds.leader_timeout_ms();
     tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
+    tui_chrome.terminal_shortcuts = conversation_keybinds.terminal_shortcuts();
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
         provider_views: BTreeMap::new(),

@@ -44,7 +44,7 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
         std::fs::create_dir(path).unwrap();
         std::fs::write(
             path.join("opencode.json"),
-            r#"{"disabled_providers":["opencode-go"]}"#,
+            r#"{"disabled_providers":["opencode-go"],"keybinds":{"leader":"ctrl+b,ctrl+g","terminal.toggle":"<leader>t","terminal.close":false}}"#,
         )
         .unwrap();
     }
@@ -67,6 +67,10 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
     app.create_session(source.clone()).await.unwrap();
     app.create_session(other.clone()).await.unwrap();
     assert!(app.catalog().await.unwrap().chrome.session_terminal);
+    let chrome = app.catalog().await.unwrap().chrome;
+    assert_eq!(chrome.terminal_generation, chrome.selection_generation);
+    assert_eq!(chrome.terminal_shortcuts.bindings[3], "ctrl+b t,ctrl+g t");
+    assert!(chrome.terminal_shortcuts.bindings[4].is_empty());
     assert!(inventory(&app, &source).await.enabled);
     assert!(inventory(&app, &source).await.entries.is_empty()); // no startup shell
     let first = create(&app, &source).await;

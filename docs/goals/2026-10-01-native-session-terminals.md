@@ -51,7 +51,7 @@ required outcome is resolved and affected constraints remain satisfied.
     inventory, genuine byte exchange and exit/reap; existing shell security and
     A02/A10/A13 regressions are reused, not reimplemented.
   - Status: in_progress
-  - Evidence: evidence/T56/owner.md and application.md — real native bounded owner and acknowledged source/epoch controls; frontend/callsite and actual-binary TERM01 pending.
+  - Evidence: evidence/T56/owner.md, application.md and frontend.md — real native owner, acknowledged source/epoch controls and retained-child creation; full actual-binary TERM01 pending.
 
 - R2: The real frontend selects, creates, hides/shows and focuses terminals.
   - Source: donor Terminals/session-terminal/session-frame/keymap U80–U83/U88.
@@ -87,8 +87,8 @@ required outcome is resolved and affected constraints remain satisfied.
     control bytes, observes child output, switches/hides/reopens, and independently
     checks process identity, no duplicate creation and focus/draft preservation.
     T44 reuses the same fixture for paired visual qualification, not a reverse gate.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: evidence/T56/frontend.md — lower composer, captured child close/target, raw/leader/focus routing and acknowledged real-owner consumer; actual-binary TERM01 pending.
 
 - R3: VT screen, output replay and resize are native and bounded.
   - Source: donor terminal-pane/session-frame and schema U82/U83/U85.
@@ -110,7 +110,7 @@ required outcome is resolved and affected constraints remain satisfied.
     screen/cursor/ordered bytes and actual child size, then resource/cleanup facts.
     T44 owns full paired pane/list geometry, RGB/attributes and cursor evidence.
   - Status: in_progress
-  - Evidence: evidence/T56/owner.md — real VT Unicode/styles, byte cursor/replay/gap, actual resize and bounded escape/output floods; Ratatui/theme/actual-binary attachment pending.
+  - Evidence: evidence/T56/owner.md and frontend.md — real VT Unicode/styles, byte cursor/replay/gap and resize/floods; Ratatui atomic screen/theme/geometry consumer checked, full actual-binary attachment pending.
 
 - R4: Lifecycle remains safe across view changes, shutdown and crash/restart.
   - Source: GOAL A02/A10/no unknown-effect replay and explicit no-daemon boundary.
@@ -162,12 +162,15 @@ required outcome is resolved and affected constraints remain satisfied.
   completed fully, commit/push each checked slice. HEAD `ea6b0b2cc`, tracked baseline
   clean, T53 done, ready T56 precedes T57; `progress.py start T56` succeeded.
 - Native bounded PTY/VT owner checked/pushed `88e6631d0`; application source/epoch
-  commands, independent lifecycle/capability and migration12 checked next slice.
-  Seven real owner/application tests and strict workspace all-target Clippy green;
-  evidence/T56/owner.md and application.md. R1/R3/R4 in_progress, R2 pending.
-- Next: lower Terminals composer and right pane, exact child-close captured target,
-  raw/leader/focus routing, theme VT cells and geometry/resize/cursor attachment.
-  Full TERM01 rebuilt debug/release actual-binary remains NOT_RUN; no DONE claim.
+  commands, independent lifecycle/capability and migration12 pushed `5b165af61`.
+  Frontend composer/right pane, raw/leader/focus, theme cells/atomic attachment and
+  retained-child source creation checked: adapters TERM01 8/0, TUI 444/0, binary
+  unit 91/0 and strict workspace all-target Clippy green. Partial receipts:
+  evidence/T56/owner.md, application.md and frontend.md. All R1–R4 in_progress.
+- Next: full rebuilt debug/release actual-binary TERM01 and independent process/
+  descriptor/resource facts, including child-close/target and crash/restart; resolve
+  termination signal/proc-enumeration failure handling. Full actual-binary remains
+  NOT_RUN; no DONE claim.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
   impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
 - Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment

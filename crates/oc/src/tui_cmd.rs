@@ -38,6 +38,7 @@ use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
 use oc_tui::views::{cursor_color, render_frame};
 
 mod child_controls;
+mod terminal_controls;
 
 /// Qualification probe (T26): when set, panic right after entering the
 /// terminal so PTY tests can verify panic-path restoration. Never set in
@@ -1034,6 +1035,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
         let job_ready = loop_state.ready_job();
         dirty |= state.tick_ui(Instant::now());
         poll_and_sync(app, &mut state, &mut loop_state).await;
+        if state.terminals_need_refresh() {
+            terminal_controls::refresh_or_report(app, &mut state).await;
+            dirty = true;
+        }
         if loop_state
             .approvals_checked
             .as_ref()
@@ -1126,6 +1131,15 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                     .draw(render_background)
                     .map_err(|e| format!("draw background: {e}"))?;
                 first_paint = false;
+            }
+            if state.terminal_visible().is_some() {
+                let size = terminal.size().map_err(|e| format!("terminal size: {e}"))?;
+                terminal_controls::resize(
+                    app,
+                    &mut state,
+                    ratatui::layout::Rect::new(0, 0, size.width, size.height),
+                )
+                .await;
             }
             let color = cursor_color(&state);
             if color != painted_cursor_color {
@@ -1877,6 +1891,17 @@ async fn handle_event_ticks(
 ) -> Result<(), String> {
     if let CEvent::Resize(width, height) = cev {
         state.resize_mouse_position(ratatui::layout::Rect::new(0, 0, width, height));
+        terminal_controls::resize(app, state, ratatui::layout::Rect::new(0, 0, width, height))
+            .await;
+        return Ok(());
+    }
+    let raw = match &cev {
+        CEvent::Key(key) => state.raw_terminal_key(*key),
+        CEvent::Paste(text) => state.raw_terminal_paste(text),
+        _ => None,
+    };
+    if let Some(outcome) = raw {
+        apply_outcome(app, state, loop_state, outcome, false).await;
         return Ok(());
     }
     let event = match cev {
@@ -1918,7 +1943,9 @@ async fn handle_event_ticks(
                 && submits
                 && !state.children_open()
                 && !state.shells_open()
-                && dispatch(state.input().trim()) != Some(CommandAction::Quit)
+                && !state.terminals_open()
+                && dispatch(state.input().trim())
+                    .is_none_or(|a| a != CommandAction::Quit && !a.is_terminal())
             {
                 state.push_note("child session: read-only history; saved tabs are unchanged");
                 return Ok(());
@@ -1946,6 +1973,7 @@ async fn handle_event_ticks(
                     MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
                 )
                 && !state.tab_wheel_hit(area, mouse.column, mouse.row)
+                && !oc_tui::terminal_view::pane_hit(state, area, mouse.column, mouse.row)
             {
                 // A wheel event also moves the pointer. Keep transcript
                 // scrolling, but invalidate a held tab when it leaves the strip.
@@ -2090,10 +2118,17 @@ async fn apply_intent_with_origin(
     typed_new: bool,
     preserve_pointer: bool,
 ) -> Result<(), String> {
-    if loop_state.conversation_job.is_some() {
+    let terminal_control = matches!(
+        intent,
+        PanelIntent::Terminal {
+            action: oc_tui::terminal_view::TerminalIntent::Control(_),
+            ..
+        }
+    );
+    if loop_state.conversation_job.is_some() && !terminal_control {
         return Err("conversation operation pending".into());
     }
-    if loop_state.reload_job.is_some() {
+    if loop_state.reload_job.is_some() && !terminal_control {
         return Err("configuration reload pending".into());
     }
     if loop_state.read_only
@@ -2119,6 +2154,21 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::Terminal {
+            session,
+            action,
+            close_composer,
+        } => {
+            // Source callback closes the lower composer BEFORE dispatch. A child
+            // route returns to its parent, but never changes the captured actor.
+            if close_composer {
+                state.close_terminal_composer();
+                if state.linked_child().is_some() {
+                    child_controls::return_parent(state, loop_state);
+                }
+            }
+            terminal_controls::apply(app, state, loop_state, session, action).await;
+        }
         PanelIntent::LoadProviderConnections => {
             state.apply_provider_connections(app.provider_connections().await.map_err(|_| ()));
         }
@@ -3167,6 +3217,7 @@ async fn adopt_location(
         state.push_note(&format!("location: {location}"));
     }
     state.inherit_shell_view(&mut previous);
+    state.inherit_terminal_view(&mut previous);
     if state.shells_open()
         && let Err(error) = refresh_shells(app, state).await
     {
@@ -3204,6 +3255,20 @@ async fn handle_worker_event(
     event: CoreEvent,
 ) -> Result<(), String> {
     if child_controls::route_event(app, state, _loop_state, &event).await? {
+        return Ok(());
+    }
+    if let CoreEvent::TerminalChanged { session: owner } = &event {
+        if state.attached_session() == Some(owner) {
+            terminal_controls::refresh_or_report(app, state).await;
+        }
+        for parked in _loop_state
+            .tabs
+            .iter_mut()
+            .flatten()
+            .filter(|v| v.attached_session() == Some(owner))
+        {
+            terminal_controls::refresh_or_report(app, parked).await;
+        }
         return Ok(());
     }
     if matches!(&event, CoreEvent::ShellChanged { .. }) {

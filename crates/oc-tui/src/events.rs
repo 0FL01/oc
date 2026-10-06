@@ -81,6 +81,11 @@ pub enum KeyAction {
     /// Open/close the native running-shell composer.
     Shells,
     Children,
+    TerminalFocusLeft,
+    TerminalFocusRight,
+    TerminalSelect,
+    TerminalToggle,
+    TerminalClose,
     /// Convert the selected admitted foreground shell.
     ShellBackground,
 }
@@ -206,6 +211,40 @@ pub fn map_event(event: Event) -> Option<UiEvent> {
         Event::Mouse(mouse) => Some(UiEvent::Mouse(mouse)),
         _ => None,
     }
+}
+
+pub(crate) fn binding(event: KeyEvent) -> Option<String> {
+    let key = match event.code {
+        KeyCode::Char(key) => key.to_ascii_lowercase().to_string(),
+        KeyCode::Enter => "enter".into(),
+        KeyCode::Esc => "esc".into(),
+        KeyCode::Tab | KeyCode::BackTab => "tab".into(),
+        KeyCode::Backspace => "backspace".into(),
+        KeyCode::Delete => "delete".into(),
+        KeyCode::Insert => "insert".into(),
+        KeyCode::Home => "home".into(),
+        KeyCode::End => "end".into(),
+        KeyCode::PageUp => "pageup".into(),
+        KeyCode::PageDown => "pagedown".into(),
+        KeyCode::Left => "left".into(),
+        KeyCode::Right => "right".into(),
+        KeyCode::Up => "up".into(),
+        KeyCode::Down => "down".into(),
+        KeyCode::F(number) => format!("f{number}"),
+        _ => return None,
+    };
+    let mut binding = String::new();
+    for (flag, prefix) in [
+        (KeyModifiers::CONTROL, "ctrl+"),
+        (KeyModifiers::ALT, "alt+"),
+        (KeyModifiers::SHIFT, "shift+"),
+    ] {
+        if event.modifiers.contains(flag) {
+            binding.push_str(prefix);
+        }
+    }
+    binding.push_str(&key);
+    Some(binding)
 }
 
 #[cfg(test)]

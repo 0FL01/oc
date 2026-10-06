@@ -2,6 +2,179 @@ use super::*;
 use std::os::unix::process::CommandExt as _;
 use std::task::Poll;
 
+#[tokio::test]
+async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() {
+    use oc_core::queries::{TerminalAction, TerminalSize};
+    let dir = tempfile::tempdir().unwrap();
+    let a = dir.path().join("a");
+    let b = dir.path().join("b");
+    std::fs::create_dir(&a).unwrap();
+    std::fs::create_dir(&b).unwrap();
+    let db = Db::open(&dir.path().join("data")).unwrap();
+    let make = |project: &std::path::Path, shell: &str| {
+        Runtime::new(
+            &db,
+            project.to_str().unwrap(),
+            Generation::default(),
+            ProtectedGlobs { patterns: vec![] },
+            crate::files::Files::new(project, db.root()).unwrap(),
+            crate::shell::Shell::new(project).unwrap(),
+            BTreeMap::from([
+                ("SHELL".into(), shell.into()),
+                ("HOME".into(), project.display().to_string()),
+                ("OC_API_KEY".into(), "SYNTHETIC_NOT_INHERITED".into()),
+            ]),
+            ToolRoots {
+                project: project.into(),
+                data: db.root().into(),
+            },
+            None,
+            false,
+            DcpConfig::default(),
+        )
+        .unwrap()
+    };
+    let original = make(&a, "/bin/bash");
+    original.create_session("parent").unwrap();
+    let source = Arc::new(original.owned_child_snapshot());
+    let mut selected = identity("parent", "child");
+    selected.location = a.display().to_string();
+    selected.generation = source.generation_id();
+    db.record_tool_intent(&selected.operation, "parent", None, "subagent", "{}")
+        .unwrap();
+    db.admit_fresh_child_job(&selected).unwrap();
+    original.child_jobs.work.lock().unwrap().insert(
+        selected.operation.clone(),
+        Work {
+            identity: selected.clone(),
+            parent_turn: "fixture".into(),
+            runtime: Arc::downgrade(&source),
+            mcp: source.mcp_owner(),
+            cancel: Arc::new(AtomicBool::new(false)),
+            completion: async { true }.boxed().shared(),
+            background: Arc::new(AtomicBool::new(true)),
+            mode_changed: Arc::new(tokio::sync::Notify::new()),
+            foreground_wait: Arc::new(AtomicBool::new(false)),
+            parent_rejected: AtomicBool::new(false),
+            foreground_result: Arc::new(Mutex::new(None)),
+        },
+    );
+    let mut moved = make(&b, "/bin/sh");
+    moved.inherit_application_owners(&original);
+    let mut terminals = crate::terminals::Terminals::new(&db).unwrap();
+    let request = |job: &ChildJob| TerminalAction::CreateChild {
+        source: Box::new(job.clone()),
+        generation: 19,
+        size: TerminalSize::default(),
+    };
+    for field in 0..8 {
+        let mut stale = selected.clone();
+        match field {
+            0 => stale.parent.0.push('x'),
+            1 => stale.child.0.push('x'),
+            2 => stale.operation.push('x'),
+            3 => stale.generation += 1,
+            4 => stale.location.push('x'),
+            5 => stale.delivery_id.push('x'),
+            6 => stale.agent.push('x'),
+            _ => stale.model.push('x'),
+        }
+        assert!(
+            moved
+                .create_terminal(&mut terminals, selected.child.clone(), request(&stale), 19)
+                .is_err()
+        );
+    }
+    assert!(
+        moved
+            .create_terminal(
+                &mut terminals,
+                selected.parent.clone(),
+                request(&selected),
+                19
+            )
+            .is_err()
+    );
+    assert!(
+        terminals
+            .inventory(&selected.child)
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    let entry = moved
+        .create_terminal(
+            &mut terminals,
+            selected.child.clone(),
+            request(&selected),
+            19,
+        )
+        .unwrap();
+    assert_eq!(entry.target.session, selected.child);
+    assert_eq!(entry.target.location, selected.location);
+    assert_eq!(entry.target.generation, selected.generation);
+    assert_eq!(entry.cwd, selected.location);
+    assert_eq!(entry.shell, "/bin/bash");
+    let environment = std::fs::read(format!("/proc/{}/environ", entry.pid)).unwrap();
+    assert!(
+        !environment
+            .windows(b"SYNTHETIC_NOT_INHERITED".len())
+            .any(|w| w == b"SYNTHETIC_NOT_INHERITED")
+    );
+    // Losing the retained child lane never fabricates one at the moved parent.
+    drop(source);
+    assert!(
+        moved
+            .create_terminal(
+                &mut terminals,
+                selected.child.clone(),
+                request(&selected),
+                19
+            )
+            .is_err()
+    );
+    assert_eq!(
+        terminals.inventory(&selected.child).unwrap().entries.len(),
+        1
+    );
+    let current = make(&a, "/bin/sh");
+    assert!(
+        current
+            .create_terminal(
+                &mut terminals,
+                selected.child.clone(),
+                request(&selected),
+                19
+            )
+            .is_err()
+    );
+    db.finish_child_job(
+        &selected.operation,
+        ChildState::Completed,
+        "settled fixture",
+    )
+    .unwrap();
+    let next = current
+        .create_terminal(
+            &mut terminals,
+            selected.child.clone(),
+            request(&selected),
+            19,
+        )
+        .unwrap();
+    assert_eq!(next.shell, "/bin/sh");
+    assert_eq!(next.cwd, selected.location);
+    assert_eq!(next.target.generation, 19);
+    assert_eq!(
+        terminals.inventory(&selected.child).unwrap().entries[0].target,
+        entry.target
+    );
+    terminals.shutdown().unwrap();
+    assert!(!std::path::Path::new(&format!("/proc/{}", entry.pid)).exists());
+    assert!(!std::path::Path::new(&format!("/proc/{}", next.pid)).exists());
+    original.child_jobs.shutdown().await.unwrap();
+}
+
 fn identity(parent: &str, child: &str) -> ChildJob {
     ChildJob {
         parent: oc_core::domain::SessionId(parent.into()),

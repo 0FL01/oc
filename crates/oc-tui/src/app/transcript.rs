@@ -137,7 +137,8 @@ impl TuiState {
         self.detail_area.set(area);
     }
 
-    pub(crate) fn detail_area(&self) -> ratatui::layout::Rect {
+    /// Last actual frame geometry, shared with the binary's PTY resize consumer.
+    pub fn detail_area(&self) -> ratatui::layout::Rect {
         self.detail_area.get()
     }
 
@@ -620,7 +621,7 @@ impl TuiState {
         }
     }
 
-    pub(super) fn clear_transcript_selection(&mut self) {
+    pub(crate) fn clear_transcript_selection(&mut self) {
         self.reverted_down = None;
         self.message_down = None;
         self.paint_generation

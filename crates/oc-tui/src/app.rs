@@ -142,6 +142,12 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    Terminal {
+        session: SessionId,
+        action: crate::terminal_view::TerminalIntent,
+        /// Lower composer activation closes/navigates before the captured action.
+        close_composer: bool,
+    },
     LoadProviderConnections,
     SetPermissionMode {
         auto_once: bool,
@@ -551,6 +557,7 @@ pub struct TuiState {
     pub questions: crate::question_view::QuestionView,
     pub(crate) shells: crate::shell_jobs_view::ShellView,
     pub(crate) children: crate::child_view::ChildView,
+    pub(crate) terminals: crate::terminal_view::TerminalView,
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
@@ -798,6 +805,7 @@ impl TuiState {
             questions: Default::default(),
             shells: Default::default(),
             children: Default::default(),
+            terminals: Default::default(),
             approval_roots: Default::default(),
             tab_attention: Default::default(),
             app,
@@ -985,6 +993,7 @@ impl TuiState {
     }
 
     pub fn set_session(&mut self, session: SessionId) {
+        self.terminals = Default::default();
         self.invalidate_transcript();
         *self.tab_view.get_mut() = TabView::default();
         self.clear_mouse_position();

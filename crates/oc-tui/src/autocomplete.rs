@@ -44,10 +44,12 @@ pub(crate) fn options(
     descriptions: &BTreeMap<String, String>,
     home: bool,
     dcp_commands: bool,
+    terminals: bool,
 ) -> Vec<SlashOption> {
     let mut options: Vec<_> = commands::REGISTRY
         .iter()
         .filter(|command| command.registered(dcp_commands))
+        .filter(|command| terminals || !command.action.is_terminal())
         .flat_map(|command| {
             command.aliases.iter().map(move |name| SlashOption {
                 name: (*name).into(),

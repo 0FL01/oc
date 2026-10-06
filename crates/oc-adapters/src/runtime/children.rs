@@ -696,6 +696,15 @@ impl Jobs {
             .and_then(|job| job.runtime.upgrade())
     }
 
+    pub(super) fn terminal_source(&self, selected: &ChildJob) -> Option<Arc<Runtime<'static>>> {
+        self.work
+            .lock()
+            .expect("child work")
+            .get(&selected.operation)
+            .filter(|work| super::terminals::same_source(&work.identity, selected))
+            .and_then(|work| work.runtime.upgrade())
+    }
+
     fn retain_source(&self, owner: Arc<mcp::McpOwner>) -> bool {
         if !self
             .work

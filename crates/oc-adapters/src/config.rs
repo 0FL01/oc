@@ -307,6 +307,7 @@ pub(crate) struct ConversationKeybinds {
     timeout: Option<u64>,
     legacy_timeout: Option<u64>,
     palette: String,
+    terminal: [String; 5],
 }
 
 impl Default for ConversationKeybinds {
@@ -320,6 +321,14 @@ impl Default for ConversationKeybinds {
             timeout: None,
             legacy_timeout: None,
             palette: "ctrl+p".into(),
+            terminal: [
+                "<leader>left",
+                "<leader>right",
+                "<leader>down",
+                "<leader>t",
+                "<leader>up",
+            ]
+            .map(str::to_owned),
         }
     }
 }
@@ -392,6 +401,27 @@ impl ConversationKeybinds {
                 }
             }
         }
+        for (index, name) in [
+            "pane.focus.left",
+            "pane.focus.right",
+            "terminal.select",
+            "terminal.toggle",
+            "terminal.close",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if let Some(value) = bindings.get(name) {
+                self.terminal[index] = value
+                    .as_str()
+                    .or_else(|| (value.as_bool() == Some(false)).then_some("none"))
+                    .ok_or_else(|| ConfigError::Invalid {
+                        field: format!("keybinds.{name}"),
+                        reason: "must be a string or false".into(),
+                    })?
+                    .into();
+            }
+        }
         Ok(())
     }
 
@@ -405,6 +435,7 @@ impl ConversationKeybinds {
             timeout: None,
             legacy_timeout: None,
             palette: String::new(),
+            terminal: Default::default(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
@@ -423,6 +454,19 @@ impl ConversationKeybinds {
         }
         .resolve()
         .undo
+    }
+    pub(crate) fn terminal_shortcuts(&self) -> oc_core::queries::TerminalShortcuts {
+        oc_core::queries::TerminalShortcuts {
+            bindings: self.terminal.each_ref().map(|binding| {
+                Self {
+                    leader: self.leader.clone(),
+                    undo: binding.clone(),
+                    ..Self::default()
+                }
+                .resolve()
+                .undo
+            }),
+        }
     }
     pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
         let leaders: Vec<_> = self

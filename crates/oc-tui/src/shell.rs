@@ -224,8 +224,9 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     if let Some(strip) = tab_strip(state, area) {
         render_deck_tabs(frame, state, theme, regions.tabs, &strip);
     }
-    let main = session_main(state, regions.session);
-    if main.width < regions.session.width {
+    let (route, terminal_pane) = crate::terminal_view::split(state, regions.session);
+    let main = session_main(state, route);
+    if main.width < route.width {
         render_sidebar(
             frame,
             state,
@@ -243,6 +244,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     crate::question_view::render(frame, state, main);
     crate::shell_jobs_view::render(frame, state, main);
     crate::child_view::render(frame, state, main);
+    crate::terminal_view::render_composer(frame, state, main, theme);
+    crate::terminal_view::render_pane(frame, state, terminal_pane, theme);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
     crate::dialog::render(frame, state);
@@ -331,7 +334,10 @@ fn session_main(state: &TuiState, area: Rect) -> Rect {
 }
 
 pub(crate) fn prompt_main(state: &TuiState, frame: Rect) -> Rect {
-    session_main(state, shell_regions(state, frame).session)
+    session_main(
+        state,
+        crate::terminal_view::split(state, shell_regions(state, frame).session).0,
+    )
 }
 
 fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout::SessionRegions {
@@ -349,7 +355,9 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
         return regions;
     }
     let input = prompt_lines(state, area.width);
-    let jobs_height = crate::shell_jobs_view::height(state).max(crate::child_view::height(state));
+    let jobs_height = crate::shell_jobs_view::height(state)
+        .max(crate::child_view::height(state))
+        .max(crate::terminal_view::height(state));
     if jobs_height > 0 {
         let mut regions = layout::dynamic_session_regions(area, 0, 0);
         regions.transcript.height = regions.content.height.saturating_sub(jobs_height);
@@ -380,7 +388,12 @@ pub(crate) fn transcript_area(state: &TuiState, area: Rect) -> Rect {
         return Rect::default();
     }
     let shell = shell_regions(state, area);
-    session_regions(state, session_main(state, shell.session), area.height).transcript
+    session_regions(
+        state,
+        session_main(state, crate::terminal_view::split(state, shell.session).0),
+        area.height,
+    )
+    .transcript
 }
 
 /// Single active tab in the horizontal strip
@@ -1672,7 +1685,7 @@ fn render_prompt(
                     hint_rect,
                 );
             }
-            if visible > 0 && text_width > 0 {
+            if visible > 0 && text_width > 0 && !state.terminal_focused() {
                 frame.set_cursor_position((
                     text_x + (caret.1 as u16).min(text_width - 1),
                     body.y + 1 + caret.0.saturating_sub(start) as u16,

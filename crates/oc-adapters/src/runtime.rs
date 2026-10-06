@@ -39,6 +39,7 @@ pub(crate) mod children;
 mod compaction;
 mod environment;
 mod retry;
+mod terminals;
 
 /// Max tool-output bytes kept in the turn report.
 pub const REPORT_OUTPUT_CAP: usize = 2_048;
