@@ -451,6 +451,24 @@ impl TuiState {
 
     // ---- snapshots from the binary -------------------------------------
 
+    /// Replace only the browse view after a provider-scoped owner query. This
+    /// must not manufacture a committed model or change composer chrome/agent.
+    pub fn apply_picker_catalog(&mut self, snapshot: CatalogSnapshot) {
+        if self.chrome.location != snapshot.chrome.location
+            || self.chrome.selection_generation != snapshot.chrome.selection_generation
+        {
+            return;
+        }
+        self.bind_picker(&snapshot);
+        let catalog = catalog_from_snapshot(&snapshot);
+        match self.picker.as_mut() {
+            Some(picker) if picker.provider() == snapshot.provider => picker.refresh(catalog),
+            _ => self.picker = Some(ModelPicker::new(catalog)),
+        }
+        self.catalog_loaded = true;
+        self.sync_modal_cursor();
+    }
+
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
         self.invalidate_transcript();

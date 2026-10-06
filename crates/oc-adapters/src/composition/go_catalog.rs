@@ -26,6 +26,23 @@ pub(crate) fn now_ms() -> u64 {
 }
 
 impl Composition {
+    pub(crate) fn accept_public_view(&mut self, outcome: discovery::DiscoveryOutcome) -> bool {
+        if !self.generation.public_go_enabled {
+            return false;
+        }
+        if let Some(view) = self.provider_views.get_mut(PROVIDER) {
+            let before = (view.state.catalog_status, view.readiness("", None));
+            let models_changed = view.catalog.models != outcome.models;
+            view.state.finish_public(&outcome);
+            view.catalog.models = outcome.models;
+            view.provider.wire.requests =
+                public_bindings(&view.entry, &view.catalog, &view.provider);
+            return models_changed
+                || before != (view.state.catalog_status, view.readiness("", None));
+        }
+        false
+    }
+
     pub(crate) async fn attach_public_catalog(&mut self, db: &crate::storage::Db) {
         if !self.generation.public_go_enabled {
             return;

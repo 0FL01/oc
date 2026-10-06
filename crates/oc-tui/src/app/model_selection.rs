@@ -11,6 +11,7 @@ mod tests;
 pub(super) struct ComposerSelection {
     caller: u64,
     binding: Option<SelectionBinding>,
+    picker_binding: Option<SelectionBinding>,
     drafts: BTreeMap<Option<String>, ModelRef>,
     committed: Option<ModelRef>,
     revision: u64,
@@ -30,6 +31,7 @@ impl Default for ComposerSelection {
         Self {
             caller: CALLER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             binding: None,
+            picker_binding: None,
             drafts: Default::default(),
             committed: None,
             revision: 0,
@@ -49,6 +51,33 @@ impl TuiState {
             .map(|b| b.provider.clone())
             .unwrap_or_else(|| "opencode-go".into())
     }
+
+    /// A filtered picker is a browse scope, not the committed composer connection.
+    pub fn picker_provider_filter(&self) -> Option<&str> {
+        matches!(self.panel, TuiPanel::Model | TuiPanel::Variant)
+            .then(|| self.model_selection.picker_binding.as_ref())
+            .flatten()
+            .filter(|picker| {
+                self.model_selection
+                    .binding
+                    .as_ref()
+                    .is_none_or(|current| picker.provider != current.provider)
+            })
+            .map(|binding| binding.provider.as_str())
+    }
+
+    pub(super) fn bind_picker(&mut self, snapshot: &CatalogSnapshot) {
+        self.model_selection.picker_binding = Some(SelectionBinding {
+            location: snapshot.chrome.location.clone(),
+            generation: snapshot.chrome.selection_generation,
+            provider: snapshot.provider.clone(),
+            agent_id: self
+                .model_selection
+                .binding
+                .as_ref()
+                .and_then(|binding| binding.agent_id.clone()),
+        });
+    }
     /// A new same-Location composer may remember an actually committed choice;
     /// another session's uncommitted picker draft never crosses this boundary.
     pub fn inherit_committed_model_choice(&mut self, old: &Self) {
@@ -61,9 +90,9 @@ impl TuiState {
             return;
         }
         for (agent, model) in &old.model_selection.committed_recent {
-            self.model_selection
-                .recent
-                .retain(|(owner, choice)| owner != agent || choice.id != model.id);
+            self.model_selection.recent.retain(|(owner, choice)| {
+                owner != agent || choice.id != model.id || choice.provider != model.provider
+            });
             self.model_selection
                 .recent
                 .push_back((agent.clone(), model.clone()));
@@ -77,7 +106,9 @@ impl TuiState {
     fn remember_committed_model(&mut self, agent: Option<String>, model: ModelRef) {
         self.model_selection
             .committed_recent
-            .retain(|(owner, choice)| owner != &agent || choice.id != model.id);
+            .retain(|(owner, choice)| {
+                owner != &agent || choice.id != model.id || choice.provider != model.provider
+            });
         self.model_selection
             .committed_recent
             .push_back((agent, model));
@@ -113,16 +144,18 @@ impl TuiState {
                 .model_selection
                 .drafts
                 .get(&binding.agent_id)
-                .is_none_or(|draft| draft.id != snapshot.model_id)
+                .is_none_or(|draft| {
+                    draft.id != snapshot.model_id || draft.provider != snapshot.provider
+                })
         {
             let model = self
                 .model_selection
                 .committed
                 .clone()
                 .expect("snapshot model");
-            self.model_selection
-                .recent
-                .retain(|(agent, old)| agent != &binding.agent_id || old.id != model.id);
+            self.model_selection.recent.retain(|(agent, old)| {
+                agent != &binding.agent_id || old.id != model.id || old.provider != model.provider
+            });
             self.model_selection
                 .recent
                 .push_back((binding.agent_id.clone(), model));
@@ -131,6 +164,7 @@ impl TuiState {
             }
         }
         self.model_selection.binding = Some(binding.clone());
+        self.model_selection.picker_binding = Some(binding.clone());
         self.model_selection.drafts.get(&binding.agent_id).cloned()
     }
 
@@ -139,7 +173,11 @@ impl TuiState {
             serde_json::from_str(&self.picker.as_ref()?.persisted_record()?).ok()?;
         Some(ModelCommit {
             caller: self.model_selection.caller,
-            binding: self.model_selection.binding.clone()?,
+            binding: self
+                .model_selection
+                .picker_binding
+                .clone()
+                .or_else(|| self.model_selection.binding.clone())?,
             model_id: choice.id,
             variant: choice.variant.filter(|v| v != "default"),
             draft_revision: self.model_selection.revision,
@@ -159,9 +197,11 @@ impl TuiState {
         self.model_selection
             .drafts
             .insert(commit.binding.agent_id.clone(), choice.clone());
-        self.model_selection
-            .recent
-            .retain(|(agent, old)| agent != &commit.binding.agent_id || old.id != choice.id);
+        self.model_selection.recent.retain(|(agent, old)| {
+            agent != &commit.binding.agent_id
+                || old.id != choice.id
+                || old.provider != choice.provider
+        });
         self.model_selection
             .recent
             .push_back((commit.binding.agent_id, choice));
@@ -185,7 +225,9 @@ impl TuiState {
             .recent
             .iter()
             .rev()
-            .find(|(owner, model)| owner == &agent && model.id == id)
+            .find(|(owner, model)| {
+                owner == &agent && model.id == id && model.provider == picker.provider()
+            })
             .and_then(|(_, model)| model.variant.clone());
         picker
             .choose_id(id, variant.as_deref())

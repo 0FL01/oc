@@ -604,6 +604,20 @@ these admitted scopes. Tests: `application/provider_view_tests.rs`, 613 adapter 
 or T53 PASS; qualified executable selection and independent cold/stale public refresh
 remain the next consumer slice.
 
+### Independent public refresh and filtered connect checkpoint (2026-10-06)
+
+Configured discovery and unselected Go public refresh now own separate optional
+jobs, share the existing Db/public cache, and abort/join on retirement. Public
+results update only the Go view; unchanged cached reads do not create a
+ProviderChanged/query loop. Unselected public work cannot block configuration reload.
+Connect ACK now opens an explicitly Go-scoped picker from a custom connection,
+without replacing its committed composer/model or inheriting same-ID variants.
+Actual custom-connection and configless account PTYs pass; full workspace
+1643/0/10, strict clippy/fmt/build/help green, followed by final TUI 440/0/0 after
+provider-qualified recent-draft review. Evidence: `evidence/T53/connect-ui.md`.
+Partial R2/R5, not GO05/T53 PASS: executable qualified selection/persistence,
+next-request provider capture and bounded Go generation qualification remain.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

@@ -1388,9 +1388,7 @@ enum WorkerOutcome {
     Move(Box<session_move::Prepared>),
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
-    ProviderCatalog(
-        Result<crate::discovery::DiscoveryOutcome, oc_core::queries::ServiceDiagnostic>,
-    ),
+    ProviderCatalog(Result<provider_catalog::CatalogOutcome, oc_core::queries::ServiceDiagnostic>),
     PickerOpen {
         path: String,
         session: SessionId,
@@ -1774,13 +1772,23 @@ async fn start_worker_inner(
                         return Err(error);
                     }
                 };
-                composition.accept_provider_catalog(outcome);
+                let changed = match outcome {
+                    provider_catalog::CatalogOutcome::Selected(outcome) => {
+                        composition.accept_provider_catalog(outcome);
+                        true
+                    }
+                    provider_catalog::CatalogOutcome::Public(outcome) => {
+                        composition.accept_public_view(outcome)
+                    }
+                };
                 runtime
                     .publish_provider_state(composition.provider_state.clone())
                     .map_err(|error| {
                         runtime_issue(runtime.location(), &["provider"], &error).diagnostic
                     })?;
-                let _ = events.send(CoreEvent::ProviderChanged);
+                if changed {
+                    let _ = events.send(CoreEvent::ProviderChanged);
+                }
             }
             WorkerOutcome::PickerOpen {
                 path,
@@ -4017,8 +4025,8 @@ async fn worker(
                 },
             }
         };
-        if matches!(&message, InboxMsg::Catalog { .. })
-            && composition.go_catalog.is_some()
+        if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
+            || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if provider == crate::models_dev::PROVIDER && composition.generation.public_go_enabled))
             && !provider_work.pending()
         {
             *provider_work = provider_catalog::ProviderWork::start(composition, db);
@@ -4361,7 +4369,7 @@ async fn worker(
                 });
             }
             InboxMsg::ReloadLocation { ack } => {
-                if provider_work.pending() {
+                if provider_work.selected_pending() && composition.go_catalog.is_none() {
                     let diagnostic = composition
                         .provider_state
                         .for_model(&effective.model_id, false)

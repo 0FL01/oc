@@ -86,6 +86,9 @@ impl Fixture {
         let addr = listener.local_addr().expect("endpoint address");
         let configuration = serde_json::json!({
             "model": format!("fixture/{MODEL}"),
+            // This peer qualifies the configured fixture connection, not the
+            // public internet catalog. Go-specific PTYs explicitly enable it.
+            "disabled_providers": ["opencode-go"],
             "provider": {"fixture": {
                 "npm": "@ai-sdk/openai",
                 "options": {"baseURL": format!("http://{addr}/proxy/v1"),

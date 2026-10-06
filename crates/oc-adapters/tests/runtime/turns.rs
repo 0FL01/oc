@@ -2336,6 +2336,8 @@ async fn bare_title_regeneration_uses_title_agent_and_preserves_concurrent_manua
     );
     let config = serde_json::json!({
         "model": "fixture/main",
+        // Keep this title-only event probe independent of public catalog jobs.
+        "disabled_providers": ["opencode-go"],
         "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
             "models": {"main": {}, "title-model": {}}}},
         "agent": {"title": {"mode": "subagent", "model": "fixture/title-model", "prompt": "TITLE_AGENT_ONLY"}}

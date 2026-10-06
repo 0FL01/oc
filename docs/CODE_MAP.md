@@ -121,7 +121,7 @@ generation. `application/accounts.rs` routes typed `CoreApp::provider_accounts`
 through that same owner; safe DTOs live in core `queries/accounts.rs`. Credential-only
 idle publication retains configured auth inputs and does not restart MCP or select
 a model. Tests: `application/accounts_tests.rs` and held live-switch regression.
-Masked connect UI and qualified cross-provider selection remain pending.
+Qualified cross-provider execution/selection remains pending.
 
 Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source trust;
 generation and configured discovery share its DNS pin and peer guard. Private boundary,
@@ -140,8 +140,12 @@ safe metadata and confirmation), with `dialog.rs` painting and binary
 Independent frozen connection views: `composition/provider_views.rs` admits and
 resolves connection inputs under the existing Location/source/Db owners;
 `CoreApp::provider_catalog` exposes cached safe rows without committing selection.
-Tests: `application/provider_view_tests.rs`. Executable cross-provider switching
-and independent public refresh are the next selection-owner consumer seam.
+Public and configured discovery jobs are independently joined/cancelled by
+`application/provider_catalog.rs`; the shared Go cache still owns single-flight.
+`TuiState::apply_picker_catalog` updates a filtered browse scope without replacing
+the committed composer. Tests: `application/provider_view_tests.rs`,
+`application/provider_catalog/tests.rs`, `app/model_selection_tests.rs` and account
+PTYs. Executable cross-provider switching is the next selection-owner seam.
 
 ## Как обновлять
 

@@ -1513,6 +1513,7 @@ fn service_warnings(state: &mut TuiState, chrome: &oc_core::queries::TuiChrome) 
 }
 
 async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
+    let picker_provider = state.picker_provider_filter().map(str::to_owned);
     let catalog = if let Some(session) = state.attached_session() {
         app.session_selection(session.clone(), false, SelectionAction::Current)
             .await
@@ -1522,6 +1523,11 @@ async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
     if let Ok(catalog) = catalog {
         service_warnings(state, &catalog.chrome);
         state.apply_catalog(catalog);
+        if let Some(provider) = picker_provider
+            && let Ok(catalog) = app.provider_catalog(provider).await
+        {
+            state.apply_picker_catalog(catalog);
+        }
     }
 }
 
@@ -2114,11 +2120,14 @@ async fn apply_intent_with_origin(
     }
     match intent {
         PanelIntent::ProviderAccounts { provider, action } => {
-            let result = app.provider_accounts(provider, action).await;
+            let result = app.provider_accounts(provider.clone(), action).await;
             if state.apply_provider_accounts(result.map_err(|_| ())) {
                 // Storage ACK precedes the picker; no model is committed here.
-                let snapshot = selection(app, state, SelectionAction::Current).await?;
-                state.apply_catalog(snapshot);
+                let snapshot = app
+                    .provider_catalog(provider)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                state.apply_picker_catalog(snapshot);
             }
         }
         PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,
