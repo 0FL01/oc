@@ -178,7 +178,12 @@ required outcome is resolved and affected constraints remain satisfied.
   Deterministic reproduction and the child-only default-disposition/empty-mask
   correction are in evidence/T56/signals.md. The fixture now forces ignored/masked
   parent policy; adapters 9/0, whole actual debug 1/0 and strict Clippy/fmt green.
-  Current release and full final gates are running sequentially; no false PASS.
+  That correction was pushed `5ce0b9baf`; the fresh release fixture also passed
+  with deliberately ignored/masked parent signals. The full workspace then found
+  two old exact migration vectors ending at 11 instead of the required terminal
+  migration12. Test-only correction preserves all schema/legacy/idempotence
+  assertions; `child_schema_` 3/0 and strict impacted Clippy/fmt green, documented
+  in evidence/T56/migrations.md. The full final gates must still be rerun.
 - Next: current full locked workspace gates, frozen-outcome closure and finish
   report/checkpoint. All R1–R4 remain in_progress until that closure; no DONE claim.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
