@@ -47,8 +47,28 @@ struct OwnedPty {
 impl Drop for OwnedPty {
     fn drop(&mut self) {
         if !self.reaped {
-            stop_session(self.process.id() as i32);
-            let _ = self.process.wait();
+            let _ = stop_session(self.process.id() as i32);
+            let _ = self.reap();
+        }
+    }
+}
+impl OwnedPty {
+    fn reap(&mut self) -> Result<std::process::ExitStatus, CoreError> {
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        loop {
+            match self.process.try_wait() {
+                Ok(Some(exit)) => {
+                    self.reaped = true;
+                    return Ok(exit);
+                }
+                Ok(None) => (),
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => (),
+                Err(_) => return Err(refused()),
+            }
+            if std::time::Instant::now() >= deadline {
+                return Err(refused());
+            }
+            std::thread::sleep(Duration::from_millis(10));
         }
     }
 }
@@ -79,6 +99,7 @@ impl Drop for OwnedTerminal {
 pub struct Terminals {
     db: Db,
     live: BTreeMap<String, OwnedTerminal>,
+    failed: bool,
     events: Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>,
 }
 impl Terminals {
@@ -87,6 +108,7 @@ impl Terminals {
         Ok(Self {
             db: db.shared_handle(),
             live: BTreeMap::new(),
+            failed: false,
             events: None,
         })
     }
@@ -109,10 +131,10 @@ impl Terminals {
             .collect();
         for id in ended {
             if let Some(mut t) = self.live.remove(&id) {
-                t.join()?;
+                self.failed |= t.join().is_err();
             }
         }
-        Ok(())
+        if self.failed { Err(refused()) } else { Ok(()) }
     }
 
     pub fn inventory(&mut self, session: &SessionId) -> Result<TerminalInventory, CoreError> {
@@ -216,11 +238,14 @@ impl Terminals {
                 Ok(())
             });
         }
-        let mut child = cmd.spawn().map_err(|_| refused())?;
-        let pid = child.id() as i32;
+        let mut child = OwnedPty {
+            process: cmd.spawn().map_err(|_| refused())?,
+            reaped: false,
+        };
+        let pid = child.process.id() as i32;
         let Some(identity) = ProcessIdentity::read(pid, self.db.root()) else {
-            stop_session(pid);
-            let _ = child.wait();
+            let _ = stop_session(pid);
+            let _ = child.reap();
             return Err(refused());
         };
         let mut random = [0u8; 16];
@@ -228,8 +253,8 @@ impl Terminals {
         if unsafe { libc::getrandom(random.as_mut_ptr().cast(), random.len(), 0) }
             != random.len() as isize
         {
-            stop_session(pid);
-            let _ = child.wait();
+            let _ = stop_session(pid);
+            let _ = child.reap();
             return Err(refused());
         }
         let mut target = source;
@@ -255,14 +280,10 @@ impl Terminals {
             exit: None,
         };
         if let Err(e) = self.db.record_terminal(&entry, &identity) {
-            stop_session(pid);
-            let _ = child.wait();
+            let _ = stop_session(pid);
+            let _ = child.reap();
             return Err(storage(e));
         }
-        let child = OwnedPty {
-            process: child,
-            reaped: false,
-        };
         let state = Arc::new(Mutex::new(Screen::new(entry.clone(), size)));
         let stop = Arc::new(AtomicBool::new(false));
         let (input, rx) = mpsc::sync_channel(QUEUE_ITEMS);
@@ -276,9 +297,12 @@ impl Terminals {
         {
             Ok(join) => join,
             Err(_) => {
+                self.failed = true;
                 let mut failed = entry.clone();
                 failed.state = TerminalState::Failed;
-                self.db.finish_terminal(&failed).map_err(storage)?;
+                // Closure destruction attempted bounded cleanup, but spawn gave
+                // no receipt proving it. Retain identity for verified recovery.
+                self.db.fail_terminal_cleanup(&failed).map_err(storage)?;
                 return Err(refused());
             }
         };
@@ -417,18 +441,19 @@ impl Terminals {
         self.target(actor, target)?;
         let mut t = self.live.remove(&target.id).ok_or_else(refused)?;
         t.stop.store(true, Ordering::Release);
-        t.join()
+        let result = t.join();
+        self.failed |= result.is_err();
+        result
     }
 
     pub fn shutdown(&mut self) -> Result<(), CoreError> {
         for t in self.live.values() {
             t.stop.store(true, Ordering::Release);
         }
-        let mut failed = false;
         for (_, mut t) in std::mem::take(&mut self.live) {
-            failed |= t.join().is_err();
+            self.failed |= t.join().is_err();
         }
-        if failed { Err(refused()) } else { Ok(()) }
+        if self.failed { Err(refused()) } else { Ok(()) }
     }
 }
 impl Drop for Terminals {
@@ -495,79 +520,117 @@ fn set_size(fd: i32, size: TerminalSize) -> Result<(), CoreError> {
 
 /// Signal only groups in the still-owned terminal session. Unlike one-shot
 /// shell jobs, interactive job control creates additional foreground/bg groups.
-pub(crate) fn stop_session(pid: i32) {
-    stop_session_if(pid, || true);
+pub(crate) fn stop_session(pid: i32) -> Result<(), CoreError> {
+    stop_session_if(pid, || true)
 }
 
-pub(crate) fn quarantine(identity: &ProcessIdentity, root: &Path) {
+pub(crate) fn quarantine(identity: &ProcessIdentity, root: &Path) -> Result<(), CoreError> {
     // Unlike an unreaped direct child, a recovered leader can disappear at any
     // point. Revalidate the original starttime/boot/UID/root before each signal.
-    stop_session_if(identity.pid, || identity.matches(root));
+    stop_session_if(identity.pid, || identity.matches(root))
 }
 
-fn stop_session_if(pid: i32, still_owned: impl Fn() -> bool) {
-    if !still_owned() {
-        return;
+fn signal(group: i32, signal: i32) -> Result<(), CoreError> {
+    if group <= 1 {
+        return Err(refused());
     }
-    let groups = session_groups(pid);
+    // SAFETY: only the owned session's verified positive process groups are used.
+    if unsafe { libc::killpg(group, signal) } == 0
+        || std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+    {
+        Ok(())
+    } else {
+        Err(refused())
+    }
+}
+
+fn stop_session_if(pid: i32, still_owned: impl Fn() -> bool) -> Result<(), CoreError> {
+    if pid <= 1 {
+        return Err(refused());
+    }
+    let mut failed = false;
+    if !still_owned() {
+        return Ok(());
+    }
+    let groups = session_groups(pid, false)
+        .inspect_err(|_| failed = true)
+        .unwrap_or_default();
     for group in groups.iter().copied().filter(|g| *g != pid) {
         if !still_owned() {
-            return;
+            return if failed { Err(refused()) } else { Ok(()) };
         }
-        // SAFETY: groups were resolved under the owned, unreaped session leader.
-        unsafe {
-            libc::killpg(group, libc::SIGTERM);
-        }
+        failed |= signal(group, libc::SIGTERM).is_err();
     }
     std::thread::sleep(Duration::from_millis(100));
-    for group in session_groups(pid).into_iter().filter(|g| *g != pid) {
+    for group in session_groups(pid, false)
+        .inspect_err(|_| failed = true)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|g| *g != pid)
+    {
         if !still_owned() {
-            return;
+            return if failed { Err(refused()) } else { Ok(()) };
         }
-        // SAFETY: still the verified leader's session, no foreign PID signalling.
-        unsafe {
-            libc::killpg(group, libc::SIGKILL);
-        }
+        failed |= signal(group, libc::SIGKILL).is_err();
     }
     std::thread::sleep(Duration::from_millis(50));
     if !still_owned() {
-        return;
+        return if failed { Err(refused()) } else { Ok(()) };
     }
     // SAFETY: direct owned session/group leader; called before wait or after
     // ProcessIdentity comparison during recovery, never on an arbitrary saved PID.
-    unsafe {
-        libc::killpg(pid, libc::SIGTERM);
-    }
+    failed |= signal(pid, libc::SIGTERM).is_err();
     std::thread::sleep(Duration::from_millis(50));
     if !still_owned() {
-        return;
+        return if failed { Err(refused()) } else { Ok(()) };
     }
     // SAFETY: leader is still unreaped by this owner (recovery verified identity).
-    unsafe {
-        libc::killpg(pid, libc::SIGKILL);
+    failed |= signal(pid, libc::SIGKILL).is_err();
+    // Delivery of SIGKILL is not proof that descendants exited (for example,
+    // uninterruptible I/O). Bound the observation and preserve failure/identity.
+    let deadline = std::time::Instant::now() + Duration::from_millis(500);
+    loop {
+        match session_groups(pid, true) {
+            Ok(groups) if groups.is_empty() => break,
+            Ok(_) if std::time::Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(10))
+            }
+            _ => {
+                failed = true;
+                break;
+            }
+        }
     }
+    if failed { Err(refused()) } else { Ok(()) }
 }
-fn session_groups(pid: i32) -> Vec<i32> {
-    let Ok(entries) = std::fs::read_dir("/proc") else {
-        return Vec::new();
-    };
+fn session_groups(pid: i32, live_only: bool) -> Result<Vec<i32>, CoreError> {
+    let entries = std::fs::read_dir("/proc").map_err(|_| refused())?;
     let mut groups = Vec::new();
-    for entry in entries.flatten() {
+    for entry in entries {
+        let entry = entry.map_err(|_| refused())?;
         if entry.file_name().to_string_lossy().parse::<i32>().is_err() {
             continue;
         }
-        let Ok(stat) = std::fs::read_to_string(entry.path().join("stat")) else {
-            continue;
+        let stat = match std::fs::read_to_string(entry.path().join("stat")) {
+            Ok(stat) => stat,
+            Err(e)
+                if e.kind() == std::io::ErrorKind::NotFound
+                    || e.raw_os_error() == Some(libc::ESRCH) =>
+            {
+                continue;
+            }
+            Err(_) => return Err(refused()),
         };
         let Some((_, fields)) = stat.rsplit_once(") ") else {
             continue;
         };
         let mut f = fields.split_whitespace();
-        let _state = f.next();
+        let state = f.next();
         let _ppid = f.next();
         let group = f.next().and_then(|s| s.parse::<i32>().ok());
         let session = f.next().and_then(|s| s.parse::<i32>().ok());
         if session == Some(pid)
+            && (!live_only || !matches!(state, Some("Z" | "X")))
             && let Some(group) = group
             && group > 1
             && !groups.contains(&group)
@@ -575,7 +638,7 @@ fn session_groups(pid: i32) -> Vec<i32> {
             groups.push(group);
         }
     }
-    groups
+    Ok(groups)
 }
 fn foreground(pid: i32) -> Option<String> {
     // Linux stat tpgid identifies the actual foreground process group.
@@ -883,8 +946,13 @@ fn drain(
                 }
             }
         }
-        if crate::shell::exited_without_reap(child.process.id() as i32).map_err(|_| refused())? {
-            ended = true;
+        match crate::shell::exited_without_reap(child.process.id() as i32) {
+            Ok(true) => ended = true,
+            Ok(false) => (),
+            Err(_) => {
+                failed = true;
+                ended = true;
+            }
         }
         if let Some(events) = &events
             && std::time::Instant::now() >= announce_at
@@ -904,14 +972,15 @@ fn drain(
     }
     // The leader has not been reaped: its PID/session cannot be reused between
     // group discovery and signals, including when the shell exited naturally.
-    stop_session(child.process.id() as i32);
-    let exit = child.process.wait().map_err(|_| refused())?;
-    child.reaped = true;
+    let cleanup = stop_session(child.process.id() as i32);
+    let exit = child.reap();
+    let cleaned = cleanup.is_ok() && exit.is_ok();
+    failed |= !cleaned;
     drop(master);
     let entry = {
         let mut s = state.lock().expect("terminal mutex");
         s.ready = false;
-        s.entry.exit = exit.code();
+        s.entry.exit = exit.ok().and_then(|exit| exit.code());
         s.entry.state = if failed {
             TerminalState::Failed
         } else if stop.load(Ordering::Acquire) {
@@ -921,7 +990,12 @@ fn drain(
         };
         s.entry.clone()
     };
-    let publication = db.finish_terminal(&entry).map_err(storage);
+    let publication = if cleaned {
+        db.finish_terminal(&entry)
+    } else {
+        db.fail_terminal_cleanup(&entry)
+    }
+    .map_err(storage);
     if let Some(events) = events {
         let _ = events.send(oc_core::core_app::CoreEvent::TerminalChanged {
             session: entry.target.session,

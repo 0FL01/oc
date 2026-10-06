@@ -45,13 +45,22 @@ impl Db {
     }
 
     pub(crate) fn finish_terminal(&self, entry: &TerminalEntry) -> Result<(), StorageError> {
+        self.update_terminal(entry, false)
+    }
+
+    pub(crate) fn fail_terminal_cleanup(&self, entry: &TerminalEntry) -> Result<(), StorageError> {
+        self.update_terminal(entry, true)
+    }
+
+    fn update_terminal(&self, entry: &TerminalEntry, live: bool) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
         tx.execute(
-            "UPDATE terminals SET entry=?2,live=0 WHERE id=?1",
+            "UPDATE terminals SET entry=?2,live=?3 WHERE id=?1",
             params![
                 entry.target.id,
-                serde_json::to_string(entry).map_err(|_| StorageError::OperationNotFound)?
+                serde_json::to_string(entry).map_err(|_| StorageError::OperationNotFound)?,
+                live
             ],
         )?;
         tx.execute(
@@ -103,7 +112,8 @@ impl Db {
                 serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?;
             let process: ProcessIdentity =
                 serde_json::from_str(&process).map_err(|_| StorageError::OperationNotFound)?;
-            crate::terminals::quarantine(&process, self.root());
+            crate::terminals::quarantine(&process, self.root())
+                .map_err(|_| StorageError::OperationNotFound)?;
             entry.state = TerminalState::Interrupted;
             entry.exit = None;
             self.finish_terminal(&entry)?;

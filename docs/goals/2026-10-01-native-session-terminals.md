@@ -51,7 +51,7 @@ required outcome is resolved and affected constraints remain satisfied.
     inventory, genuine byte exchange and exit/reap; existing shell security and
     A02/A10/A13 regressions are reused, not reimplemented.
   - Status: in_progress
-  - Evidence: evidence/T56/owner.md, application.md and frontend.md — real native owner, acknowledged source/epoch controls and retained-child creation; full actual-binary TERM01 pending.
+  - Evidence: evidence/T56/owner.md, application.md, frontend.md and term01.md — real native owner, acknowledged source/epoch controls, retained-child creation and current debug/release actual-binary shell/cwd/env/identity/byte exchange; final workspace/closure pending.
 
 - R2: The real frontend selects, creates, hides/shows and focuses terminals.
   - Source: donor Terminals/session-terminal/session-frame/keymap U80–U83/U88.
@@ -88,7 +88,7 @@ required outcome is resolved and affected constraints remain satisfied.
     checks process identity, no duplicate creation and focus/draft preservation.
     T44 reuses the same fixture for paired visual qualification, not a reverse gate.
   - Status: in_progress
-  - Evidence: evidence/T56/frontend.md — lower composer, captured child close/target, raw/leader/focus routing and acknowledged real-owner consumer; actual-binary TERM01 pending.
+  - Evidence: evidence/T56/frontend.md and term01.md — lower composer, actual captured child close/target, raw control/leader/focus/draft, last-toggle, remount/exit and real-owner consumer in both rebuilt binaries; final workspace/closure pending.
 
 - R3: VT screen, output replay and resize are native and bounded.
   - Source: donor terminal-pane/session-frame and schema U82/U83/U85.
@@ -110,7 +110,7 @@ required outcome is resolved and affected constraints remain satisfied.
     screen/cursor/ordered bytes and actual child size, then resource/cleanup facts.
     T44 owns full paired pane/list geometry, RGB/attributes and cursor evidence.
   - Status: in_progress
-  - Evidence: evidence/T56/owner.md and frontend.md — real VT Unicode/styles, byte cursor/replay/gap and resize/floods; Ratatui atomic screen/theme/geometry consumer checked, full actual-binary attachment pending.
+  - Evidence: evidence/T56/owner.md, frontend.md and term01.md — native VT/Unicode/styles/cursor, atomic byte-cursor screen/gap, owned DSR, host escape protection, flood/hidden drain and actual child resize in both binaries; final workspace/closure pending.
 
 - R4: Lifecycle remains safe across view changes, shutdown and crash/restart.
   - Source: GOAL A02/A10/no unknown-effect replay and explicit no-daemon boundary.
@@ -129,7 +129,7 @@ required outcome is resolved and affected constraints remain satisfied.
     descriptor checks and A10 measurements. Runtime difference from donor daemon
     persistence is disclosed; it cannot waive pane/list visual qualification.
   - Status: in_progress
-  - Evidence: evidence/T56/owner.md and application.md — joined native remove/shutdown, persistent identity/selection, stale-identity refusal and original PTY across Location/reload; crash and full actual-binary qualification pending.
+  - Evidence: evidence/T56/owner.md, application.md and term01.md — original PTY across Location/reload, checked bounded cleanup/failure identity retention, real remove/exit/shutdown, two-orphan crash reconciliation/no replay, stale PID survives and independent FD/thread/RSS/idle facts; final workspace/closure pending.
 
 ### Constraints and non-goals
 
@@ -164,13 +164,17 @@ required outcome is resolved and affected constraints remain satisfied.
 - Native bounded PTY/VT owner checked/pushed `88e6631d0`; application source/epoch
   commands, independent lifecycle/capability and migration12 pushed `5b165af61`.
   Frontend composer/right pane, raw/leader/focus, theme cells/atomic attachment and
-  retained-child source creation checked: adapters TERM01 8/0, TUI 444/0, binary
-  unit 91/0 and strict workspace all-target Clippy green. Partial receipts:
+  retained-child source creation pushed `0babd4e5e`: adapters TERM01 8/0, TUI 444/0,
+  binary unit 91/0 and strict workspace all-target Clippy green. Slice receipts:
   evidence/T56/owner.md, application.md and frontend.md. All R1–R4 in_progress.
-- Next: full rebuilt debug/release actual-binary TERM01 and independent process/
-  descriptor/resource facts, including child-close/target and crash/restart; resolve
-  termination signal/proc-enumeration failure handling. Full actual-binary remains
-  NOT_RUN; no DONE claim.
+- Checked actual-binary/lifecycle slice: TERM01 adapters 9/0, actual debug 1/0 and
+  identical explicit release fixture PASS; both binaries rebuilt, strict workspace
+  all-target Clippy/fmt/help/journal/diff green. Checked signal/proc enumeration,
+  bounded reap and sticky failures retain unproved recovery identity. Real child
+  close/target, raw controls, VT/gap/resize, hidden output, removal/shutdown and
+  two-orphan crash/no-replay/stale-PID/resource facts are in evidence/T56/term01.md.
+- Next: current full locked workspace gates, frozen-outcome closure and finish
+  report/checkpoint. All R1–R4 remain in_progress until that closure; no DONE claim.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
   impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
 - Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment

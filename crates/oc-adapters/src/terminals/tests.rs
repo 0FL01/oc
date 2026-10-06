@@ -234,3 +234,57 @@ fn term01_escape_gate_restarts_aborted_csi_before_osc() {
     assert_eq!(s.gate.dropped, 1);
     assert!(text(&s.snapshot()).contains("OK"));
 }
+
+#[test]
+fn term01_cleanup_publication_failure_is_sticky_and_retains_recovery() {
+    let (_dir, db, env, source) = fixture();
+    let mut owner = Terminals::new(&db).unwrap();
+    let entry = owner.create(source, &env, TerminalSize::default()).unwrap();
+    owner
+        .select(&entry.target.session, Some(&entry.target))
+        .unwrap();
+    // A real publication error after the actual process was joined/reaped must
+    // never turn into success on a second shutdown or discard durable identity.
+    let fault = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    fault.execute_batch("CREATE TRIGGER fail_terminal BEFORE UPDATE ON terminals BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
+    assert!(owner.remove(&entry.target.session, &entry.target).is_err());
+    assert!(!Path::new(&format!("/proc/{}", entry.pid)).exists());
+    assert!(owner.shutdown().is_err());
+    assert!(owner.shutdown().is_err());
+    assert_eq!(
+        fault
+            .query_row("SELECT live FROM terminals", [], |r| r.get::<_, i32>(0))
+            .unwrap(),
+        1
+    );
+    fault.execute_batch("DROP TRIGGER fail_terminal;").unwrap();
+    drop(owner);
+    let mut recovered = Terminals::new(&db).unwrap();
+    assert!(
+        recovered
+            .inventory(&entry.target.session)
+            .unwrap()
+            .entries
+            .is_empty()
+    );
+    let (live, raw) = fault
+        .query_row("SELECT live,entry FROM terminals", [], |r| {
+            Ok((r.get::<_, i32>(0)?, r.get::<_, String>(1)?))
+        })
+        .unwrap();
+    assert_eq!(live, 0);
+    assert_eq!(
+        serde_json::from_str::<TerminalEntry>(&raw).unwrap().state,
+        TerminalState::Interrupted
+    );
+    assert!(
+        db.selected_terminal(&entry.target.session.0)
+            .unwrap()
+            .is_none()
+    );
+    assert!(signal(0, libc::SIGTERM).is_err());
+    // Invalid signal on this exact fixture-owned runner group has no effect;
+    // exercise a real non-ESRCH syscall refusal rather than ignoring errno.
+    // SAFETY: getpgrp reads the fixture runner's group and sends no signal itself.
+    assert!(signal(unsafe { libc::getpgrp() }, -999).is_err());
+}
