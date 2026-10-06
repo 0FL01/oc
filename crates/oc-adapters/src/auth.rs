@@ -8,6 +8,8 @@ mod openai;
 pub use openai::{OPENAI_BASE_URL, OpenAiAuth};
 pub(crate) use openai::{OpenAiBinding, prepare_request};
 mod attempts;
+#[cfg(all(feature = "auth-fixture", not(test)))]
+mod fixture;
 pub use attempts::OpenAiAttempts;
 
 /// Omitted policy retains legacy required Key behavior.
@@ -77,6 +79,18 @@ impl ResolvedAuth {
             .ok();
             provider.wire.unsupported |=
                 provider.wire.protocol != crate::provider::protocol::Protocol::Responses;
+        }
+        #[cfg(all(feature = "auth-fixture", not(test)))]
+        if self.openai {
+            // Only this non-default fixture build can replace a native route.
+            // Invalid/missing fixture authority is unready, never a cloud fallback.
+            match fixture::route(self.source == AuthSource::StoredOAuth) {
+                Ok((url, endpoint)) => {
+                    provider.base_url = url;
+                    provider.wire.endpoint = Some(endpoint);
+                }
+                Err(_) => provider.wire.unsupported = true,
+            }
         }
     }
 }

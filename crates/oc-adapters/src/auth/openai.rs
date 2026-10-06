@@ -312,6 +312,9 @@ impl OpenAiAuth {
         Ok(Self {
             #[cfg(test)]
             client,
+            #[cfg(all(feature = "auth-fixture", not(test)))]
+            issuer: super::fixture::origin()?,
+            #[cfg(any(not(feature = "auth-fixture"), test))]
             issuer: ISSUER.into(),
         })
     }
@@ -327,12 +330,19 @@ impl OpenAiAuth {
         if self.issuer != ISSUER {
             #[cfg(test)]
             return Ok(self.client.post(url));
-            #[cfg(not(test))]
+            #[cfg(all(not(test), not(feature = "auth-fixture")))]
             return Err(AuthError::Authority);
+            #[cfg(all(not(test), feature = "auth-fixture"))]
+            if self.issuer != super::fixture::origin()? {
+                return Err(AuthError::Authority);
+            }
         }
-        let binding =
-            crate::endpoint::EndpointBinding::admit(ISSUER, false, "native OpenAI authorization")
-                .map_err(|_| AuthError::Authority)?;
+        let binding = crate::endpoint::EndpointBinding::admit(
+            &self.issuer,
+            cfg!(feature = "auth-fixture") && self.issuer != ISSUER,
+            "native OpenAI authorization",
+        )
+        .map_err(|_| AuthError::Authority)?;
         let (host, addresses) = tokio::time::timeout(
             Duration::from_secs(10),
             crate::endpoint::resolve(&url, Some(&binding), false),
@@ -354,6 +364,14 @@ impl OpenAiAuth {
     }
 
     pub(super) fn check_peer(&self, response: &reqwest::Response) -> Result<(), AuthError> {
+        #[cfg(all(feature = "auth-fixture", not(test)))]
+        if self.issuer != super::fixture::origin()?
+            || response
+                .remote_addr()
+                .is_none_or(|p| p.ip() != std::net::Ipv4Addr::LOCALHOST)
+        {
+            return Err(AuthError::Authority);
+        }
         if self.issuer == ISSUER
             && response
                 .remote_addr()

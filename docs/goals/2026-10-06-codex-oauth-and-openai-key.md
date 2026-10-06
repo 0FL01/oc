@@ -255,6 +255,18 @@ bootstrap/headless/tui_cmd, TUI app/input/dialogs/picker and nearest separate te
 No new crate/framework/store solely for arrangement. Sources/locators are recorded in
 `tui-recovery/SOURCES.json` U116–U128; method is in `docs/TEST_PLAN.md` AUTH01–AUTH06/VIS45.
 
+2026-10-06 qualification seam: AUTH02/AUTH04 explicitly require actual binary fake
+approval and native request/tool captures. Normal production intentionally fixes
+issuer/routes, so local fake captures cannot use endpoint configuration, a proxy,
+DNS/TLS interception or a trust bypass. A non-default `auth-fixture` build feature
+may supply **only** an explicitly provided numeric IPv4 loopback fixture origin to
+the existing native issuer/request owners. It must fail closed without that origin,
+retain endpoint pinning/peer checks, redirects/retries/caps and the same credential/
+runtime code, and contain no new production API or default-build override. Default
+debug/release qualification remains separate; fixture build flags and synthetic
+captures are reported, never presented as real provider authorization. This narrow
+test-build seam closes the two original offline gates, not AUTH06 live or VIS45.
+
 ## Current State / checkpoint
 
 - 2026-10-06: owner explicitly requested T57 after T56 closure `0879e199b`;
@@ -343,8 +355,16 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
   callback refusal/cancel/quit cleanup. Zero history/model effects; active URL stays
   in memory. Current actual TUI target1/0 and strict workspace Clippy/fmt/diff green;
   evidence/T57/tui-binary.md. No real issuer/device/model or paired VIS45 claim.
-- Next checkpoint: current release binaries/CLI-TUI fixtures and workspace gates,
-  then bounded dedicated live authorization/request proof.
+- Twelfth checked slice: non-default `auth-fixture` native ELF closes the original
+  actual-binary fake device approval/browser success and native Key/OAuth WS/HTTP
+  read/result/final/reopen gates. One explicit numeric loopback origin retains native
+  guards/owners; invalid origin fails closed, default production has no override.
+- Current fixture checks: owning actual binary1/0 (7WS/6HTTP, two token exchanges,
+  four device controls), feature all-target Clippy, default auth0_36/0 and strict
+  workspace Clippy/fmt/diff green; evidence/T57/binary-fixture.md. Fake approval and
+  feature flags are explicit, not real provider authorization or AUTH06 PASS.
+- Next checkpoint: final current normal debug/release/workspace and fixture release
+  gates, followed by the mandatory bounded dedicated live proof.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

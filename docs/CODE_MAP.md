@@ -241,6 +241,11 @@ Normal native TUI PTYs are `oc/tests/auth_tui.rs` / `support/auth_tui.py`, filte
 `auth05_`: real masked keys/account actions/cached picker and owned browser open,
 copy, refusal/cancel/quit, not successful real issuer/device/model authorization;
 receipt `evidence/T57/tui-binary.md`.
+Non-default `auth-fixture` build seam is private `auth/fixture.rs`: explicit numeric
+loopback origin only, shared native issuer/request guards, no default override.
+Actual fake approval and native request captures: `oc/tests/auth_oauth.rs` /
+`support/auth_oauth.py`, feature `oc/auth-fixture`, filter `auth02_auth04_`;
+`evidence/T57/binary-fixture.md` distinguishes fixture ELF from real authorization.
 
 ## Как обновлять
 

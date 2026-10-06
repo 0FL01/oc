@@ -7,6 +7,10 @@ license.workspace = true
 repository.workspace = true
 description = "Adapter implementations for oc-core ports: storage, providers, tools, mcp, dcp"
 
+[features]
+# Non-default local-issuer/request build for AUTH02/AUTH04 binary fixtures only.
+auth-fixture = []
+
 [dependencies]
 oc-core = { path = "../oc-core" }
 tokio.workspace = true
