@@ -61,6 +61,7 @@ const DEFAULT_AGENT: &str = "build";
 /// Scripted native Responses peer plus isolated HOME/config.
 struct Fixture {
     root: tempfile::TempDir,
+    expected_auth: Arc<Mutex<String>>,
     requests: Arc<Mutex<Vec<serde_json::Value>>>,
     models: Arc<Mutex<serde_json::Value>>,
     discoveries: Arc<AtomicUsize>,
@@ -121,6 +122,8 @@ impl Fixture {
         .expect("skill file");
         let requests = Arc::new(Mutex::new(Vec::new()));
         let captured = requests.clone();
+        let expected_auth = Arc::new(Mutex::new("fixture-not-a-secret".to_owned()));
+        let peer_auth = expected_auth.clone();
         let models = Arc::new(Mutex::new(serde_json::json!({"object":"list", "data":[]})));
         let discovered = models.clone();
         let discoveries = Arc::new(AtomicUsize::new(0));
@@ -155,6 +158,7 @@ impl Fixture {
                             &discovery_count,
                             &catalog_peer,
                             &stopping,
+                            &peer_auth.lock().unwrap(),
                         ) else {
                             continue;
                         };
@@ -197,6 +201,7 @@ impl Fixture {
         });
         Arc::new(Self {
             root,
+            expected_auth,
             requests,
             models,
             discoveries,
@@ -400,6 +405,7 @@ fn read_request(
     discoveries: &AtomicUsize,
     control: &Arc<provider_readiness::CatalogControl>,
     stop: &Arc<AtomicBool>,
+    expected_auth: &str,
 ) -> Option<serde_json::Value> {
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
@@ -416,11 +422,10 @@ fn read_request(
         assert!(bytes.len() < 65_536, "bounded headers");
     };
     let headers = String::from_utf8(bytes[..header_end].to_vec()).expect("headers");
-    assert!(
-        headers
-            .to_ascii_lowercase()
-            .contains("authorization: bearer fixture-not-a-secret\r\n")
-    );
+    assert!(headers.to_ascii_lowercase().contains(&format!(
+        "authorization: bearer {}\r\n",
+        expected_auth.to_ascii_lowercase()
+    )));
     if headers.starts_with("GET /proxy/v1/models HTTP/1.1\r\n") {
         discoveries.fetch_add(1, Ordering::Relaxed);
         control.reply(socket.try_clone().unwrap(), models.clone(), stop.clone());

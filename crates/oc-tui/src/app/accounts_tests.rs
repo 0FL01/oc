@@ -15,6 +15,18 @@ fn snapshot() -> ProviderAccounts {
     }
 }
 
+async fn choose_go(state: &mut TuiState) {
+    state.apply_provider_connections(Ok(vec![ProviderConnection {
+        provider: "opencode-go".into(),
+        name: "OpenCode Go".into(),
+    }]));
+    let choice = state.handle_key(KeyAction::Enter).await;
+    assert!(
+        matches!(choice.intent, Some(PanelIntent::ProviderAccounts { provider, action: None })
+        if provider == "opencode-go")
+    );
+}
+
 #[tokio::test]
 async fn go05_masked_connect_moves_secret_once_and_ack_never_commits_selection() {
     let (app, _, _) = CoreApp::channel(8);
@@ -23,8 +35,9 @@ async fn go05_masked_connect_moves_secret_once_and_ack_never_commits_selection()
     let open = state.run_command(CommandAction::OpenConnect);
     assert!(matches!(
         open.intent,
-        Some(PanelIntent::ProviderAccounts { action: None, .. })
+        Some(PanelIntent::LoadProviderConnections)
     ));
+    choose_go(&mut state).await;
     state.apply_provider_accounts(Ok(snapshot()));
     state.handle_paste("Added");
     state.handle_key(KeyAction::Enter).await;
@@ -58,6 +71,7 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     let mut state = TuiState::new(app, SessionId("accounts".into()));
     state.input = "DRAFT".into();
     state.run_command(CommandAction::OpenConnect);
+    choose_go(&mut state).await;
     state.handle_paste("Label");
     state.handle_key(KeyAction::Enter).await;
     state.handle_paste("CANCELLED_KEY_CANARY");
@@ -116,6 +130,7 @@ async fn go05_priority_overlay_retires_secret_without_forwarding_its_input() {
     let (app, _, _) = CoreApp::channel(8);
     let mut state = TuiState::new(app, SessionId("accounts".into()));
     state.run_command(CommandAction::OpenConnect);
+    choose_go(&mut state).await;
     state.handle_paste("Label");
     state.handle_key(KeyAction::Enter).await;
     state.handle_paste("EPHEMERAL_CANARY");
@@ -150,4 +165,36 @@ async fn go05_priority_overlay_retires_secret_without_forwarding_its_input() {
     assert!(state.accounts.key.is_empty());
     assert!(state.input().is_empty());
     assert!(state.questions.active().is_some());
+}
+
+#[tokio::test]
+async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("connections".into()));
+    state.input = "DRAFT".into();
+    state.run_command(CommandAction::OpenConnect);
+    state.apply_provider_connections(Ok(vec![
+        ProviderConnection {
+            provider: "opencode-go".into(),
+            name: "OpenCode Go".into(),
+        },
+        ProviderConnection {
+            provider: "custom".into(),
+            name: "Local connection".into(),
+        },
+    ]));
+    state.handle_paste("PASTE_CANARY");
+    assert!(state.accounts.key.is_empty() && state.accounts.label.is_empty());
+    state.handle_key(KeyAction::Down).await;
+    let chosen = state.handle_key(KeyAction::Enter).await;
+    assert!(
+        matches!(chosen.intent, Some(PanelIntent::ProviderAccounts { provider, action: None }) if provider == "custom")
+    );
+    assert_eq!(state.input(), "DRAFT");
+    assert!(state.account_lines().join(" ").contains("Account label"));
+    state.handle_key(KeyAction::Cancel).await;
+    state.run_command(CommandAction::OpenConnect);
+    state.apply_provider_connections(Err(()));
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    assert!(state.accounts.key.is_empty());
 }

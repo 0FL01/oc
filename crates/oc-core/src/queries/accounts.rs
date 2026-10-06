@@ -1,5 +1,12 @@
 //! Account commands are typed owner mutations, never composer input.
 
+/// Admitted connection identity only; never endpoint, headers or credentials.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderConnection {
+    pub provider: String,
+    pub name: String,
+}
+
 /// Ephemeral key input. Deliberately not serializable and always redacted.
 #[derive(Clone, PartialEq, Eq)]
 pub struct KeyInput(String);

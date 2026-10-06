@@ -142,6 +142,7 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    LoadProviderConnections,
     SetPermissionMode {
         auto_once: bool,
     },

@@ -3404,6 +3404,9 @@ fn query(
             };
             let _ = ack.send(result);
         }
+        InboxMsg::ProviderConnections { ack } => {
+            let _ = ack.send(Ok(accounts::connections(composition)));
+        }
         InboxMsg::SessionSelection {
             session,
             home,

@@ -384,6 +384,9 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    ProviderConnections {
+        ack: oneshot::Sender<Result<Vec<crate::queries::ProviderConnection>, CoreError>>,
+    },
     ProviderAccounts {
         provider: String,
         action: Option<crate::queries::AccountAction>,
@@ -1638,6 +1641,18 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// List admitted connection identities without exposing transport or auth inputs.
+    pub async fn provider_connections(
+        &self,
+    ) -> Result<Vec<crate::queries::ProviderConnection>, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::ProviderConnections { ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read or mutate scoped accounts through the existing application owner.
     pub async fn provider_accounts(
         &self,
@@ -2221,6 +2236,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ProviderAccounts { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::ProviderConnections { ack } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::Skills { ack } => {

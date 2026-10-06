@@ -138,6 +138,7 @@ legacy display id only for absence. Tests: `application/configless_tests.rs`,
 startup PTY. Missing optional connections are local state; invalid policy stays fatal.
 
 T53 masked connection UI lives in `oc-tui/src/app/accounts.rs` (ephemeral field,
+provider chooser from typed `CoreApp::provider_connections`, admitted IDs only,
 safe metadata and confirmation), with `dialog.rs` painting and binary
 `tui_cmd.rs` typed owner ACK routing. Tests: `app/accounts_tests.rs` and actual
 `oc/tests/pty_t39/accounts.rs`. It does not reuse composer/editor undo or copy.

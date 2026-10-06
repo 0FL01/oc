@@ -477,6 +477,16 @@ async fn go05_provider_views_keep_same_slash_id_and_scoped_auth_without_selectio
     let env = BTreeMap::from([("OPENCODE_API_KEY".into(), "GO_ENV_PRIVATE_CANARY".into())]);
     let (app, guard, _) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
     let alpha = app.catalog().await.unwrap();
+    let connections = app.provider_connections().await.unwrap();
+    assert_eq!(
+        connections
+            .iter()
+            .map(|row| row.provider.as_str())
+            .collect::<Vec<_>>(),
+        ["opencode-go", "alpha", "beta"]
+    );
+    assert!(!format!("{connections:?}").contains("PRIVATE_CANARY"));
+    assert!(!format!("{connections:?}").contains("https://"));
     assert_eq!(alpha.selected_model().unwrap().provider, "alpha");
     let beta = app.provider_catalog("beta".into()).await.unwrap();
     assert_eq!(beta.provider, "beta");

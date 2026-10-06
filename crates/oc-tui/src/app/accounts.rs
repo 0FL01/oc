@@ -1,11 +1,12 @@
 //! One ephemeral secret input, separate from composer, editor undo and copying.
 use super::*;
-use oc_core::queries::{AccountAction, KeyInput, ProviderAccounts};
+use oc_core::queries::{AccountAction, KeyInput, ProviderAccounts, ProviderConnection};
 
 #[derive(Default)]
 pub(super) struct AccountsView {
     provider: String,
     snapshot: Option<ProviderAccounts>,
+    connections: Vec<ProviderConnection>,
     cursor: usize,
     form: Form,
     label: String,
@@ -29,6 +30,7 @@ impl std::fmt::Debug for AccountsView {
 enum Form {
     #[default]
     List,
+    Providers,
     Label,
     Key,
     Rename(String),
@@ -42,14 +44,18 @@ impl TuiState {
             } else {
                 self.account_provider()
             },
-            form: if connect { Form::Label } else { Form::List },
+            form: if connect { Form::Providers } else { Form::List },
             ..Default::default()
         };
         self.panel = TuiPanel::Accounts;
         KeyOutcome {
-            intent: Some(PanelIntent::ProviderAccounts {
-                provider: self.accounts.provider.clone(),
-                action: None,
+            intent: Some(if connect {
+                PanelIntent::LoadProviderConnections
+            } else {
+                PanelIntent::ProviderAccounts {
+                    provider: self.accounts.provider.clone(),
+                    action: None,
+                }
             }),
             consumed_input: true,
             ..Default::default()
@@ -58,6 +64,15 @@ impl TuiState {
 
     pub(super) fn clear_accounts(&mut self) {
         self.accounts = AccountsView::default();
+    }
+
+    pub fn apply_provider_connections(&mut self, result: Result<Vec<ProviderConnection>, ()>) {
+        if self.panel != TuiPanel::Accounts || self.accounts.form != Form::Providers {
+            return;
+        }
+        self.accounts.connections = result.unwrap_or_default();
+        self.accounts.cursor = 0;
+        self.accounts.failed = self.accounts.connections.is_empty();
     }
 
     /// Owner acknowledgement contains safe metadata only. The submitted key was
@@ -90,7 +105,7 @@ impl TuiState {
     }
 
     pub(super) fn paste_accounts(&mut self, text: &str) -> KeyOutcome {
-        if self.accounts.pending {
+        if self.accounts.pending || self.accounts.form == Form::Providers {
             return KeyOutcome::default();
         }
         let value = if self.accounts.form == Form::Key {
@@ -127,6 +142,27 @@ impl TuiState {
         }
         let mut request = None;
         match (&self.accounts.form, &action) {
+            (Form::Providers, KeyAction::Up | KeyAction::Down) => {
+                self.accounts.cursor = self
+                    .accounts
+                    .cursor
+                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
+                    .min(self.accounts.connections.len().saturating_sub(1));
+            }
+            (Form::Providers, KeyAction::Enter) => {
+                if let Some(connection) = self.accounts.connections.get(self.accounts.cursor) {
+                    self.accounts.provider = connection.provider.clone();
+                    self.accounts.form = Form::Label;
+                    self.accounts.cursor = 0;
+                    return KeyOutcome {
+                        intent: Some(PanelIntent::ProviderAccounts {
+                            provider: self.accounts.provider.clone(),
+                            action: None,
+                        }),
+                        ..Default::default()
+                    };
+                }
+            }
             (Form::Label, KeyAction::Enter) if !self.accounts.label.trim().is_empty() => {
                 self.accounts.form = Form::Key;
             }
@@ -195,10 +231,15 @@ impl TuiState {
                     }
                 }
             }
-            (_, KeyAction::Char(c)) if self.accounts.form != Form::List && !c.is_control() => {
+            (_, KeyAction::Char(c))
+                if !matches!(self.accounts.form, Form::List | Form::Providers)
+                    && !c.is_control() =>
+            {
                 return self.paste_accounts(&c.to_string());
             }
-            (_, KeyAction::Backspace) if self.accounts.form != Form::List => {
+            (_, KeyAction::Backspace)
+                if !matches!(self.accounts.form, Form::List | Form::Providers) =>
+            {
                 if self.accounts.form == Form::Key {
                     self.accounts.key.pop();
                 } else {
@@ -235,6 +276,23 @@ impl TuiState {
             return lines;
         }
         match &view.form {
+            Form::Providers => {
+                lines.push("Choose provider connection".into());
+                for (index, connection) in view
+                    .connections
+                    .iter()
+                    .enumerate()
+                    .skip(view.cursor.saturating_sub(3))
+                    .take(8)
+                {
+                    lines.push(format!(
+                        "{} {} ({})",
+                        if index == view.cursor { ">" } else { " " },
+                        connection.name,
+                        connection.provider
+                    ));
+                }
+            }
             Form::Label => {
                 lines.push("Account label".into());
                 lines.push(view.label.clone());

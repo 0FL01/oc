@@ -26,6 +26,30 @@ fn scope(c: &Composition, provider: &str) -> Result<crate::auth::AuthScope, Core
         .map_err(|_| CoreError::Application("provider connection unavailable".into()))
 }
 
+pub(super) fn connections(c: &Composition) -> Vec<oc_core::queries::ProviderConnection> {
+    let mut ids = c.provider_views.keys().cloned().collect::<Vec<_>>();
+    ids.push(c.catalog.provider.clone());
+    ids.sort();
+    ids.dedup();
+    // Go remains first without inventing an executable model or admitting an
+    // unknown/disabled connection. All other identities have deterministic order.
+    ids.sort_by_key(|id| id != crate::models_dev::PROVIDER);
+    ids.into_iter()
+        .filter(|id| scope(c, id).is_ok())
+        .map(|provider| {
+            let name = c
+                .provider_views
+                .get(&provider)
+                .map(|v| &v.entry)
+                .or_else(|| c.generation.providers.get(&provider))
+                .and_then(|e| e.name.as_deref())
+                .unwrap_or(&provider)
+                .to_owned();
+            oc_core::queries::ProviderConnection { provider, name }
+        })
+        .collect()
+}
+
 pub(super) fn apply(
     db: &Db,
     runtime: &Runtime<'_>,
@@ -68,10 +92,12 @@ pub(super) fn apply(
         result.map_err(|error| query_storage_error(db, error))?;
         c.refresh_credentials(db)
             .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
+        // Redaction follows every newly captured scoped key, including an
+        // unselected connection that a subsequent child/request may use.
+        runtime
+            .publish_provider_credentials(&c.generation)
+            .map_err(runtime_error)?;
         if c.catalog.provider == provider {
-            runtime
-                .publish_provider_credentials(&c.generation)
-                .map_err(runtime_error)?;
             runtime
                 .publish_provider_state(c.provider_state.clone())
                 .map_err(runtime_error)?;

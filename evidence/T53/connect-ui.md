@@ -139,3 +139,46 @@ Experiments and corrections:
 This is not full GO05/T53 PASS. Executable provider-qualified selection/persistence
 and captured next-request switching are still the following owner integration.
 No paid/live generation, credentials from live files, or dependencies were used.
+
+## Provider chooser and generation/cancel/reopen (base `2a36a2202`)
+
+- `CoreApp::provider_connections` returns admitted identity/name DTOs only, Go
+  first then stable order. Disabled/unknown/unadmitted connections are excluded;
+  endpoints, namespace, headers and keys never enter this read view.
+- `/connect` requires provider selection before label/key entry. Paste is inert
+  in the chooser, failure/cancel cannot submit a key, and the existing masked form
+  and storage-ACK-before-provider-filtered-picker semantics remain unchanged.
+- All account changes now republish scoped redaction material, including an
+  unselected connection subsequently used by a child/request. This does not copy
+  its key into the current provider or MCP inheritance.
+- `go05_unchosen_connect_custom_generation_cancel_and_reopen_use_one_account_owner`
+  runs the real binary from unchosen local startup with a configured custom endpoint
+  but no model/key. It selects the provider, stores the masked key, explicitly commits
+  a model, receives a genuine fake Responses completion, cancels a held stream with
+  two Escapes, and reopens history/accounts. Fake peer asserts the stored credential;
+  original successful answer and qualified acceptance persist, cancelled answer
+  is absent, exactly two main requests occur, terminal restores and keys never render.
+- Existing fresh configless Go PTY and custom→Go selection PTY now also require the
+  explicit chooser. No Go endpoint override, TLS bypass or metadata redirect is used.
+  The offline executable-generation peer is a trusted **custom** connection;
+  actual fixed-authority Go generation remains the distinct GO06 live gate.
+
+Checks (`TMPDIR=/home/opencode/.cache/opencode-tmp/opencode`, jobs=3, threads=2):
+
+```text
+cargo test --locked -p oc --test pty_t39 accounts::             PASS 3/0
+cargo test --locked -p oc-adapters --lib go05_provider_views    PASS 1/0
+cargo test --locked -p oc-tui go05_                            PASS 6/0
+cargo test --locked --workspace                               PASS 1647/0/10
+cargo clippy --locked --workspace --all-targets -- -D warnings PASS
+cargo fmt --all -- --check                                    PASS
+cargo build --locked; target/debug/oc --help                   PASS
+git diff --check                                             PASS
+```
+
+Fixture diagnoses: borrow the actual `&Path`; fake peer's original fixed credential
+expectation was replaced with captured expected credential, not disabled; completion
+is its existing `echo:` script, not guessed `answer:`; reopen uses actual persisted
+title, and accepted ModelRef is checked in `turn_acceptances`, not child-only session
+metadata. No product guard, test deadline or ignored gate was changed.
+Frozen matrix/live/final report remain pending; this section is not full T53 PASS.

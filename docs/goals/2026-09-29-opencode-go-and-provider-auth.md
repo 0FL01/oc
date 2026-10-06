@@ -644,6 +644,18 @@ all-target clippy/fmt/diff are green. Evidence: `evidence/T53/qualified-selectio
 Full GO05 actual-binary generation/cancel and GO06 bounded live/final acceptance
 remain pending; this is not T53 finish or T44/T57 status change.
 
+### Provider chooser / actual generation checkpoint
+
+`/connect` first queries admitted safe provider identities and requires explicit
+connection choice before the masked form. Account ACK opens only that provider's
+model picker; selection still needs its separate commit. Real PTY coverage includes
+unchosen startup, a stored custom key with no configured key, fake generation,
+two-Escape cancellation and restart/history/account restoration. Separate configless
+Go account/picker PTYs retain the fixed HTTPS authority without fake redirects.
+Workspace gates: 1647 passed / 0 failed / 10 existing opt-in ignored, strict workspace
+clippy/fmt/build/help/diff green. Evidence: `evidence/T53/connect-ui.md`.
+Frozen matrix and actual Go wire live qualification are next; not full T53 PASS.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

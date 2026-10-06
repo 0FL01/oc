@@ -2119,6 +2119,9 @@ async fn apply_intent_with_origin(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::LoadProviderConnections => {
+            state.apply_provider_connections(app.provider_connections().await.map_err(|_| ()));
+        }
         PanelIntent::ProviderAccounts { provider, action } => {
             let result = app.provider_accounts(provider.clone(), action).await;
             if state.apply_provider_accounts(result.map_err(|_| ())) {
