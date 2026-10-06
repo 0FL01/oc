@@ -1,4 +1,72 @@
-# T43 report — R1 config compatibility parity + R2 limits removal
+# T43 report — DONE: config/foreground prerequisites
+
+## Current scoped closure — 2026-10-07
+
+Scope is the explicit `planning/tasks.json` T43 owner split and the shared
+spec's 2026-09-22 Material Decision: **R1/R2, foreground slices1–4 and resource
+permission/config prerequisites**. Remaining R3/background/commands/DCP and later
+R6–R10 belong to T45, not a prerequisite for finishing T43. This closes the
+already implemented prerequisite; it does not waive or declare full R3/goal READY.
+The shared goal remains blocked on the original T45 live-child allowance facet.
+
+The old T43 latest0003 scheduling blocker said to wait for the transferred
+background remainder. That is superseded by the approved explicit owner split;
+the foreground code was already landed in `7895f43`. Current T45 additions and
+green unchanged-owner gates preserve those prerequisites. No new production
+change, requirement, dependency edit, API expansion or speculative audit is needed.
+
+| Owned outcome | Closure evidence |
+| --- | --- |
+| R1 seven warning shapes | Config compatibility commit `335482bdd` and direct real owner-start receipt preserved below. Current full workspace passes `commented_frontmatter_and_glob_permissions_follow_upstream`, `large_agent_and_command_bodies_load_within_the_global_budget`, `skill_frontmatter_comments_and_optional_metadata` and related config/definition tests. No re-reading owner/authoring config or new real request. |
+| R2 artificial size caps | Same historical oversized-agent/command/skill/start proof plus current tests. The explicit single4MiB total guard and1MiB serving bounds remain; no cap/validation weakening. |
+| Foreground prerequisites | `7895f43` and current `subagent` target39 PASS: actual fresh child creation/prompt/result/history, depth/config/mode/model/variant validation before effects, explicit-model override, caller-scoped continuation, permission narrowing and mid-stream cancellation/join. Later actual native foreground/child-control receipts under T45 reuse this implementation without changing T43's scope. |
+| AUD42 resource authority | `backend-permissions.md` contains source-derived ordered rules/resource and selected/restored-primary/nested-child regressions. Current `permissions` target8 PASS and full runtime/subagent tests prove wildcard denial, every patch/rename resource, unmatched Ask, literal-star safety, central/profile/child non-widening and hidden/denied catalog filtering. Genuine approval does not bypass structural ceilings. |
+| A02/A03/A05 and R4/R5 delivery/gates | Current final production source through `25df7dc6e` passes the full locked workspace1713/0/11, strict all-target Clippy/fmt and normal debug/release builds/help. Source slices already checked/pushed; this report/progress closure is a separate reviewed documentation commit. |
+
+### Current checks and source association
+
+The current production source is checked/pushed `25df7dc6e`; subsequent
+`4d3513e4a` is T45 factual documentation/progress only. T43 closeout changes no
+Rust, fixture, dependency, security or test baseline. Reuse the successful final
+full-source chain rather than rerun unchanged broad gates after docs:
+
+```text
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace --no-fail-fast
+cargo build --locked --release
+```
+
+Actual result **1713 passed / 0 failed / 11 unchanged opt-in ignored**, independently
+summed46 workspace records. Log:
+`/home/opencode/.cache/opencode-tmp/opencode/t45-child-diagnostic-final-barrier.log`,
+final `T45_CHILD_DIAGNOSTIC_FINAL_BARRIER_GATES_PASS`. Existing config fixtures,
+actual dispatch resource regression and inherited child-catalog regression are
+explicitly present as PASS, not inferred from total counts alone.
+
+Additional scoped check during T43 resume:
+`cargo test --locked -p oc-adapters --test permissions` — **8/0/0**;
+normal `target/debug/oc --help` / `target/release/oc --help` — PASS. Serial normal
+stacks, approved TMPDIR, jobs3/testthreads2; no raised watchdog/threshold/ignore.
+Current normal debug/release controls4/recovery20/chronology6 cases each and
+nested-instructions15requests/13facts each are qualified in the T45 primary report.
+
+### Preserved boundaries and completion
+
+Historical report below records the actual 2026-09-21 owner config/start and
+earlier failure observations. It is not a claim of a new current real API call,
+current fatal optional-MCP behavior or remaining unsupported subagents: later
+T46/T51 fault isolation and T45 child/defaults supersede those historical states.
+No old checkpoint or real ledger is rewritten. T53 remains13/24; original T27
+generation24/24/unknown17 spent remains unchanged. T57 AUTH06 stays owner-deferred
+and blocked; T44 paired visuals stay PAUSED. User `.opencode/` is unread/unstaged.
+
+All **T43-owned** criteria are verified; finish its independent prerequisite
+scope only. No full R3/live-child/OAuth/visual/product READY claim. Next: read
+actual journal ready/dependency state; do not invent a new task or auto-resume a
+paused/externally blocked lane.
+
+## Historical R1/R2 report — 2026-09-21 (preserved)
 
 Slice: `docs/goals/2026-09-21-config-compat-and-subagents.md` R1, R2 (R3–R5 open).
 

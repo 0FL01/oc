@@ -367,7 +367,7 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 ## Current Checkpoint
 
 - Closes: independent offline R3 terminal supplement and R6–R10 outcome reconciliation, qualified in `evidence/T45/report.md`.
-- Smallest next action: factual blocker handoff, no false T45 finish; continue independently owned T43 config/foreground prerequisite closeout. No speculative backend cleanup or extra paid campaign.
+- Smallest next action: preserve factual T45 blocker/no false finish; T43 independent config/foreground prerequisite closeout is verified in `evidence/T43/report.md`. Check actual ready/dependency state, no speculative backend cleanup or extra paid campaign.
 - Remaining R3 evidence: original configured-OpenProxy bounded live subagent request needs explicit additional allowance/campaign authorization or explicit owner deferral/waiver. Current original ledger24/24 and unknown17 remain spent; fake/Go/anonymous/paid substitution and counter reset are not permitted alternatives.
 - T57 AUTH06 is owner-deferred, not waived; T44 remains independently PAUSED. No credential search or real requests in this delivery.
 
@@ -376,7 +376,7 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 - Resolved: R1/R2 and R4–R10, plus all independent offline R3 backend/safe diagnostic outcomes; checked/pushed current slices `3e9325d1b` / `25df7dc6e`. Component receipts and historical leaves remain unchanged.
 - Last relevant evidence: current workspace **1713/0/11**, strict Clippy/fmt/release, actual normal debug/release child controls4/recovery20/chronology6 cases each, nested instructions15requests/13facts each and final Core terminal/reopen barrier1 PASS; `evidence/T45/report.md` is the primary matrix.
 - Blocker: original R3 configured-OpenProxy live subagent facet NOT_RUN; read-only existing guarded ledger confirms generation24/control15/MCP1, generation remaining0, unknown17 still spent, ledger unchanged/network0. Existing root-only T27 and Go T53 do not contain a child or substitute authority.
-- Next: preserve T45 BUILD_READY_LIVE_BLOCKED/no finish and continue T43 independent prerequisites. T44 after explicit resume only; AUTH06 deferred/no live/credential search.
+- Next: preserve T45 BUILD_READY_LIVE_BLOCKED/no finish; T43 owned prerequisite is independently verified with current gates. Check actual ready/dependency state; T44 after explicit resume only, AUTH06 deferred/no live/credential search.
 
 ## Material Decisions
 
@@ -409,6 +409,8 @@ and `tool/mcp.ts:16–17,49–54` own normalization/evaluation/action identity:
 - 2026-09-21: `mode: subagent`/`all` definitions must load now (no diagnostic) even before execution lands, because the owner config uses them and requested "не блокировать".
 
 ## Checkpoint History
+
+- 2026-10-07: T43 owned R1/R2/foreground1–4/ordered-permission prerequisites independently qualify against current production1713/0/11 plus permissions8/0/0 and preserved direct owner-start proof; the approved 2026-09-22 split supersedes old latest0003 scheduling only, not full R3. Factual scoped T43 finish does not finish shared goal/T45 or waive original live facet.
 
 - 2026-10-07: `25df7dc6e` preserves owner-safe final child diagnostic; actual Core read/partial-retry/final-error/family-read/reopen and parent barrier PASS, current workspace1713/0/11 plus normal debug/release controls/recovery/chronology. Frozen review resolves R6–R10; original R3 live facet remains NOT_RUN at observed immutable generation24/24/unknown17 spent. Record BUILD_READY_LIVE_BLOCKED, no false finish; T43 prerequisites are independently closable.
 

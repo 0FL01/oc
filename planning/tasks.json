@@ -725,7 +725,7 @@
         "A05",
         "AUD42"
       ],
-      "work": "R1/R2 config compatibility и foreground slices 1–4 (7895f43); resource-aware ordered permissions с неизменным central/agent/child narrowing, hidden/disabled metadata и фильтр каталога. Additive evidence: evidence/T43/backend-permissions.md. R3 background/notices/reap/command routing/DCP remainder принадлежит T45, не условие finish этого prerequisite slice. Полный owner scope R3 не сокращается. Общие gates A02/A03/A05 остаются в spec; AUD42 проверяет новую resource-семантику.",
+      "work": "Independent T43-owned R1/R2 config compatibility + foreground slices1–4 (7895f43), ordered resource/selected-primary/child authority and hidden/denied catalog prerequisites verified. Current evidence/T43/report.md preserves direct historical owner start and current named fixture/actual-effect regressions; workspace1713/0/11, permissions8/0/0, strict Clippy/fmt/normal debug-release/help PASS. Approved 2026-09-22 split assigns remaining R3/background/commands/DCP to T45 without a whole-task done dependency; this finishes only the prerequisite, no full R3/live/visual/READY waiver. A02/A03/A05/AUD42/security/resource guards unchanged.",
       "evidence": "evidence/T43/report.md",
       "spec": "docs/goals/2026-09-21-config-compat-and-subagents.md"
     },

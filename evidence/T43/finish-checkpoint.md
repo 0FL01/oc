@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-06T23:45:36+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T43 [done]; сверить незакоммиченный diff.
-
 # T43 — config/foreground prerequisite scope verified
 
 ## Result
@@ -44,11 +35,3 @@ Commit/push this scoped factual finish, then check actual ready/dependency state
 No remaining independent T43 implementation is open. Preserve T45/T27 live
 blockers and T44 pause; do not infer new campaign/resume authorization from
 AUTH06 deferral or call this full project READY.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): нет
-Blocked: T27, T44, T45, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
