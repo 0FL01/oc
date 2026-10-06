@@ -229,6 +229,36 @@ impl Terminals {
         #[allow(clippy::multiple_unsafe_ops_per_block)]
         unsafe {
             cmd.pre_exec(move || {
+                // An async/background application can inherit ignored or
+                // blocked signals. They are NOT the interactive shell's signal
+                // policy: otherwise the tty echoes ^C but its foreground job
+                // silently ignores it. Reset only in this post-fork PTY child.
+                let mut disposition: libc::sigaction = std::mem::zeroed();
+                disposition.sa_sigaction = libc::SIG_DFL;
+                if libc::sigemptyset(&mut disposition.sa_mask) != 0
+                    || libc::sigprocmask(
+                        libc::SIG_SETMASK,
+                        &disposition.sa_mask,
+                        std::ptr::null_mut(),
+                    ) != 0
+                {
+                    return Err(std::io::Error::last_os_error());
+                }
+                for signal in [
+                    libc::SIGHUP,
+                    libc::SIGINT,
+                    libc::SIGQUIT,
+                    libc::SIGPIPE,
+                    libc::SIGTERM,
+                    libc::SIGCHLD,
+                    libc::SIGTSTP,
+                    libc::SIGTTIN,
+                    libc::SIGTTOU,
+                ] {
+                    if libc::sigaction(signal, &disposition, std::ptr::null_mut()) != 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                }
                 if libc::fchdir(cwd_fd) != 0
                     || libc::setsid() < 0
                     || libc::ioctl(0, libc::TIOCSCTTY, 0) < 0

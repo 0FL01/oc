@@ -88,7 +88,7 @@ required outcome is resolved and affected constraints remain satisfied.
     checks process identity, no duplicate creation and focus/draft preservation.
     T44 reuses the same fixture for paired visual qualification, not a reverse gate.
   - Status: in_progress
-  - Evidence: evidence/T56/frontend.md and term01.md — lower composer, actual captured child close/target, raw control/leader/focus/draft, last-toggle, remount/exit and real-owner consumer in both rebuilt binaries; final workspace/closure pending.
+  - Evidence: evidence/T56/frontend.md, term01.md and signals.md — lower composer, captured child close/target, raw control/leader/focus/draft, last-toggle, remount/exit and real-owner consumer; inherited-ignore/mask correction checked in debug, fresh release/full workspace/closure pending.
 
 - R3: VT screen, output replay and resize are native and bounded.
   - Source: donor terminal-pane/session-frame and schema U82/U83/U85.
@@ -173,6 +173,12 @@ required outcome is resolved and affected constraints remain satisfied.
   bounded reap and sticky failures retain unproved recovery identity. Real child
   close/target, raw controls, VT/gap/resize, hidden output, removal/shutdown and
   two-orphan crash/no-replay/stale-PID/resource facts are in evidence/T56/term01.md.
+- That slice was pushed `87106ea5c`. Full workspace exposed inherited ignored
+  SIGINT: the byte reached the tty (`^C`) but the actual foreground job ignored it.
+  Deterministic reproduction and the child-only default-disposition/empty-mask
+  correction are in evidence/T56/signals.md. The fixture now forces ignored/masked
+  parent policy; adapters 9/0, whole actual debug 1/0 and strict Clippy/fmt green.
+  Current release and full final gates are running sequentially; no false PASS.
 - Next: current full locked workspace gates, frozen-outcome closure and finish
   report/checkpoint. All R1–R4 remain in_progress until that closure; no DONE claim.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and

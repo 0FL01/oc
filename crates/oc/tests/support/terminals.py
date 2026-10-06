@@ -90,6 +90,12 @@ class View:
                'LANG': 'C.UTF-8', 'TERM': 'xterm-256color', 'SHELL': '/bin/bash',
                'OC_API_KEY': 'SYNTHETIC-TERM01-CANARY', 'OC_TEST_ALLOW_LOOPBACK': '1'}
         def controlling_terminal():
+            # Deliberately reproduce background-launch signal policy. The
+            # native PTY child, not the fixture or parent application, must reset
+            # inherited ignores/masks for normal interactive job control.
+            for sig in (signal.SIGHUP, signal.SIGINT, signal.SIGQUIT):
+                signal.signal(sig, signal.SIG_IGN)
+            signal.pthread_sigmask(signal.SIG_BLOCK, (signal.SIGINT, signal.SIGQUIT))
             os.setsid()
             fcntl.ioctl(0, termios.TIOCSCTTY, 0)
         self.child = subprocess.Popen([BINARY, '--data-dir', str(root/'data'), 'tui', '--session', session],
@@ -307,9 +313,11 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
                 tty_state = {'isig': bool(attrs[3] & termios.ISIG), 'intr': repr(attrs[6][termios.VINTR])}
             finally:
                 os.close(fd)
+            ignored = [line for line in Path(f'/proc/{sleep_group}/status').read_text().splitlines()
+                       if line.startswith(('SigIgn:', 'SigBlk:'))]
             print({'foreground': foreground(first['pid']), 'sleep_dead': dead(sleep_group),
                    'selected': selected(root), 'oc_exit': view.child.poll(),
-                   'tty': tty_state, 'screen': view.screen()}, file=sys.stderr)
+                   'tty': tty_state, 'signals': ignored, 'screen': view.screen()}, file=sys.stderr)
             raise
         assert view.child.poll() is None and selected(root) == first['target']['id'], 'raw Ctrl+C must not run remapped close'
         view.command("printf 'control-%s\\n' OK")
@@ -453,8 +461,13 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         wait(lambda: any(i.get('type') == 'function_call_output' for r in REQUESTS for i in r['input']), 'settled real parent follow-up')
         view.leader(b'\x1b[B')
         view.send(b'j\x04')
-        wait(lambda: dead(first['pid']), 'actual lower-composer explicit remove/reap')
-        assert entries(root)[0][0]['state'] == 'Removed' and entries(root)[0][1] == 0
+        def removed():
+            # Process reap precedes the owner's durable publication/ack. Require
+            # both facts instead of racing the final SQLite transaction.
+            view.drain(.01)
+            entry, live, _ = entries(root)[0]
+            return dead(first['pid']) and entry['state'] == 'Removed' and live == 0
+        wait(removed, 'actual lower-composer explicit remove/reap/publication')
         view.send(b'\x1b')
         view.quit()
         wait(lambda: all(dead(pid) for pid in known), 'clean shutdown owns both PTYs')
