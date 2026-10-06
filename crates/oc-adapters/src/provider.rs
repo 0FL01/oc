@@ -451,6 +451,9 @@ pub struct WireBinding {
     pub(crate) protocol: protocol::Protocol,
     pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
     pub(crate) messages_bearer: bool,
+    /// Opt-in qualification only; absent from production builds and JSON config.
+    #[cfg(test)]
+    pub(crate) live_campaign: Option<std::path::PathBuf>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -1991,6 +1994,15 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
             .map(|base| format!("{base}/messages"))
             .expect("Responses suffix"),
     };
+    // Test campaigns reserve durably before DNS/dial without changing authority,
+    // proxies, peer checks, production retry policy or successful-step limits.
+    #[cfg(test)]
+    let live_sequence = config
+        .wire
+        .live_campaign
+        .as_ref()
+        .map(|path| go_live_tests::reserve(path, &url, &body, protocol))
+        .transpose()?;
     let dns_deadline = tokio::time::Instant::now() + config.connect_timeout;
     let dns_deadline = total_deadline.map_or(dns_deadline, |total| total.min(dns_deadline));
     let (host, addresses) = tokio::select! {
@@ -2020,7 +2032,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     };
     let client = builder.build().map_err(|_| ProviderError::InvalidConfig)?;
 
-    stream_attempt(
+    let result = stream_attempt(
         &client,
         chat,
         protocol,
@@ -2035,8 +2047,17 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         dispatch,
     )
     .await
-    .map_err(|(error, _)| error)
+    .map_err(|(error, _)| error);
+    #[cfg(test)]
+    if let (Some(path), Some(sequence)) = (&config.wire.live_campaign, live_sequence) {
+        go_live_tests::finish(path, sequence, &result)?;
+    }
+    result
 }
+
+#[cfg(test)]
+#[path = "provider/go_live_tests.rs"]
+mod go_live_tests;
 
 pub(crate) fn request_headers(
     config: &ResponsesConfig,

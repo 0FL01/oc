@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-06T05:13:25+00:00",
-  "current": null,
+  "updated_at": "2026-10-06T06:23:55+00:00",
+  "current": "T53",
   "tasks": {
     "T00": {
       "status": "done",
@@ -368,7 +368,7 @@
       "reopen_reason": null
     },
     "T53": {
-      "status": "blocked",
+      "status": "active",
       "last_seq": 1,
       "latest": "progress/M8/T53/0001.md",
       "evidence": null,

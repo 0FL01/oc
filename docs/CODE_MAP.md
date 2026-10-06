@@ -164,6 +164,12 @@ frozen admitted provider set to `storage_fork.rs`, preserving original receipts
 and settled pairs. The same provider-view test owner covers actual mixed-wire
 child and qualified fork/reopen regressions.
 
+T53 fixed-authority opt-in qualification: `provider/go_live_tests.rs` and
+`scripts/t53_go_live.py`; a `cfg(test)` captured hook reserves a shared fsynced
+ledger before DNS/dial, with 24 attempts/2048 output and no production authority,
+retry or successful-step change. Evidence/receipt: `evidence/T53/go-live.md` and
+`evidence/T53/live-campaign.json`.
+
 ## Как обновлять
 
 Изменившийся owner указывает точку входа, свои части и один ближайший test target/filter. Карта — маршрутизатор, не полный symbol index и не копия архитектурного spec. No generic helpers/common-manager dumping ground. Для малого изменения внутри неизменного владельца новая строка не нужна.

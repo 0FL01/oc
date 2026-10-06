@@ -1,9 +1,9 @@
 # Goal: OpenCode Go, единые credentials и connect/model TUI
 
-Status: blocked
+Status: active
 Source: владелец после RECON и параллельного аудита утвердил план 2026-09-29; «единая логика хранения кред, без деприкейт фич», будущий Codex OAuth и custom llama.cpp/ludka2 учтены как границы общего owner.
 Last updated: 2026-10-06
-Task: T53 (blocked on real Go key; GO01–GO05 offline verified, GO06 live NOT_RUN).
+Task: T53 (resumed with explicitly authorized OC_API_KEY; GO01–GO05 offline verified, GO06 in progress).
 
 ## Scope boundary clarification (2026-10-06)
 
@@ -86,8 +86,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Source: API smoke permission владельца; A01–A13 и runbook live envelope.
   - Acceptance: GO06 требует green impacted regressions/workspace gates и bounded real Go text/tool representatives для трёх protocols, плюс проверку известных catalog/docs conflicts. Report различает fake/live/NOT_RUN и exact selection; отсутствующий/revoked key блокирует только live, не превращает его в PASS.
   - Primary evidence: factual evidence/T53/report.md с implementation commits, commands/exits и sanitized durable live-campaign counters.
-  - Status: blocked
-  - Evidence: evidence/T53/report.md and evidence/T53/live-campaign.json — workspace 1648/0/10 and final gates green; Go key absent, 0 real generation requests, live NOT_RUN.
+  - Status: in_progress
+  - Evidence: prior offline report/zero ledger retained; owner supplied OC_API_KEY name, confirmed nonempty without printing; bounded fixed-authority live qualification in progress.
 
 ### Credentials, connection config и authority
 
@@ -356,7 +356,14 @@ commits/текущий diff, не переносить чужую незаком
 
 ## Current Checkpoint / State
 
-Authoritative current state (2026-10-06, implementation `42b49e180`): R1–R5
+Resume 2026-10-06: owner explicitly identified authorized `.local/live.env`
+`OC_API_KEY`, confirmed nonempty without printing it. The earlier preflight looked
+only for `OPENCODE_API_KEY`; its missing-input conclusion is superseded, not an auth
+rejection. The test process maps the authorized name to the existing Go resolver;
+production credential policy is unchanged. Same `t53-go-20261006` ledger/counts;
+test-only pre-DNS durable budget hook is qualified before first real request.
+
+Prior blocked checkpoint (2026-10-06, `42b49e180`; superseded by resume above): R1–R5
 verified offline; R6 blocked solely on authorized real Go Console key. Presence-only
 preflight found no `OPENCODE_API_KEY` in process or approved `.local/live.env`;
 foreign OpenProxy test material is not Go authority. All current offline gates are

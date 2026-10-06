@@ -1,8 +1,10 @@
 # T53 — Go/custom native integration: offline verified, live BLOCKED
 
 Date: 2026-10-06. Reviewed implementation HEAD: `42b49e180`.
-Overall: **BLOCKED, not complete**. R1–R5/GO01–GO05 are verified offline;
-R6/GO06 offline gates pass, but required real Go qualification is **NOT_RUN**.
+Overall: **RESUMED, not complete**. R1–R5/GO01–GO05 are verified offline;
+R6/GO06 offline gates pass; authorized `OC_API_KEY` input is now confirmed and
+fixed-authority bounded real Go qualification is in progress. The blocked snapshot
+below is historical and superseded by [the resumed campaign receipt](go-live.md).
 `progress.py finish` has deliberately not been run. T44 stays PAUSED; T57 scope,
 existing OpenProxy live evidence and other task baselines are not changed.
 
@@ -15,7 +17,7 @@ existing OpenProxy live evidence and other task baselines are not changed.
 | R3 / GO03 | VERIFIED offline | [Chat](chat-wire.md), [Messages](messages-wire.md), [wire settings](config-normalization.md), [request context](request-context.md), [timeout](transport-timeout.md), [chronology](chronology.md), [runtime retries](retry-wires.md): each native wire text/tools/reasoning/usage/terminal/error/cancel, per-wire typed options and media refusals; immutable all-lane Go identity/cache; numeric deadlines; chronological native/fallback system and effort/default/reset; one adapter attempt and counted durable runtime retry/partial continuation without partial-tool execution or effect replay. |
 | R4 / GO04 | VERIFIED offline | [Durable bindings](durable-binding.md), [qualified selection](qualified-selection.md), [chronology](chronology.md): full provider/API/protocol/deployment/auth-scope receipts through raw/HOT SQL, DCP, checkpoints, fork/reopen and next requests; absent protocol is legacy Responses but missing authority is never invented; alien encrypted/signed/redacted state withheld, ordinary complete pairs and immutable raw history retained; qualified fork/child/profile/command captures use their own admitted authority. |
 | R5 / GO05 | VERIFIED offline | [Configless](configless.md), [accounts](accounts.md), [connect UI](connect-ui.md), [qualified selection](qualified-selection.md): no fabricated model, usable local history/connect, acknowledged provider chooser/accounts/masked entry/filtered picker, explicit full ModelRef with ID collisions and slash IDs, drafts/variants/tabs/agents/Home/session/fork/restart; held prepared requests retain old bindings and next requests adopt the committed target; unready headless/submission refuse before acceptance/effects; unavailable reload retains exact choice while mandatory policy/storage/recovery remains fatal. |
-| R6 / GO06 | BLOCKED; offline VERIFIED, Go live NOT_RUN | Current commands below; [sanitized live ledger](live-campaign.json). Missing authorized Go Console key prevents required actual text/tool representatives for all three protocols and endpoint-conflict probes. Public source reads and fake requests are not live generation evidence. |
+| R6 / GO06 | IN_PROGRESS; offline VERIFIED | Current offline commands below; [sanitized live ledger](live-campaign.json) and [resumed fixed-authority harness](go-live.md). Owner identified OC_API_KEY, mapped only in the explicit test process to the existing Go resolver. Public source reads and fake requests are not live generation evidence. |
 
 ### Actual-binary R5 boundary (not a disguised Go live test)
 
@@ -74,7 +76,7 @@ as T53 implementation. User-owned untracked `.opencode/` was neither read nor st
 Production owners and nearest tests are mapped in `docs/CODE_MAP.md`; component
 receipts above document paths, contracts, failure experiments and commands.
 
-## Proven external live blocker
+## Historical missing-name preflight (superseded on owner clarification)
 
 Presence-only preflight was repeated after implementation. It printed no values:
 
@@ -85,10 +87,11 @@ approved_file_OPENCODE_API_KEY_name_present=False
 foreign_OpenProxy_test_input_names_present=True
 ```
 
-The approved gitignored `.local/live.env` provides only the OpenProxy test input
-names `LUDKA2_API_URL`, `LUDKA2_API_KEY`, `OC_TEST_MODEL`, not a Go key. Native fixture
-accounts contain synthetic secrets, not real Go credentials. Public Go docs require
-a Console subscription key. The checked alternatives cannot satisfy GO06:
+The initial check inspected the expected `OPENCODE_API_KEY` name and the existing
+OpenProxy input names, but missed the authorized Go input under `OC_API_KEY`.
+The owner corrected this name, nonempty presence was confirmed without printing,
+and T53 resumed. Native fixture accounts remain synthetic. The rejected alternative
+strategies below remain invalid; they were not used to replace the now supplied key:
 
 - Reusing OpenProxy material on Go would violate credential/authority isolation.
 - Anonymous/free generation would neither qualify Console auth nor authorize the

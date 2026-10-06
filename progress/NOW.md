@@ -1,11 +1,16 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-06T05:13:25+00:00
-Active: нет
+State updated: 2026-10-06T06:23:55+00:00
+Active: T53
 
 Сверить Git status/diff до выполнения команд.
+Task: T53 — OpenCode Go: единые credentials, native wires и connect/model TUI
+Spec: docs/goals/2026-09-29-opencode-go-and-provider-auth.md
+Evidence target: evidence/T53/report.md
 
-Последний срез: T53 [blocked]; сверить незакоммиченный diff.
+Frozen T53 Go/custom contract: R1-R5 verified offline through 42b49e180, report/component receipts cover native wires, shared scoped SQLite auth, canonical bindings, public catalog, all-lane metadata/chronology/retries, durable replay and qualified configless account/model/child/fork TUI flows. Prior workspace 1648/0/10 and strict final gates green. T53 resumed after owner explicitly supplied authorized OC_API_KEY name in .local/live.env; earlier expected-name preflight was incomplete, not an upstream key rejection. GO06 in progress via scripts/t53_go_live.py --run using only test-process mapping to OPENCODE_API_KEY and fixed Go HTTPS authority. Same t53-go-20261006 ledger, durable cfg(test)-only pre-DNS budget <=24 all physical main/auxiliary/retry/probe calls and smoke <=2048; no credential logs, endpoint override, sweep or paid fallback. Finish only after real exact catalog-selected Responses/Chat/Messages text/tool and dated Qwen probes plus current final gates/report. T44 PAUSED, T57 and other task contracts unchanged.
+
+Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
 
@@ -49,9 +54,7 @@ rerun affected final gates, resolve R6, then finish. No independent T53 code/gat
 left unverified; do not start unrelated T56/T57 under this T53-only user request.
 
 
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
 Ready (до 5): T56, T57
-Blocked: T27, T43, T44, T45, T53
+Blocked: T27, T43, T44, T45
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
