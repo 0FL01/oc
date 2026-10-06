@@ -20,7 +20,7 @@ impl Db {
             CREATE TABLE IF NOT EXISTS terminal_selection(
                 session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
                 terminal_id TEXT REFERENCES terminals(id) ON DELETE SET NULL);
-            INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(11,'t56-terminals');
+            INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES(12,'t56-terminals');
             COMMIT;")?;
         Ok(())
     }

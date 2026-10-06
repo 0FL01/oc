@@ -50,8 +50,8 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: TERM01 real PTY fixture verifies shell/cwd, IDs/ownership,
     inventory, genuine byte exchange and exit/reap; existing shell security and
     A02/A10/A13 regressions are reused, not reimplemented.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: evidence/T56/owner.md and application.md — real native bounded owner and acknowledged source/epoch controls; frontend/callsite and actual-binary TERM01 pending.
 
 - R2: The real frontend selects, creates, hides/shows and focuses terminals.
   - Source: donor Terminals/session-terminal/session-frame/keymap U80–U83/U88.
@@ -109,8 +109,8 @@ required outcome is resolved and affected constraints remain satisfied.
     output, delayed attach, bounded floods, input during attach and resize; assert
     screen/cursor/ordered bytes and actual child size, then resource/cleanup facts.
     T44 owns full paired pane/list geometry, RGB/attributes and cursor evidence.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: evidence/T56/owner.md — real VT Unicode/styles, byte cursor/replay/gap, actual resize and bounded escape/output floods; Ratatui/theme/actual-binary attachment pending.
 
 - R4: Lifecycle remains safe across view changes, shutdown and crash/restart.
   - Source: GOAL A02/A10/no unknown-effect replay and explicit no-daemon boundary.
@@ -128,8 +128,8 @@ required outcome is resolved and affected constraints remain satisfied.
     hidden-pane output and stale/session-target controls, plus independent process/
     descriptor checks and A10 measurements. Runtime difference from donor daemon
     persistence is disclosed; it cannot waive pane/list visual qualification.
-  - Status: pending
-  - Evidence:
+  - Status: in_progress
+  - Evidence: evidence/T56/owner.md and application.md — joined native remove/shutdown, persistent identity/selection, stale-identity refusal and original PTY across Location/reload; crash and full actual-binary qualification pending.
 
 ### Constraints and non-goals
 
@@ -161,10 +161,13 @@ required outcome is resolved and affected constraints remain satisfied.
 - Execution authorized 2026-10-06: owner requests the next chronological logical T*
   completed fully, commit/push each checked slice. HEAD `ea6b0b2cc`, tracked baseline
   clean, T53 done, ready T56 precedes T57; `progress.py start T56` succeeded.
-- R1–R4 pending, TERM01 NOT_RUN. Next: existing libc Linux PTY primitives and pinned
-  MIT vt100 0.16.2 compile/provenance spike, then real create/input/output/exit fixture.
-  Bound control strings before the emulator (vte std OSC buffer otherwise grows).
-  No second store/framework or PTY library is required; reuse shell admission/env.
+- Native bounded PTY/VT owner checked/pushed `88e6631d0`; application source/epoch
+  commands, independent lifecycle/capability and migration12 checked next slice.
+  Seven real owner/application tests and strict workspace all-target Clippy green;
+  evidence/T56/owner.md and application.md. R1/R3/R4 in_progress, R2 pending.
+- Next: lower Terminals composer and right pane, exact child-close captured target,
+  raw/leader/focus routing, theme VT cells and geometry/resize/cursor attachment.
+  Full TERM01 rebuilt debug/release actual-binary remains NOT_RUN; no DONE claim.
 - Completion remains all R1–R4 plus current TERM01 debug/release actual-binary and
   impacted/final gates. T44 stays PAUSED; paired VIS39 is separate, not waived/PASS.
 - Reference inventory: U78–U88 in `tui-recovery/SOURCES.json`; canonical full segment

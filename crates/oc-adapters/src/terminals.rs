@@ -78,6 +78,7 @@ impl Drop for OwnedTerminal {
 pub struct Terminals {
     db: Db,
     live: BTreeMap<String, OwnedTerminal>,
+    events: Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>,
 }
 impl Terminals {
     pub fn new(db: &Db) -> Result<Self, CoreError> {
@@ -85,7 +86,15 @@ impl Terminals {
         Ok(Self {
             db: db.shared_handle(),
             live: BTreeMap::new(),
+            events: None,
         })
+    }
+
+    pub(crate) fn set_events(
+        &mut self,
+        events: &tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>,
+    ) {
+        self.events = Some(events.clone());
     }
 
     fn reap(&mut self) -> Result<(), CoreError> {
@@ -249,9 +258,10 @@ impl Terminals {
         let s = state.clone();
         let stopping = stop.clone();
         let db = self.db.shared_handle();
+        let events = self.events.clone();
         let join = match std::thread::Builder::new()
             .name("oc-pty".into())
-            .spawn(move || drain(master, child, s, stopping, rx, db))
+            .spawn(move || drain(master, child, s, stopping, rx, db, events))
         {
             Ok(join) => join,
             Err(_) => {
@@ -750,6 +760,7 @@ impl Screen {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn drain(
     mut master: File,
     mut child: OwnedPty,
@@ -757,6 +768,7 @@ fn drain(
     stop: Arc<AtomicBool>,
     rx: mpsc::Receiver<Control>,
     db: Db,
+    events: Option<tokio::sync::broadcast::Sender<oc_core::core_app::CoreEvent>>,
 ) -> Result<(), CoreError> {
     let mut pending = VecDeque::<u8>::new();
     let mut failed = false;
@@ -849,7 +861,13 @@ fn drain(
         };
         s.entry.clone()
     };
-    db.finish_terminal(&entry).map_err(storage)?;
+    let publication = db.finish_terminal(&entry).map_err(storage);
+    if let Some(events) = events {
+        let _ = events.send(oc_core::core_app::CoreEvent::TerminalChanged {
+            session: entry.target.session,
+        });
+    }
+    publication?;
     if failed { Err(refused()) } else { Ok(()) }
 }
 

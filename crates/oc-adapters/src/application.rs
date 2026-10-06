@@ -57,6 +57,9 @@ mod provider_catalog;
 mod provider_tests;
 #[path = "application_selection.rs"]
 mod selection;
+#[cfg(test)]
+mod terminal_tests;
+mod terminals;
 pub(crate) use selection::request_choice;
 pub(crate) mod session_move;
 #[path = "application_tab_deck.rs"]
@@ -1554,6 +1557,12 @@ async fn start_worker_inner(
         return Ok(());
     }
     let mut provider_work = provider_catalog::ProviderWork::start(&composition, &db);
+    // Failed terminal recovery keeps local UI/controls available, but refuses
+    // every terminal action and is never reported as successful cleanup.
+    let terminals = Mutex::new(crate::terminals::Terminals::new(&db).map(|mut owner| {
+        owner.set_events(&events);
+        owner
+    }));
     if ready.send(Ok(diagnostics)).is_err() {
         let provider_stop = provider_work.stop().await;
         runtime
@@ -1591,11 +1600,20 @@ async fn start_worker_inner(
             &mut title_rx,
             &title_work,
             &mut provider_work,
+            &terminals,
         )
         .await;
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
+                let terminal_stop = terminals::shutdown(&terminals).map_err(|_| {
+                    runtime_issue(
+                        runtime.location(),
+                        &["terminals", "cleanup"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic
+                });
                 let child_stop = runtime
                     .child_jobs
                     .shutdown()
@@ -1621,6 +1639,7 @@ async fn start_worker_inner(
                 })?;
                 title_stop?;
                 provider_stop?;
+                terminal_stop?;
                 shell_stop?;
                 shell_delivery?;
                 child_stop?;
@@ -1829,6 +1848,7 @@ async fn start_worker_inner(
                         &location_epoch,
                         &suggestion_queue,
                         &title_work,
+                        &terminals,
                         session,
                         old_deck,
                     );
@@ -1887,6 +1907,7 @@ async fn start_worker_inner(
                     &location_epoch,
                     &suggestion_queue,
                     &title_work,
+                    &terminals,
                     session.clone(),
                     old_deck,
                 );
@@ -1932,6 +1953,14 @@ async fn start_worker_inner(
                 let _ = ack.send(Ok(receipt));
             }
             WorkerOutcome::Stop => {
+                let terminal_stop = terminals::shutdown(&terminals).map_err(|_| {
+                    runtime_issue(
+                        runtime.location(),
+                        &["terminals", "cleanup"],
+                        &RuntimeError::Storage,
+                    )
+                    .diagnostic
+                });
                 runtime
                     .child_jobs
                     .shutdown()
@@ -1965,6 +1994,7 @@ async fn start_worker_inner(
                 })?;
                 title_stop?;
                 provider_stop?;
+                terminal_stop?;
                 break;
             }
             WorkerOutcome::Switch { path, ack } => {
@@ -2626,6 +2656,7 @@ fn prepare_picker_open(
     location_epoch: &Arc<AtomicU64>,
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
     title_work: &Mutex<AutomaticTitles>,
+    terminals: &terminals::Owner,
     session: SessionId,
     old_deck: oc_core::queries::TabDeckSnapshot,
 ) -> Result<oc_core::queries::SessionPickerOpen, CoreError> {
@@ -2666,6 +2697,7 @@ fn prepare_picker_open(
         location_epoch,
         suggestion_queue,
         title_work,
+        terminals,
         InboxMsg::History {
             session: session.clone(),
             before_seq: None,
@@ -2760,9 +2792,24 @@ fn query(
     location_epoch: &Arc<AtomicU64>,
     suggestion_queue: &Arc<Mutex<SuggestionQueue>>,
     title_work: &Mutex<AutomaticTitles>,
+    terminals: &terminals::Owner,
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::Terminal {
+            session,
+            action,
+            ack,
+        } => {
+            let _ = ack.send(terminals::action(
+                terminals,
+                runtime,
+                composition,
+                location_epoch.load(Ordering::SeqCst),
+                session,
+                action,
+            ));
+        }
         InboxMsg::McpLookup { query, cancel, ack } => {
             match mcp_lookup::admit(db, runtime, composition, effective, &query) {
                 Ok(()) => runtime.enqueue_mcp_lookup(query, cancel, ack),
@@ -3947,6 +3994,7 @@ async fn worker(
     title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
     title_work: &Mutex<AutomaticTitles>,
     provider_work: &mut provider_catalog::ProviderWork,
+    terminals: &terminals::Owner,
 ) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
@@ -4028,7 +4076,7 @@ async fn worker(
                             else if let InboxMsg::ChangeConversation { ack,.. } = command { let _=ack.send(Err(CoreError::TurnBusy)); }
                         }
                         Some(command @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. })) if pending_inputs.len()<MAX_QUEUE_ITEMS => pending_inputs.push_back(command),
-                        Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,command),
+                        Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,terminals,command),
                     }
                 }
             }
@@ -4044,6 +4092,7 @@ async fn worker(
                     location_epoch,
                     suggestion_queue,
                     title_work,
+                    terminals,
                     command,
                 );
             }
@@ -4392,7 +4441,7 @@ async fn worker(
                                 }
                             }
                             Some(command) => {
-                                query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, command);
+                                query(db, runtime, composition, effective, registry, sessions, home_choices, location_epoch, suggestion_queue, title_work, terminals, command);
                                 if matches!(db.session_meta(&session.0), Err(StorageError::SessionNotFound)) {
                                     cancel.store(true,Ordering::Relaxed);
                                     // Dropping the pinned provider operation closes the
@@ -4415,6 +4464,7 @@ async fn worker(
                         location_epoch,
                         suggestion_queue,
                         title_work,
+                        terminals,
                         command,
                     );
                 }
@@ -5022,6 +5072,7 @@ async fn worker(
                                     location_epoch,
                                     suggestion_queue,
                                     title_work,
+                                    terminals,
                                     command,
                                 ),
                             }
@@ -5122,6 +5173,7 @@ async fn worker(
                         location_epoch,
                         suggestion_queue,
                         title_work,
+                        terminals,
                         command,
                     );
                 }
@@ -5140,6 +5192,7 @@ async fn worker(
                 location_epoch,
                 suggestion_queue,
                 title_work,
+                terminals,
                 message,
             ),
         }

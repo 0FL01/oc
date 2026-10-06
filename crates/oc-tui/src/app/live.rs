@@ -146,7 +146,7 @@ impl ScriptDriver {
                     }
                 }
                 Ok(Ok(CoreEvent::ChildNotice(_))) => {}
-                Ok(Ok(CoreEvent::ShellChanged { .. })) => {
+                Ok(Ok(CoreEvent::ShellChanged { .. } | CoreEvent::TerminalChanged { .. })) => {
                     if state.shells_open()
                         && let Some(session) = state.attached_session().cloned()
                     {

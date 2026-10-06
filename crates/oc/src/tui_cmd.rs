@@ -3294,6 +3294,7 @@ async fn handle_worker_event(
         CoreEvent::ChildNotice(notice) => &notice.job.parent,
         CoreEvent::ShellNotice(notice) => &notice.session,
         CoreEvent::ShellChanged { session }
+        | CoreEvent::TerminalChanged { session }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::SessionModelSelected { session, .. }
         | CoreEvent::SessionTitleUpdated { session, .. }
@@ -3337,6 +3338,7 @@ async fn handle_worker_event(
             }
         }
         CoreEvent::ShellChanged { .. } => unreachable!("handled above"),
+        CoreEvent::TerminalChanged { .. } => {}
         CoreEvent::SessionModelSelected { session, commit } => {
             state.apply_session_model_selected(&session, &commit)
         }

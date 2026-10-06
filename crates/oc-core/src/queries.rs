@@ -535,6 +535,8 @@ impl CatalogSnapshot {
 /// Presentation-only settings; no runtime policy or credentials.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TuiChrome {
+    /// Resolved platform capability, not a configurable opt-in or spawn request.
+    pub session_terminal: bool,
     /// Actual configuration generation used to authorize captured selections.
     pub selection_generation: u64,
     /// Independent, effective DCP transcript display controls.

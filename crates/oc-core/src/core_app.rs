@@ -167,6 +167,10 @@ pub enum CoreEvent {
     ShellChanged {
         session: SessionId,
     },
+    /// Actual PTY exit/removal; frontend reads current bounded owner facts.
+    TerminalChanged {
+        session: SessionId,
+    },
     /// Persisted before the cancellable runtime wait; addressed to one span.
     RetryScheduled {
         session: SessionId,
@@ -384,6 +388,11 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    Terminal {
+        session: SessionId,
+        action: crate::queries::TerminalAction,
+        ack: oneshot::Sender<Result<crate::queries::TerminalReceipt, CoreError>>,
+    },
     ProviderConnections {
         ack: oneshot::Sender<Result<Vec<crate::queries::ProviderConnection>, CoreError>>,
     },
@@ -1403,6 +1412,24 @@ impl CoreApp {
         receipt.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Native session terminal command/query with an acknowledged owner receipt.
+    pub async fn terminal(
+        &self,
+        session: SessionId,
+        action: crate::queries::TerminalAction,
+    ) -> Result<crate::queries::TerminalReceipt, CoreError> {
+        let (ack, receipt) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::Terminal {
+                session,
+                action,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        receipt.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Current/final bounded recent capture; exact source pairing is required.
     pub async fn shell_snapshot(
         &self,
@@ -2214,6 +2241,9 @@ fn scripted_unsupported(message: InboxMsg) {
         InboxMsg::ShellJobs { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
+        InboxMsg::Terminal { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::ChildJobs { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
@@ -2374,7 +2404,8 @@ mod tests {
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)
                 | CoreEvent::ShellNotice(_)
-                | CoreEvent::ShellChanged { .. } => {
+                | CoreEvent::ShellChanged { .. }
+                | CoreEvent::TerminalChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),
@@ -2700,7 +2731,8 @@ mod tests {
                 CoreEvent::Compaction(_) => panic!("unexpected compaction"),
                 CoreEvent::ChildNotice(_)
                 | CoreEvent::ShellNotice(_)
-                | CoreEvent::ShellChanged { .. } => {
+                | CoreEvent::ShellChanged { .. }
+                | CoreEvent::TerminalChanged { .. } => {
                     panic!("unexpected shell in scripted runtime")
                 }
                 CoreEvent::McpChanged(_) => panic!("unexpected MCP in scripted runtime"),

@@ -188,6 +188,7 @@ fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::TurnFailed { session, .. }
         | CoreEvent::SessionMoved { session, .. }
         | CoreEvent::ShellChanged { session }
+        | CoreEvent::TerminalChanged { session }
         | CoreEvent::RetryScheduled { session, .. } => Some(session),
         CoreEvent::ChildNotice(n) => Some(&n.job.parent),
         CoreEvent::ShellNotice(n) => Some(&n.session),

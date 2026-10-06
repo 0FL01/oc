@@ -1026,6 +1026,13 @@ impl Db {
         tx.execute("INSERT INTO deleting_family WITH RECURSIVE family(id) AS (SELECT ?1 UNION SELECT s.id FROM sessions s JOIN family f ON s.parent_id=f.id) SELECT id FROM family", [session])?;
         let busy: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM turns WHERE session_id IN deleting_family AND status='started') OR EXISTS(SELECT 1 FROM tool_output_resources WHERE session_id IN deleting_family AND state='Active') OR EXISTS(SELECT 1 FROM shell_jobs j WHERE session_id IN deleting_family AND (phase!='terminal' OR (message_id IS NULL AND (NOT EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_foreground' AND e.payload=j.operation_id) OR EXISTS(SELECT 1 FROM events e WHERE e.kind='shell_background' AND e.payload=j.operation_id)))))", [], |r| r.get(0))?;
         let busy = busy || tx.query_row("SELECT EXISTS(SELECT 1 FROM child_jobs WHERE parent_id IN deleting_family AND (state IN ('admitted','running') OR message_id IS NULL))",[],|r|r.get::<_,bool>(0))?;
+        // Do not cascade away the recovery identity of a still-owned PTY.
+        // Hiding/navigating is not cancellation; remove terminals explicitly.
+        let busy = busy || tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM terminals WHERE session_id IN deleting_family AND live=1)",
+            [],
+            |r| r.get::<_, bool>(0),
+        )?;
         if busy {
             return Err(StorageError::Io(std::io::Error::other(
                 "session family active",

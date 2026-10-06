@@ -1259,6 +1259,7 @@ async fn load_stages(
         })?,
     };
     let mut tui_chrome = oc_core::queries::TuiChrome {
+        session_terminal: cfg!(target_os = "linux"),
         dcp: oc_core::dcp_view::DcpDisplayConfig {
             notification: dcp_config.prune_notification,
             channel: if dcp_config.prune_notification_type == "toast" {

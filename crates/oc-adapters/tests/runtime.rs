@@ -871,7 +871,8 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             CoreEvent::ProviderChanged => panic!("unexpected native discovery in static fixture"),
             CoreEvent::ChildNotice(_)
             | CoreEvent::ShellNotice(_)
-            | CoreEvent::ShellChanged { .. } => {
+            | CoreEvent::ShellChanged { .. }
+            | CoreEvent::TerminalChanged { .. } => {
                 panic!("unexpected shell in patch-only fixture")
             }
             CoreEvent::TurnPresentation { projection, .. } => checkpoints.push(projection),
