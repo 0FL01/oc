@@ -97,6 +97,10 @@ capabilities. Tests: `provider/protocol_tests.rs`, `application/live_switch_test
 `runtime/tests.rs` (`go03_` filters), `storage_effort/tests.rs` (`prm01_`). Actual
 normal debug/release root/child wire/reopen consumer: `evidence/T45/native_chronology.py`,
 receipt `evidence/T45/chronology.md`.
+Safe child report diagnostics are forwarded by the existing `runtime/turn.rs`
+terminal callback; `evidence/T45/child-diagnostic.md` maps the actual CoreApp
+partial-retry/final-error/linked-read/reopen consumer regression in the existing
+`subagent` target. Classification/redaction and retries stay RET01-owned.
 
 Durable wire authority: core `queries::{NativeProtocol,WireProvenance}` and adapter
 `ResponsesConfig::provenance` feed prepared receipts/TurnLog. `tools/model_history.rs`

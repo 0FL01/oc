@@ -78,6 +78,171 @@ async fn parent_finished(
 }
 
 #[tokio::test]
+async fn core_child_terminal_reason_and_final_span_reopen_without_retry_replay() {
+    use oc_core::domain::SessionId;
+    use oc_core::queries::ChildState;
+    use oc_core::session::CoreError;
+
+    let child_steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let steps = child_steps.clone();
+    let terminal_gate = Arc::new(Gate::default());
+    let held_terminal = terminal_gate.clone();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let captured = requests.clone();
+    let peer = Peer::start(move |request| {
+        if request["max_output_tokens"] == 256
+            && request["tools"].as_array().is_none_or(Vec::is_empty)
+        {
+            return sse_delta("Synthetic title") + &sse_completed();
+        }
+        captured.lock().unwrap().push(request.clone());
+        if request["model"] == "m" {
+            if outputs(&request).is_empty() {
+                return subagent_call(
+                    "restricted-child",
+                    serde_json::json!({"agent":"helper","description":"Restricted final","prompt":"OWN_CHILD_TASK","background":true}),
+                ) + &sse_completed();
+            }
+            return sse_delta("Independent parent final") + &sse_completed();
+        }
+        assert_eq!(request["model"], "agent-model");
+        match steps.fetch_add(1, Ordering::SeqCst) {
+            0 => {
+                sse_tool_call(
+                    "settled-read",
+                    "read",
+                    &serde_json::json!({"path":"seed.txt"}),
+                ) + &sse_completed()
+            }
+            attempt @ (1 | 2) => {
+                assert_eq!(outputs(&request).len(), 1);
+                assert!(outputs(&request)[0].1.contains("ONE_CHILD_READ"));
+                let (code, message) = if attempt == 1 {
+                    ("server_error", "Synthetic earlier retryable rejection")
+                } else {
+                    held_terminal.wait();
+                    (
+                        "cyber_policy",
+                        "This content was flagged for possible cybersecurity risk. Review https://platform.openai.com/settings/organization/status-and-access before retrying.",
+                    )
+                };
+                let event = serde_json::json!({"type":"response.failed","response":{"status":"failed","error":{"code":code,"message":message}}});
+                let failure = format!("data: {event}\n\n");
+                if attempt == 1 {
+                    // A real committed partial-output retry owns a historical
+                    // failed span; pre-output transparent retry reuses its span.
+                    sse_delta("EARLIER_CHILD_PARTIAL") + &failure
+                } else {
+                    failure
+                }
+            }
+            other => panic!("terminal child dispatched again: {other}"),
+        }
+    });
+    let (root, app, guard) = app_fixture(
+        &peer,
+        serde_json::json!({"subagent":"allow","read":"allow"}),
+    )
+    .await;
+    std::fs::write(root.path().join("source/seed.txt"), "ONE_CHILD_READ\n").unwrap();
+    let parent = SessionId("parent".into());
+    let mut events = app.subscribe();
+    let parent_turn = app.submit(parent.clone(), "delegate".into()).await.unwrap();
+    parent_finished(&mut events, &parent_turn).await;
+    // Do not infer parent independence from the retry delay, or discard an early
+    // child terminal event while waiting for the parent under scheduler load.
+    terminal_gate.release();
+    let jobs = jobs_when(&app, |jobs| jobs.len() == 1).await;
+    let admitted = jobs[0].clone();
+    let reason = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if let CoreEvent::TurnFailed {
+                session,
+                error: CoreError::Application(reason),
+                ..
+            } = events.recv().await.unwrap()
+                && session == admitted.child
+            {
+                break reason;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    // This is the RET01 owner-sanitized final reason, not successful prose or
+    // the earlier retry's diagnosis. No independent classifier is introduced.
+    assert!(reason.contains("cybersecurity risk"), "{reason}");
+    assert!(reason.contains("https://platform.openai.com/settings/organization/status-and-access"));
+    assert!(!reason.contains("Synthetic earlier"));
+    let terminal = jobs_when(&app, |jobs| {
+        jobs.len() == 1 && jobs[0].state == ChildState::Error && jobs[0].message_id.is_some()
+    })
+    .await
+    .remove(0);
+    assert_eq!(terminal.operation, admitted.operation);
+    assert_eq!(terminal.delivery_id, admitted.delivery_id);
+    assert_eq!(terminal.generation, admitted.generation);
+    assert_eq!(terminal.result.as_deref(), Some(reason.as_str()));
+    let page = app
+        .read_child(parent.clone(), terminal.clone())
+        .await
+        .unwrap();
+    let turn = page.rows.iter().find_map(|row| row.turn.as_ref()).unwrap();
+    assert_eq!(turn.status, "failed");
+    // The bounded metadata window combines the settled RAW read step with the
+    // historical partial-output retry and the actual final attempt. No whole
+    // archive reload or historical deadline-driven dispatch is needed.
+    assert_eq!(turn.spans.len(), 3);
+    assert_eq!(turn.spans[0].status, "completed");
+    assert_eq!(turn.spans[1].status, "failed");
+    assert!(turn.spans[1].retry.is_some());
+    assert!(turn.spans[1].completed.is_some());
+    let final_span = &turn.spans[2];
+    assert_ne!(turn.spans[1].id, final_span.id);
+    assert_eq!(final_span.status, "failed");
+    assert!(final_span.completed.is_some());
+    assert!(final_span.retry.is_none());
+    assert_eq!(final_span.error.as_deref(), Some(reason.as_str()));
+    assert_eq!(requests.lock().unwrap().len(), 5);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let environment = BTreeMap::from([
+        ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ("PATH".into(), "/usr/bin:/bin".into()),
+        ("SHELL".into(), "/bin/bash".into()),
+    ]);
+    let (reopened, guard, _) = oc_adapters::application::spawn_with_env(
+        &root.path().join("source"),
+        &root.path().join("data"),
+        environment,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        reopened
+            .child_jobs(parent.clone())
+            .await
+            .unwrap()
+            .as_slice(),
+        std::slice::from_ref(&terminal)
+    );
+    assert_eq!(
+        reopened.read_child(parent, terminal.clone()).await.unwrap(),
+        page
+    );
+    reopened.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(requests.lock().unwrap().len(), 5, "reopen generated work");
+    assert_eq!(child_steps.load(Ordering::SeqCst), 3);
+    let db = Db::open(&root.path().join("data")).unwrap();
+    let reads = db.list_tool_ops(&terminal.child.0).unwrap();
+    assert_eq!(reads.len(), 1);
+    assert_eq!(reads[0].name, "read");
+    assert_eq!(reads[0].state, "completed");
+}
+
+#[tokio::test]
 async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location_switch() {
     use oc_core::queries::ChildState;
     let parent_steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));

@@ -3490,7 +3490,7 @@ impl<'a> Runtime<'a> {
                         send(match report.status {
                             TurnStatus::Completed => CoreEvent::TurnFinished { session, turn, text: report.text.clone(), duration_ms: report.duration_ms, warnings: report.warnings.clone() },
                             TurnStatus::Cancelled | TurnStatus::Interrupted => CoreEvent::TurnInterrupted { session, turn, partial: report.text.clone(), duration_ms: report.duration_ms },
-                            _ => CoreEvent::TurnFailed { session, turn, error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: report.warnings.clone() },
+                            _ => CoreEvent::TurnFailed { session, turn, error: oc_core::session::CoreError::Application(report.diagnostic.clone().unwrap_or_else(|| "child turn failed".into())), warnings: report.warnings.clone() },
                         });
                     } else if let Some(id) = accepted_id.lock().expect("child acceptance lock").as_ref() {
                         // Preserve the last durable checkpoint and settle the
