@@ -656,6 +656,17 @@ Workspace gates: 1647 passed / 0 failed / 10 existing opt-in ignored, strict wor
 clippy/fmt/build/help/diff green. Evidence: `evidence/T53/connect-ui.md`.
 Frozen matrix and actual Go wire live qualification are next; not full T53 PASS.
 
+### New-wire runtime retry checkpoint
+
+The required Chat/Messages retry cases now run through the actual T54 runtime
+owner: pre-output 429 preserves captured body, a settled read survives, partial
+text plus incomplete call EOF yields a durable continuation without tool replay.
+Each wire records four physical requests, two retries and one executed effect;
+reopen preserves journal/outcome. Workspace 1648/0/10 and strict fmt/clippy/build/
+help/diff pass. Evidence: `evidence/T53/retry-wires.md`. Go credential preflight
+found no `OPENCODE_API_KEY` in process or permitted repo-local test input; real
+Go generation/route probes are NOT_RUN, not PASS. Final factual report follows.
+
 ## RECON sources
 
 Donor `opencode` pinned v2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`:

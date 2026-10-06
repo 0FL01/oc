@@ -117,6 +117,10 @@ Nearest tests:
 receipts `evidence/T53/{chat,messages}-wire.md`. Full Go/catalog/credentials/
 replay/metadata qualification remains T53.
 
+New-wire runtime retry qualification: `runtime/binding_replay_tests.rs` drives
+Chat/Messages through pre-output retry and durable post-output continuation,
+asserting counted physical attempts and no partial/settled tool replay.
+
 T53 accounts: `oc-adapters/src/storage_credentials.rs` owns the additive account
 schema/lifecycle in `Db`, with `storage_credentials/tests.rs`; `auth.rs` is the narrow
 admitted Go/custom credential resolver. Application startup/reload resolves once per
