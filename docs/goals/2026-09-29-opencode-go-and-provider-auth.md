@@ -1,9 +1,9 @@
 # Goal: OpenCode Go, единые credentials и connect/model TUI
 
-Status: active
+Status: complete
 Source: владелец после RECON и параллельного аудита утвердил план 2026-09-29; «единая логика хранения кред, без деприкейт фич», будущий Codex OAuth и custom llama.cpp/ludka2 учтены как границы общего owner.
 Last updated: 2026-10-06
-Task: T53 (resumed with explicitly authorized OC_API_KEY; GO01–GO05 offline verified, GO06 in progress).
+Task: T53 (complete; R1–R6 / GO01–GO06 verified offline and bounded real Go).
 
 ## Scope boundary clarification (2026-10-06)
 
@@ -80,14 +80,14 @@ required outcome is resolved and affected constraints remain satisfied.
   - Acceptance: GO05 доказывает usable TUI/history/connect при отсутствии config/key/catalog, реальное account management и acknowledged connect → Go-filtered picker. Optional exact ModelRef не выбирается автоматически; provider-ID collisions, variants/drafts/tabs/agents и restart/fork сохраняют выбор. Unready submission/headless отказывает до root/turn acceptance, generation/title/tools; malformed mandatory policy/storage/recovery остаются fatal.
   - Primary evidence: actual-binary PTY flow fresh offline → masked/cancelled input → accounts → explicit model → fake generation/cancel → reopen; headless refusal и held-request binding test.
   - Status: verified
-  - Evidence: evidence/T53/report.md — GO05 actual-binary configless masked/accounts/explicit Go selection, additional explicit custom fake generation/cancel/reopen and qualified selection tests; real Go belongs to unresolved R6.
+  - Evidence: evidence/T53/report.md — GO05 actual-binary configless masked/accounts/explicit Go selection, additional explicit custom fake generation/cancel/reopen and qualified selection tests; real Go separately verified under R6.
 
 - R6: current offline и bounded Go live qualification.
   - Source: API smoke permission владельца; A01–A13 и runbook live envelope.
   - Acceptance: GO06 требует green impacted regressions/workspace gates и bounded real Go text/tool representatives для трёх protocols, плюс проверку известных catalog/docs conflicts. Report различает fake/live/NOT_RUN и exact selection; отсутствующий/revoked key блокирует только live, не превращает его в PASS.
   - Primary evidence: factual evidence/T53/report.md с implementation commits, commands/exits и sanitized durable live-campaign counters.
-  - Status: in_progress
-  - Evidence: prior offline report/zero ledger retained; owner supplied OC_API_KEY name, confirmed nonempty without printing; bounded fixed-authority live qualification in progress.
+  - Status: verified
+  - Evidence: evidence/T53/report.md / go-live.md / live-campaign.json — current workspace 1651/0/11 and final gates green; real native Responses/Chat/Messages text/tool plus both dated Qwen probes PASS, 13/24 charged requests, smoke <=2048.
 
 ### Credentials, connection config и authority
 
@@ -355,6 +355,18 @@ CoreApp/queries ModelRef и binary/TUI consumers. Naming follows фактиче�
 commits/текущий diff, не переносить чужую незакоммиченную работу вслепую.
 
 ## Current Checkpoint / State
+
+Authoritative closure 2026-10-06, reviewed/pushed implementation `bee775508`:
+**COMPLETE**, R1–R6 / GO01–GO06 verified. Real native read/function-result/final
+passes on exact source-selected Responses/Chat/Messages and both dated Qwen targets;
+same t53-go-20261006 ledger 13/24 including diagnostics, no reset/fallback/unknown
+effect. Go Messages native x-api-key is source/live-correct; custom schemes unchanged.
+Current workspace 1651/0/11 plus separately executed Go opt-in PASS, strict final
+gates green. [Report](../../evidence/T53/report.md),
+[live receipt](../../evidence/T53/go-live.md),
+[durable counters](../../evidence/T53/live-campaign.json). No T53 blocker remains.
+Stop T53 substantive work; T44 PAUSED, T57 and other task contracts unchanged.
+The following material checkpoints are historical, not current remaining todos.
 
 Resume 2026-10-06: owner explicitly identified authorized `.local/live.env`
 `OC_API_KEY`, confirmed nonempty without printing it. The earlier preflight looked

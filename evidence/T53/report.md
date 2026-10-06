@@ -1,12 +1,12 @@
-# T53 — Go/custom native integration: offline verified, live BLOCKED
+# T53 — Go/custom native integration: COMPLETE
 
-Date: 2026-10-06. Reviewed implementation HEAD: `42b49e180`.
-Overall: **RESUMED, not complete**. R1–R5/GO01–GO05 are verified offline;
-R6/GO06 offline gates pass; authorized `OC_API_KEY` input is now confirmed and
-fixed-authority bounded real Go qualification is in progress. The blocked snapshot
-below is historical and superseded by [the resumed campaign receipt](go-live.md).
-`progress.py finish` has deliberately not been run. T44 stays PAUSED; T57 scope,
-existing OpenProxy live evidence and other task baselines are not changed.
+Date: 2026-10-06. Reviewed implementation/live HEAD: `bee775508`.
+Overall: **COMPLETE**. Every frozen R1–R6/GO01–GO06 outcome is verified: owning
+offline/actual-binary tests plus real fixed-authority Go text/tool qualification.
+Campaign `t53-go-20261006` used 13/24 requests including failed diagnostics, without
+reset/fallback or unknown effects. T44 stays PAUSED; T57 scope, existing OpenProxy
+live evidence and other task baselines are not changed. This is T53 completion,
+not an overall product READY or paired visual-parity claim.
 
 ## Frozen outcome matrix
 
@@ -17,7 +17,7 @@ existing OpenProxy live evidence and other task baselines are not changed.
 | R3 / GO03 | VERIFIED offline | [Chat](chat-wire.md), [Messages](messages-wire.md), [wire settings](config-normalization.md), [request context](request-context.md), [timeout](transport-timeout.md), [chronology](chronology.md), [runtime retries](retry-wires.md): each native wire text/tools/reasoning/usage/terminal/error/cancel, per-wire typed options and media refusals; immutable all-lane Go identity/cache; numeric deadlines; chronological native/fallback system and effort/default/reset; one adapter attempt and counted durable runtime retry/partial continuation without partial-tool execution or effect replay. |
 | R4 / GO04 | VERIFIED offline | [Durable bindings](durable-binding.md), [qualified selection](qualified-selection.md), [chronology](chronology.md): full provider/API/protocol/deployment/auth-scope receipts through raw/HOT SQL, DCP, checkpoints, fork/reopen and next requests; absent protocol is legacy Responses but missing authority is never invented; alien encrypted/signed/redacted state withheld, ordinary complete pairs and immutable raw history retained; qualified fork/child/profile/command captures use their own admitted authority. |
 | R5 / GO05 | VERIFIED offline | [Configless](configless.md), [accounts](accounts.md), [connect UI](connect-ui.md), [qualified selection](qualified-selection.md): no fabricated model, usable local history/connect, acknowledged provider chooser/accounts/masked entry/filtered picker, explicit full ModelRef with ID collisions and slash IDs, drafts/variants/tabs/agents/Home/session/fork/restart; held prepared requests retain old bindings and next requests adopt the committed target; unready headless/submission refuse before acceptance/effects; unavailable reload retains exact choice while mandatory policy/storage/recovery remains fatal. |
-| R6 / GO06 | IN_PROGRESS; offline VERIFIED | Current offline commands below; [sanitized live ledger](live-campaign.json) and [resumed fixed-authority harness](go-live.md). Owner identified OC_API_KEY, mapped only in the explicit test process to the existing Go resolver. Public source reads and fake requests are not live generation evidence. |
+| R6 / GO06 | VERIFIED offline + real Go | Current final commands below; [sanitized durable live ledger](live-campaign.json) and [real fixed-authority receipt](go-live.md): actual native read/function-result/final on Responses, Chat, Messages and both dated Qwen targets; 13/24 requests, smoke <=2048. Authorized OC_API_KEY mapped only in the explicit test process to the existing Go resolver. |
 
 ### Actual-binary R5 boundary (not a disguised Go live test)
 
@@ -35,13 +35,15 @@ selection, Go-only picker from a different connection and exact persisted choice
 
 ## Current final gates
 
-Executed after the final implementation edit at `42b49e180`, with
+Executed after the Go Messages auth correction and live harness fixes committed as
+`bee775508`, with
 `TMPDIR=/home/opencode/.cache/opencode-tmp/opencode`, `CARGO_BUILD_JOBS=3`,
 `RUST_TEST_THREADS=2`, normal default thread stacks and no parallel Cargo runs:
 
 | Command | Result |
 | --- | --- |
-| `cargo test --locked --workspace` | Exit 0; 42 result records, **1648 passed / 0 failed / 10 ignored**. Includes actual-binary headless/PTY, core/TUI, native runtime, child, retry, DCP/fork/recovery, discovery and storage targets. |
+| `cargo test --locked --workspace` | Exit 0; 42 result records, **1651 passed / 0 failed / 11 ignored**. Includes actual-binary headless/PTY, core/TUI, native runtime, child, retry, DCP/fork/recovery, discovery and storage targets. |
+| `python3 -B scripts/t53_go_live.py --run` | Exit 0 on final live run; explicit opt-in **1 passed / 0 failed**, all five exact catalog-selected models below PASS. Every earlier failed attempt remains charged in the same ledger. |
 | `cargo clippy --locked --workspace --all-targets -- -D warnings` | Exit 0. |
 | `cargo fmt --all -- --check` | Exit 0. |
 | `cargo build --locked` | Exit 0; native `target/debug/oc`. |
@@ -49,11 +51,14 @@ Executed after the final implementation edit at `42b49e180`, with
 | `git diff --check` | Exit 0. |
 
 Raw final local gate output:
-`/home/opencode/.local/share/opencode/tool-output/tool_10f95f35c001CHBm0aGHfsjQdJ`.
-The ten existing opt-in live/internal ignores are unchanged, not bypassed and not
-counted as live PASS. No dependency, baseline, failing-test disable, timeout increase
-or stack-size override was used to obtain green gates. Each slice receipt records
-its actual failures, diagnosis and narrower/broad rechecks rather than hiding them.
+`/home/opencode/.local/share/opencode/tool-output/tool_110080bec001VkIPufJKhg8L7n`.
+The ten existing opt-in live/internal ignores are unchanged. The eleventh is the
+new explicit Go opt-in, actually run and qualified separately above; being ignored
+offline is not its live proof. After a comment/test-expression readability-only
+review, all three `go06_` offline tests and strict workspace all-target Clippy/fmt
+were rechecked, and the native binary rebuilt/help checked, all exit 0. No dependency,
+baseline, failing-test disable, timeout increase or stack-size override was used.
+Each slice receipt records failures, diagnosis and rechecks rather than hiding them.
 
 ## Implementation and review anchors
 
@@ -70,15 +75,51 @@ All implementation slices were reviewed and committed/pushed on
 - `69e2e01f0`, `d4abea7cc`, `d3c3a26ae`: configless startup, acknowledged account commands and masked TUI.
 - `50615d743`, `cee7dc5bc`, `b4b9266d5`, `2a36a2202`: independent provider views/public refresh, full qualified executable selection and fork/child authority.
 - `57f7c459a`, `6a3a469b9`, `42b49e180`: explicit connection chooser/actual binary flow, Chat/Messages runtime retries and exact unavailable-choice reload.
+- `43f836eb6`: fixed-authority cfg(test)-only pre-DNS durable Go campaign guard and explicit authorized-input wrapper.
+- `bee775508`: source/live-correct native Go Messages x-api-key, unchanged-body smoke fixture and all real protocol/tool/conflict qualification.
 
 Concurrent T57 plan-only commit `6e7fa2ed4` was preserved independently, not counted
 as T53 implementation. User-owned untracked `.opencode/` was neither read nor staged.
 Production owners and nearest tests are mapped in `docs/CODE_MAP.md`; component
 receipts above document paths, contracts, failure experiments and commands.
 
-## Historical missing-name preflight (superseded on owner clarification)
+## Real fixed-authority Go results
 
-Presence-only preflight was repeated after implementation. It printed no values:
+Each row is the actual native runtime, one settled native Db/read-tool operation,
+then its complete function-result/final request. The final text contained the fixture
+token; no raw response/prose/key/header is published.
+
+| Exact catalog ID | Declared protocol | Explicit variant | Native read count | Last-round input / summed output usage | Result |
+| --- | --- | --- | --- | --- | --- |
+| `muse-spark-1.2-contributor` | Responses | default (`null`) | 1 | 1329 / 348 | PASS |
+| `longcat-2.5-preview-free` | Chat | default (`null`) | 1 | 756 / 98 | PASS |
+| `qwen3.8-flash` | Messages | `none` | 1 | 863 / 36 | PASS |
+| `qwen3.8-max` | Messages | `none` | 1 | 863 / 36 | PASS |
+| `qwen3.7-plus` | Messages | `none` | 1 | 863 / 36 | PASS |
+
+The first three were cheapest declared tool-capable current representatives of the
+three protocols; the last two are explicitly required dated conflict targets, not
+production ID routing. Both Qwen rows now declare Messages in models.dev, and actual
+Messages read/final exchanges confirm that authority. No alternate-wire retry was
+used. The public-only 33-row observation at `2026-10-06T04:15:56.116023+00:00` was a
+source snapshot, not live proof; the table above supplies the missing actual proof.
+
+Ledger: **13/24 physical requests**, 11 complete and 2 failed; main 6, ordinary
+follow-up 3, dated probes 4. Every request's native token cap was 2048. Title,
+summary/compaction, child, runtime retry and MCP counts were zero, as were unknown
+effects. Native all-lane identity/retry/cancel guarantees are additionally qualified
+by the owning fake tests, not inferred from uninvoked live lanes.
+
+The pre-DNS guard uses locked/fsynced atomic accounting on the same ledger across
+process restart and refuses request 25 or >2048/foreign authority before dial.
+Reservations before failure remain charged. The hook exists only under cfg(test):
+no production successful-step cap, transport bypass, proxy, alternate endpoint or
+new retry owner. Passed models are skipped when resuming the same campaign; no
+automatic all-model sweep, budget reset or paid fallback occurred.
+
+## Material failures and corrections (historical, resolved)
+
+The initial presence-only preflight printed no values:
 
 ```text
 process_OPENCODE_API_KEY_present=False
@@ -87,11 +128,11 @@ approved_file_OPENCODE_API_KEY_name_present=False
 foreign_OpenProxy_test_input_names_present=True
 ```
 
-The initial check inspected the expected `OPENCODE_API_KEY` name and the existing
-OpenProxy input names, but missed the authorized Go input under `OC_API_KEY`.
-The owner corrected this name, nonempty presence was confirmed without printing,
-and T53 resumed. Native fixture accounts remain synthetic. The rejected alternative
-strategies below remain invalid; they were not used to replace the now supplied key:
+It checked `OPENCODE_API_KEY` and missed the owner-authorized Go input `OC_API_KEY`.
+The owner corrected the name, nonempty presence was confirmed without printing,
+and only the child test process mapped it to the existing Go resolver. The earlier
+blocked checkpoint was an incomplete name check, not a revoked/missing-key finding.
+Native fixture accounts remain synthetic. The invalid alternatives were not used:
 
 - Reusing OpenProxy material on Go would violate credential/authority isolation.
 - Anonymous/free generation would neither qualify Console auth nor authorize the
@@ -100,31 +141,30 @@ strategies below remain invalid; they were not used to replace the now supplied 
   they were not searched or copied.
 - Changing the Go base URL or adding a private-network/redirect bypass to reuse a
   fake/envelope endpoint would invalidate fixed Go admission; it was not done.
-- Current public catalog fetching succeeds without a key, but cannot prove paid
+- Public catalog fetching succeeds without a key, but cannot prove paid
   authorization or actual generation route compatibility.
 
-Sanitized campaign receipt: `t53-go-20261006`, **0 physical generation requests**,
-0 title/summary/child/retry/probe requests and 0 MCP searches. No paid campaign or
-unknown external side effect was started. The durable zero ledger is a preflight
-receipt, **not** a claim that a dedicated fixed-authority live enforcement harness
-has been qualified. Generic existing bounded-envelope tests remain green offline.
+Physical request 1 completed text without tool exposure: the smoke fixture scalar
+permissions did not replace its inherited ordered rules. The read-only fixture
+authority and a no-body-mutation exposure guard fixed this; one further local
+refusal consumed no request. Physical request 2's temporary forced choice returned
+typed HTTP 400; all forced-choice mutation was removed. Physical request 7's Go
+Messages Bearer returned typed HTTP 401. Pinned server `go/v1/messages.ts:9` reads
+x-api-key, whereas Responses and Chat read Bearer. Production now preserves the
+native scheme after Go authoritative-header overlay, and custom static Messages
+apiKey/authToken behavior is unchanged. Requests 8–13 then succeeded. All failures
+and nonqualifying result rows remain in the ledger and [live receipt](go-live.md).
+Earlier blanket Go-Bearer claims are superseded by this source/live correction.
 
-Public-only observation at `2026-10-06T04:15:56.116023+00:00`: models.dev returned
-5,315,044 bytes and 33 Go rows, with all three implemented package aliases present.
-`qwen3.8-max` and `qwen3.7-plus` currently declare Messages (`@ai-sdk/anthropic`),
-not the historical default-Chat conflict in the RECON snapshot. Both actual routes
-remain NOT_PROBED. Neither this metadata change nor docs is an endpoint success;
-no ID allowlist, guessed route or automatic paid fallback was introduced.
+## Closure and boundaries
 
-## Smallest unlock / resume
-
-An authorized real Go Console key supplied as `OPENCODE_API_KEY` in the approved
-test inputs or an explicitly authorized native Go account is required. On resume,
-reuse the existing campaign ID/ledger, establish fixed-authority pre-dial durable
-accounting before any request, and count **all** main/auxiliary/retry/probe HTTP
-dispatches against the same maximum 24 across restart. Smoke output is at most
-2048 tokens; use only exact current catalog-selected representatives, no all-model
-sweep or paid fallback. Qualify real text/tool representatives for Responses, Chat
-and Messages and the dated Qwen conflict rows; record sanitized results/counters.
-Then refresh affected final gates, update R6 honestly, and only then run task finish.
-No other T53 implementation or offline gate is known to be blocked by this key.
+All frozen outcomes are resolved with current primary evidence; no known blocker
+or failed gate remains. Changed production paths are the contracted native
+config/auth/catalog/wire/runtime/storage/core/TUI consumers; tests/evidence and the
+test-only bounded harness stay inside the approved envelope. One Db/auth/cache
+owner, immutable raw history, complete settled tool pairs, trust/DNS/peer/redirect
+guards, cancellation/retry ownership and captured-request concurrency are retained.
+Key material is absent from Git/logs/arguments; `.opencode/` is untouched. No Node/Bun
+production host, dependencies, OAuth execution, auth CLI, guessed fallback, T44
+resume or adjacent-task completion was introduced. T53 is complete; stop substantive
+T53 work rather than expanding into T57/T44 or speculative cleanup.

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-06T06:23:55+00:00",
-  "current": "T53",
+  "updated_at": "2026-10-06T07:26:01+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -368,10 +368,10 @@
       "reopen_reason": null
     },
     "T53": {
-      "status": "active",
-      "last_seq": 1,
-      "latest": "progress/M8/T53/0001.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 2,
+      "latest": "progress/M8/T53/0002.md",
+      "evidence": "evidence/T53/report.md",
       "reopen_reason": null
     },
     "T54": {
