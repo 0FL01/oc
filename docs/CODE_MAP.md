@@ -221,7 +221,9 @@ request-preparation proof. `provider/websocket.rs` owns one shared-Db bounded na
 session channel/affinity/continuation; `provider/failure.rs` and the shared decoder
 own delivery/retry/classification/redaction facts. Nearest real-peer scenarios
 `provider/websocket/tests.rs`, filter `auth04_`; `evidence/T57/websocket.md` is checked
-local channel evidence, not full runtime/actual CLI/TUI/live qualification.
+local channel evidence. The same coarse fixture now qualifies actual Runtime
+read/follow-up/fork/opaque/retry/child/ordinary-summary consumers;
+`evidence/T57/runtime-ws.md` records those effects, not rebuilt CLI/TUI or live login.
 
 ## Как обновлять
 

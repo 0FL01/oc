@@ -69,7 +69,7 @@ required outcome is resolved and affected constraints remain satisfied.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
   - Status: in_progress
-  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md — admitted Key/OAuth authority/catalog, selected all-lane preparation and checked local native default WS/HTTP affinity/continuation/fallback/rejection/privacy ownership; full runtime/actual-binary lanes and live provider qualification remain pending.
+  - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md / runtime-ws.md — admitted Key/OAuth authority/catalog, selected all-lane preparation, checked local native channel ownership and actual runtime read/result/final/fork/opaque/retry/child/summary effects; rebuilt headless/PTY consumers and live provider qualification remain pending.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
     `dialog-integration.tsx`, CLI auth handlers, T53 GO05.
@@ -315,8 +315,15 @@ No new crate/framework/store solely for arrangement. Sources/locators are record
 - Current channel checks: auth04_18/0, adapters lib662/0/1, strict workspace all-target
   Clippy/fmt/diff green; evidence/T57/websocket.md. Real local WS/HTTP peer captures
   are not real OpenAI/Codex, rebuilt CLI/TUI or complete AUTH04/AUTH06 evidence.
-- Next checkpoint: full captured runtime/actual-binary lanes, then shared CLI/TUI
-  consumers and bounded dedicated live authorization/request qualification.
+- Eighth checked slice: real Runtime WS read/function-result/final, settled receipt
+  fork and changed-account opaque filtering, counted existing-owner continuation
+  recovery, non-replayed delivered failures, actual child actor/policy lifecycle
+  and ordinary summary checkpoint. Only the owning synthetic peer/tests changed.
+- Current runtime checks: auth04_21/0, adapters lib665/0/1 and strict workspace
+  all-target Clippy/fmt/diff green; evidence/T57/runtime-ws.md. These local native
+  runtime effects are not real OpenAI/Codex authorization or rebuilt CLI/TUI/live.
+- Next checkpoint: shared CLI/TUI consumers and actual-binary pipe/PTY qualification,
+  then current final gates and bounded dedicated live authorization/request proof.
 - Live prerequisites are dedicated owner-operated ChatGPT login and OpenAI test key,
   not authoring-agent auth. Missing prerequisites block only required live proof;
   independent offline work proceeds. No READY from docs, storage or fake-only PASS.

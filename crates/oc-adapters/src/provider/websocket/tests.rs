@@ -50,11 +50,44 @@ impl Fixture {
         }
         .with_context(context::RequestContext::capture(&self.db, &self.project, "session").unwrap())
     }
+    fn runtime(&self) -> crate::runtime::Runtime<'_> {
+        crate::runtime::Runtime::new(
+            &self.db,
+            "work",
+            crate::config::Generation {
+                permissions: BTreeMap::from([
+                    ("read".into(), crate::config::Permission::Allow),
+                    ("subagent".into(), crate::config::Permission::Allow),
+                ]),
+                compaction: crate::compaction::CompactionConfig {
+                    keep_tokens: 0,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            crate::patch::ProtectedGlobs { patterns: vec![] },
+            crate::files::Files::new(&self.project, self.db.root()).unwrap(),
+            crate::shell::Shell::new(&self.project).unwrap(),
+            BTreeMap::new(),
+            crate::tools::ToolRoots {
+                project: self.project.clone(),
+                data: self.db.root().into(),
+            },
+            None,
+            false,
+            crate::dcp_auto::DcpConfig::default(),
+        )
+        .unwrap()
+    }
 }
 
 #[derive(Clone, Copy)]
 enum Reply {
     Complete,
+    Tool,
+    ToolRejected,
+    Child,
+    ChildPolicy,
     Ambiguous,
     Partial,
     Policy,
@@ -124,12 +157,12 @@ impl Peer {
                         };
                         let id = format!("r{sequence}");
                         let event = |value: Value| Message::text(serde_json::to_string_pretty(&value).unwrap());
-                        if (matches!(reply,Reply::RejectAppend) && sequence == 2) || (matches!(reply,Reply::RejectLimit) && sequence <= 2) {
-                            let code = if matches!(reply,Reply::RejectAppend) {"previous_response_not_found"} else {"websocket_connection_limit_reached"};
+                        if (matches!(reply,Reply::RejectAppend | Reply::ToolRejected) && sequence == 2) || (matches!(reply,Reply::RejectLimit) && sequence <= 2) {
+                            let code = if matches!(reply,Reply::RejectAppend | Reply::ToolRejected) {"previous_response_not_found"} else {"websocket_connection_limit_reached"};
                             socket.send(event(json!({"error":{"code":code,"status":400,"message":"channel continuation rejected"}}))).await.unwrap();
                             break;
                         }
-                        if matches!(reply, Reply::Policy) {
+                        if matches!(reply, Reply::Policy) || (matches!(reply, Reply::ChildPolicy) && sequence == 2) {
                             socket.send(event(json!({"error":{"code":"cyber_policy","message":"This content was flagged for possible cybersecurity risk. Review https://platform.openai.com/settings/organization/status-and-access before retrying."}}))).await.unwrap();
                             let _ = socket.close(None).await;
                             break;
@@ -140,16 +173,45 @@ impl Peer {
                         }
                         if matches!(reply, Reply::Ambiguous) { break; }
                         socket.send(event(json!({"type":"response.created","response":{"id":id}}))).await.unwrap();
+                        if matches!(reply, Reply::Child | Reply::ChildPolicy) && sequence == 1 {
+                            let call = json!({"id":"child-item","type":"function_call","call_id":"child-call","name":"subagent","arguments":"{\"agent\":\"helper\",\"description\":\"child channel\",\"prompt\":\"child task\"}","status":"completed"});
+                            let mut added = call.clone();
+                            added["arguments"] = "".into();
+                            added["status"] = "in_progress".into();
+                            socket.send(event(json!({"type":"response.output_item.added","output_index":0,"item":added}))).await.unwrap();
+                            socket.send(event(json!({"type":"response.output_item.done","output_index":0,"item":call}))).await.unwrap();
+                            socket.send(event(json!({"type":"response.completed","response":{"id":id,"status":"completed","output":[call],"usage":{"input_tokens":4,"output_tokens":2}}}))).await.unwrap();
+                            continue;
+                        }
+                        if matches!(reply, Reply::Tool | Reply::ToolRejected) && sequence == 1 {
+                            let reasoning = json!({"id":"reasoning-tool","type":"reasoning","summary":[],"encrypted_content":"EARLY_OPAQUE_CANARY"});
+                            socket.send(event(json!({"type":"response.output_item.added","output_index":0,"item":reasoning}))).await.unwrap();
+                            socket.send(event(json!({"type":"response.output_item.done","output_index":0,"item":reasoning}))).await.unwrap();
+                            let call = json!({"id":"read-item","type":"function_call","call_id":"settled-read","name":"read","arguments":"{\"path\":\"note.txt\"}","status":"completed"});
+                            let mut added = call.clone();
+                            added["arguments"] = "".into();
+                            added["status"] = "in_progress".into();
+                            socket.send(event(json!({"type":"response.output_item.added","output_index":1,"item":added}))).await.unwrap();
+                            socket.send(event(json!({"type":"response.function_call_arguments.delta","output_index":1,"item_id":"read-item","delta":call["arguments"]}))).await.unwrap();
+                            socket.send(event(json!({"type":"response.output_item.done","output_index":1,"item":call}))).await.unwrap();
+                            let mut completed_reasoning = reasoning.clone();
+                            completed_reasoning["encrypted_content"] = "COMPLETION_ROTATED_CANARY".into();
+                            socket.send(event(json!({"type":"response.completed","response":{"id":id,"status":"completed","output":[completed_reasoning,call],"usage":{"input_tokens":4,"output_tokens":2}}}))).await.unwrap();
+                            continue;
+                        }
                         if matches!(reply, Reply::Partial) {
                             socket.send(event(json!({"type":"response.output_text.delta","delta":"partial"}))).await.unwrap();
                             break;
                         }
-                        let result = message_output(sequence);
+                        let mut result = message_output(sequence);
+                        if matches!(reply, Reply::Child) && sequence >= 5 {
+                            result["content"][0]["text"] = "## Objective\nPreserve completed child result.\n## Next Move\nContinue.".into();
+                        }
                         let mut added = result.clone();
                         added["status"] = "in_progress".into();
                         added["content"] = json!([]);
                         socket.send(event(json!({"type":"response.output_item.added","output_index":0,"item":added}))).await.unwrap();
-                        socket.send(event(json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":result["id"],"delta":format!("answer-{sequence}")}))).await.unwrap();
+                        socket.send(event(json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":result["id"],"delta":result["content"][0]["text"]}))).await.unwrap();
                         socket.send(event(json!({"type":"response.output_item.done","output_index":0,"item":result}))).await.unwrap();
                         let completed = event(json!({"type":"response.completed","response":{"id":if matches!(reply,Reply::BadIdentity) {"alien"} else {&id},"status":"completed","output":[result],"usage":{"input_tokens":4,"output_tokens":2}}}));
                         if matches!(reply,Reply::Extra) {
@@ -181,6 +243,382 @@ impl Peer {
 }
 fn message_output(sequence: usize) -> Value {
     json!({"id":format!("o{sequence}"),"type":"message","role":"assistant","status":"completed","content":[{"type":"output_text","text":format!("answer-{sequence}"),"annotations":[]}]})
+}
+
+#[tokio::test]
+async fn auth04_runtime_channels_settle_read_followup_fork_and_partition_opaque_authority() {
+    use crate::runtime::{TurnParams, TurnStatus};
+
+    for subscription in [false, true] {
+        let f = Fixture::new();
+        std::fs::write(f.project.join("note.txt"), "SETTLED_NOTE").unwrap();
+        let peer = Peer::new(Reply::Tool).await;
+        // This is a captured native-binding fixture, not an issuer override or
+        // a real OpenAI account. The runtime still owns the actual tool effect.
+        let config = f.config(&peer.base, subscription);
+        let catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "gpt-5.5".into(),
+                json!({"limit":{"context":500000,"output":2048}}),
+            )]),
+        };
+        let runtime = f.runtime();
+        runtime.create_session("runtime").unwrap();
+        let cancel = AtomicBool::new(false);
+        let params = |session: &str, provider: ResponsesConfig| TurnParams {
+            session: session.into(),
+            prompt: "read the note once".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "gpt-5.5".into(),
+            variant: None,
+            max_output: 1000,
+            provider,
+            cancel: &cancel,
+        };
+        let report = runtime
+            .run_turn(params("runtime", config.clone()))
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(report.calls.len(), 1);
+        assert_eq!(report.text, "answer-2");
+        assert_eq!(f.db.list_tool_ops("runtime").unwrap().len(), 1);
+        let frames = peer.frames.lock().unwrap().clone();
+        assert_eq!(frames.len(), 2);
+        assert!(
+            frames[0]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|tool| tool["name"] == "read")
+        );
+        assert!(frames[1].to_string().contains("SETTLED_NOTE"));
+        assert!(!frames[1].to_string().contains("COMPLETION_ROTATED_CANARY"));
+        let raw = f.db.turn_result(&report.turn_id).unwrap().1.unwrap();
+        assert!(raw.contains("EARLY_OPAQUE_CANARY") && !raw.contains("COMPLETION_ROTATED_CANARY"));
+        let log: Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(log["requests"].as_array().unwrap().len(), 2);
+        assert!(
+            log["requests"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|request| request["binding"]["auth_scope"].is_string())
+        );
+        assert!(peer.http.lock().unwrap().is_empty());
+        let headers = peer.headers.lock().unwrap().clone();
+        assert_eq!(headers.len(), 1);
+        if subscription {
+            assert_eq!(headers[0]["session-id"], "runtime");
+        }
+
+        let boundary =
+            f.db.accept_turn(
+                "boundary",
+                "runtime",
+                "boundary",
+                "boundary",
+                &oc_core::queries::ModelRef {
+                    provider: "fixture".into(),
+                    id: "gpt-5.5".into(),
+                    variant: None,
+                },
+            )
+            .unwrap();
+        let mut boundary_log = crate::tools::TurnLog::new("boundary", "gpt-5.5", "fixture");
+        boundary_log.user_message = Some(boundary.user_message.clone());
+        boundary_log.input = vec![
+            InputItem::message(InputRole::User, "boundary"),
+            InputItem::message(InputRole::Assistant, "boundary answer"),
+        ];
+        f.db.commit_turn(
+            "boundary",
+            "completed",
+            Some(&boundary_log.to_json().to_string()),
+            Some("boundary answer"),
+        )
+        .unwrap();
+        let fork =
+            f.db.fork_session("runtime", &boundary.user_message, "work", "fixture", "{}")
+                .unwrap();
+        runtime
+            .run_turn(params(&fork.session.0, config.clone()))
+            .await
+            .unwrap();
+        assert_eq!(f.db.list_tool_ops("runtime").unwrap().len(), 1);
+        assert_eq!(
+            f.db.list_tool_ops(&fork.session.0).unwrap().len(),
+            1,
+            "copied settled receipt, no new effect"
+        );
+        let fork_frame = peer.frames.lock().unwrap()[2].clone();
+        assert!(
+            fork_frame.get("previous_response_id").is_none(),
+            "fork has its own channel"
+        );
+        assert!(fork_frame.to_string().contains("SETTLED_NOTE"));
+
+        let mut other = config;
+        other.api_key = "OTHER_ACCESS_CANARY".into();
+        other.wire.openai.as_mut().unwrap().scope = "other-local-account".into();
+        runtime.run_turn(params("runtime", other)).await.unwrap();
+        let other_frame = peer.frames.lock().unwrap()[3].clone();
+        assert!(other_frame.get("previous_response_id").is_none());
+        assert!(!other_frame.to_string().contains("EARLY_OPAQUE_CANARY"));
+        assert!(other_frame.to_string().contains("SETTLED_NOTE"));
+        assert_eq!(f.db.list_tool_ops("runtime").unwrap().len(), 1);
+        assert_eq!(
+            f.db.turn_result(&report.turn_id).unwrap().1.unwrap(),
+            raw,
+            "raw receipt is immutable"
+        );
+        f.db.response_channels.shutdown().await.unwrap();
+        peer.shutdown().await;
+    }
+}
+
+#[tokio::test]
+async fn auth04_runtime_channel_recovery_is_counted_and_delivered_failures_do_not_replay() {
+    use crate::runtime::{TurnParams, TurnStatus};
+    for reply in [
+        Reply::ToolRejected,
+        Reply::Partial,
+        Reply::Policy,
+        Reply::Ambiguous,
+    ] {
+        let f = Fixture::new();
+        std::fs::write(f.project.join("note.txt"), "SETTLED_NOTE").unwrap();
+        let runtime = f.runtime();
+        runtime.create_session("runtime").unwrap();
+        let peer = Peer::new(reply).await;
+        let catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "gpt-5.5".into(),
+                json!({"limit":{"context":500000,"output":2048}}),
+            )]),
+        };
+        let cancel = AtomicBool::new(false);
+        let report = runtime
+            .run_turn(TurnParams {
+                session: "runtime".into(),
+                prompt: "read the note once".into(),
+                invocation: None,
+                catalog: &catalog,
+                model_id: "gpt-5.5".into(),
+                variant: None,
+                max_output: 1000,
+                provider: f.config(&peer.base, true),
+                cancel: &cancel,
+            })
+            .await
+            .unwrap();
+        let raw = f.db.turn_result(&report.turn_id).unwrap().1.unwrap();
+        let log: Value = serde_json::from_str(&raw).unwrap();
+        let frames = peer.frames.lock().unwrap().clone();
+        if matches!(reply, Reply::ToolRejected) {
+            assert_eq!(report.status, TurnStatus::Completed);
+            assert_eq!(report.calls.len(), 1);
+            assert_eq!(f.db.list_tool_ops("runtime").unwrap().len(), 1);
+            assert_eq!(
+                frames.len(),
+                3,
+                "one affirmative rejection, one existing-owner retry"
+            );
+            assert_eq!(log["requests"].as_array().unwrap().len(), 3);
+            assert!(frames[2].get("previous_response_id").is_none());
+            assert!(frames[2].to_string().contains("SETTLED_NOTE"));
+        } else {
+            assert_eq!(report.status, TurnStatus::Failed);
+            assert_eq!(
+                frames.len(),
+                1,
+                "delivered channel failures cannot dispatch again"
+            );
+            assert_eq!(log["requests"].as_array().unwrap().len(), 1);
+            assert!(f.db.list_tool_ops("runtime").unwrap().is_empty());
+            assert!(
+                log["spans"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|span| span["retry"].is_null())
+            );
+            if matches!(reply, Reply::Policy) {
+                assert!(
+                    raw.contains("content policy")
+                        && raw.contains(
+                            "https://platform.openai.com/settings/organization/status-and-access"
+                        )
+                );
+                assert!(!raw.contains("ACCESS_CANARY") && !raw.contains("ACCOUNT_CANARY"));
+            }
+        }
+        let sql = rusqlite::Connection::open(f.db.root().join("oc.sqlite")).unwrap();
+        let dispatched: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM events WHERE kind='generation_dispatched'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(dispatched, frames.len() as i64);
+        let retries: i64 = sql
+            .query_row(
+                "SELECT count(*) FROM events WHERE kind='retry_scheduled'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(retries, i64::from(matches!(reply, Reply::ToolRejected)));
+        if retries != 0 {
+            let attempt: i64 = sql.query_row("SELECT json_extract(payload,'$.retry.attempt') FROM events WHERE kind='retry_scheduled'", [], |row| row.get(0)).unwrap();
+            assert_eq!(attempt, 2, "first scheduled retry is physical attempt two");
+        }
+        assert!(peer.http.lock().unwrap().is_empty());
+        f.db.response_channels.shutdown().await.unwrap();
+        peer.shutdown().await;
+    }
+}
+
+#[tokio::test]
+async fn auth04_runtime_child_and_summary_channels_keep_actual_actors_and_restricted_outcomes() {
+    use crate::runtime::{SubagentAgent, SubagentCatalog, TurnParams, TurnStatus};
+    for reply in [Reply::Child, Reply::ChildPolicy] {
+        let f = Fixture::new();
+        let runtime = f.runtime();
+        runtime
+            .publish_subagents(Some(SubagentCatalog {
+                depth_limit: 1,
+                agents: BTreeMap::from([(
+                    "helper".into(),
+                    SubagentAgent {
+                        id: "helper".into(),
+                        description: "child channel".into(),
+                        primary: false,
+                        model: None,
+                        variant: None,
+                        prompt: "Child channel fixture.".into(),
+                        permissions: Default::default(),
+                        permission_rules: Default::default(),
+                        hidden: false,
+                        digest: Some("helper-digest".into()),
+                        request: Default::default(),
+                        color: None,
+                    },
+                )]),
+            }))
+            .unwrap();
+        runtime.create_session("runtime").unwrap();
+        let peer = Peer::new(reply).await;
+        let config = f.config(&peer.base, true);
+        let catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "gpt-5.5".into(),
+                json!({"limit":{"context":500000,"output":2048}}),
+            )]),
+        };
+        let cancel = AtomicBool::new(false);
+        let report = runtime
+            .run_turn(TurnParams {
+                session: "runtime".into(),
+                prompt: "delegate the child task".into(),
+                invocation: None,
+                catalog: &catalog,
+                model_id: "gpt-5.5".into(),
+                variant: None,
+                max_output: 1000,
+                provider: config.clone(),
+                cancel: &cancel,
+            })
+            .await
+            .unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(report.calls.len(), 1);
+        let children = f.db.children_of("runtime").unwrap();
+        assert_eq!(children.len(), 1);
+        let child = &children[0];
+        let headers = peer.headers.lock().unwrap().clone();
+        assert_eq!(
+            headers.len(),
+            2,
+            "root and actual child have separate channels"
+        );
+        assert_eq!(headers[0]["session-id"], "runtime");
+        assert_eq!(headers[1]["session-id"], child.as_str());
+        assert!(
+            headers
+                .iter()
+                .all(|header| header["chatgpt-account-id"] == "ACCOUNT_CANARY"
+                    && header["authorization"] == "Bearer ACCESS_CANARY")
+        );
+        let frames = peer.frames.lock().unwrap().clone();
+        assert_eq!(frames.len(), 3);
+        assert!(frames[1].get("previous_response_id").is_none());
+        assert!(frames[1].to_string().contains("child task"));
+        assert!(frames[2].to_string().contains("child-call"));
+        let child_history = f.db.read_history_full(child).unwrap();
+        let sql = rusqlite::Connection::open(f.db.root().join("oc.sqlite")).unwrap();
+        let child_status: String = sql
+            .query_row(
+                "SELECT status FROM turns WHERE session_id=?1",
+                [child],
+                |row| row.get(0),
+            )
+            .unwrap();
+        if matches!(reply, Reply::ChildPolicy) {
+            assert_eq!(child_status, "failed");
+            assert!(report.calls[0].output.contains("content policy"));
+            assert!(
+                report.calls[0].output.contains(
+                    "https://platform.openai.com/settings/organization/status-and-access"
+                )
+            );
+            assert!(!report.calls[0].output.contains("ACCESS_CANARY"));
+        } else {
+            assert_eq!(child_status, "completed");
+            assert!(!child_history.is_empty());
+            runtime
+                .run_turn(TurnParams {
+                    session: "runtime".into(),
+                    prompt: "next root boundary".into(),
+                    invocation: None,
+                    catalog: &catalog,
+                    model_id: "gpt-5.5".into(),
+                    variant: None,
+                    max_output: 1000,
+                    provider: config.clone(),
+                    cancel: &cancel,
+                })
+                .await
+                .unwrap();
+            runtime
+                .queue_compaction("runtime", oc_core::compaction::CompactionReason::Manual)
+                .unwrap();
+            assert!(
+                runtime
+                    .deliver_compaction("runtime", &catalog, "gpt-5.5", None, &config)
+                    .await
+                    .unwrap()
+            );
+            let frames = peer.frames.lock().unwrap().clone();
+            assert_eq!(frames.len(), 5);
+            assert_eq!(frames[4]["tools"], json!([]));
+            assert!(
+                frames[4].get("previous_response_id").is_none(),
+                "summary invariants differ from the primary request"
+            );
+            let lane: String = sql.query_row("SELECT json_extract(payload,'$.lane') FROM events WHERE kind='generation_dispatched' ORDER BY rowid DESC LIMIT 1", [], |row| row.get(0)).unwrap();
+            assert_eq!(lane, "compaction");
+        }
+        assert!(peer.http.lock().unwrap().is_empty());
+        runtime.child_jobs.shutdown().await.unwrap();
+        f.db.response_channels.shutdown().await.unwrap();
+        peer.shutdown().await;
+    }
 }
 async fn request(
     config: &ResponsesConfig,
