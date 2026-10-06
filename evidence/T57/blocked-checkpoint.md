@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-06T21:16:24+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T57 [blocked]; сверить незакоммиченный diff.
-
 ## Result
 
 T57 BUILD_READY_LIVE_BLOCKED, not DONE. R1–R5/AUTH01–AUTH05 verified offline;
@@ -43,11 +34,3 @@ same campaign. Before first real dispatch establish durable all-lane <=24 counti
 Qualify real browser/device/key request/reopen, refresh affected evidence/gates,
 then finish only if every frozen outcome is resolved. Never reset/replay unknown
 effects or infer live/visual PASS from current local fixtures.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): нет
-Blocked: T27, T43, T44, T45, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

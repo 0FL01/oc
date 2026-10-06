@@ -1,6 +1,6 @@
 # Goal: Codex / ChatGPT OAuth и обычный OpenAI API key
 
-Status: active (T57 explicitly started after completed T56; implementation in progress)
+Status: blocked (BUILD_READY_LIVE_BLOCKED; R1–R5 offline verified, R6 real authorization/input unavailable)
 Source: владелец 2026-10-06 потребовал полноценный Codex OAuth, headless авторизацию,
 обычный OpenAI API key, донорскую логику, полный backend и визуальный паритет,
 исправление конфликтов плана и commit/push текущей ветки.
@@ -39,8 +39,8 @@ required outcome is resolved and affected constraints remain satisfied.
     callback/state/code validation, token exchange, truthful terminal status и cleanup.
   - Primary evidence: source-derived fake issuer + real loopback tests, затем rebuilt
     native binary с callback/error/cancel/occupied-port barriers; никакого реального входа.
-  - Status: in_progress
-  - Evidence: evidence/T57/attempts.md / application.md — real owned loopback/fake issuer PKCE, callback/error/ports/cancel/expiry and durable single-account ack; Core actions and joined application lifetime across Location/busy stream verified, rebuilt native consumer qualification remains pending.
+  - Status: verified
+  - Evidence: evidence/T57/report.md / attempts.md / application.md / cli.md / tui-binary.md / binary-fixture.md / qualification.md — exact PKCE/state, owned real sockets/callback/foreign-port/cancel/expiry, durable fake issuer approval and current rebuilt normal/explicit-fixture consumers. No real account claim.
 - R2: полноценный device OAuth и headless CLI.
   - Source: явный запрос headless; `openai.ts:169–228`, CLI `handlers/auth/login.ts`.
   - Acceptance: AUTH02 доказывает usercode → pending polling → code exchange → stored
@@ -48,8 +48,8 @@ required outcome is resolved and affected constraints remain satisfied.
     или browser launch в no-TTY. Login не сообщает success до durable owner ack.
   - Primary evidence: fake-clock/issuer + actual binary с pipes и PTY; inspect request
     counters/intervals, CLI exit/status и account reopen.
-  - Status: in_progress
-  - Evidence: evidence/T57/attempts.md / application.md — actual usercode/pending polling/exchange/cancel/expiry/reopen owner proof and typed Core/application method/action bridge; no-TTY CLI/PTY consumer qualification remains pending.
+  - Status: verified
+  - Evidence: evidence/T57/report.md / attempts.md / application.md / binary-fixture.md / qualification.md — structured code/source polling/cancel/expiry, actual fixture ELF no-TTY fake approval/exchange/durable ack/reopen without local listener or browser; current normal CLI preflight. Real human approval belongs to R6.
 - R3: общие accounts, OAuth metadata и automatic refresh.
   - Source: полный backend parity; donor `integration.ts`/`credential.ts`, existing T53 GO01.
   - Acceptance: AUTH03 доказывает transactional add/activate/rename/remove, Key/OAuth
@@ -57,8 +57,8 @@ required outcome is resolved and affected constraints remain satisfied.
     concurrent resolution и stale completion protection без второй credential DB.
   - Primary evidence: synthetic credentials + owning storage/resolver tests с barriers,
     fake clock/refresh counters и native reopen; safe DTO/redaction assertions.
-  - Status: in_progress
-  - Evidence: evidence/T57/credentials.md / attempts.md / application.md / preparation.md — native token/metadata parser, shared refresh/CAS/reopen/no unknown replay, store-once login/per-namespace stale fences, safe acknowledged method/account projection and selected per-request native refresh/capture; end-to-end consumers and full AUTH03 remain pending.
+  - Status: verified
+  - Evidence: evidence/T57/report.md / credentials.md / attempts.md / application.md / preparation.md / cli.md / tui.md / qualification.md — one SQLite owner, metadata/legacy/refresh/CAS/coalescing/rotation/reopen/unknown refusal, stale login/selection fences and safe acknowledged native consumer actions/prepared capture.
 - R4: subscription-authorized requests, catalog и donor transport.
   - Source: полный backend parity; `openai.ts:230–317`, `session/model-transport.ts`,
     AI `openai-responses.ts`/`open-responses-channel.ts`, T50/T53 captured binding.
@@ -68,7 +68,7 @@ required outcome is resolved and affected constraints remain satisfied.
     restart не переносят чужие opaque/checkpoints или credentials и не повторяют tools.
   - Primary evidence: fake HTTPS/WS issuer/provider captures + runtime/storage barriers,
     rebuilt headless/PTY roundtrip и cleanup/resource receipts.
-  - Status: in_progress
+  - Status: verified
   - Evidence: evidence/T57/bindings.md / catalog.md / preparation.md / websocket.md / runtime-ws.md / binary-fixture.md / qualification.md — captured authority/catalog/all-lane preparation, checked local native channels/runtime effects and rebuilt fixture ELF Key/OAuth WS/HTTP read/result/final/reopen; real provider authorization remains separate under R6.
 - R5: обычный OpenAI API key и shared functional connect/account/model consumers.
   - Source: явный API-key запрос и полный parity; AI `providers/openai.ts`, TUI
@@ -78,7 +78,7 @@ required outcome is resolved and affected constraints remain satisfied.
     picker, CLI list/login/logout/switch и restart. Key↔OAuth выбор явный, без fallback.
   - Primary evidence: source-derived key/OAuth separation fixtures + actual binary
     PTY/pipe actions и captured requests; token/key never enters transcript/composer.
-  - Status: in_progress
+  - Status: verified
   - Evidence: evidence/T57/cli.md / tui.md / tui-binary.md / qualification.md — current normal debug/release CLI/TUI methods/masked keys/accounts/picker/no model commit and owned browser controls/restart; fixture ELF proves separate own-env/config headless native requests without stored accounts. Metadata-only previews leave held requests intact. Real provider qualification is R6; presentation only T44/VIS45.
 - R6: current offline и bounded real authorization/request qualification.
   - Source: полноценный backend и визуальный результат, existing A01–A13/live rules.
@@ -87,8 +87,8 @@ required outcome is resolved and affected constraints remain satisfied.
     receipts. Full auth-segment parity заявляется только вместе с T44/VIS45 PASS.
   - Primary evidence: factual report с commits/commands/exits, sanitized durable
     campaign counters и ссылкой на independent paired VIS45 evidence.
-  - Status: in_progress
-  - Evidence: evidence/T57/qualification.md — current normal debug/release/workspace and explicit fixture-release offline gates green; dedicated real browser/device/key authorization/request/reopen NOT_RUN, not inferred from fake/local captures.
+  - Status: blocked
+  - Evidence: evidence/T57/report.md / qualification.md / live-campaign.json — current normal debug/release/workspace1711/0/11 and explicit fixture-release gates green; dedicated real browser/device/key authorization/request/reopen NOT_RUN because operator confirmation/test-input permission were not supplied. Zero live receipt is not a qualified guard. T44/VIS45 independently PAUSED.
 
 ### Donor behavior to port
 
@@ -375,6 +375,17 @@ test-build seam closes the two original offline gates, not AUTH06 live or VIS45.
 
 ## Completion
 
-Pending. T57 completion requires AUTH01–AUTH06 with current factual evidence; full
+Authoritative checkpoint 2026-10-06, pushed implementation `d43d084fa`:
+**BUILD_READY_LIVE_BLOCKED**, R1–R5 verified offline, R6 real authorization/input
+blocked. [Report](../../evidence/T57/report.md),
+[current gates](../../evidence/T57/qualification.md),
+[zero live preflight](../../evidence/T57/live-campaign.json). Every independent
+offline gate is current and green; no unresolved local failure remains. Dedicated
+operator confirmation for real browser/device and explicit ordinary OpenAI test
+input were not supplied; no credential search/import or route/trust substitute.
+Do not finish T57, reset counters or infer real/visual PASS from synthetic fixtures.
+Earlier material checkpoints above are historical, not current remaining coding todos.
+
+Not complete. T57 completion requires AUTH01–AUTH06 with current factual evidence; full
 auth-segment backend+visual parity additionally requires T44/VIS45. Final product
 READY still requires all A01–A13 and other mandatory outcomes.

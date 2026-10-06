@@ -248,6 +248,8 @@ Actual fake approval and native request captures: `oc/tests/auth_oauth.rs` /
 `evidence/T57/binary-fixture.md` distinguishes fixture ELF from real authorization.
 `evidence/T57/qualification.md` records current normal/feature release gates and
 separate headless own-env/config request roots; fixtures remain in the same targets.
+Primary `evidence/T57/report.md` distinguishes verified offline implementation from
+the AUTH06 operator/test-input blocker and untouched zero-live preflight; no VIS45 PASS.
 
 ## Как обновлять
 

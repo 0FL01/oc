@@ -13,4 +13,4 @@ Plan: ../../roadmap/M8.md
 - [T54](T54/INDEX.md) [done] — Provider-error retry and safe continuation parity (OC2 v2.0.12); latest: 0003.md.
 - [T55](T55/INDEX.md) [done] — Responses completed-output compatibility and current real tool E2E; latest: 0003.md.
 - [T56](T56/INDEX.md) [done] — Native session-local interactive PTYs для Terminals; latest: 0001.md.
-- [T57](T57/INDEX.md) [active] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: нет.
+- [T57](T57/INDEX.md) [blocked] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: 0001.md.

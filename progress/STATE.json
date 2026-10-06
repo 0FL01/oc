@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-06T11:27:22+00:00",
-  "current": "T57",
+  "updated_at": "2026-10-06T21:16:24+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -396,12 +396,12 @@
       "reopen_reason": null
     },
     "T57": {
-      "status": "active",
-      "last_seq": 0,
-      "latest": null,
+      "status": "blocked",
+      "last_seq": 1,
+      "latest": "progress/M8/T57/0001.md",
       "evidence": null,
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T56"
+  "last_checkpoint_task": "T57"
 }
