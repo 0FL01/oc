@@ -1,0 +1,232 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-004/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-home",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-home",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "343e6365f0b06f38813008b85fb519a042f0349113d9f17ab570e34b5ff5cc90",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "f264df1f6b3575372f6b4350ebb717b7f80d0a602e6d9aeeed9a39118a923fb9",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "d2062528403049a5858c8cb370d245ad89d5d4a81074d3d1a56a6d1ddfaa035e"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "3c2dd92345373821ed15978ddef089b81098191e0ddcdf42d74e8f63da85130b",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "fail",
+    "action": "fail",
+    "phase": "failed"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-alert",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-alert",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "failure-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 177887,
+          "method": "initialize",
+          "phase": "admitted-before-release"
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-list",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-list",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-details",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-details",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

@@ -944,10 +944,7 @@ impl TuiState {
         }
         let rows = self.transcript_rows();
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
-            rows.len()
-                - 1
-                - usize::from(rows.last().is_some_and(|row| row.role == "reverted"))
-                - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
+            rows.len() - 1 - usize::from(rows.last().is_some_and(|row| row.role == "reverted"))
         });
         crate::messages::exploration_header_at(
             &rows,
@@ -981,9 +978,8 @@ impl TuiState {
             return None;
         }
         let rows = self.transcript_rows();
-        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
-            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
-        });
+        let live_row =
+            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
         crate::messages::reasoning_header_at(
             &rows,
             Theme::dark(),
@@ -1135,13 +1131,6 @@ impl TuiState {
                 }),
                 meta: None,
                 tool: None,
-            });
-        }
-        if self.active_turn.is_some() && self.live_preview_truncated {
-            rows.push(HistoryRow {
-                seq:i64::MAX,role:"assistant".into(),text:"[Live preview truncated; durable parts remain available through history and /cards]".into(),
-                message_id: None,
-                agent:None,agent_color_index:None,chips:Vec::new(),reasoning:None,meta:None,tool:None,
             });
         }
         let mut group_first = None;
@@ -1364,9 +1353,8 @@ impl TuiState {
         self.visible_projection_builds
             .set(self.visible_projection_builds.get() + 1);
         let rows = self.transcript_rows();
-        let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
-            rows.len() - 1 - usize::from(self.active_turn.is_some() && self.live_preview_truncated)
-        });
+        let live_row =
+            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
         let render = |height, scroll| {
             crate::messages::visible_transcript_user_targets(
                 &rows,

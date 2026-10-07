@@ -185,9 +185,18 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::RetryScheduled {
                     turn, span, retry, ..
                 })) => state.apply_retry(&turn, &span, &retry),
-                Ok(Ok(CoreEvent::TurnFailed { turn, error, .. })) => {
-                    state.apply_failed(&turn, &error);
-                    return PumpOutcome::Closed;
+                Ok(Ok(CoreEvent::TurnFailed {
+                    turn,
+                    error,
+                    warnings,
+                    service_warning_range,
+                    ..
+                })) => {
+                    if Some(&turn) == state.active_turn.as_ref() {
+                        state.apply_failed(&turn, &error);
+                        state.apply_turn_warnings(warnings, service_warning_range);
+                        return PumpOutcome::Closed;
+                    }
                 }
                 Ok(Ok(CoreEvent::TextDelta { turn, delta, .. })) => {
                     state.apply_delta(&turn, &delta);
@@ -251,10 +260,13 @@ impl ScriptDriver {
                     turn,
                     text,
                     duration_ms,
+                    warnings,
+                    service_warning_range,
                     ..
                 })) => {
                     if Some(&turn) == state.active_turn.as_ref() {
                         state.apply_finished(&turn, &text, duration_ms);
+                        state.apply_turn_warnings(warnings, service_warning_range);
                         return PumpOutcome::Finished(text);
                     }
                 }
@@ -471,6 +483,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        let mut previous_issues = self.service_issues();
         self.invalidate_transcript();
         if self.active_agent.as_deref() != snapshot.agent_id.as_deref() {
             // A cached refusal belongs to its queried profile. Defer admission
@@ -489,6 +502,9 @@ impl TuiState {
             Some(snapshot.chrome.conversation_shortcuts.redo.clone()),
         );
         if self.chrome.location != snapshot.chrome.location {
+            previous_issues.clear();
+            self.mcp_snapshot = None;
+            self.service_pending_issues.clear();
             self.generation += 1;
             self.clear_mentions();
         }
@@ -510,15 +526,17 @@ impl TuiState {
             picker.load_persisted_raw(Some(&serde_json::to_string(&draft).expect("model ref")));
             picker.focus_id(&draft.id);
         }
-        if let Some(selection) = &snapshot.chrome.selection {
-            self.push_note(&selection.to_string());
-        } else if let Some(provider) = &snapshot.chrome.provider
-            && provider.status != oc_core::queries::ProviderStatus::Ready
+        if snapshot.chrome.selection.is_none()
+            && snapshot
+                .chrome
+                .provider
+                .as_ref()
+                .is_none_or(|provider| provider.status == oc_core::queries::ProviderStatus::Ready)
+            && let Some(error) = picker.last_error()
         {
-            self.push_note(&provider.to_string());
-        } else if let Some(error) = picker.last_error() {
             self.push_note(error);
         }
+        self.reconcile_service_feedback(previous_issues);
         self.picker = Some(picker);
         self.commands = snapshot.commands;
         self.command_descriptions = snapshot.command_descriptions;

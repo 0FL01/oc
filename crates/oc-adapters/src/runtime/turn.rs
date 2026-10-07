@@ -3488,16 +3488,16 @@ impl<'a> Runtime<'a> {
                         let session = SessionId(session.into());
                         let turn = WorkerTurnId(report.turn_id.clone());
                         send(match report.status {
-                            TurnStatus::Completed => CoreEvent::TurnFinished { session, turn, text: report.text.clone(), duration_ms: report.duration_ms, warnings: report.warnings.clone() },
+                            TurnStatus::Completed => CoreEvent::TurnFinished { session, turn, text: report.text.clone(), duration_ms: report.duration_ms, warnings: report.warnings.clone(), service_warning_range: report.service_warning_range.clone() },
                             TurnStatus::Cancelled | TurnStatus::Interrupted => CoreEvent::TurnInterrupted { session, turn, partial: report.text.clone(), duration_ms: report.duration_ms },
-                            _ => CoreEvent::TurnFailed { session, turn, error: oc_core::session::CoreError::Application(report.diagnostic.clone().unwrap_or_else(|| "child turn failed".into())), warnings: report.warnings.clone() },
+                            _ => CoreEvent::TurnFailed { session, turn, error: oc_core::session::CoreError::Application(report.diagnostic.clone().unwrap_or_else(|| "child turn failed".into())), warnings: report.warnings.clone(), service_warning_range: report.service_warning_range.clone() },
                         });
                     } else if let Some(id) = accepted_id.lock().expect("child acceptance lock").as_ref() {
                         // Preserve the last durable checkpoint and settle the
                         // child's own accepted turn; no effect is replayed.
                         let (_, checkpoint) = self.db.turn_result(id)?;
                         self.db.finish_turn(id, "failed", checkpoint.as_deref())?;
-                        send(CoreEvent::TurnFailed { session: SessionId(session.into()), turn: WorkerTurnId(id.into()), error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: Vec::new() });
+                        send(CoreEvent::TurnFailed { session: SessionId(session.into()), turn: WorkerTurnId(id.into()), error: oc_core::session::CoreError::Application("child turn failed".into()), warnings: Vec::new(), service_warning_range: 0..0 });
                     }
                     return result;
                 },
@@ -3596,6 +3596,7 @@ impl<'a> Runtime<'a> {
             calls,
             nudge_hint,
             warnings: Vec::new(),
+            service_warning_range: 0..0,
         })
     }
 

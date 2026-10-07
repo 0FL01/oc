@@ -1596,7 +1596,14 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
             pty.send(b"Retained selection root\r");
             dismissed(&pty, "Sessions");
         }
-        wait_screen_row(&pty, "unavailable", DEADLINE);
+        inspect_settings_code(
+            &mut pty,
+            if retired_model {
+                "model_unavailable"
+            } else {
+                "variant_unavailable"
+            },
+        );
         if !retired_model {
             wait_screen_row(&pty, "variant-", DEADLINE);
             pty.send(b"/variants\r");
@@ -1640,7 +1647,14 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
         assert!(db.read_history("retired").unwrap().is_empty());
         drop(db);
         let mut pty = PtySession::spawn(fixture.clone(), "retired", None);
-        wait_screen_row(&pty, "unavailable", DEADLINE);
+        inspect_settings_code(
+            &mut pty,
+            if retired_model {
+                "model_unavailable"
+            } else {
+                "variant_unavailable"
+            },
+        );
         if retired_model {
             choose_model(&mut pty, "T39 model");
         } else {

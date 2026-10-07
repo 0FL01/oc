@@ -275,8 +275,7 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
         ("oauth", "unsupported_capability"),
         ("modern", "unsupported_protocol"),
     ] {
-        tui.wait_screen(&diagnostic_name(name), TIMEOUT);
-        tui.wait_screen(code, TIMEOUT);
+        inspect_mcp_code(&mut tui, name, code);
     }
     assert!(responses.requests().is_empty());
     assert!(!trap_counter.exists());

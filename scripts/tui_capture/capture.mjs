@@ -15,6 +15,7 @@ import {probeRevertRedo} from './revert_redo.mjs';
 import {probeCompaction} from './compaction.mjs';
 import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
+import {probeServices} from './services.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 
@@ -27,6 +28,9 @@ const revertRedo = args['revert-redo'] === 'true';
 const compaction = args.compaction === 'true';
 const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
+const cleanServices = args['clean-services'] === 'true';
+if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
+if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
 const leaderConfig = args['leader-config'] || 'default';
 const pasteNavigation = args['leader-paste-navigation'] === 'true';
@@ -302,6 +306,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
     ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
     ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),
     ...(compaction ? {compaction:true,compaction_trigger:compactionTrigger,compaction_animation:compactionAnimation,compaction_tps:compactionTps,probe_sha256:sha(fs.readFileSync(path.join(here,'compaction.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'compaction_fixture.py')))} : {}),
@@ -338,6 +343,7 @@ const lock = {schema_version: 1, started: new Date().toISOString(), runner_versi
 if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prompt_paste.mjs']:[])])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
+if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
@@ -424,13 +430,14 @@ try {
               // Pinned prompt/index.tsx:1393 inserts a spacer outside the chip
               // extmark. Expansion preserves that raw spacer (:1422–1424).
                ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
-             apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
+              apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
+              clean_services:cleanServices,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
         sessions_prior_evidence:args['sessions-evidence'] ? path.resolve(args['sessions-evidence'],origin,'sessions-checks.json') : null,
        seed_root: args['seed-root'], session: args.session, tab_restart: tabRestart || renameSession,
-          regenerate_title: regenerateTitle, two_turn:twoTurn || (messageActions && origin==='oc'), models_interaction:modelsInteraction,
+           regenerate_title: regenerateTitle, two_turn:twoTurn || cleanServices || (messageActions && origin==='oc'), models_interaction:modelsInteraction,
         ...(scanner ? {scanner:true, animations:scannerAnimation} : {})};
     fs.writeFileSync(path.join(dir,'bridge-spec.json'), JSON.stringify(spec, null, 2));
     lock[origin] = {...lock[origin], executable_path: binary, executable_sha256: hash};
@@ -468,7 +475,7 @@ try {
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {
-       if(applyPatch || permission || leaderPending) {
+       if(applyPatch || permission || leaderPending || cleanServices) {
         let timer;
         try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
         finally {clearTimeout(timer);}
@@ -565,14 +572,22 @@ try {
          if(checks.status!=='OBSERVED')result=1;
          json('capture.lock.json',lock);continue;
        }
-       if(permission) {
+        if(permission) {
            const checks=await probePermission({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,mode:permissionMode,
              control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
              relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
            lock.permission ??= {};lock.permission[origin]=checks;
            if(checks.status!=='PASS')result=1;
-           json('capture.lock.json',lock);continue;
-       }
+            json('capture.lock.json',lock);continue;
+        }
+        if(cleanServices) {
+          const checks=await probeServices({origin,dir,send,waitFor,frame,capture,logs,
+            prompt:fs.readFileSync(path.join(fixture,'input.txt'),'utf8').trim(),
+            control:command=>child.stdin.write(JSON.stringify(command)+'\n')});
+          lock.clean_services ??= {};lock.clean_services[origin]=checks;
+          if(checks.status!=='OBSERVED')result=1;
+          json('capture.lock.json',lock);continue;
+        }
        if(applyPatch) {
           const checks=await probeApplyPatch({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),

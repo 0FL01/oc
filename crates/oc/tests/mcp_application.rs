@@ -103,14 +103,17 @@ fn vis34_compaction_prune_normalization_headless_and_tui_entry() {
         tui.wait_visible(READY);
         let offset = tui.send_line("VIS34 prune accepted");
         tui.wait_visible_after(offset, "answer:VIS34 prune accepted");
+        tui.send_line("/settings");
+        tui.wait_screen("ignored_setting", TIMEOUT);
+        tui.raw(b"\x1b");
         std::thread::sleep(Duration::from_millis(300));
         tui.send_line("/quit");
         assert!(tui.wait_exit().success());
         let output = tui.output.lock().unwrap();
         let text = String::from_utf8_lossy(&output);
         assert!(
-            text.contains("compaction settings were normalized"),
-            "missing startup notice"
+            text.contains("ignored_setting"),
+            "missing safe configuration details"
         );
         assert!(!text.contains("failed to start"));
         assert_eq!(
@@ -1220,18 +1223,19 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
     lifecycle::wait_row(&process, "oversized", "Failed");
     lifecycle::close_mcps(&mut process);
     // The oversized server degrades: no partial catalog reaches the model, and
-    // the run still answers with a visible warning.
+    // the run still answers with a visible status and safe details.
     assert!(
         process.child.try_wait().unwrap().is_none(),
         "degraded catalog aborted the application"
     );
-    process.wait_screen("catalog_limit", TIMEOUT);
+    inspect_mcp_code(&mut process, "oversized", "catalog_limit");
     process.send_line("exercise configured MCP");
     process.wait_screen("answer:exercise configured MCP", TIMEOUT);
-    process.wait_screen("catalog_limit", TIMEOUT);
+    inspect_mcp_code(&mut process, "oversized", "catalog_limit");
     let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();
     assert!(
-        diagnostic.contains(&diagnostic_name("oversized")) && diagnostic.contains("catalog_limit"),
+        diagnostic.contains(&diagnostic_name("oversized")[..20])
+            && diagnostic.contains("code: catalog_limit"),
         "visible catalog diagnostic: {diagnostic}"
     );
     std::thread::sleep(Duration::from_millis(300));
@@ -2418,6 +2422,18 @@ fn wait_initial_mcp(tui: &mut PtyProcess, server: &str) {
     lifecycle::close_mcps(tui);
 }
 
+/// Inspect one actual typed inventory entry without turning it into dialogue.
+fn inspect_mcp_code(tui: &mut PtyProcess, server: &str, code: &str) {
+    tui.send_line("/mcps");
+    tui.wait_screen("MCP servers", TIMEOUT);
+    tui.raw(diagnostic_name(server).as_bytes());
+    tui.raw(b"\r");
+    tui.wait_screen(&format!("Code: {code}"), TIMEOUT);
+    tui.raw(b"\x1b");
+    tui.wait_screen("MCP servers", TIMEOUT);
+    lifecycle::close_mcps(tui);
+}
+
 /// S06: the real key route must refuse both navigation actions while a
 /// submission is waiting for MCP admission, without accepting a stale turn.
 #[test]
@@ -2904,14 +2920,9 @@ fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
     let mut tui = PtyProcess::spawn(&fixture, "v01-required-failure");
     tui.wait_visible(READY);
     tui.send_line("retained prompt");
-    // The failed server degrades: the warning row is visible and the turn
-    // still reaches the provider and answers.
-    tui.wait_screen(
-        &format!("warning: mcp {} initialize:", diagnostic_name("required")),
-        IO_TIMEOUT,
-    );
-    tui.wait_screen("unauthorized (retryable=false)", IO_TIMEOUT);
+    // The failed server degrades in status/details, not in the conversation.
     tui.wait_screen("answer:retained prompt", IO_TIMEOUT);
+    inspect_mcp_code(&mut tui, "required", "unauthorized");
     assert!(
         !responses.requests().is_empty(),
         "degraded server blocked the provider"
@@ -2927,6 +2938,7 @@ fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
     ] {
         assert!(!visible.contains(secret), "diagnostic leaked fixture data");
     }
+    assert!(!visible.contains("warning: mcp"));
 }
 
 #[test]
@@ -2953,14 +2965,13 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
     lifecycle::close_mcps(&mut first);
     first.send_line("exercise configured MCP");
     first.wait_screen("answer:exercise configured MCP", TIMEOUT);
-    first.wait_screen("unauthorized (retryable=false)", TIMEOUT);
+    inspect_mcp_code(&mut first, "required", "unauthorized");
     std::thread::sleep(Duration::from_millis(300));
     first.send_line("/quit");
     assert!(first.wait_exit().success());
     let failure = String::from_utf8_lossy(&first.output.lock().unwrap()).to_string();
     assert!(
-        failure.contains(&diagnostic_name("required"))
-            && failure.contains("unauthorized (retryable=false)"),
+        failure.contains("Code: unauthorized") && failure.contains("Retryable: false"),
         "missing explicit degraded-server diagnostic: {failure}"
     );
     for private in [
@@ -3272,7 +3283,9 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     let first_provider_requests = responses.requests().len();
 
     tui.send_line(&format!("/location {}", b.display()));
-    tui.wait_screen("location:", TIMEOUT);
+    // New service failure feedback may supersede the generic switch toast;
+    // the current canonical Location remains visible in the ordinary footer.
+    tui.wait_screen("project-b", TIMEOUT);
     // Switching to B now publishes a sessionless Home; the unsafe remote
     // retry below must not create a B root before an accepted first turn.
     assert_eq!(

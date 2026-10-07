@@ -1,0 +1,636 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-07T08:57:31.546Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "8a9840bfa74f73e1eabddd5c505a9d74249b150581b444666d37ae5df8997c0a",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "3537b2fadc6c37c73fa65a4eea95fd8c9699bc6d6b9e6d257c68e35161a38314",
+    "services.mjs": "53b4338179bb21a002b3ca7032255319afc66e9c579ebede9c110c51b6fe021f",
+    "services_fixture.py": "e4403bf12a68a676690d0c95d8cc51c24f8c05623c581dfc36c9a7b361b959ba"
+  },
+  "fixture_sha256": "cf7e1c8255f2733c7ea642523f39ea1b4d1170dd6f75e5e601ca58922c525efc",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "e0509c4cde2314d5d0d2a0cb501297511ab1da61",
+    "tree": "3a2b5c7f9ec19d59aca86e16c99808207bffe8ee",
+    "dirty_diff_sha256": "b2ce8466dce112ee596e416cfc18aaf19111b40c319aa62ec898894c73623dcc",
+    "source_manifest_sha256": "489861381fcf4d44efc8f231caf8902f98bbfb0c6817e3891860e912bf9443ce",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "4bd6024a1a64fe605a4533cdca967dd3ed2e636b0d0a3ac79e15012006d8c82e",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "services-pending-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-completed-answer",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-completed-answer",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-alert",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-alert",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-completed-answer",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-completed-answer",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-list",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-list",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-details",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-details",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-back",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-failure-back",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-unchanged-reload",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-unchanged-reload",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-recovered-list",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-recovered-list",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-recovered-answer",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-recovered-answer",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-second-completed-answer",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "services-second-completed-answer",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "services-pending-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "d8c5588ff5e7f1613212d421852fb156e1f35f115f850d3c72e69b4d0e84f043",
+      "png_sha256": "199a3b5d355a8a104339a1892c889b7fdaf8ae6ab81184c05cad08a9ad348fbe",
+      "render_sha256": "48e9df384afe26e04e4781feeda3bd99fabf3b420f150734f6960bd92a0b8151",
+      "path": "upstream/services-pending-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-pending-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c1eb1adf3d7368518e9b8ac49d5b88fa5edcc5705e9166d40fa85a217cdaad08",
+      "png_sha256": "a1443eee2ef47d96d74e049234661fa3337642cc49bd95bf0b83336c6b2d204a",
+      "render_sha256": "b6dd963b4cebee599e2848cf905474204bd5d1474227416749622ca499af1159",
+      "path": "upstream/services-pending-completed-answer"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-alert",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "da24aa1a123596c83b58f4cdf7339f5b6a0605e9ff572d2646acbb617748dd02",
+      "png_sha256": "a1443eee2ef47d96d74e049234661fa3337642cc49bd95bf0b83336c6b2d204a",
+      "render_sha256": "a9736922e9980afde133854a90535c14ab9f6469177e8613ed5417a2fa8b8267",
+      "path": "upstream/services-failure-alert"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "55b7c71abc1a3e1d9945b68819bb3bbaeb55e3f28e165c0179b8dbe00d969e6b",
+      "png_sha256": "9eee5a13109caed243abf849d7f2c4bbf15cac705ec52b187ce8ab05962e5a1f",
+      "render_sha256": "7ea444f8cc0cd747fefd786e8e011abf0a78cf29a858b4f2cef5d9023d2709f7",
+      "path": "upstream/services-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-pending-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "26aa6db9f34dc7a47ea5301d8400387a224e9919efe4a03f8108fdb14e5766b6",
+      "png_sha256": "0137d403669455b8a8fb877220f8b26778ac9cbbead5094f58b139ee5c2da3e8",
+      "render_sha256": "7af60ea1c06baa9a59c0c800d06f8bb90ce766984065cca425e953f7cec02403",
+      "path": "oc/services-pending-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-pending-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "fd19d59f24fa09c5781b59a35e2a8392c6e183d0213efbd87e36ef783bc4c161",
+      "png_sha256": "8572c6182d7f6344ede61fa03872d2b7a3ddff43e62f44741285352c4359ddb7",
+      "render_sha256": "309c4594734adf08bb2a7f8955259e4f54b24808a0b9805d3d22330bda4cda6c",
+      "path": "oc/services-pending-completed-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-alert",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f64ef47c4d10fc95748d06b3474cd6aaf644e6db0b18a6ef611e18f07a1e7e58",
+      "png_sha256": "9a64b0558378d2d3304edfa6afca4b6b24d048b8949b8554450b751c0f6d6e58",
+      "render_sha256": "cae14a29a300abdfc53732b8759f48091ddadcd2ca543c15391ce798130c3239",
+      "path": "oc/services-failure-alert"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c662f811ac73c5cbc15d9c6aca3b91cabca4843d72a50445abd01e8126dcaef1",
+      "png_sha256": "eaf2321096738187f16369af02a1b981257f4922b328a6a0caeae205a4771722",
+      "render_sha256": "854f6699963f9c95c621e24df0aa5422a020c656ace8689050263a39eab502d8",
+      "path": "oc/services-failure-completed-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1daa35a240900dbe6c526f1a65be7e46635df4470374c700d7ec5d5ff6a5640c",
+      "png_sha256": "8d5d633575bd584b08e818eb18b0d64cfbb32971b3ec970c6cd0b171f1b0a6f3",
+      "render_sha256": "980695209165a35b2924bdcd5001ea6e03e6996ea3b9d371939a5141d6e90de8",
+      "path": "oc/services-failure-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-details",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "75a528c0c7200f42e2b7bb99f5d27eebb10043973d1a077b85980fded6edf42c",
+      "png_sha256": "630636d7fe7c8cf91dbd888a3fe7de4a97758417d82c2b8e0e366fd171fc21fd",
+      "render_sha256": "0d1612b7f0667f49c984d13857d1f3621a8d4cc9c37e7a8ea307ba7f8d3c996b",
+      "path": "oc/services-failure-details"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-back",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "2c3b40e2ab9271cfe97b8cdb78e6a38ddd7a1e452447c1eb215ace3696a10bd8",
+      "png_sha256": "8d5d633575bd584b08e818eb18b0d64cfbb32971b3ec970c6cd0b171f1b0a6f3",
+      "render_sha256": "76a81fb15d5b9c8569c1216056de046398c95a519a76048d3a55260c4a67e4e3",
+      "path": "oc/services-failure-back"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-unchanged-reload",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3e5fc9dcd16d1dbe660e387ef3b2d253f868f85d070f8ad7f4e3788318bc82bf",
+      "png_sha256": "ba0cffb514684687c770fb3f090f34bbfc9b1820c200ead8dc9a00c261dbb67a",
+      "render_sha256": "2caab7398717aa831a8d752f8e28c74ceba44f212e2afb222c27937d354834f6",
+      "path": "oc/services-unchanged-reload"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-recovered-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "52f5066852b8e8af00729e5d509f08f7108cd588e95fc88e0bf9cb4c653f55eb",
+      "png_sha256": "94869a29da368ad90e711b794d6d5b00268bf26c4a0b83717b6b9bbaecea0e69",
+      "render_sha256": "fc0389bc2aac46bebe22b4b55a69c291fe6fa9843b2b6cfd1e46ed896bde8828",
+      "path": "oc/services-recovered-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-recovered-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "f7af8c2f33b195877f82995869b9200772d07eb4c36b2cb5a5c631e452ddf65f",
+      "png_sha256": "3c934cb6e557d18c3aff1e9de3bc37919e9367ee64ff682aafeb4786991beccd",
+      "render_sha256": "95f31022160adb464f90a08323722f4bcd76c8afe71b691b907b2f652b3b7302",
+      "path": "oc/services-recovered-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-second-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "95f1a23eec00d08243b7b8b7a94ad1bbd5b33de5a8826199e8698fc365f28942",
+      "png_sha256": "bdbf138cb7b7742ea89151d3feeed50ab2477784ea79ccb4fae2ba2c4aadabeb",
+      "render_sha256": "82521ce1f32cd57791cfdca9696fd44b7ec481dacd53876ae2a710606aebdbba",
+      "path": "oc/services-second-completed-answer"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "clean_services": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "checks": [
+        {
+          "stage": "pending-home",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 51,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "pending-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-alert",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "failure-peer",
+            "snapshot": {
+              "mcp": [],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "failure",
+          "reason": "Actual MCP failure was not dispatched"
+        }
+      ],
+      "declared_differences": [
+        "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+        "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer)."
+      ],
+      "reason": "Actual MCP failure was not dispatched"
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "OBSERVED",
+      "checks": [
+        {
+          "stage": "pending-home",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 51,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "pending-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-alert",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "failure-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 85192,
+                  "method": "initialize",
+                  "phase": "failed"
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "failure-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-details",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "failure-back",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "unchanged-reload",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "unchanged-reload-notification",
+          "service_alert_visible": false
+        },
+        {
+          "stage": "recovered-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "recovered-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "second-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          }
+        },
+        {
+          "stage": "recovery-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 85192,
+                  "method": "initialize",
+                  "phase": "failed"
+                },
+                {
+                  "pid": 85694,
+                  "method": "initialize",
+                  "phase": "failed"
+                },
+                {
+                  "pid": 85758,
+                  "method": "initialize",
+                  "phase": "healthy"
+                },
+                {
+                  "pid": 85758,
+                  "method": "notifications/initialized",
+                  "phase": "healthy"
+                },
+                {
+                  "pid": 85758,
+                  "method": "tools/list",
+                  "phase": "healthy"
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "counts",
+          "provider_requests": 5,
+          "invalid_requests": 0
+        }
+      ],
+      "declared_differences": [
+        "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+        "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer)."
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-10-07T08:58:56.767Z",
+  "exit_code": 1
+}

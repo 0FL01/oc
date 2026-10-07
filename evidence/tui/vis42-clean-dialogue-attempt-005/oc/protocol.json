@@ -1,0 +1,578 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-home",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-home",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "ce1e5692aa6486c7aa1c6bc674d101807799906a62bcde4e9f791a203a83ea4a",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "85c00a6e7ffdaf3734d8a27b7640dd44d9b04302282540d3cf7279e6e311f2a3",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "84e2384e752478b5394ecfe4467ac115294a107290f00624a48a1352f868d42e",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "d2062528403049a5858c8cb370d245ad89d5d4a81074d3d1a56a6d1ddfaa035e"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "fail",
+    "action": "fail",
+    "phase": "failed"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-alert",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-alert",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "failure-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-list",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-list",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-details",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-details",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-back",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-back",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "unchanged-reload-peer-0",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "unchanged-reload-peer-1",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368932518
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "unchanged-reload",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "unchanged-reload",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "recover",
+    "action": "recover",
+    "phase": "healthy"
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-accepted-peer-0",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368932518
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-accepted-peer-1",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188995,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368936307
+        },
+        {
+          "pid": 188995,
+          "method": "initialize",
+          "phase": "healthy",
+          "at_ms": 1791368936307
+        },
+        {
+          "pid": 188995,
+          "method": "notifications/initialized",
+          "phase": "healthy",
+          "at_ms": 1791368936308
+        },
+        {
+          "pid": 188995,
+          "method": "tools/list",
+          "phase": "healthy",
+          "at_ms": 1791368936308
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "recovered-list",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "recovered-list",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "recovered-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "recovered-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "2da7efa0d69e3b64d8947b6eee87ff2753e96f7735a62ecab9e792878c5524b4",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 1,
+    "request_sha256": "2a8181a67334b57ad08146b4826ce4f0439981ee8cdb8e3221f1a108d301df71",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "0e53ae07d3c6783ea462d199dd0d6867f1a4d0922830336ed4b4bf283953cdc6"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "second-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "second-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368909274
+        },
+        {
+          "pid": 188643,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368914580
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188935,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368932518
+        },
+        {
+          "pid": 188995,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368936307
+        },
+        {
+          "pid": 188995,
+          "method": "initialize",
+          "phase": "healthy",
+          "at_ms": 1791368936307
+        },
+        {
+          "pid": 188995,
+          "method": "notifications/initialized",
+          "phase": "healthy",
+          "at_ms": 1791368936308
+        },
+        {
+          "pid": 188995,
+          "method": "tools/list",
+          "phase": "healthy",
+          "at_ms": 1791368936308
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

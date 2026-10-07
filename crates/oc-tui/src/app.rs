@@ -682,6 +682,12 @@ pub struct TuiState {
     scroll: usize,
     wheel_motion: Option<WheelMotion>,
     note: Option<(String, NoteVariant)>,
+    /// Provenance of the existing toast, not a history of service failures.
+    service_note: bool,
+    /// A failed cause retained only while that same current source is pending.
+    /// Pending is not recovery; stable status/removal/Location drops the baseline.
+    service_pending_issues: Vec<services::ServiceIssue>,
+    service_feedback_visible: bool,
     toast_expiry: Option<ToastExpiry>,
     toast_down: bool,
     active_turn: Option<WorkerTurnId>,
@@ -881,6 +887,9 @@ impl TuiState {
             scroll: 0,
             wheel_motion: None,
             note: None,
+            service_note: false,
+            service_pending_issues: Vec::new(),
+            service_feedback_visible: true,
             toast_expiry: None,
             toast_down: false,
             active_turn: None,
@@ -1075,6 +1084,12 @@ impl TuiState {
     /// Current status.
     pub fn status(&self) -> &TuiStatus {
         &self.status
+    }
+
+    /// Actual live projection eviction, not producer capture completeness or
+    /// a promise that bytes discarded by a tool can be recovered.
+    pub(crate) fn live_preview_limited(&self) -> bool {
+        self.active_turn.is_some() && self.live_preview_truncated
     }
 
     /// Owner receipts need reconciliation until accepted, independently from
@@ -1306,6 +1321,7 @@ impl TuiState {
 
     /// Set a typed feedback note without interpreting its free-form text.
     pub fn push_note_variant(&mut self, note: &str, variant: NoteVariant) {
+        self.service_note = false;
         self.note = Some((note.to_string(), variant));
         self.toast_expiry = None;
         self.toast_down = false;
@@ -1351,6 +1367,7 @@ impl TuiState {
                 .is_some_and(|started| now.saturating_duration_since(started) >= expiry.remaining)
         }) {
             self.note = None;
+            self.service_note = false;
             self.toast_expiry = None;
             self.toast_down = false;
         }
@@ -1385,6 +1402,7 @@ mod input;
 mod live;
 mod mcp;
 mod model_selection;
+mod services;
 mod tabs;
 mod transcript;
 

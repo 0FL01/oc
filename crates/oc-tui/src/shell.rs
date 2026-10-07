@@ -1983,9 +1983,33 @@ fn footer_line(
             Span::styled(COMMANDS_HINT.1, muted),
         ]);
     }
-    let hints = Line::from(hints);
+    let service_start = hints.len();
+    let issues = state.service_issue_count();
+    if state.live_preview_limited() {
+        if !hints.is_empty() {
+            hints.push(Span::raw("  "));
+        }
+        hints.push(Span::styled("Preview limited", muted));
+    }
+    if issues > 0 {
+        if !hints.is_empty() {
+            hints.push(Span::raw("  "));
+        }
+        hints.push(Span::styled(
+            format!("{issues} issue{}", if issues == 1 { "" } else { "s" }),
+            Style::default().fg(theme.warning()),
+        ));
+    }
+    let pending = state.service_pending_count();
+    if pending > 0 {
+        if !hints.is_empty() {
+            hints.push(Span::raw("  "));
+        }
+        hints.push(Span::styled(format!("{pending} pending"), muted));
+    }
+    let mut hints = Line::from(hints);
     let hints_visible = !hints.spans.is_empty();
-    let left_width =
+    let mut left_width =
         (layout_width as usize).saturating_sub(hints.width() + usize::from(hints_visible) * 2);
     let mut spans: Vec<Span<'static>> = Vec::new();
     if let Some(notice) = state.retry_notice() {
@@ -2025,6 +2049,19 @@ fn footer_line(
         ));
     } else if let Some(location) = &state.chrome.location {
         spans.push(Span::styled(compact_path(location, left_width), muted));
+    }
+    if hints.spans.len() > service_start
+        && (state.status() == &TuiStatus::Streaming || state.retry_notice().is_some())
+        && spans.iter().map(Span::width).sum::<usize>() + hints.width() + 2 > layout_width as usize
+    {
+        // Ancillary navigation/usage hints may yield to current service status,
+        // but status must never hide the foreground interrupt/retry feedback.
+        let mut service_hints = hints.spans.split_off(service_start);
+        if service_start > 0 {
+            service_hints.remove(0); // the owned separator from preceding hints
+        }
+        hints = Line::from(service_hints);
+        left_width = (layout_width as usize).saturating_sub(hints.width() + 2);
     }
     if state.status() == &TuiStatus::Streaming {
         // In prompt/index.tsx the running slot has flexShrink and minWidth=0;

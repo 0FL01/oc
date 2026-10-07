@@ -76,15 +76,14 @@ async fn ui07_provider_settings_are_read_only_owner_facts_and_preserve_draft() {
     state.handle_panel_key(KeyAction::Down);
     let rows = state.modal_options();
     assert_eq!(rows[1].title, "Provider request — unavailable");
-    assert_eq!(rows[1].footer, readiness.to_string());
-    assert!(rows[1].footer.contains("missing_credential"));
+    assert_eq!(rows[1].footer, "missing_credential");
     assert!(state.handle_panel_key(KeyAction::Right).intent.is_none());
     let detail = state.handle_panel_key(KeyAction::Enter);
     assert!(
         detail.intent.is_none(),
         "read-only provider facts cannot trigger effects"
     );
-    assert_eq!(detail.note.as_deref(), Some(rows[1].footer.as_str()));
+    assert_eq!(detail.note.as_deref(), Some(readiness.to_string().as_str()));
     assert_eq!(state.input, "keep this local draft");
 }
 
@@ -120,16 +119,17 @@ async fn cfg09_plugin_settings_rows_show_owner_status_and_are_read_only() {
     assert_eq!(state.select.cursor, 1);
     let rows = state.modal_options();
     assert_eq!(rows[1].title, "Unsupported plugin — failed");
-    assert!(rows[1].footer.contains("current=none"));
-    assert!(rows[1].footer.contains("retryable=false"));
-    assert!(rows[1].footer.contains("plugin.0"));
+    assert_eq!(rows[1].footer, "unsupported_plugin");
     assert!(state.handle_panel_key(KeyAction::Right).intent.is_none());
     let result = state.handle_panel_key(KeyAction::Enter);
     assert!(
         result.intent.is_none(),
         "read-only facts never toggle permissions"
     );
-    assert_eq!(result.note.as_deref(), Some(rows[1].footer.as_str()));
+    let detail = result.note.unwrap();
+    assert!(detail.contains("current=none"));
+    assert!(detail.contains("retryable=false"));
+    assert!(detail.contains("plugin.0"));
 }
 
 #[tokio::test]

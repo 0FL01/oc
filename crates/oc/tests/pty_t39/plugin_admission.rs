@@ -172,7 +172,9 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
     config["plugin"] = json!(["@tarquinen/opencode-dcp@3.1.16"]);
     std::fs::write(&source, config.to_string()).unwrap();
     pty.send(b"/reload\r");
-    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    // A genuinely new failed plugin replaces the generic operation toast with
+    // its brief service alert. Observe this generation's actual inventory.
+    wait_screen_row(&pty, "1 issue", DEADLINE);
     settings(&mut pty, "Unsupported plugin — failed");
     assert!(
         !render_screen(&pty.snapshot())

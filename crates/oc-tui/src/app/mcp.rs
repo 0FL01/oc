@@ -5,11 +5,19 @@ use oc_core::queries::{McpAction, McpControl, McpSnapshot, McpStatus};
 
 impl TuiState {
     pub fn apply_mcp_snapshot(&mut self, snapshot: McpSnapshot) {
+        // bind_events can announce the new owner's constructor before start
+        // publishes its admitted inventory. Revision zero is not recovery or
+        // service removal; even a genuinely empty config is published at one.
+        if snapshot.revision == 0 {
+            return;
+        }
         if self.chrome.location.as_deref() != Some(snapshot.binding.location.as_str()) {
             return;
         }
         if let Some(previous) = &self.mcp_snapshot
             && (snapshot.binding.instance < previous.binding.instance
+                || snapshot.binding.instance == previous.binding.instance
+                    && snapshot.binding.generation < previous.binding.generation
                 || snapshot.binding == previous.binding && snapshot.revision < previous.revision)
         {
             return;
@@ -21,19 +29,7 @@ impl TuiState {
         } else {
             None
         };
-        let warnings: Vec<_> = snapshot
-            .servers
-            .iter()
-            .filter_map(|server| {
-                let diagnostic = server.diagnostic.as_ref()?;
-                let previous = self
-                    .mcp_snapshot
-                    .as_ref()
-                    .and_then(|snapshot| snapshot.servers.iter().find(|old| old.id == server.id))
-                    .and_then(|old| old.diagnostic.as_ref());
-                (previous != Some(diagnostic)).then(|| diagnostic.to_string())
-            })
-            .collect();
+        let previous_issues = self.service_issues();
         self.mcp_snapshot = Some(snapshot);
         if let Some(focus) = focus {
             let options = self.modal_options();
@@ -43,9 +39,7 @@ impl TuiState {
                 self.select.cursor = self.select.cursor.min(options.len().saturating_sub(1));
             }
         }
-        for warning in warnings {
-            self.push_warning(&warning);
-        }
+        self.reconcile_service_feedback(previous_issues);
     }
 
     pub(super) fn mcp_options(&self) -> Vec<crate::dialog::SelectOption> {
@@ -61,6 +55,14 @@ impl TuiState {
                     format!("Server: {}", server.name),
                     format!("Stage: {}", diagnostic.stage.as_str()),
                     format!("Code: {}", diagnostic.code.as_str()),
+                    format!(
+                        "Retryable: {}",
+                        matches!(
+                            diagnostic.action,
+                            oc_core::queries::ServiceAction::RetryConnection
+                                | oc_core::queries::ServiceAction::RefreshCatalog
+                        )
+                    ),
                     format!("Source: {}", diagnostic.source),
                     format!("Field: {}", diagnostic.field.join(".")),
                     diagnostic.to_string(),

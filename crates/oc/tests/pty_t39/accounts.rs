@@ -256,7 +256,9 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     std::fs::write(&path, config.to_string()).unwrap();
     wait_idle(&pty);
     pty.send(b"/reload\r");
-    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    // A newly unavailable selection uses the brief service alert, not an old
+    // technical background row or an overwritten generic success toast.
+    inspect_settings_code(&mut pty, "unavailable");
     {
         let sql = rusqlite::Connection::open_with_flags(
             fixture.data_dir().join("oc.sqlite"),

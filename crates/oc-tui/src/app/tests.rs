@@ -251,6 +251,7 @@ mod input;
 mod lifecycle;
 mod model_selection;
 mod retry;
+mod services;
 mod transcript;
 
 #[tokio::test]

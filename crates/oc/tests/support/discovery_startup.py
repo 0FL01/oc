@@ -121,8 +121,17 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
             try:
                 screen = drain(master)
                 assert child.poll() is None, (label, 'premature exit')
-                assert expected in screen, (label, 'wrong startup category')
                 assert 'Native startup error' not in screen and '█▀▀█' in screen, (label, 'local home unavailable')
+                if detailed:
+                    # Async background failure is a safe Settings fact, not a
+                    # startup warning row; opening it must not issue a POST.
+                    os.write(master, b'/settings\r')
+                    deadline = time.monotonic() + 5
+                    while expected not in screen:
+                        assert time.monotonic() < deadline, (label, 'wrong Settings category')
+                        screen += drain(master, .1)
+                    os.write(master, b'\x1b')
+                    screen += drain(master, .15)
                 for marker in (key, body_marker, str(root), 'Authorization:'):
                     assert marker not in screen, (label, 'private data reached TUI')
                 if label != 'present':

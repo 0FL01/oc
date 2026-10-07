@@ -5246,6 +5246,10 @@ async fn worker(
                         Ok(report) => report.warnings.clone(),
                         Err(_) => Vec::new(),
                     };
+                    let service_warning_range = match &result {
+                        Ok(report) => report.service_warning_range.clone(),
+                        Err(_) => 0..0,
+                    };
                     let event =
                         match result {
                             Err(RuntimeError::Cancelled) => CoreEvent::TurnInterrupted {
@@ -5261,6 +5265,7 @@ async fn worker(
                                     text: report.text,
                                     duration_ms,
                                     warnings,
+                                    service_warning_range,
                                 }
                             }
                             Ok(report) if report.status == TurnStatus::Cancelled => {
@@ -5279,6 +5284,7 @@ async fn worker(
                                         "turn incomplete: provider response ended early",
                                     )),
                                     warnings,
+                                    service_warning_range,
                                 }
                             }
                             Ok(report) => CoreEvent::TurnFailed {
@@ -5288,12 +5294,14 @@ async fn worker(
                                     report.diagnostic.as_deref().unwrap_or("provider error"),
                                 ),
                                 warnings,
+                                service_warning_range,
                             },
                             Err(error) => CoreEvent::TurnFailed {
                                 session: session.clone(),
                                 turn,
                                 error: runtime_error(error),
                                 warnings,
+                                service_warning_range,
                             },
                         };
                     let _ = events.send(event);

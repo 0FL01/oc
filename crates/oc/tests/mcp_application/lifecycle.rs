@@ -460,9 +460,9 @@ fn mcp_late_failure_published_during_held_native_turn_is_visible_scoped_and_reap
     close_mcps(&mut tui);
     release.store(true, Ordering::SeqCst);
     tui.wait_screen("answer:held late warning", TIMEOUT);
-    tui.wait_screen(
-        &format!("warning: mcp {}", diagnostic_name("unavailable")),
-        TIMEOUT,
+    assert!(
+        tui.screen().iter().all(|row| !row.contains("warning: mcp")),
+        "completion duplicated a background diagnostic into dialogue"
     );
     tui.send_line("next healthy");
     tui.wait_screen("answer:next healthy", TIMEOUT);

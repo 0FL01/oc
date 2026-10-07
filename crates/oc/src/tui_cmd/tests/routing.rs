@@ -887,7 +887,9 @@ async fn pending_owner_reload_allows_resize_and_quit_without_dropping_owner_rece
 
 #[tokio::test]
 async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
-    use oc_core::queries::TerminalCopyMode;
+    use oc_core::queries::{
+        McpBinding, McpServerSnapshot, McpSnapshot, McpStatus, TerminalCopyMode,
+    };
     use oc_tui::app::ClipboardMode;
     let (app, mut inbox, _) = CoreApp::channel(8);
     let mut old = catalog();
@@ -926,6 +928,25 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     fresh.chrome.terminal_copy = Some(TerminalCopyMode::Manual);
     fresh.chrome.session_tps = Some(false);
     let published = fresh.clone();
+    let current_mcp = McpSnapshot {
+        binding: McpBinding {
+            location: "/fixture".into(),
+            generation: 1,
+            instance: 1,
+        },
+        revision: 2,
+        servers: vec![McpServerSnapshot {
+            id: "coalesced-server".into(),
+            name: "safe-service".into(),
+            configured_enabled: true,
+            status: McpStatus::Failed,
+            pending_action: None,
+            tools: 0,
+            diagnostic: None,
+            actions: Vec::new(),
+        }],
+    };
+    let worker_mcp = current_mcp.clone();
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
             panic!("parked session selection")
@@ -935,6 +956,10 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
             panic!("active session selection")
         };
         ack.send(Err(CoreError::Shutdown)).unwrap();
+        let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
+            panic!("refused reload consumes the surviving owner's current facts")
+        };
+        ack.send(Ok(worker_mcp)).unwrap();
     });
     let error = finish_reload(
         &app,
@@ -951,7 +976,6 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     )
     .await
     .unwrap_err();
-    worker.await.unwrap();
     assert!(error.contains("selection refresh failed"));
     state.apply_intent_error(error);
     assert!(state.note().unwrap().contains("reload incomplete"));
@@ -983,6 +1007,47 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
         deck.tabs[0].as_ref().unwrap().clipboard_mode(),
         ClipboardMode::Manual
     );
+    deck.reload_job = Some(tokio::spawn(async { Err(CoreError::Shutdown) }));
+    apply_mcp_to_views(&mut state, &mut deck, current_mcp);
+    state.handle_key(KeyAction::Cancel).await; // dismiss /reload autocomplete, retaining the draft
+    state.handle_key(KeyAction::Commands).await;
+    assert_eq!(state.panel(), &TuiPanel::Commands);
+    state.handle_paste("mcp");
+    state.handle_panel_key(KeyAction::Enter);
+    assert_eq!(state.panel(), &TuiPanel::Mcps);
+    assert!(
+        state.modal_options().is_empty(),
+        "hint is coalesced while rebuilding"
+    );
+    let refusal = deck.reload_job.take().unwrap().await.unwrap().unwrap_err();
+    finish_reload_refusal(&app, &mut state, &mut deck, reload_error(refusal)).await;
+    worker.await.unwrap();
+    assert!(
+        state
+            .note()
+            .unwrap()
+            .contains("Configuration reload failed")
+    );
+    for view in [&mut state, deck.tabs[0].as_mut().unwrap()] {
+        if view.panel() != &TuiPanel::Mcps {
+            view.handle_key(KeyAction::Commands).await;
+            view.handle_paste("mcp");
+            view.handle_panel_key(KeyAction::Enter);
+        }
+        assert_eq!(view.panel(), &TuiPanel::Mcps);
+        assert!(
+            view.modal_options()
+                .iter()
+                .any(|row| { row.title == "safe-service" && row.footer.contains("Failed") })
+        );
+    }
+    assert!(
+        state
+            .note()
+            .unwrap()
+            .contains("Configuration reload failed")
+    );
+    assert_eq!(state.input(), "/reload");
 }
 
 #[tokio::test]
@@ -1080,6 +1145,7 @@ async fn vis27_reload_projects_owner_mode_to_active_parked_and_home() {
             panic!("verify Location catalog")
         };
         ack.send(Ok(fresh)).unwrap();
+        empty_mcp_status(&mut inbox).await;
         assert!(inbox.try_recv().is_err(), "reload does not save tab deck");
     });
     finish_reload(
@@ -1227,6 +1293,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
         };
         ack.send(Ok(b_session_catalog)).unwrap();
         empty_compactions(&mut inbox).await;
+        empty_mcp_status_at(&mut inbox, "/B").await;
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("save B route")
         };

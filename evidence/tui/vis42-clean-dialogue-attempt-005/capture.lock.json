@@ -1,0 +1,1309 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-07T10:27:48.741Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "189d3182588f5de795c6bad8ed5badf9dc8206b27235509b2572d6810e851955",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "4293c81fdac0d3f726961dc32343555d61665dc09edf1a061f787bfdab31eed1",
+    "services.mjs": "5f47cc906ffa87fc06ae429de14057e6fd08d08b113fd702bd9cd5d3a29c01a0",
+    "services_fixture.py": "e60238f951bf5a4d44961b5c2787c25e0d6e94e6ca1722cbdfbc42158ce2004e"
+  },
+  "fixture_sha256": "4920ad93e94a408dbb8cabb5d45847d6db91da6a3798c18d1f4d880bdf3e36be",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "e0509c4cde2314d5d0d2a0cb501297511ab1da61",
+    "tree": "3a2b5c7f9ec19d59aca86e16c99808207bffe8ee",
+    "dirty_diff_sha256": "6e3d197f4b25c093f876cd79de078403dd0f8db4beed343399e0bf138d57b8a0",
+    "source_manifest_sha256": "be4fa2b211b8a6780f98cc327d7bb6a39531e256b5eb462a248f87ff4bd600bc",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "c216e78b69495addc440a0df86136e3e0a78a90e4c3a83988d8a5e93294c7a10",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "services-pending-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-completed-answer",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-pending-completed-answer",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-alert",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-alert",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-completed-answer",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-completed-answer",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-details",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-details",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-back",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-failure-back",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-unchanged-reload",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-unchanged-reload",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-recovered-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-recovered-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-recovered-answer",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-recovered-answer",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-second-completed-answer",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "services-second-completed-answer",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "services-pending-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e872a4438c72c23115572a9d43b9b91a830579fad146597d424aaf74942539f2",
+      "png_sha256": "c180a1dec82414741a01f82d399e6b2b341f8613b6c2e7b8d6fa26f8109cc608",
+      "render_sha256": "6713f3d263562fa641c87f8d7589f993a6024c9faa0eba8385fbeee754aeffc0",
+      "path": "upstream/services-pending-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-pending-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "668947e925bcd9797b869d5d67402a72d8f8e36b869c7faeed4880ac1aaea065",
+      "png_sha256": "69ce80c697a2c7118a242de73a8bf8b9ef7546a502af10ea8fc2791ae60cee9e",
+      "render_sha256": "2082f13598b48e59a94006478b723b7d2ef8f8be3994361b19f431b667233dfd",
+      "path": "upstream/services-pending-completed-answer"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-alert",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "516ab4be9f707cfe55139f4e15e47c7d4613b4c11426821aa2d60c687199879b",
+      "png_sha256": "9c9ad713f30b579c426630cec4a3a7c6684c8e382d28f464d3dbfd76339e6bae",
+      "render_sha256": "a97bf283884f053b50ddc6aad87c66a3fbc964f95203bcc9c906e2d50f33f260",
+      "path": "upstream/services-failure-alert"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "067321ba5dd8bd36efe90120bd273e88d7bd25b07e278cba546ff2cf95761116",
+      "png_sha256": "69ce80c697a2c7118a242de73a8bf8b9ef7546a502af10ea8fc2791ae60cee9e",
+      "render_sha256": "5428157b8b6fa38d4cbdf5e87cd032c989e9c4df5d3c656fe5b385d83a056253",
+      "path": "upstream/services-failure-completed-answer"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "56d80bc04aea29078abacdc3dc1024d69defa3be7097a38743d56cbad88abd26",
+      "png_sha256": "f086707d688b649025d3434df3484bb315869e6624eeb5af907c1454035f18f8",
+      "render_sha256": "d2ba94000754a5d64b59638eb1cde066c06687b70bf2599685509d9f3fb18437",
+      "path": "upstream/services-failure-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-details",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e24c84d421250a5e972a70f41b12d4b57b9b34ebe02dfdfa12c407e92369c6f2",
+      "png_sha256": "39d60ceee37fb8270b5ffa0061487e30c714ba952ad2066e12efe8a9b8118924",
+      "render_sha256": "4175c7f8afacf9a9912e581c9fcca3d83d2a1a268caf934a573a9d14ff12d618",
+      "path": "upstream/services-failure-details"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-failure-back",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "eb566cb715b92225ac2346e191740fb2f87c299555db8d6f8382cab22fa7f802",
+      "png_sha256": "f086707d688b649025d3434df3484bb315869e6624eeb5af907c1454035f18f8",
+      "render_sha256": "7aa21529b4e99a897e8ffec8009e70dfc7609841e46d412ea8f369b17ee8b441",
+      "path": "upstream/services-failure-back"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-unchanged-reload",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c7818c3dd0b29650b0d9641f72f5d094cc2275c1e72c1ffe8f512330042afa2a",
+      "png_sha256": "f3baa01f6da62053522be28815065b6283a16988bdf340490ea8d33d812818c9",
+      "render_sha256": "fe2aa011972f2ccb3c2305a1d8e988fb15a624f71138c1cd87c7c95db07819d5",
+      "path": "upstream/services-unchanged-reload"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-recovered-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "72ab44245d7938ac066bdf795625a45e19b48fdad6faf14e3ac30762e6a0492e",
+      "png_sha256": "fdeb02b8c9503a2eac54ca6a1223ce3ef24f1e07fa45d5aa3f9ad4c997cc3018",
+      "render_sha256": "320872311b1410cf7f9b92aa78e11e1dbcc82df2196e3b22e19f9eae7a66b522",
+      "path": "upstream/services-recovered-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-recovered-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "e6ca9b1c05188e85752fe314fc68f0bb13dde8907dfd7655ab250cd621aa4e40",
+      "png_sha256": "5a00bbe514b8c6a727ebd8e59e5a8ad5ad6211e2ce0cf9ac96ee743973abe7b8",
+      "render_sha256": "477cb2fc39ab398503752062204d3026f65361dbf92e4e17504d17388583d629",
+      "path": "upstream/services-recovered-answer"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "services-second-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "7120175a4e1d45db81d85d009d4d6abe650e75387200d329c143889738ae1a62",
+      "png_sha256": "ed35b89755aa96f4413d4abc4e4b5328395840c4c87b136fd28658cfd3526ae3",
+      "render_sha256": "84e3c36048ca136a06328e3b440ba12399d5aab2d6a6e322e1642526a39aabda",
+      "path": "upstream/services-second-completed-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-pending-home",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "92463d0d1c22210e32475ce62c3c332041fb2fa001a3b4853f3424bf4de47e08",
+      "png_sha256": "0137d403669455b8a8fb877220f8b26778ac9cbbead5094f58b139ee5c2da3e8",
+      "render_sha256": "f1fcd114d14a1c6b0c638c8538463c87dc96d1f791b414f9161ba5075cabe795",
+      "path": "oc/services-pending-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-pending-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "17abf998465d57fd32d17c32a7779af522dd49283ac531a5ce11c99d8168aaa2",
+      "png_sha256": "3dff5125f8a4abab1de65f3c57b2c28886a06fb13b673646de559e00ed754111",
+      "render_sha256": "da644f13ab63024dde896182a7c8eb50e4cc576b817e8d9fd380cbbdc4cc33ed",
+      "path": "oc/services-pending-completed-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-alert",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "3e41c86b1ad1d7f99c4e4f4c83ec55ed778f6f5905b668996e30fdf26b935d86",
+      "png_sha256": "7b18414466decd14ce91ad7a85f4b2e6e81a4fb66f4b6f13d388c6fa45d882a7",
+      "render_sha256": "0e6473910597a1a441ed937c8ad849709bdf5bedc3c445ab1e413cb6841cb7c7",
+      "path": "oc/services-failure-alert"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b189238497692d927657cb87a708d746185a639221cc7cdd225ded64258ede9f",
+      "png_sha256": "e74d0cc647e621e3d6de3e5bfe0303a23e1e4fb7e68cbd6b504597964b707287",
+      "render_sha256": "67dab94455350e0d2eabd06ef6ade35607ace8b8cce1c8c5d6003af90dd05956",
+      "path": "oc/services-failure-completed-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "6c8e9f3dea70b19d2dc08c47f544f563c870f74a75316cdcaf19446597775535",
+      "png_sha256": "90b4ad0879dcf55909fed1f72bb8a71d2c682055277890fa045f4c3d4d383567",
+      "render_sha256": "bb2f482919c8f93daacbc45de969249504db2578ca5ffe9a572661b0b37f7347",
+      "path": "oc/services-failure-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-details",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "c4c3f3dde8b675a4db7409df80c53d9d56b3fbd811770bec21df7189769cac64",
+      "png_sha256": "4110080e9dddd940f69061d95ab41cec3193b2bf20a81628d603cc20dc8f298c",
+      "render_sha256": "68308527932c332491f8599b004f0eeb6798bb2cb0e0c1804ba90a1dba638613",
+      "path": "oc/services-failure-details"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-failure-back",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "9a4a69fe159d93149dbff84e1d390dd4ffe69885f80a72ff145bc7723e12ca50",
+      "png_sha256": "90b4ad0879dcf55909fed1f72bb8a71d2c682055277890fa045f4c3d4d383567",
+      "render_sha256": "2730567cf3c7ebdec5291a2167a77c4530fc5337356bf2c225eb68a3eb7f82b3",
+      "path": "oc/services-failure-back"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-unchanged-reload",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "85d9cca0db9f28720c49c780d8a17bb36c63ad7b840c7b6136654c7ca5415407",
+      "png_sha256": "6226ba8dd586b7172dee95d20d51fbba8c7de9e298e960b955a1bfd13f2d85e3",
+      "render_sha256": "0db6a1e23e873fd2e788cf932709642e1716a177718564932bd179d8fb38b432",
+      "path": "oc/services-unchanged-reload"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-recovered-list",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "efea819793942c52b139c5184eb71d1d0ba3bdb88cd4d51cf06b9439076dc955",
+      "png_sha256": "646a370085a614a4968114cbe4171915f2111f4604e0e9817fa35841d496fa14",
+      "render_sha256": "fc7e26226d2a06b274723f3212b79b75d37623d9c2badfd8ee95ad070324e995",
+      "path": "oc/services-recovered-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-recovered-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "44df0b921ed1c8bf73271d64a5a638753edc8994a281ead08538cfdba208ac0f",
+      "png_sha256": "fbd1aabfaef57666638a1cf9a54b86f57738cfb010c3e45ea14120763e90f4fb",
+      "render_sha256": "8ff476b3eaeb95cc63498b8fe5e9cf9e8abe58c6bd46c70a730611003b8691c9",
+      "path": "oc/services-recovered-answer"
+    },
+    {
+      "origin": "oc",
+      "scenario": "services-second-completed-answer",
+      "status": "CAPTURED",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "b17135990cac8185526c704e1ffffd9b2d885aec4882276447921dbce694291b",
+      "png_sha256": "ef66ac916769caa2925b2dee9067029cc01abddb1916a99f486ab9e2a19caf00",
+      "render_sha256": "fcc82d9bb7982a8752f332323615d5d797232f1f14c148edfaf827047791a374",
+      "path": "oc/services-second-completed-answer"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "clean_services": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "OBSERVED",
+      "checks": [
+        {
+          "stage": "pending-home",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 51,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 712,
+          "pause_capture_ms": 857
+        },
+        {
+          "stage": "pending-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 1220,
+          "pause_capture_ms": 907
+        },
+        {
+          "stage": "failure-alert",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 702,
+          "pause_capture_ms": 855
+        },
+        {
+          "stage": "failure-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "failure-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "failure-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 4139,
+          "pause_capture_ms": 823
+        },
+        {
+          "stage": "failure-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 649,
+          "pause_capture_ms": 835
+        },
+        {
+          "stage": "failure-details",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 90,
+            "y": 18,
+            "visible": false,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 711,
+          "pause_capture_ms": 835
+        },
+        {
+          "stage": "failure-back",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 666,
+          "pause_capture_ms": 913
+        },
+        {
+          "stage": "unchanged-reload-peer-0",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "unchanged-reload-peer-0",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "unchanged-reload-peer-1",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "unchanged-reload-peer-1",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "unchanged-reload-peer-2",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "unchanged-reload-peer-2",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368896495
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368896496
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "unchanged-reload",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 269,
+          "pause_capture_ms": 955
+        },
+        {
+          "stage": "unchanged-reload-notification",
+          "service_alert_visible": false
+        },
+        {
+          "stage": "recovery-accepted-peer-0",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-accepted-peer-0",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368896495
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368896496
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "recovery-accepted-peer-1",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-accepted-peer-1",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368896495
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368896496
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "recovery-accepted-peer-2",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-accepted-peer-2",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368896495
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368896496
+                },
+                {
+                  "pid": 188516,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368900391
+                },
+                {
+                  "pid": 188516,
+                  "method": "initialize",
+                  "phase": "healthy",
+                  "at_ms": 1791368900391
+                },
+                {
+                  "pid": 188516,
+                  "method": "notifications/initialized",
+                  "phase": "healthy",
+                  "at_ms": 1791368900406
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "recovered-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 676,
+          "pause_capture_ms": 901
+        },
+        {
+          "stage": "recovered-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 627,
+          "pause_capture_ms": 778
+        },
+        {
+          "stage": "second-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 743,
+          "pause_capture_ms": 819
+        },
+        {
+          "stage": "recovery-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368870938
+                },
+                {
+                  "pid": 188126,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368877527
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368896495
+                },
+                {
+                  "pid": 188459,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368896496
+                },
+                {
+                  "pid": 188516,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368900391
+                },
+                {
+                  "pid": 188516,
+                  "method": "initialize",
+                  "phase": "healthy",
+                  "at_ms": 1791368900391
+                },
+                {
+                  "pid": 188516,
+                  "method": "notifications/initialized",
+                  "phase": "healthy",
+                  "at_ms": 1791368900406
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "counts",
+          "provider_requests": 5,
+          "invalid_requests": 0
+        }
+      ],
+      "declared_differences": [
+        "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+        "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer).",
+        "Native unchanged-cause reload does not re-alert; pinned OC2 forgets its prior MCP alert during pending."
+      ]
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "OBSERVED",
+      "checks": [
+        {
+          "stage": "pending-home",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 51,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 707,
+          "pause_capture_ms": 858
+        },
+        {
+          "stage": "pending-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 699,
+          "pause_capture_ms": 867
+        },
+        {
+          "stage": "failure-alert",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 662,
+          "pause_capture_ms": 839
+        },
+        {
+          "stage": "failure-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "failure-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "failure-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 3919,
+          "pause_capture_ms": 801
+        },
+        {
+          "stage": "failure-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 646,
+          "pause_capture_ms": 824
+        },
+        {
+          "stage": "failure-details",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 648,
+          "pause_capture_ms": 817
+        },
+        {
+          "stage": "failure-back",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 680,
+          "pause_capture_ms": 808
+        },
+        {
+          "stage": "unchanged-reload-peer-0",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "unchanged-reload-peer-0",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "unchanged-reload-peer-1",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "unchanged-reload-peer-1",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368932518
+                }
+              ],
+              "phase": "failed"
+            }
+          }
+        },
+        {
+          "stage": "unchanged-reload",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 308,
+          "pause_capture_ms": 866
+        },
+        {
+          "stage": "unchanged-reload-notification",
+          "service_alert_visible": false
+        },
+        {
+          "stage": "recovery-accepted-peer-0",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-accepted-peer-0",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368932518
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "recovery-accepted-peer-1",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-accepted-peer-1",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188995,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368936307
+                },
+                {
+                  "pid": 188995,
+                  "method": "initialize",
+                  "phase": "healthy",
+                  "at_ms": 1791368936307
+                },
+                {
+                  "pid": 188995,
+                  "method": "notifications/initialized",
+                  "phase": "healthy",
+                  "at_ms": 1791368936308
+                },
+                {
+                  "pid": 188995,
+                  "method": "tools/list",
+                  "phase": "healthy",
+                  "at_ms": 1791368936308
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "recovered-list",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 634,
+          "pause_capture_ms": 904
+        },
+        {
+          "stage": "recovered-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 661,
+          "pause_capture_ms": 884
+        },
+        {
+          "stage": "second-completed-answer",
+          "capture_status": "CAPTURED",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "owned_pause": true,
+          "observed_wait_ms": 778,
+          "pause_capture_ms": 911
+        },
+        {
+          "stage": "recovery-peer",
+          "snapshot": {
+            "kind": "services_snapshot",
+            "request_id": "recovery-peer",
+            "snapshot": {
+              "mcp": [
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368909274
+                },
+                {
+                  "pid": 188643,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368914580
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188935,
+                  "method": "initialize",
+                  "phase": "failed",
+                  "at_ms": 1791368932518
+                },
+                {
+                  "pid": 188995,
+                  "method": "initialize",
+                  "phase": "admitted-before-release",
+                  "at_ms": 1791368936307
+                },
+                {
+                  "pid": 188995,
+                  "method": "initialize",
+                  "phase": "healthy",
+                  "at_ms": 1791368936307
+                },
+                {
+                  "pid": 188995,
+                  "method": "notifications/initialized",
+                  "phase": "healthy",
+                  "at_ms": 1791368936308
+                },
+                {
+                  "pid": 188995,
+                  "method": "tools/list",
+                  "phase": "healthy",
+                  "at_ms": 1791368936308
+                }
+              ],
+              "phase": "healthy"
+            }
+          }
+        },
+        {
+          "stage": "counts",
+          "provider_requests": 5,
+          "invalid_requests": 0
+        }
+      ],
+      "declared_differences": [
+        "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+        "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer).",
+        "Native unchanged-cause reload does not re-alert; pinned OC2 forgets its prior MCP alert during pending."
+      ]
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_BASELINES_ONLY",
+    "stable_state_predicate": "Expected visible marker plus unchanged full styled grid/cursor for 5 polls, 200 ms apart; completed transcript additionally requires successful fixture response",
+    "requested_settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    },
+    "unresolved": [
+      "Application elapsed-time/token-rate values are real wall-clock measurements, not frozen across runs",
+      "Fixture requests 6800ms reasoning but supplies text-only output in the default sample; reasoning qualification is not executed",
+      "Location is the common isolated project path, not screenshot /tmp/space; unique attempt directory changes across reruns",
+      "Rust sidebar/devtools/title/model-display differences remain visible; requested settings are not asserted as effective Rust settings",
+      "Failed dialog predicates produce diagnostic actual frames, not equivalent successful dialog states"
+    ],
+    "mcp_error_and_stall": "NOT_RUN (V00 three-screen capture only)"
+  },
+  "finished": "2026-10-07T10:29:07.309Z",
+  "exit_code": 1
+}

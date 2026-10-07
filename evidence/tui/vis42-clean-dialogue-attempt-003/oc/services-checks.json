@@ -1,0 +1,203 @@
+{
+  "origin": "oc",
+  "status": "OBSERVED",
+  "checks": [
+    {
+      "stage": "pending-home",
+      "capture_status": "UNSTABLE_CAPTURE",
+      "cursor": {
+        "x": 51,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "pending-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "failure-alert",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "failure-peer",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "failure-peer",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 90797,
+              "method": "initialize",
+              "phase": "admitted-before-release"
+            },
+            {
+              "pid": 90797,
+              "method": "initialize",
+              "phase": "failed"
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "failure-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "failure-list",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "failure-details",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "failure-back",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "unchanged-reload",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "unchanged-reload-notification",
+      "service_alert_visible": false
+    },
+    {
+      "stage": "recovered-list",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "recovered-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "second-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    {
+      "stage": "recovery-peer",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "recovery-peer",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 90797,
+              "method": "initialize",
+              "phase": "admitted-before-release"
+            },
+            {
+              "pid": 90797,
+              "method": "initialize",
+              "phase": "failed"
+            },
+            {
+              "pid": 91186,
+              "method": "initialize",
+              "phase": "admitted-before-release"
+            },
+            {
+              "pid": 91186,
+              "method": "initialize",
+              "phase": "failed"
+            },
+            {
+              "pid": 91282,
+              "method": "initialize",
+              "phase": "admitted-before-release"
+            },
+            {
+              "pid": 91282,
+              "method": "initialize",
+              "phase": "healthy"
+            },
+            {
+              "pid": 91282,
+              "method": "notifications/initialized",
+              "phase": "healthy"
+            },
+            {
+              "pid": 91282,
+              "method": "tools/list",
+              "phase": "healthy"
+            }
+          ],
+          "phase": "healthy"
+        }
+      }
+    },
+    {
+      "stage": "counts",
+      "provider_requests": 5,
+      "invalid_requests": 0
+    }
+  ],
+  "declared_differences": [
+    "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+    "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer)."
+  ]
+}

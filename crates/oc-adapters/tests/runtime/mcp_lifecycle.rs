@@ -243,6 +243,8 @@ async fn mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_star
             "fresh={fresh}: late typed degradation lost"
         );
         assert_eq!(next.warnings, [expected]);
+        assert_eq!(report.service_warning_range, 0..report.warnings.len());
+        assert_eq!(next.service_warning_range, 0..next.warnings.len());
         assert_eq!(harness.db.history_len("s").unwrap(), 4);
     }
 }

@@ -324,6 +324,10 @@ pub enum CoreEvent {
         /// Sanitized non-fatal notices for this turn (e.g. degraded MCP
         /// servers); never secrets, never a reason to hide the answer.
         warnings: Vec<String>,
+        /// Indices in `warnings` emitted by the captured background-service
+        /// owner. Other notices remain turn-specific; consumers never classify
+        /// warning prose. Empty for scripted providers.
+        service_warning_range: std::ops::Range<usize>,
     },
     /// Turn was cancelled; partial text was not committed as a message.
     TurnInterrupted {
@@ -347,6 +351,8 @@ pub enum CoreEvent {
         /// Sanitized non-fatal notices for this turn (e.g. degraded MCP
         /// servers); never secrets, never a substitute for the error.
         warnings: Vec<String>,
+        /// Background-service provenance, as in `TurnFinished`.
+        service_warning_range: std::ops::Range<usize>,
     },
 }
 
@@ -2081,6 +2087,7 @@ async fn worker_loop(
                                 text,
                                 duration_ms: elapsed_ms(turn.started),
                                 warnings: Vec::new(),
+                                service_warning_range: 0..0,
                             };
                             active = None;
                             let _ = events.send(done);

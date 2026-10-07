@@ -115,3 +115,5 @@ recovery-v00/variants-*20260928-*.log whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/variants-check*/native-source.patch whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.txt whitespace=-blank-at-eol,-blank-at-eof
 recovery-v00/tabs-*/**/*.vt binary
+vis42-clean-dialogue-attempt-*/*/*.txt whitespace=-blank-at-eol,-blank-at-eof
+vis42-clean-dialogue-attempt-*/*/*.vt binary

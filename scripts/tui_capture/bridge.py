@@ -22,6 +22,7 @@ import urllib.request
 import compaction_fixture
 import apply_patch_fixture
 import permission_fixture
+import services_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -492,6 +493,8 @@ if spec.get('permission'):
     permission_fixture.configure(spec, home, project, config, cli_config)
     if spec.get('permission_mode') == 'auto-cli':
         argv.append('--auto')
+if spec.get('clean_services'):
+    services_fixture.configure(spec, home, project, config, cli_config)
 if spec.get('compaction'):
     automatic = spec.get('compaction_trigger','manual') != 'manual'
     config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
@@ -548,6 +551,9 @@ env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HO
        'OPENCODE_TEST_HOME': str(home), 'OPENCODE_DISABLE_AUTOUPDATE': '1',
        'OPENCODE_DISABLE_MODELS_FETCH': 'true', 'OPENCODE_DISABLE_FILEWATCHER': 'true',
         'OPENCODE_CONFIG_CONTENT': json.dumps(config), 'OPENCODE_CONFIG_PROJECT_DISABLE': 'true'}
+if spec.get('clean_services'):
+    # The fixture-owned file is the authority, so real /reload can adopt recovery.
+    env.pop('OPENCODE_CONFIG_CONTENT')
 if spec.get('wheel_probe') and spec['origin'] == 'oc':
     env['OC_TUI_TEST_METRICS'] = spec['metrics_path']
 version = subprocess.run([spec['binary'], '--version'], env=env, cwd=project, capture_output=True, timeout=20)
@@ -619,7 +625,11 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'permission_snapshot' and spec.get('permission'):
+                        if command['kind'] == 'services_snapshot' and spec.get('clean_services'):
+                            emit({'kind':'services_snapshot','request_id':command['request_id'], 'snapshot':services_fixture.snapshot(home)})
+                        elif command['kind'] == 'services_control' and spec.get('clean_services'):
+                            emit({'kind':'services_control_ack','request_id':command['request_id'], **services_fixture.control(home, config, spec['origin'], command['action'])})
+                        elif command['kind'] == 'permission_snapshot' and spec.get('permission'):
                             emit({'kind':'permission_snapshot','request_id':command['request_id'], **permission_fixture.snapshot(home, project)})
                         elif command['kind'] == 'patch_snapshot' and spec.get('apply_patch'):
                             emit({'kind':'patch_snapshot','request_id':command['request_id'], **apply_patch_fixture.snapshot(home, project)})
@@ -718,7 +728,7 @@ try:
                         elif command['kind'] == 'release_scanner' and spec.get('scanner'):
                             scanner_release.set()
                             emit({'kind': 'scanner_release_requested'})
-                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch')):
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services')):
                             pause = command['kind'] == 'pause_scanner'
                             try:
                                 if pause and child.poll() is None and not scanner_paused:

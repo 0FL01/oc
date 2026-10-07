@@ -86,15 +86,16 @@ def visible_rows(stream, cols=120, rows=40):
     return [''.join(row) for row in grid]
 
 
-def assert_dcp_warning(stream, label):
-    rows = visible_rows(stream)
-    # At 120 columns the exact category and first clause are on the first
-    # content row; the complete remainder occupies the adjacent content row.
-    # Check both rows, not sparse escape-separated bytes or loose fragments.
-    first = 'warning: DCP settings have unsupported entries;'
-    second = 'review native dcp settings'
-    assert any(first in row and second in rows[index + 1]
-               for index, row in enumerate(rows[:-1])), (label, rows)
+def inspect_settings(fd, stream, code, label):
+    """Real read-only status route, not unsolicited startup/dialogue text."""
+    os.write(fd, b'/settings\r')
+    deadline = time.monotonic() + 5
+    while not any(code in row for row in visible_rows(stream)):
+        assert time.monotonic() < deadline, (label, 'missing Settings detail', code)
+        stream += drain(fd, .1)
+    assert 'warning: DCP settings' not in stream, (label, 'background warning row')
+    os.write(fd, b'\x1b')
+    return stream + drain(fd, .15)
 
 
 with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
@@ -133,13 +134,15 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
                                  cwd=project, env=env, stdin=slave, stdout=slave, stderr=slave)
         return child, master, slave, original
 
-    def check(label, expected, data_dir=None, forbidden=(), session=None):
+    def check(label, expected, data_dir=None, forbidden=(), session=None, detail=None):
         child, master, slave, original = launch(data_dir, session)
         try:
             output = drain(master)
             assert child.poll() is None, (label, 'premature exit', child.returncode)
             for text in expected:
                 assert text in output, (label, text, output)
+            if detail is not None:
+                output = inspect_settings(master, output, detail, label)
             for text in (*forbidden, 'DUMMY-STARTUP-SECRET', str(root)):
                 assert text not in output, (label, 'leaked', text)
             os.write(master, b'\x03')
@@ -183,21 +186,24 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         config_file.unlink()
         config_file = config / 'opencode.jsonc'
         config_file.write_text(json.dumps(fixture))
-        expected = ['█▀▀█', 'missing_credential', 'source-']
+        expected = ['█▀▀█']
         env.pop('FIXTURE_KEY', None)
         check('credential missing', expected,
-              forbidden=('Native startup error', 'Configuration load failed', 'FIXTURE_KEY'))
+              forbidden=('Native startup error', 'Configuration load failed', 'FIXTURE_KEY'),
+              detail='missing_credential')
         headless = subprocess.run([binary, 'run', 'no network call'], cwd=project,
                                   env=env, capture_output=True, timeout=5)
         assert headless.returncode == 1 and b'missing_credential' in headless.stderr
         assert headless.stdout == b'' and b'source-' in headless.stderr
         env['FIXTURE_KEY'] = ''
-        check('credential empty env', expected, forbidden=('Native startup error', 'Configuration load failed',))
+        check('credential empty env', expected, forbidden=('Native startup error', 'Configuration load failed',),
+              detail='missing_credential')
         env['FIXTURE_KEY'] = 'DUMMY-STARTUP-SECRET'
         check('credential present', ['█▀▀█'], forbidden=('Native startup error',))
         fixture['provider']['fixture']['options']['apiKey'] = ''
         config_file.write_text(json.dumps(fixture))
-        check('credential empty literal', expected, forbidden=('Native startup error', 'Configuration load failed',))
+        check('credential empty literal', expected, forbidden=('Native startup error', 'Configuration load failed',),
+              detail='missing_credential')
         try:
             accepted, _ = listener.accept()
         except BlockingIOError:
@@ -271,7 +277,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
                 **fixture, 'dcp': {'LEAKME-SWITCH-WARNING': True}}))
             os.write(master, f'/location {other}\r'.encode())
             result = drain(master, .8)
-            assert_dcp_warning(initial + screen + erased + result, name)
+            result = inspect_settings(master, initial + screen + erased + result,
+                                      'ignored_setting', name)
             assert 'LEAKME-SWITCH-WARNING' not in result, (name, result)
             # Sessionless Home may leave an unchanged model label on-screen
             # without repainting its bytes. Open the actual target catalog to
@@ -313,11 +320,9 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     (config / 'cli.json').unlink()
     fixture['dcp'] = {'DUMMY-STARTUP-SECRET': True}
     config_file.write_text(json.dumps(fixture))
-    # Startup notices are emitted on stderr before entering the alternate
-    # screen; unlike the switch toast, their exact bytes are contiguous.
-    check('warning', ['█▀▀█',
-                      'warning: DCP settings have unsupported entries; review native dcp settings'],
-          forbidden=('Native startup error',))
+    # Background warnings stay out of startup/dialogue, while safe details remain.
+    check('warning', ['█▀▀█'], detail='ignored_setting',
+          forbidden=('Native startup error', 'warning: DCP settings'))
     del fixture['dcp']
     config_file.write_text(json.dumps(fixture))
     link = root / 'unsafe-link'

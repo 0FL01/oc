@@ -228,6 +228,148 @@ fn assert_wire_counts(fixture: &Fixture, main: usize, titles: usize) {
     }
 }
 
+fn vis42_clean_dialogue(pty: &PtySession) {
+    let frame = render_screen(&pty.snapshot());
+    for row in frame.rows() {
+        assert!(
+            !row.contains("warning:"),
+            "background warning entered the dialogue: {row}"
+        );
+        assert!(
+            !row.contains("unsupported_plugin"),
+            "technical service details entered the dialogue: {row}"
+        );
+        assert!(
+            !row.contains("ignored_setting"),
+            "technical config details entered the dialogue: {row}"
+        );
+    }
+}
+
+#[test]
+fn vis42_native_mixed_pending_failures_reload_recovery_and_reopen_keep_dialogue_clean() {
+    let fixture = Fixture::new();
+    let mut config = native_config(&fixture);
+    rows(&fixture, false);
+    fixture.catalog_control.hold.store(true, Ordering::Relaxed);
+    config["compaction"] = json!({"auto":false,"prune":true});
+    let project = fixture.root.path().join("project");
+    let script = project.join("vis42-mcp.py");
+    let release = project.join("vis42-release");
+    let pid_file = project.join("vis42-pid");
+    std::fs::write(&script, r#"import json, os, pathlib, sys, time
+pathlib.Path(sys.argv[1]).write_text(str(os.getpid()))
+for line in sys.stdin:
+    request = json.loads(line)
+    if request.get('method') == 'initialize':
+        while not pathlib.Path(sys.argv[2]).exists():
+            time.sleep(0.01)
+        print(json.dumps({'jsonrpc':'2.0','id':request['id'],'error':{'code':-32603,'message':'UI07_NEVER_RENDER_CONFIG_ENV_AUTH_62c4'}}), flush=True)
+"#).unwrap();
+    config["mcp"] = json!({"vis42": {"type":"local","enabled":true,"timeout":10000,
+        "command":["/usr/bin/python3",script,pid_file,release]}});
+    publish(&fixture, &config);
+    let mut pty = PtySession::spawn_sized(fixture.clone(), "vis42-clean", None, 120, 40);
+    wait_screen_row(&pty, READY, DEADLINE);
+    wait_screen_row(&pty, "2 pending", DEADLINE);
+    wait_screen_row(&pty, "service issues", DEADLINE);
+    vis42_clean_dialogue(&pty);
+    assert_eq!(main_count(&fixture), 0);
+    std::fs::write(&release, "release owned initializer").unwrap();
+    wait_screen_row(&pty, "3 issues", DEADLINE);
+    fixture.catalog_control.hold.store(false, Ordering::Relaxed);
+    settings(&mut pty, "ready");
+    dismiss(&mut pty);
+    submit(&mut pty, "vis42 first answer");
+    wait_screen_row(&pty, "echo: vis42 first answer", DEADLINE);
+    wait_idle(&pty);
+    vis42_clean_dialogue(&pty);
+    submit(&mut pty, "vis42 second answer");
+    wait_screen_row(&pty, "echo: vis42 second answer", DEADLINE);
+    wait_idle(&pty);
+    vis42_clean_dialogue(&pty);
+
+    // The unchanged reload has explicit operation feedback, not another alert.
+    pty.send(b"/reload\r");
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    vis42_clean_dialogue(&pty);
+    wait_screen_row(&pty, "3 issues", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("service issues")),
+        "unchanged reload re-alerted the same cause: {:?}",
+        render_screen(&pty.snapshot()).rows()
+    );
+    pty.send(b"/settings\r");
+    wait_screen_row(&pty, "Unsupported plugin — failed", DEADLINE);
+    wait_screen_row(&pty, "Configuration diagnostics", DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(&pty, "Compiled plugins");
+    pty.resize(80, 24);
+    wait_screen_row(&pty, "echo: vis42 second answer", DEADLINE);
+    vis42_clean_dialogue(&pty);
+    pty.resize(120, 40);
+
+    // Recovery changes only current inventory, not messages or model selection.
+    config["plugin"] = json!(["@tarquinen/opencode-dcp"]);
+    config.as_object_mut().unwrap().remove("compaction");
+    config.as_object_mut().unwrap().remove("mcp");
+    publish(&fixture, &config);
+    pty.send(b"/reload\r");
+    wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
+    // The identical operation-toast text may still be visible from the first
+    // reload. Wait for this accepted recovery's changed inventory, not a delay.
+    dismissed(&pty, "issues");
+    wait_idle(&pty);
+    pty.send(b"/settings\r");
+    wait_screen_row(&pty, "DCP — active", DEADLINE);
+    assert!(
+        !render_screen(&pty.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("Unsupported plugin"))
+    );
+    pty.send(b"\x1b");
+    dismissed(&pty, "Compiled plugins");
+    vis42_clean_dialogue(&pty);
+    let process: libc::pid_t = std::fs::read_to_string(&pid_file).unwrap().parse().unwrap();
+    assert_ne!(
+        // SAFETY: signal zero probes only the PID recorded by this owned fixture.
+        unsafe { libc::kill(process, 0) },
+        0,
+        "retired owned MCP process was not reaped"
+    );
+    clean_exit(&mut pty);
+    let requests = fixture.requests.lock().unwrap().len();
+    let mut reopened = PtySession::spawn_sized(fixture.clone(), "vis42-clean", None, 120, 40);
+    wait_screen_row(&reopened, "echo: vis42 second answer", DEADLINE);
+    vis42_clean_dialogue(&reopened);
+    assert!(
+        !render_screen(&reopened.snapshot())
+            .rows()
+            .iter()
+            .any(|row| row.contains("issues"))
+    );
+    clean_exit(&mut reopened);
+    assert_eq!(
+        fixture.requests.lock().unwrap().len(),
+        requests,
+        "reopen replayed a generation"
+    );
+    assert_eq!(main_count(&fixture), 2);
+    assert_wire_counts(&fixture, 2, 1);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let history = db.read_history("vis42-clean").unwrap();
+    assert_eq!(history.iter().filter(|row| row.0 == "assistant").count(), 2);
+    assert!(
+        history
+            .iter()
+            .all(|row| !row.1.contains("warning:") && !row.1.contains(CANARY))
+    );
+}
+
 fn spawn(fixture: Arc<Fixture>, session: &str) -> PtySession {
     let pty = PtySession::spawn_sized(fixture, session, None, 120, 40);
     pty.wait_visible("Native runtime", DEADLINE);

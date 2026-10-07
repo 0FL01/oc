@@ -1,0 +1,99 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "checks": [
+    {
+      "stage": "pending-home",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 51,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "pending-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "failure-alert",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "failure-peer",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "failure-peer",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 177887,
+              "method": "initialize",
+              "phase": "admitted-before-release"
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "failure-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "failure-list",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "failure-details",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true
+    },
+    {
+      "stage": "failure",
+      "reason": "Actual MCP failure was not dispatched; retained actual error details"
+    }
+  ],
+  "declared_differences": [
+    "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+    "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer).",
+    "Native unchanged-cause reload does not re-alert; pinned OC2 forgets its prior MCP alert during pending."
+  ],
+  "reason": "Actual MCP failure was not dispatched; retained actual error details"
+}

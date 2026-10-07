@@ -149,7 +149,20 @@ impl TuiState {
                         "provider".into(),
                         format!("Provider request — {}", provider.status.as_str()),
                         "Services",
-                        provider.to_string(),
+                        provider
+                            .diagnostic
+                            .as_ref()
+                            .map(|diagnostic| diagnostic.code.as_str().to_owned())
+                            .unwrap_or_default(),
+                        false,
+                    ));
+                }
+                if let Some(selection) = &self.chrome.selection {
+                    options.push(item(
+                        "selection".into(),
+                        "Saved selection — unavailable".into(),
+                        "Services",
+                        selection.diagnostic.code.as_str().into(),
                         false,
                     ));
                 }
@@ -159,7 +172,11 @@ impl TuiState {
                             format!("plugin:{index}"),
                             format!("{} — {}", plugin.label(), plugin.status.as_str()),
                             "Compiled plugins",
-                            plugin.to_string(),
+                            plugin
+                                .diagnostic
+                                .as_ref()
+                                .map(|diagnostic| diagnostic.code.as_str().to_owned())
+                                .unwrap_or_default(),
                             false,
                         )
                     },
@@ -205,7 +222,7 @@ impl TuiState {
                                         }
                                     ),
                                     "Configuration diagnostics",
-                                    diagnostic.to_string(),
+                                    diagnostic.stage.as_str().into(),
                                     false,
                                 )
                             })
@@ -637,7 +654,7 @@ impl TuiState {
                 return Some(KeyAction::ShellBackground);
             }
         }
-        if self.panel == TuiPanel::Settings
+        if matches!(self.panel, TuiPanel::Settings | TuiPanel::Mcps)
             && event.kind == KeyEventKind::Press
             && event.modifiers == (KeyModifiers::CONTROL | KeyModifiers::SHIFT)
             && matches!(event.code, KeyCode::Char('c' | 'C' | 'i' | 'I'))
@@ -680,9 +697,27 @@ impl TuiState {
 
     fn selected_diagnostic(&self) -> Option<oc_core::queries::ServiceDiagnostic> {
         let options = self.modal_options();
+        if self.panel == TuiPanel::Mcps {
+            let id = self.mcp_detail.as_deref().or_else(|| {
+                options
+                    .get(self.select.cursor)
+                    .map(|option| option.value.as_str())
+            })?;
+            return self
+                .mcp_snapshot
+                .as_ref()?
+                .servers
+                .iter()
+                .find(|server| server.id == id)?
+                .diagnostic
+                .clone();
+        }
         let value = &options.get(self.select.cursor)?.value;
         if value == "provider" {
             return self.chrome.provider.as_ref()?.diagnostic.clone();
+        }
+        if value == "selection" {
+            return Some(self.chrome.selection.as_ref()?.diagnostic.clone());
         }
         if let Some(index) = value
             .strip_prefix("plugin:")
@@ -3287,7 +3322,29 @@ impl TuiState {
                             auto_once: !self.chrome.permissions_auto,
                         });
                     } else {
-                        outcome.note = Some(option.footer.clone());
+                        outcome.note = Some(match option.value.as_str() {
+                            "provider" => self
+                                .chrome
+                                .provider
+                                .as_ref()
+                                .map(ToString::to_string)
+                                .unwrap_or_else(|| option.footer.clone()),
+                            "selection" => self
+                                .chrome
+                                .selection
+                                .as_ref()
+                                .map(ToString::to_string)
+                                .unwrap_or_else(|| option.footer.clone()),
+                            value => value
+                                .strip_prefix("plugin:")
+                                .and_then(|index| index.parse::<usize>().ok())
+                                .and_then(|index| self.chrome.plugins.entries.get(index))
+                                .map(ToString::to_string)
+                                .or_else(|| {
+                                    self.selected_diagnostic().as_ref().map(ToString::to_string)
+                                })
+                                .unwrap_or_else(|| option.footer.clone()),
+                        });
                     }
                 }
             }

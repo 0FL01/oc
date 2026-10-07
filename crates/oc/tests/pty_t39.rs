@@ -929,6 +929,16 @@ fn wait_screen_row(pty: &PtySession, needle: &str, timeout: Duration) {
     }
 }
 
+/// Background faults are compact status, with typed facts on the real Settings route.
+fn inspect_settings_code(pty: &mut PtySession, code: &str) {
+    wait_idle(pty);
+    pty.send(b"/settings\r");
+    wait_screen_row(pty, "Settings", DEADLINE);
+    wait_screen_row(pty, code, DEADLINE);
+    pty.send(b"\x1b");
+    dismissed(pty, "Settings");
+}
+
 /// Wait until the rendered draft marker has disappeared (cell-diff aware).
 fn wait_screen_absent(pty: &PtySession, needle: &str) {
     let start = Instant::now();

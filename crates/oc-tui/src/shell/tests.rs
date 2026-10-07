@@ -2633,6 +2633,16 @@ async fn vis28_footer_scanner_tracks_agent_and_stays_below_metadata() {
     terminal.draw(|frame| render(frame, &state)).unwrap();
     assert_eq!(terminal.backend().buffer()[(7, 21)].fg, theme.warning());
     assert_eq!(terminal.backend().buffer()[(11, 21)].fg, theme.warning());
+    state.chrome.animations = Some(true);
+    state.chrome.service_diagnostics_omitted = 2;
+    let with_issues = screen(&state, 80, 24);
+    assert!(
+        with_issues[21].contains("esc again to interrupt"),
+        "service status hid the foreground interrupt guard: {with_issues:?}"
+    );
+    assert!(with_issues[21].contains("2 issues"));
+    state.chrome.service_diagnostics_omitted = 0;
+    state.chrome.animations = Some(false);
     state.apply_finished(&turn, "", 0);
     assert!(!screen(&state, 80, 24)[21].contains("[⋯]"));
     assert!(!screen(&state, 80, 24)[21].contains("esc interrupt"));

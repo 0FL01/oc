@@ -901,14 +901,20 @@ async fn live_parts_stay_bounded_under_tool_flood() {
         );
     }
     assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
+    assert!(state.live_preview_limited());
     assert!(
-        state
+        !state
             .viewport()
             .iter()
             .any(|line| line.contains("Live preview truncated"))
     );
     assert!(state.retained_bytes() <= 2 * WINDOW_BYTES + MAX_INPUT_BYTES);
     assert!(state.viewport().len() <= VIEWPORT_LINES);
+    state.active_turn = None;
+    assert!(
+        !state.live_preview_limited(),
+        "a completed answer does not retain a live viewing alert"
+    );
 }
 
 /// A stale turn can never grow cards into the transcript.

@@ -521,22 +521,6 @@ fn explicit_root_id_matches_owner_tab_predicate() {
     }
 }
 
-async fn empty_mcp_status(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
-    let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
-        panic!("initial resource status")
-    };
-    ack.send(Ok(oc_core::queries::McpSnapshot {
-        binding: oc_core::queries::McpBinding {
-            location: "/fixture".into(),
-            generation: 1,
-            instance: 1,
-        },
-        revision: 1,
-        servers: Vec::new(),
-    }))
-    .unwrap();
-}
-
 #[tokio::test]
 async fn initial_mcp_owner_query_failure_is_not_usable_empty_inventory() {
     let (app, mut inbox, _) = CoreApp::channel(8);
@@ -589,6 +573,7 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
             } else {
                 ack.send(Ok(catalog())).unwrap();
                 empty_compactions(&mut inbox).await;
+                empty_mcp_status(&mut inbox).await;
             }
         }
         let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
@@ -665,6 +650,7 @@ async fn existing_legacy_explicit_id_remains_readable_but_never_saved() {
         };
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
+        empty_mcp_status(&mut inbox).await;
         assert!(inbox.try_recv().is_err(), "legacy ID was created or saved");
     });
     let (state, deck) = restore_initial(&app, Some(id)).await.unwrap();
@@ -707,6 +693,7 @@ async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
         };
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
+        empty_mcp_status(&mut inbox).await;
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("fallback Home")
         };
@@ -1099,6 +1086,7 @@ async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
                 };
                 ack.send(Ok(catalog())).unwrap();
                 empty_compactions(&mut inbox).await;
+                empty_mcp_status(&mut inbox).await;
             }
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("restart Home")
@@ -1982,6 +1970,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
             assert_eq!(action, SelectionAction::Current);
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
+            empty_mcp_status(&mut inbox).await;
         }
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("Home selection")
@@ -2074,6 +2063,7 @@ async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
             };
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
+            empty_mcp_status(&mut inbox).await;
         }
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("Home selection")
@@ -2124,6 +2114,7 @@ async fn bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route() {
             assert_eq!(session.0, format!("tab-{i}"));
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
+            empty_mcp_status(&mut inbox).await;
         }
         assert!(
             inbox.try_recv().is_err(),
@@ -2167,6 +2158,7 @@ async fn explicit_restore_adopts_successful_revision_for_next_save() {
         };
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
+        empty_mcp_status(&mut inbox).await;
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("explicit session saves")
         };

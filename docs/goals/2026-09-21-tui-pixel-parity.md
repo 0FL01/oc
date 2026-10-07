@@ -12,7 +12,7 @@ Additional source: owner-reported phantom caret over large highlighted tool outp
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
 Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
-Last updated: 2026-10-02
+Last updated: 2026-10-07
 
 ## Objective
 
@@ -351,6 +351,27 @@ theme without reparsing the full completed transcript; use existing VIS31/32 bou
 - User or harness budget: commits+pushes per slice; iterative rounds; no attempt limit.
 
 ## Current handoff and historical startup checkpoint
+
+Owner explicitly resumed T44 on 2026-10-07 and requests its full frozen completion,
+realtime todos and commit/push after each major checked slice. The prior PAUSED
+scheduling condition is satisfied; historical approval/pause notes below are not
+a new permission boundary. T52 and the minimal T45/T46/T47/T50/T51/T53/T56/T57
+offline prerequisite slices have landed. This does not waive any visual gate or
+resume owner-deferred AUTH06/exhausted live campaigns.
+
+First clean-dialogue owner slice is functionally qualified: current typed service
+status/change-sensitive feedback, safe read-only details, parked/reload routing,
+completion-warning provenance and compact actual live-preview indication.
+Current locked workspace1720/0/11, strict Clippy, debug/release builds and actual
+mixed-service PTY/release-startup checks pass. Pinned actual-executable attempt005
+observes eleven stages per side with 22 stable full styled/PNG/cursor captures;
+all22 strict comparisons remain DIFFERENT, not whole VIS42/V09/T44 PASS. Failed
+attempts001–004 remain. See [slice receipt](../../evidence/tui/vis42-clean-dialogue.md).
+Continue concise submitted-refusal and remaining VIS42 styled/detail integration,
+then structured tool-preview and Generic/MCP VIS16/VIS17 in the established order.
+Git base e0509c4cd; current source/fixture association is in the capture locks.
+R1-R6, ACCEPTANCE and SAFETY remain the unchanged finish line; no new task, store,
+framework, hidden text filter or waiver of the remaining full-frame/temporal gates.
 
 Current task execution is authoritative in [progress/NOW.md](../../progress/NOW.md)
 and Git, not the old startup notes below. Owner-approved 2026-09-27 MCP environment

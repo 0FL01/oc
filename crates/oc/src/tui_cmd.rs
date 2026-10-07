@@ -24,7 +24,7 @@ use oc_core::queries::ReloadLocationSnapshot;
 use oc_core::queries::{
     CatalogSnapshot, FileSuggestionsSnapshot, SessionSelectionAction as SelectionAction,
 };
-use oc_core::queries::{SessionProbe, StartupNotice, TabDeckSnapshot};
+use oc_core::queries::{SessionProbe, TabDeckSnapshot};
 use oc_core::session::{CoreError, LocationSwitchFailure};
 use oc_tui::app::{
     KeyOutcome, LiveViewMetrics, MENTION_LIMIT, MentionRequest, NoteVariant, PanelIntent,
@@ -206,7 +206,7 @@ async fn run_stages(
     let session = session_opt
         .map(|raw| SessionId::new(raw).ok_or_else(|| "invalid session id".to_string()))
         .transpose()?;
-    let (app, guard, notices) =
+    let (app, guard, _notices) =
         match oc_adapters::application::spawn_with_startup_diagnostic(&project, data_dir).await {
             Ok(runtime) => {
                 oc_adapters::trace::log("spawn.ok", "");
@@ -222,30 +222,11 @@ async fn run_stages(
                     .map(|_| 1);
             }
         };
-    for notice in notices {
-        eprintln!("warning: {}", startup_notice(notice));
-    }
     let result = async {
         let catalog = match app.catalog().await {
             Ok(catalog) => catalog,
             Err(error) => return startup_query_frame(error),
         };
-        for diagnostic in catalog
-            .chrome
-            .service_diagnostics
-            .iter()
-            .filter(|diagnostic| {
-                !matches!(
-                    diagnostic.kind,
-                    oc_core::queries::ServiceKind::Plugin | oc_core::queries::ServiceKind::Provider
-                )
-            })
-        {
-            eprintln!("warning: {diagnostic}");
-        }
-        for plugin in &catalog.chrome.plugins.entries {
-            eprintln!("info: {plugin}");
-        }
         if let Err(error) = app
             .register_approval_consumer(auto_once || catalog.chrome.permissions_auto)
             .await
@@ -569,6 +550,13 @@ impl LoopState {
     }
 
     fn sync_tabs(&mut self, state: &mut TuiState) {
+        state.set_service_feedback_visible(true);
+        for parked in self.tabs.iter_mut().flatten() {
+            parked.set_service_feedback_visible(false);
+        }
+        if let Some(home) = self.home.as_mut() {
+            home.set_service_feedback_visible(false);
+        }
         if self.child_parent.is_some() {
             return;
         }
@@ -1103,12 +1091,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             match job.await.unwrap_or(Err(CoreError::Shutdown)) {
                 Ok(snapshot) => {
                     match finish_reload(app, &mut state, &mut loop_state, snapshot, draft).await {
-                        Ok(()) => state
-                            .push_transient_note("Configuration reloaded", NoteVariant::Success),
-                        Err(message) => state.push_transient_note(&message, NoteVariant::Error),
+                        Ok(()) => {}
+                        Err(message) => {
+                            finish_reload_refusal(app, &mut state, &mut loop_state, message).await
+                        }
                     }
                 }
-                Err(error) => state.push_transient_note(&reload_error(error), NoteVariant::Error),
+                Err(error) => {
+                    finish_reload_refusal(app, &mut state, &mut loop_state, reload_error(error))
+                        .await
+                }
             }
             loop_state.reload_painted = false;
             loop_state.sync_tabs(&mut state);
@@ -1277,7 +1269,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             if let CoreEvent::Compaction(snapshot) = event {
                 apply_compaction_to_view(&mut state, &mut loop_state, snapshot);
             } else if let CoreEvent::McpChanged(snapshot) = event {
-                state.apply_mcp_snapshot(snapshot);
+                apply_mcp_to_views(&mut state, &mut loop_state, snapshot);
             } else if matches!(event, CoreEvent::ProviderChanged) {
                 refresh_provider_views(app, &mut state, &mut loop_state).await;
             } else if let Some(current) = state.attached_session().cloned() {
@@ -1510,47 +1502,6 @@ fn at_tty() -> bool {
     std::io::stdin().is_terminal()
 }
 
-/// Static source/operation guidance: no raw configuration or persisted values.
-fn startup_notice(source: StartupNotice) -> &'static str {
-    match source {
-        StartupNotice::CompactionConfig => {
-            "compaction settings were normalized; review configuration diagnostics"
-        }
-        StartupNotice::McpConfig => {
-            "MCP configuration entries failed; review configuration diagnostics"
-        }
-        StartupNotice::Definitions => "agent/skill/command definitions need review",
-        StartupNotice::Plugin => {
-            "plugin requests failed or were ignored; review Settings inventory"
-        }
-        StartupNotice::Dcp => "DCP settings have unsupported entries; review native dcp settings",
-        StartupNotice::Instructions => "instruction sources need review",
-        StartupNotice::SavedSelection => "saved model/agent selection needs review",
-    }
-}
-
-fn service_warnings(state: &mut TuiState, chrome: &oc_core::queries::TuiChrome) {
-    for diagnostic in chrome.service_diagnostics.iter().filter(|diagnostic| {
-        !matches!(
-            diagnostic.kind,
-            oc_core::queries::ServiceKind::Plugin | oc_core::queries::ServiceKind::Provider
-        )
-    }) {
-        state.push_warning(&diagnostic.to_string());
-    }
-    for plugin in &chrome.plugins.entries {
-        if plugin.status != oc_core::queries::PluginStatus::Active {
-            state.push_warning(&plugin.to_string());
-        }
-    }
-    if let Some(provider) = &chrome.provider
-        && (provider.status != oc_core::queries::ProviderStatus::Ready
-            || provider.diagnostic.is_some())
-    {
-        state.push_warning(&provider.to_string());
-    }
-}
-
 async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
     let picker_provider = state.picker_provider_filter().map(str::to_owned);
     let catalog = if let Some(session) = state.attached_session() {
@@ -1560,7 +1511,6 @@ async fn refresh_provider_view(app: &CoreApp, state: &mut TuiState) {
         app.home_selection(SelectionAction::Current).await
     };
     if let Ok(catalog) = catalog {
-        service_warnings(state, &catalog.chrome);
         state.apply_catalog(catalog);
         if let Some(provider) = picker_provider
             && let Ok(catalog) = app.provider_catalog(provider).await
@@ -1577,6 +1527,11 @@ async fn refresh_provider_views(app: &CoreApp, state: &mut TuiState, deck: &mut 
     }
     if let Some(home) = deck.home.as_mut() {
         refresh_provider_view(app, home).await;
+    }
+    if deck.reload_job.is_none()
+        && let Ok(snapshot) = app.mcp_status().await
+    {
+        apply_mcp_to_views(state, deck, snapshot);
     }
 }
 
@@ -1611,7 +1566,6 @@ async fn initial_state(
             .await
             .map_err(startup_query)?;
         let mut state = TuiState::new_home(app.clone());
-        service_warnings(&mut state, &snapshot.chrome);
         state.apply_catalog(snapshot);
         state.apply_mcp_snapshot(app.mcp_status().await.map_err(startup_query)?);
         return Ok(state);
@@ -1630,7 +1584,6 @@ async fn initial_state(
         .session_selection(state.session().clone(), false, SelectionAction::Current)
         .await
         .map_err(startup_query)?;
-    service_warnings(&mut state, &snapshot.chrome);
     state.apply_catalog(snapshot);
     state.apply_mcp_snapshot(app.mcp_status().await.map_err(startup_query)?);
     state.apply_compaction_history(
@@ -1860,6 +1813,7 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     state.attach_page(&page);
     state.apply_compaction_history(app.compaction_history(state.session().clone()).await?);
     state.apply_catalog(catalog);
+    state.apply_mcp_snapshot(app.mcp_status().await?);
     refresh_dcp_summaries(app, &mut state).await;
     Ok(state)
 }
@@ -2887,12 +2841,7 @@ async fn apply_intent_with_origin(
             // Publish a sessionless generation first: even when switching
             // from a real tab, a saved Home route cannot mint a new root.
             let snapshot = app.switch_location_home(path).await.map_err(switch_error)?;
-            let chrome = snapshot.catalog.chrome.clone();
             adopt_location(app, state, loop_state, snapshot.catalog, &snapshot.location).await;
-            service_warnings(state, &chrome);
-            for notice in snapshot.notices {
-                state.push_note(&format!("warning: {}", startup_notice(notice)));
-            }
         }
         PanelIntent::LoadOlder => {
             let session = require_session(state)?;
@@ -2978,6 +2927,21 @@ fn reload_error(error: CoreError) -> String {
         },
         _ => "Configuration reload failed; check the current Location".into(),
     }
+}
+
+/// Hints were coalesced while the reload slot was held. A refused atomic reload
+/// leaves an owner live; consume its current facts before the explicit
+/// refusal, which must remain louder than any new background-service alert.
+async fn finish_reload_refusal(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    message: String,
+) {
+    if let Ok(snapshot) = app.mcp_status().await {
+        apply_mcp_to_views(state, deck, snapshot);
+    }
+    state.push_transient_note(&message, NoteVariant::Error);
 }
 
 /// Owner success is already published. Refresh every retained route before
@@ -3076,6 +3040,15 @@ async fn finish_reload(
     }
     deck.mention_pending = None;
     deck.mention_failed = None;
+    let mcp = app.mcp_status().await.map_err(|_| {
+        "Configuration reload incomplete; MCP status verification failed".to_string()
+    })?;
+    if mcp.binding.location != snapshot.location {
+        return Err("Configuration reload incomplete; MCP Location changed during refresh".into());
+    }
+    // Explicit operation feedback survives unchanged causes; a new cause can
+    // replace it with its brief service summary, not be hidden by a later toast.
+    state.push_transient_note("Configuration reloaded", NoteVariant::Success);
     for (index, catalog) in catalogs.into_iter().enumerate() {
         if deck.active_tab == Some(index) {
             state.refresh_configuration(catalog);
@@ -3093,13 +3066,10 @@ async fn finish_reload(
             home.refresh_configuration(catalog);
         }
     }
+    apply_mcp_to_views(state, deck, mcp);
     if slash_draft.as_deref() == Some(state.input()) {
         state.accept_intent();
     }
-    for notice in snapshot.notices {
-        state.push_warning(startup_notice(notice));
-    }
-    service_warnings(state, &snapshot.catalog.chrome);
     Ok(())
 }
 
@@ -3413,7 +3383,7 @@ async fn handle_worker_event(
         return Ok(());
     }
     if let CoreEvent::McpChanged(snapshot) = event {
-        state.apply_mcp_snapshot(snapshot);
+        apply_mcp_to_views(state, _loop_state, snapshot);
         return Ok(());
     }
     let owner = match &event {
@@ -3569,6 +3539,7 @@ async fn handle_worker_event(
             text,
             duration_ms,
             warnings,
+            service_warning_range,
             ..
         } => {
             let current = state.active_turn() == Some(&turn);
@@ -3588,11 +3559,7 @@ async fn handle_worker_event(
                     report_compress_outcome(app, state, session, &turn, &page).await;
                 }
             }
-            // After the durable page: degradation rows are transient notices,
-            // so they must follow the page attach that rebuilds the transcript.
-            for warning in warnings {
-                state.push_warning(&warning);
-            }
+            state.apply_turn_warnings(warnings, service_warning_range);
         }
         CoreEvent::TurnInterrupted {
             turn,
@@ -3612,13 +3579,12 @@ async fn handle_worker_event(
             turn,
             error,
             warnings,
+            service_warning_range,
             ..
         } => {
             let compress = state.is_compress_turn(&turn);
             state.apply_failed(&turn, &error);
-            for warning in warnings {
-                state.push_warning(&warning);
-            }
+            state.apply_turn_warnings(warnings, service_warning_range);
             if compress {
                 state.notify_dcp(DcpOutcome::Failed {
                     reason: error.to_string(),
@@ -3627,6 +3593,29 @@ async fn handle_worker_event(
         }
     }
     Ok(())
+}
+
+fn apply_mcp_to_views(
+    state: &mut TuiState,
+    deck: &mut LoopState,
+    snapshot: oc_core::queries::McpSnapshot,
+) {
+    // Retiring the old runtime publishes disabled/pending rows. That is not
+    // service recovery. The acknowledged reload reads one current owner
+    // snapshot before releasing this captured view; queued old instances then
+    // fail the normal binding guards. No second registry/history is needed.
+    if deck.reload_job.is_some() {
+        return;
+    }
+    state.apply_mcp_snapshot(snapshot.clone());
+    for parked in deck.tabs.iter_mut().flatten() {
+        parked.set_service_feedback_visible(false);
+        parked.apply_mcp_snapshot(snapshot.clone());
+    }
+    if let Some(home) = deck.home.as_mut() {
+        home.set_service_feedback_visible(false);
+        home.apply_mcp_snapshot(snapshot);
+    }
 }
 
 async fn refresh_shells(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {

@@ -1,0 +1,652 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-005/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-home",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-home",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "9293254d18bbcceabc76d8e3e303014a23b6c111883dbec19c3f697bce5f2f14",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "f740d0c8910e4452157badc806dba5888428568128d11a7014019e9d6887a470",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "ad9168376752a3a4aadcb030b7a3d25fc133eaf7599183d8dc3ddbfd78fb5ecb",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "d2062528403049a5858c8cb370d245ad89d5d4a81074d3d1a56a6d1ddfaa035e"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "pending-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "pending-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "fail",
+    "action": "fail",
+    "phase": "failed"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-alert",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-alert",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "failure-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-list",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-list",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-details",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-details",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "failure-back",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "failure-back",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "unchanged-reload-peer-0",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "unchanged-reload-peer-1",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "unchanged-reload-peer-2",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368896495
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368896496
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "unchanged-reload",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "unchanged-reload",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "recover",
+    "action": "recover",
+    "phase": "healthy"
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-accepted-peer-0",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368896495
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368896496
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-accepted-peer-1",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368896495
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368896496
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-accepted-peer-2",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368896495
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368896496
+        },
+        {
+          "pid": 188516,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368900391
+        },
+        {
+          "pid": 188516,
+          "method": "initialize",
+          "phase": "healthy",
+          "at_ms": 1791368900391
+        },
+        {
+          "pid": 188516,
+          "method": "notifications/initialized",
+          "phase": "healthy",
+          "at_ms": 1791368900406
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "recovered-list",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "recovered-list",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "recovered-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "recovered-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "eeeae3d7fd6e801df6939bfae769f66373aa65e49ea340f21b10f3f500cc47ad",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 1,
+    "request_sha256": "308f71b47f4564083eda967f765db791dc3aaff58fc64af2234977a2fd83c558",
+    "registered_tools": [
+      "edit",
+      "glob",
+      "grep",
+      "question",
+      "read",
+      "shell",
+      "skill",
+      "subagent",
+      "webfetch",
+      "websearch",
+      "write",
+      "execute"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "instructions",
+      "model",
+      "prompt_cache_key",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "0e53ae07d3c6783ea462d199dd0d6867f1a4d0922830336ed4b4bf283953cdc6"
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "second-completed-answer",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "second-completed-answer",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368870938
+        },
+        {
+          "pid": 188126,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368877527
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368896495
+        },
+        {
+          "pid": 188459,
+          "method": "initialize",
+          "phase": "failed",
+          "at_ms": 1791368896496
+        },
+        {
+          "pid": 188516,
+          "method": "initialize",
+          "phase": "admitted-before-release",
+          "at_ms": 1791368900391
+        },
+        {
+          "pid": 188516,
+          "method": "initialize",
+          "phase": "healthy",
+          "at_ms": 1791368900391
+        },
+        {
+          "pid": 188516,
+          "method": "notifications/initialized",
+          "phase": "healthy",
+          "at_ms": 1791368900406
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

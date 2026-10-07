@@ -250,7 +250,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     assert_eq!(old_effects.0, 1);
     let mut home = home_pty(fixture.clone());
     wait_screen_row(&home, "Native runtime", DEADLINE);
-    wait_screen_row(&home, "unavailable", DEADLINE);
+    inspect_settings_code(&mut home, "agent_unavailable");
     wait_idle(&home);
     home.send(b"/agents\r");
     wait_screen_row(&home, "Saved agent agent-", DEADLINE);
@@ -354,7 +354,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     );
 
     let mut retired = PtySession::spawn_sized(fixture.clone(), RETIRED, None, 120, 40);
-    wait_screen_row(&retired, "model_unavailable", DEADLINE);
+    inspect_settings_code(&mut retired, "model_unavailable");
     retired.send(b"/model\r");
     wait_screen_row(&retired, "Select model", DEADLINE);
     wait_screen_row(&retired, "T39 model", DEADLINE);
@@ -371,7 +371,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     assert_private(&fixture, &output);
 
     let mut variant = PtySession::spawn_sized(fixture.clone(), VARIANT, None, 120, 40);
-    wait_screen_row(&variant, "variant_unavailable", DEADLINE);
+    inspect_settings_code(&mut variant, "variant_unavailable");
     variant.send(b"/variants\r");
     wait_screen_row(&variant, "Select variant", DEADLINE);
     wait_screen_row(&variant, "Default", DEADLINE);
@@ -389,7 +389,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
 
     let mut active = PtySession::spawn_sized(fixture.clone(), ACTIVE, None, 120, 40);
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
-    wait_screen_row(&active, "agent_unavailable", DEADLINE);
+    inspect_settings_code(&mut active, "agent_unavailable");
     submit(&mut active, "r4a retained refused draft");
     wait_screen_row(&active, "submit: selection", DEADLINE);
     wait_screen_row(&active, "agent_unavailable", DEADLINE);
@@ -589,7 +589,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
 
     let mut home = home_pty(fixture.clone());
     wait_screen_row(&home, "Native runtime", DEADLINE);
-    wait_screen_row(&home, "model_unavailable", DEADLINE);
+    inspect_settings_code(&mut home, "model_unavailable");
     wait_idle(&home);
     home.send(b"/agents\r");
     wait_screen_row(&home, "Select agent", DEADLINE);
@@ -601,7 +601,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     assert_private(&fixture, &output);
     let mut active = PtySession::spawn_sized(fixture.clone(), ACTIVE, None, 120, 40);
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
-    wait_screen_row(&active, "model_unavailable", DEADLINE);
+    inspect_settings_code(&mut active, "model_unavailable");
     submit(&mut active, "r4a blocked pin retained draft");
     wait_screen_row(&active, "submit: selection", DEADLINE);
     wait_screen_row(&active, "r4a blocked pin retained draft", DEADLINE);
@@ -636,7 +636,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     // Repair the model in Home and the active tab separately, retaining the
     // existing primary's body and constraints. The parked tab remains blocked.
     let mut home = home_pty(fixture.clone());
-    wait_screen_row(&home, "model_unavailable", DEADLINE);
+    inspect_settings_code(&mut home, "model_unavailable");
     wait_idle(&home);
     home.send(b"/model\r");
     wait_screen_row(&home, "Select model", DEADLINE);
@@ -646,7 +646,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     let output = quit(&mut home);
     assert_private(&fixture, &output);
     let mut active = PtySession::spawn_sized(fixture.clone(), ACTIVE, None, 120, 40);
-    wait_screen_row(&active, "model_unavailable", DEADLINE);
+    inspect_settings_code(&mut active, "model_unavailable");
     wait_idle(&active);
     active.send(b"/model\r");
     wait_screen_row(&active, "Select model", DEADLINE);

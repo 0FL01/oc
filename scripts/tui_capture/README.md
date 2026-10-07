@@ -731,6 +731,59 @@ are kept; no missing expansion is manufactured or reported as PASS. A successful
 per-side interaction alone does not establish whole-frame equality. This
 command uses existing binaries and does not invoke Cargo.
 
+## VIS42 clean-dialogue service transitions
+
+Use both pinned executables, the existing Reader tools profile, and a fresh
+immutable attempt directory:
+
+```sh
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample tools --sidebar hide --agent-profile true \
+  --columns 120 --rows 40 --clean-services true \
+  --output /home/opencode/ai/oc/evidence/tui/VIS42-NEW-ATTEMPT
+```
+
+This test-only exclusive mode creates isolated per-side Home/config/project
+roots, an owned failing local plugin, native ignored legacy-compaction fields,
+and one actual local Python MCP peer. Both configurations use the admitted
+startup/catalog/execution timeout object. The first genuine read/result/answer
+completes while MCP initializes; fixture controls release the real failed
+initialize, then repair the owned configuration and release a healthy initialize
+and catalog. No live model API, user configuration, or credential is used.
+The native cannot execute the foreign plugin and reports its typed unsupported
+inventory rather than loading JavaScript. Services mode intentionally uses its
+own config file, not `OPENCODE_CONFIG_CONTENT`, so real `/reload` adopts repairs.
+
+`services-checks.json` records actual pending, answer, brief failure notification,
+MCP list/details/back, unchanged reload, recovery and second-answer stages.
+`inputs.json`, `protocol.json`, and the owned peer's bounded PID/method/phase
+snapshots retain the dispatch/effect witnesses. Reload waits for a **new actual
+initializer**, not an ephemeral success toast that a later failure can replace.
+Every shot briefly pauses the owned application process group through the
+existing acknowledged pause/drain/resume bridge, records exactly the post-ACK
+real full grid and its signature, and resumes in `finally`. This stabilizes
+transient PNG capture without selecting a closest frame, inventing clock digits,
+masking cells, cropping, or painting a component reference; cleanup resumes and
+reaps an interrupted paused group as on the existing scanner route.
+The stage predicate observes the first real matching frame before that freeze;
+it does not wait for unrelated toast/caret clocks to settle while an initializer
+deadline is running. The post-ACK predicate and complete before/after signature
+checks still must hold. Per-shot wait/pause timings and peer timestamps diagnose
+this interaction without raising startup, catalog, execution or capture bounds.
+
+Native sanitized service identities/brief aggregate status, cause-sensitive
+unchanged reload without re-alert, and the compact outside-message live-preview
+indicator are declared before comparison. The short answer does **not** exercise
+preview eviction; that remains a separate bounded behavioral proof. The pinned
+original can re-alert the same MCP failure after pending. Actual elapsed digits,
+wording, footer inventories and detail layout differences remain in the full
+styled-cell/PNG/cursor comparisons. `OBSERVED` means both real transitions were
+recorded, not pixel-parity PASS. Missing/failed/unstable stages and nonzero strict
+comparator exits stay with the failed attempt; none are promoted to VIS42/V09
+PASS or hidden by the native's successful functional checks.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

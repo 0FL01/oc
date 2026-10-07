@@ -1,0 +1,451 @@
+{
+  "origin": "upstream",
+  "status": "OBSERVED",
+  "checks": [
+    {
+      "stage": "pending-home",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 51,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 712,
+      "pause_capture_ms": 857
+    },
+    {
+      "stage": "pending-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 1220,
+      "pause_capture_ms": 907
+    },
+    {
+      "stage": "failure-alert",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 702,
+      "pause_capture_ms": 855
+    },
+    {
+      "stage": "failure-peer",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "failure-peer",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "failure-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 4139,
+      "pause_capture_ms": 823
+    },
+    {
+      "stage": "failure-list",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 649,
+      "pause_capture_ms": 835
+    },
+    {
+      "stage": "failure-details",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 90,
+        "y": 18,
+        "visible": false,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 711,
+      "pause_capture_ms": 835
+    },
+    {
+      "stage": "failure-back",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 666,
+      "pause_capture_ms": 913
+    },
+    {
+      "stage": "unchanged-reload-peer-0",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "unchanged-reload-peer-0",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "unchanged-reload-peer-1",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "unchanged-reload-peer-1",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "unchanged-reload-peer-2",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "unchanged-reload-peer-2",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368896495
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368896496
+            }
+          ],
+          "phase": "failed"
+        }
+      }
+    },
+    {
+      "stage": "unchanged-reload",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 269,
+      "pause_capture_ms": 955
+    },
+    {
+      "stage": "unchanged-reload-notification",
+      "service_alert_visible": false
+    },
+    {
+      "stage": "recovery-accepted-peer-0",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "recovery-accepted-peer-0",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368896495
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368896496
+            }
+          ],
+          "phase": "healthy"
+        }
+      }
+    },
+    {
+      "stage": "recovery-accepted-peer-1",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "recovery-accepted-peer-1",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368896495
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368896496
+            }
+          ],
+          "phase": "healthy"
+        }
+      }
+    },
+    {
+      "stage": "recovery-accepted-peer-2",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "recovery-accepted-peer-2",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368896495
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368896496
+            },
+            {
+              "pid": 188516,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368900391
+            },
+            {
+              "pid": 188516,
+              "method": "initialize",
+              "phase": "healthy",
+              "at_ms": 1791368900391
+            },
+            {
+              "pid": 188516,
+              "method": "notifications/initialized",
+              "phase": "healthy",
+              "at_ms": 1791368900406
+            }
+          ],
+          "phase": "healthy"
+        }
+      }
+    },
+    {
+      "stage": "recovered-list",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 676,
+      "pause_capture_ms": 901
+    },
+    {
+      "stage": "recovered-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 627,
+      "pause_capture_ms": 778
+    },
+    {
+      "stage": "second-completed-answer",
+      "capture_status": "CAPTURED",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "owned_pause": true,
+      "observed_wait_ms": 743,
+      "pause_capture_ms": 819
+    },
+    {
+      "stage": "recovery-peer",
+      "snapshot": {
+        "kind": "services_snapshot",
+        "request_id": "recovery-peer",
+        "snapshot": {
+          "mcp": [
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368870938
+            },
+            {
+              "pid": 188126,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368877527
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368896495
+            },
+            {
+              "pid": 188459,
+              "method": "initialize",
+              "phase": "failed",
+              "at_ms": 1791368896496
+            },
+            {
+              "pid": 188516,
+              "method": "initialize",
+              "phase": "admitted-before-release",
+              "at_ms": 1791368900391
+            },
+            {
+              "pid": 188516,
+              "method": "initialize",
+              "phase": "healthy",
+              "at_ms": 1791368900391
+            },
+            {
+              "pid": 188516,
+              "method": "notifications/initialized",
+              "phase": "healthy",
+              "at_ms": 1791368900406
+            }
+          ],
+          "phase": "healthy"
+        }
+      }
+    },
+    {
+      "stage": "counts",
+      "provider_requests": 5,
+      "invalid_requests": 0
+    }
+  ],
+  "declared_differences": [
+    "Native service identities/error wording are sanitized; brief aggregate status links to /settings /mcps.",
+    "Native actual live-projection loss uses a compact outside-message indicator (not exercised by this short answer).",
+    "Native unchanged-cause reload does not re-alert; pinned OC2 forgets its prior MCP alert during pending."
+  ]
+}

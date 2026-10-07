@@ -1,0 +1,272 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/vis42-clean-dialogue-attempt-001/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "fa3c629bb0f3eb35121b43f3aef90d2ee55423bcb4aee097ef8958b291c4bf99",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 1,
+    "request_sha256": "31c29c7719dcf727294f54bff53bf3131e6cc1966d62286ff61842767975e02d",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": false,
+    "operation": "title",
+    "valid": true,
+    "turn_number": 0,
+    "round_number": 0,
+    "request_sha256": "31c41f9f27a6ea22e9c300a087f2113e68639cb0b0b92ce6444bd80bee5df793",
+    "registered_tools": [],
+    "tool_result_count": 0,
+    "fixture_content_returned": false,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title",
+    "response_text_sha256": "1d813e919dac6b6dd2b09b29e81ca7d93d503f841030b3118759525fd000beaa"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "d2062528403049a5858c8cb370d245ad89d5d4a81074d3d1a56a6d1ddfaa035e"
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "fail",
+    "action": "fail",
+    "phase": "failed"
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "failure-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 39543,
+          "method": "initialize",
+          "phase": "failed"
+        }
+      ],
+      "phase": "failed"
+    }
+  },
+  {
+    "kind": "services_control_ack",
+    "request_id": "recover",
+    "action": "recover",
+    "phase": "healthy"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 0,
+    "request_sha256": "e8522ae15a69b5949b40fc71b9bcf6f622927c9cfbb898e706bd993e8528d6e0",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 1,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "kind": "provider",
+    "path": "/v1/responses",
+    "model": "fixture-model-1",
+    "stream": true,
+    "prompt_present": true,
+    "profile_prompt_present": true,
+    "operation": "transcript",
+    "valid": true,
+    "turn_number": 1,
+    "round_number": 1,
+    "request_sha256": "ce4ce20aae14441322e010be08293b78316ff37abd928cf4e0db93f1c66a3329",
+    "registered_tools": [
+      "opencode_models",
+      "opencode_session_rename",
+      "opencode_session_move",
+      "read",
+      "question"
+    ],
+    "tool_result_count": 2,
+    "fixture_content_returned": true,
+    "request_top_level_keys": [
+      "include",
+      "input",
+      "max_output_tokens",
+      "model",
+      "store",
+      "stream",
+      "tools"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "transcript",
+    "response_text_sha256": "0e53ae07d3c6783ea462d199dd0d6867f1a4d0922830336ed4b4bf283953cdc6"
+  },
+  {
+    "kind": "services_snapshot",
+    "request_id": "recovery-peer",
+    "snapshot": {
+      "mcp": [
+        {
+          "pid": 39543,
+          "method": "initialize",
+          "phase": "failed"
+        },
+        {
+          "pid": 39981,
+          "method": "initialize",
+          "phase": "failed"
+        },
+        {
+          "pid": 40021,
+          "method": "initialize",
+          "phase": "healthy"
+        },
+        {
+          "pid": 40021,
+          "method": "notifications/initialized",
+          "phase": "healthy"
+        },
+        {
+          "pid": 40021,
+          "method": "tools/list",
+          "phase": "healthy"
+        }
+      ],
+      "phase": "healthy"
+    }
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

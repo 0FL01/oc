@@ -870,6 +870,9 @@ pub struct TurnReport {
     /// Sanitized per-server MCP degradation notices for this turn's generation
     /// (`mcp <id> <stage>: <code> (retryable=<bool>)`); never URLs or secrets.
     pub warnings: Vec<String>,
+    /// Exact background-service subset of the legacy warning list. No text
+    /// classification and no change to headless delivery or stored outcomes.
+    pub service_warning_range: std::ops::Range<usize>,
 }
 
 /// Compress execution report.
@@ -2147,7 +2150,9 @@ impl<'a> Runtime<'a> {
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
+            let service_start = report.warnings.len();
             report.warnings.extend(mcp_warnings);
+            report.service_warning_range = service_start..report.warnings.len();
             self.db.update_turn_display(
                 &report.turn_id,
                 &serde_json::json!({
@@ -2266,7 +2271,9 @@ impl<'a> Runtime<'a> {
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
             report.duration_ms = duration_ms;
+            let service_start = report.warnings.len();
             report.warnings.extend(mcp_warnings);
+            report.service_warning_range = service_start..report.warnings.len();
             self.db.update_turn_display(
                 &report.turn_id,
                 &serde_json::json!({
