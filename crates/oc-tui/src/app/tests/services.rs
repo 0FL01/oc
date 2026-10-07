@@ -38,6 +38,128 @@ fn mcp(status: McpStatus, diagnostic: Option<ServiceDiagnostic>, revision: u64) 
 }
 
 #[tokio::test]
+async fn vis42_submission_refusal_is_brief_but_captured_details_and_draft_survive() {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use oc_core::core_app::InboxMsg;
+    let (app, mut inbox, _) = CoreApp::channel(2);
+    let mut state = TuiState::new_home(app);
+    state.handle_paste("keep the refused unsent draft");
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::SubmitFresh { text, ack, .. }) = inbox.recv().await else {
+        panic!("fresh request receipt")
+    };
+    assert_eq!(text, state.input());
+    let mut issue = diagnostic(ServiceKind::Selection);
+    issue.code = ServiceCode::ModelUnavailable;
+    issue.action = ServiceAction::SelectModel;
+    ack.send(Err(CoreError::ProviderUnavailable(issue.clone())))
+        .unwrap();
+    state.poll_submission();
+    assert_eq!(
+        state.note(),
+        Some("Request unavailable: model_unavailable · /models")
+    );
+    assert_eq!(state.input(), "keep the refused unsent draft");
+    assert!(state.attached_session().is_none());
+    assert!(state.window.rows().is_empty());
+    assert!(state.active_turn().is_none());
+
+    // Current readiness may already have changed; details remain the actual
+    // captured refusal, not a fabricated error on the new current binding.
+    state.apply_catalog(snapshot());
+    state.panel = TuiPanel::Settings;
+    state.select.cursor = state
+        .modal_options()
+        .iter()
+        .position(|option| option.value == "submission-refusal")
+        .expect("bounded last request fact");
+    let detail = state.handle_panel_key(KeyAction::Enter);
+    assert!(detail.intent.is_none());
+    assert_eq!(detail.note, Some(issue.to_string()));
+    let modifiers = KeyModifiers::CONTROL | KeyModifiers::SHIFT;
+    assert!(
+        state
+            .terminal_key(KeyEvent::new(KeyCode::Char('c'), modifiers))
+            .is_none()
+    );
+    assert_eq!(state.take_copy_request(), Some(issue.to_string()));
+    assert!(
+        state
+            .terminal_key(KeyEvent::new(KeyCode::Char('i'), modifiers))
+            .is_none()
+    );
+    assert_eq!(state.note(), Some(issue.investigation_draft().as_str()));
+    assert_eq!(state.input(), "keep the refused unsent draft");
+    assert!(!state.has_pending_submission());
+    state.close_panel();
+
+    let mut next_location = snapshot();
+    next_location.chrome.location = Some("/next-location".into());
+    state.apply_catalog(next_location);
+    state.panel = TuiPanel::Settings;
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|option| option.value != "submission-refusal")
+    );
+    state.close_panel();
+
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
+        panic!("explicit retry receipt")
+    };
+    ack.send(Err(CoreError::Application(
+        "model_unavailable remains actual prose".into(),
+    )))
+    .unwrap();
+    state.poll_submission();
+    assert_eq!(
+        state.note(),
+        Some("submit: application: model_unavailable remains actual prose")
+    );
+    state.panel = TuiPanel::Settings;
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|option| option.value != "submission-refusal")
+    );
+    state.close_panel();
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
+        panic!("new captured refusal receipt")
+    };
+    ack.send(Err(CoreError::Diagnostic(issue))).unwrap();
+    state.poll_submission();
+    state.panel = TuiPanel::Settings;
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .any(|option| option.value == "submission-refusal")
+    );
+    state.close_panel();
+    state.handle_key(KeyAction::Enter).await;
+    let Some(InboxMsg::SubmitFresh { ack, .. }) = inbox.recv().await else {
+        panic!("accepted retry receipt")
+    };
+    ack.send(Ok(WorkerTurnId("accepted-retry".into()))).unwrap();
+    state.poll_submission();
+    assert!(state.attached_session().is_some());
+    assert_eq!(state.input(), "");
+    assert_eq!(state.window.rows().len(), 1);
+    state.panel = TuiPanel::Settings;
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|option| option.value != "submission-refusal")
+    );
+    assert!(inbox.try_recv().is_err(), "no duplicate admission");
+}
+
+#[tokio::test]
 async fn vis42_mcp_failure_is_status_not_dialogue_and_pending_is_not_an_alert() {
     let mut state = fresh_state("vis42-mcp").await;
     state.chrome.location = Some("/fixture".into());

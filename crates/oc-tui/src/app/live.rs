@@ -505,6 +505,7 @@ impl TuiState {
             previous_issues.clear();
             self.mcp_snapshot = None;
             self.service_pending_issues.clear();
+            self.refused_submission = None;
             self.generation += 1;
             self.clear_mentions();
         }
@@ -1038,12 +1039,14 @@ impl TuiState {
                 }
                 self.dcp.clear_notice();
                 self.note = None;
+                self.refused_submission = None;
             }
             Err(error) => {
                 if !exiting {
                     self.status = TuiStatus::Idle;
                 }
-                self.push_note(&format!("submit: {error}"));
+                let note = self.submission_note(&error);
+                self.push_note(&note);
             }
         }
     }

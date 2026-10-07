@@ -398,7 +398,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     settings(&mut pty, "unavailable");
     dismiss(&mut pty);
     pty.send(b"ui07 retained refused draft\r");
-    wait_screen_row(&pty, "submit: provider", DEADLINE);
+    wait_screen_row(&pty, "Request unavailable", DEADLINE);
     wait_screen_row(&pty, "missing_credential", DEADLINE);
     wait_screen_row(&pty, "ui07 retained refused draft", DEADLINE);
     assert_eq!(main_count(&fixture), 1);
@@ -563,7 +563,7 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     settings(&mut pty, "failed");
     dismiss(&mut pty);
     pty.send(b"ui07 auth must not be accepted\r");
-    wait_screen_row(&pty, "submit: provider", DEADLINE);
+    wait_screen_row(&pty, "Request unavailable", DEADLINE);
     wait_screen_row(&pty, "unauthorized", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());
     pty.send(b"\x03");
@@ -588,11 +588,14 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     config["provider"]["ludka2"]["options"]["headers"]["Authorization"] = CANARY.into();
     publish(&fixture, &config);
     pty.send(b"/reload\r");
-    // ProviderChanged can replace a short-lived reload toast with the persistent
-    // owner diagnostic. Assert that fact and the queried read-only status.
-    wait_screen_row(&pty, "forbidden", DEADLINE);
-    pty.send(b"\x03"); // Failed slash reload intentionally retains its draft.
+    // The current failure is a read-only owner fact, not unsolicited technical
+    // dialogue. Observe the explicit reload outcome before idle navigation:
+    // its success/refused/incomplete labels share this operation prefix, unlike
+    // the still-pending "Reloading configuration" label.
+    wait_screen_row(&pty, "Configuration reload", DEADLINE);
+    pty.send(b"\x03");
     settings(&mut pty, "failed");
+    wait_screen_row(&pty, "forbidden", DEADLINE);
     dismiss(&mut pty);
     pty.send(b"/model\r");
     wait_screen_row(&pty, "Select model", DEADLINE);
@@ -600,7 +603,7 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     pty.send(b"\x1b");
     dismissed(&pty, "Select model");
     pty.send(b"ui07 refused after failed refresh\r");
-    wait_screen_row(&pty, "submit: provider", DEADLINE);
+    wait_screen_row(&pty, "Request unavailable", DEADLINE);
     wait_screen_row(&pty, "forbidden", DEADLINE);
     wait_screen_row(&pty, "ui07 refused after failed refresh", DEADLINE);
     assert_eq!(main_count(&fixture), 1);
@@ -650,7 +653,7 @@ fn ui07_native_discovery_deadline_is_local_and_explicit_known_model_works() {
     settings(&mut pty, "pending");
     dismiss(&mut pty);
     pty.send(b"ui07 pending retained draft\r");
-    wait_screen_row(&pty, "submit: provider", DEADLINE);
+    wait_screen_row(&pty, "Request unavailable", DEADLINE);
     wait_screen_row(&pty, "provider_pending", DEADLINE);
     wait_screen_row(&pty, "ui07 pending retained draft", DEADLINE);
     assert!(fixture.requests.lock().unwrap().is_empty());

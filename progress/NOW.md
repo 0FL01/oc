@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-07T10:52:31+00:00
+State updated: 2026-10-07T12:21:46+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -8,45 +8,43 @@ Task: T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS3
 Spec: docs/goals/2026-09-21-tui-pixel-parity.md
 Evidence target: evidence/T44/report.md
 
-Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMENDMENT.md, ACCEPTANCE.json and SAFETY_REGRESSIONS.md; navigation is not reduced acceptance. Owner explicitly resumed T44 on2026-10-07: full closure, realtime todos, checked commit/push per major slice. First clean-dialogue owner slice qualified: current1720/0/11, strict Clippy/debug-release/mixed-service PTY; actual pinned attempt005 eleven stages per side/22 stable frames, ALL22 strict comparisons DIFFERENT, not full VIS42/V09/T44 PASS. Receipt evidence/tui/vis42-clean-dialogue.md. Continue concise submitted-refusal and VIS42 styled/detail integration, then ordered structured tool-preview/Generic-MCP VIS16/VIS17. Consume landed backend owners without whole-task done cycles. Continue every approved prompt/caret/blink/pacing/scroll, profile/model/live-selection/tabs, session/Revert/compaction, file/approval/question, DCP/child/Shell/Terminals/retry/MCP/auth slice. Actual effects plus running OC2/native full styled-cell/PNG/cursor proof, not own goldens/historical PASS; disclose native differences. Four crates/one owner/immutable RAW/permissions/redaction/caps/no unknown replay; no new registry/store/poll/paid campaign/user config edits. AUTH06 deferred; original24/24 and Go13/24 unchanged. Finish only after all mandatory T44 outcomes and final current-source R6/V09 gates.
+Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMENDMENT.md, ACCEPTANCE.json and SAFETY_REGRESSIONS.md; navigation is not reduced acceptance. Owner explicitly resumed2026-10-07: full closure, realtime todos, checked commit/push per major slice. First clean-dialogue e2120e418 qualified1720/0/11; pinned attempt005 eleven stages per side/22 stable frames, ALL22 strict comparisons DIFFERENT. Next concise typed submitted-refusal facet qualified current1721/0/11 plus strict Clippy/debug-release/release-startup; safe captured detail and pre-effect draft preserved. Receipts evidence/tui/vis42-clean-dialogue.md and vis42-request-refusal.md. Whole VIS42/V09/T44 is not PASS. Continue ordered structured tool-body/guidance/ref/capture and Generic-MCP VIS16/VIS17, remaining VIS42 styled/detail integration and every approved prompt/caret/blink/pacing/scroll/profile/model/live-selection/tabs/session/Revert/compaction/file/approval/question/DCP/child/Shell/Terminals/retry/MCP/auth slice. Consume landed backend owners without whole-task done cycles. Actual effects plus running OC2/native full styled-cell/PNG/cursor proof, not own goldens/historical PASS; disclose native differences. Four crates/one owner/immutable RAW/permissions/redaction/caps/no unknown replay; no new registry/store/poll/paid campaign/user config edits. AUTH06 deferred; original24/24 and Go13/24 unchanged. Finish only after all mandatory T44 outcomes and final current-source R6/V09 gates.
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — clean-dialogue owner slice
+# T44 — concise typed request-refusal slice
 
 ## Result
-First checked VIS42/VIS17 functional slice: current background service facts stay
-outside dialogue; compact truthful status/change-sensitive delivery/read-only
-details, parked/reload/refusal routing and typed completion-warning provenance.
-Actual eviction produces an outside-message viewing hint; narrow foreground
-interrupt/retry is not clipped. T44 remains ACTIVE; full VIS42/V09 is not PASS.
+Typed pre-acceptance Provider/Selection rejection produces one short actionable
+code/action summary. A bounded last captured safe reason remains read-only in
+Settings with exact detail/copy/unsent investigation; draft and pre-effect refusal
+survive. It is separate from current binding readiness and clears on accepted
+retry/Location change/other error. Arbitrary CoreError prose remains visible.
+T44 stays ACTIVE; functional facet qualified, pixel/temporal outcomes still open.
 
 ## Checks
-Current final fmt/strict workspace Clippy, locked workspace1720/0/11 (46 records),
-debug/release builds. Marker T44_CLEAN_UI_SCOPE_FINAL_RUST_PASS includes both final
-foreign-terminal and refused-reload fixes. Actual release startup/discovery,
-fatal/headless/privacy/no-effect/terminal restoration PASS. Current native mixed
-fake-service PTY plus all52 T39/41 MCP/97 binary/450 TUI cases PASS.
-Pinned original/native attempt005: both OBSERVED, 11 stages each, 22 stable full
-styled/PNG/cursor captures, five synthetic model requests each/zero invalid,
-failed-failed-healthy initializer callbacks and six peer PIDs reaped. ALL22 strict
-comparisons DIFFERENT, not pixel PASS; failed001–004 preserved.
+Current fmt/strict locked workspace Clippy, workspace1721/0/11 independently
+summed46 records, normal debug/release and actual release startup/discovery PASS.
+Current final2 log ends T44_TYPED_REQUEST_REFUSAL_CURRENT_ALL_GATES_PASS.
+New real-channel UI case covers both typed families/captured detail/draft/clear;
+actual R4A2/UI074 and all52 PTY T39/97 binary/41 MCP/451 TUI guards PASS.
+No headless/full diagnostic, privacy, request count, grants, effect or fallback
+assertion was removed. Failed first chain preserved; current chain fully green.
 
 ## Risks
-This is a qualified partial owner slice, not fullT44. Native sanitized wording,
-status inventories and compact preview indication are disclosed; actual timing,
-detail layout and other frame/temporal differences remain visible. No masks/crops/
-fake OC2 reference, timeout/cap/ignore weakening, RAW rewrite or warning-text
-classification. No new registry/store/poll. AUTH06 deferred; existing live budgets
-and user `.opencode/` untouched. Current task criteria remain frozen.
+No new paired request-refusal pixel PASS. First-slice005 retains its own source
+association/all22 DIFFERENT comparisons; whole VIS42/V09/T44 remains incomplete.
+No producer/CoreError Display/RAW/context change, free-prose matching, new store/
+schema/registry, public test API, timeout/cap/ignore/security weakening. AUTH06
+deferred, `.opencode/` and original24/24/Go13/24 ledgers untouched.
 
 ## Next
-Review/stage only intended source/tests/probe/receipts/actual captures/generated
-progress, commit and push this checked major slice. Continue remaining concise
-submitted-refusal and VIS42 rendering integration, then ordered minimal R10
-structured tool-body/guidance/ref/capture facts plus Generic/MCP VIS16/VIS17
-interaction. Continue every mandatory T44 outcome; finish only after complete
-current-source R1–R6/VIS01–VIS45/SAFETY/V09 proof.
+Review intended source/test/evidence/current guide/progress, commit and push this
+checked slice. Continue ordered minimal existing-owner structured tool-body versus
+generated guidance/ref/capture facts, Generic/MCP collapsed expansion/re-collapse
+and Shell producer-loss versus projection facts. Preserve literal marker payloads,
+bounded access/legacy unknowns/no ordinary Read full-file recovery. Then finish all
+remaining mandatory styled/temporal T44 cases and final R6/V09 before task finish.
 
 
 Ready (до 5): нет

@@ -391,8 +391,26 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
     inspect_settings_code(&mut active, "agent_unavailable");
     submit(&mut active, "r4a retained refused draft");
-    wait_screen_row(&active, "submit: selection", DEADLINE);
+    wait_screen_row(&active, "Request unavailable: agent_unavailable", DEADLINE);
     wait_screen_row(&active, "agent_unavailable", DEADLINE);
+    wait_screen_row(&active, "r4a retained refused draft", DEADLINE);
+    // Inspect the captured refusal while the ordinary draft is still unsent.
+    // Palette/modal filtering is not a request, selection repair or grant.
+    active.send(b"\x10");
+    wait_screen_row(&active, "Commands", DEADLINE);
+    active.send(b"Settings\r");
+    wait_screen_row(&active, "Settings", DEADLINE);
+    wait_screen_row(&active, "Last request", DEADLINE);
+    active.send(b"Last request\r");
+    // The code already appeared in the brief refusal/list. This field proves
+    // the explicit captured detail completed before dismissing its surface.
+    wait_screen_row(&active, "selection.agent", DEADLINE);
+    active.send(b"\x1b");
+    // Settings' first Escape clears its nonempty modal filter; the second
+    // dismisses it. The real empty-search placeholder is the input barrier.
+    wait_screen_row(&active, "Search", DEADLINE);
+    active.send(b"\x1b");
+    dismissed(&active, "Settings");
     wait_screen_row(&active, "r4a retained refused draft", DEADLINE);
     let before_active = effects(&fixture);
     assert_eq!(before_active.0, old_effects.0 + 3);
@@ -603,7 +621,7 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     wait_screen_row(&active, "echo: r4a seeded history", DEADLINE);
     inspect_settings_code(&mut active, "model_unavailable");
     submit(&mut active, "r4a blocked pin retained draft");
-    wait_screen_row(&active, "submit: selection", DEADLINE);
+    wait_screen_row(&active, "Request unavailable: model_unavailable", DEADLINE);
     wait_screen_row(&active, "r4a blocked pin retained draft", DEADLINE);
     active.send(b"\x03");
     wait_idle(&active);

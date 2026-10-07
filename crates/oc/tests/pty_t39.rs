@@ -1278,7 +1278,11 @@ fn dismissed(pty: &PtySession, title: &str) {
         .iter()
         .any(|r| r.contains(title))
     {
-        assert!(start.elapsed() < DEADLINE, "modal did not dismiss: {title}");
+        assert!(
+            start.elapsed() < DEADLINE,
+            "modal did not dismiss: {title}: {:?}",
+            render_screen(&pty.snapshot()).rows()
+        );
         std::thread::sleep(POLL);
     }
 }

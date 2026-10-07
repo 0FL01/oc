@@ -1,7 +1,9 @@
 //! Change-sensitive feedback from the current owned projections, never dialogue.
 
 use super::*;
-use oc_core::queries::{McpStatus, PluginStatus, ProviderStatus, ServiceDiagnostic, ServiceKind};
+use oc_core::queries::{
+    McpStatus, PluginStatus, ProviderStatus, ServiceAction, ServiceDiagnostic, ServiceKind,
+};
 
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum ServiceIssue {
@@ -16,6 +18,41 @@ pub(super) enum ServiceIssue {
 }
 
 impl TuiState {
+    pub(super) fn submission_note(&mut self, error: &CoreError) -> String {
+        let diagnostic = match error {
+            CoreError::ProviderUnavailable(diagnostic) => diagnostic,
+            CoreError::Diagnostic(diagnostic)
+                if matches!(
+                    diagnostic.kind,
+                    ServiceKind::Selection | ServiceKind::Provider
+                ) =>
+            {
+                diagnostic
+            }
+            _ => {
+                self.refused_submission = None;
+                return format!("submit: {error}");
+            }
+        };
+        self.refused_submission = Some(diagnostic.clone());
+        let action = match diagnostic.action {
+            ServiceAction::SelectModel => "/models",
+            ServiceAction::SelectAgent => "/agents",
+            ServiceAction::SelectVariant => "/variants",
+            ServiceAction::Reauthenticate => "/accounts",
+            ServiceAction::WaitForProvider => "wait /settings",
+            ServiceAction::RefreshCatalog => "/reload",
+            ServiceAction::RetryConnection if diagnostic.kind == ServiceKind::Mcp => "/mcps",
+            ServiceAction::RetryConnection => "/reload",
+            ServiceAction::RestartApplication => "restart /settings",
+            _ => "/settings",
+        };
+        format!(
+            "Request unavailable: {} · {action}",
+            diagnostic.code.as_str()
+        )
+    }
+
     pub(super) fn service_issues(&self) -> Vec<ServiceIssue> {
         let mut issues = Vec::new();
         let mut add = |issue| {

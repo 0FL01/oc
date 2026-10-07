@@ -166,6 +166,15 @@ impl TuiState {
                         false,
                     ));
                 }
+                if let Some(refusal) = &self.refused_submission {
+                    options.push(item(
+                        "submission-refusal".into(),
+                        "Last request — refused".into(),
+                        "Services",
+                        refusal.code.as_str().into(),
+                        false,
+                    ));
+                }
                 options.extend(self.chrome.plugins.entries.iter().enumerate().map(
                     |(index, plugin)| {
                         item(
@@ -713,6 +722,9 @@ impl TuiState {
                 .clone();
         }
         let value = &options.get(self.select.cursor)?.value;
+        if value == "submission-refusal" {
+            return self.refused_submission.clone();
+        }
         if value == "provider" {
             return self.chrome.provider.as_ref()?.diagnostic.clone();
         }
@@ -2619,7 +2631,7 @@ impl TuiState {
                 KeyOutcome::default()
             }
             Err(error) => KeyOutcome {
-                note: Some(format!("submit: {error}")),
+                note: Some(self.submission_note(&error)),
                 ..KeyOutcome::default()
             },
         }

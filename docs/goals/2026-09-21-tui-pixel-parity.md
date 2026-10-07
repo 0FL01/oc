@@ -367,9 +367,13 @@ mixed-service PTY/release-startup checks pass. Pinned actual-executable attempt0
 observes eleven stages per side with 22 stable full styled/PNG/cursor captures;
 all22 strict comparisons remain DIFFERENT, not whole VIS42/V09/T44 PASS. Failed
 attempts001–004 remain. See [slice receipt](../../evidence/tui/vis42-clean-dialogue.md).
-Continue concise submitted-refusal and remaining VIS42 styled/detail integration,
-then structured tool-preview and Generic/MCP VIS16/VIS17 in the established order.
-Git base e0509c4cd; current source/fixture association is in the capture locks.
+Concise typed submitted-refusal is now functionally qualified on the next slice:
+current workspace1721/0/11, strict Clippy/debug-release/release-startup gates, exact
+captured read-only details and preserved pre-effect draft/admission. See
+[refusal receipt](../../evidence/tui/vis42-request-refusal.md). Remaining VIS42
+styled/detail integration is open; continue structured tool-preview and Generic/MCP
+VIS16/VIS17 in the established order. Bases e0509c4cd/e2120e418; actual paired
+source/fixture associations remain in their capture locks, not inferred as new PASS.
 R1-R6, ACCEPTANCE and SAFETY remain the unchanged finish line; no new task, store,
 framework, hidden text filter or waiver of the remaining full-frame/temporal gates.
 

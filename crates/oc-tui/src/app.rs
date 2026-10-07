@@ -688,6 +688,9 @@ pub struct TuiState {
     /// Pending is not recovery; stable status/removal/Location drops the baseline.
     service_pending_issues: Vec<services::ServiceIssue>,
     service_feedback_visible: bool,
+    /// One captured pre-acceptance refusal, not the new binding's readiness or
+    /// a diagnostic history. Cleared by acceptance, another refusal or Location.
+    refused_submission: Option<oc_core::queries::ServiceDiagnostic>,
     toast_expiry: Option<ToastExpiry>,
     toast_down: bool,
     active_turn: Option<WorkerTurnId>,
@@ -890,6 +893,7 @@ impl TuiState {
             service_note: false,
             service_pending_issues: Vec::new(),
             service_feedback_visible: true,
+            refused_submission: None,
             toast_expiry: None,
             toast_down: false,
             active_turn: None,
