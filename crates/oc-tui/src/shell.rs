@@ -1985,7 +1985,7 @@ fn footer_line(
     }
     let service_start = hints.len();
     let issues = state.service_issue_count();
-    if state.live_preview_limited() {
+    if state.preview_limited() {
         if !hints.is_empty() {
             hints.push(Span::raw("  "));
         }

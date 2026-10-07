@@ -511,6 +511,12 @@ async fn v06b_detail_scrolls_every_unicode_row_before_next_owner_page() {
             }
             let (_, _, count) = crate::views::card_window(&state);
             if state.card_seen() == count {
+                let (_, hint_width, _) = crate::dialog::card_geometry(state.detail_area());
+                let hint: String = "enter next".chars().take(hint_width).collect();
+                assert!(
+                    frame.contains(&hint),
+                    "next-page footer is truthful on the paint that reaches the end: {frame}"
+                );
                 break;
             }
             assert_eq!(state.handle_panel_key(KeyAction::Enter).intent, None);

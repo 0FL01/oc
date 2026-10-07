@@ -252,6 +252,7 @@ mod lifecycle;
 mod model_selection;
 mod retry;
 mod services;
+mod tool_output;
 mod transcript;
 
 #[tokio::test]

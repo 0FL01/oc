@@ -104,16 +104,42 @@ pub(crate) fn card_body_rows(text: &str, width: usize) -> Vec<String> {
 }
 
 pub(crate) fn card_window(state: &TuiState) -> (usize, usize, usize) {
-    let Some(detail) = &state.card_output else {
+    if state.card_output.is_none() {
         return (0, 0, 0);
-    };
+    }
     let (_, width, height) = crate::dialog::card_geometry(state.detail_area());
-    let count = card_body_rows(&detail.page.text, width).len();
+    let count = card_detail_rows(state, width).len();
     (
         state.card_scroll().min(count.saturating_sub(height)),
         height,
         count,
     )
+}
+
+fn card_detail_rows(state: &TuiState, width: usize) -> Vec<String> {
+    let Some(detail) = &state.card_output else {
+        return Vec::new();
+    };
+    let mut rows = Vec::new();
+    if let Some(presentation) = state
+        .cards
+        .iter()
+        .filter_map(|row| row.tool.as_ref())
+        .find(|card| card.op == detail.op)
+        .and_then(|card| card.output_presentation.as_ref())
+    {
+        for fact in crate::tools::presentation_details(presentation) {
+            rows.extend(card_body_rows(&fact, width));
+        }
+        // The existing explicit viewer owner may serve a captured resource or
+        // recorded RAW. Neither case makes ordinary card expansion a reader.
+        rows.extend(card_body_rows(
+            "Available output page (bounded; explicit viewer read):",
+            width,
+        ));
+    }
+    rows.extend(card_body_rows(&detail.page.text, width));
+    rows
 }
 
 /// Render state to a test backend; returns text lines for assertions.
@@ -204,8 +230,16 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
         TuiPanel::Cards => {
             if let Some(detail) = &state.card_output {
                 let (_, width, height) = crate::dialog::card_geometry(state.detail_area());
-                let rows = card_body_rows(&detail.page.text, width);
+                let rows = card_detail_rows(state, width);
                 let start = state.card_scroll().min(rows.len().saturating_sub(height));
+                // Include the contiguous rows this frame is about to paint.
+                // Waiting for a second paint leaves a stale footer at rest;
+                // an End jump across unseen rows still cannot admit next page.
+                let seen = if start <= state.card_seen() {
+                    state.card_seen().max((start + height).min(rows.len()))
+                } else {
+                    state.card_seen()
+                };
                 let mut out = vec![format!(
                     "operation {} · bytes {}–{} of {}",
                     detail.op.escape_debug(),
@@ -217,9 +251,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
                 out.push(
                     if height == 0 {
                         "resize to view result"
-                    } else if start + height < rows.len()
-                        || state.card_seen() < rows.len() && start > 0
-                    {
+                    } else if start + height < rows.len() || seen < rows.len() && start > 0 {
                         if width < 25 {
                             "↑↓ scroll"
                         } else {

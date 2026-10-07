@@ -470,6 +470,9 @@ pub struct AssistantMeta {
     pub status: Option<String>,
     /// Agent categorical slot pinned at generation time.
     pub agent_color_index: Option<usize>,
+    /// Current bounded projection omitted bytes/parts. This is viewing status,
+    /// not response text or a claim that producer output is recoverable.
+    pub preview_limited: bool,
 }
 
 /// Render the whole transcript, wrapped to the content-box `width`.
@@ -544,7 +547,7 @@ pub(crate) fn transcript_with_expansion(
                     out.push(exploration_member(member, theme));
                 }
             }
-        } else if let Some(lines) = shell_entry(row, theme, width, expanded) {
+        } else if let Some(lines) = expandable_tool_entry(row, theme, width, expanded) {
             out.extend(lines);
         } else {
             out.extend(render_row(
@@ -561,24 +564,29 @@ pub(crate) fn transcript_with_expansion(
     out
 }
 
-fn shell_entry(
+fn expandable_tool_entry(
     row: &HistoryRow,
     theme: &Theme,
     width: u16,
     expanded: &dyn Fn(&str) -> bool,
 ) -> Option<Vec<Line>> {
     let card = row.tool.as_ref().filter(|_| row.role == "tool")?;
-    let crate::tools::ToolRender::Shell(shell) = &card.render else {
-        return None;
+    let rendered = match &card.render {
+        crate::tools::ToolRender::Shell(shell) => {
+            crate::tools::shell_block_expanded(shell, card, theme, width, expanded(&card.op))
+        }
+        crate::tools::ToolRender::Inline(inline @ crate::tools::InlineRender::Generic { .. })
+            if !matches!(
+                card.state.as_str(),
+                "argument_stream" | "permission_pending"
+            ) =>
+        {
+            crate::tools::generic_block_expanded(inline, card, theme, width, expanded(&card.op))
+        }
+        _ => return None,
     };
     let mut lines = vec![Line::plain("")];
-    lines.extend(crate::tools::shell_block_expanded(
-        shell,
-        card,
-        theme,
-        width,
-        expanded(&card.op),
-    ));
+    lines.extend(rendered);
     Some(lines.into_iter().map(sanitize_line).collect())
 }
 
@@ -809,7 +817,7 @@ fn exploration_kind(row: &HistoryRow) -> Option<(&'static str, bool)> {
     let card = row.tool.as_ref()?;
     if row.role != "tool"
         || !matches!(card.state.as_str(), "completed" | "started" | "running")
-        || card.output_truncated
+        || card.preview_limited()
     {
         return None;
     }
@@ -1742,6 +1750,7 @@ pub(crate) fn visible_transcript(
 /// Map a visible exploration header or expandable Shell box to its operation.
 /// Uses the same index, wrapping and sticky scroll slice as the painted frame;
 /// only viewport rows are materialized, even for long histories.
+#[cfg(test)]
 pub(crate) fn exploration_header_at(
     rows: &[HistoryRow],
     theme: &Theme,
@@ -1751,6 +1760,20 @@ pub(crate) fn exploration_header_at(
     cache: &RefCell<MarkdownCache>,
     hit: (&impl Fn(&str) -> bool, (usize, usize)),
 ) -> Option<String> {
+    exploration_header_at_with_range(rows, theme, widths, viewport, agent_color, cache, hit)
+        .map(|(operation, _)| operation)
+}
+
+/// Owner-derived visible hover extent, separate from untrusted parameter/body text.
+pub(crate) fn exploration_header_at_with_range(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+) -> Option<(String, std::ops::Range<usize>)> {
     visible_transcript_indexed(
         rows,
         theme,
@@ -1766,7 +1789,7 @@ pub(crate) fn exploration_header_at(
     )
     .2
     .and_then(|hit| match hit {
-        TranscriptHit::Exploration(op) => Some(op),
+        TranscriptHit::Exploration(op, range) => Some((op, range)),
         TranscriptHit::Reasoning(_) => None,
     })
 }
@@ -1796,7 +1819,7 @@ pub(crate) fn reasoning_header_at(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Reasoning(id) => Some(id),
-        TranscriptHit::Exploration(_) => None,
+        TranscriptHit::Exploration(_, _) => None,
     })
 }
 
@@ -1933,7 +1956,7 @@ struct ExplorationOptions<'a> {
 }
 
 enum TranscriptHit {
-    Exploration(String),
+    Exploration(String, std::ops::Range<usize>),
     Reasoning(ReasoningIdentity),
 }
 
@@ -2040,10 +2063,21 @@ fn visible_transcript_indexed(
                             - UnicodeWidthStr::width(text.trim_start());
                         let last = UnicodeWidthStr::width(text.trim_end());
                         if x >= leading && x < last {
-                            hit = row
-                                .tool
-                                .as_ref()
-                                .map(|card| TranscriptHit::Exploration(card.op.clone()));
+                            hit = row.tool.as_ref().map(|card| {
+                                TranscriptHit::Exploration(
+                                    card.op.clone(),
+                                    header_start.saturating_sub(start)
+                                        ..(header_start
+                                            + styled::wrap_line_limited(
+                                                &group[1],
+                                                width as usize,
+                                                MAX_MARKDOWN_ROWS,
+                                            )
+                                            .len())
+                                        .min(end)
+                                        .saturating_sub(start),
+                                )
+                            });
                         }
                     }
                 }
@@ -2069,16 +2103,43 @@ fn visible_transcript_indexed(
                     );
                 }
             }
-        } else if let Some(lines) = shell_entry(row, theme, width, options.expanded) {
+        } else if let Some(lines) = expandable_tool_entry(row, theme, width, options.expanded) {
             if let Some((x, y)) = options.point
                 && let Some(card) = &row.tool
-                && crate::tools::shell_expandable(card, width)
                 && x < width as usize
                 && start + y > position
                 && start + y < position + lines.len()
                 && start + y < end
             {
-                hit = Some(TranscriptHit::Exploration(card.op.clone()));
+                let relative = start + y - position;
+                let extent = match &card.render {
+                    crate::tools::ToolRender::Shell(_) => {
+                        crate::tools::shell_expandable(card, width).then_some(lines.len() - 1)
+                    }
+                    crate::tools::ToolRender::Inline(
+                        inline @ crate::tools::InlineRender::Generic { .. },
+                    ) if crate::tools::generic_expandable(card) => {
+                        let header =
+                            crate::tools::generic_block_expanded(inline, card, theme, width, false);
+                        header
+                            .get(relative - 1)
+                            .is_some_and(|line| {
+                                let text = line.plain_text();
+                                let leading = UnicodeWidthStr::width(text.as_str())
+                                    - UnicodeWidthStr::width(text.trim_start());
+                                x >= leading && x < UnicodeWidthStr::width(text.trim_end())
+                            })
+                            .then_some(header.len())
+                    }
+                    _ => None,
+                };
+                if let Some(extent) = extent {
+                    hit = Some(TranscriptHit::Exploration(
+                        card.op.clone(),
+                        (position + 1).saturating_sub(start)
+                            ..(position + 1 + extent).min(end).saturating_sub(start),
+                    ));
+                }
             }
             add_visible_lines(
                 lines,
@@ -2231,7 +2292,7 @@ pub(crate) fn transcript_part_positions(
                     .len();
                 }
             }
-        } else if let Some(lines) = shell_entry(row, theme, width, expanded) {
+        } else if let Some(lines) = expandable_tool_entry(row, theme, width, expanded) {
             for line in lines {
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }

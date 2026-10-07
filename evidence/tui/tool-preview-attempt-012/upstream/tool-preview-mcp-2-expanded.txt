@@ -1,0 +1,80 @@
+   VIS16 tool preview fixture    +                                                                                      
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS16 preview: execute the supplied MCP and Shell calls exactly once.                                              
+  ┃                                                                                                                     
+                                                                                                                        
+     ✓ vis16_output [index=1, query=native needle]                                                                      
+                                                                                                                        
+     ✓ vis16_output [index=2, query=native needle]                                                                      
+       index: 2                                                                                                         
+       query: native needle                                                                                             
+       nested: {                                                                                                        
+                 "value": "available parameter"                                                                         
+               }                                                                                                        
+       output: VIS-MCP-SECOND-BEGIN                                                                                     
+               [Part preview truncated]                                                                                 
+               [output preview truncated; full result retained]                                                         
+               [truncated]                                                                                              
+               VIS-MCP-SECOND-LINE-001 actual output words                                                              
+               VIS-MCP-SECOND-LINE-002 actual output words                                                              
+               VIS-MCP-SECOND-LINE-003 actual output words                                                              
+               VIS-MCP-SECOND-LINE-004 actual output words                                                              
+               VIS-MCP-SECOND-LINE-005 actual output words                                                              
+               VIS-MCP-SECOND-LINE-006 actual output words                                                              
+               VIS-MCP-SECOND-LINE-007 actual output words                                                              
+               VIS-MCP-SECOND-LINE-008 actual output words                                                              
+               ... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-          
+               reference/runs/tool-preview-attempt-012/upstream/home/data/opencode/tool-output/                         
+               tool_11812b7d5001lvPjKPW4NFraRg ...                                                                      
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ printf 'VIS-SHELL-LINE-%03d\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30  
+  ┃   31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 …        
+  ┃                                                                                                                     
+  ┃  (9 earlier lines)                                                                                                  
+  ┃  [Part preview truncated]                                                                                           
+  ┃  [output preview truncated; full result retained]                                                                   
+  ┃  [truncated]                                                                                                        
+  ┃                                                                                                                     
+  ┃  [output truncated; full output saved to: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-      
+  ┃  preview-attempt-012/upstream/home/data/opencode/shell/c615d298dce82e7a3b13cb97ee7c031a908c3dcf/                    
+  ┃  sh_11812b88a001bOQW7mJ27Q2wl6.out]                                                                                 
+  ┃  Command exited with code 0.                                                                                        
+  ┃                                                                                                                     
+                                                                                                                        
+     ✗ vis16_output [index=4, query=native needle]                                                                      
+                                                                                                                        
+     VIS16-DONE: bounded results verified.                                                                              
+                                                                                                                        
+     Build · MiMo-V2.6-Flash Free · 604ms                                                                               
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  preserved draft                                                                                                    
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/ope…/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-012/project  1.3K (1%)  ctrl+p commands  
+                                                                                                                        

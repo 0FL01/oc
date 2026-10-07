@@ -420,9 +420,6 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         meta: None,
         tool: None,
     };
-    // A preview notice is not a durable part. Keep adjacent reasoning refs
-    // adjacent for grouping, then show every notice before the next part.
-    let mut reasoning_notices = Vec::new();
     let first = turn
         .spans
         .iter()
@@ -432,10 +429,10 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         .iter()
         .filter_map(|span| span.request.as_ref())
         .any(|request| Some(&request.model) != first);
+    // Interrupted turns may attach to the accepted user row, which precedes
+    // the projected parts but has no entry in part_states.
+    let part_start = rows.len();
     for (index, part) in turn.parts.iter().enumerate() {
-        if !matches!(part, TranscriptPart::Reasoning { .. }) {
-            rows.append(&mut reasoning_notices);
-        }
         let mut part_row = empty_row();
         match part {
             TranscriptPart::Text(text) => part_row.text = text.clone(),
@@ -483,27 +480,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
                 .get_or_insert_with(Default::default)
                 .model = Some(model);
         }
-        if let Some(state) = turn.part_states.get(index).filter(|s| s.truncated) {
-            let mut notice = empty_row();
-            notice.text = if state.input_omitted {
-                match part {
-                    TranscriptPart::Tool(op) => format!(
-                        "[Tool input omitted from preview; operation {} retained; see /cards]",
-                        op.op
-                    ),
-                    _ => "[Part preview truncated]".into(),
-                }
-            } else {
-                "[Part preview truncated]".into()
-            };
-            if matches!(part, TranscriptPart::Reasoning { .. }) {
-                reasoning_notices.push(notice);
-            } else {
-                rows.push(notice);
-            }
-        }
     }
-    rows.append(&mut reasoning_notices);
     for span in &turn.spans {
         if let Some(retry) = &span.retry {
             let mut notice = empty_row();
@@ -523,14 +500,6 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         }
     }
     let mut footer = empty_row();
-    if turn.omitted_parts > 0 {
-        let mut notice = empty_row();
-        notice.text = format!(
-            "[{} parts omitted from bounded history preview; durable records retained]",
-            turn.omitted_parts
-        );
-        rows.push(notice);
-    }
     footer.meta = Some(AssistantMeta {
         model: Some(
             turn.spans
@@ -550,6 +519,16 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         interrupted: turn.status == "cancelled",
         status: Some(turn.status.clone()),
         agent_color_index: turn.agent_color_index,
+        preview_limited: turn.omitted_parts > 0
+            || turn.part_states.iter().enumerate().any(|(index, state)| {
+                state.input_omitted
+                    || (state.truncated
+                        && rows
+                            .get(part_start + index)
+                            .and_then(|row| row.tool.as_ref())
+                            .filter(|card| card.output_presentation.is_some())
+                            .is_none_or(ToolCard::preview_limited))
+            }),
     });
     rows.push(footer);
     rows
@@ -566,7 +545,7 @@ pub struct ToolCard {
     pub state: String,
     /// Bounded input preview.
     pub input_preview: String,
-    /// Bounded output preview (empty when none recorded).
+    /// Available bounded body; legacy rows retain their recorded output preview.
     pub output_preview: String,
     /// Full stored output size in bytes.
     pub output_bytes: i64,
@@ -591,6 +570,27 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    /// Projection loss is independent of producer/capture loss. No text matching
+    /// or cold output loading is needed to report the current viewing limit.
+    pub(crate) fn preview_limited(&self) -> bool {
+        matches!(
+            &self.render,
+            ToolRender::Inline(crate::tools::InlineRender::Generic {
+                arguments_limited: true,
+                ..
+            })
+        ) || self
+            .output_presentation
+            .as_ref()
+            .map_or(self.output_truncated, |presentation| {
+                presentation.body_limited
+                    || presentation
+                        .shell
+                        .as_ref()
+                        .is_some_and(|shell| shell.stdout_limited || shell.stderr_limited)
+            })
+    }
+
     /// Retained payload bytes including parsed card/diff strings.
     pub(crate) fn retained_bytes(&self) -> usize {
         self.op.len()
@@ -661,7 +661,14 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     } else {
         None
     };
-    let output = human.as_deref().or(row.output.as_deref());
+    let output = human
+        .as_deref()
+        .or_else(|| {
+            output_presentation
+                .as_ref()
+                .map(|presentation| presentation.body.as_str())
+        })
+        .or(row.output.as_deref());
     let files = row
         .patch_effects
         .as_ref()
@@ -686,7 +693,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     } else {
         patch_diff(&row.name, row.input.as_deref())
     };
-    let render = if row.name == "compress" {
+    let mut render = if row.name == "compress" {
         ToolRender::Dcp(Box::new(crate::dcp_view::DcpRender {
             snapshot: row.dcp.clone().filter(|run| run.operation_id == row.op),
             topic: row.dcp_topic.clone(),
@@ -699,12 +706,33 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
     } else {
         ToolRender::parse(&row.name, row.input.as_deref(), output, &row.state)
     };
+    if let ToolRender::Shell(shell) = &mut render
+        && let Some(facts) = output_presentation
+            .as_ref()
+            .and_then(|presentation| presentation.shell.as_ref())
+    {
+        shell.stdout = facts.stdout.lines().map(str::to_owned).collect();
+        shell.stderr = facts.stderr.lines().map(str::to_owned).collect();
+        shell.exit = facts.exit.map(i64::from);
+        shell.signal = facts.signal.is_some();
+        shell.timed_out = facts.timed_out;
+        shell.cancelled = facts.cancelled;
+        shell.output_ends_with_newline = if facts.stderr.is_empty() {
+            facts.stdout.ends_with('\n')
+        } else {
+            facts.stderr.ends_with('\n')
+        };
+    }
     ToolCard {
         op: row.op.clone(),
         name: row.name.clone(),
         state: row.state.clone(),
         input_preview: preview(row.input.as_deref()),
-        output_preview: preview(output),
+        output_preview: if human.is_none() && output_presentation.is_some() {
+            output.unwrap_or_default().to_owned()
+        } else {
+            preview(output)
+        },
         output_bytes: row.output_bytes,
         output_truncated: row.output_truncated,
         output_presentation,
@@ -964,9 +992,14 @@ mod tests {
                 ..Default::default()
             });
             let rows = super::rows_from_page(&message);
-            assert!(rows.iter().any(|r| r.text.contains("preview truncated")));
-            assert!(rows.iter().any(|r| r.text.contains("8 parts omitted")));
+            assert_eq!(
+                rows.len(),
+                2,
+                "available body and actual terminal footer only"
+            );
+            assert_eq!(rows[0].text, "preview");
             let meta = rows.last().unwrap().meta.as_ref().unwrap();
+            assert!(meta.preview_limited);
             assert_eq!(meta.status.as_deref(), Some(status));
             assert_eq!(meta.agent_color_index, Some(3));
         }
@@ -1111,7 +1144,13 @@ mod tests {
             false,
         ));
         let rows = window.rows();
-        assert_eq!(rows.len(), 6);
+        assert!(
+            !rows
+                .iter()
+                .any(|row| row.text == "[Part preview truncated]"),
+            "projection loss belongs to compact viewing status, not an answer row"
+        );
+        assert_eq!(rows.len(), 5);
         assert!(window.retained_bytes() <= WINDOW_BYTES);
         assert_eq!(rows[0].reasoning.as_ref().unwrap().text, first);
         assert_eq!(rows[0].reasoning.as_ref().unwrap().text.len(), 16 * 1024);
@@ -1123,10 +1162,9 @@ mod tests {
             rows[1].reasoning.as_ref().unwrap().identity,
             Some(ReasoningIdentity::Durable(42, 1))
         );
-        assert_eq!(rows[2].text, "[Part preview truncated]");
-        assert_eq!(rows[3].text, "answer");
-        assert!(rows[4].meta.is_some());
-        assert_eq!(rows[5].role, "user");
+        assert_eq!(rows[2].text, "answer");
+        assert!(rows[3].meta.as_ref().unwrap().preview_limited);
+        assert_eq!(rows[4].role, "user");
         let theme = crate::theme::Theme::dark();
         let plain = |rows: &[super::HistoryRow]| {
             crate::messages::transcript(rows, theme, 80, 80, |_| Color::Reset)
@@ -1153,7 +1191,7 @@ mod tests {
                 .any(|line| line.contains("first body") || line.contains("second body"))
         );
         assert!(
-            collapsed
+            !collapsed
                 .iter()
                 .any(|line| line.contains("[Part preview truncated]"))
         );
@@ -1190,19 +1228,18 @@ mod tests {
         let mut expanded_rows = rows.to_vec();
         expanded_rows[0].reasoning.as_mut().unwrap().expanded = true;
         let expanded = plain(&expanded_rows);
-        for expected in [
-            "first body",
-            "second body",
-            "[Part preview truncated]",
-            "answer",
-            "next prompt",
-        ] {
+        for expected in ["first body", "second body", "answer", "next prompt"] {
             assert!(
                 expanded.iter().any(|line| line.contains(expected)),
                 "missing {expected}"
             );
         }
         assert!(!expanded.iter().any(|line| line.contains("hidden marker")));
+        assert!(
+            !expanded
+                .iter()
+                .any(|line| line.contains("[Part preview truncated]"))
+        );
         assert_eq!(
             expanded
                 .iter()
@@ -1232,7 +1269,7 @@ mod tests {
             ),
             Some(ReasoningIdentity::Durable(42, 0)),
         );
-        for expected in ["first body", "second body", "[Part preview truncated]"] {
+        for expected in ["first body", "second body"] {
             assert!(
                 visible
                     .iter()
@@ -1243,7 +1280,7 @@ mod tests {
     }
 
     #[test]
-    fn reasoning_notices_flush_before_text_tool_and_footer_without_hiding_other_notices() {
+    fn limited_parts_keep_order_and_reasoning_groups_without_synthetic_rows() {
         use crate::messages::ReasoningIdentity;
         use oc_core::queries::{HistoryTurn, PartState, TranscriptPart};
         use ratatui::style::Color;
@@ -1273,7 +1310,7 @@ mod tests {
                     dcp_topic: None,
                 }),
                 reason("**Three**\n\nbody 3"),
-                TranscriptPart::Text("separator".into()),
+                TranscriptPart::Text("separator [Part preview truncated]".into()),
                 reason("**Four**\n\nbody 4"),
             ],
             part_states: vec![
@@ -1307,7 +1344,7 @@ mod tests {
             ..Default::default()
         });
         let rows = super::rows_from_page(&message);
-        assert_eq!(rows.len(), 14);
+        assert_eq!(rows.len(), 7);
         assert_eq!(
             rows[0].reasoning.as_ref().unwrap().identity,
             Some(ReasoningIdentity::Durable(7, 0))
@@ -1316,27 +1353,17 @@ mod tests {
             rows[1].reasoning.as_ref().unwrap().identity,
             Some(ReasoningIdentity::Durable(7, 1))
         );
-        assert_eq!(rows[2].text, "[Part preview truncated]");
-        assert_eq!(rows[3].text, "[Part preview truncated]");
-        assert_eq!(rows[4].tool.as_ref().unwrap().op, "op-1");
+        assert_eq!(rows[2].tool.as_ref().unwrap().op, "op-1");
         assert_eq!(
-            rows[5].text,
-            "[Tool input omitted from preview; operation op-1 retained; see /cards]"
-        );
-        assert_eq!(
-            rows[6].reasoning.as_ref().unwrap().identity,
+            rows[3].reasoning.as_ref().unwrap().identity,
             Some(ReasoningIdentity::Durable(7, 3))
         );
-        assert_eq!(rows[7].text, "[Part preview truncated]");
-        assert_eq!(rows[8].text, "separator");
-        assert_eq!(rows[9].text, "[Part preview truncated]");
+        assert_eq!(rows[4].text, "separator [Part preview truncated]");
         assert_eq!(
-            rows[10].reasoning.as_ref().unwrap().identity,
+            rows[5].reasoning.as_ref().unwrap().identity,
             Some(ReasoningIdentity::Durable(7, 5))
         );
-        assert_eq!(rows[11].text, "[Part preview truncated]");
-        assert!(rows[12].text.contains("2 parts omitted"));
-        assert!(rows[13].meta.is_some());
+        assert!(rows[6].meta.as_ref().unwrap().preview_limited);
         let lines = crate::messages::transcript(&rows, crate::theme::Theme::dark(), 80, 80, |_| {
             Color::Reset
         });
@@ -1355,6 +1382,19 @@ mod tests {
         );
         assert!(plain.iter().any(|line| line.contains("Thought: Three")));
         assert!(plain.iter().any(|line| line.contains("Thought: Four")));
+        assert_eq!(
+            plain
+                .iter()
+                .filter(|line| line.contains("[Part preview truncated]"))
+                .count(),
+            1,
+            "literal response text is not a generated viewing notice"
+        );
+        assert!(
+            !plain
+                .iter()
+                .any(|line| line.contains("parts omitted") || line.contains("Tool input omitted"))
+        );
     }
 
     #[test]

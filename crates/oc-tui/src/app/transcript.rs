@@ -86,7 +86,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
     };
     let output = if card.output_preview.is_empty() {
         String::new()
-    } else if card.output_truncated {
+    } else if card.output_presentation.is_none() && card.output_truncated {
         format!(
             " -> {}…[+{} bytes stored]",
             card.output_preview,
@@ -95,6 +95,17 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
     } else {
         format!(" -> {}", card.output_preview)
     };
+    let facts = card
+        .output_presentation
+        .as_ref()
+        .map_or_else(String::new, |presentation| {
+            let details = crate::tools::presentation_details(presentation);
+            if details.is_empty() {
+                String::new()
+            } else {
+                format!("\n{}", details.join("\n"))
+            }
+        });
     // Diff first: a long operation id must never push the diff off a narrow
     // panel row.
     HistoryRow {
@@ -102,15 +113,17 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         seq: i64::MAX,
         role: String::new(),
         text: format!(
-            "{} {}{}{} ({})",
-            card.name, card.state, files, output, card.op
+            "{} {}{}{} ({}){}",
+            card.name, card.state, files, output, card.op, facts
         ),
         agent: None,
         agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
         meta: None,
-        tool: None,
+        // The list text may ellipsize; the existing detail viewer still needs
+        // bounded owner facts without another query or a parallel store.
+        tool: Some(card.clone()),
     }
 }
 
@@ -426,10 +439,12 @@ impl TuiState {
             if !block
                 && !header.trim_start().starts_with("→ Explored")
                 && !header.trim_start().starts_with("⋯ Exploring")
+                && !header.trim_start().starts_with(['✓', '✗', '⋯'])
             {
                 return None;
             }
-            self.exploration_hit(frame, x, y).map(|_| range)
+            self.exploration_hit_with_range(frame, x, y)
+                .map(|(_, range)| range)
         });
         let selected = self.selection.as_ref().filter(|selected| {
             selected.painted.area == area
@@ -938,6 +953,16 @@ impl TuiState {
     }
 
     pub(super) fn exploration_hit(&self, area: Rect, x: u16, y: u16) -> Option<String> {
+        self.exploration_hit_with_range(area, x, y)
+            .map(|(operation, _)| operation)
+    }
+
+    fn exploration_hit_with_range(
+        &self,
+        area: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<(String, std::ops::Range<usize>)> {
         let rect = crate::shell::transcript_area(self, area);
         if rect.width == 0 || rect.height == 0 || !rect.contains((x, y).into()) {
             return None;
@@ -946,7 +971,7 @@ impl TuiState {
         let live_row = (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| {
             rows.len() - 1 - usize::from(rows.last().is_some_and(|row| row.role == "reverted"))
         });
-        crate::messages::exploration_header_at(
+        crate::messages::exploration_header_at_with_range(
             &rows,
             Theme::dark(),
             (rect.width, area.width),

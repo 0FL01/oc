@@ -1601,6 +1601,19 @@ impl TuiState {
                     })
                 }
                 _ => crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
+                    summary: request
+                        .resources
+                        .iter()
+                        .take(4)
+                        .map(|resource| {
+                            format!(
+                                "resource={}",
+                                crate::truncate_utf8(resource, crate::tools::GENERIC_ARG_CHARS)
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    arguments_limited: request.resources.len() > 4,
                     args: request
                         .resources
                         .iter()
@@ -1690,6 +1703,8 @@ impl TuiState {
                 card.render =
                     crate::tools::ToolRender::Inline(crate::tools::InlineRender::Generic {
                         args: Vec::new(),
+                        summary: String::new(),
+                        arguments_limited: false,
                     });
                 // Bounded raw prefix is presentation text only, not input JSON.
                 let mut end = preview
@@ -1990,6 +2005,7 @@ impl TuiState {
             interrupted,
             status: self.live_terminal_status.take(),
             agent_color_index: self.live_agent_color_index,
+            preview_limited: self.live_preview_truncated,
         }
     }
 

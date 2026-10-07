@@ -23,6 +23,7 @@ import compaction_fixture
 import apply_patch_fixture
 import permission_fixture
 import services_fixture
+import tool_preview_fixture
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -111,6 +112,9 @@ class Provider(BaseHTTPRequestHandler):
     def do_POST(self):
         global transcript_round, title_round, bounded_requests, live_requests
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if spec.get('tool_preview'):
+            tool_preview_fixture.respond(self, body, spec, emit)
+            return
         if spec.get('permission'):
             permission_fixture.respond(self, body, spec, emit)
             return
@@ -495,6 +499,8 @@ if spec.get('permission'):
         argv.append('--auto')
 if spec.get('clean_services'):
     services_fixture.configure(spec, home, project, config, cli_config)
+if spec.get('tool_preview'):
+    tool_preview_fixture.configure(spec, home, project, config, cli_config)
 if spec.get('compaction'):
     automatic = spec.get('compaction_trigger','manual') != 'manual'
     config['compaction'] = {'auto':automatic,'keep':{'tokens':0},'buffer':20000}
@@ -625,7 +631,9 @@ try:
                     while b'\n' in pending:
                         line, pending = pending.split(b'\n', 1)
                         command = json.loads(line)
-                        if command['kind'] == 'services_snapshot' and spec.get('clean_services'):
+                        if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
+                            emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
+                        elif command['kind'] == 'services_snapshot' and spec.get('clean_services'):
                             emit({'kind':'services_snapshot','request_id':command['request_id'], 'snapshot':services_fixture.snapshot(home)})
                         elif command['kind'] == 'services_control' and spec.get('clean_services'):
                             emit({'kind':'services_control_ack','request_id':command['request_id'], **services_fixture.control(home, config, spec['origin'], command['action'])})
@@ -798,7 +806,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission')):
+        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission') or spec.get('tool_preview')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())

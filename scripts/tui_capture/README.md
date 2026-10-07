@@ -784,6 +784,59 @@ recorded, not pixel-parity PASS. Missing/failed/unstable stages and nonzero stri
 comparator exits stay with the failed attempt; none are promoted to VIS42/V09
 PASS or hidden by the native's successful functional checks.
 
+## VIS16/VIS17 bounded Generic/MCP and Shell presentation
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true \
+  --output /home/opencode/ai/oc/evidence/tui/TOOL-PREVIEW-NEW-IMMUTABLE-ATTEMPT
+```
+
+Allow a bounded 600-second runner timeout. This exclusive test-only mode uses
+the existing bridge/frontend/comparator, isolated per-side roots, local fake
+Responses and a real stdio MCP peer. No live generation or user configuration is
+used. Four ordinary tool effects are two consecutive large MCP results, real
+80-line Shell output and a genuine MCP `isError` result; one title plus five main
+requests are validated. The authorized Shell also appends one fixed line to its
+per-side isolated project counter; read-only snapshots require exactly one effect
+and unchanged bytes/hash through view changes/restart, independently of provider
+call counts. Both sides use 12 lines/1024 bytes output preparation.
+Payload includes literal `[Part preview truncated]`,
+`[output preview truncated; full result retained]` and `[truncated]`: their
+presence is required where the retained body is expanded, not globally forbidden.
+
+The actual default collapse, hover, two MCP expand/recollapse sequences, failure
+detail, Shell expand/resize/recollapse, `/new`/history reopen and clean same-root
+restart produce fourteen paired full styled-grid/PNG/VT/cursor stages. Hover and
+clicks retain the real draft/caret at 120×80 before returning to 120×40. Ordinary
+expansion must not reveal the discarded distant-end marker, display generated
+model guidance as body, execute a tool again or change recorded operation facts.
+The read-only audit checks bounded native presentation events and identical tool
+records, capture descriptors/artifact hashes and MCP call records through replay.
+
+Two additional **native-only** full frames exercise the existing `/cards` detail
+owner at 120×20: visible typed preview/capture/reference facts, then an explicit
+240-byte next page after viewing all preceding rows. This viewer may read a
+registered capture or recorded RAW through the existing authorized owner; it is
+not ordinary Generic/MCP expansion or a promise of full-result availability.
+The resource-detail frames have no donor `/cards` counterpart and are labelled
+`NATIVE_ONLY_RESOURCE_DETAILS`, not a paired visual PASS. Their reference remains
+a recorded fact, not a readability guarantee.
+
+`tool-preview-checks.json`, `protocol.json`, `inputs.json`, snapshots and
+`capture.lock.json` retain actual predicates, cursor/counts and source/binary
+association. Native MCP wire names, safe failure normalization, bounded 2048-byte
+presentation, compact viewing status and capture details are disclosed; elapsed
+digits, redacted fixture data and all other differences remain unmasked. Existing
+redaction is never bypassed to force fixture text equality. `PASS_BEHAVIOR_ONLY`
+does not qualify VIS16/VIS17 pixels, prompt blink, all history paging/capture
+faults, release behavior or T44/V09. Missing/failed attempts stay diagnostic.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

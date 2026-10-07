@@ -16,6 +16,7 @@ import {probeCompaction} from './compaction.mjs';
 import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
 import {probeServices} from './services.mjs';
+import {probeToolPreview} from './tool_preview.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 
@@ -29,6 +30,9 @@ const compaction = args.compaction === 'true';
 const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const cleanServices = args['clean-services'] === 'true';
+const toolPreview = args['tool-preview'] === 'true';
+if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc'].includes(k))))throw Error('--tool-preview requires exclusive paired short 120x40 geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -306,6 +310,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(toolPreview ? {tool_preview:true,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py')))} : {}),
     ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
     ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
     ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),
@@ -344,6 +349,7 @@ if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prom
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
@@ -431,7 +437,8 @@ try {
               // extmark. Expansion preserves that raw spacer (:1422–1424).
                ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
               apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
-              clean_services:cleanServices,
+               clean_services:cleanServices,
+               tool_preview:toolPreview,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
@@ -475,7 +482,7 @@ try {
       } else { logs.push(event); fs.writeFileSync(path.join(dir,'protocol.json'),JSON.stringify(logs,null,2)+'\n'); }
     });
     const frame = async () => {
-       if(applyPatch || permission || leaderPending || cleanServices) {
+       if(applyPatch || permission || leaderPending || cleanServices || toolPreview) {
         let timer;
         try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
         finally {clearTimeout(timer);}
@@ -586,6 +593,15 @@ try {
             control:command=>child.stdin.write(JSON.stringify(command)+'\n')});
           lock.clean_services ??= {};lock.clean_services[origin]=checks;
           if(checks.status!=='OBSERVED')result=1;
+           json('capture.lock.json',lock);continue;
+         }
+        if(toolPreview) {
+          const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+            control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+            resize:async rows=>{profile.rows=rows;await page.evaluate(rows=>term.resize(120,rows),rows);child.stdin.write(JSON.stringify({kind:'resize',columns:120,rows})+'\n');},
+            relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+          lock.tool_preview ??= {};lock.tool_preview[origin]=checks;
+          if(checks.status!=='PASS_BEHAVIOR_ONLY')result=1;
           json('capture.lock.json',lock);continue;
         }
        if(applyPatch) {
@@ -2928,6 +2944,7 @@ try {
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
+    if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
      if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
@@ -2942,9 +2959,12 @@ try {
       const actual=path.join(output,'oc',(paired?.scenario ?? scenario)+'.'+ext);
       if(paired?.phase_match==='EXACT_INDICATOR' && paired.scenario!==scenario)
         throw Error('Accepted scanner phase must have canonical scenario: '+scenario);
-       if(messageActions && scenario.startsWith('native-conversation-')) {
-         lock.attempts.push({scenario,mode,status:'NATIVE_ONLY_APPROVED_DIVERGENCE'});continue;
-       }
+        if(messageActions && scenario.startsWith('native-conversation-')) {
+          lock.attempts.push({scenario,mode,status:'NATIVE_ONLY_APPROVED_DIVERGENCE'});continue;
+        }
+        if(toolPreview && ['native-tool-preview-capture-details','native-tool-preview-cards-paged'].includes(scenario)) {
+          lock.attempts.push({scenario,mode,status:'NATIVE_ONLY_RESOURCE_DETAILS'});continue;
+        }
        if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
       const r=execute(['/usr/bin/python3',path.join(repo,'tui-recovery/scripts/compare_frames.py'),mode,ref,actual,'--report',path.join(output,scenario+'.'+mode+'-diff.json')]);
       lock.attempts.push({scenario,mode,status:paired?.phase_match==='UNMATCHED_PHASE' ? 'UNMATCHED_PHASE' :

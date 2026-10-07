@@ -1090,10 +1090,18 @@ impl TuiState {
         &self.status
     }
 
-    /// Actual live projection eviction, not producer capture completeness or
-    /// a promise that bytes discarded by a tool can be recovered.
-    pub(crate) fn live_preview_limited(&self) -> bool {
-        self.active_turn.is_some() && self.live_preview_truncated
+    /// Actual current-view projection loss, not producer capture completeness
+    /// or a promise that bytes discarded by a tool can be recovered.
+    pub(crate) fn preview_limited(&self) -> bool {
+        (self.active_turn.is_some() && self.live_preview_truncated)
+            || self.window.rows().iter().any(|row| {
+                row.meta.as_ref().is_some_and(|meta| meta.preview_limited)
+                    || row.tool.as_ref().is_some_and(ToolCard::preview_limited)
+            })
+            || self
+                .live_parts
+                .iter()
+                .any(|part| matches!(part, LivePart::Tool { card, .. } if card.preview_limited()))
     }
 
     /// Owner receipts need reconciliation until accepted, independently from

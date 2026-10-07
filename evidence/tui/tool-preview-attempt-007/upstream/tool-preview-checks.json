@@ -1,0 +1,363 @@
+{
+  "origin": "upstream",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "before": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_117b95f140018JY3aVPTeH3tEy": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_117b95f570014aAPeoePCzWIl7": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  "after": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "restarted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_117b95f140018JY3aVPTeH3tEy": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_117b95f570014aAPeoePCzWIl7": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  }
+}

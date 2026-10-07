@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-07T12:21:46+00:00
+State updated: 2026-10-07T20:27:27+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,39 +12,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — concise typed request-refusal slice
+# T44 — bounded tool-preview consumer slice
 
 ## Result
-Typed pre-acceptance Provider/Selection rejection produces one short actionable
-code/action summary. A bounded last captured safe reason remains read-only in
-Settings with exact detail/copy/unsent investigation; draft and pre-effect refusal
-survive. It is separate from current binding readiness and clears on accepted
-retry/Location change/other error. Arbitrary CoreError prose remains visible.
-T44 stays ACTIVE; functional facet qualified, pixel/temporal outcomes still open.
+Generic/MCP default collapse, header-only hover/click, bounded parameters/body
+and second-click collapse; failed detail and denied handling follow pinned owner
+semantics. Structured body excludes only generated model guidance; literal
+markers/legacy data survive. Shell viewing loss is separate from genuine producer/
+capture/abnormal facts. Compact indicator and existing bounded `/cards` typed
+details/page caption are truthful, including interrupted user-anchored turns.
+Receipt: evidence/tui/tool-preview-presentation.md. T44 remains ACTIVE.
 
 ## Checks
-Current fmt/strict locked workspace Clippy, workspace1721/0/11 independently
-summed46 records, normal debug/release and actual release startup/discovery PASS.
-Current final2 log ends T44_TYPED_REQUEST_REFUSAL_CURRENT_ALL_GATES_PASS.
-New real-channel UI case covers both typed families/captured detail/draft/clear;
-actual R4A2/UI074 and all52 PTY T39/97 binary/41 MCP/451 TUI guards PASS.
-No headless/full diagnostic, privacy, request count, grants, effect or fallback
-assertion was removed. Failed first chain preserved; current chain fully green.
+Current final4 fmt/strict workspace Clippy, workspace1728/0/11 (46 records), normal
+debug/release/help and actual release startup/discovery PASS. Actual paired pinned
+attempt011 has14 stages per side, both PASS_BEHAVIOR_ONLY, six requests/four effects/
+three real MCP calls unchanged through reopen/restart; native operation/capture
+facts and artifact hashes unchanged. Two native-only explicit resource-detail
+frames include real240-byte paging. All28 full unmasked paired grid/PNG comparisons
+are DIFFERENT, not visual PASS. Raw VT/privacy/approval/caps/replay guards remain.
 
 ## Risks
-No new paired request-refusal pixel PASS. First-slice005 retains its own source
-association/all22 DIFFERENT comparisons; whole VIS42/V09/T44 remains incomplete.
-No producer/CoreError Display/RAW/context change, free-prose matching, new store/
-schema/registry, public test API, timeout/cap/ignore/security weakening. AUTH06
-deferred, `.opencode/` and original24/24/Go13/24 ledgers untouched.
+No full VIS16/VIS17/VIS31/R6/V09/T44 PASS. Final-cursor equality cannot establish
+phantom-caret suppression or preserved blink. Actual history multi-page and
+capture-fault receipts remain separate; current capture does not replace them.
+No RAW/provider rewrite, marker regex stripping, ordinary expansion cold reader,
+new store/framework, grant/cap/timeout/baseline/ignore weakening or paid campaign.
+AUTH06 deferred, original24/24/Go13/24 and `.opencode/` untouched.
 
 ## Next
-Review intended source/test/evidence/current guide/progress, commit and push this
-checked slice. Continue ordered minimal existing-owner structured tool-body versus
-generated guidance/ref/capture facts, Generic/MCP collapsed expansion/re-collapse
-and Shell producer-loss versus projection facts. Preserve literal marker payloads,
-bounded access/legacy unknowns/no ordinary Read full-file recovery. Then finish all
-remaining mandatory styled/temporal T44 cases and final R6/V09 before task finish.
+Commit/push the reviewed qualified slice. Continue at the terminal frame/cursor
+output boundary for frozen phantom-caret plus prompt-blink VIS16/VIS31: actual
+ordering/fragment/error/fallback trace and running OC2/native blink-enabled idle,
+continuous hover/repaint and restored input, at least3 full cycles per state,
+nonblinking/default controls. Then remaining frozen styled/temporal/interaction
+outcomes and final current-source gates; no task finish before full acceptance.
 
 
 Ready (до 5): нет

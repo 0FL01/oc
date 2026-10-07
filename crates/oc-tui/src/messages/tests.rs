@@ -1084,7 +1084,11 @@ fn expanded_exploration_keeps_header_and_shows_each_card_in_both_renderers() {
                 1,
                 "expanded group shows its read once; later failed/truncated rows stay separate"
             );
-            assert!(text.contains("[output preview truncated; full result retained]"));
+            assert!(!text.contains("[output preview truncated; full result retained]"));
+            assert!(
+                rows.iter()
+                    .any(|row| row.tool.as_ref().is_some_and(|card| card.preview_limited()))
+            );
         }
     }
 }
@@ -1108,7 +1112,15 @@ fn exploration_does_not_hide_unresolved_failed_or_truncated_results() {
         "failed, denied and unknown detail rows"
     );
     assert!(text.contains("fixture result"));
-    assert!(text.contains("[output preview truncated; full result retained]"));
+    assert!(!text.contains("[output preview truncated; full result retained]"));
+    assert!(
+        rows.last()
+            .unwrap()
+            .tool
+            .as_ref()
+            .unwrap()
+            .preview_limited()
+    );
 }
 
 #[test]

@@ -92,8 +92,8 @@ pub struct ShellRender {
     pub stderr: Vec<String>,
     /// Runtime `[timeout]` marker.
     pub timed_out: bool,
-    /// Runtime `[truncated]` marker.
-    pub truncated: bool,
+    /// Cancellation from the native owner's structured outcome, not body prose.
+    pub cancelled: bool,
     /// Process output's terminal newline, before native transport markers.
     pub output_ends_with_newline: bool,
 }
@@ -160,8 +160,11 @@ pub enum InlineRender {
     },
     /// Any other tool (MCP included): `key: value` arguments.
     Generic {
-        /// Recorded argument pairs, bounded.
+        /// Available recorded parameters, bounded independently of the summary.
         args: Vec<(String, String)>,
+        /// Pinned primitive summary, with the existing native summary limits.
+        summary: String,
+        arguments_limited: bool,
     },
 }
 
@@ -215,8 +218,8 @@ impl ToolRender {
             ) => pattern.len(),
             Self::Inline(InlineRender::WebFetch { url }) => url.len(),
             Self::Inline(InlineRender::Skill { id }) => id.len(),
-            Self::Inline(InlineRender::Generic { args }) => {
-                args.iter().map(|(k, v)| k.len() + v.len()).sum()
+            Self::Inline(InlineRender::Generic { args, summary, .. }) => {
+                summary.len() + args.iter().map(|(k, v)| k.len() + v.len()).sum::<usize>()
             }
         }
     }
@@ -252,9 +255,7 @@ impl ToolRender {
             "skill" => ToolRender::Inline(InlineRender::Skill {
                 id: string_arg(value.as_ref(), "id"),
             }),
-            _ => ToolRender::Inline(InlineRender::Generic {
-                args: generic_args(value.as_ref()),
-            }),
+            _ => ToolRender::Inline(generic_args(value.as_ref())),
         }
     }
 }
@@ -291,24 +292,55 @@ fn returned_count(output: Option<&str>) -> Option<usize> {
         .map(|count| count as usize)
 }
 
-fn generic_args(value: Option<&serde_json::Value>) -> Vec<(String, String)> {
-    let Some(object) = value.and_then(|value| value.as_object()) else {
-        return Vec::new();
-    };
-    object
-        .iter()
+fn generic_args(value: Option<&serde_json::Value>) -> InlineRender {
+    let object = value.and_then(serde_json::Value::as_object);
+    let primitive = object
+        .into_iter()
+        .flatten()
+        .filter(|(_, value)| value.is_string() || value.is_number() || value.is_boolean())
         .take(GENERIC_ARGS_MAX)
         .map(|(key, value)| {
-            let text = match value {
-                serde_json::Value::String(text) => text.clone(),
-                other => other.to_string(),
-            };
-            (
-                key.clone(),
-                crate::truncate_utf8(&text, GENERIC_ARG_CHARS).to_string(),
+            let value = value
+                .as_str()
+                .map_or_else(|| value.to_string(), str::to_owned);
+            format!(
+                "{}={}",
+                crate::truncate_utf8(key, GENERIC_ARG_CHARS),
+                crate::truncate_utf8(&value, GENERIC_ARG_CHARS)
             )
         })
-        .collect()
+        .collect::<Vec<_>>();
+    let summary = if primitive.is_empty() {
+        String::new()
+    } else {
+        format!("[{}]", primitive.join(", "))
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    let mut args = Vec::new();
+    let mut remaining = oc_core::tool_output::PREVIEW_BYTES;
+    let mut arguments_limited = false;
+    for (key, value) in object.into_iter().flatten() {
+        if key.len() > remaining {
+            arguments_limited = true;
+            break;
+        }
+        remaining -= key.len();
+        let text = value.as_str().map_or_else(
+            || serde_json::to_string_pretty(value).expect("JSON value serialization"),
+            str::to_owned,
+        );
+        let end = text.floor_char_boundary(text.len().min(remaining));
+        arguments_limited |= end < text.len();
+        args.push((key.clone(), text[..end].to_owned()));
+        remaining -= end;
+    }
+    InlineRender::Generic {
+        args,
+        summary,
+        arguments_limited,
+    }
 }
 
 fn shell_render(
@@ -359,40 +391,16 @@ fn shell_render(
         }
         rest = "";
     }
-    let mut captured = rest;
-    loop {
-        let next = ["\n[truncated]", "\n[timeout]", "\n[cancelled]"]
-            .iter()
-            .find_map(|marker| captured.strip_suffix(marker));
-        let Some(next) = next else {
-            break;
-        };
-        captured = next;
-    }
-    render.output_ends_with_newline = captured.ends_with('\n');
+    // Legacy marker-like text has no trustworthy loss/status provenance. Keep
+    // it as recorded data; modern native outcomes supply separate stream facts.
+    render.output_ends_with_newline = rest.ends_with('\n');
     let (stdout, stderr) = match rest.split_once("\n[stderr]\n") {
         Some((stdout, stderr)) => (stdout, Some(stderr)),
         None => (rest, None),
     };
-    for line in stdout.lines() {
-        if line == "[truncated]" {
-            render.truncated = true;
-        } else if line == "[timeout]" {
-            render.timed_out = true;
-        } else {
-            render.stdout.push(line.to_string());
-        }
-    }
+    render.stdout = stdout.lines().map(str::to_owned).collect();
     if let Some(stderr) = stderr {
-        for line in stderr.lines() {
-            if line == "[truncated]" {
-                render.truncated = true;
-            } else if line == "[timeout]" {
-                render.timed_out = true;
-            } else {
-                render.stderr.push(line.to_string());
-            }
-        }
+        render.stderr = stderr.lines().map(str::to_owned).collect();
     }
     render
 }
@@ -604,6 +612,9 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         ToolRender::Dcp(view) => {
             crate::dcp_view::block(view, &card.state, &card.output_preview, theme, width)
         }
+        ToolRender::Inline(inline @ InlineRender::Generic { .. }) => {
+            generic_block_expanded(inline, card, theme, width, false)
+        }
         ToolRender::Inline(inline) => inline_rows(inline, card, theme),
     }
 }
@@ -698,6 +709,10 @@ pub(crate) fn shell_block_expanded(
     } else {
         input
     };
+    let input = match capture_status(card) {
+        Some(status) => format!("{input} · {status}"),
+        None => input,
+    };
     let inner = if width == 0 {
         usize::MAX
     } else {
@@ -776,7 +791,7 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
     }
     let status = if card.state == "unknown" {
         Some("Outcome unknown (operation was interrupted)".to_string())
-    } else if card.state == "cancelled" {
+    } else if card.state == "cancelled" || shell.cancelled {
         Some(COMMAND_CANCELLED.to_string())
     } else if shell.timed_out {
         Some(COMMAND_TIMED_OUT.to_string())
@@ -790,9 +805,7 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
     if output.is_empty() && (shell.exit.is_some_and(|code| code != 0) || shell.signal) {
         output.push(("(no output)".to_string(), false));
     }
-    if shell.truncated || card.output_truncated {
-        output.push(("[truncated]".to_string(), false));
-    } else if status.is_some() && !output.is_empty() && shell.output_ends_with_newline {
+    if status.is_some() && !output.is_empty() && shell.output_ends_with_newline {
         // Retain the captured terminal newline before ToolPart's join newline.
         output.push((String::new(), false));
     }
@@ -1027,12 +1040,6 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
             }
         }
     }
-    if card.output_truncated {
-        out.push(frame.row(&[Span::styled(
-            "[output preview truncated; full result retained]",
-            muted,
-        )]));
-    }
     out.push(frame.row(&[]));
     out
 }
@@ -1101,6 +1108,9 @@ fn subagent_block(
 }
 
 fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Line> {
+    if matches!(inline, InlineRender::Generic { .. }) {
+        return generic_block_expanded(inline, card, theme, 0, false);
+    }
     let pad = Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING));
     let running = is_running(&card.state);
     let failed = is_error_state(&card.state);
@@ -1198,15 +1208,6 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
             ),
         ]));
     }
-    if card.output_truncated {
-        out.push(Line::new(vec![
-            pad,
-            Span::styled(
-                "[output preview truncated; full result retained]",
-                ratatui::style::Style::default().fg(theme.text_muted()),
-            ),
-        ]));
-    }
     out
 }
 
@@ -1256,19 +1257,187 @@ fn inline_label(inline: &InlineRender) -> String {
         },
         InlineRender::WebFetch { url } => format!("WebFetch {url}"),
         InlineRender::Skill { id } => format!("Skill \"{id}\""),
-        InlineRender::Generic { args } => {
-            let mut out = String::new();
-            for (key, value) in args {
-                if !out.is_empty() {
-                    out.push(' ');
+        InlineRender::Generic { summary, .. } => summary.clone(),
+    }
+}
+
+/// The original inline header is the click/hover surface; expanded parameters
+/// and output are text, not a second button or an implicit artifact reader.
+pub(crate) fn generic_block_expanded(
+    inline: &InlineRender,
+    card: &ToolCard,
+    theme: &Theme,
+    width: u16,
+    expanded: bool,
+) -> Vec<Line> {
+    let InlineRender::Generic { args, summary, .. } = inline else {
+        return Vec::new();
+    };
+    let failed = is_error_state(&card.state);
+    let style = ratatui::style::Style::default().fg(if card.state == "permission_pending" {
+        theme.warning()
+    } else if failed && card.state != "denied" {
+        theme.error()
+    } else {
+        theme.text_muted()
+    });
+    let label_style = if card.state == "denied" {
+        style.add_modifier(ratatui::style::Modifier::CROSSED_OUT)
+    } else {
+        style
+    };
+    let icon = if is_running(&card.state) || card.state == "permission_pending" {
+        SPINNER
+    } else if failed {
+        "✗"
+    } else {
+        "✓"
+    };
+    let mut label = card.name.clone();
+    if !summary.is_empty() {
+        label.push(' ');
+        label.push_str(summary);
+    }
+    if let Some(status) = capture_status(card) {
+        label.push_str(" · ");
+        label.push_str(status);
+    }
+    if card.state == "unknown" {
+        label.push_str(" · outcome unknown");
+    }
+    let padding = crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH;
+    let available = if width == 0 {
+        usize::MAX
+    } else {
+        (width as usize).saturating_sub(padding).max(1)
+    };
+    let mut rows =
+        styled::wrap_line_limited(&Line::styled(label, label_style), available, usize::MAX)
+            .iter()
+            .enumerate()
+            .map(|(index, line)| {
+                let mut spans = vec![Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING))];
+                if index == 0 {
+                    spans.push(Span::styled(icon, style));
+                    spans.push(Span::plain(" "));
+                } else {
+                    spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH)));
                 }
-                out.push_str(key);
-                out.push_str(": ");
-                out.push_str(value);
+                spans.extend_from_slice(line.spans());
+                Line::new(spans)
+            })
+            .collect::<Vec<_>>();
+    if !expanded {
+        return rows;
+    }
+    let mut detail = |key: &str, value: &str, color| {
+        let prefix = if key.is_empty() {
+            String::new()
+        } else {
+            format!("{key}: ")
+        };
+        let prefix_width = UnicodeWidthStr::width(prefix.as_str());
+        let available = if width == 0 {
+            usize::MAX
+        } else {
+            (width as usize)
+                .saturating_sub(padding + prefix_width)
+                .max(1)
+        };
+        let mut first = true;
+        for logical in value.split('\n') {
+            for line in styled::wrap_line_limited(
+                &Line::styled(logical, ratatui::style::Style::default().fg(color)),
+                available,
+                usize::MAX,
+            ) {
+                let mut spans = vec![
+                    Span::plain(" ".repeat(padding)),
+                    Span::styled(
+                        if first {
+                            prefix.clone()
+                        } else {
+                            " ".repeat(prefix_width)
+                        },
+                        ratatui::style::Style::default().fg(theme.text_muted()),
+                    ),
+                ];
+                spans.extend_from_slice(line.spans());
+                rows.push(Line::new(spans));
+                first = false;
             }
-            out
+        }
+    };
+    // OC2's InlineTool opens failure detail instead of GenericTool parameters;
+    // denied is muted/struck through but its normal onClick still opens input.
+    if failed && card.state != "denied" {
+        let output = card.output_preview.trim();
+        if !output.is_empty() {
+            detail("", output, theme.error());
+        }
+    } else {
+        for (key, value) in args {
+            detail(key, value, theme.text());
+        }
+        let output = card.output_preview.trim();
+        if !output.is_empty() {
+            detail("output", output, theme.text());
         }
     }
+    rows
+}
+
+pub(crate) fn generic_expandable(card: &ToolCard) -> bool {
+    matches!(&card.render, ToolRender::Inline(InlineRender::Generic { args, .. })
+        if !args.is_empty() || !card.output_preview.trim().is_empty())
+}
+
+fn capture_status(card: &ToolCard) -> Option<&'static str> {
+    use oc_core::tool_output::CaptureState;
+    let presentation = card.output_presentation.as_ref()?;
+    match presentation.capture.as_ref().map(|capture| capture.state) {
+        Some(CaptureState::Active) => Some("Capturing output"),
+        Some(CaptureState::Expired) => Some("Saved output expired · /cards"),
+        Some(CaptureState::ProducerLimited) => Some("Producer limited · /cards"),
+        Some(CaptureState::Complete) if presentation.producer_limited == Some(true) => {
+            Some("Producer limited · /cards")
+        }
+        Some(CaptureState::Complete) => None,
+        Some(_) => Some("Capture incomplete · /cards"),
+        None if presentation.producer_limited == Some(true) => Some("Producer limited · /cards"),
+        None => None,
+    }
+}
+
+/// Recorded projection/capture facts, not a promise to read a cold artifact.
+pub(crate) fn presentation_details(
+    presentation: &oc_core::tool_output::Presentation,
+) -> Vec<String> {
+    let mut details = Vec::new();
+    if presentation.body_limited {
+        details.push(format!(
+            "Body preview: {} / {} bytes",
+            presentation.body.len(),
+            presentation.body_bytes
+        ));
+    }
+    if let Some(capture) = &presentation.capture {
+        details.push(format!(
+            "Capture {:?}: {} / {} bytes, {} / {} lines",
+            capture.state,
+            capture.retained_bytes,
+            capture.admitted_bytes,
+            capture.retained_lines,
+            capture.admitted_lines
+        ));
+        details.push(format!(
+            "Recorded reference (not a readability guarantee): {}",
+            capture.reference.as_deref().unwrap_or("unavailable")
+        ));
+    } else if presentation.producer_limited == Some(true) {
+        details.push("Producer limited; capture availability unknown".into());
+    }
+    details
 }
 
 #[cfg(test)]
@@ -1704,13 +1873,28 @@ mod tests {
             Some("error: mcp transport failure"),
         );
         let (rows, buffer) = render(&failed, 60, 3);
-        assert_eq!(rows[1], "   ✗ mcp_server_search query: needle");
-        assert_eq!(rows[2], "     error: mcp transport failure");
+        assert_eq!(rows[1], "   ✗ mcp_server_search [query=needle]");
+        assert_eq!(
+            rows[2], "",
+            "failure detail starts collapsed, not hidden permanently"
+        );
         assert_eq!(buffer[(3, 1)].symbol(), "✗");
         assert_eq!(buffer[(3, 1)].fg, theme.error());
-        assert_eq!(buffer[(5, 2)].fg, theme.error());
+        let ToolRender::Inline(inline) = &failed.render else {
+            panic!("generic failure")
+        };
+        let expanded = generic_block_expanded(inline, &failed, theme, 60, true);
+        assert_eq!(
+            expanded[1].plain_text(),
+            "     error: mcp transport failure"
+        );
+        assert_eq!(
+            expanded[1].spans().last().unwrap().style().fg,
+            Some(theme.error())
+        );
 
-        // Denied adds strikethrough (`message-parts.tsx:176-253`).
+        // Denied strikes the label only; the fixed icon column keeps its muted
+        // foreground and no strikethrough (`message-parts.tsx:199-238`).
         let denied = make_card(
             "mcp_server_search",
             "denied",
@@ -1719,11 +1903,16 @@ mod tests {
         );
         let (_, buffer) = render(&denied, 60, 3);
         assert!(
-            buffer[(3, 1)]
+            buffer[(5, 1)]
                 .modifier
                 .contains(ratatui::style::Modifier::CROSSED_OUT)
         );
-        assert_eq!(buffer[(3, 1)].fg, theme.error());
+        assert!(
+            !buffer[(3, 1)]
+                .modifier
+                .contains(ratatui::style::Modifier::CROSSED_OUT)
+        );
+        assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
 
         // A cancelled inline call is error-colored without strikethrough.
         let cancelled = make_card(
@@ -1789,12 +1978,32 @@ mod tests {
         assert_eq!(buffer[(3, 4)].fg, theme.error());
         assert_eq!(buffer[(3, 5)].fg, theme.error());
 
-        let timed_out = make_card(
-            "bash",
-            "failed",
-            serde_json::json!({"argv": ["sleep", "100"]}),
-            Some("exit signal\n\n[timeout]"),
-        );
+        let mut presentation = oc_core::tool_output::Presentation::new("", 0, false);
+        presentation.shell = Some(oc_core::tool_output::Shell {
+            stdout: String::new(),
+            stderr: String::new(),
+            stdout_limited: false,
+            stderr_limited: false,
+            exit: None,
+            signal: Some(15),
+            timed_out: true,
+            cancelled: false,
+        });
+        let timed_out = card_from_row(&ToolOpView {
+            output_presentation: Some(Box::new(presentation)),
+            question: None,
+            rowid: 1,
+            op: "timeout".into(),
+            name: "bash".into(),
+            state: "failed".into(),
+            input: Some(serde_json::json!({"argv": ["sleep", "100"]}).to_string()),
+            output: Some("exit signal\n\n[timeout]".into()),
+            output_bytes: 23,
+            output_truncated: false,
+            patch_effects: None,
+            dcp: None,
+            dcp_topic: None,
+        });
         let (rows, _) = render(&timed_out, 60, 7);
         assert_eq!(rows[5], "┃  Command timed out before completion.");
 
@@ -1886,7 +2095,7 @@ mod tests {
     fn render_parsing_never_invents_fields() {
         let card = make_card("mcp_tool", "completed", serde_json::json!({}), Some("ok"));
         match &card.render {
-            ToolRender::Inline(InlineRender::Generic { args }) => assert!(args.is_empty()),
+            ToolRender::Inline(InlineRender::Generic { args, .. }) => assert!(args.is_empty()),
             other => panic!("expected generic render, got {other:?}"),
         }
         let card = make_card(
@@ -2230,3 +2439,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod presentation_tests;

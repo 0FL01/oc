@@ -903,7 +903,7 @@ async fn live_parts_stay_bounded_under_tool_flood() {
         );
     }
     assert!(state.live_parts.len() <= LIVE_PARTS_MAX);
-    assert!(state.live_preview_limited());
+    assert!(state.preview_limited());
     assert!(
         !state
             .viewport()
@@ -914,7 +914,7 @@ async fn live_parts_stay_bounded_under_tool_flood() {
     assert!(state.viewport().len() <= VIEWPORT_LINES);
     state.active_turn = None;
     assert!(
-        !state.live_preview_limited(),
+        !state.preview_limited(),
         "a completed answer does not retain a live viewing alert"
     );
 }

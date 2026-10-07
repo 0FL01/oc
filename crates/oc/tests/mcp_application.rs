@@ -2171,8 +2171,8 @@ done
     tui.wait_screen("Next line intact", TIMEOUT);
     tui.wait_screen("Model:CSI�[2J", TIMEOUT);
     tui.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
-    tui.wait_screen("probe__ping note: CSI�[2J", TIMEOUT);
-    tui.wait_screen("error: mcp tool reported failure", TIMEOUT);
+    tui.wait_screen("probe__ping [note=CSI�[2J", TIMEOUT);
+    tui.wait_screen("✗ probe__fail", TIMEOUT);
     assert!(
         tui.screen()
             .iter()
@@ -2217,6 +2217,9 @@ done
         );
         std::thread::sleep(POLL);
     }
+    // Expansion anchors its header rather than promising the footer remains
+    // visible in the short viewport. First observe real completed attribution.
+    expand_control_probe_error(&mut tui);
     open_success_card(&mut tui);
     assert_safe_vt(&baseline, &tui.output.lock().unwrap(), sentinel);
     let rows = tui.screen();
@@ -2274,10 +2277,10 @@ done
     let mut restarted = PtyProcess::spawn(&fixture, "s04-replay");
     restarted.wait_screen("Unicode: café 漢字", TIMEOUT);
     restarted.wait_screen("Next line intact", TIMEOUT);
-    restarted.wait_screen("error: mcp tool reported failure", TIMEOUT);
+    expand_control_probe_error(&mut restarted);
     restarted.wait_screen("Model:CSI�[2J", TIMEOUT);
     restarted.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
-    restarted.wait_screen("probe__ping note: CSI�[2J", TIMEOUT);
+    restarted.wait_screen("probe__ping [note=CSI�[2J", TIMEOUT);
     open_success_card(&mut restarted);
     assert_safe_vt(&[], &restarted.output.lock().unwrap(), sentinel);
     restarted.raw(b"\x1b");
@@ -2298,6 +2301,27 @@ done
         2,
         "replay must not call tool"
     );
+}
+
+fn expand_control_probe_error(tui: &mut PtyProcess) {
+    tui.wait_screen("✗ probe__fail", TIMEOUT);
+    let rows = tui.screen();
+    assert!(
+        !rows
+            .iter()
+            .any(|row| row.contains("error: mcp tool reported failure")),
+        "Generic failures start collapsed: {rows:?}"
+    );
+    let (y, row) = rows
+        .iter()
+        .enumerate()
+        .find(|(_, row)| row.contains("✗ probe__fail"))
+        .unwrap();
+    let prefix = row.split_once("probe__fail").unwrap().0;
+    let x = ratatui::text::Line::from(prefix).width() + 2;
+    let y = y + 1;
+    tui.raw(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());
+    tui.wait_screen("error: mcp tool reported failure", TIMEOUT);
 }
 
 fn open_success_card(tui: &mut PtyProcess) {

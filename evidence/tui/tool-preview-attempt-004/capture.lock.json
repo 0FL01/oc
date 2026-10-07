@@ -1,0 +1,631 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-07T18:35:44.519Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "e66e428ad02337f88338f95fd8423516f47f07724c666b114c1d9a539a3e97bb",
+    "frontend.js": "714bdcc037798a79fa1f6df9d42a81c20d8744bef633941a58fc76bd0a45a57e",
+    "bridge.py": "040efc180951cda49f68c630736fd13929ddff0a07d1775ba41a1762dd724b0c",
+    "tool_preview.mjs": "773f1080d487c16ce3d7c920d09d50557d48691b57291dd832d8c882fa398c03",
+    "tool_preview_fixture.py": "52dbf506b9e9c82c7e52aef397ada188d4683fedfd3975d811ddaa24e869bbf7",
+    "tool_preview_mcp.py": "c53f15fae1d938066d2c206d3ff0c113dfe5978b8c83329925f7a23065c7be99"
+  },
+  "fixture_sha256": "2f12f645c75e1c109cbafc57a5d04c1cc52120f3417b9500d4f3b9f8cc21dba8",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f4f9db5342c8a7cb58f323c9f3a30a458775cf0f",
+    "tree": "023449a92854c5399d47726fb9c188a88dfb4c7f",
+    "dirty_diff_sha256": "6f9b7f868da38f223e2feb12ae3781e16afafa4f9c57cdae69cb1fc24eae309c",
+    "source_manifest_sha256": "39707f6fbaf6cd24044ef1640adad0165255c335695b896d0174812090ab338b",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "6589fe40a3bb13327467b775e67e36e270bf130f6b5f28ab20ff00796c2dda25",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "oc",
+      "status": "FAILED",
+      "reason": "page.evaluate: Target page, context or browser has been closed"
+    },
+    {
+      "status": "BLOCKED",
+      "reason": "page.evaluate: Target page, context or browser has been closed\n    at frame (/home/opencode/ai/oc/scripts/tui_capture/capture.mjs:490:19)\n    at async file:///home/opencode/ai/oc/scripts/tui_capture/capture.mjs:2889:42"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "37eac62221ade0a43cac9e5787a0d86ea1cea575fc3cd93303bfe566289f0fae",
+      "png_sha256": "45fa7747bd44025072edbf17b60a0e1bee3ba259aceb0aeccdd1315304ed6ccb",
+      "render_sha256": "2ad5757fe725926a0cd08478bf457905babb30ca704dae1c86f98bb3face7305",
+      "path": "upstream/tool-preview-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "8c69cdad7b23df4ae7fb2d1b9e5e42c3c3d6299c5e966a78cbc668f502f16633",
+      "png_sha256": "1547fd75d3180f698b233a6422d8baeef1590f80c8239af79fe12d75c44eb390",
+      "render_sha256": "19cd379dfd504456c1a2764041f20dcc2ed78157c17325e0d5d3bafccc0746b9",
+      "path": "upstream/tool-preview-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "093846677cafd322522ef04f6c805c460b6a85540774ced5187741db7377a5a1",
+      "png_sha256": "634be1f905eda62ebd2f1d687a39832930dcdd8f2c8bb13c83a713f8863dba5f",
+      "render_sha256": "2071769dc79f05df528c6218b3173fd7dc1a8cafc091f482bb432e2be9ff06cd",
+      "path": "upstream/tool-preview-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "0b5540f5a3214ecf8fc68b2822c578f8aff2fc4efc804d0317647fd426964039",
+      "png_sha256": "7b38b54d7d6b1f8c933fbb09e7716058840d5c26a4643b391da1dce5179d03e3",
+      "render_sha256": "11105967e38296167630e175a288ef4161b0ec750e16f4a4aec8ea50bf5b206d",
+      "path": "upstream/tool-preview-mcp-1-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "183ff720e1a0651cfa4af7fe9b705d9993837a6cf50c3a99f3f0b67bcc97eeb0",
+      "png_sha256": "634be1f905eda62ebd2f1d687a39832930dcdd8f2c8bb13c83a713f8863dba5f",
+      "render_sha256": "46539e5eb354ab1008c41f611d43c0bb3dd4fd09cae887db7de747d874124ab6",
+      "path": "upstream/tool-preview-mcp-1-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "574f853163fed913f0af70b964c61aaf3508c51164a3eba92ac162c599a0afaa",
+      "png_sha256": "64506565523fdcfadc5e81e53ec61092f57ac8217ec49e45aec1eae2b689ad6c",
+      "render_sha256": "49c33e821141f3c994414340fb2a417fe97bcf1044b0277593e366345b39b3fe",
+      "path": "upstream/tool-preview-mcp-2-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "24c47e491aa812744a94fd38ec150bde8b5c7c8a808b405edbd68377d01a8f79",
+      "png_sha256": "55b8a728ccbd31b2c5ec862359199edf457299955372ca6ef54095e484f31e6d",
+      "render_sha256": "8d5a8c897e9f2ad5b2ad19dbba08885b9415eeb12868fd06f25e8fe0a3f843df",
+      "path": "upstream/tool-preview-mcp-2-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "a8d327664ed28ea33fad854f64d8de74b7abfc136839c0a7986c7347447c1398",
+      "png_sha256": "00d946469fa8b7a83534de757c3837b485d20c3eba3c32ccf289b5448804a7f7",
+      "render_sha256": "4581b9a79f875ca8ff0b967ec9d9066612c9e3061668ceb2a67845cbd1d691e0",
+      "path": "upstream/tool-preview-error-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "e310c6c3e2bbe291c125d03ab15992694b72dac401ec25c9bad00c6825c5f4cd",
+      "png_sha256": "2a9f7385fb473324b703e01a49fef214c3007e73b2351d4e575912b175bb7ad9",
+      "render_sha256": "a926e87b5b1134b0f70a60895e51698bda46044859ff7f329c664f1e4bf41d55",
+      "path": "upstream/tool-preview-error-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "ca74b6c0b0d48cbea11d458df6082327ab57b964364a88d426e0eac15b35d44d",
+      "png_sha256": "c3fbcca6acf2f2cc722dbafc30727c774e414dbd28e202b5c5d41baaaf57b24d",
+      "render_sha256": "a76b43afb552f464f54c2597dbba0cc3a2d316f914b69db19370000c1fa3207e",
+      "path": "upstream/tool-preview-shell-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "cb16fa76fe3e5bc25f8f248d7730d0f84b9c63bc2bf74c1c0ee0c349a65fdb75",
+      "png_sha256": "07322d89f1abe3e0574ac67300685f30fe98ec9ac3aa8700b2fb84e1ab99c445",
+      "render_sha256": "3ede32b88754404b3b4966cc817a1fd0a1e590a5e83a7d96f37911a0dd7e50b0",
+      "path": "upstream/tool-preview-shell-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "26e5f6a899d4bfe65bb5cb112661bea97eebcf37cbf3078c898a0cbf65b352a4",
+      "png_sha256": "ccb8ef06385fea6b49ebdf9a742bac274a72e1864d1c9e7bca323d0545b1627e",
+      "render_sha256": "cc4b3753d10cffaee2fb02d9b50d0a54f38ec32c38e6b758b6af2f1a27fb6edb",
+      "path": "upstream/tool-preview-switched"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "5d31cb9cdc8f0f24db14a5576748014a7aacc5891dca2674493d57b93792d65a",
+      "png_sha256": "43c937e5294aed920ecb7b2e8dc8dacbe7515b18039dcc9cc038a83362a8b016",
+      "render_sha256": "22e70f96c7b312c388488a0f54339e6bedaad3fea912b7ae4be9e551beaf8b0d",
+      "path": "upstream/tool-preview-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "ecacaac87e4d5f7cfa010fdf88459790aeea6af54ab17ccc930ea5c30bfaefb5",
+      "png_sha256": "43c937e5294aed920ecb7b2e8dc8dacbe7515b18039dcc9cc038a83362a8b016",
+      "render_sha256": "87927c5e3a5e7fcbe34c6721a1aa9d625b78ac15a8e244b60cba70de582a9b31",
+      "path": "upstream/tool-preview-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "4c3d43aa97a43a56aced9d2d96aa6c5ba6e7bf4bcabab02841845b8c1dfd7d34",
+      "png_sha256": "e55350aecd98bc9919413395dc1462cbc88e168f462cd4dbaa57f21ce1452cc3",
+      "render_sha256": "dd1136bff3e061a64d0db40fc68326b280254cffd1a04ae3dc99e68292549d77",
+      "path": "oc/tool-preview-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "75fcd82f7fb47e6511f42bd40133631799e28aba9b0fbcb04b19c5d0860e638e",
+      "cells_sha256": "1f85162cb679f20f6d3445f803f2ce1c749e060345f45ebdd52cb66070271b65",
+      "png_sha256": "ec7e78b75628b05c78e8a425d3e26306ba6fab5af18426080650c2f3562d5493",
+      "render_sha256": "5339cca039f1ed287fcf89f07314d111c6722f30653fe1f9ee569b815f837b19",
+      "path": "oc/tool-preview-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "471cc48455230168eca82599a801052920aad85b68b499468aec5646328f0ad3",
+      "png_sha256": "cbf0a28a5254c6885aa3fce87f1d4aad88d4e8bd5f3ca3ff8eef0125f4ca35dc",
+      "render_sha256": "0dbd1a49e5001b5c6d03a7a2e5033abbd1cb2e2fd6d9db4dd66191a0053ed1dc",
+      "path": "oc/tool-preview-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "3da1ecf87a6fd95bf780e9bfb7b8e51c17a7bbd0366556cf5f8d8bf1547a82a4",
+      "png_sha256": "45956fb7439ecf6e8ab685598a4dda5797284dde075b68985e0329a307c61951",
+      "render_sha256": "f054b72345577060e2cd8c616edb1c465b342560efaef8b5ce681dd8ad7ccf2b",
+      "path": "oc/tool-preview-mcp-1-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "a0f1fe093ff95cb04250b21b72f8c21e92211201127067eaad2f0b4147d0380c",
+      "png_sha256": "cbf0a28a5254c6885aa3fce87f1d4aad88d4e8bd5f3ca3ff8eef0125f4ca35dc",
+      "render_sha256": "76ae508254d6c94817d79fdfa8034987d944fe542dbe5174da0a6e9452075128",
+      "path": "oc/tool-preview-mcp-1-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "443d74622714d162e205846a6a8166108c0439f79f9e5ed89952b85818f9205a",
+      "cells_sha256": "1a1ce6dd1054ada70fa821df5870daf287677683f5ccd441b2e8ed649c93b3c1",
+      "png_sha256": "9f2c9280673f97845846b49af42549e83fc9c32a7a5826583199306ebf8518e2",
+      "render_sha256": "b82ed82047e6122ed72b4c75406adb1bece1922d62c88d64938515408fe78a91",
+      "path": "oc/tool-preview-mcp-2-expanded"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 80,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "hover",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-1-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-1-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-2-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-2-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "error-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "error-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "shell-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "shell-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "switched",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_117a6863100112W9p29ZWA1e7X": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          },
+          "data/opencode/tool-output/tool_117a68668001jPaXDuGVax5Pus": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          }
+        },
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "restarted",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_117a6863100112W9p29ZWA1e7X": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          },
+          "data/opencode/tool-output/tool_117a68668001jPaXDuGVax5Pus": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          }
+        },
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "finished": "2026-10-07T18:37:44.216Z",
+  "exit_code": 2
+}
