@@ -18,6 +18,9 @@ def configure(spec, home, project, config, cli):
     config['compaction'] = {'auto':False}
     config['tool_output'] = {'max_lines':12, 'max_bytes':1024}
     cli['session']['tps'] = False
+    if spec.get('cursor_temporal') and spec['origin'] == 'upstream':
+        cli['cursor'] = {'style':'default'} if spec['cursor_temporal'] == 'default' else {
+            'style':'block', 'blinking':spec['cursor_temporal'] == 'blink'}
     peer = Path(__file__).parent / 'tool_preview_mcp.py'
     if spec['origin'] == 'upstream':
         config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},

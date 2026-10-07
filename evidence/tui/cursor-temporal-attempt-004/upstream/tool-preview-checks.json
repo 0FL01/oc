@@ -1,0 +1,326 @@
+{
+  "origin": "upstream",
+  "status": "DIAGNOSTIC_CURSOR_ONLY",
+  "stages": [
+    {
+      "stage": "home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "before": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_1183ee15b001khBhl8kqtiCxa2": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      },
+      "data/opencode/tool-output/tool_1183ee1150017ioINxGkAPLTlw": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  "cursor_temporal": {
+    "origin": "upstream",
+    "mode": "blink",
+    "card_case": "expanded",
+    "geometry": {
+      "columns": 120,
+      "rows": 40
+    },
+    "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+    "states": [
+      {
+        "state": "idle",
+        "moves": 0,
+        "temporal_full_frames": 8,
+        "samples": 225,
+        "commands": 0,
+        "cycles": 3,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1206.5,
+          1240.3999998569489,
+          1182.2000000476837
+        ],
+        "max_sample_gap_ms": 167.70000004768372,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "hover",
+        "moves": 257,
+        "temporal_full_frames": 5,
+        "samples": 145,
+        "commands": 1359,
+        "cycles": 5,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1348,
+          1074.4000000953674,
+          1294.0999999046326,
+          1072.5,
+          1359.5
+        ],
+        "max_sample_gap_ms": 191.79999995231628,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "restored",
+        "moves": 0,
+        "temporal_full_frames": 8,
+        "samples": 227,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1137.2999999523163,
+          1172.2000000476837,
+          1165.5,
+          1232
+        ],
+        "max_sample_gap_ms": 171.79999995231628,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "search-idle",
+        "moves": 0,
+        "temporal_full_frames": 8,
+        "samples": 239,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": false,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1306,
+          1091,
+          1185.5,
+          1212.6000001430511
+        ],
+        "max_sample_gap_ms": 153.5,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "search-hover",
+        "moves": 175,
+        "temporal_full_frames": 8,
+        "samples": 239,
+        "commands": 25,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": false,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1276.2999999523163,
+          1228.9000000953674,
+          1108.0999999046326,
+          1344.1000001430511
+        ],
+        "max_sample_gap_ms": 164.39999985694885,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "composer-restored",
+        "moves": 0,
+        "temporal_full_frames": 9,
+        "samples": 238,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1105.6999998092651,
+          1168.3000001907349,
+          1215,
+          1209.7999999523163
+        ],
+        "max_sample_gap_ms": 150.20000004768372,
+        "raster_blink_observed": true,
+        "cadence_preserved": true
+      }
+    ],
+    "no_tool_replay": true
+  },
+  "after": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "cursor_completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_1183ee15b001khBhl8kqtiCxa2": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      },
+      "data/opencode/tool-output/tool_1183ee1150017ioINxGkAPLTlw": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  }
+}

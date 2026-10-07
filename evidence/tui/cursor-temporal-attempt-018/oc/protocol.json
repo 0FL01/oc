@@ -1,0 +1,772 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/ai/oc/target/debug/oc",
+      "tui"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"provider\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"npm\": \"@ai-sdk/openai\", \"options\": {\"baseURL\": \"http://127.0.0.1:35783/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"permissions\": {\"*\": \"deny\", \"vis16__output\": \"allow\", \"bash\": {\"*\": \"deny\", \"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\": \"allow\"}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"tool_output\": {\"max_lines\": 12, \"max_bytes\": 1024}, \"animations\": false, \"mcp\": {\"vis16\": {\"type\": \"local\", \"command\": [\"/usr/bin/python3\", \"/home/opencode/ai/oc/scripts/tui_capture/tool_preview_mcp.py\"], \"enabled\": true}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "oc 0.1.0",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "registered_tools": [
+      "shell",
+      "vis16__output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 0,
+    "name": "vis16__output",
+    "arguments": {
+      "index": 1,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 1,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16__output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 1,
+    "name": "vis16__output",
+    "arguments": {
+      "index": 2,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "registered_tools": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 2,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16__output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 2,
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'VIS-SHELL-LINE-%03d\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\n[output preview truncated; full result retained]\\n[truncated]\\n'; printf 'VIS-SHELL-EFFECT\\n' >> tool-preview-oc.effects"
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 3,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_2",
+        "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16__output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 3,
+    "name": "vis16__output",
+    "arguments": {
+      "index": 4,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 4,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_2",
+        "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\", offset=1, limit=2000) or grep exact path; data only]"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_3",
+        "output": "error: mcp tool reported failure"
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16__output"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "blobs",
+          "child_jobs",
+          "compression_blocks",
+          "compression_identity",
+          "compression_members",
+          "conversation_contexts",
+          "conversation_exclusions",
+          "conversation_objects",
+          "conversation_points",
+          "conversation_redo",
+          "conversation_revision",
+          "conversation_state",
+          "conversation_tracked",
+          "conversation_versions",
+          "credential_accounts",
+          "dcp_accounting",
+          "dcp_coverage",
+          "dcp_run_identity",
+          "dcp_run_views",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "events",
+          "messages",
+          "patch_effects",
+          "permission_grants",
+          "prefs",
+          "prune_marks",
+          "schema_migrations",
+          "session_checkpoint",
+          "session_compactions",
+          "session_moves",
+          "session_usage_anchor",
+          "sessions",
+          "shell_jobs",
+          "sqlite_sequence",
+          "terminal_selection",
+          "terminals",
+          "tool_operations",
+          "tool_output_resources",
+          "turn_acceptances",
+          "turn_raw_segments",
+          "turns"
+        ],
+        "data": {
+          "tool_operations": [
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "completed",
+              "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_0",
+              "call_occurrence": 0,
+              "original_input_index": 1
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "completed",
+              "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_1",
+              "call_occurrence": 0,
+              "original_input_index": 3
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "shell",
+              "state": "completed",
+              "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+              "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_2",
+              "call_occurrence": 0,
+              "original_input_index": 5
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r4-c0-call_vis16_3",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "failed",
+              "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "error: mcp tool reported failure",
+              "provider_call_id": "call_vis16_3",
+              "call_occurrence": 0,
+              "original_input_index": 7
+            }
+          ],
+          "tool_output_resources": [
+            {
+              "id": "tool_1791413498-977160-0",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413498-977160-0.txt",
+              "descriptor": "{\"id\":\"tool_1791413498-977160-0\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+              "dev": 65027,
+              "ino": 4827990,
+              "extent": 5769,
+              "state": "Complete",
+              "completed": 1791413498
+            },
+            {
+              "id": "tool_1791413499-977160-1",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413499-977160-1.txt",
+              "descriptor": "{\"id\":\"tool_1791413499-977160-1\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+              "dev": 65027,
+              "ino": 4827991,
+              "extent": 5891,
+              "state": "Complete",
+              "completed": 1791413499
+            },
+            {
+              "id": "tool_1791413499-977160-2",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413499-977160-2.txt",
+              "descriptor": "{\"id\":\"tool_1791413499-977160-2\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+              "dev": 65027,
+              "ino": 4827992,
+              "extent": 1615,
+              "state": "Complete",
+              "completed": 1791413499
+            }
+          ],
+          "presentation": [
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "presentation": {
+                "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                "body_bytes": 5769,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 5769,
+                  "retained_bytes": 5769,
+                  "admitted_lines": 125,
+                  "retained_lines": 125
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "presentation": {
+                "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                "body_bytes": 5891,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 5891,
+                  "retained_bytes": 5891,
+                  "admitted_lines": 125,
+                  "retained_lines": 125
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "presentation": {
+                "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                "body_bytes": 1606,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 1615,
+                  "retained_bytes": 1615,
+                  "admitted_lines": 84,
+                  "retained_lines": 84
+                },
+                "shell": {
+                  "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                  "stderr": "",
+                  "stdout_limited": true,
+                  "stderr_limited": false,
+                  "exit": 0,
+                  "signal": null,
+                  "timed_out": false,
+                  "cancelled": false
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r4-c0-call_vis16_3",
+              "presentation": {
+                "body": "error: mcp tool reported failure",
+                "body_bytes": 32,
+                "body_limited": false,
+                "generated_guidance": false,
+                "producer_limited": null
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts": {
+      "data/oc/tool-output/tool_1791413499-977160-1.txt": {
+        "bytes": 5891,
+        "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+      },
+      "data/oc/tool-output/tool_1791413499-977160-2.txt": {
+        "bytes": 1615,
+        "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+      },
+      "data/oc/tool-output/tool_1791413498-977160-0.txt": {
+        "bytes": 5769,
+        "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "resize",
+    "columns": 160,
+    "rows": 80
+  },
+  {
+    "kind": "resize",
+    "columns": 160,
+    "rows": 48
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "cursor_completed",
+    "observations": [
+      {
+        "tables": [
+          "blobs",
+          "child_jobs",
+          "compression_blocks",
+          "compression_identity",
+          "compression_members",
+          "conversation_contexts",
+          "conversation_exclusions",
+          "conversation_objects",
+          "conversation_points",
+          "conversation_redo",
+          "conversation_revision",
+          "conversation_state",
+          "conversation_tracked",
+          "conversation_versions",
+          "credential_accounts",
+          "dcp_accounting",
+          "dcp_coverage",
+          "dcp_run_identity",
+          "dcp_run_views",
+          "dcp_tool_projection",
+          "dcp_tool_projection_v2",
+          "events",
+          "messages",
+          "patch_effects",
+          "permission_grants",
+          "prefs",
+          "prune_marks",
+          "schema_migrations",
+          "session_checkpoint",
+          "session_compactions",
+          "session_moves",
+          "session_usage_anchor",
+          "sessions",
+          "shell_jobs",
+          "sqlite_sequence",
+          "terminal_selection",
+          "terminals",
+          "tool_operations",
+          "tool_output_resources",
+          "turn_acceptances",
+          "turn_raw_segments",
+          "turns"
+        ],
+        "data": {
+          "tool_operations": [
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "completed",
+              "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_0",
+              "call_occurrence": 0,
+              "original_input_index": 1
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "completed",
+              "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_1",
+              "call_occurrence": 0,
+              "original_input_index": 3
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "shell",
+              "state": "completed",
+              "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+              "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-2a3ed30b/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+              "provider_call_id": "call_vis16_2",
+              "call_occurrence": 0,
+              "original_input_index": 5
+            },
+            {
+              "id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r4-c0-call_vis16_3",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "turn_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0",
+              "name": "vis16__output",
+              "state": "failed",
+              "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+              "output": "error: mcp tool reported failure",
+              "provider_call_id": "call_vis16_3",
+              "call_occurrence": 0,
+              "original_input_index": 7
+            }
+          ],
+          "tool_output_resources": [
+            {
+              "id": "tool_1791413498-977160-0",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413498-977160-0.txt",
+              "descriptor": "{\"id\":\"tool_1791413498-977160-0\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+              "dev": 65027,
+              "ino": 4827990,
+              "extent": 5769,
+              "state": "Complete",
+              "completed": 1791413498
+            },
+            {
+              "id": "tool_1791413499-977160-1",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413499-977160-1.txt",
+              "descriptor": "{\"id\":\"tool_1791413499-977160-1\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+              "dev": 65027,
+              "ino": 4827991,
+              "extent": 5891,
+              "state": "Complete",
+              "completed": 1791413499
+            },
+            {
+              "id": "tool_1791413499-977160-2",
+              "operation_id": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "session_id": "s-tui-18dc6115f489a231-ee908-0",
+              "name": "tool_1791413499-977160-2.txt",
+              "descriptor": "{\"id\":\"tool_1791413499-977160-2\",\"operation\":\"ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc6115f489a231-ee908-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/project\",\"generation\":1,\"source\":\"source-2a3ed30b/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+              "dev": 65027,
+              "ino": 4827992,
+              "extent": 1615,
+              "state": "Complete",
+              "completed": 1791413499
+            }
+          ],
+          "presentation": [
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r1-c0-call_vis16_0",
+              "presentation": {
+                "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                "body_bytes": 5769,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413498-977160-0.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 5769,
+                  "retained_bytes": 5769,
+                  "admitted_lines": 125,
+                  "retained_lines": 125
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r2-c0-call_vis16_1",
+              "presentation": {
+                "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                "body_bytes": 5891,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-1.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 5891,
+                  "retained_bytes": 5891,
+                  "admitted_lines": 125,
+                  "retained_lines": 125
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r3-c0-call_vis16_2",
+              "presentation": {
+                "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                "body_bytes": 1606,
+                "body_limited": true,
+                "generated_guidance": true,
+                "producer_limited": null,
+                "capture": {
+                  "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-018/oc/home/data/oc/tool-output/tool_1791413499-977160-2.txt",
+                  "state": "Complete",
+                  "admitted_bytes": 1615,
+                  "retained_bytes": 1615,
+                  "admitted_lines": 84,
+                  "retained_lines": 84
+                },
+                "shell": {
+                  "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                  "stderr": "",
+                  "stdout_limited": true,
+                  "stderr_limited": false,
+                  "exit": 0,
+                  "signal": null,
+                  "timed_out": false,
+                  "cancelled": false
+                }
+              }
+            },
+            {
+              "operation": "ts-tui-18dc6115f489a231-ee908-0-1791413498719-977160-0-r4-c0-call_vis16_3",
+              "presentation": {
+                "body": "error: mcp tool reported failure",
+                "body_bytes": 32,
+                "body_limited": false,
+                "generated_guidance": false,
+                "producer_limited": null
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts": {
+      "data/oc/tool-output/tool_1791413499-977160-1.txt": {
+        "bytes": 5891,
+        "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+      },
+      "data/oc/tool-output/tool_1791413499-977160-2.txt": {
+        "bytes": 1615,
+        "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+      },
+      "data/oc/tool-output/tool_1791413498-977160-0.txt": {
+        "bytes": 5769,
+        "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": -15,
+    "termination": "forced_stop"
+  }
+]

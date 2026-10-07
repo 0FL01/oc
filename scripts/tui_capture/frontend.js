@@ -1,13 +1,18 @@
 // Runs in pinned Chromium. All cells come from the real xterm.js VT buffer.
-window.startTerminal = ({ columns, rows }) => {
+window.startTerminal = ({ columns, rows, cursor_blink = false, cursor_renderer = 'dom', cursor_sync = 'supported' }) => {
   const term = window.term = new Terminal({cols: columns, rows, allowProposedApi: true,
     fontFamily: '"DejaVu Sans Mono"', fontSize: 14, lineHeight: 1, letterSpacing: 0,
-    fontWeight: 'normal', fontWeightBold: 'bold', cursorBlink: false,
+    fontWeight: 'normal', fontWeightBold: 'bold', cursorBlink: cursor_blink,
     drawBoldTextInBrightColors: false, minimumContrastRatio: 1, scrollback: 0,
     theme: {foreground: '#eeeeee', background: '#0a0a0a', cursor: '#eeeeee'}});
+  if(cursor_sync==='unsupported')for(const final of ['h','l'])term.parser.registerCsiHandler({prefix:'?',final},params=>params.length===1&&params[0]===2026);
   term.loadAddon(new Unicode11Addon.Unicode11Addon());
   term.unicode.activeVersion = '11';
   term.open(document.getElementById('terminal'));
+  if(cursor_renderer==='webgl') {
+    const addon=window.cursorWebgl=new WebglAddon.WebglAddon(true);
+    term.loadAddon(addon);
+  }
   term.focus();
   term.onData(data => window.terminalReply(data));
 };

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-07T20:27:27+00:00
+State updated: 2026-10-07T23:43:44+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,41 +12,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — bounded tool-preview consumer slice
+# T44 — real caret ordering / prompt blink slice
 
 ## Result
-Generic/MCP default collapse, header-only hover/click, bounded parameters/body
-and second-click collapse; failed detail and denied handling follow pinned owner
-semantics. Structured body excludes only generated model guidance; literal
-markers/legacy data survive. Shell viewing loss is separate from genuine producer/
-capture/abnormal facts. Compact indicator and existing bounded `/cards` typed
-details/page caption are truthful, including interrupted user-anchored turns.
-Receipt: evidence/tui/tool-preview-presentation.md. T44 remains ACTIVE.
+FrameBackend stages one actual frame, defers Show until final input MoveTo and
+uses advisory synchronized publication with safe unsupported fallback. First
+background/resize/color/content share the boundary; partial/write/flush failures
+never replay. Restore closes partial sync and restores visibility/modes. Read-only
+panels have no composer caret; editable Search owns its caret and closes back to
+the exact Unicode draft/position. No blink clock/permanent timer or dependency fork.
+Receipt: evidence/tui/cursor-frame-presentation.md. T44 remains ACTIVE.
 
 ## Checks
-Current final4 fmt/strict workspace Clippy, workspace1728/0/11 (46 records), normal
-debug/release/help and actual release startup/discovery PASS. Actual paired pinned
-attempt011 has14 stages per side, both PASS_BEHAVIOR_ONLY, six requests/four effects/
-three real MCP calls unchanged through reopen/restart; native operation/capture
-facts and artifact hashes unchanged. Two native-only explicit resource-detail
-frames include real240-byte paging. All28 full unmasked paired grid/PNG comparisons
-are DIFFERENT, not visual PASS. Raw VT/privacy/approval/caps/replay guards remain.
+Final2 fmt/strict locked workspace Clippy, workspace1731/0/11 across46 records,
+normal debug/release/help and actual release startup/discovery PASS. Extra VIS31
+idle/fairness/S07/AUD32 actual resource samples PASS with unchanged thresholds.
+Pinned paired018–021 qualify six real input states at160×48default,80×24blink
+fallback,120×40blink synchronized,80×24steady fallback: each blink state≥3 full
+cycles, same-owner idle cadence, bounded sample gaps, no transient caret and exact
+Search/composer restoration.576 full actual temporal PNGs audited;275 phase-matched
+pairs/550 unmasked grid/PNG comparisons ALL DIFFERENT, not visual PASS. Normal
+tool-preview013 requalifies resize/reopen/restart/no replay and read-only cards.
 
 ## Risks
-No full VIS16/VIS17/VIS31/R6/V09/T44 PASS. Final-cursor equality cannot establish
-phantom-caret suppression or preserved blink. Actual history multi-page and
-capture-fault receipts remain separate; current capture does not replace them.
-No RAW/provider rewrite, marker regex stripping, ordinary expansion cold reader,
-new store/framework, grant/cap/timeout/baseline/ignore weakening or paid campaign.
-AUTH06 deferred, original24/24/Go13/24 and `.opencode/` untouched.
+No whole VIS16/VIS31/R6/V09/T44 PASS. DOM hover blink suppression and failed/heavy
+observer attempts remain diagnostic. Original Search hover has continuous input,
+not continuous repaint. Full temporal frames are actual renderer canvas and
+explicitly unsettled, not settled/atomic screenshot claims. No image/cell mask,
+baseline/cap/queue/permission weakening, RAW rewrite or tool replay. AUTH06 deferred;
+original24/24/Go13/24 and unrelated .opencode/ untouched; no paid generation.
 
 ## Next
-Commit/push the reviewed qualified slice. Continue at the terminal frame/cursor
-output boundary for frozen phantom-caret plus prompt-blink VIS16/VIS31: actual
-ordering/fragment/error/fallback trace and running OC2/native blink-enabled idle,
-continuous hover/repaint and restored input, at least3 full cycles per state,
-nonblinking/default controls. Then remaining frozen styled/temporal/interaction
-outcomes and final current-source gates; no task finish before full acceptance.
+Commit/push the reviewed functional slice with immutable actual evidence. Continue
+Home's typed live MCP footer slot and every remaining frozen R1–R6/VIS01–VIS45
+styled/temporal/interaction outcome; final current-source R6/V09 after full closure.
+No task finish on this slice or an own-golden/final-cursor-only claim.
 
 
 Ready (до 5): нет

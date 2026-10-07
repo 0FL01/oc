@@ -837,6 +837,73 @@ redaction is never bypassed to force fixture text equality. `PASS_BEHAVIOR_ONLY`
 does not qualify VIS16/VIS17 pixels, prompt blink, all history paging/capture
 faults, release behavior or T44/V09. Missing/failed attempts stay diagnostic.
 
+## VIS16/VIS31 real caret ordering and temporal blink
+
+The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode
+uses the same bounded real MCP/Shell effects, then measures six real input states:
+composer idle, continuous hover, restored composer, command Search idle, continuous
+Search hover, and exact composer restoration. It does not run the ordinary mode's
+fourteen reopen/restart stages. A separate ordinary tool-preview run qualifies
+those stages and read-only `/cards` cursor ownership after the terminal change.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true --cursor-temporal blink --cursor-renderer webgl \
+  --cursor-case expanded \
+  --output /home/opencode/ai/oc/evidence/tui/CURSOR-NEW-IMMUTABLE-ATTEMPT
+```
+
+Run each profile separately with a bounded 600-second runner timeout. Admitted
+geometries are 80×24, 120×40 and 160×48; `--cursor-case collapsed|expanded` selects
+the real card state. `--cursor-sync unsupported` simulates an unsupported frontend
+by consuming only private mode 2026 in the mature parser, leaving every other
+command intact. This is test-only capability simulation, not output rewriting in
+the observer or a product fallback timer. Native always emits the advisory envelope
+and retains safe Hide/MoveTo/Show ordering without it. The original fixture uses
+its admitted explicit cursor style/blinking configuration; default retains its
+terminal-default configuration. Native inherits the actual frontend defaults.
+
+WebGL uses exact test-only `@xterm/addon-webgl` 0.19.0 installed independently under
+`/home/opencode/.cache/opencode-tmp/opencode/cursor-renderer`. It is not a native
+runtime dependency or a modification of the existing reference installation.
+The runner checks the version, hashes the loaded bundle and external package lock,
+and copies that lock into the immutable receipt. DOM remains available as a
+diagnostic control: observed hover blink starvation is not accepted as PASS.
+
+`cursor_frontend.js` observes the actual mature parser after each original command
+and samples the real fixed input-owner raster. It never rewrites commands, patches
+CSS phase or paints a substitute cursor. Independent 20-ms SGR hover injection
+continues while each 5.6-second state collects at most 1,200 raster samples,
+50,000 command observations and twelve full opaque renderer-canvas PNG/grid/cursor
+snapshots. Temporal pictures are timestamped, explicitly unsettled actual renderer
+frames, not settled/atomic screenshot claims. Blink requires at least three full
+raster cycles, cadence relative to the same owner's measured idle profile and
+maximum sampling gap no larger than one quarter of its idle cycle. Steady/default
+controls require zero observed cycles. Draft, final caret and no tool replay are
+checked independently of raster phase.
+
+```sh
+python3 scripts/tui_capture/check_cursor_temporal.py \
+  --compare-output evidence/tui/NEW-IMMUTABLE-CURSOR-COMPARISONS \
+  evidence/tui/cursor-temporal-attempt-018 \
+  evidence/tui/cursor-temporal-attempt-019 \
+  evidence/tui/cursor-temporal-attempt-020 \
+  evidence/tui/cursor-temporal-attempt-021
+```
+
+The audit validates rebuilt Rust input identity, every full PNG's dimensions,
+opacity and recorded fixed-owner raw pixel, then compares full styled grids/PNGs
+at observed matching visible/hidden phases. It does not normalize images, crop,
+mask, rewrite immutable metadata or infer equality from unmatched phase counts.
+`QUALIFIED_CURSOR_BEHAVIOR_ONLY` is not VIS16/VIS31/T44 visual PASS: the current
+matched full-frame comparisons all remain DIFFERENT. Failed attempts and genuine
+DOM/frontend observation limits remain recorded in the factual receipt.
+
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
 `OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc

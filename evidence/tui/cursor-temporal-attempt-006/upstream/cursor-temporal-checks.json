@@ -1,0 +1,102 @@
+{
+  "origin": "upstream",
+  "mode": "steady",
+  "card_case": "expanded",
+  "geometry": {
+    "columns": 80,
+    "rows": 24
+  },
+  "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "temporal_full_frames": 1,
+      "samples": 336,
+      "commands": 0,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 81.10000014305115,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    },
+    {
+      "state": "hover",
+      "moves": 209,
+      "temporal_full_frames": 19,
+      "samples": 140,
+      "commands": 1215,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 144.89999985694885,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    },
+    {
+      "state": "restored",
+      "moves": 0,
+      "temporal_full_frames": 1,
+      "samples": 336,
+      "commands": 0,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 57.40000009536743,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    },
+    {
+      "state": "search-idle",
+      "moves": 0,
+      "temporal_full_frames": 1,
+      "samples": 334,
+      "commands": 0,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": false,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 72.79999995231628,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    },
+    {
+      "state": "search-hover",
+      "moves": 268,
+      "temporal_full_frames": 1,
+      "samples": 332,
+      "commands": 25,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": false,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 87.70000004768372,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    },
+    {
+      "state": "composer-restored",
+      "moves": 0,
+      "temporal_full_frames": 1,
+      "samples": 336,
+      "commands": 0,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 71.40000009536743,
+      "raster_blink_observed": false,
+      "cadence_preserved": true
+    }
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "origin": "upstream",
+  "status": "DIAGNOSTIC_CURSOR_ONLY",
+  "stages": [
+    {
+      "stage": "home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "before": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_1184ef0fc001jaXW7q6h1RjR8j": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      },
+      "data/opencode/tool-output/tool_1184ef0c9001WFpQIn70eAhoL4": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  "cursor_temporal": {
+    "origin": "upstream",
+    "mode": "blink",
+    "card_case": "expanded",
+    "geometry": {
+      "columns": 120,
+      "rows": 40
+    },
+    "status": "FAILED_CURSOR_QUALIFICATION",
+    "states": [
+      {
+        "state": "idle",
+        "moves": 0,
+        "temporal_full_frames": 10,
+        "samples": 276,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1209.2000000476837,
+          1189.2999999523163,
+          1205.8000001907349,
+          1219.8999998569489
+        ],
+        "max_sample_gap_ms": 137.29999995231628,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "hover",
+        "moves": 141,
+        "temporal_full_frames": 15,
+        "samples": 116,
+        "commands": 135,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1316.3999998569489,
+          1038.9000000953674,
+          1296.7000000476837,
+          1254.2999999523163
+        ],
+        "max_sample_gap_ms": 416.90000009536743,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": false,
+        "cadence_preserved": false
+      },
+      {
+        "state": "restored",
+        "moves": 0,
+        "temporal_full_frames": 10,
+        "samples": 242,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1255.5999999046326,
+          1127.5,
+          1216.6000001430511,
+          1198.5
+        ],
+        "max_sample_gap_ms": 263.2999999523163,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "search-idle",
+        "moves": 0,
+        "temporal_full_frames": 10,
+        "samples": 229,
+        "commands": 0,
+        "cycles": 3,
+        "phantom_command_states": 0,
+        "draft_visible": false,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1239.2000000476837,
+          1239,
+          1162.4000000953674
+        ],
+        "max_sample_gap_ms": 219.5,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": true,
+        "cadence_preserved": true
+      },
+      {
+        "state": "search-hover",
+        "moves": 146,
+        "temporal_full_frames": 11,
+        "samples": 171,
+        "commands": 25,
+        "cycles": 5,
+        "phantom_command_states": 0,
+        "draft_visible": false,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1145.5999999046326,
+          1221.7000000476837,
+          1154.0999999046326,
+          1261.7000000476837,
+          1212.2000000476837
+        ],
+        "max_sample_gap_ms": 346.39999985694885,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": false,
+        "cadence_preserved": false
+      },
+      {
+        "state": "composer-restored",
+        "moves": 0,
+        "temporal_full_frames": 11,
+        "samples": 211,
+        "commands": 0,
+        "cycles": 4,
+        "phantom_command_states": 0,
+        "draft_visible": true,
+        "final_caret_preserved": true,
+        "cycle_periods_ms": [
+          1127.7000000476837,
+          1284.5999999046326,
+          1129.2000000476837,
+          1203.7000000476837
+        ],
+        "max_sample_gap_ms": 215.29999995231628,
+        "raster_blink_observed": true,
+        "adequate_raster_sampling": true,
+        "cadence_preserved": true
+      }
+    ],
+    "no_tool_replay": true
+  },
+  "after": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "cursor_completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_1184ef0fc001jaXW7q6h1RjR8j": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      },
+      "data/opencode/tool-output/tool_1184ef0c9001WFpQIn70eAhoL4": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  }
+}

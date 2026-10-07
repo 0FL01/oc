@@ -1,0 +1,2446 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-07T21:39:39.609Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "2f5594dffaeae9d61f25c561dc651013488d903131f46e3c2e866796bc7f006b",
+    "frontend.js": "64ce5df2f7f4b2bfaca9c71eff4c62d2e4d9cde27cb58f307687e1b03c703a34",
+    "bridge.py": "f2c1b3c7193df307a51d75ecd58b906097d81990cce18e2179e088b87e7d17eb",
+    "tool_preview.mjs": "b026da51d157da79a730e6f73d9797dced265940c208ae39a258eac76e6974bc",
+    "tool_preview_fixture.py": "36c7c323b1bb385ef434552b54eaf5992bc0173e52804cbba1863dab9b5fb761",
+    "tool_preview_mcp.py": "c53f15fae1d938066d2c206d3ff0c113dfe5978b8c83329925f7a23065c7be99",
+    "cursor_temporal.mjs": "872117a761bab9ddbea0c276fedf94f560c1893d44e16a453ea108960f1d7d59",
+    "cursor_frontend.js": "e5c3e456c98e8c5595d683f575c501534f7d90c2424a5a2fbae27132e3cd9c4e"
+  },
+  "fixture_sha256": "0be02fb63a86508c6800f33617a61dbad3ae9d72019fb6662b7532090e5b1d9f",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "0b5a19e59dd2dcb155dbe04767e780830423d3c1",
+    "tree": "c793296050843374432e8c3a2b33715bab45ae2d",
+    "dirty_diff_sha256": "0c7dec6b1d66acd267e9a3c379435da24e9b70723500debdead6a69079cbc158",
+    "source_manifest_sha256": "84c3589516ea0e93e61859fb528796816ae6d8d61c4692731343b604427e629d",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "02f8225d849187d186c0ac400edebdd163ede61f93f9ee3ce0ffdfc5b86468a9",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-idle",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-hover-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-10",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-10",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-11",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-11",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-12",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-12",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-13",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-13",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-14",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover-phase-14",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-hover",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-hover",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-restored-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-idle",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-search-idle",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-10",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-10",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-search-hover",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-00",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-00",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-01",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-01",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-02",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-02",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-03",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-03",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-04",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-04",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-07",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-07",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-08",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-08",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-09",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-09",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-10",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-10",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-composer-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "cursor-composer-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "bb7d31454c29820ee91545adc328852b3b141a57c722438b22643415715b0261",
+      "png_sha256": "e81d5d098ff9e4569582b524c28af1d93bfe0e6fcd350c8c4dda1a543f3c2133",
+      "render_sha256": "e1b660365b09cc21eee86131e1574f808857dd9fa420d0836c5a8cefd66dd69d",
+      "path": "upstream/tool-preview-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "9e082101b1a73c324b08fcb35a60ccf3f77cab8850ace64b6e3a4a315cafd74a",
+      "png_sha256": "b8a869e02cdedb09b2a51d1e432bbf40151ba67f58d8d4cd96f8b95432598550",
+      "render_sha256": "d7a64ef44ad3f4097e2fa32deafc8245a923851c1ac66b9b87b5dac400d36f7c",
+      "path": "upstream/tool-preview-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "0f7ea11574de4dffa94a48912c29694cc5186be23195fcbb665ac72f9031d7ac",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "649093d89cfdcb6764fe2c060f6733d172f468190ebd8f8f24bf3a843c75147e",
+      "path": "upstream/cursor-idle-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "d426dfdbfb43003204a7ac776a25dccec8dc6a5cd4f77357bcb27eb91e97cd5a",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "7134e686cb7a304f6063077735bd92d8090302cbd27948102841518d52793e87",
+      "path": "upstream/cursor-idle-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "dafd810d46593e116d00acd78626dcd536390e0fa4e0631fc21fc910c306435b",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "cdfb4469adf17905923cd2edcbde30233762c8df9fe551581e5d84889d179af5",
+      "path": "upstream/cursor-idle-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "761e69d2d353f724d3e064cb086ba4296c125a4818fcb06eac8dca08dc0254d3",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "4c24e1c90b4c75097ca1ecefedec08a12a2b076cc3490d6ac2f04e9f2dc66056",
+      "path": "upstream/cursor-idle-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "941de5c61027919c3e1655025906bf60961d0e8494a094fd8f315283aaafedb4",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "3766b69f55b07cf84a29132205140b1d5b62beaf49ce4b4426cb8f73b55bacf2",
+      "path": "upstream/cursor-idle-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "038fdc56353728b25fc1b00b4a5749dc5bb66030d107b7085965d02c86880bac",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "48d99ae242a761651b4dbf93a85d110da56846838d095be37070e94e9cf232d8",
+      "path": "upstream/cursor-idle-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "776f31a0ce50c3a4cedcc4ef57f8d93c8c22f180261b695ddf6c867c38fdd661",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "a627086d072bc8b3fe096edb79bc2f62b89703b6f6929d1b3e1e7c74808877d9",
+      "path": "upstream/cursor-idle-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "b93d184ac03bc0967468638fda544674a62c4adbc669da2f366555d3d4e33e8d",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "dded01e278385919b42eadf814cbaeca8ed26cd5d04f37b02fd76c4d451106c4",
+      "path": "upstream/cursor-idle-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "4daf1bb2da5b6804be696c0aeff86bcc23903e61fb610eee58fc3fac404b3eb1",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "a23dc961dc75cc8b4b7fa5cccb00e6383d39eac4e7e7d0560cba3a42345a42a1",
+      "path": "upstream/cursor-idle-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "146865f81e8d83ef1cdc1d34aace7e0c81d2f555679e8966f0c24b6899e12221",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "69a258ac02e5b5ab6d8a68e9e85b97293bf9b27f08246d4c3ddb1e73f7ac37f9",
+      "path": "upstream/cursor-idle-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "0522318cbaef7dffca95f09dbfd98cd2488cefd086f2c954eccedc7fb55f4043",
+      "png_sha256": "f2550e45ca41f8a683977458ac98e276d1ad662d1fa039141f363af993451449",
+      "render_sha256": "75529d91dc000ec17fe38b34b6cbf859dedf794e0c4443b9e2f1b1ec76c02186",
+      "path": "upstream/cursor-idle"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "5e976f3c5c97e56f57ca4c6e5707e1d660d9705e85c9d0fbd5306f87196e6355",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "fb4d75efe985936567ce3703601a5192154fc28b95813dbded4cb3395d2b545d",
+      "path": "upstream/cursor-hover-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "661f65db2fce496412a2730fdb40f5f99b859d348b6978c964d788d730d5e3d7",
+      "png_sha256": "d304d7dad99a9a337227612945660d299c77b889de5b5e3e0ee5fb83d3eb7878",
+      "render_sha256": "3da4408f39738d6115d2a727c123d7bdd860d458a69c3d3ce59cb75655602520",
+      "path": "upstream/cursor-hover-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "00bd30df93b637423d2fcbc66e6df5ecfff855502560cad60ea9591742f07ef2",
+      "png_sha256": "5bed37636cd2d2737f8aeecda4da718838e3732ca5d3289623be037174f703f8",
+      "render_sha256": "16ca6ace2820b5d76673e6b5762318d898fea12c054bf70f63ce39f146bc3bb3",
+      "path": "upstream/cursor-hover-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "3032fe33980ac8ec4937d75fcf54bd3259840474fb5382062c4352c54c0ae68e",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "01905d910cb9af6d0ad5327a21aa579237ef4d18acc0d440e2a955e5a1f0f858",
+      "path": "upstream/cursor-hover-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "c8648e100e7d19e44a5899c1c254d591c294ff93d7b64018ceba56e8cae239f1",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "fb370731ed84dae5f6df0ee9fcaeb079902303d4b978040dfab3ed8f88ec0444",
+      "path": "upstream/cursor-hover-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "476542126ed8842d155d79da9b07443606c0a9f5c0fc8f651e76869f3d185278",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "b534f67ad4440e199cfef30bf8779c0ea50a32292c7cbfdf3475d745209c9c87",
+      "path": "upstream/cursor-hover-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "a1dd3786d344b32ceb2ab37cb39a3e277ec1463e88f0ba542941dbb0594f5626",
+      "png_sha256": "5bed37636cd2d2737f8aeecda4da718838e3732ca5d3289623be037174f703f8",
+      "render_sha256": "179ce05ec3a2792a45f3612c6ee58b5505b7f2d614d2e4ad4ee5647092f956c8",
+      "path": "upstream/cursor-hover-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "cfcc33048300af8905f2b546596013e48e3f3cbcebd0949fe88ae034b656581d",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "7328e630d94a76fe1dfc36e8c99122393b5b9cdf9cb0b6adcc4f6d13ce13db75",
+      "path": "upstream/cursor-hover-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "88a545dfcb7dcc3aad7574c4864e2b8268092f0924d2e40b3c7d37f538620fa7",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "bb10b0dd28195cf4444c38d33ef6f78da9d0ce2de432cd40d7c8b5aa470a9c98",
+      "path": "upstream/cursor-hover-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "9a66ac8537c6424b3b437132b3b45efc61176610a05ae191c3bf3fa14fcbe0f9",
+      "png_sha256": "5bed37636cd2d2737f8aeecda4da718838e3732ca5d3289623be037174f703f8",
+      "render_sha256": "6bfd18522ad3c61a360097f83cf26939d4d9c78f908b000fca71ad3663fecc18",
+      "path": "upstream/cursor-hover-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-10",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "dd091a0c918a73422de01a81a5896c22fe83c5532a35038e7fa79b3068cb04f0",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "51d6211877f51d78a91c967a7742bb64a3680c7b86a7370066cfafb4feb3a0e5",
+      "path": "upstream/cursor-hover-phase-10"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-11",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "6952c5ee0b7b59be72e759c1e09797bee26f21f6dbc7b35bbd08c7dfd9a4f054",
+      "png_sha256": "d304d7dad99a9a337227612945660d299c77b889de5b5e3e0ee5fb83d3eb7878",
+      "render_sha256": "47129e21c558ca89f2b3a7f0946b45c68ec1b73b09caba34f393950666f1f496",
+      "path": "upstream/cursor-hover-phase-11"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-12",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "d03a4ef10be5aea4e80e8382da412ad1acf05a1cbe35c387460740b09a7da58f",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "ccd1bb89d04e98f2d83e179a98cb1b975c087684ceed23491125ad4b53f22635",
+      "path": "upstream/cursor-hover-phase-12"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-13",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "dcdb37f97d28405c3c2141910ca116def8f28f651f4e494dc0db71aa0888e946",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "66b5a9370eccb387d80baf23db599f546411a19d1f186ebdf2cc2d43c529e6fd",
+      "path": "upstream/cursor-hover-phase-13"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-14",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "04c8d41be508bf1f7197e9b94e1a09af4ba5dfcba793fb6e81eba44a89237eb8",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "47d2e18ba42e5e1dfc3d15654c4a8271947fe56acf806ff6f2fcab3e386eb927",
+      "path": "upstream/cursor-hover-phase-14"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "844338f4f9b796644d5069d7433a856666aa48235d2872b7d4f146ace34ca909",
+      "png_sha256": "be0ac2d368d8c73453f9aab6f90dcb5f5017797790b8bd1fe933c356d81ddb34",
+      "render_sha256": "dda5f99a954e565f250fbf9bf8e0b5acf3d35c6c08f9f4c76070fcdb01678de5",
+      "path": "upstream/cursor-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "71996fbd5aa30502571aef3ffafe6476c6a54a3eda089db40f45bd75b24b14ea",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "494577876211986a639821076f0a1beb500efc9ce2cab0d249412eb4c5512bce",
+      "path": "upstream/cursor-restored-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "885eaf48cc551da457339e7d1de43911ce41857942b86432949b31ff42d25139",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "ec396bb241704fff323af01e7773198fbc15b65d5c89e1a81163076bfafa33ef",
+      "path": "upstream/cursor-restored-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "f7cf72449601c368dae3ed3ac8ff01ae036b61038d7d3901c0d3f29ce59b4af6",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "c948632bc3a4e68b1534757a8254681f47c03a15d691681c6c7c2e521d4d19e9",
+      "path": "upstream/cursor-restored-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "ef7feb697ac7e5dc6178f952d720df033e247287de5acfb3d6589827abd38146",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "93c2b7a359522d52f754c3e6554e244f94724244f634a6bab6bc198ba48e8013",
+      "path": "upstream/cursor-restored-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "9043d3d6dd54e7bfdee10f24c2a0b21ee26313d2e4860ad9f5e17ad5a64b97ac",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "82962e2b37742f847c98a108ff89a87d6f48ccf731b9de21f0e9daea890c1311",
+      "path": "upstream/cursor-restored-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "e96a1b2548ab7ef0405714b8d95babdfc80b478075b5ff8cbac55536a394cf50",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "e4e149a4f4b3f4bb1861aaa370aa205428b32c9806d22f5bce2a6f69f94ac55a",
+      "path": "upstream/cursor-restored-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "68eda9dcdda67d0f3718304d652212ff1b614bfc8bd24a56b74c960fbad31a8e",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "57f49f3261c49606cbe5a3500c772ca25b5a7d5282b15ac1b5ef19b1359b1372",
+      "path": "upstream/cursor-restored-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "7d5eb208a52c37908d08ac3404fa164e76463cc94206224149829dc57ffa175f",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "4d32f9aa03d08836a7f2fa36e42b2182ea8dd460fcc56f4453747873dbf452c8",
+      "path": "upstream/cursor-restored-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "1bf80a15b81bf9a72afd45bacc84f039e2627fdef3017badf44b7d6efe54a59c",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "7d9f8a5a46470fcdcf754744d838b5102c2f9340ac685512b2942b1017f6bb03",
+      "path": "upstream/cursor-restored-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "0c29e055593048db2f84409f1796fa73f80ac82cc28644d774a413997e0820a6",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "86fd943845a5084a352d0d97bb5381f6ea02e7f6a0c6bbe5d36185a82c1ad629",
+      "path": "upstream/cursor-restored-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "03c30022c34460850df062fae729560bc0ab0082d905c08ca6e9072f662249c0",
+      "png_sha256": "f2550e45ca41f8a683977458ac98e276d1ad662d1fa039141f363af993451449",
+      "render_sha256": "4e83a58d220696b33f256021e01ce37480c6e52deaa1353ca9efe7919853aaa3",
+      "path": "upstream/cursor-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "71f773c8ea7bb2649984f67a3e8d70481a186bc1105efadfa4a4427de46a7619",
+      "png_sha256": "b8e10d2b1ab709ae87f46da5a33961896c1973fdbece27b0e0b9cba9dbb34110",
+      "render_sha256": "d6fb965beba8fd8d8b698802b230dfa6285e0b54d5b4bc6931e095621f1c6361",
+      "path": "upstream/cursor-search-idle-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "5053b2b2d58978f623827777bdf7a0b991ff50ef6da22a214004f8c358b149c7",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "5c8de3f8b33b7c84b118d85ffeb7411e04c8f99ee82df47ee717ced0426668da",
+      "path": "upstream/cursor-search-idle-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "5d35fb68f1bc65ac1afc3aeff3ec87989fe8f1f1368d043d970ad3dd20dac06a",
+      "png_sha256": "b8e10d2b1ab709ae87f46da5a33961896c1973fdbece27b0e0b9cba9dbb34110",
+      "render_sha256": "dce6f7f1c30820d125dfef41f81eff5d261036af977e8e406c0aebe757d18b68",
+      "path": "upstream/cursor-search-idle-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "8c7d825f29f32e7b73adcdf9cb9e75de8b541a17da3c075d62457ae8e5b17821",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "d921b0bee9011a48e58ed4be011cf18c42b3134b5e57196b509e472a0ad04c94",
+      "path": "upstream/cursor-search-idle-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "c8c94523032be68c31ba809ccc5a0206b515aea1b16af7d115774311223b04b5",
+      "png_sha256": "b8e10d2b1ab709ae87f46da5a33961896c1973fdbece27b0e0b9cba9dbb34110",
+      "render_sha256": "5f30adb3592cb3635bce6a5f7dd8a73e9254b9e86a589ebb27d7e750c6ccb95a",
+      "path": "upstream/cursor-search-idle-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "b30368cb5f3c1725fdbc3a7f5e3d026c233f09c3fe939516e436a74985741096",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "09a7efd708bd3e9c7b5b64c9179d49e143eae392a39a62ffd51a005043c8a9e0",
+      "path": "upstream/cursor-search-idle-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "0b49fd9011cbda50b64d292dfa7971c9870551783f16f2230445ea996d4dd7eb",
+      "png_sha256": "b8e10d2b1ab709ae87f46da5a33961896c1973fdbece27b0e0b9cba9dbb34110",
+      "render_sha256": "765e6ff3fa7c7945ba969bcfe45be7e2aa14c43f0378cfb751c7ad3d511ead9f",
+      "path": "upstream/cursor-search-idle-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "4d6dd8830826abb66d65c80bb5359004e592d1f5f2cc7bf4aac82f0b4641cebc",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "857631ce683e42d4560cba7652e944c0949d112e64d6fbe8e9c2f81e1ea96568",
+      "path": "upstream/cursor-search-idle-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "0c107056a8997d4d6a091a30da23962ac2433cad0e27edbb20926b10f99b5b1b",
+      "png_sha256": "b8e10d2b1ab709ae87f46da5a33961896c1973fdbece27b0e0b9cba9dbb34110",
+      "render_sha256": "3d2c66b2bbdced724c07345caa28cff645f32060d08afc7721757e04346a6ccd",
+      "path": "upstream/cursor-search-idle-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "5e9783da5d85f3a15c2a2032ff174792097d777d3600aaa93a4986e9d59b356a",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "ad93c7fa91d68806bce29b89f83b47cf534b52b02f72757895880c8cbaf4aff5",
+      "path": "upstream/cursor-search-idle-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "2c8dc5cadb5f5a29cfc1328c2e75c86c2058df133781a654ca87cda7514d5904",
+      "png_sha256": "20509db316b4a5b72f33fe567c284bd4a7669aff7235bcd439fbccb45817ed8a",
+      "render_sha256": "daeaf2958b0fe73c2d29d9e594e849d4076f6cd29729b4b2971d611102a3ed2f",
+      "path": "upstream/cursor-search-idle"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "2dbd264b9e115a9e76ac96419f74f99b7f2eb8442f5c8e7aed86a4612d069803",
+      "png_sha256": "df5e209aa2641b3b8a2249c23db1033a9da0e9aec33672b8fc5ce596aa1682cd",
+      "render_sha256": "c8748a08d325f4a37de1097ebdb264d8419308983adc048a63d32e8085818cd2",
+      "path": "upstream/cursor-search-hover-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "a5b454a45a937f762e6c37568c4ada0cc40bf80411bd856bfd108e110b5bfe7d",
+      "png_sha256": "45b609c00711df09e6f7c88130f0e5e680a138b9778aeb080d1f36e2f8392e67",
+      "render_sha256": "be99b4364d396c753efe5e27bffc8f138633072f6cc641e632f7b63d8838484d",
+      "path": "upstream/cursor-search-hover-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "8d392291a7d92c4a48f3126c227ade53ce5cd3802d9e5949dbc79143217ab4bc",
+      "png_sha256": "50458793b3873b17d9a4c32a898c7a1f2717a2e6618f32224e56d105ce57335d",
+      "render_sha256": "28c5a9a437528ac65c201cc203359942c2ee089203445ffd7148b22a4d17fd37",
+      "path": "upstream/cursor-search-hover-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "582ba807362cc07dc31ffdd04fb7aaaf17c19218dbd04209f607d8cffe6ef65d",
+      "png_sha256": "45b609c00711df09e6f7c88130f0e5e680a138b9778aeb080d1f36e2f8392e67",
+      "render_sha256": "8f0125d8a2fba8d43d4fb81ca10c1f98e1493b9baec004aa6041fc8d4997f2cd",
+      "path": "upstream/cursor-search-hover-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "5d57f9e0781774f8f27424ef119774ec240ed7a7d6484bbb57f3af95f3211d74",
+      "png_sha256": "50458793b3873b17d9a4c32a898c7a1f2717a2e6618f32224e56d105ce57335d",
+      "render_sha256": "e8d89c6584d385942ccc52e4a9a9269365d7174fee9167e5efdf1e4f112fb8c3",
+      "path": "upstream/cursor-search-hover-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "521e26771b03c82bb5e10bd6ecf1295cfccee7551273e7807e415615dc78ed53",
+      "png_sha256": "45b609c00711df09e6f7c88130f0e5e680a138b9778aeb080d1f36e2f8392e67",
+      "render_sha256": "c2e701320df174b27ae24fd2944e0e4d2b37a672b86a1aaaab505269925eb7b8",
+      "path": "upstream/cursor-search-hover-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "fa59a16efa797195f4ebcd5b8bcea9a331206b5b3416be8dbf0e510d64b2bebc",
+      "png_sha256": "50458793b3873b17d9a4c32a898c7a1f2717a2e6618f32224e56d105ce57335d",
+      "render_sha256": "f2155704c0f599bb3a026c90029e4428eab372b3d798d7048b027b52e143fdb6",
+      "path": "upstream/cursor-search-hover-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "8fa74e0375bcfe4a0d06b12dd5add268a9d48cdf23a53821d2379cc59638a693",
+      "png_sha256": "45b609c00711df09e6f7c88130f0e5e680a138b9778aeb080d1f36e2f8392e67",
+      "render_sha256": "321c1963f8591e0610d46861767e5ebbe67ab2edf6b9e08023317ab80ae620cd",
+      "path": "upstream/cursor-search-hover-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "8f92f6a59736bec937985a56b5f450394274ffe3d183aa1674d482d528602576",
+      "png_sha256": "50458793b3873b17d9a4c32a898c7a1f2717a2e6618f32224e56d105ce57335d",
+      "render_sha256": "e89a8858fc03cf4c3cbcae9d1d298f3d981822853de5da82cc6016a29c2b242f",
+      "path": "upstream/cursor-search-hover-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "336a762e74e16505e1913566b5d95a1c137676c90cd6d3f3a10357bb6504fdc0",
+      "png_sha256": "45b609c00711df09e6f7c88130f0e5e680a138b9778aeb080d1f36e2f8392e67",
+      "render_sha256": "712ae8bae67c6fadd0ff9693b76934c3489444931e1ed79d2070f86f2c0f9ca9",
+      "path": "upstream/cursor-search-hover-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-10",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "582aa04c16dcb04ec2bec90f8de7a322e3c4fa5eb6041e6661322d0aab0500f4",
+      "png_sha256": "50458793b3873b17d9a4c32a898c7a1f2717a2e6618f32224e56d105ce57335d",
+      "render_sha256": "836f60f4c41358b773faa225d1cd0a7d54fd918eab8d67d37157e9ba40caaf16",
+      "path": "upstream/cursor-search-hover-phase-10"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "c507bbf7169be98fd749d24108953acf0a3f1c8ab3a853637ea5fbcef345e737",
+      "png_sha256": "8b27e4427ce8639efe714db1ce7c214b9f1f7a0eaa6bb41fa12a7cc15cce19e6",
+      "render_sha256": "f9a345f0e0b258984f6d12a5476f5f3c076b8126d4e2dbc9b27eb273dca7ffa2",
+      "path": "upstream/cursor-search-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "2112bbff5d6a75f31d0fe75b37f4fae9ec60afc87f5115cad0431763b2d5ee38",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "fddef711506a296b7e6adb4d8373ae2b20b12baef0739a924eefba914c5a4ed0",
+      "path": "upstream/cursor-composer-restored-phase-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "b2335e63040b9fff625aee3d31eae98d4c082409c80769ddd4b23c5f707caec4",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "12417c8d7753c2a17b4450db60b0bcdcd8564c94becfbf528250bfde570d20ec",
+      "path": "upstream/cursor-composer-restored-phase-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "e1d08c947ffe0709c4b463c4214ac131bfa1e7ac73d1d570fd969e3ba410230c",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "37b7a60040856084882e898adaa9a793d68fd5ff43e2d50e78068bf1b2a9d8db",
+      "path": "upstream/cursor-composer-restored-phase-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "f3d30119f27a8caf619d2a9067b974a0edebff9b8a560b6ddd309052c3289097",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "6149e317b6012444aa16ea96c32b0d08df4aa77be514ab2eed44e30a0befe7e8",
+      "path": "upstream/cursor-composer-restored-phase-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "ac452d05e38e00233caed21a533431e33b8c4fdeb0613625a108af01b93c6f25",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "45ee6eb8f57d9464b1cfd43ba18e8c999861dda889d20eac94c638d999fdd9f6",
+      "path": "upstream/cursor-composer-restored-phase-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "d1b28500daab79a9a9c1be7b8eb9bedf51579745c875db33f37c80951f70a111",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "54494bf19092baad9a2e2b75efaae77ef6036023bdf59c5ce8be77cd7f7227b8",
+      "path": "upstream/cursor-composer-restored-phase-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "89baf61f639dfa8b5c70adea3fa6841682f696aca6a5f8aafbf86c13d2a997c8",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "0c01f2c01abd2fc09a366f6b8aad4c7128c8e9e2e84646341e5066ccb86b300a",
+      "path": "upstream/cursor-composer-restored-phase-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-07",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "7baf3c3dab5ae7b918387a3e78d9b051a8b39b8c842b34f1eb3258ea04f2ed42",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "b43b1f0f856c025e896267f4638d51d24f609963bc727b97a37e13d1e66102da",
+      "path": "upstream/cursor-composer-restored-phase-07"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-08",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "18ac6462b61c1bcf47c3ecb8ac626b83a5b60d8cc6683f748ddffa4149e9e5de",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "c2f3e1b77f649758e09d69a868afec8202720b032f7e61c42b324a25b2b0b200",
+      "path": "upstream/cursor-composer-restored-phase-08"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-09",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "d796fda3cc8c21ca0e4e2253df8d01357dca0704052e6fc3aa3efb7a6bca381c",
+      "png_sha256": "2d20dabcfb8c8783a1e5f170f903edc3855b11d36270f18dd7c2fc366a02a525",
+      "render_sha256": "802d0d01406123713676283c49cc011a5d3dab2ec73292d8c1d48d0e84125515",
+      "path": "upstream/cursor-composer-restored-phase-09"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-10",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "ad705ac261a32d3534f7269d09c64297d6c8a321887d9f6a0d58dfc7b4366c38",
+      "png_sha256": "43ab73f884158b1252707d073d5367078ad9b83ffe9f9822fe2b9ef306424cf4",
+      "render_sha256": "340e4c530c06843ddbfc44e29b3f806e1919367e95ebc3e714cf402b2a3b6b77",
+      "path": "upstream/cursor-composer-restored-phase-10"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "d7f8c4e22f744990842ba0ad9be32d25d3109e569a008e1a04399835762179c7",
+      "png_sha256": "f2550e45ca41f8a683977458ac98e276d1ad662d1fa039141f363af993451449",
+      "render_sha256": "35a86281c7856a92a9969574c463456141542ca04539f3c3fdcdf50a898d0a25",
+      "path": "upstream/cursor-composer-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "16730956dc9c6160ad6a2d631aa11f7bd4fae46017da28edfedae0bc4a770157",
+      "png_sha256": "8912f4f1511a2b60fa166b7e2c52e1d871bc64258b33cd905914298cdf4ab631",
+      "render_sha256": "302fcd928db40ecbfc95ece1b627bcc54680e6a406d2b1797c88ca4911ee52ef",
+      "path": "oc/tool-preview-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a15f2319bccc448e00ffcd189be27286548a079789d56b52c4dd4d03551386cf",
+      "cells_sha256": "630765afa35716fb3e65f2350e95b1a99b7b5144b36b75d1ed0119e1f679008f",
+      "png_sha256": "f949891ff1981b019bbdb65d1674f1f02ff020ac0431b1d4d3c24c238632b320",
+      "render_sha256": "82804b6a140a372c376d3bacb011fb4c0749245ee2291cc7dac24a983b56e524",
+      "path": "oc/tool-preview-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "b5d9010bc4f88fe9d5c98243af5ff761e4b997fc0bac30b81375833ef60399cd",
+      "cells_sha256": "d919485fe82a7fc95d4ad355a3fe74093cfe3de190a012289e29b1d993262729",
+      "png_sha256": "12538169d2a202d10fcc29182b82f882594fbc1213144a2fd04542fe1c1b507b",
+      "render_sha256": "148c37c53937e4fee897c73b80c00a7948c72b6e9d164d425ae590062218ee89",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "cursor_renderer": {
+    "name": "@xterm/addon-webgl",
+    "version": "0.19.0",
+    "bundle_sha256": "b85f8d4b3e9756bebb757e3fe47134d70f03ea3d6b187624426d2e2b65dec06c",
+    "package_lock_sha256": "36993eb1fab63c766b44aa384ee3dd150b1355c309d0346ae051f6171b5e7ed7"
+  },
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 80,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": true,
+    "cursor_temporal": "blink",
+    "cursor_renderer": "webgl",
+    "cursor_case": "expanded",
+    "cursor_sync": "supported",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "DIAGNOSTIC_CURSOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_1184ef0fc001jaXW7q6h1RjR8j": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_1184ef0c9001WFpQIn70eAhoL4": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "cursor_temporal": {
+        "origin": "upstream",
+        "mode": "blink",
+        "card_case": "expanded",
+        "geometry": {
+          "columns": 120,
+          "rows": 40
+        },
+        "status": "FAILED_CURSOR_QUALIFICATION",
+        "states": [
+          {
+            "state": "idle",
+            "moves": 0,
+            "temporal_full_frames": 10,
+            "samples": 276,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1209.2000000476837,
+              1189.2999999523163,
+              1205.8000001907349,
+              1219.8999998569489
+            ],
+            "max_sample_gap_ms": 137.29999995231628,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "hover",
+            "moves": 141,
+            "temporal_full_frames": 15,
+            "samples": 116,
+            "commands": 135,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1316.3999998569489,
+              1038.9000000953674,
+              1296.7000000476837,
+              1254.2999999523163
+            ],
+            "max_sample_gap_ms": 416.90000009536743,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": false,
+            "cadence_preserved": false
+          },
+          {
+            "state": "restored",
+            "moves": 0,
+            "temporal_full_frames": 10,
+            "samples": 242,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1255.5999999046326,
+              1127.5,
+              1216.6000001430511,
+              1198.5
+            ],
+            "max_sample_gap_ms": 263.2999999523163,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-idle",
+            "moves": 0,
+            "temporal_full_frames": 10,
+            "samples": 229,
+            "commands": 0,
+            "cycles": 3,
+            "phantom_command_states": 0,
+            "draft_visible": false,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1239.2000000476837,
+              1239,
+              1162.4000000953674
+            ],
+            "max_sample_gap_ms": 219.5,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-hover",
+            "moves": 146,
+            "temporal_full_frames": 11,
+            "samples": 171,
+            "commands": 25,
+            "cycles": 5,
+            "phantom_command_states": 0,
+            "draft_visible": false,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1145.5999999046326,
+              1221.7000000476837,
+              1154.0999999046326,
+              1261.7000000476837,
+              1212.2000000476837
+            ],
+            "max_sample_gap_ms": 346.39999985694885,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": false,
+            "cadence_preserved": false
+          },
+          {
+            "state": "composer-restored",
+            "moves": 0,
+            "temporal_full_frames": 11,
+            "samples": 211,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1127.7000000476837,
+              1284.5999999046326,
+              1129.2000000476837,
+              1203.7000000476837
+            ],
+            "max_sample_gap_ms": 215.29999995231628,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          }
+        ],
+        "no_tool_replay": true
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "cursor_completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_1184ef0fc001jaXW7q6h1RjR8j": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_1184ef0c9001WFpQIn70eAhoL4": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "blobs",
+              "child_jobs",
+              "compression_blocks",
+              "compression_identity",
+              "compression_members",
+              "conversation_contexts",
+              "conversation_exclusions",
+              "conversation_objects",
+              "conversation_points",
+              "conversation_redo",
+              "conversation_revision",
+              "conversation_state",
+              "conversation_tracked",
+              "conversation_versions",
+              "credential_accounts",
+              "dcp_accounting",
+              "dcp_coverage",
+              "dcp_run_identity",
+              "dcp_run_views",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "events",
+              "messages",
+              "patch_effects",
+              "permission_grants",
+              "prefs",
+              "prune_marks",
+              "schema_migrations",
+              "session_checkpoint",
+              "session_compactions",
+              "session_moves",
+              "session_usage_anchor",
+              "sessions",
+              "shell_jobs",
+              "sqlite_sequence",
+              "terminal_selection",
+              "terminals",
+              "tool_operations",
+              "tool_output_resources",
+              "turn_acceptances",
+              "turn_raw_segments",
+              "turns"
+            ],
+            "data": {
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "turn_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-f2047bf6/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_0",
+                  "call_occurrence": 0,
+                  "original_input_index": 1
+                },
+                {
+                  "id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "turn_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-f2047bf6/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_1",
+                  "call_occurrence": 0,
+                  "original_input_index": 3
+                },
+                {
+                  "id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "turn_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0",
+                  "name": "shell",
+                  "state": "completed",
+                  "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+                  "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-f2047bf6/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_2",
+                  "call_occurrence": 0,
+                  "original_input_index": 5
+                },
+                {
+                  "id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r4-c0-call_vis16_3",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "turn_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0",
+                  "name": "vis16__output",
+                  "state": "failed",
+                  "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "error: mcp tool reported failure",
+                  "provider_call_id": "call_vis16_3",
+                  "call_occurrence": 0,
+                  "original_input_index": 7
+                }
+              ],
+              "tool_output_resources": [
+                {
+                  "id": "tool_1791409280-917016-0",
+                  "operation_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "name": "tool_1791409280-917016-0.txt",
+                  "descriptor": "{\"id\":\"tool_1791409280-917016-0\",\"operation\":\"ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc5d3fb7442afc-dfe18-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/project\",\"generation\":1,\"source\":\"source-f2047bf6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4710416,
+                  "extent": 5769,
+                  "state": "Complete",
+                  "completed": 1791409280
+                },
+                {
+                  "id": "tool_1791409280-917016-1",
+                  "operation_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "name": "tool_1791409280-917016-1.txt",
+                  "descriptor": "{\"id\":\"tool_1791409280-917016-1\",\"operation\":\"ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc5d3fb7442afc-dfe18-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/project\",\"generation\":1,\"source\":\"source-f2047bf6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4710417,
+                  "extent": 5891,
+                  "state": "Complete",
+                  "completed": 1791409280
+                },
+                {
+                  "id": "tool_1791409280-917016-2",
+                  "operation_id": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc5d3fb7442afc-dfe18-0",
+                  "name": "tool_1791409280-917016-2.txt",
+                  "descriptor": "{\"id\":\"tool_1791409280-917016-2\",\"operation\":\"ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc5d3fb7442afc-dfe18-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/project\",\"generation\":1,\"source\":\"source-f2047bf6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                  "dev": 65027,
+                  "ino": 4710418,
+                  "extent": 1615,
+                  "state": "Complete",
+                  "completed": 1791409281
+                }
+              ],
+              "presentation": [
+                {
+                  "operation": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r1-c0-call_vis16_0",
+                  "presentation": {
+                    "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                    "body_bytes": 5769,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-0.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5769,
+                      "retained_bytes": 5769,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r2-c0-call_vis16_1",
+                  "presentation": {
+                    "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                    "body_bytes": 5891,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-1.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5891,
+                      "retained_bytes": 5891,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r3-c0-call_vis16_2",
+                  "presentation": {
+                    "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                    "body_bytes": 1606,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-007/oc/home/data/oc/tool-output/tool_1791409280-917016-2.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 1615,
+                      "retained_bytes": 1615,
+                      "admitted_lines": 84,
+                      "retained_lines": 84
+                    },
+                    "shell": {
+                      "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                      "stderr": "",
+                      "stdout_limited": true,
+                      "stderr_limited": false,
+                      "exit": 0,
+                      "signal": null,
+                      "timed_out": false,
+                      "cancelled": false
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc5d3fb7442afc-dfe18-0-1791409280034-917016-0-r4-c0-call_vis16_3",
+                  "presentation": {
+                    "body": "error: mcp tool reported failure",
+                    "body_bytes": 32,
+                    "body_limited": false,
+                    "generated_guidance": false,
+                    "producer_limited": null
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "artifacts": {
+          "data/oc/tool-output/tool_1791409280-917016-2.txt": {
+            "bytes": 1615,
+            "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+          },
+          "data/oc/tool-output/tool_1791409280-917016-1.txt": {
+            "bytes": 5891,
+            "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+          },
+          "data/oc/tool-output/tool_1791409280-917016-0.txt": {
+            "bytes": 5769,
+            "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "owner_facts": {
+        "bounded": true,
+        "separate_body_guidance": true,
+        "presentation_count": 4,
+        "artifacts": 3
+      },
+      "reason": "Timed out waiting for Unicode draft inside caret"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_CURSOR_TEMPORAL_ONLY",
+    "mode": "blink",
+    "renderer": "webgl",
+    "synchronized_output": "supported",
+    "card_case": "expanded",
+    "observation": "Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting",
+    "unresolved": [
+      "Temporal frames are timestamped observations, not settled-frame claims",
+      "Behavior qualification is separate from unmasked whole-grid/PNG parity",
+      "DOM hover blink suppression is not qualified as PASS"
+    ]
+  },
+  "finished": "2026-10-07T21:41:52.557Z",
+  "exit_code": 1
+}

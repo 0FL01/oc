@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:[
     'Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.',
     'Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.',
@@ -39,7 +39,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
   try {
     await shot('home',f=>f.text.includes('Ask anything'));
     send('\x1b[200~VIS16 preview: execute the supplied MCP and Shell calls exactly once.\x1b[201~','tool_preview_prompt');send('\r','tool_preview_submit');
-    const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1);
+    const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&(cursorProbe||target(f,1).length===1));
     if(requests()!==6||calls()!==4||logs.some(e=>e.kind==='provider'&&!e.valid))throw Error('Unexpected provider/call count or unpaired result');
      const before=await snapshot('completed');result.before=before;
      if(before.mcp_calls.length!==3)throw Error('Real MCP did not execute exactly three times');
@@ -57,6 +57,13 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     await waitFor(f=>f.rows===80&&target(f,1).length===1,'tall card view',6000);
     send('\x1b[200~preserved draft\x1b[201~','tool_preview_draft');
     const base=await waitFor(f=>f.text.includes('preserved draft'),'draft');
+     if(cursorProbe) {
+       result.cursor_temporal=await cursorProbe();
+       const after=await snapshot('cursor_completed');result.after=after;
+       if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(after.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(after.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(after.shell_effect))throw Error('Cursor interactions changed effects/captures/RAW');
+       result.cursor_temporal.no_tool_replay=true;
+       result.status='DIAGNOSTIC_CURSOR_ONLY';save();return result;
+    }
     draftCaret=base.cursor;
     const p=target(base,1)[0];
     send(`\x1b[<35;${p.x+1};${p.y+1}M`,'tool_preview_hover');
@@ -92,11 +99,13 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
       // Newest is the failure; select the oldest successful MCP operation.
       send('\x1b[B\x1b[B\x1b[B\r','tool_preview_cards_detail');
       const detail=await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('Capture Complete:')&&f.text.includes('Body preview:')&&f.text.includes('Available output page (bounded; explicit viewer read):'),'native bounded capture details',6000);
+      if(detail.cursor.visible)throw Error('Read-only detail exposes underlying composer caret');
       await capture('native-tool-preview-capture-details',detail,'NATIVE_ONLY_RESOURCE_DETAILS');
       send('\x1b[6~','tool_preview_cards_page_down');
       await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('enter next page'),'bounded cards next-page availability',6000);
       send('\r','tool_preview_cards_next_page');
       const paged=await waitFor(f=>f.text.includes('Tool result')&&f.text.includes('bytes 240–480 of'),'existing explicit bounded owner page',6000);
+      if(paged.cursor.visible)throw Error('Read-only paging exposes underlying composer caret');
       await capture('native-tool-preview-cards-paged',paged,'NATIVE_ONLY_RESOURCE_DETAILS');
       send('\x1b','tool_preview_close_card_detail');await waitFor(f=>f.text.includes('Tool cards')&&!f.text.includes('Tool result'),'cards list restored',6000);
       send('\x1b','tool_preview_close_cards');await waitFor(f=>!f.text.includes('Tool cards')&&!f.text.includes('Tool result'),'cards closed',6000);

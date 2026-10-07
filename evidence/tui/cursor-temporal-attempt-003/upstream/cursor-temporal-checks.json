@@ -1,0 +1,57 @@
+{
+  "origin": "upstream",
+  "mode": "blink",
+  "status": "DIAGNOSTIC_ONLY",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "samples": 308,
+      "commands": 0,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1194,
+        1222.7999999523163,
+        1204.2999999523163
+      ],
+      "raster_blink_observed": true
+    },
+    {
+      "state": "hover",
+      "moves": 267,
+      "samples": 121,
+      "commands": 2268,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1235.3999998569489,
+        1113,
+        1261.6000001430511,
+        1148.0999999046326
+      ],
+      "raster_blink_observed": true
+    },
+    {
+      "state": "restored",
+      "moves": 0,
+      "samples": 304,
+      "commands": 0,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1201.5,
+        1220,
+        1187.1000001430511,
+        1210.5999999046326
+      ],
+      "raster_blink_observed": true
+    }
+  ]
+}

@@ -236,6 +236,12 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
         !state.preview_limited(),
         "ordinary empty view does not inherit old limitation"
     );
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 48)).unwrap();
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    let composer_caret = terminal.backend().cursor_position();
+    assert!(terminal.backend().cursor_visible());
     state.panel = TuiPanel::Cards;
     state.apply_cards(vec![crate::history::card_from_row(&original)], false);
     state.apply_card_output(
@@ -257,9 +263,35 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
     ] {
         assert!(painted.contains(fact), "detail omitted {fact}: {painted}");
     }
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    assert!(
+        !terminal.backend().cursor_visible(),
+        "read-only detail has no input owner"
+    );
     assert_eq!(
         state.card_output.as_ref().unwrap().page.text,
         original.output.unwrap()
+    );
+    state.panel = TuiPanel::Model;
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    assert!(
+        terminal.backend().cursor_visible(),
+        "search owns its real caret"
+    );
+    assert_ne!(terminal.backend().cursor_position(), composer_caret);
+    state.close_panel();
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    assert_eq!(terminal.backend().cursor_position(), composer_caret);
+    assert!(terminal.backend().cursor_visible());
+    assert_eq!(
+        (&state.input, state.editor.cursor),
+        (&"unchanged draft".to_owned(), 5)
     );
     for role in [Role::User, Role::Assistant] {
         let mut message = msg(1, role, "accepted prompt");

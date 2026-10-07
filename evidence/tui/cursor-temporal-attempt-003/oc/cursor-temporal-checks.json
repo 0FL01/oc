@@ -1,0 +1,57 @@
+{
+  "origin": "oc",
+  "mode": "blink",
+  "status": "DIAGNOSTIC_ONLY",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "samples": 310,
+      "commands": 0,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1157.1000001430511,
+        1223.3999998569489,
+        1174.9000000953674,
+        1202.5
+      ],
+      "raster_blink_observed": true
+    },
+    {
+      "state": "hover",
+      "moves": 267,
+      "samples": 118,
+      "commands": 2314,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1144.0999999046326,
+        1233,
+        1211.3000001907349,
+        1161.2999999523163
+      ],
+      "raster_blink_observed": true
+    },
+    {
+      "state": "restored",
+      "moves": 0,
+      "samples": 305,
+      "commands": 0,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_preserved": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1208.1999998092651,
+        1240.6000001430511,
+        1153.3999998569489
+      ],
+      "raster_blink_observed": true
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "origin": "oc",
+  "mode": "blink",
+  "card_case": "expanded",
+  "geometry": {
+    "columns": 120,
+    "rows": 40
+  },
+  "status": "IN_PROGRESS",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 325,
+      "commands": 0,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1215,
+        1189.3999998569489,
+        1196
+      ],
+      "max_sample_gap_ms": 68.90000009536743,
+      "raster_blink_observed": true
+    },
+    {
+      "state": "hover",
+      "moves": 275,
+      "temporal_full_frames": 12,
+      "samples": 150,
+      "commands": 2327,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1224.8999998569489,
+        1194.2000000476837,
+        1235.7999999523163
+      ],
+      "max_sample_gap_ms": 102.79999995231628,
+      "raster_blink_observed": true
+    },
+    {
+      "state": "restored",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 317,
+      "commands": 0,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1179,
+        1202.2000000476837,
+        1250.4000000953674
+      ],
+      "max_sample_gap_ms": 103.10000014305115,
+      "raster_blink_observed": true
+    }
+  ]
+}

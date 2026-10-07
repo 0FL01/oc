@@ -17,6 +17,7 @@ import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
 import {probeServices} from './services.mjs';
 import {probeToolPreview} from './tool_preview.mjs';
+import {probeCursorTemporal} from './cursor_temporal.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 
@@ -31,8 +32,18 @@ const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const cleanServices = args['clean-services'] === 'true';
 const toolPreview = args['tool-preview'] === 'true';
+const cursorTemporal = args['cursor-temporal'];
+if(cursorTemporal&&(!toolPreview||!['blink','steady','default'].includes(cursorTemporal)))throw Error('--cursor-temporal requires --tool-preview true and blink|steady|default');
+const cursorRenderer=args['cursor-renderer']||'dom';
+if(args['cursor-renderer']&&(!cursorTemporal||!['dom','webgl'].includes(cursorRenderer)))throw Error('--cursor-renderer requires cursor-temporal and dom|webgl');
+const cursorRendererRoot='/home/opencode/.cache/opencode-tmp/opencode/cursor-renderer';
+const cursorCase=args['cursor-case']||'collapsed', cursorSync=args['cursor-sync']||'supported';
+if(args['cursor-case']&&(!cursorTemporal||!['collapsed','expanded'].includes(cursorCase)))throw Error('--cursor-case requires cursor-temporal and collapsed|expanded');
+if(args['cursor-sync']&&(!cursorTemporal||!['supported','unsupported'].includes(cursorSync)))throw Error('--cursor-sync requires cursor-temporal and supported|unsupported');
+const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
+const toolPreviewGeometry=cursorTemporal?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc'].includes(k))))throw Error('--tool-preview requires exclusive paired short 120x40 geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -350,6 +361,15 @@ if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(cursorTemporal)for(const n of ['cursor_temporal.mjs','cursor_frontend.js'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(cursorRenderer==='webgl') {
+  const packageFile=path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/package.json');
+  if(JSON.parse(fs.readFileSync(packageFile)).version!=='0.19.0')throw Error('WebGL renderer version mismatch');
+  lock.cursor_renderer={name:'@xterm/addon-webgl',version:'0.19.0',
+    bundle_sha256:sha(fs.readFileSync(path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/lib/addon-webgl.js'))),
+    package_lock_sha256:sha(fs.readFileSync(path.join(cursorRendererRoot,'package-lock.json')))};
+  fs.copyFileSync(path.join(cursorRendererRoot,'package-lock.json'),path.join(output,'cursor-renderer.package-lock.json'));
+}
 if(args['build-oc'] === 'true') {
   const build = execute(['cargo', 'build', '--locked']);
   if(build.status !== 0) throw Error('Rust build failed (see commands.json)');
@@ -410,11 +430,12 @@ try {
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
+    cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
-          animations: compaction ? compactionAnimation : scanner ? scannerAnimation : 'original supported animations=false; completed states only; terminal cursorBlink=false',
+          animations: compaction ? compactionAnimation : scanner ? scannerAnimation : `original supported animations=false; completed states only; terminal cursorBlink=${cursorTemporal==='blink'}`,
           ...(compaction ? {compaction_tps:compactionTps} : {}),
        ...(scanner ? {scanner_cancel:scannerCancel} : {}),
        ...(modelsInteraction ? {models_interaction:true,catalog_extension:'fixture-scroll-00..11'} : {})}};
@@ -438,7 +459,8 @@ try {
                ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
               apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
                clean_services:cleanServices,
-               tool_preview:toolPreview,
+                tool_preview:toolPreview,
+                cursor_temporal:cursorTemporal||null,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
         sessions_campaign:args['sessions-campaign'] || 'legacy',
@@ -453,7 +475,9 @@ try {
     await page.addStyleTag({path: path.join(tools,'node_modules/@xterm/xterm/css/xterm.css')});
     await page.addScriptTag({path: path.join(tools,'node_modules/@xterm/xterm/lib/xterm.js')});
     await page.addScriptTag({path: path.join(tools,'node_modules/@xterm/addon-unicode11/lib/addon-unicode11.js')});
+    if(cursorRenderer==='webgl')await page.addScriptTag({path:path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/lib/addon-webgl.js')});
     await page.addScriptTag({path: path.join(here,'frontend.js')});
+    if(cursorTemporal)await page.addScriptTag({path:path.join(here,'cursor_frontend.js')});
     const child = spawn('/usr/bin/python3', [path.join(here,'bridge.py'), path.join(dir,'bridge-spec.json')], {env: cleanEnv, stdio: ['pipe','pipe','pipe']});
      const logs = [], chunks = [[],[]], inputs = [], outputTimeline=[];
     let generation=0, prequitBoundary;
@@ -468,6 +492,7 @@ try {
     };
     await page.exposeFunction('terminalReply', d => send(d));
     await page.evaluate(p => startTerminal(p), profile);
+    if(cursorTemporal)await page.evaluate(()=>installCursorTrace());
     readline.createInterface({input: child.stdout}).on('line', line => {
       const event = JSON.parse(line);
        if (event.kind === 'output') {
@@ -484,7 +509,7 @@ try {
     const frame = async () => {
        if(applyPatch || permission || leaderPending || cleanServices || toolPreview) {
         let timer;
-        try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('VIS35 xterm write callback stalled')),5000);})]);}
+         try {await Promise.race([writeQueue,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('xterm write callback stalled')),cursorTemporal?15000:5000);})]);}
         finally {clearTimeout(timer);}
       } else await writeQueue;
       return page.evaluate(() => readTerminal());
@@ -557,6 +582,29 @@ try {
       lock.profile=profile; json('capture.lock.json',lock);
       return status;
     };
+    // Whole terminal raster bytes are copied from the mature WebGL renderer,
+    // not synthesized from cells. Preserve their actual observation timestamp
+    // alongside full VT cells; no settled/atomic raster assertion is invented.
+    const recordTemporal=(state,snapshots)=>{
+      const phases={visible:0,hidden:0};
+      for(const snapshot of snapshots) {
+        // Name the actually observed raster phase at acquisition. Independent
+        // clocks must never pair a visible caret with a hidden caret merely
+        // because their arbitrary sample ordinals happen to agree.
+        const phase=snapshot.raster.visible?'visible':'hidden';
+        const scenario='cursor-'+state+'-phase-'+phase+'-'+String(phases[phase]++).padStart(2,'0');
+        const name=path.join(dir,scenario);
+        if(fs.existsSync(name+'.cells.json'))throw Error('Refusing to overwrite temporal frame');
+        const {png_base64,...observation}=snapshot;
+        const png=Buffer.from(png_base64,'base64'),environment=sha(canonical(profile)),{text,...grid}=observation.frame;
+        fs.writeFileSync(name+'.png',png);
+        fs.writeFileSync(name+'.cells.json',JSON.stringify({schema_version:1,origin,scenario,fixture_sha256:fixtureSha,environment_id:environment,producer_commit:origin==='upstream'?lock.sources.upstream_commit:commit,...grid}));
+        fs.writeFileSync(name+'.txt',text+'\n');
+        fs.writeFileSync(name+'.render.json',JSON.stringify({schema_version:1,origin,scenario,environment_id:environment,temporal_unsettled:true,actual_renderer_canvas:true,observation,screenshot:{png_width:png.readUInt32BE(16),png_height:png.readUInt32BE(20)}}));
+        lock.captures.push({origin,scenario,status:'CAPTURED_TEMPORAL_SEQUENCE',environment_id:environment,cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(png),render_sha256:sha(fs.readFileSync(name+'.render.json')),path:path.relative(output,name)});
+      }
+      json('capture.lock.json',lock);
+    };
     try {
       if(args['startup-error'] === 'true' || args['seed-root']) {
         const expected = args['startup-error'] === 'true' || args.session === 'foreign' ? 'Native startup error' : origin==='upstream' ? 'Geometry parent' : 'Geometry child';
@@ -595,10 +643,12 @@ try {
           if(checks.status!=='OBSERVED')result=1;
            json('capture.lock.json',lock);continue;
          }
-        if(toolPreview) {
-          const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+         if(toolPreview) {
+           const resize=async rows=>{profile.rows=rows;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns:profile.columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns:profile.columns,rows})+'\n');};
+           const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+              cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
-            resize:async rows=>{profile.rows=rows;await page.evaluate(rows=>term.resize(120,rows),rows);child.stdin.write(JSON.stringify({kind:'resize',columns:120,rows})+'\n');},
+             resize,
             relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
           lock.tool_preview ??= {};lock.tool_preview[origin]=checks;
           if(checks.status!=='PASS_BEHAVIOR_ONLY')result=1;
@@ -2945,6 +2995,7 @@ try {
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
     if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
+    if(cursorTemporal)lock.qualification={status:'DIAGNOSTIC_CURSOR_TEMPORAL_ONLY',mode:cursorTemporal,renderer:cursorRenderer,synchronized_output:cursorSync,card_case:cursorCase,observation:'Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting',unresolved:['Temporal frames are timestamped observations, not settled-frame claims','Behavior qualification is separate from unmasked whole-grid/PNG parity','DOM hover blink suppression is not qualified as PASS']};
      if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
@@ -2965,7 +3016,10 @@ try {
         if(toolPreview && ['native-tool-preview-capture-details','native-tool-preview-cards-paged'].includes(scenario)) {
           lock.attempts.push({scenario,mode,status:'NATIVE_ONLY_RESOURCE_DETAILS'});continue;
         }
-       if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
+        if(cursorTemporal&&scenario.includes('-phase-')&&(!fs.existsSync(ref)||!fs.existsSync(actual))) {
+          lock.attempts.push({scenario,mode,status:'UNMATCHED_TEMPORAL_SAMPLE',reason:'Independent actual raster transitions produced unequal sample counts; not parity PASS'});result=1;continue;
+        }
+        if (!fs.existsSync(ref)||!fs.existsSync(actual)) {lock.attempts.push({scenario,mode,status:'BLOCKED',reason:'Missing actual capture'});result=1;continue;}
       const r=execute(['/usr/bin/python3',path.join(repo,'tui-recovery/scripts/compare_frames.py'),mode,ref,actual,'--report',path.join(output,scenario+'.'+mode+'-diff.json')]);
       lock.attempts.push({scenario,mode,status:paired?.phase_match==='UNMATCHED_PHASE' ? 'UNMATCHED_PHASE' :
         r.status===0?'EQUAL':r.status===1?'DIFFERENT':'INVALID',

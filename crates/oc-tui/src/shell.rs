@@ -1685,7 +1685,11 @@ fn render_prompt(
                     hint_rect,
                 );
             }
-            if visible > 0 && text_width > 0 && !state.terminal_focused() {
+            if visible > 0
+                && text_width > 0
+                && !state.terminal_focused()
+                && *state.panel() == crate::app::TuiPanel::None
+            {
                 frame.set_cursor_position((
                     text_x + (caret.1 as u16).min(text_width - 1),
                     body.y + 1 + caret.0.saturating_sub(start) as u16,

@@ -1,0 +1,2802 @@
+[
+  {
+    "at_ms": 1791414145526,
+    "kind": "tool_preview_prompt",
+    "base64": "G1syMDB+VklTMTYgcHJldmlldzogZXhlY3V0ZSB0aGUgc3VwcGxpZWQgTUNQIGFuZCBTaGVsbCBjYWxscyBleGFjdGx5IG9uY2UuG1syMDF+"
+  },
+  {
+    "at_ms": 1791414145526,
+    "kind": "tool_preview_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791414151286,
+    "kind": "tool_preview_draft",
+    "base64": "G1syMDB+cHJlc2VydmVkIGRyYWZ0G1syMDF+"
+  },
+  {
+    "at_ms": 1791414154120,
+    "kind": "cursor_clear_draft",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791414157060,
+    "kind": "cursor_unicode_draft",
+    "base64": "G1syMDB+cHJlc2VydmVkIGRyYWZ0IM6p55WMG1syMDF+G1tEG1tE"
+  },
+  {
+    "at_ms": 1791414161682,
+    "kind": "cursor_scroll_card_into_view",
+    "base64": "G1s8NjQ7MTI7NU0="
+  },
+  {
+    "at_ms": 1791414161891,
+    "kind": "cursor_scroll_card_into_view",
+    "base64": "G1s8NjQ7MTI7NU0="
+  },
+  {
+    "at_ms": 1791414162119,
+    "kind": "cursor_scroll_card_into_view",
+    "base64": "G1s8NjQ7MTI7NU0="
+  },
+  {
+    "at_ms": 1791414162312,
+    "kind": "cursor_expand_real_card",
+    "base64": "G1s8MDs4OzRNG1s8MDs4OzRt"
+  },
+  {
+    "at_ms": 1791414171191,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171212,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171232,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171252,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171272,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171293,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171314,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171334,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171354,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171374,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171394,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171414,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171436,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171459,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171478,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171499,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171519,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171539,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171559,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171580,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171600,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171620,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171640,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171660,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171680,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171703,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171724,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171745,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171765,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171785,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171805,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171825,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171845,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171866,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171886,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171907,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171928,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414171948,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414171969,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414171990,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172010,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172031,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172051,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172071,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172091,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172111,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172131,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172151,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172172,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172192,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172212,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172232,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172252,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172272,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172293,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172313,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172333,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172353,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172374,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172394,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172413,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172434,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172454,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172474,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172494,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172515,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172536,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172556,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172576,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172596,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172616,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172636,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172657,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172678,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172698,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172718,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172738,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172758,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172778,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172798,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172818,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172838,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172858,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172878,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172898,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172918,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172938,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414172958,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414172978,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414172999,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173019,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173039,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173059,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173079,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173099,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173119,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173139,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173159,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173179,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173199,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173220,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173241,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173261,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173281,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173301,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173321,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173342,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173362,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173382,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173402,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173422,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173443,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173465,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173485,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173505,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173525,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173545,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173565,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173586,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173606,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173626,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173646,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173666,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173686,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173706,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173726,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173746,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173768,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173788,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173808,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173828,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173848,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173869,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173890,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173910,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173932,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414173952,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414173972,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414173992,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174012,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174032,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174052,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174073,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174094,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174115,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174134,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174154,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174173,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174194,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174215,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174235,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174255,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174275,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174295,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174315,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174335,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174355,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174375,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174395,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174415,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174435,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174455,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174476,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174496,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174516,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174537,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174557,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174577,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174597,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174617,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174638,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174658,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174678,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174698,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174718,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174738,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174758,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174778,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174798,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174818,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174839,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174859,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174879,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174899,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174920,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414174940,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414174960,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414174980,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175000,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175020,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175040,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175060,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175080,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175100,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175121,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175143,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175164,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175186,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175206,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175228,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175248,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175270,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175292,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175313,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175333,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175354,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175375,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175395,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175415,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175435,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175454,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175475,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175495,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175515,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175535,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175555,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175576,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175596,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175616,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175636,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175656,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175676,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175696,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175716,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175735,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175756,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175776,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175796,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175816,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175836,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175856,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175877,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175898,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175920,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414175940,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414175964,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414175985,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176005,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176025,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176045,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176065,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176086,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176107,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176127,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176147,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176167,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176187,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176208,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176229,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176250,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176270,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176290,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176310,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176330,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176351,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176371,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176394,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176414,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176435,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176455,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176475,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176496,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176516,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176536,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176557,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176577,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176597,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176618,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176638,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176659,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176680,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176700,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414176720,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414176740,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs0TQ=="
+  },
+  {
+    "at_ms": 1791414176771,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7ODs5TQ=="
+  },
+  {
+    "at_ms": 1791414185655,
+    "kind": "cursor_open_command_search",
+    "base64": "EA=="
+  },
+  {
+    "at_ms": 1791414194571,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194591,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194611,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194631,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194651,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194671,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194692,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194712,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194732,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194754,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194774,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194795,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194815,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194834,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194855,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194876,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194896,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194916,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194936,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414194956,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414194977,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414194997,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195017,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195037,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195057,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195077,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195097,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195117,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195137,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195157,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195178,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195198,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195218,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195238,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195258,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195278,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195299,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195320,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195340,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195360,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195380,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195400,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195420,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195441,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195461,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195483,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195503,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195523,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195543,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195563,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195583,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195603,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195623,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195644,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195665,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195685,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195705,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195725,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195745,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195766,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195786,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195806,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195827,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195847,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195868,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195888,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195908,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195928,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414195948,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414195968,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414195988,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196008,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196028,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196048,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196068,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196088,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196108,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196128,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196148,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196169,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196189,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196209,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196229,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196249,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196271,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196291,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196312,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196332,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196352,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196372,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196392,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196412,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196433,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196453,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196474,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196495,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196515,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196536,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196556,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196576,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196596,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196615,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196636,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196656,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196676,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196696,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196719,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196739,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196760,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196781,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196801,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196821,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196841,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196861,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196881,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196901,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196921,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414196941,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414196961,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414196981,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197001,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197020,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197041,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197061,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197081,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197101,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197122,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197144,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197164,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197185,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197205,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197226,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197247,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197268,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197288,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197307,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197328,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197349,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197369,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197389,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197409,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197429,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197449,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197472,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197493,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197512,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197534,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197553,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197574,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197595,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197614,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197636,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197656,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197676,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197696,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197717,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197737,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197757,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197779,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197799,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197820,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197840,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197860,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197880,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197900,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197920,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197940,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414197960,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414197979,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414197999,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198020,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198040,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198060,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198083,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198102,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198124,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198144,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198164,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198184,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198203,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198224,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198245,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198265,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198285,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198305,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198328,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198348,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198368,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198388,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198408,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198430,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198449,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198471,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198491,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198511,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198532,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198557,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198577,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198600,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198620,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198642,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198662,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198682,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198702,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198722,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198742,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198762,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198782,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198803,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198824,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198844,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198865,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198885,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198905,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198925,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414198945,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414198965,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414198986,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199006,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199026,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199046,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199067,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199087,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199107,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199128,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199149,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199170,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199190,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199210,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199230,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199250,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199271,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199291,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199312,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199333,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199353,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199374,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199394,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199415,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199435,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199455,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199475,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199496,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199517,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199537,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199559,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199579,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199600,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199620,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199641,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199661,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199681,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199701,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199721,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199742,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199762,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199782,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199802,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199822,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199843,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199864,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199886,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199906,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199926,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414199946,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414199966,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414199987,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414200009,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414200029,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414200049,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414200069,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414200092,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTRN"
+  },
+  {
+    "at_ms": 1791414200112,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791414200133,
+    "kind": "cursor_continuous_hover",
+    "base64": "G1s8MzU7NDA7MTJN"
+  },
+  {
+    "at_ms": 1791414201798,
+    "kind": "cursor_close_command_search",
+    "base64": "Gw=="
+  }
+]

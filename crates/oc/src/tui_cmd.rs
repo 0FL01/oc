@@ -15,7 +15,6 @@ use std::time::{Duration, Instant};
 use crossterm::event::{self, Event as CEvent, MouseEventKind};
 use futures_util::{Stream, StreamExt};
 use ratatui::Terminal;
-use ratatui::backend::CrosstermBackend;
 
 use oc_adapters::application::{HISTORY_PAGE_LIMIT, TOOL_OPS_PAGE_LIMIT};
 use oc_core::core_app::{CoreApp, CoreEvent};
@@ -34,7 +33,7 @@ use oc_tui::commands::{CommandAction, dispatch};
 use oc_tui::dcp_panel::DcpOutcome;
 use oc_tui::events::{KeyAction, UiEvent, map_event};
 use oc_tui::shell::{StartupFailure, render_background, render_startup_failure};
-use oc_tui::terminal::{enter, install_panic_hook, set_cursor_color};
+use oc_tui::terminal::{FrameBackend, enter, install_panic_hook, set_cursor_color};
 use oc_tui::views::{cursor_color, render_frame};
 
 mod auth_controls;
@@ -216,7 +215,7 @@ async fn run_stages(
                 oc_adapters::trace::log("spawn.fail", &issue.to_string());
                 eprintln!("error: {issue}");
                 let _term = enter()?;
-                let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+                let mut terminal = Terminal::new(FrameBackend::new(std::io::stdout()))
                     .map_err(|e| format!("terminal: {e}"))?;
                 return startup_failure(&mut terminal, StartupFailure::Diagnostic(issue))
                     .map(|_| 1);
@@ -262,7 +261,7 @@ fn startup_query_frame(error: CoreError) -> Result<u8, String> {
         eprintln!("error: {diagnostic}");
     }
     let _term = enter()?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(std::io::stdout()))
+    let mut terminal = Terminal::new(FrameBackend::new(std::io::stdout()))
         .map_err(|error| format!("terminal: {error}"))?;
     startup_failure(&mut terminal, failure).map(|_| 1)
 }
@@ -1002,7 +1001,7 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
     }
     let output_metrics = std::env::var_os(METRICS_ENV)
         .map(|_| std::rc::Rc::new(std::cell::Cell::new(WriteMetrics::default())));
-    let backend = CrosstermBackend::new(TerminalOutput {
+    let backend = FrameBackend::new(TerminalOutput {
         stdout: std::io::stdout(),
         metrics: output_metrics.clone(),
     });
@@ -1136,6 +1135,10 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             let draw_start = frame_metrics
                 .as_ref()
                 .map(|_| (Instant::now(), monotonic_ns()));
+            terminal
+                .backend_mut()
+                .begin_frame()
+                .map_err(|e| format!("begin draw: {e}"))?;
             if first_paint {
                 // Establish base cells before the first content diff, just as
                 // subsequent frames inherit an already painted root canvas.
@@ -1163,6 +1166,16 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             let painted = terminal
                 .draw(|frame| render_frame(frame, &state))
                 .map_err(|e| format!("draw: {e}"))?;
+            if let Some(metrics) = &mut frame_metrics {
+                if metrics.previous.as_ref() != Some(painted.buffer) {
+                    metrics.changed_frames += 1;
+                }
+                metrics.previous = Some(painted.buffer.clone());
+            }
+            terminal
+                .backend_mut()
+                .finish_frame()
+                .map_err(|e| format!("publish draw: {e}"))?;
             if let (Some(metrics), Some((start, monotonic))) = (&mut frame_metrics, draw_start) {
                 let elapsed = start.elapsed().as_nanos();
                 metrics.count += 1;
@@ -1176,10 +1189,6 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                         .frame_samples
                         .push((start.duration_since(origin).as_nanos(), elapsed));
                 }
-                if metrics.previous.as_ref() != Some(painted.buffer) {
-                    metrics.changed_frames += 1;
-                }
-                metrics.previous = Some(painted.buffer.clone());
                 metrics.sample_views(&state, &loop_state);
                 metrics.writes = output_metrics.as_ref().expect("metrics enabled").get();
             }
@@ -1819,14 +1828,22 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
 }
 
 fn startup_failure<W: Write>(
-    terminal: &mut Terminal<CrosstermBackend<W>>,
+    terminal: &mut Terminal<FrameBackend<W>>,
     failure: StartupFailure,
 ) -> Result<ExitCode, String> {
     use crossterm::event::{KeyCode, KeyModifiers};
     loop {
         terminal
+            .backend_mut()
+            .begin_frame()
+            .map_err(|e| format!("begin draw: {e}"))?;
+        terminal
             .draw(|frame| render_startup_failure(frame, failure.clone()))
             .map_err(|e| format!("draw: {e}"))?;
+        terminal
+            .backend_mut()
+            .finish_frame()
+            .map_err(|e| format!("publish draw: {e}"))?;
         if event::poll(Duration::from_millis(100)).map_err(|e| format!("input: {e}"))?
             && let CEvent::Key(key) = event::read().map_err(|e| format!("input: {e}"))?
             && (matches!(key.code, KeyCode::Esc | KeyCode::Char('q'))

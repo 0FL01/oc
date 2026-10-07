@@ -1,0 +1,26 @@
+{
+  "origin": "upstream",
+  "mode": "default",
+  "card_case": "collapsed",
+  "geometry": {
+    "columns": 160,
+    "rows": 48
+  },
+  "status": "IN_PROGRESS",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 334,
+      "commands": 0,
+      "cycles": 0,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [],
+      "max_sample_gap_ms": 50.200000047683716,
+      "raster_blink_observed": false
+    }
+  ]
+}
