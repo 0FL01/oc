@@ -168,6 +168,29 @@ pub trait DiscoveryClient {
         headers: &HeaderMap,
         attempt_timeout: Duration,
     ) -> impl std::future::Future<Output = Result<(u16, Vec<u8>), DiscoveryError>> + Send;
+
+    /// Consume successful body chunks within the same attempt and byte budget.
+    /// The default preserves existing clients; native HTTP avoids a second
+    /// whole-document buffer for incremental metadata consumers.
+    fn get_chunks(
+        &self,
+        url: &str,
+        headers: &HeaderMap,
+        attempt_timeout: Duration,
+        mut consume: impl FnMut(&[u8]) -> Result<(), DiscoveryError> + Send,
+    ) -> impl std::future::Future<Output = Result<u16, DiscoveryError>> + Send {
+        let fetch = self.get(url, headers, attempt_timeout);
+        async move {
+            let (status, body) = fetch.await?;
+            if (200..300).contains(&status) {
+                if body.len() > DISCOVERY_BODY_CAP {
+                    return Err(DiscoveryError::InvalidResponse);
+                }
+                consume(&body)?;
+            }
+            Ok(status)
+        }
+    }
 }
 
 /// Reqwest-backed client: redirects refused, per-attempt total timeout.
@@ -205,6 +228,22 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
         headers: &HeaderMap,
         attempt_timeout: Duration,
     ) -> Result<(u16, Vec<u8>), DiscoveryError> {
+        let mut body = Vec::new();
+        let status = self
+            .get_chunks(url, headers, attempt_timeout, |chunk| {
+                append_discovery_body(&mut body, chunk)
+            })
+            .await?;
+        Ok((status, body))
+    }
+
+    async fn get_chunks(
+        &self,
+        url: &str,
+        headers: &HeaderMap,
+        attempt_timeout: Duration,
+        mut consume: impl FnMut(&[u8]) -> Result<(), DiscoveryError> + Send,
+    ) -> Result<u16, DiscoveryError> {
         tokio::time::timeout(attempt_timeout, async {
             let (host, addresses) =
                 crate::endpoint::resolve(url, self.endpoint.as_ref(), self.test_loopback)
@@ -212,6 +251,12 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
                     .map_err(|_| DiscoveryError::InvalidConfig)?;
             let client = reqwest::Client::builder()
                 .retry(reqwest::retry::never())
+                // The metadata consumer validates records between reads. Bound
+                // transport credit too, rather than queueing multi-MiB DATA
+                // beside its current record and the selected provider view.
+                .http2_initial_stream_window_size(256 * 1024)
+                .http2_initial_connection_window_size(256 * 1024)
+                .http2_adaptive_window(false)
                 .redirect(reqwest::redirect::Policy::none())
                 .no_proxy()
                 .user_agent(crate::USER_AGENT)
@@ -239,27 +284,49 @@ impl DiscoveryClient for ReqwestDiscoveryClient {
             // classify by status without consuming them. The fetch loop owns
             // retry policy for non-2xx responses.
             if !(200..300).contains(&status) {
-                return Ok((status, Vec::new()));
+                return Ok(status);
             }
-            let mut body = Vec::new();
+            let mut bytes = 0usize;
             let mut stream = resp;
             loop {
                 match stream.chunk().await {
                     Ok(None) => break,
                     Ok(Some(chunk)) => {
-                        if body.len() + chunk.len() > DISCOVERY_BODY_CAP {
-                            return Err(DiscoveryError::InvalidResponse);
-                        }
-                        body.extend_from_slice(&chunk);
+                        bytes = bytes
+                            .checked_add(chunk.len())
+                            .filter(|bytes| *bytes <= DISCOVERY_BODY_CAP)
+                            .ok_or(DiscoveryError::InvalidResponse)?;
+                        consume(&chunk)?;
                     }
                     Err(_) => return Err(DiscoveryError::Network),
                 }
             }
-            Ok((status, body))
+            Ok(status)
         })
         .await
         .map_err(|_| DiscoveryError::Network)?
     }
+}
+
+pub(super) fn append_discovery_body(
+    body: &mut Vec<u8>,
+    chunk: &[u8],
+) -> Result<(), DiscoveryError> {
+    let needed = body
+        .len()
+        .checked_add(chunk.len())
+        .filter(|length| *length <= DISCOVERY_BODY_CAP)
+        .ok_or(DiscoveryError::InvalidResponse)?;
+    if needed > body.capacity() {
+        // The response cap bounds logical bytes, not Vec's amortized doubling.
+        // Use bounded 256 KiB quanta: at most 32 growths for an 8 MiB response,
+        // without retaining a spare multi-megabyte half beside its parsed view.
+        let quantum = 256 * 1024;
+        let capacity = needed.div_ceil(quantum) * quantum;
+        body.reserve_exact(capacity - body.len());
+    }
+    body.extend_from_slice(chunk);
+    Ok(())
 }
 
 /// Returns true for retryable HTTP statuses (408/425/429/5xx).
@@ -1094,6 +1161,30 @@ mod tests {
             .await
             .expect("2xx HTTP fixture")
             .expect("HTTP fixture task");
+
+        // The incremental port delivers admitted successful bytes without the
+        // whole-body collector; its caller owns the completed document state.
+        let (base, server) = http_fixture(200, false, 1).await;
+        client.endpoint =
+            Some(crate::endpoint::EndpointBinding::admit(&base, true, "test fixture").unwrap());
+        let mut received = Vec::new();
+        let status = client
+            .get_chunks(
+                &super::discovery_url(&base).unwrap(),
+                &headers(),
+                Duration::from_secs(1),
+                |chunk| {
+                    received.extend_from_slice(chunk);
+                    Ok(())
+                },
+            )
+            .await;
+        assert_eq!(status, Ok(200));
+        assert_eq!(received, b"x");
+        tokio::time::timeout(Duration::from_secs(2), server)
+            .await
+            .expect("successful chunk fixture")
+            .expect("HTTP fixture task");
     }
 
     struct FakeClock {
@@ -1530,6 +1621,26 @@ mod tests {
 
     #[tokio::test]
     async fn aud18_any_2xx_succeeds_and_body_cap_invalid_response_is_terminal() {
+        // The native HTTP collector must not double a ~4 MiB wire document to
+        // an 8 MiB allocation while its already bounded parser is running.
+        let chunk = vec![b'x'; 64 * 1024];
+        let mut body = Vec::new();
+        for _ in 0..65 {
+            super::append_discovery_body(&mut body, &chunk).unwrap();
+        }
+        assert_eq!(body.len(), chunk.len() * 65);
+        assert!(body.capacity() <= body.len() + 256 * 1024);
+        while body.len() < DISCOVERY_BODY_CAP {
+            super::append_discovery_body(&mut body, &chunk).unwrap();
+        }
+        assert_eq!(body.len(), DISCOVERY_BODY_CAP);
+        assert!(body.iter().all(|byte| *byte == b'x'));
+        assert_eq!(
+            super::append_discovery_body(&mut body, b"y"),
+            Err(DiscoveryError::InvalidResponse)
+        );
+        assert_eq!(body.len(), DISCOVERY_BODY_CAP);
+
         for status in [200, 201, 204, 206, 299] {
             let clock = FakeClock::new();
             let client = FakeClient::new(vec![Scripted::Status {

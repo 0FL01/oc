@@ -12,6 +12,8 @@ use std::{
     time::Duration,
 };
 
+mod document;
+
 /// The sole production source; not the donor mirror or a configured provider URL.
 pub const SOURCE: &str = "https://models.dev/api.json";
 /// Public provider ID, independent of selection and credentials.
@@ -614,15 +616,14 @@ impl GoCatalog {
             reqwest::header::HeaderValue::from_static("application/json"),
         );
         let fetch = tokio::time::timeout(DEADLINE, async {
-            let (status, body) = client.get(SOURCE, &headers, DEADLINE).await?;
+            let mut document = document::Chunks::new();
+            let status = client
+                .get_chunks(SOURCE, &headers, DEADLINE, |chunk| document.push(chunk))
+                .await?;
             if !(200..300).contains(&status) {
                 return Err(discovery::DiscoveryError::Http { status });
             }
-            if body.len() > discovery::DISCOVERY_BODY_CAP {
-                return Err(discovery::DiscoveryError::InvalidResponse);
-            }
-            let mut root: PublicDocument = serde_json::from_slice(&body)
-                .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
+            let mut root = document.finish()?;
             let mut slice =
                 |id: &str| -> Result<Option<ProviderRecord>, discovery::DiscoveryError> {
                     root.0

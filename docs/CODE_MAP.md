@@ -70,8 +70,13 @@ credential-free `https://models.dev/api.json` refresh, sanitized source-qualifie
 SQLite preference cache and single-flight/TTL/last-good state. Only Go/OpenAI metadata
 survives normalization; foreign JSON is checked without retaining its Value tree
 (`PublicDocument`/`CheckedDiscard`), preserving number/depth/duplicate semantics.
-Tests `models_dev/tests.rs`; current allocation/clean-HOME proof:
-`evidence/T42/current-changes.md`. The existing Db shares this
+`models_dev/document.rs` frames complete root members across chunks before that
+same validation; `discovery.rs::get_chunks` streams them inside the existing
+attempt/8 MiB cap with bounded HTTP/2 credit, without a whole-public-wire buffer.
+Tests `models_dev/{tests.rs,document/tests.rs}` and native discovery transport;
+current allocation/clean-HOME proof:
+`evidence/T42/current-changes.md`; incremental wire/transport follow-up:
+`evidence/tui/public-catalog-memory.md`. The existing Db shares this
 owner with all its handles; `composition/go_catalog.rs` attaches last-good data,
 builds finite model/variant bindings and separates public fetch status from paid
 auth readiness. Application `provider_catalog.rs` owns startup/picker refresh and
