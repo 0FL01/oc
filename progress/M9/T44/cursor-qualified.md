@@ -8,6 +8,8 @@ never replay. Restore closes partial sync and restores visibility/modes. Read-on
 panels have no composer caret; editable Search owns its caret and closes back to
 the exact Unicode draft/position. No blink clock/permanent timer or dependency fork.
 Receipt: evidence/tui/cursor-frame-presentation.md. T44 remains ACTIVE.
+Implementation0becfcb09402e25eea0d3f66361d70c2d322156a was checked and PUSHED by
+ordinary fast-forward to verified origin0FL01/oc, branchagent/oc-rust-port.
 
 ## Checks
 Final2 fmt/strict locked workspace Clippy, workspace1731/0/11 across46 records,
@@ -29,7 +31,7 @@ baseline/cap/queue/permission weakening, RAW rewrite or tool replay. AUTH06 defe
 original24/24/Go13/24 and unrelated .opencode/ untouched; no paid generation.
 
 ## Next
-Commit/push the reviewed functional slice with immutable actual evidence. Continue
+Functional slice and immutable current proofs are committed/pushed. Continue
 Home's typed live MCP footer slot and every remaining frozen R1–R6/VIS01–VIS45
 styled/temporal/interaction outcome; final current-source R6/V09 after full closure.
 No task finish on this slice or an own-golden/final-cursor-only claim.

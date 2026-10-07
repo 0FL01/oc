@@ -2,6 +2,8 @@
 
 Date: 2026-10-08. Task remains **ACTIVE**. This is a qualified functional
 VIS16/VIS31 slice, **not** full pixel/temporal parity or whole T44/R6/V09 PASS.
+Implementation commit: `0becfcb09402e25eea0d3f66361d70c2d322156a`, ordinary
+fast-forward PUSHED to verified `github.com/0FL01/oc`, `agent/oc-rust-port`.
 Frozen scope: GOAL.md tool-output phantom-caret amendment;
 T44_CONTRACT_AMENDMENT.md lines 2007–2142; docs/TEST_PLAN.md VIS16/VIS31.
 
