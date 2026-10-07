@@ -1,6 +1,6 @@
 # T42 — Повторная qualification и честный handoff
 
-Status: active
+Status: done
 Spec: ../../../audit/repairs/T42.md
 
 Последние 12 записей; остальные доступны по номеру/targeted search.
@@ -9,3 +9,4 @@ Spec: ../../../audit/repairs/T42.md
 - [0002](0002.md)
 - [0003](0003.md)
 - [0004](0004.md)
+- [0005](0005.md)

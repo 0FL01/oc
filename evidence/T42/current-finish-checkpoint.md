@@ -1,12 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-07T01:01:15+00:00
-Active: нет
-
-Сверить Git status/diff до выполнения команд.
-
-Последний срез: T42 [done]; сверить незакоммиченный diff.
-
 ## Result
 
 Scoped T42 current AUD38/AUD39 complete on fixed code commit
@@ -44,11 +35,3 @@ Finish only T42 with evidence/T42/report.md; commit/push this factual closeout.
 Recheck actual remaining dependencies without inventing tasks or resuming paused
 T44/deferred AUTH06/exhausted live campaigns. T30 remains gated by its mandatory
 unfinished outcomes and must not be declared READY.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
-
-Ready (до 5): нет
-Blocked: T27, T44, T45, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.
