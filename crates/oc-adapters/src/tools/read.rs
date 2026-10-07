@@ -113,6 +113,7 @@ pub(crate) struct Outcome {
     pub output: String,
     pub image: Option<ReadToolOutput>,
     pub directory: bool,
+    pub producer_limited: Option<bool>,
 }
 impl Outcome {
     pub fn error(state: &'static str, error: impl std::fmt::Display) -> Self {
@@ -121,6 +122,7 @@ impl Outcome {
             output: format!("error: {error}"),
             image: None,
             directory: false,
+            producer_limited: None,
         }
     }
 }
@@ -217,6 +219,7 @@ pub(crate) fn execute(
                 output: image.display.clone(),
                 image: Some(image),
                 directory: false,
+                producer_limited: Some(false),
             }
         }
         Ok(content) => {
@@ -252,6 +255,7 @@ pub(crate) fn execute(
                 output,
                 image: None,
                 directory,
+                producer_limited: Some(page.next_offset.is_some()),
             }
         }
         Err(e) => Outcome::error("failed", e),

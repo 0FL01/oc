@@ -723,6 +723,7 @@ fn emit_tool_finish_with_effects(
         output,
         patch_effects,
         None,
+        None,
     );
 }
 
@@ -736,10 +737,12 @@ fn emit_tool_finish_with_metadata(
     output: &str,
     patch_effects: Option<oc_core::patch::PatchEffects>,
     dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
+    output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
 ) {
     tool_event(
         turn_id,
         &ToolCallEvent::Finished {
+            output_presentation,
             question: oc_core::question::QuestionResult::from_output(name, state, Some(output)),
             dcp,
             patch_effects,
@@ -4429,6 +4432,7 @@ impl<'a> Runtime<'a> {
                             &output,
                             None,
                             Some(report.snapshot),
+                            None,
                         );
                         continue;
                     }
@@ -4477,7 +4481,9 @@ impl<'a> Runtime<'a> {
             let mut patch_effects = None;
             let mut native_mcp_result = None;
             let mut native_read_result = None;
+            let mut read_producer_limited = None;
             let mut shell_text_prepared = false;
+            let mut shell_presentation = None;
             let mut read_directory = false;
             let read_path = match &guarded {
                 Assembled::Call(call) if call.name == "read" => {
@@ -4807,6 +4813,7 @@ impl<'a> Runtime<'a> {
                                     output,
                                     image: None,
                                     directory: false,
+                                    producer_limited: None,
                                 }
                             }
                         });
@@ -4854,6 +4861,7 @@ impl<'a> Runtime<'a> {
                             }
                             native_read_result = result.image;
                             read_directory = result.directory;
+                            read_producer_limited = result.producer_limited;
                             (result.state, result.output)
                         }
                     }
@@ -4925,7 +4933,7 @@ impl<'a> Runtime<'a> {
                                     match outcome {
                                         Ok(None) => ("completed", serde_json::json!({"status":"running", "shellID":shell_id,
                                             "truncated":false,"output":"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response."}).to_string()),
-                                        Ok(Some(outcome)) => {shell_text_prepared=outcome.output_prepared;outcome.tool_result()},
+                                        Ok(Some(outcome)) => {shell_text_prepared=outcome.output_prepared;shell_presentation=outcome.output_presentation.clone();outcome.tool_result()},
                                         Err(_) => ("unknown", "error: shell supervisor interrupted; effect unknown; not replayed".into()),
                                     }
                                 }
@@ -4977,38 +4985,68 @@ impl<'a> Runtime<'a> {
             if matches!(name, "shell" | "bash") {
                 artifact_source = self.db.output_for_operation(&op)?;
             }
-            let (output, logging_failed) = if let Some(native) = native_mcp_result.as_mut() {
+            let (output, logging_failed, mut output_presentation) = if let Some(native) =
+                native_mcp_result.as_mut()
+            {
                 match native.prepare_common(&preparation) {
-                    Ok(failed) => (native.display().to_owned(), failed),
+                    Ok(failed) => (
+                        native.display().to_owned(),
+                        failed,
+                        native.presentation().cloned().map(Box::new),
+                    ),
                     Err(_) => {
                         native_mcp_result = None;
-                        ("error: common MCP text preparation failed; original execution not repeated".into(),true)
+                        ("error: common MCP text preparation failed; original execution not repeated".into(),true,None)
                     }
                 }
             } else if name == "question" && state == "completed" {
                 let prepared = preparation.prepare_question(output)?;
-                (prepared.text, prepared.logging_failed)
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             } else if matches!(name, "shell" | "bash") {
                 let prepared = preparation.prepare_shell(
                     output,
                     shell_text_prepared,
                     artifact_source.as_ref(),
                 );
-                (prepared.text, prepared.logging_failed)
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             } else if artifact_source.is_some() && matches!(name, "read" | "grep") {
                 // The descriptor-held access owner already applies this captured
                 // common text budget. Preserve validated extent/cursor notices;
                 // never recursively archive pages of the same cold resource.
                 let prepared = preparation.prepare_page(output);
-                (prepared.text, prepared.logging_failed)
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             } else {
                 let prepared = preparation.prepare_envelope(
                     output,
                     matches!(name, "shell" | "bash"),
                     artifact_source.as_ref(),
                 );
-                (prepared.text, prepared.logging_failed)
+                (
+                    prepared.text,
+                    prepared.logging_failed,
+                    prepared.presentation,
+                )
             };
+            if let Some(presentation) = output_presentation.as_mut()
+                && read_producer_limited.is_some()
+            {
+                presentation.producer_limited = read_producer_limited;
+            }
+            if shell_presentation.is_some() {
+                output_presentation = shell_presentation;
+            }
             if logging_failed {
                 self.db.record_output_execution(&op, state)?;
                 state = if state == "unknown" {
@@ -5097,7 +5135,12 @@ impl<'a> Runtime<'a> {
                     revision,
                     &desired,
                     index,
-                    Some((&op, state, &output)),
+                    Some(crate::storage::RecordedToolOutcome {
+                        operation: &op,
+                        state,
+                        output: &output,
+                        presentation: output_presentation.as_deref(),
+                    }),
                 )?;
             } else {
                 self.db.tool_outcome_with_log_and_effects(
@@ -5107,9 +5150,10 @@ impl<'a> Runtime<'a> {
                     turn_id,
                     &turn_log.to_json().to_string(),
                     patch_effects.as_ref(),
+                    output_presentation.as_deref(),
                 )?;
             }
-            emit_tool_finish_with_effects(
+            emit_tool_finish_with_metadata(
                 tool_event,
                 turn_id,
                 &op,
@@ -5117,6 +5161,8 @@ impl<'a> Runtime<'a> {
                 state,
                 &output,
                 patch_effects,
+                None,
+                output_presentation,
             );
             records.push(CallRecord {
                 name: name.to_string(),

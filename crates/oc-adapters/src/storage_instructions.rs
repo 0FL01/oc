@@ -68,7 +68,7 @@ impl Db {
         expected: u64,
         desired: &[Source],
         index: usize,
-        outcome: Option<(&str, &str, &str)>,
+        outcome: Option<RecordedToolOutcome<'_>>,
     ) -> Result<(), StorageError> {
         crate::instructions::validate_sources(desired).map_err(std::io::Error::other)?;
         let mut conn = self.conn.lock().expect("db mutex");
@@ -153,9 +153,9 @@ impl Db {
         }
         tx.execute("INSERT INTO prefs(key,value,updated_at) VALUES(?1,?2,strftime('%s','now')) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
             params![key(&session),serde_json::to_string(&state).map_err(std::io::Error::other)?])?;
-        if let Some((op, status, output)) = outcome
+        if let Some(outcome) = &outcome
             && tx.execute("UPDATE tool_operations SET state=?1,output=?2 WHERE id=?3 AND turn_id=?4 AND state='started'",
-                params![status,output,op,turn])? != 1
+                params![outcome.state,outcome.output,outcome.operation,turn])? != 1
         {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
@@ -163,6 +163,9 @@ impl Db {
             "UPDATE turns SET result=?1 WHERE id=?2 AND status='started'",
             params![staged.to_string(), turn],
         )?;
+        if let Some(outcome) = outcome {
+            Self::record_tool_presentation_in(&tx, outcome.operation, outcome.presentation)?;
+        }
         tx.commit()?;
         log.instruction_references.extend(references);
         Ok(())

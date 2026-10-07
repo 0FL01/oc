@@ -412,6 +412,7 @@ impl Db {
                 // or its session capability. Original references remain causal
                 // text; the fork's new operation does not own the resource.
                 tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind IN ('tool_output_question','tool_output_execution') AND json_valid(payload) AND length(CAST(payload AS BLOB))<=?5 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op,(oc_core::question::RESULT_BYTES_CAP+1024) as i64])?;
+                tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind='tool_output_presentation' AND json_valid(payload) AND length(CAST(payload AS BLOB))<=?5 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op,oc_core::tool_output::RECORD_BYTES as i64])?;
                 if child_launch {
                     tx.execute("INSERT INTO events(session_id,kind,payload) SELECT ?1,kind,json_set(payload,'$.operation',?2) FROM events WHERE session_id=?3 AND kind='subagent_launch' AND json_valid(payload) AND length(CAST(payload AS BLOB))<=8192 AND json_extract(payload,'$.operation')=?4",params![root,new_op,source,op])?;
                 }

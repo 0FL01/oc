@@ -116,6 +116,18 @@ pub(crate) fn preview(text: &str, limits: Limits, tail: bool) -> (&str, bool) {
 pub(crate) struct Prepared {
     pub text: String,
     pub logging_failed: bool,
+    pub presentation: Option<Box<oc_core::tool_output::Presentation>>,
+}
+
+impl Prepared {
+    fn plain(text: String, logging_failed: bool) -> Self {
+        let presentation = oc_core::tool_output::Presentation::new(&text, text.len() as u64, false);
+        Self {
+            text,
+            logging_failed,
+            presentation: Some(Box::new(presentation)),
+        }
+    }
 }
 
 /// Shared incremental literal redaction. Callers supply bounded UTF-8 chunks;
@@ -234,11 +246,14 @@ impl Context<'_> {
         // exit/cancel/error envelope and do not retry a publication failure.
         if already_prepared {
             if text.len() > SERVED_CAP {
-                return Prepared{text:"error: native shell control envelope exceeds served budget; actual execution recorded; no replay".into(),logging_failed:true};
+                return Prepared::plain("error: native shell control envelope exceeds served budget; actual execution recorded; no replay".into(), true);
             }
             return Prepared {
                 text,
                 logging_failed: false,
+                // Legacy prepared shell outcomes have no reliable body boundary.
+                // The native shell owner supplies its own typed facts separately.
+                presentation: None,
             };
         }
         if text.starts_with("exit ")
@@ -248,37 +263,58 @@ impl Context<'_> {
             text.drain(..end + 1);
             let mut bounded = self.clone();
             bounded.limits.max_bytes = bounded.limits.max_bytes.min(SERVED_CAP - control.len());
-            let prepared = bounded.prepare(text, true, false, existing);
+            let mut prepared = bounded.prepare(text, true, false, existing);
+            if let Some(presentation) = &mut prepared.presentation {
+                let body = format!("{control}{}", presentation.body);
+                let bytes = presentation.body_bytes + control.len() as u64;
+                let mut joined = oc_core::tool_output::Presentation::new(
+                    &body,
+                    bytes,
+                    presentation.generated_guidance,
+                );
+                joined.producer_limited = presentation.producer_limited;
+                joined.capture = presentation.capture.take();
+                **presentation = joined;
+            }
             return Prepared {
                 text: format!("{control}{}", prepared.text),
                 logging_failed: prepared.logging_failed,
+                presentation: prepared.presentation,
             };
         }
         self.prepare_envelope(text, true, existing)
     }
     pub(crate) fn prepare_page(&self, mut text: String) -> Prepared {
+        let body;
         let notice = serde_json::json!({"tool_output_config":{"source":self.source,"generation":self.generation}});
         if let Ok(mut value) = serde_json::from_str::<serde_json::Value>(&text) {
             redact_value(&mut value, &self.secrets);
+            body = value.to_string();
             value["tool_output_config"] = notice["tool_output_config"].clone();
             text = value.to_string();
         } else {
             redact_string(&mut text, &self.secrets);
+            body = text.clone();
             text.push_str(&format!(
                 "\n[page config source {} generation {}]",
                 self.source, self.generation
             ));
         }
         if text.len() > SERVED_CAP {
-            return Prepared {
-                text: "error: page redaction/notice exceeds served budget; request a smaller limit"
+            return Prepared::plain(
+                "error: page redaction/notice exceeds served budget; request a smaller limit"
                     .into(),
-                logging_failed: true,
-            };
+                true,
+            );
         }
         Prepared {
             text,
             logging_failed: false,
+            presentation: Some(Box::new(oc_core::tool_output::Presentation::new(
+                &body,
+                body.len() as u64,
+                true,
+            ))),
         }
     }
     pub(crate) fn prepare_question(&self, text: String) -> Result<Prepared, StorageError> {
@@ -308,10 +344,7 @@ impl Context<'_> {
             text
         };
         if !preview(&text, self.limits, false).1 {
-            return Ok(Prepared {
-                text,
-                logging_failed: false,
-            });
+            return Ok(Prepared::plain(text, false));
         }
         let prepared = self.prepare(text, false, false, None);
         if !prepared.logging_failed {
@@ -319,7 +352,7 @@ impl Context<'_> {
                 .record_tool_output_question(self.operation, self.session)?;
         }
         let preview = json_preview(prepared.text, 51200 - 1024, false);
-        Ok(Prepared{text:serde_json::json!({"status":"answered","operationID":self.operation,"question_count":result.questions.len(),"answer_count":result.answers.len(),"preview":preview,"presentation":"typed answers available through the native registered resource owner"}).to_string(),logging_failed:prepared.logging_failed})
+        Ok(Prepared{text:serde_json::json!({"status":"answered","operationID":self.operation,"question_count":result.questions.len(),"answer_count":result.answers.len(),"preview":preview,"presentation":"typed answers available through the native registered resource owner"}).to_string(),logging_failed:prepared.logging_failed,presentation:prepared.presentation})
     }
 
     pub(crate) fn prepare(
@@ -340,10 +373,12 @@ impl Context<'_> {
                     && resource.admitted_lines <= self.limits.max_lines as u64
             })
         {
-            return Prepared {
-                text,
-                logging_failed: false,
-            };
+            let mut prepared = Prepared::plain(text, false);
+            if let Some(presentation) = &mut prepared.presentation {
+                presentation.producer_limited = producer_limited.then_some(true);
+                presentation.capture = existing.map(Resource::presentation_capture);
+            }
+            return prepared;
         }
         let resource = if let Some(resource) = existing {
             if resource.operation != self.operation {
@@ -368,7 +403,7 @@ impl Context<'_> {
                     writer.finish(producer_limited)
                 })
         };
-        let (notice, logging_failed) = match resource {
+        let (notice, logging_failed, capture) = match resource {
             Ok(resource) => {
                 let failed = matches!(
                     resource.state,
@@ -391,23 +426,39 @@ impl Context<'_> {
                         serde_json::to_string(&resource.path).expect("path JSON")
                     ),
                     failed,
+                    resource.presentation_capture(),
                 )
             }
-            Err(error) => (
-                format!(
-                    "\n[tool output: {} preview; capture {:?}; no usable path; original execution was not repeated; source {} generation {}]",
-                    if tail { "tail" } else { "head" },
-                    match error {
-                        StorageError::Sqlite(_) => CaptureState::RegisterFailure,
-                        StorageError::StorageFull => CaptureState::Quota,
-                        _ => CaptureState::Io,
+            Err(error) => {
+                let state = match error {
+                    StorageError::Sqlite(_) => CaptureState::RegisterFailure,
+                    StorageError::StorageFull => CaptureState::Quota,
+                    _ => CaptureState::Io,
+                };
+                (
+                    format!(
+                        "\n[tool output: {} preview; capture {:?}; no usable path; original execution was not repeated; source {} generation {}]",
+                        if tail { "tail" } else { "head" },
+                        state,
+                        self.source,
+                        self.generation
+                    ),
+                    true,
+                    oc_core::tool_output::Capture {
+                        reference: None,
+                        state,
+                        admitted_bytes: text.len() as u64,
+                        retained_bytes: 0,
+                        admitted_lines: lines(&text),
+                        retained_lines: 0,
                     },
-                    self.source,
-                    self.generation
-                ),
-                true,
-            ),
+                )
+            }
         };
+        let mut presentation =
+            oc_core::tool_output::Presentation::new(body, text.len() as u64, true);
+        presentation.producer_limited = producer_limited.then_some(true);
+        presentation.capture = Some(capture);
         // Source/path inputs are bounded at storage admission. Bound the notice
         // independently rather than borrowing space from a tiny user preview.
         if notice.len() > NOTICE_RESERVE {
@@ -416,11 +467,13 @@ impl Context<'_> {
                     "{body}\n[tool output: reference notice exceeds served budget; no usable path; original execution recorded; no replay]"
                 ),
                 logging_failed: true,
+                presentation: Some(Box::new(presentation)),
             };
         }
         Prepared {
             text: format!("{body}{notice}"),
             logging_failed,
+            presentation: Some(Box::new(presentation)),
         }
     }
 
@@ -437,6 +490,16 @@ impl Context<'_> {
             Some(resource) => self.prepare(text, true, false, Some(resource)),
             None => {
                 let (body, _) = preview(&text, self.limits, true);
+                let mut presentation =
+                    oc_core::tool_output::Presentation::new(body, text.len() as u64, true);
+                presentation.capture = Some(oc_core::tool_output::Capture {
+                    reference: None,
+                    state: failure.unwrap_or(CaptureState::Io),
+                    admitted_bytes: text.len() as u64,
+                    retained_bytes: 0,
+                    admitted_lines: lines(&text),
+                    retained_lines: 0,
+                });
                 Prepared {
                     text: format!(
                         "{body}\n[tool output: tail preview; capture {:?}; no usable path; original execution was not repeated; source {} generation {}]",
@@ -445,6 +508,7 @@ impl Context<'_> {
                         self.generation
                     ),
                     logging_failed: true,
+                    presentation: Some(Box::new(presentation)),
                 }
             }
         }
@@ -471,7 +535,7 @@ impl Context<'_> {
             };
             text.drain(..n);
             if header.len() + NOTICE_RESERVE >= SERVED_CAP {
-                return Prepared{text:"error: webfetch control envelope exceeds served budget; execution recorded; no replay".into(),logging_failed:true};
+                return Prepared::plain("error: webfetch control envelope exceeds served budget; execution recorded; no replay".into(), true);
             }
             let mut bounded = self.clone();
             if text.len() + header.len() + 2 > SERVED_CAP || preview(&text, self.limits, tail).1 {
@@ -480,18 +544,30 @@ impl Context<'_> {
                     .max_bytes
                     .min(SERVED_CAP - header.len() - 2 - NOTICE_RESERVE);
             }
-            let prepared = bounded.prepare(text, tail, value["truncated"] == true, existing);
+            let mut prepared = bounded.prepare(text, tail, value["truncated"] == true, existing);
             if header.len() + prepared.text.len() + 2 > SERVED_CAP {
-                return Prepared {
-                    text: format!(
+                return Prepared::plain(
+                    format!(
                         "{header}\n\nerror: served text budget exhausted after normalization; execution recorded; no replay"
                     ),
-                    logging_failed: true,
-                };
+                    true,
+                );
+            }
+            if let Some(presentation) = &mut prepared.presentation {
+                let body = format!("{header}\n\n{}", presentation.body);
+                let mut joined = oc_core::tool_output::Presentation::new(
+                    &body,
+                    presentation.body_bytes + header.len() as u64 + 2,
+                    presentation.generated_guidance,
+                );
+                joined.producer_limited = value["truncated"].as_bool();
+                joined.capture = presentation.capture.take();
+                **presentation = joined;
             }
             return Prepared {
                 text: format!("{header}\n\n{}", prepared.text),
                 logging_failed: prepared.logging_failed,
+                presentation: prepared.presentation,
             };
         }
         if !text.starts_with('{') {
@@ -507,16 +583,38 @@ impl Context<'_> {
         // text budget; scalar status/exit/control/identity and typed effects survive.
         let changed = redact_value(&mut value, &self.secrets);
         if !preview(&text, self.limits, tail).1 {
-            return Prepared {
-                text: if changed { value.to_string() } else { text },
-                logging_failed: false,
-            };
+            let limited = value["truncated"].as_bool();
+            let mut prepared =
+                Prepared::plain(if changed { value.to_string() } else { text }, false);
+            if let Some(presentation) = &mut prepared.presentation {
+                presentation.producer_limited = limited;
+                presentation.capture = existing.map(Resource::presentation_capture);
+            }
+            return prepared;
         }
         drop(text);
+        let body_bytes = value.to_string().len() as u64;
         let mut prose = String::new();
         collect_prose(&mut value, None, &mut prose);
         let producer_limited = value.get("truncated") == Some(&serde_json::Value::Bool(true));
-        let prepared = self.prepare(prose, tail, producer_limited, existing);
+        let mut prepared = self.prepare(prose, tail, producer_limited, existing);
+        if let Some(presentation) = &mut prepared.presentation {
+            let mut body_value = value.clone();
+            let mut body = Some(presentation.body.clone());
+            replace_prose(&mut body_value, None, &mut body);
+            if let Some(body) = body {
+                body_value["tool_output_preview"] = body.into();
+            }
+            let body = body_value.to_string();
+            let mut envelope = oc_core::tool_output::Presentation::new(
+                &body,
+                body_bytes.max(body.len() as u64),
+                presentation.generated_guidance,
+            );
+            envelope.producer_limited = value["truncated"].as_bool();
+            envelope.capture = presentation.capture.take();
+            **presentation = envelope;
+        }
         let structural = value.to_string().len();
         let mut replacement = Some(json_preview(
             prepared.text,
@@ -532,11 +630,12 @@ impl Context<'_> {
             // Structural/typed fields themselves exceeded admission. Preserve
             // independent execution effects in the native typed outcome owner;
             // never publish a malformed or unlimited JSON result.
-            return Prepared{text:serde_json::json!({"error":"tool result envelope exceeds served budget", "execution_state":value.get("status"),"tool_output":"non-success; original effects are recorded; no replay"}).to_string(),logging_failed:true};
+            return Prepared::plain(serde_json::json!({"error":"tool result envelope exceeds served budget", "execution_state":value.get("status"),"tool_output":"non-success; original effects are recorded; no replay"}).to_string(), true);
         }
         Prepared {
             text: result,
             logging_failed: prepared.logging_failed,
+            presentation: prepared.presentation,
         }
     }
 }

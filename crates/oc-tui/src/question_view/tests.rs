@@ -173,6 +173,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
                     id: format!("turn-{seq}"),
                     status: "completed".into(),
                     parts: vec![TranscriptPart::Tool(ToolOpView {
+                        output_presentation: None,
                         question: Some(result.clone()),
                         op: format!("op-{seq}"),
                         rowid: seq,

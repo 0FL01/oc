@@ -103,13 +103,24 @@ fn tool21_mcp_joined_text_metadata_not_bypass_structured_error_facts_survive() {
         },
         secrets: vec!["secret-sentinel".into()],
     };
-    let facts = serde_json::json!({"content":[{"type":"text","text":"first secret-sentinel\n"},{"type":"text","text":"x".repeat(400000)}],"isError":false,"structuredContent":{"status":"failed","exit":17,"detail":"y".repeat(3000)},"_meta":{"truncated":false}});
+    let facts = serde_json::json!({"content":[{"type":"text","text":"first secret-sentinel\n[Part preview truncated]\n"},{"type":"text","text":"x".repeat(400000)}],"isError":false,"structuredContent":{"status":"failed","exit":17,"detail":"y".repeat(3000)},"_meta":{"truncated":false}});
     let mut output = crate::mcp_result::McpToolOutput::from_stored(facts).unwrap();
     assert!(!output.prepare_common(&context).unwrap());
     assert_eq!(output.facts()["isError"], false);
     assert_eq!(output.facts()["structuredContent"]["exit"], 17);
     assert!(output.texts().iter().map(String::len).sum::<usize>() < SERVED_CAP);
     assert!(output.texts().iter().any(|s| s.contains("read(path=")));
+    let presentation = output.presentation().unwrap();
+    assert!(presentation.generated_guidance);
+    assert!(presentation.body_limited && presentation.is_valid());
+    assert_eq!(
+        presentation.body,
+        "first [redacted]\n[Part preview truncated]\n"
+    );
+    assert_eq!(
+        presentation.capture.as_ref().unwrap().state,
+        CaptureState::Complete
+    );
     let resource = db.output_for_operation("mcp").unwrap().unwrap();
     let mut lease = db.open_tool_output("s", &resource.path).unwrap();
     let prefix = lease.byte_page(0, 100).unwrap().0;
@@ -263,6 +274,13 @@ fn tool21_prepared_envelope_retains_controls_no_metadata_bypass() {
     let value: serde_json::Value = serde_json::from_str(&result.text).unwrap();
     assert_eq!(value["status"], "failed");
     assert_eq!(value["exit"], 17);
+    let presentation = result.presentation.as_ref().unwrap();
+    assert!(presentation.generated_guidance && presentation.is_valid());
+    assert_eq!(presentation.producer_limited, Some(true));
+    let body: serde_json::Value = serde_json::from_str(&presentation.body).unwrap();
+    assert_eq!(body["status"], "failed");
+    assert_eq!(body["exit"], 17);
+    assert!(body["truncated"].as_bool().unwrap());
     let resource = db.output_for_operation("op").unwrap().unwrap();
     assert_eq!(resource.state, CaptureState::ProducerLimited);
     assert!(result.text.len() < SERVED_CAP);

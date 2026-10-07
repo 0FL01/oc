@@ -11,13 +11,25 @@ const PRESENTATION_CAP: usize = 8 * 1024;
 
 /// Validated, redacted native tool facts. Debug never prints media or metadata.
 /// Serialization is Responses output only; durable facts belong to TurnLog.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct McpToolOutput {
     facts: Value,
     display: String,
     media: bool,
     texts: Vec<String>,
+    presentation: Option<Box<oc_core::tool_output::Presentation>>,
 }
+
+// UI preparation provenance is not part of the native wire/replay identity.
+impl PartialEq for McpToolOutput {
+    fn eq(&self, other: &Self) -> bool {
+        self.facts == other.facts
+            && self.display == other.display
+            && self.media == other.media
+            && self.texts == other.texts
+    }
+}
+impl Eq for McpToolOutput {}
 
 impl std::fmt::Debug for McpToolOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,6 +64,9 @@ impl McpToolOutput {
     }
     pub(crate) fn has_media(&self) -> bool {
         self.media
+    }
+    pub(crate) fn presentation(&self) -> Option<&oc_core::tool_output::Presentation> {
+        self.presentation.as_deref()
     }
 
     pub(crate) fn prepare_common(
@@ -176,8 +191,10 @@ impl McpToolOutput {
                 }
             }
         }
+        let presentation = prepared.presentation;
         let facts = std::mem::take(&mut self.facts);
         *self = make(facts, (&[], &[]))?;
+        self.presentation = presentation;
         let served = self.texts.iter().map(String::len).sum::<usize>();
         if served > crate::tools::output::SERVED_CAP
             || text_facts_bytes(&self.facts) > crate::tools::output::SERVED_CAP
@@ -553,7 +570,7 @@ fn make(
             redact_json(value, secrets);
         }
     }
-    let display = if media {
+    let (display, presentation) = if media {
         let mut prose = Vec::new();
         for part in facts["content"].as_array().expect("validated content") {
             prose.push(match part["type"].as_str().expect("validated type") {
@@ -573,23 +590,28 @@ fn make(
             prose.push(json!({"structuredContent":structured}).to_string());
         }
         let mut text = prose.join("\n");
+        let presentation = oc_core::tool_output::Presentation::new(&text, text.len() as u64, false);
         if text.len() > PRESENTATION_CAP {
             let marker = "\n[MCP result presentation truncated; native content retained]";
             text.truncate(text.floor_char_boundary(PRESENTATION_CAP - marker.len()));
             text.push_str(marker);
         }
-        text
+        (text, presentation)
     } else {
-        super::project(
+        let display = super::project(
             serde_json::from_value(facts.clone()).map_err(|_| ResultError::BadResult)?,
             &[],
-        )?
+        )?;
+        let presentation =
+            oc_core::tool_output::Presentation::new(&display, display.len() as u64, false);
+        (display, presentation)
     };
     let mut output = McpToolOutput {
         facts,
         display,
         media,
         texts: Vec::new(),
+        presentation: Some(Box::new(presentation)),
     };
     output.texts = if media {
         output

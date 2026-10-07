@@ -1375,6 +1375,8 @@ pub struct DcpSnapshot {
 /// One tool operation as recorded durably.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpView {
+    /// Prepared safe body/capture facts; None is honest legacy/unknown provenance.
+    pub output_presentation: Option<Box<crate::tool_output::Presentation>>,
     /// Bounded, terminal question presentation. Never restores an active form.
     pub question: Option<crate::question::QuestionResult>,
     /// Owner-validated compression topic; never extracted from raw JSON text.

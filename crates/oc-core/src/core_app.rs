@@ -288,6 +288,8 @@ pub enum CoreEvent {
     /// One tool call reached a terminal state (durable outcome recorded);
     /// the transcript updates the card in place.
     ToolCallFinished {
+        /// Producer-owned body/guidance/capture facts, independent of raw output.
+        output_presentation: Option<Box<crate::tool_output::Presentation>>,
         question: Option<crate::question::QuestionResult>,
         /// Frozen successful DCP commit, shared with durable history projection.
         dcp: Option<crate::dcp_view::DcpRunSnapshot>,

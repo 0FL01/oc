@@ -2817,12 +2817,24 @@ fn bare_home_abandon_and_new_do_not_create_a_root() {
     wait_screen_row(&pty, "T42 model", DEADLINE);
     pty.send(b"\x1b");
     std::thread::sleep(Duration::from_millis(150));
-    pty.send(b"/new\r");
-    pty.wait_visible("█▀▀█", DEADLINE);
+    pty.send(b"/new");
+    wait_screen_row(&pty, "┃  /new", DEADLINE);
+    pty.send(b"\r");
+    let start = Instant::now();
+    while render_screen(&pty.snapshot())
+        .rows()
+        .iter()
+        .any(|row| row.contains("┃  /new"))
+    {
+        assert!(start.elapsed() < DEADLINE, "new Home was not acknowledged");
+        std::thread::sleep(POLL);
+    }
     // Blank submissions are refused, and Esc with an unsubmitted draft
     // abandons Home without accepting a first turn.
     pty.send(b" \r");
-    pty.send(b"draft never submitted\x1b");
+    pty.send(b"draft never submitted");
+    wait_screen_row(&pty, "draft never submitted", DEADLINE);
+    pty.send(b"\x1b");
     let (status, output) = pty.wait_exit(DEADLINE);
     assert!(status.success(), "Home exits cleanly");
     assert!(contains(&output, ALT_LEAVE), "alternate screen left");

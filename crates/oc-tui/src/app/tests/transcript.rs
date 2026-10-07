@@ -444,6 +444,7 @@ async fn v06b_session_switch_discards_tool_cards_before_next_owner_load() {
     let mut state = fresh_state("owner-a").await;
     state.app.create_session(sid("owner-b")).await.unwrap();
     let card = crate::history::ToolCard {
+        output_presentation: None,
         question: None,
         op: "a-only".into(),
         name: "read".into(),
@@ -541,6 +542,7 @@ async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_l
     let mut state = fresh_state("exploration-mouse").await;
     for (i, name) in ["read", "glob", "grep"].iter().enumerate() {
         let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: i as i64 + 1,
             op: format!("op-{i}"),
@@ -1605,6 +1607,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
             .collect::<String>()
     );
     let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+        output_presentation: None,
         question: None,
         rowid: 1,
         op: "shell-op".into(),
@@ -1712,6 +1715,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
     // neither hover nor clicks invent recoverable full-file contents.
     state.attach_page(&page(vec![], 0, false, false));
     let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+        output_presentation: None,
         question: None,
         rowid: 2,
         op: "read-op".into(),
@@ -1771,6 +1775,7 @@ async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansi
     for i in 0..16 {
         let result = format!("loaded result {i}: {}", "contents ".repeat(30));
         let card = crate::history::card_from_row(&oc_core::queries::ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: i + 1,
             op: format!("read-{i}"),
@@ -2020,6 +2025,7 @@ async fn vis32_completion_preserves_cached_part_expansion_paging_and_resize() {
                 "## Markdown before tool\n\n| A | B |\n|---|---|\n| cell | value |\n".into(),
             ),
             TranscriptPart::Tool(ToolOpView {
+                output_presentation: None,
                 question: None,
                 rowid: 1,
                 op: "anchor-shell".into(),

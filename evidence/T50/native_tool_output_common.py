@@ -245,6 +245,33 @@ def run(binary, case):
                 resources = db.execute("SELECT extent,state FROM tool_output_resources").fetchall()
                 rows = db.execute("SELECT name,state,length(CAST(output AS BLOB)) FROM tool_operations ORDER BY rowid").fetchall()
                 logging = db.execute("SELECT count(*) FROM events WHERE kind='tool_output_execution'").fetchone()[0]
+                # Current T44/R10 producer facts share the original outcome's
+                # transaction; model text/cold payload and all old guards remain.
+                presentation_rows = db.execute(
+                    "SELECT payload FROM events WHERE kind='tool_output_presentation' ORDER BY seq").fetchall()
+                assert presentation_rows, "no durable presentation facts from actual native execution"
+                presentations = {}
+                for (encoded,) in presentation_rows:
+                    assert len(encoded.encode()) <= 2048 * 12 + 8192
+                    assert "SYNTHETIC_COMMON_KEY" not in encoded, "secret in presentation journal"
+                    event = json.loads(encoded)
+                    fact = event["presentation"]
+                    assert len(fact["body"].encode()) <= 2048
+                    assert fact["body_bytes"] >= len(fact["body"].encode())
+                    if fact.get("shell"):
+                        streams = fact["shell"]
+                        assert len(streams["stdout"].encode()) + len(streams["stderr"].encode()) <= 2048
+                    presentations[event["operation"]] = fact
+                first_operation = db.execute("SELECT id FROM tool_operations ORDER BY rowid LIMIT 1").fetchone()[0]
+                first_presentation = presentations[first_operation]
+                assert first_presentation["generated_guidance"], "actual common guidance not separately identified"
+                if case in ("chain", "shell_cap", "shell_quota", "shell_interrupted", "fault_effect"):
+                    assert first_presentation["shell"]["exit"] == (17 if case == "fault_effect" else 0)
+                if case == "shell_interrupted":
+                    assert first_presentation["body"] == "short prefix\n"
+                    assert first_presentation["capture"]["state"] == "Interrupted"
+                    assert not first_presentation["body_limited"], "capture loss is not projection loss"
+                    assert "lost_suffix" not in first_presentation["body"]
                 if case == "fault_effect":
                     outcome = json.loads(db.execute("SELECT outcome FROM shell_jobs").fetchone()[0])
                     assert outcome["exit"] == 17 and outcome["state"] == "failed" and logging >= 1
@@ -270,6 +297,7 @@ def run(binary, case):
                     assert descriptor["location"]==str(project),"move rewrote capture provenance"
             return {"case": case, "status": "PASS", "provider_requests": len(requests)+len(auxiliary),"main_requests":len(requests),"auxiliary_requests":len(auxiliary), "request_bytes": [r["bytes"] for r in requests],
                     "native_tool_rows": rows, "resources": resources, "logging_failure_facts": logging,
+                    "presentation_records": len(presentation_rows), "body_guidance_facts": True,
                     "retained_resource_bytes": sum(r[0] for r in resources), "shell_full_producer": case=="chain",
                     "effect_count":1 if case in ("chain","fault_effect","shell_cap","shell_quota","shell_interrupted") else 0,
                     "producer_reaped":True if case in ("chain","shell_cap","shell_quota","shell_interrupted") else None}

@@ -11,18 +11,7 @@ pub(crate) const TTL: i64 = 7 * 24 * 60 * 60;
 #[path = "storage_tool_output/access.rs"]
 mod access;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub(crate) enum CaptureState {
-    Active,
-    Complete,
-    ProducerLimited,
-    ArtifactCap,
-    Quota,
-    Io,
-    RegisterFailure,
-    Interrupted,
-    Expired,
-}
+pub(crate) use oc_core::tool_output::CaptureState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Resource {
@@ -40,6 +29,96 @@ pub(crate) struct Resource {
     pub state: CaptureState,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shell: Option<ShellStreams>,
+}
+
+impl Resource {
+    pub(crate) fn presentation_capture(&self) -> oc_core::tool_output::Capture {
+        oc_core::tool_output::Capture {
+            reference: Some(self.path.clone()),
+            state: self.state,
+            admitted_bytes: self.admitted_bytes,
+            retained_bytes: self.bytes,
+            admitted_lines: self.admitted_lines,
+            retained_lines: self.lines,
+        }
+    }
+}
+
+impl Db {
+    /// Read-only operation projection in the existing append-only journal. It
+    /// commits with the outcome and is independent of HOT/RAW seal placement.
+    pub(crate) fn record_tool_presentation_in(
+        tx: &rusqlite::Transaction<'_>,
+        operation: &str,
+        presentation: Option<&oc_core::tool_output::Presentation>,
+    ) -> Result<(), StorageError> {
+        let Some(presentation) = presentation else {
+            return Ok(());
+        };
+        if !presentation.is_valid() {
+            return Err(StorageError::Io(std::io::Error::other(
+                "invalid bounded tool presentation",
+            )));
+        }
+        let payload =
+            serde_json::json!({"operation":operation,"presentation":presentation}).to_string();
+        if payload.len() > oc_core::tool_output::RECORD_BYTES {
+            return Err(StorageError::Io(std::io::Error::other(
+                "invalid bounded tool presentation",
+            )));
+        }
+        tx.execute(
+            "INSERT INTO events(session_id,kind,payload) SELECT session_id,'tool_output_presentation',?2 FROM tool_operations WHERE id=?1",
+            params![operation,payload],
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn tool_presentation_in(
+        conn: &Connection,
+        session: &str,
+        operation: &str,
+    ) -> Result<Option<Box<oc_core::tool_output::Presentation>>, StorageError> {
+        let raw: Option<Option<String>> = conn.query_row(
+            "SELECT payload FROM events WHERE session_id=?1 AND kind='tool_output_presentation' AND json_extract(CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN CASE WHEN json_valid(payload) THEN payload ELSE '{}' END ELSE '{}' END,'$.operation')=?2 ORDER BY seq DESC LIMIT 1",
+            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
+            |row| row.get(0),
+        ).optional()?;
+        let presentation = raw.flatten().and_then(|raw| {
+            let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+            serde_json::from_value::<oc_core::tool_output::Presentation>(
+                value["presentation"].clone(),
+            )
+            .ok()
+        });
+        let Some(mut presentation) =
+            presentation.filter(oc_core::tool_output::Presentation::is_valid)
+        else {
+            return Ok(None);
+        };
+        if let Some(capture) = &mut presentation.capture {
+            // The event records completion facts, not a current filesystem
+            // capability. Forks copy those facts but never own the cold file.
+            let descriptor: Option<Option<String>> = conn.query_row(
+                "SELECT CASE WHEN length(CAST(descriptor AS BLOB))<=?2 THEN descriptor END FROM tool_output_resources WHERE operation_id=?1",
+                params![operation, oc_core::tool_output::RECORD_BYTES as i64],
+                |row| row.get(0),
+            ).optional()?;
+            let resource = descriptor
+                .flatten()
+                .and_then(|raw| serde_json::from_str::<Resource>(&raw).ok())
+                .filter(|resource| resource.operation == operation && resource.session == session);
+            if let Some(resource) = resource {
+                *capture = resource.presentation_capture();
+                if capture.state == CaptureState::Expired {
+                    capture.reference = None;
+                }
+            } else {
+                capture.reference = None;
+            }
+        }
+        Ok(presentation.is_valid().then(|| Box::new(presentation)))
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

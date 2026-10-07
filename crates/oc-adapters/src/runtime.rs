@@ -816,6 +816,7 @@ pub enum ToolCallEvent {
     },
     /// Terminal outcome durably recorded.
     Finished {
+        output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
         question: Option<oc_core::question::QuestionResult>,
         /// Frozen successful DCP presentation; independent of model output.
         dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,

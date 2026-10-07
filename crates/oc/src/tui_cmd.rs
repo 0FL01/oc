@@ -3505,12 +3505,13 @@ async fn handle_worker_event(
             output,
             output_bytes,
             output_truncated,
+            output_presentation,
             patch_effects,
             dcp,
             question,
             ..
         } => {
-            state.apply_tool_finished_with_presentation(
+            state.apply_tool_finished_with_output_presentation(
                 &turn,
                 &op,
                 &name,
@@ -3521,6 +3522,7 @@ async fn handle_worker_event(
                 patch_effects,
                 dcp,
                 question,
+                output_presentation,
             );
             if name == "compress" && state.active_turn() == Some(&turn) {
                 refresh_dcp(app, state, session).await;

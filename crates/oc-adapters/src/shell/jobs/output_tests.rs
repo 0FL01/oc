@@ -59,6 +59,21 @@ async fn tool21_review_short_interrupted_capture_is_explicit_without_falsifying_
         outcome.output_prepared,
         "short incomplete capture must still be prepared"
     );
+    let presentation = outcome.output_presentation.as_deref().unwrap();
+    assert_eq!(presentation.body, "short prefix\n");
+    assert!(presentation.generated_guidance && !presentation.body_limited);
+    assert_eq!(
+        presentation.capture.as_ref().unwrap().state,
+        crate::storage::tool_output::CaptureState::Interrupted
+    );
+    let streams = presentation.shell.as_ref().unwrap();
+    assert_eq!(streams.stdout, "short prefix\n");
+    assert_eq!(streams.exit, Some(0));
+    assert!(!streams.stdout_limited && !streams.stderr_limited);
+    assert!(
+        !presentation.body.contains("capture Interrupted")
+            && !presentation.body.contains("lost_suffix")
+    );
     let (state, text) = outcome.tool_result();
     assert_eq!(state, "completed");
     assert!(text.contains("capture Interrupted") && text.contains(&resource.path));
@@ -79,6 +94,13 @@ async fn tool21_review_short_interrupted_capture_is_explicit_without_falsifying_
     drop(db);
     let db = Db::open(&temp.path().join("data")).unwrap();
     assert_eq!(db.shell_job_outcome("s", "op").unwrap().exit, Some(0));
+    assert_eq!(
+        db.shell_job_outcome("s", "op")
+            .unwrap()
+            .output_presentation
+            .as_deref(),
+        Some(presentation)
+    );
     assert!(
         db.list_tool_ops("s").unwrap()[0]
             .output

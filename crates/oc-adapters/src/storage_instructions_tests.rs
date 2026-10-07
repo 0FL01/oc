@@ -42,7 +42,12 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
             revision - 1,
             &[source(Some("new"))],
             1,
-            Some(("read", "completed", "result"))
+            Some(RecordedToolOutcome {
+                operation: "read",
+                state: "completed",
+                output: "result",
+                presentation: None,
+            })
         )
         .is_err()
     );
@@ -56,7 +61,12 @@ fn prm01_instruction_facts_are_atomic_immutable_and_latest_only() {
         revision,
         &[source(Some("new"))],
         1,
-        Some(("read", "completed", "result")),
+        Some(RecordedToolOutcome {
+            operation: "read",
+            state: "completed",
+            output: "result",
+            presentation: None,
+        }),
     )
     .unwrap();
     let current = db.instruction_view("s").unwrap().1;

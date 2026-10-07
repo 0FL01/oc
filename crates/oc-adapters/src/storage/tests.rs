@@ -446,6 +446,66 @@ fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
     let legacy = db.turn_presentation("s", "t").unwrap().unwrap();
     assert!(legacy.legacy_text_only);
     assert!(legacy.parts.is_empty());
+    // Additive presentation strings share the unchanged per-turn serving cap.
+    // Missing metadata after that cap means unavailable/unknown, not complete.
+    let body = "b".repeat(oc_core::tool_output::PREVIEW_BYTES);
+    let mut presentation = oc_core::tool_output::Presentation::new(&body, 64 * 1024, true);
+    let stream = "s".repeat((oc_core::tool_output::PREVIEW_BYTES - 128) / 2);
+    presentation.shell = Some(oc_core::tool_output::Shell {
+        stdout: stream.clone(),
+        stderr: stream,
+        stdout_limited: true,
+        stderr_limited: true,
+        exit: Some(0),
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let mut parts = Vec::new();
+    for index in 0..16 {
+        let operation = format!("bounded-{index}");
+        db.record_tool_intent(&operation, "s", Some("t"), "fixture", "{}")
+            .unwrap();
+        parts.push(json!({"tool":operation}));
+        db.tool_outcome_with_log_and_effects(
+            &operation,
+            "completed",
+            &"b".repeat(64 * 1024),
+            "t",
+            &json!({"display_parts":parts}).to_string(),
+            None,
+            Some(&presentation),
+        )
+        .unwrap();
+    }
+    let projection = db.turn_presentation("s", "t").unwrap().unwrap();
+    let tools = projection
+        .parts
+        .iter()
+        .filter_map(|part| match part {
+            oc_core::queries::TranscriptPart::Tool(tool) => Some(tool),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(tools.len(), 16);
+    let served = tools
+        .iter()
+        .map(|tool| {
+            tool.input.as_ref().map_or(0, String::len)
+                + tool.output.as_ref().map_or(0, String::len)
+                + tool
+                    .output_presentation
+                    .as_ref()
+                    .map_or(0, |value| value.retained_bytes())
+        })
+        .sum::<usize>();
+    assert!(served <= oc_core::patch::EFFECT_PREVIEW_BYTES_CAP);
+    assert!(tools.iter().any(|tool| tool.output_presentation.is_some()));
+    assert!(tools.iter().any(|tool| tool.output_presentation.is_none()));
+    assert!(projection.part_states.iter().all(|state| state.truncated));
+    drop(db);
+    let db = Db::open(&tmp.path().join("data")).unwrap();
+    assert_eq!(db.turn_presentation("s", "t").unwrap().unwrap(), projection);
 }
 
 #[test]

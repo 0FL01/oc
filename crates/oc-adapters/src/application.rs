@@ -97,6 +97,7 @@ pub(crate) fn publish_tool_event(
             input: input.clone(),
         },
         ToolCallEvent::Finished {
+            output_presentation,
             question,
             dcp,
             patch_effects,
@@ -107,6 +108,7 @@ pub(crate) fn publish_tool_event(
             output_bytes,
             output_truncated,
         } => CoreEvent::ToolCallFinished {
+            output_presentation: output_presentation.clone(),
             question: question.clone(),
             dcp: dcp.clone(),
             patch_effects: patch_effects.clone(),
@@ -3409,6 +3411,7 @@ async fn query(
                 let rows = page
                     .into_iter()
                     .map(|row| ToolOpView {
+                        output_presentation: row.output_presentation,
                         question: row.question,
                         dcp_topic: row.dcp_topic,
                         dcp: row.dcp,

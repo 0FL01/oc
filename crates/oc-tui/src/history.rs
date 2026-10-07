@@ -572,6 +572,8 @@ pub struct ToolCard {
     pub output_bytes: i64,
     /// True when the durable result is longer than the preview.
     pub output_truncated: bool,
+    /// Known bounded body/capture facts, separate from unchanged stored output.
+    pub output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
     /// Confirmed effect paths; permission-only rows carry prepared/requested
     /// targets when no effects exist. These names alone never confirm mutation.
     pub files: Vec<String>,
@@ -596,6 +598,10 @@ impl ToolCard {
             + self.state.len()
             + self.input_preview.len()
             + self.output_preview.len()
+            + self
+                .output_presentation
+                .as_ref()
+                .map_or(0, |presentation| presentation.retained_bytes())
             + self.files.iter().map(String::len).sum::<usize>()
             + self.render.retained_bytes()
             + self.question.as_ref().map_or(0, |result| {
@@ -644,6 +650,10 @@ impl ToolCard {
 
 /// Build one bounded card from a recorded tool operation.
 pub fn card_from_row(row: &ToolOpView) -> ToolCard {
+    let output_presentation = row
+        .output_presentation
+        .clone()
+        .filter(|presentation| presentation.is_valid());
     // Presentation only: keep the durable/provider structured rejection envelope
     // and its byte offsets intact; render its typed meaning to a human.
     let human = if row.name != "compress" && matches!(row.state.as_str(), "denied" | "cancelled") {
@@ -697,6 +707,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         output_preview: preview(output),
         output_bytes: row.output_bytes,
         output_truncated: row.output_truncated,
+        output_presentation,
         files: files.into_iter().take(CARD_FILES).collect(),
         files_truncated,
         diff,
@@ -1247,6 +1258,7 @@ mod tests {
                 reason("**One**\n\nbody 1"),
                 reason("**Two**\n\nbody 2"),
                 TranscriptPart::Tool(ToolOpView {
+                    output_presentation: None,
                     question: None,
                     rowid: 0,
                     op: "op-1".into(),
@@ -1488,6 +1500,7 @@ mod tests {
     fn card_from_row_bounds_previews_and_parses_patch_text_only() {
         let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
         let card = card_from_row(&ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: 0,
             op: "op1".to_string(),
@@ -1510,6 +1523,7 @@ mod tests {
         // Alias keys are never consulted, parse failures invent nothing.
         for alias in ["patch", "text"] {
             let card = card_from_row(&ToolOpView {
+                output_presentation: None,
                 question: None,
                 rowid: 0,
                 op: "op".to_string(),
@@ -1526,6 +1540,7 @@ mod tests {
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
         let card = card_from_row(&ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: 0,
             op: "op".to_string(),
@@ -1545,6 +1560,7 @@ mod tests {
         // Non-apply_patch ops never list files, long fields are bounded.
         let long = "z".repeat(CARD_PREVIEW * 4);
         let card = card_from_row(&ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: 0,
             op: "op".to_string(),
@@ -1569,6 +1585,7 @@ mod tests {
         }
         let patch = format!("*** Begin Patch\n{files}*** End Patch\n");
         let card = card_from_row(&ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: 0,
             op: "op".to_string(),
@@ -1590,6 +1607,7 @@ mod tests {
     fn cards_from_rows_maps_every_row() {
         let rows = vec![
             ToolOpView {
+                output_presentation: None,
                 question: None,
                 rowid: 0,
                 op: "a".to_string(),
@@ -1604,6 +1622,7 @@ mod tests {
                 dcp_topic: None,
             },
             ToolOpView {
+                output_presentation: None,
                 question: None,
                 rowid: 0,
                 op: "b".to_string(),

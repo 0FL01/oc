@@ -851,6 +851,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                 output,
                 output_bytes,
                 output_truncated,
+                output_presentation,
                 patch_effects,
                 dcp,
                 question,
@@ -873,7 +874,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                 assert_eq!(queried.rows.len(), 1);
                 assert_eq!(queried.rows[0].dcp, dcp);
                 assert_eq!(queried.rows[0].op, op);
-                state.apply_tool_finished_with_presentation(
+                state.apply_tool_finished_with_output_presentation(
                     &id,
                     &op,
                     &name,
@@ -884,6 +885,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                     patch_effects,
                     dcp,
                     question,
+                    output_presentation,
                 );
                 assert_eq!(
                     state

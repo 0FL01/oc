@@ -200,6 +200,36 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         "fixture-result"
     );
     assert!(!logs.join("").contains("mcp-media-private-canary"));
+    // The same real operation has bounded safe presentation after reopen,
+    // without copying binary media or preparing another model/tool result.
+    let presentation_rows: Vec<String> = db
+        .prepare("SELECT payload FROM events WHERE session_id='mcp12-stdio-restart' AND kind='tool_output_presentation' ORDER BY seq")
+        .unwrap()
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert_eq!(presentation_rows.len(), 1);
+    let encoded = &presentation_rows[0];
+    assert!(encoded.len() <= oc_core::tool_output::RECORD_BYTES);
+    for private in ["mcp-media-private-canary", PNG, AUDIO, BLOB] {
+        assert!(!encoded.contains(private));
+    }
+    let event: Value = serde_json::from_str(encoded).unwrap();
+    let facts: oc_core::tool_output::Presentation =
+        serde_json::from_value(event["presentation"].clone()).unwrap();
+    assert!(facts.is_valid());
+    assert!(facts.body.contains("[redacted]"));
+    assert!(!facts.generated_guidance && !facts.body_limited);
+    assert!(facts.capture.is_none() && facts.shell.is_none());
+    let operation: String = db
+        .query_row(
+            "SELECT id FROM tool_operations WHERE session_id='mcp12-stdio-restart' AND name='media__mcp_media_mixed'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(event["operation"], operation);
     assert_eq!(
         fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap(),
         bytes

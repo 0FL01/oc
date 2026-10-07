@@ -17,6 +17,7 @@ pub mod queries;
 pub mod question;
 pub mod runtime;
 pub mod session;
+pub mod tool_output;
 pub mod tool_stream;
 
 /// Crate identity used by smoke tests and diagnostics.

@@ -147,6 +147,8 @@ pub(crate) struct Outcome {
     pub capture_facts: Option<crate::storage::tool_output::ShellStreams>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture_failure: Option<crate::storage::tool_output::CaptureState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
 }
 
 impl Outcome {
@@ -171,6 +173,7 @@ impl Outcome {
             capture: None,
             capture_facts: None,
             capture_failure: None,
+            output_presentation: None,
         }
     }
 
@@ -205,6 +208,7 @@ impl Outcome {
                 capture: None,
                 capture_facts: None,
                 capture_failure: None,
+                output_presentation: None,
             },
             Err(error) => {
                 let mut outcome = Self::unknown(&format!("shell supervisor: {error}"));
@@ -267,6 +271,41 @@ impl Outcome {
             text.push_str(&format!("\n{diagnostic}"));
         }
         (state, text)
+    }
+
+    fn prepared_presentation(&self) -> Box<oc_core::tool_output::Presentation> {
+        let cap = (oc_core::tool_output::PREVIEW_BYTES - 128) / 2;
+        let stdout = recent(&self.stdout, cap);
+        let stderr = recent(&self.stderr, cap);
+        let body = if stderr.is_empty() {
+            stdout.clone()
+        } else {
+            format!("{stdout}\n[stderr]\n{stderr}")
+        };
+        let bytes = self.stdout.len()
+            + self.stderr.len()
+            + if self.stderr.is_empty() {
+                0
+            } else {
+                "\n[stderr]\n".len()
+            };
+        let mut presentation = oc_core::tool_output::Presentation::new(&body, bytes as u64, false);
+        presentation.body_limited |= self.stdout_truncated || self.stderr_truncated;
+        presentation.capture = self
+            .capture
+            .as_ref()
+            .map(|resource| resource.presentation_capture());
+        presentation.shell = Some(oc_core::tool_output::Shell {
+            stdout_limited: self.stdout_truncated || stdout.len() < self.stdout.len(),
+            stderr_limited: self.stderr_truncated || stderr.len() < self.stderr.len(),
+            stdout,
+            stderr,
+            exit: self.exit,
+            signal: self.signal,
+            timed_out: self.timeout,
+            cancelled: self.cancelled,
+        });
+        Box::new(presentation)
     }
 }
 
@@ -522,6 +561,7 @@ impl Jobs {
                 .lock()
                 .expect("stream admission")
                 .failure();
+            outcome.output_presentation = Some(outcome.prepared_presentation());
             // Producer loss is separate from a storage failure or leader exit.
             // Even a short interrupted prefix must advertise its capture state.
             let incomplete = resource
@@ -536,6 +576,13 @@ impl Jobs {
                 outcome.output_prepared = true;
                 let prepared =
                     context.prepare_stream(tail, resource.as_ref(), outcome.capture_failure);
+                if let Some(facts) = prepared.presentation.as_ref()
+                    && let Some(presentation) = &mut outcome.output_presentation
+                {
+                    presentation.generated_guidance = facts.generated_guidance;
+                    presentation.capture = facts.capture.clone();
+                    presentation.producer_limited = facts.producer_limited;
+                }
                 outcome.stdout = prepared.text;
                 outcome.stderr.clear();
                 if capture_failed

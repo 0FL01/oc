@@ -1288,6 +1288,7 @@ mod tests {
         output: Option<&str>,
     ) -> ToolCard {
         card_from_row(&ToolOpView {
+            output_presentation: None,
             question: None,
             rowid: 0,
             op: "op-1".to_string(),

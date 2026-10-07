@@ -229,12 +229,13 @@ impl ScriptDriver {
                     output,
                     output_bytes,
                     output_truncated,
+                    output_presentation,
                     patch_effects,
                     dcp,
                     question,
                     ..
                 })) => {
-                    state.apply_tool_finished_with_presentation(
+                    state.apply_tool_finished_with_output_presentation(
                         &turn,
                         &op,
                         &name,
@@ -245,6 +246,7 @@ impl ScriptDriver {
                         patch_effects,
                         dcp,
                         question,
+                        output_presentation,
                     );
                 }
                 Ok(Ok(CoreEvent::TurnUsage {
@@ -1463,6 +1465,7 @@ impl TuiState {
             output: None,
             output_bytes: 0,
             output_truncated: false,
+            output_presentation: None,
             patch_effects: None,
             dcp: None,
             dcp_topic,
@@ -1518,7 +1521,7 @@ impl TuiState {
         for request in &eligible {
             let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
             if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
-                let card = card_from_row(&ToolOpView { question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, patch_effects: None, dcp: None, dcp_topic: None });
+                let card = card_from_row(&ToolOpView { question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, output_presentation: None, patch_effects: None, dcp: None, dcp_topic: None });
                 self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new() });
             }
         }
@@ -1679,6 +1682,7 @@ impl TuiState {
                     output: None,
                     output_bytes: 0,
                     output_truncated: false,
+                    output_presentation: None,
                     patch_effects: None,
                     dcp: None,
                     dcp_topic: None,
@@ -1827,6 +1831,37 @@ impl TuiState {
         dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
         question: Option<oc_core::question::QuestionResult>,
     ) {
+        self.apply_tool_finished_with_output_presentation(
+            turn,
+            op,
+            name,
+            state,
+            output,
+            output_bytes,
+            output_truncated,
+            patch_effects,
+            dcp,
+            question,
+            None,
+        );
+    }
+
+    /// Operation-owned body/guidance facts; absent legacy provenance stays unknown.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_tool_finished_with_output_presentation(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        state: &str,
+        output: &str,
+        output_bytes: i64,
+        output_truncated: bool,
+        patch_effects: Option<oc_core::patch::PatchEffects>,
+        dcp: Option<oc_core::dcp_view::DcpRunSnapshot>,
+        question: Option<oc_core::question::QuestionResult>,
+        output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
+    ) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
@@ -1855,6 +1890,7 @@ impl TuiState {
             output: Some(output.to_string()),
             output_bytes,
             output_truncated,
+            output_presentation,
             patch_effects,
             dcp,
             dcp_topic: None,

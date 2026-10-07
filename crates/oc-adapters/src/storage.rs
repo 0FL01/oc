@@ -379,6 +379,7 @@ pub(crate) enum BoundedPref {
 /// One tool operation row for TUI tool cards (T22).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpRow {
+    pub output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
     pub question: Option<oc_core::question::QuestionResult>,
     /// Canonical parsed compression arguments, independent of raw UI input.
     pub dcp_topic: Option<String>,
@@ -407,6 +408,14 @@ pub struct ToolOpRow {
     pub rowid: i64,
 }
 
+/// Optional read outcome and its UI facts share the instructions transaction.
+pub(crate) struct RecordedToolOutcome<'a> {
+    pub operation: &'a str,
+    pub state: &'a str,
+    pub output: &'a str,
+    pub presentation: Option<&'a oc_core::tool_output::Presentation>,
+}
+
 /// Max rows per history page (UI03 bounds the backing store).
 pub const HISTORY_PAGE_MAX: usize = 100;
 /// Max tool operations listed per session (UI03 cards).
@@ -416,7 +425,7 @@ pub const TOOL_OPS_MAX: usize = 200;
 /// The durable result is never rewritten: previews carry an explicit
 /// `…[+N]` marker and the continuation is available through
 /// [`Db::read_tool_op_output`].
-pub const TOOL_OP_PREVIEW_BYTES: usize = 2_048;
+pub const TOOL_OP_PREVIEW_BYTES: usize = oc_core::tool_output::PREVIEW_BYTES;
 /// Active-history page size for bounded projection reads.
 pub const ACTIVE_HISTORY_PAGE: usize = 256;
 
@@ -1419,6 +1428,12 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
+                    output_presentation: Self::tool_presentation_in(
+                        &conn,
+                        session,
+                        &row.get::<_, String>(0)?,
+                    )
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?,
                     question: self.question_presentation_in(
                         &conn,
                         &name,
@@ -1628,6 +1643,12 @@ impl Db {
                     None
                 };
                 Ok(ToolOpRow {
+                    output_presentation: Self::tool_presentation_in(
+                        &conn,
+                        session,
+                        &row.get::<_, String>(0)?,
+                    )
+                    .map_err(|_| rusqlite::Error::InvalidQuery)?,
                     question: self.question_presentation_in(
                         &conn,
                         &name,
@@ -2545,7 +2566,7 @@ impl Db {
         turn: &str,
         log: &str,
     ) -> Result<(), StorageError> {
-        self.tool_outcome_with_log_and_effects(op, state, output, turn, log, None)
+        self.tool_outcome_with_log_and_effects(op, state, output, turn, log, None, None)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2557,6 +2578,7 @@ impl Db {
         turn: &str,
         log: &str,
         effects: Option<&oc_core::patch::PatchEffects>,
+        presentation: Option<&oc_core::tool_output::Presentation>,
     ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
@@ -2586,6 +2608,7 @@ impl Db {
             "UPDATE turns SET result = ?1 WHERE id = ?2 AND status='started'",
             params![log, turn],
         )?;
+        Self::record_tool_presentation_in(&tx, op, presentation)?;
         tx.commit()?;
         Ok(())
     }
@@ -2917,7 +2940,8 @@ impl Db {
                     let raw: Option<String> = r.get(7)?;
                     let state: String = r.get(2)?;
                     let question = self.question_presentation_in(&conn, &name, &state, raw.as_deref());
-                    Ok(ToolOpView{question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
+                    let output_presentation=Self::tool_presentation_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?;
+                    Ok(ToolOpView{output_presentation,question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(mut view) = view {
                     if let Some(question) = &view.question {
@@ -2939,8 +2963,20 @@ impl Db {
                     }
                     // Output is admitted after metadata and structured input;
                     // never let the independent SQL preview exceed the turn cap.
-                    let remaining =
+                    let mut remaining =
                         budget.saturating_sub(view.input.as_ref().map_or(0, String::len));
+                    let presentation_bytes = view
+                        .output_presentation
+                        .as_ref()
+                        .map_or(0, |presentation| presentation.retained_bytes());
+                    let presentation_bytes = if presentation_bytes > remaining {
+                        view.output_presentation = None;
+                        state.truncated = true;
+                        0
+                    } else {
+                        remaining -= presentation_bytes;
+                        presentation_bytes
+                    };
                     if let Some(output) = &mut view.output
                         && output.len() > remaining
                     {
@@ -2952,7 +2988,8 @@ impl Db {
                     state.truncated |= state.input_omitted || view.output_truncated;
                     budget = budget.saturating_sub(
                         view.input.as_ref().map_or(0, String::len)
-                            + view.output.as_ref().map_or(0, String::len),
+                            + view.output.as_ref().map_or(0, String::len)
+                            + presentation_bytes,
                     );
                     turn.parts.push(TranscriptPart::Tool(view));
                 }

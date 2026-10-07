@@ -15,6 +15,24 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
         .accept_turn("t", "s", "ask", "ask", &model)
         .unwrap()
         .user_message;
+    db.create_bound_session("legacy-session", "/p").unwrap();
+    db.record_tool_intent("legacy", "legacy-session", None, "fixture_tool", "{}")
+        .unwrap();
+    let literal = "[tool output: producer literal; not generated guidance]";
+    db.record_tool_outcome("legacy", "completed", Some(literal))
+        .unwrap();
+    let legacy = db.list_tool_ops("legacy-session").unwrap().remove(0);
+    assert_eq!(legacy.output.as_deref(), Some(literal));
+    assert!(legacy.output_presentation.is_none());
+    db.conn.lock().unwrap().execute(
+        "INSERT INTO events(session_id,kind,payload) VALUES('legacy-session','tool_output_presentation',?1)",
+        [serde_json::json!({"operation":"legacy","presentation":{"unknown_future_shape":true}}).to_string()],
+    ).unwrap();
+    assert!(
+        db.list_tool_ops("legacy-session").unwrap()[0]
+            .output_presentation
+            .is_none()
+    );
     db.record_turn_tool_intent("q", "s", "t", "question", "{}", "{}")
         .unwrap();
     let result = oc_core::question::QuestionResult {
@@ -50,8 +68,48 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
     let prepared = context.prepare_question(full.clone()).unwrap();
     assert!(!prepared.logging_failed);
     assert!(prepared.text.len() < 51200);
-    db.record_tool_outcome("q", "completed", Some(&prepared.text))
-        .unwrap();
+    let presentation = prepared.presentation.as_deref().unwrap();
+    assert!(presentation.generated_guidance && presentation.body_limited);
+    let before = db.turn_result("t").unwrap();
+    let mut invalid = presentation.clone();
+    invalid.body = "x".repeat(oc_core::tool_output::PREVIEW_BYTES + 1);
+    assert!(
+        db.tool_outcome_with_log_and_effects(
+            "q",
+            "completed",
+            "must roll back",
+            "t",
+            "{}",
+            None,
+            Some(&invalid),
+        )
+        .is_err()
+    );
+    let pending = db.list_tool_ops("s").unwrap().remove(0);
+    assert_eq!(pending.state, "started");
+    assert!(pending.output.is_none() && pending.output_presentation.is_none());
+    assert_eq!(db.turn_result("t").unwrap(), before);
+    db.tool_outcome_with_log_and_effects(
+        "q",
+        "completed",
+        &prepared.text,
+        "t",
+        "{}",
+        None,
+        Some(presentation),
+    )
+    .unwrap();
+    assert_eq!(
+        db.list_tool_ops("s").unwrap()[0]
+            .output_presentation
+            .as_deref(),
+        Some(presentation),
+    );
+    let presentation_event_bytes: i64 = db.conn.lock().unwrap().query_row(
+        "SELECT max(length(CAST(payload AS BLOB))) FROM events WHERE kind='tool_output_presentation'",
+        [], |r| r.get(0),
+    ).unwrap();
+    assert!(presentation_event_bytes < oc_core::tool_output::RECORD_BYTES as i64);
     let resource = db.output_for_operation("q").unwrap().unwrap();
     assert_eq!(resource.bytes as usize, full.len());
     assert_eq!(std::fs::read_to_string(&resource.path).unwrap(), full);
@@ -92,6 +150,15 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
         db.list_tool_ops(&fork).unwrap()[0].question.as_ref(),
         Some(&result)
     );
+    let fork_fact = db
+        .list_tool_ops(&fork)
+        .unwrap()
+        .remove(0)
+        .output_presentation
+        .unwrap();
+    assert_eq!(fork_fact.body, presentation.body);
+    assert!(fork_fact.generated_guidance);
+    assert!(fork_fact.capture.as_ref().unwrap().reference.is_none());
     assert!(
         db.open_tool_output(&fork, &resource.path).is_err(),
         "presentation fork is not a model filesystem grant"
@@ -113,6 +180,12 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
     let db = Db::open(dir.path()).unwrap();
     assert_eq!(
         db.list_tool_ops_page("s", 8, None).unwrap()[0]
+            .output_presentation
+            .as_deref(),
+        Some(presentation),
+    );
+    assert_eq!(
+        db.list_tool_ops_page("s", 8, None).unwrap()[0]
             .question
             .as_ref(),
         Some(&result)
@@ -122,6 +195,18 @@ fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentatio
         Some(&result)
     );
     db.expire_tool_outputs(timestamp() + TTL + 1).unwrap();
+    let expired = db
+        .list_tool_ops("s")
+        .unwrap()
+        .remove(0)
+        .output_presentation
+        .unwrap();
+    assert_eq!(expired.body, presentation.body);
+    assert_eq!(
+        expired.capture.as_ref().unwrap().state,
+        CaptureState::Expired
+    );
+    assert!(expired.capture.as_ref().unwrap().reference.is_none());
     assert!(db.list_tool_ops("s").unwrap()[0].question.is_none());
     assert!(db.list_tool_ops(&fork).unwrap()[0].question.is_none());
     assert_eq!(
