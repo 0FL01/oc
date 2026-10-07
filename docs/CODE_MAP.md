@@ -65,8 +65,11 @@ and `application/effective_wire_tests.rs`.
 
 T53 public Go source: `oc-adapters/src/models_dev.rs::GoCatalog` owns bounded,
 credential-free `https://models.dev/api.json` refresh, sanitized source-qualified
-SQLite preference cache and single-flight/TTL/last-good state. Only Go metadata
-survives normalization; tests `models_dev/tests.rs`. The existing Db shares this
+SQLite preference cache and single-flight/TTL/last-good state. Only Go/OpenAI metadata
+survives normalization; foreign JSON is checked without retaining its Value tree
+(`PublicDocument`/`CheckedDiscard`), preserving number/depth/duplicate semantics.
+Tests `models_dev/tests.rs`; current allocation/clean-HOME proof:
+`evidence/T42/current-changes.md`. The existing Db shares this
 owner with all its handles; `composition/go_catalog.rs` attaches last-good data,
 builds finite model/variant bindings and separates public fetch status from paid
 auth readiness. Application `provider_catalog.rs` owns startup/picker refresh and

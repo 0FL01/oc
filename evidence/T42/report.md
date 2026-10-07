@@ -1,5 +1,10 @@
 # T42 — offline qualification and compatibility fixes (F18, AUD38–AUD40)
 
+> Historical 2026-09-21 qualification below. T42 is currently resumed for T30's
+> post-backend qualification; checked new fixes are in `current-changes.md`.
+> The new full fixed-commit AUD38/AUD39 gate is not yet complete. Historical counts
+> and next-step hints below are not current readiness evidence.
+
 Commit under test: see `checks.md` (SHA recorded per command). Scope: `audit/repairs/T42.md`
 plus four compatibility/acceptance fixes requested by the owner on 2026-09-21 that the
 repair cycle had not yet proven (bare `oc` TUI, one-lifecycle Location switch,

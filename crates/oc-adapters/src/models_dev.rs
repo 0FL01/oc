@@ -21,6 +21,81 @@ pub(crate) const CACHE_KEY: &str = "public-catalog:https://models.dev/api.json:o
 const TTL_MS: u64 = 300_000;
 const DEADLINE: Duration = Duration::from_secs(15);
 
+/// Retain only the two public slices this owner can publish. Building a Value
+/// tree for every unrelated provider amplifies the bounded wire body manyfold.
+struct PublicDocument(BTreeMap<String, Value>);
+impl<'de> Deserialize<'de> for PublicDocument {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct DocumentVisitor;
+        impl<'de> serde::de::Visitor<'de> for DocumentVisitor {
+            type Value = PublicDocument;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a public provider object")
+            }
+            fn visit_map<M: serde::de::MapAccess<'de>>(
+                self,
+                mut map: M,
+            ) -> Result<Self::Value, M::Error> {
+                let mut slices = BTreeMap::new();
+                while let Some(id) = map.next_key::<String>()? {
+                    if matches!(id.as_str(), PROVIDER | OPENAI) {
+                        // Preserve Value's last-key-wins semantics, including
+                        // duplicate fields inside a recognized provider record.
+                        slices.insert(id, map.next_value()?);
+                    } else {
+                        map.next_value::<CheckedDiscard>()?;
+                    }
+                }
+                Ok(PublicDocument(slices))
+            }
+        }
+        deserializer.deserialize_map(DocumentVisitor)
+    }
+}
+
+/// Visit foreign JSON without retaining it. Unlike deserialize_ignored_any's
+/// optimized skip, deserialize_any retains the original number/depth checks.
+struct CheckedDiscard;
+impl<'de> Deserialize<'de> for CheckedDiscard {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_any(Self)
+    }
+}
+impl<'de> serde::de::Visitor<'de> for CheckedDiscard {
+    type Value = Self;
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("valid JSON")
+    }
+    fn visit_unit<E: serde::de::Error>(self) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_bool<E: serde::de::Error>(self, _: bool) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_i64<E: serde::de::Error>(self, _: i64) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_u64<E: serde::de::Error>(self, _: u64) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_f64<E: serde::de::Error>(self, _: f64) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_str<E: serde::de::Error>(self, _: &str) -> Result<Self, E> {
+        Ok(self)
+    }
+    fn visit_seq<S: serde::de::SeqAccess<'de>>(self, mut seq: S) -> Result<Self, S::Error> {
+        while seq.next_element::<Self>()?.is_some() {}
+        Ok(self)
+    }
+    fn visit_map<M: serde::de::MapAccess<'de>>(self, mut map: M) -> Result<Self, M::Error> {
+        while map.next_key::<Self>()?.is_some() {
+            map.next_value::<Self>()?;
+        }
+        Ok(self)
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 struct ProviderRecord {
     id: String,
@@ -546,21 +621,23 @@ impl GoCatalog {
             if body.len() > discovery::DISCOVERY_BODY_CAP {
                 return Err(discovery::DiscoveryError::InvalidResponse);
             }
-            let root: Value = serde_json::from_slice(&body)
+            let mut root: PublicDocument = serde_json::from_slice(&body)
                 .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
-            let slice = |id: &str| -> Result<Option<ProviderRecord>, discovery::DiscoveryError> {
-                root.get(id)
-                    .map(|value| {
-                        let record: ProviderRecord = serde_json::from_value(value.clone())
-                            .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
-                        if record.id != id {
-                            return Err(discovery::DiscoveryError::InvalidResponse);
-                        }
-                        record.validate()?;
-                        Ok(record)
-                    })
-                    .transpose()
-            };
+            let mut slice =
+                |id: &str| -> Result<Option<ProviderRecord>, discovery::DiscoveryError> {
+                    root.0
+                        .remove(id)
+                        .map(|value| {
+                            let record: ProviderRecord = serde_json::from_value(value)
+                                .map_err(|_| discovery::DiscoveryError::InvalidResponse)?;
+                            if record.id != id {
+                                return Err(discovery::DiscoveryError::InvalidResponse);
+                            }
+                            record.validate()?;
+                            Ok(record)
+                        })
+                        .transpose()
+                };
             let cache = CacheRecord {
                 source: SOURCE.into(),
                 fetched_at_ms: now_ms,

@@ -1,17 +1,3 @@
-# NOW — актуальный handoff
-
-State updated: 2026-10-07T00:37:27+00:00
-Active: T42
-
-Сверить Git status/diff до выполнения команд.
-Task: T42 — Повторная qualification и честный handoff
-Spec: audit/repairs/T42.md
-Evidence target: evidence/T42/report.md
-
-Закрыть F18 по audit/repairs/T42.md. Проверять actual application path; checkpoint после каждого среза. Scope не расширять.
-
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
 ## Result
 
 T42 resumed for T30's required current post-backend AUD38/AUD39 qualification.
@@ -46,9 +32,3 @@ Commit/push this checked owner-level code slice, run current locked full workspa
 and debug/release/clean-HOME/static/provenance qualification on that code commit,
 then current report/finish only scoped T42. Do not reset a live ledger, waive live
 or visual gates, or access user/authoring credentials and .opencode.
-
-
-Ready (до 5): нет
-Blocked: T27, T44, T45, T57
-
-Done в журнале не означает READY всего продукта; см. GOAL.md.

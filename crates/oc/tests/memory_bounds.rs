@@ -158,6 +158,9 @@ struct Sample {
     rss_kb: u64,
     hwm_kb: u64,
     pss_kb: u64,
+    anon_kb: u64,
+    file_kb: u64,
+    threads: u64,
     children: usize,
 }
 
@@ -363,7 +366,10 @@ impl Fixture {
                 if run.baseline.rss_kb == 0 {
                     run.baseline = sample;
                 }
-                run.peak_hwm_kb = run.peak_hwm_kb.max(sample.hwm_kb);
+                if sample.hwm_kb > run.peak_hwm_kb {
+                    run.peak = sample;
+                    run.peak_hwm_kb = sample.hwm_kb;
+                }
                 run.peak_pss_kb = run.peak_pss_kb.max(sample.pss_kb);
                 run.children = run.children.max(sample.children);
                 run.end = sample;
@@ -398,6 +404,7 @@ impl Fixture {
 #[derive(Debug, Clone, Copy, Default)]
 struct RunSample {
     baseline: Sample,
+    peak: Sample,
     end: Sample,
     peak_hwm_kb: u64,
     peak_pss_kb: u64,
@@ -415,6 +422,12 @@ fn sample_process(pid: u32) -> Sample {
                 sample.rss_kb = parse_kb(rest);
             } else if let Some(rest) = line.strip_prefix("VmHWM:") {
                 sample.hwm_kb = parse_kb(rest);
+            } else if let Some(rest) = line.strip_prefix("RssAnon:") {
+                sample.anon_kb = parse_kb(rest);
+            } else if let Some(rest) = line.strip_prefix("RssFile:") {
+                sample.file_kb = parse_kb(rest);
+            } else if let Some(rest) = line.strip_prefix("Threads:") {
+                sample.threads = parse_kb(rest);
             }
         }
     }
@@ -493,6 +506,10 @@ fn aud32_actual_binary_bounds_active_context_with_growing_archive() {
             run.run.children,
             run.run.db_bytes,
             run.run.wal_bytes
+        );
+        println!(
+            "AUD32 {label} peak composition: anon_kb={} file_kb={} threads={}",
+            run.run.peak.anon_kb, run.run.peak.file_kb, run.run.peak.threads,
         );
     }
 

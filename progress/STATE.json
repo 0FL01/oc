@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-06T23:45:36+00:00",
-  "current": null,
+  "updated_at": "2026-10-07T00:37:27+00:00",
+  "current": "T42",
   "tasks": {
     "T00": {
       "status": "done",
@@ -298,11 +298,11 @@
       "reopen_reason": null
     },
     "T42": {
-      "status": "done",
-      "last_seq": 3,
-      "latest": "progress/M7/T42/0003.md",
-      "evidence": "evidence/T42/report.md",
-      "reopen_reason": null
+      "status": "active",
+      "last_seq": 4,
+      "latest": "progress/M7/T42/0004.md",
+      "evidence": null,
+      "reopen_reason": "T30 explicitly requires AUD38/AUD39 requalification on the final code commit after backend changes; execute existing offline owner on c6e08c4bf without live/credential access or scope expansion"
     },
     "T43": {
       "status": "done",
@@ -403,5 +403,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T43"
+  "last_checkpoint_task": "T42"
 }

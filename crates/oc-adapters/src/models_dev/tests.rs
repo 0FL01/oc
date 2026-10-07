@@ -57,6 +57,43 @@ pub(super) fn document() -> Value {
         "foreign":{"models":{"huge":{"apiKey":"REMOTE_SECRET"}}}})
 }
 
+#[test]
+fn aud38_public_document_does_not_retain_the_foreign_catalog_tree() {
+    let go = document()[PROVIDER].clone();
+    let openai = json!({"id":OPENAI,"npm":"@ai-sdk/openai","models":{}});
+    // Compact foreign nodes produce a disproportionately large Value tree.
+    let foreign = "{\"models\":[null,true,false,-1,2,1.5,\"escaped\\ntext\"]},".repeat(40_000);
+    let body = format!(
+        "{{\"foreign\":[{}null],\"opencode-go\":{go},\"openai\":{openai}}}",
+        foreign,
+    );
+    assert!(body.len() > 1024 * 1024 && body.len() < discovery::DISCOVERY_BODY_CAP);
+    let parsed: PublicDocument = serde_json::from_str(&body).unwrap();
+    assert_eq!(parsed.0.len(), 2);
+    assert_eq!(parsed.0[PROVIDER], go);
+    assert_eq!(parsed.0[OPENAI], openai);
+    assert!(serde_json::to_vec(&parsed.0).unwrap().len() < body.len() / 100);
+}
+
+#[test]
+fn aud38_selective_public_document_preserves_json_and_duplicate_validation() {
+    let go = document()[PROVIDER].clone();
+    let body = format!("{{\"opencode-go\":null,\"opencode-go\":{go}}}");
+    let parsed: PublicDocument = serde_json::from_str(&body).unwrap();
+    assert_eq!(parsed.0[PROVIDER], go);
+    for foreign in [
+        "[1,]".to_string(),
+        "{\"x\":}".into(),
+        "\"\\q\"".into(),
+        "1e9999".into(),
+        format!("{}null{}", "[".repeat(128), "]".repeat(128)),
+    ] {
+        let body = format!("{{\"opencode-go\":{go},\"foreign\":{foreign}}}");
+        assert!(serde_json::from_str::<Value>(&body).is_err());
+        assert!(serde_json::from_str::<PublicDocument>(&body).is_err());
+    }
+}
+
 #[tokio::test]
 async fn go02_read_only_cache_without_owner_mutation_or_root_creation() {
     let tmp = tempfile::tempdir().unwrap();
