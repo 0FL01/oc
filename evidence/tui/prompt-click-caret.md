@@ -156,4 +156,11 @@ remain mandatory. AUTH06 deferred/original24/24 and Go13/24 ledgers unchanged.
 
 ## Delivery
 
-Reviewed code/evidence commit and push pending at receipt creation.
+Reviewed code/evidence commit `fa536b7cfad8ad22d976983b2db65a5bf6318267`
+(`feat(tui): place prompt caret from painted editor stops`) PUSHED by ordinary
+fast-forward to verified `github.com/0FL01/oc`, own `agent/oc-rust-port` branch.
+Actual checkpoint `progress/M9/T44/0095.md` is included; its historical pre-commit
+Next text is not rewritten. Source/docs/JSON whitespace checks and repository
+Python47/0 (12.503s), syntax/docs/journal checks passed before delivery. Unrelated
+`.opencode` and earlier immutable captures remain untouched. Whole T44 remains
+ACTIVE/NOT_PASS; next is the shared durable input-history facet.

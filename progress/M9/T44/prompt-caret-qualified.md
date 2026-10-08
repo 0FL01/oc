@@ -7,6 +7,8 @@ editor before typing. Chip expansion and overlay/terminal/child/Shell authority
 win; no navigation bytes/request/policy change. Shared wrap-end stops follow the
 running reference before soft separators. Receipt: evidence/tui/prompt-click-caret.md.
 Whole T44 remains ACTIVE/NOT_PASS; shared durable input history is still pending.
+Code/evidence `fa536b7cfad8ad22d976983b2db65a5bf6318267` PUSHED by ordinary
+fast-forward to verified own `github.com/0FL01/oc` branch.
 
 ## Checks
 Current targeted VIS12 2/0 and inherited VIS07 8/0; strict locked workspace Clippy,
@@ -30,7 +32,7 @@ failures and pre-final005 remain immutable. No test/resource/security threshold
 weakened; AUTH06/original24/24/Go13/24 unchanged; .opencode untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then shared durable newest-50/consecutive-dedup
-prompt history and effective previous/next bindings, followed by every remaining
+Delivery complete; implement shared durable newest-50/consecutive-dedup prompt
+history and effective previous/next bindings, followed by every remaining
 frozen R1–R6/VIS01–VIS45 outcome. No task finish or acceptance reset here; final
 R6/V09 only after complete closure.
