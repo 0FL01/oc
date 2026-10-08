@@ -12,7 +12,9 @@ mandatory dependency: raw PTY bytes and model shell tools are not user commands.
 Full mode/files/agents/pasted-part restoration and Mini are outside this narrow
 history slice under the frozen supplement, not newly claimed features.
 
-Implementation is reviewed and verified; Git delivery is recorded after commit.
+Implementation commit `0defd6f2adb71d93abb25286af72f237069206ee`
+(`feat(tui): share durable bounded prompt input history`) is reviewed, verified and
+PUSHED to the verified own branch. Whole task status is unchanged.
 No schema, second store/registry, RAW-history read, production JS host, polling
 clock, permission/resource relaxation or automatic tool effect was introduced.
 

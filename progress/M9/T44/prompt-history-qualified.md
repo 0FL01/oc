@@ -9,6 +9,7 @@ Existing Editor preserves boundary-first movement, undo/edit refusal/native
 unfinished draft; admitted previous/next/legacy/leader bindings share one owner.
 Receipt: evidence/tui/prompt-input-history.md. Whole T44 remains ACTIVE/NOT_PASS;
 structured user Shell composer/admission remains mandatory and pending.
+Delivery: `0defd6f2adb71d93abb25286af72f237069206ee` PUSHED to verified own branch.
 
 ## Checks
 Current fmt/strict locked workspace Clippy,1752/0/11 across46 results, locked+
@@ -34,6 +35,6 @@ Manual test channels now ACK exact accepted history while retaining original
 control assertions; transcript wheel replaces obsolete history-owned Up fixture.
 
 ## Next
-Commit/push reviewed source/evidence, then structured user Shell composer/admission
-and every remaining frozen R1–R6/VIS01–VIS45 outcome. Do not finish T44 or reset
+Structured user Shell composer/admission and every remaining frozen
+R1–R6/VIS01–VIS45 outcome. Do not finish T44 or reset
 acceptance on this functional slice; final R6/V09 follows complete closure.
