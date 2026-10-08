@@ -9,6 +9,8 @@ failure/refusal, masks all nodes and stays sticky. Opaque IDs/bindings/diagnosti
 tool names and launch authority remain unchanged; no registry/store/secret history.
 Service feedback joins typed diagnostic provenance to opaque row ID, never label.
 Receipt: evidence/tui/mcp-label-projection.md. Whole T44 remains ACTIVE.
+Reviewed code/evidence2f84744e7646a46c46063d849f63d73052fc1778 is PUSHED to verified
+origin/agent/oc-rust-port by ordinary fast-forward; checkpoint0092 is immutable.
 
 ## Checks
 Current fmt/strict locked workspace Clippy,1741/0/11 across46 completed results,
@@ -30,6 +32,7 @@ not final source substitutes. No whole VIS40/VIS31/R6/V09 PASS. AUTH06 deferred;
 original24/24/Go13/24 unchanged. Unrelated .opencode/ and immutable captures untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then continue mandatory MCP modal interaction/
-details and every remaining frozen R1–R6/VIS01–VIS45. Final current-source R6/V09
+Replace MCP detail-as-Select-rows with the existing read-only detail surface and
+real Back/Copy/Investigate/scroll controls, then every remaining frozen R1–R6/VIS01–VIS45.
+Final current-source R6/V09
 only after full closure; no task finish or acceptance reset on this slice.

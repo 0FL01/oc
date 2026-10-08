@@ -58,11 +58,14 @@ Final mixed008, ordinary024 and temporal027 share verified captured inputs:
 Locks retain actual builds, commands, isolated fixture configuration, real input,
 protocol and full styled-cell/PNG/VT/cursor association. No Rust or capture-runtime
 edit follows these final captures; subsequent changes are factual docs/progress.
-Git delivery is recorded after the reviewed commit/push, not inferred from hashes.
+Code/evidence `2f84744e7646a46c46063d849f63d73052fc1778` is PUSHED by ordinary
+fast-forward to verified `origin/agent/oc-rust-port`; checkpoint0092 stays immutable.
+No whole-task finish accompanies delivery.
 
 ## Nearest security and actual-binary checks
 
-Nine current `mcp08_` adapter cases pass. They cover exact ordinary Unicode/long
+Nine current `mcp08_` adapter cases pass. Together with the extended CFG10 and
+private label regressions, they cover exact ordinary Unicode/long
 projection, protected-key DTO/Debug fallback, inactive/failed/unsupported source
 fields, inherited values under benign env names, encoded endpoint userinfo, mixed
 env/file templates, successful activation and real post-read resource refusal,
