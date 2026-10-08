@@ -1,0 +1,180 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 42,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-120x40-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-120x40-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-120x40-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-80x24-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-80x24-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-80x24-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-160x48-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 54,
+        "y": 15,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-160x48-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 54,
+        "y": 15,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-160x48-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 54,
+        "y": 15,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-configured-search",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 43,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-configured-details",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 90,
+        "y": 20,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "mcp-status-detail-navigation",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 90,
+        "y": 20,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+    "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+  ],
+  "reason": "Timed out waiting for mcp-status-detail-copied"
+}

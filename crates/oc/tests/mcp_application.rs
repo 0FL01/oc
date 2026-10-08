@@ -1235,7 +1235,7 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
     let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();
     assert!(
         diagnostic.contains(&diagnostic_name("oversized")[..20])
-            && diagnostic.contains("code: catalog_limit"),
+            && diagnostic.contains("tools-list: catalog_limit"),
         "visible catalog diagnostic: {diagnostic}"
     );
     std::thread::sleep(Duration::from_millis(300));
@@ -2452,7 +2452,26 @@ fn inspect_mcp_code(tui: &mut PtyProcess, server: &str, code: &str) {
     tui.wait_screen("MCP servers", TIMEOUT);
     tui.raw(server.as_bytes());
     tui.raw(b"\r");
-    tui.wait_screen(&format!("Code: {code}"), TIMEOUT);
+    // Dedicated read-only details paint the safe owner diagnostic, not Select
+    // rows headed Code/Retryable. The recorded facts and privacy checks remain.
+    tui.wait_screen("MCP server:", TIMEOUT);
+    let needle = format!("{code} (retryable=");
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        let rows = tui.screen();
+        let text = rows
+            .iter()
+            .map(|row| row.trim())
+            .collect::<Vec<_>>()
+            .join(" ");
+        if text.contains(&needle) {
+            break;
+        }
+        assert!(Instant::now() < deadline, "missing {needle:?}: {rows:?}");
+        std::thread::sleep(POLL);
+    }
+    tui.wait_screen("c copy details", TIMEOUT);
+    assert!(!tui.screen().iter().any(|row| row.trim() == "Search"));
     tui.raw(b"\x1b");
     tui.wait_screen("MCP servers", TIMEOUT);
     lifecycle::close_mcps(tui);
@@ -2995,7 +3014,7 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
     assert!(first.wait_exit().success());
     let failure = String::from_utf8_lossy(&first.output.lock().unwrap()).to_string();
     assert!(
-        failure.contains("Code: unauthorized") && failure.contains("Retryable: false"),
+        failure.contains("unauthorized") && failure.contains("retryable=false"),
         "missing explicit degraded-server diagnostic: {failure}"
     );
     for private in [

@@ -1952,6 +1952,7 @@ async fn handle_event_ticks(
             // The view owns the global pending lifecycle before choosing the
             // focused editor/modal consumer, including pending Enter replay.
             let outcome = state.handle_key(action).await;
+            report_copy_request(state, loop_state);
             apply_outcome(app, state, loop_state, outcome, typed_new).await;
         }
         Some(UiEvent::Paste(text)) => {
@@ -1974,7 +1975,7 @@ async fn handle_event_ticks(
                 // A wheel event also moves the pointer. Keep transcript
                 // scrolling, but invalidate a held tab when it leaves the strip.
                 state.handle_mouse(mouse, area);
-                report_copy_request(state);
+                report_copy_request(state, loop_state);
                 let outcome = state.wheel_transcript_at(
                     mouse.kind == MouseEventKind::ScrollUp,
                     wheel_ticks,
@@ -1984,7 +1985,7 @@ async fn handle_event_ticks(
             } else {
                 for _ in 0..wheel_ticks {
                     let outcome = state.handle_mouse(mouse, area);
-                    report_copy_request(state);
+                    report_copy_request(state, loop_state);
                     apply_mouse_outcome(
                         app,
                         state,
@@ -1999,14 +2000,19 @@ async fn handle_event_ticks(
             }
         }
         Some(UiEvent::Resize) => {}
-        None => {}
+        None => report_copy_request(state, loop_state),
     }
     Ok(())
 }
 
-fn report_copy_request(state: &mut TuiState) {
-    // Apply to the view that produced the selection before a mouse outcome
-    // can swap the active tab. Never log the selected transcript text.
+fn report_copy_request(state: &mut TuiState, _loop_state: &LoopState) {
+    // Apply to the view that produced the request before a key/mouse outcome
+    // can swap the active tab. Never log the selected text.
+    #[cfg(test)]
+    if let Some(copy) = _loop_state.copy_transport {
+        report_copy_request_with(state, copy);
+        return;
+    }
     report_copy_request_with(state, crate::clipboard::copy);
 }
 
@@ -2345,14 +2351,7 @@ async fn apply_intent_with_origin(
                 .find(|row| row.id == message && row.role == oc_core::session::Role::User)
                 .ok_or("message is no longer active")?;
             state.copy_message_text(row.text)?;
-            #[cfg(test)]
-            if let Some(copy) = loop_state.copy_transport {
-                report_copy_request_with(state, copy);
-            } else {
-                report_copy_request(state);
-            }
-            #[cfg(not(test))]
-            report_copy_request(state);
+            report_copy_request(state, loop_state);
         }
         PanelIntent::ReloadConfiguration => {
             if state.is_busy()

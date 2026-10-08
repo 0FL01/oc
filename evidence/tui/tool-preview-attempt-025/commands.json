@@ -1,0 +1,872 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "short",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tool-preview",
+      "true",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "43db2fe87fbe08d83b47821cbe215118404d8653\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "54601f6ff111811d9679206bc4cf351fe94e8f2b\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 8dc02f8da..e7a709a21 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -739,7 +739,7 @@ pub struct TuiState {\n     pub(crate) skills_cursor: usize,\n     skills_loaded: bool,\n     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,\n-    mcp_detail: Option<String>,\n+    mcp_detail: Option<mcp::McpDetail>,\n     /// DCP panel state: snapshot in, request out, transient outcome (UI04).\n     pub(crate) dcp: DcpPanelState,\n     /// Command ids known to the application (templates stay there).\ndiff --git a/crates/oc-tui/src/app/input.rs b/crates/oc-tui/src/app/input.rs\nindex 589b9db78..ddeacba02 100644\n--- a/crates/oc-tui/src/app/input.rs\n+++ b/crates/oc-tui/src/app/input.rs\n@@ -707,11 +707,15 @@ impl TuiState {\n     fn selected_diagnostic(&self) -> Option<oc_core::queries::ServiceDiagnostic> {\n         let options = self.modal_options();\n         if self.panel == TuiPanel::Mcps {\n-            let id = self.mcp_detail.as_deref().or_else(|| {\n-                options\n-                    .get(self.select.cursor)\n-                    .map(|option| option.value.as_str())\n-            })?;\n+            let id = self\n+                .mcp_detail\n+                .as_ref()\n+                .map(|detail| detail.server.as_str())\n+                .or_else(|| {\n+                    options\n+                        .get(self.select.cursor)\n+                        .map(|option| option.value.as_str())\n+                })?;\n             return self\n                 .mcp_snapshot\n                 .as_ref()?\n@@ -1179,6 +1183,7 @@ impl TuiState {\n         self.card_output = None;\n         self.card_scroll = 0;\n         self.card_seen.set(0);\n+        self.mcp_detail = None;\n         self.mouse_down = None;\n         self.tab_down = None;\n         if was_open {\n@@ -1699,6 +1704,61 @@ impl TuiState {\n             }\n             return KeyOutcome::default();\n         }\n+        if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {\n+            self.set_detail_area(area);\n+            let layout = crate::dialog::mcp_detail_layout(self, area);\n+            let point = (event.column, event.row).into();\n+            let hit = if !layout.rect.contains(point) {\n+                DialogHit::Backdrop\n+            } else if layout.back.contains(point) {\n+                DialogHit::Close\n+            } else if layout.investigate.contains(point) {\n+                DialogHit::Option(0)\n+            } else if layout.copy.contains(point) {\n+                DialogHit::Option(1)\n+            } else {\n+                DialogHit::Surface\n+            };\n+            match event.kind {\n+                MouseEventKind::ScrollUp | MouseEventKind::ScrollDown\n+                    if layout.body.contains(point) =>\n+                {\n+                    for _ in 0..3 {\n+                        self.mcp_detail_key(if event.kind == MouseEventKind::ScrollUp {\n+                            KeyAction::Up\n+                        } else {\n+                            KeyAction::Down\n+                        });\n+                    }\n+                }\n+                MouseEventKind::Down(MouseButton::Left) => {\n+                    if let Some(detail) = &mut self.mcp_detail {\n+                        detail.pressed = Some((area, hit));\n+                    }\n+                }\n+                MouseEventKind::Drag(MouseButton::Left) => {\n+                    if let Some(detail) = &mut self.mcp_detail {\n+                        detail.pressed = None;\n+                    }\n+                }\n+                MouseEventKind::Up(MouseButton::Left)\n+                    if self\n+                        .mcp_detail\n+                        .as_mut()\n+                        .and_then(|detail| detail.pressed.take())\n+                        == Some((area, hit)) =>\n+                {\n+                    return self.mcp_detail_key(match hit {\n+                        DialogHit::Backdrop | DialogHit::Close => KeyAction::Cancel,\n+                        DialogHit::Option(0) => KeyAction::Char('i'),\n+                        DialogHit::Option(1) => KeyAction::Char('c'),\n+                        _ => return KeyOutcome::default(),\n+                    });\n+                }\n+                _ => {}\n+            }\n+            return KeyOutcome::default();\n+        }\n         let options = self.modal_options();\n         let size = crate::dialog::size_for(&self.panel);\n         let hit = self\n@@ -1819,6 +1879,9 @@ impl TuiState {\n             return KeyOutcome::default();\n         }\n         if self.panel != TuiPanel::None {\n+            if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {\n+                return KeyOutcome::default();\n+            }\n             if self.panel == TuiPanel::Rename {\n                 return self.paste_rename(text);\n             }\n@@ -2896,6 +2959,9 @@ impl TuiState {\n         if self.questions.active().is_some() {\n             return self.questions.key(action);\n         }\n+        if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {\n+            return self.mcp_detail_key(action);\n+        }\n         if self.panel == TuiPanel::Settings\n             && action == KeyAction::Cancel\n             && !self.select.query.is_empty()\n@@ -2968,14 +3034,8 @@ impl TuiState {\n         if self.panel == TuiPanel::Rename {\n             return self.handle_rename_key(action);\n         }\n-        if self.panel == TuiPanel::Mcps {\n-            if action == KeyAction::Char(' ') {\n-                return self.mcp_toggle();\n-            }\n-            if action == KeyAction::Cancel && self.mcp_detail.take().is_some() {\n-                self.select.reset();\n-                return KeyOutcome::default();\n-            }\n+        if self.panel == TuiPanel::Mcps && action == KeyAction::Char(' ') {\n+            return self.mcp_toggle();\n         }\n         if self.panel == TuiPanel::Cards && self.card_output.is_some() {\n             let (start, height, count) = crate::views::card_window(self);\ndiff --git a/crates/oc-tui/src/app/live.rs b/crates/oc-tui/src/app/live.rs\nindex 1711328b0..1f9381014 100644\n--- a/crates/oc-tui/src/app/live.rs\n+++ b/crates/oc-tui/src/app/live.rs\n@@ -506,6 +506,14 @@ impl TuiState {\n         if self.chrome.location != snapshot.chrome.location {\n             previous_issues.clear();\n             self.mcp_snapshot = None;\n+            if self\n+                .mcp_detail\n+                .as_ref()\n+                .is_some_and(|detail| detail.copy_pending)\n+            {\n+                self.pending_copy = None;\n+            }\n+            self.mcp_detail = None;\n             self.service_pending_issues.clear();\n             self.refused_submission = None;\n             self.generation += 1;\ndiff --git a/crates/oc-tui/src/app/mcp.rs b/crates/oc-tui/src/app/mcp.rs\nindex 8d2bfe583..ece2cdc39 100644\n--- a/crates/oc-tui/src/app/mcp.rs\n+++ b/crates/oc-tui/src/app/mcp.rs\n@@ -1,7 +1,18 @@\n //! Direct typed MCP projection; no endpoint, credential or inferred status.\n \n use super::*;\n-use oc_core::queries::{McpAction, McpControl, McpServerSnapshot, McpSnapshot, McpStatus};\n+use oc_core::queries::{\n+    McpAction, McpBinding, McpControl, McpServerSnapshot, McpSnapshot, McpStatus,\n+};\n+\n+pub(super) struct McpDetail {\n+    binding: McpBinding,\n+    pub(super) server: String,\n+    pub(super) scroll: usize,\n+    pub(super) copied: bool,\n+    pub(super) copy_pending: bool,\n+    pub(super) pressed: Option<(Rect, crate::dialog::DialogHit)>,\n+}\n \n impl TuiState {\n     pub(crate) fn mcp_list_servers(&self) -> Option<&[McpServerSnapshot]> {\n@@ -58,7 +69,30 @@ impl TuiState {\n             None\n         };\n         let previous_issues = self.service_issues();\n+        let detail_changed = self.mcp_detail.as_ref().is_some_and(|detail| {\n+            let before = self\n+                .mcp_snapshot\n+                .as_ref()\n+                .and_then(|old| old.servers.iter().find(|row| row.id == detail.server));\n+            let after = snapshot.servers.iter().find(|row| row.id == detail.server);\n+            before.map(|row| (&row.name, &row.diagnostic))\n+                != after.map(|row| (&row.name, &row.diagnostic))\n+                || snapshot.binding != detail.binding\n+        });\n+        if detail_changed && let Some(detail) = &mut self.mcp_detail {\n+            if detail.copy_pending {\n+                self.pending_copy = None;\n+            }\n+            detail.copy_pending = false;\n+            detail.copied = false;\n+            detail.pressed = None;\n+        }\n         self.mcp_snapshot = Some(snapshot);\n+        if self.mcp_detail.is_some() && self.mcp_detail_server().is_none() {\n+            // A replacement generation/recovery must not leave a stale detail\n+            // (or its copy/investigate actions) attached to another owner.\n+            self.mcp_detail = None;\n+        }\n         if let Some(focus) = focus {\n             let options = self.modal_options();\n             if let Some(index) = options.iter().position(|option| option.value == focus) {\n@@ -74,46 +108,6 @@ impl TuiState {\n         let Some(snapshot) = &self.mcp_snapshot else {\n             return Vec::new();\n         };\n-        if let Some(id) = &self.mcp_detail {\n-            let Some(server) = snapshot.servers.iter().find(|server| &server.id == id) else {\n-                return Vec::new();\n-            };\n-            let lines = match &server.diagnostic {\n-                Some(diagnostic) => vec![\n-                    format!(\"Server: {}\", server.name),\n-                    format!(\"Stage: {}\", diagnostic.stage.as_str()),\n-                    format!(\"Code: {}\", diagnostic.code.as_str()),\n-                    format!(\n-                        \"Retryable: {}\",\n-                        matches!(\n-                            diagnostic.action,\n-                            oc_core::queries::ServiceAction::RetryConnection\n-                                | oc_core::queries::ServiceAction::RefreshCatalog\n-                        )\n-                    ),\n-                    format!(\"Source: {}\", diagnostic.source),\n-                    format!(\"Field: {}\", diagnostic.field.join(\".\")),\n-                    diagnostic.to_string(),\n-                ],\n-                None => vec![\n-                    format!(\"Server: {}\", server.name),\n-                    format!(\"Tools: {}\", server.tools),\n-                ],\n-            };\n-            return lines\n-                .into_iter()\n-                .enumerate()\n-                .map(|(index, title)| crate::dialog::SelectOption {\n-                    value: index.to_string(),\n-                    title,\n-                    category: String::new(),\n-                    footer: String::new(),\n-                    current: false,\n-                    running: false,\n-                    destructive: false,\n-                })\n-                .collect();\n-        }\n         snapshot\n             .servers\n             .iter()\n@@ -171,19 +165,135 @@ impl TuiState {\n     }\n \n     pub(super) fn mcp_enter(&mut self) -> KeyOutcome {\n-        if self.mcp_detail.take().is_none() {\n-            self.mcp_detail = self\n-                .modal_options()\n-                .get(self.select.cursor)\n-                .map(|option| option.value.clone());\n+        let options = self.modal_options();\n+        let Some(snapshot) = &self.mcp_snapshot else {\n+            return KeyOutcome::default();\n+        };\n+        let Some(server) = options.get(self.select.cursor).and_then(|option| {\n+            snapshot\n+                .servers\n+                .iter()\n+                .find(|server| server.id == option.value)\n+        }) else {\n+            return KeyOutcome::default();\n+        };\n+        // Enter is not a connection action, nor a dismissal for healthy,\n+        // disabled or pending rows. Native unsupported-auth diagnostics remain\n+        // honest safe details, never a pretend OAuth flow.\n+        if matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)\n+            && server.diagnostic.is_some()\n+        {\n+            self.mcp_detail = Some(McpDetail {\n+                binding: snapshot.binding.clone(),\n+                server: server.id.clone(),\n+                scroll: 0,\n+                copied: false,\n+                copy_pending: false,\n+                pressed: None,\n+            });\n+            self.mouse_down = None;\n+        }\n+        KeyOutcome::default()\n+    }\n+\n+    pub(crate) fn mcp_detail_server(&self) -> Option<&McpServerSnapshot> {\n+        if self.panel != TuiPanel::Mcps {\n+            return None;\n+        }\n+        let detail = self.mcp_detail.as_ref()?;\n+        let snapshot = self.mcp_snapshot.as_ref()?;\n+        if snapshot.binding != detail.binding {\n+            return None;\n+        }\n+        snapshot\n+            .servers\n+            .iter()\n+            .find(|server| server.id == detail.server && server.diagnostic.is_some())\n+    }\n+\n+    pub(crate) fn mcp_detail_scroll(&self) -> usize {\n+        self.mcp_detail.as_ref().map_or(0, |detail| detail.scroll)\n+    }\n+\n+    pub(crate) fn mcp_detail_copied(&self) -> bool {\n+        self.mcp_detail.as_ref().is_some_and(|detail| detail.copied)\n+    }\n+\n+    pub(super) fn mcp_detail_key(&mut self, action: KeyAction) -> KeyOutcome {\n+        let layout = crate::dialog::mcp_detail_layout(self, self.detail_area());\n+        let start = self\n+            .mcp_detail_scroll()\n+            .min(layout.count.saturating_sub(layout.body.height as usize));\n+        if let Some(detail) = &mut self.mcp_detail {\n+            let end = layout.count.saturating_sub(layout.body.height as usize);\n+            detail.scroll = match action {\n+                KeyAction::Up => start.saturating_sub(1),\n+                KeyAction::Down => (start + 1).min(end),\n+                KeyAction::PageUp => start.saturating_sub(20),\n+                KeyAction::PageDown => (start + 20).min(end),\n+                KeyAction::Home | KeyAction::CtrlA => 0,\n+                KeyAction::End => end,\n+                _ => start,\n+            };\n+        }\n+        match action {\n+            KeyAction::Cancel | KeyAction::Interrupt => {\n+                self.mcp_detail = None;\n+                self.mouse_down = None;\n+            }\n+            KeyAction::Char('c') => {\n+                if let Some(server) = self.mcp_detail_server() {\n+                    let text = format!(\n+                        \"MCP server: {}\\nError: {}\",\n+                        server.name,\n+                        server.diagnostic.as_ref().expect(\"detail diagnostic\")\n+                    );\n+                    match self.copy_message_text(text) {\n+                        Ok(()) => {\n+                            if let Some(detail) = &mut self.mcp_detail {\n+                                detail.copy_pending = true;\n+                                detail.copied = false;\n+                            }\n+                        }\n+                        Err(error) => self.push_transient_note(&error, NoteVariant::Error),\n+                    }\n+                }\n+            }\n+            KeyAction::Char('i') => {\n+                if self.linked_child().is_some() {\n+                    return KeyOutcome {\n+                        note: Some(\"linked child is read-only\".into()),\n+                        ..Default::default()\n+                    };\n+                }\n+                if let Some(server) = self.mcp_detail_server() {\n+                    let draft = format!(\n+                        \"MCP server: {}\\n{}\",\n+                        server.name,\n+                        server\n+                            .diagnostic\n+                            .as_ref()\n+                            .expect(\"detail diagnostic\")\n+                            .investigation_draft()\n+                    );\n+                    if draft.len() > MAX_INPUT_BYTES {\n+                        return KeyOutcome {\n+                            note: Some(\"diagnostic exceeds composer input limit\".into()),\n+                            ..Default::default()\n+                        };\n+                    }\n+                    self.close_panel();\n+                    self.restore_prompt(draft);\n+                }\n+            }\n+            _ => {}\n         }\n-        self.select.reset();\n         KeyOutcome::default()\n     }\n \n     pub fn mcp_footer(&self) -> &str {\n         if self.mcp_detail.is_some() {\n-            return \"enter/esc back · safe details\";\n+            return \"esc back · c copy details · i investigate · ↑/↓ scroll\";\n         }\n         let options = self.modal_options();\n         let server = options.get(self.select.cursor).and_then(|option| {\ndiff --git a/crates/oc-tui/src/app/tests/mcp.rs b/crates/oc-tui/src/app/tests/mcp.rs\nindex 529434bdb..e79ad8204 100644\n--- a/crates/oc-tui/src/app/tests/mcp.rs\n+++ b/crates/oc-tui/src/app/tests/mcp.rs\n@@ -1,7 +1,246 @@\n use super::*;\n+use crate::commands::CommandAction;\n use oc_core::queries::{McpAction, McpBinding, McpServerSnapshot, McpSnapshot, McpStatus};\n use ratatui::{Terminal, backend::TestBackend, style::Modifier, text::Line};\n \n+#[tokio::test]\n+async fn mcp_error_details_are_read_only_preserve_list_and_own_copy_investigation() {\n+    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};\n+    use oc_core::queries::{\n+        ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,\n+    };\n+    use ratatui::layout::Rect;\n+\n+    let mut state = fresh_state(\"mcp-error-details\").await;\n+    state.chrome.location = Some(\"/mcp-details\".into());\n+    state.handle_paste(\"preserve Ω界 composer\");\n+    state.editor.move_to(5, false);\n+    let diagnostic = ServiceDiagnostic {\n+        kind: ServiceKind::Mcp,\n+        service: \"server-opaque-diagnostic\".into(),\n+        source: \"source-safe/config\".into(),\n+        field: vec![\"mcp\".into(), \"configured-Ω\".into()],\n+        stage: ServiceStage::Initialize,\n+        code: ServiceCode::ConnectionFailed,\n+        action: ServiceAction::RetryConnection,\n+    };\n+    let mut snapshot = McpSnapshot {\n+        binding: McpBinding {\n+            location: \"/mcp-details\".into(),\n+            generation: 1,\n+            instance: 1,\n+        },\n+        revision: 1,\n+        servers: vec![McpServerSnapshot {\n+            id: \"opaque-action-id\".into(),\n+            name: \"configured-Ω\".into(),\n+            configured_enabled: true,\n+            status: McpStatus::Failed,\n+            pending_action: None,\n+            tools: 0,\n+            diagnostic: Some(diagnostic.clone()),\n+            actions: vec![McpAction::Retry],\n+        }],\n+    };\n+    state.apply_mcp_snapshot(snapshot.clone());\n+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();\n+    terminal\n+        .draw(|frame| crate::views::render_frame(frame, &state))\n+        .unwrap();\n+    let composer_caret = terminal.backend().cursor_position();\n+    state.run_command(CommandAction::OpenMcps);\n+    state.handle_paste(\"configured\");\n+    let original_query = state.select.query.clone();\n+    let original_selection = state.select.cursor;\n+    assert!(state.mcp_enter().intent.is_none());\n+    terminal\n+        .draw(|frame| crate::views::render_frame(frame, &state))\n+        .unwrap();\n+    assert!(!terminal.backend().cursor_visible());\n+    assert_eq!(\n+        crate::views::cursor_color(&state),\n+        ratatui::style::Color::Reset\n+    );\n+    let painted = crate::views::render_test(&state, 120, 40).join(\"\\n\");\n+    for text in [\n+        \"MCP server: configured-Ω\",\n+        \"i investigate\",\n+        \"c copy details\",\n+        \"↑/↓ scroll\",\n+    ] {\n+        assert!(painted.contains(text), \"missing {text}: {painted}\");\n+    }\n+    assert!(!painted.contains(\"Search\"));\n+    assert!(\n+        state\n+            .handle_panel_key(KeyAction::Char('x'))\n+            .intent\n+            .is_none()\n+    );\n+    state.handle_paste(\"must not leak into the list/composer\");\n+    assert_eq!(state.select.query, original_query);\n+    assert_eq!(state.input(), \"preserve Ω界 composer\");\n+    assert!(state.mcp_toggle().intent.is_none());\n+\n+    state.handle_panel_key(KeyAction::Char('c'));\n+    assert!(\n+        !state.mcp_detail_copied(),\n+        \"request is not transport success\"\n+    );\n+    assert_eq!(\n+        state.take_copy_request(),\n+        Some(format!(\"MCP server: configured-Ω\\nError: {diagnostic}\"))\n+    );\n+    state.report_clipboard_result(Err(\"clipboard unavailable\".into()));\n+    assert!(!state.mcp_detail_copied());\n+    state.handle_panel_key(KeyAction::Char('c'));\n+    assert!(state.take_copy_request().is_some());\n+    state.report_clipboard_result(Ok(()));\n+    assert!(state.mcp_detail_copied());\n+    assert!(\n+        crate::views::render_test(&state, 120, 40)\n+            .join(\"\\n\")\n+            .contains(\"✓ copied\")\n+    );\n+\n+    // A newly protected name cannot retain stale copied feedback/payload.\n+    state.handle_panel_key(KeyAction::Char('c'));\n+    snapshot.revision += 1;\n+    snapshot.servers[0].name = \"server-masked\".into();\n+    state.apply_mcp_snapshot(snapshot.clone());\n+    assert!(state.take_copy_request().is_none());\n+    assert!(!state.mcp_detail_copied());\n+    assert!(state.mcp_detail_server().is_some());\n+    state.handle_panel_key(KeyAction::Cancel);\n+    assert_eq!(\n+        (&state.select.query, state.select.cursor),\n+        (&original_query, original_selection)\n+    );\n+    state.close_panel();\n+    terminal\n+        .draw(|frame| crate::views::render_frame(frame, &state))\n+        .unwrap();\n+    assert!(terminal.backend().cursor_visible());\n+    assert_eq!(terminal.backend().cursor_position(), composer_caret);\n+    assert_eq!(\n+        (&state.input, state.editor.cursor),\n+        (&\"preserve Ω界 composer\".to_string(), 5)\n+    );\n+\n+    // Long owner diagnostics scroll within the same bounded surface after\n+    // resize; controls and the originating list do not become searchable rows.\n+    snapshot.revision += 1;\n+    snapshot.servers[0].diagnostic.as_mut().unwrap().field = vec![\"safe-field-Ω\".repeat(140)];\n+    state.apply_mcp_snapshot(snapshot.clone());\n+    state.run_command(CommandAction::OpenMcps);\n+    state.mcp_enter();\n+    crate::views::render_test(&state, 80, 24);\n+    let area = Rect::new(0, 0, 80, 24);\n+    let layout = crate::dialog::mcp_detail_layout(&state, area);\n+    assert!(layout.count > layout.body.height as usize);\n+    state.handle_panel_key(KeyAction::End);\n+    assert_eq!(\n+        state.mcp_detail_scroll(),\n+        layout.count - layout.body.height as usize\n+    );\n+    state.handle_panel_key(KeyAction::PageUp);\n+    assert_eq!(\n+        state.mcp_detail_scroll(),\n+        (layout.count - layout.body.height as usize).saturating_sub(20)\n+    );\n+    state.handle_panel_key(KeyAction::Home);\n+    let mouse = |kind, x, y| MouseEvent {\n+        kind,\n+        column: x,\n+        row: y,\n+        modifiers: crossterm::event::KeyModifiers::NONE,\n+    };\n+    state.handle_mouse(\n+        mouse(MouseEventKind::ScrollDown, layout.body.x, layout.body.y),\n+        area,\n+    );\n+    assert_eq!(state.mcp_detail_scroll(), 3);\n+    state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Down(MouseButton::Left),\n+            layout.copy.x,\n+            layout.copy.y,\n+        ),\n+        area,\n+    );\n+    state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Up(MouseButton::Left),\n+            layout.copy.x,\n+            layout.copy.y,\n+        ),\n+        Rect::new(0, 0, 120, 40),\n+    );\n+    assert!(\n+        state.take_copy_request().is_none(),\n+        \"resize invalidates action press\"\n+    );\n+    crate::views::render_test(&state, 80, 24);\n+    state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Down(MouseButton::Left),\n+            layout.copy.x,\n+            layout.copy.y,\n+        ),\n+        area,\n+    );\n+    state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Up(MouseButton::Left),\n+            layout.copy.x,\n+            layout.copy.y,\n+        ),\n+        area,\n+    );\n+    assert!(\n+        state.take_copy_request().is_some(),\n+        \"real copy hit uses rendered geometry\"\n+    );\n+    state.report_clipboard_result(Ok(()));\n+    let layout = crate::dialog::mcp_detail_layout(&state, area);\n+    state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Down(MouseButton::Left),\n+            layout.investigate.x,\n+            layout.investigate.y,\n+        ),\n+        area,\n+    );\n+    let outcome = state.handle_mouse(\n+        mouse(\n+            MouseEventKind::Up(MouseButton::Left),\n+            layout.investigate.x,\n+            layout.investigate.y,\n+        ),\n+        area,\n+    );\n+    assert!(outcome.intent.is_none());\n+    assert_eq!(state.panel(), &TuiPanel::None);\n+    assert!(\n+        state\n+            .input()\n+            .starts_with(\"MCP server: server-masked\\nInvestigate this admitted failure\")\n+    );\n+    assert!(state.input().len() <= MAX_INPUT_BYTES);\n+    assert!(!state.has_pending_submission());\n+    assert_eq!(state.status(), &TuiStatus::Idle);\n+\n+    state.run_command(CommandAction::OpenMcps);\n+    state.mcp_enter();\n+    snapshot.binding.instance += 1;\n+    snapshot.revision += 1;\n+    state.apply_mcp_snapshot(snapshot);\n+    assert!(\n+        state.mcp_detail.is_none(),\n+        \"replacement owner retires stale detail\"\n+    );\n+}\n+\n #[tokio::test]\n async fn mcp_status_uses_typed_tone_loading_and_intrinsic_bold_with_selected_override() {\n     let mut state = fresh_state(\"mcp-status-style\").await;\n@@ -138,9 +377,12 @@ async fn mcp_status_uses_typed_tone_loading_and_intrinsic_bold_with_selected_ove\n         }\n     }\n     // Safe details and unrelated Select consumers must not inherit MCP tones.\n-    state.mcp_detail = Some(\"0\".into());\n-    assert!(state.mcp_list_servers().is_none());\n-    state.mcp_detail = None;\n+    state.select.cursor = 0;\n+    state.mcp_enter();\n+    assert!(\n+        state.mcp_detail.is_none(),\n+        \"healthy Enter is not a detail/action\"\n+    );\n     state.panel = TuiPanel::Model;\n     assert!(state.mcp_list_servers().is_none());\n     assert_eq!(state.input(), \"preserved Ω界 draft\");\ndiff --git a/crates/oc-tui/src/app/transcript.rs b/crates/oc-tui/src/app/transcript.rs\nindex 549201421..437fc6cc6 100644\n--- a/crates/oc-tui/src/app/transcript.rs\n+++ b/crates/oc-tui/src/app/transcript.rs\n@@ -625,6 +625,16 @@ impl TuiState {\n \n     /// The binary reports the actual asynchronous clipboard write outcome.\n     pub fn report_clipboard_result(&mut self, result: Result<(), String>) {\n+        if let Some(detail) = &mut self.mcp_detail\n+            && detail.copy_pending\n+        {\n+            detail.copy_pending = false;\n+            detail.copied = result.is_ok();\n+            if let Err(error) = result {\n+                self.push_transient_note(&error, NoteVariant::Error);\n+            }\n+            return;\n+        }\n         match result {\n             Ok(()) => {\n                 if matches!(self.panel, TuiPanel::MessageActions { .. }) {\ndiff --git a/crates/oc-tui/src/dialog.rs b/crates/oc-tui/src/dialog.rs\nindex 855061651..85210c45a 100644\n--- a/crates/oc-tui/src/dialog.rs\n+++ b/crates/oc-tui/src/dialog.rs\n@@ -704,6 +704,10 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {\n         render_card_detail(frame, state);\n         return;\n     }\n+    if state.panel() == &TuiPanel::Mcps && state.mcp_detail_server().is_some() {\n+        render_mcp_detail(frame, state);\n+        return;\n+    }\n     let title = match state.panel() {\n         TuiPanel::None => return,\n         TuiPanel::Commands => \"Commands\",\n@@ -892,6 +896,149 @@ fn render_card_detail(frame: &mut Frame<'_>, state: &TuiState) {\n     state.card_rows_painted(start, (start + visible).min(count));\n }\n \n+pub(crate) struct McpDetailLayout {\n+    pub rect: Rect,\n+    pub body: Rect,\n+    pub back: Rect,\n+    pub investigate: Rect,\n+    pub copy: Rect,\n+    pub scroll_hint: Rect,\n+    pub count: usize,\n+    rows: Vec<crate::styled::Line>,\n+}\n+\n+/// One row map owns read-only painting, scroll limits and action hits. It never\n+/// delegates to SelectList, so the originating filter/selection remains intact.\n+pub(crate) fn mcp_detail_layout(state: &TuiState, area: Rect) -> McpDetailLayout {\n+    let base = DialogFrame::rect(area, DialogSize::Medium, 0);\n+    let width = base.width.saturating_sub(4) as usize;\n+    let rows = state\n+        .mcp_detail_server()\n+        .and_then(|server| server.diagnostic.as_ref())\n+        .map(|diagnostic| {\n+            diagnostic\n+                .to_string()\n+                .split('\\n')\n+                .flat_map(|line| {\n+                    let inert = line.chars().filter(|c| !c.is_control()).collect::<String>();\n+                    crate::styled::wrap_line(&crate::styled::Line::plain(inert), width)\n+                })\n+                .collect::<Vec<_>>()\n+        })\n+        .unwrap_or_default();\n+    let mut action_row = 0_u16;\n+    let mut x = 0_u16;\n+    let mut actions = [Rect::default(); 3];\n+    for (index, wanted) in [13_u16, if state.mcp_detail_copied() { 8 } else { 14 }, 10]\n+        .into_iter()\n+        .enumerate()\n+    {\n+        let wanted = wanted.min(width as u16);\n+        if x > 0 && x + wanted > width as u16 {\n+            action_row += 1;\n+            x = 0;\n+        }\n+        actions[index] = Rect::new(base.x + 2 + x, action_row, wanted, u16::from(width > 0));\n+        x += wanted + 3;\n+    }\n+    let available = area.bottom().saturating_sub(base.y);\n+    let height = rows\n+        .len()\n+        .min(20)\n+        .min(available.saturating_sub(6 + action_row) as usize) as u16;\n+    let rect = DialogFrame::rect(area, DialogSize::Medium, height + 6 + action_row);\n+    let body = Rect::new(\n+        rect.x + 2,\n+        (rect.y + 3).min(rect.bottom()),\n+        width as u16,\n+        height.min(rect.height.saturating_sub(3)),\n+    );\n+    let footer_y = body.bottom() + 1;\n+    for action in &mut actions {\n+        action.y = (footer_y + action.y).min(rect.bottom());\n+        action.height = action.height.min(rect.bottom().saturating_sub(action.y));\n+    }\n+    McpDetailLayout {\n+        rect,\n+        body,\n+        back: Rect::new(\n+            rect.right().saturating_sub(5),\n+            (rect.y + 1).min(rect.bottom()),\n+            3.min(rect.width),\n+            u16::from(rect.height > 1),\n+        ),\n+        investigate: actions[0],\n+        copy: actions[1],\n+        scroll_hint: actions[2],\n+        count: rows.len(),\n+        rows,\n+    }\n+}\n+\n+fn render_mcp_detail(frame: &mut Frame<'_>, state: &TuiState) {\n+    let Some(server) = state.mcp_detail_server() else {\n+        return;\n+    };\n+    let layout = mcp_detail_layout(state, frame.area());\n+    let theme = Theme::dark();\n+    DialogFrame::paint(frame, layout.rect, theme);\n+    if layout.rect.width < 8 || layout.rect.height < 3 {\n+        return;\n+    }\n+    let text = Style::default().fg(slot(theme, \"text.base\"));\n+    let muted = Style::default().fg(slot(theme, \"text.muted\"));\n+    frame.render_widget(\n+        Paragraph::new(format!(\"MCP server: {}\", server.name))\n+            .style(text.add_modifier(Modifier::BOLD)),\n+        Rect::new(\n+            layout.rect.x + 2,\n+            layout.rect.y + 1,\n+            layout.rect.width.saturating_sub(9),\n+            1,\n+        ),\n+    );\n+    frame.render_widget(Paragraph::new(\"esc\").style(muted), layout.back);\n+    let start = state\n+        .mcp_detail_scroll()\n+        .min(layout.count.saturating_sub(layout.body.height as usize));\n+    let rows = layout\n+        .rows\n+        .into_iter()\n+        .skip(start)\n+        .take(layout.body.height as usize)\n+        .map(|row| row.into_ratatui())\n+        .collect::<Vec<_>>();\n+    frame.render_widget(Paragraph::new(rows).style(text), layout.body);\n+    let span = |value: &str, style| ratatui::text::Span::styled(value.to_string(), style);\n+    frame.render_widget(\n+        Paragraph::new(ratatui::text::Line::from(vec![\n+            span(\"i\", text.add_modifier(Modifier::BOLD)),\n+            span(\" investigate\", muted),\n+        ])),\n+        layout.investigate,\n+    );\n+    frame.render_widget(\n+        Paragraph::new(ratatui::text::Line::from(if state.mcp_detail_copied() {\n+            vec![span(\n+                \"✓ copied\",\n+                Style::default()\n+                    .fg(slot(theme, \"text.feedback.success.base\"))\n+                    .add_modifier(Modifier::BOLD),\n+            )]\n+        } else {\n+            vec![\n+                span(\"c\", text.add_modifier(Modifier::BOLD)),\n+                span(\" copy details\", muted),\n+            ]\n+        })),\n+        layout.copy,\n+    );\n+    frame.render_widget(\n+        Paragraph::new(\"↑/↓ scroll\").style(muted),\n+        layout.scroll_hint,\n+    );\n+}\n+\n pub fn size_for(panel: &TuiPanel) -> DialogSize {\n     match panel {\n         TuiPanel::Cards => DialogSize::Xlarge,\ndiff --git a/crates/oc-tui/src/views.rs b/crates/oc-tui/src/views.rs\nindex d1e49f051..1949417ed 100644\n--- a/crates/oc-tui/src/views.rs\n+++ b/crates/oc-tui/src/views.rs\n@@ -38,6 +38,7 @@ pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {\n             | TuiPanel::Skills\n             | TuiPanel::Mcps\n     ) && state.approvals.active().is_none()\n+        && state.mcp_detail_server().is_none()\n     {\n         crate::theme::Theme::dark()\n             .color(\"@dialog.text.formfield.$focused\")\ndiff --git a/crates/oc/src/tui_cmd.rs b/crates/oc/src/tui_cmd.rs\nindex c195cc573..57ec87a78 100644\n--- a/crates/oc/src/tui_cmd.rs\n+++ b/crates/oc/src/tui_cmd.rs\n@@ -1952,6 +1952,7 @@ async fn handle_event_ticks(\n             // The view owns the global pending lifecycle before choosing the\n             // focused editor/modal consumer, including pending Enter replay.\n             let outcome = state.handle_key(action).await;\n+            report_copy_request(state, loop_state);\n             apply_outcome(app, state, loop_state, outcome, typed_new).await;\n         }\n         Some(UiEvent::Paste(text)) => {\n@@ -1974,7 +1975,7 @@ async fn handle_event_ticks(\n                 // A wheel event also moves the pointer. Keep transcript\n                 // scrolling, but invalidate a held tab when it leaves the strip.\n                 state.handle_mouse(mouse, area);\n-                report_copy_request(state);\n+                report_copy_request(state, loop_state);\n                 let outcome = state.wheel_transcript_at(\n                     mouse.kind == MouseEventKind::ScrollUp,\n                     wheel_ticks,\n@@ -1984,7 +1985,7 @@ async fn handle_event_ticks(\n             } else {\n                 for _ in 0..wheel_ticks {\n                     let outcome = state.handle_mouse(mouse, area);\n-                    report_copy_request(state);\n+                    report_copy_request(state, loop_state);\n                     apply_mouse_outcome(\n                         app,\n                         state,\n@@ -1999,14 +2000,19 @@ async fn handle_event_ticks(\n             }\n         }\n         Some(UiEvent::Resize) => {}\n-        None => {}\n+        None => report_copy_request(state, loop_state),\n     }\n     Ok(())\n }\n \n-fn report_copy_request(state: &mut TuiState) {\n-    // Apply to the view that produced the selection before a mouse outcome\n-    // can swap the active tab. Never log the selected transcript text.\n+fn report_copy_request(state: &mut TuiState, _loop_state: &LoopState) {\n+    // Apply to the view that produced the request before a key/mouse outcome\n+    // can swap the active tab. Never log the selected text.\n+    #[cfg(test)]\n+    if let Some(copy) = _loop_state.copy_transport {\n+        report_copy_request_with(state, copy);\n+        return;\n+    }\n     report_copy_request_with(state, crate::clipboard::copy);\n }\n \n@@ -2345,14 +2351,7 @@ async fn apply_intent_with_origin(\n                 .find(|row| row.id == message && row.role == oc_core::session::Role::User)\n                 .ok_or(\"message is no longer active\")?;\n             state.copy_message_text(row.text)?;\n-            #[cfg(test)]\n-            if let Some(copy) = loop_state.copy_transport {\n-                report_copy_request_with(state, copy);\n-            } else {\n-                report_copy_request(state);\n-            }\n-            #[cfg(not(test))]\n-            report_copy_request(state);\n+            report_copy_request(state, loop_state);\n         }\n         PanelIntent::ReloadConfiguration => {\n             if state.is_busy()\ndiff --git a/crates/oc/src/tui_cmd/tests/routing.rs b/crates/oc/src/tui_cmd/tests/routing.rs\nindex a5eaf4ea9..1f74c9d19 100644\n--- a/crates/oc/src/tui_cmd/tests/routing.rs\n+++ b/crates/oc/src/tui_cmd/tests/routing.rs\n@@ -363,6 +363,85 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {\n     worker.await.unwrap();\n }\n \n+#[tokio::test]\n+async fn mcp_detail_keyboard_copy_drains_actual_transport_before_outcome() {\n+    use oc_core::queries::{\n+        McpBinding, McpServerSnapshot, McpSnapshot, McpStatus, ServiceAction, ServiceCode,\n+        ServiceDiagnostic, ServiceKind, ServiceStage,\n+    };\n+\n+    for succeeds in [false, true] {\n+        let (app, mut inbox, _) = CoreApp::channel(8);\n+        let mut state = TuiState::new(app.clone(), SessionId::new(\"detail-copy-ui\").unwrap());\n+        let mut chrome = catalog();\n+        chrome.chrome.location = Some(\"/fixture\".into());\n+        state.apply_catalog(chrome);\n+        state.restore_prompt(\"unfinished Ω draft\".into());\n+        state.apply_mcp_snapshot(McpSnapshot {\n+            binding: McpBinding {\n+                location: \"/fixture\".into(),\n+                generation: 1,\n+                instance: 1,\n+            },\n+            revision: 1,\n+            servers: vec![McpServerSnapshot {\n+                id: \"opaque-control\".into(),\n+                name: \"safe-label\".into(),\n+                configured_enabled: true,\n+                status: McpStatus::Failed,\n+                pending_action: None,\n+                tools: 0,\n+                actions: Vec::new(),\n+                diagnostic: Some(ServiceDiagnostic {\n+                    kind: ServiceKind::Mcp,\n+                    service: \"opaque-diagnostic\".into(),\n+                    source: \"safe-source\".into(),\n+                    field: vec![\"mcp\".into()],\n+                    stage: ServiceStage::Initialize,\n+                    code: ServiceCode::ConnectionFailed,\n+                    action: ServiceAction::RetryConnection,\n+                }),\n+            }],\n+        });\n+        state.restore_prompt(\"/mcps\".into());\n+        state.handle_key(KeyAction::Enter).await;\n+        state.restore_prompt(\"unfinished Ω draft\".into());\n+        state.handle_key(KeyAction::Enter).await;\n+        fn success(text: &str) -> Result<(), String> {\n+            assert!(text.starts_with(\"MCP server: safe-label\\nError: mcp opaque-diagnostic\"));\n+            Ok(())\n+        }\n+        fn failure(text: &str) -> Result<(), String> {\n+            success(text)?;\n+            Err(\"transport failed\".into())\n+        }\n+        let mut deck = LoopState {\n+            copy_transport: Some(if succeeds { success } else { failure }),\n+            ..Default::default()\n+        };\n+        handle_event(\n+            &app,\n+            &mut state,\n+            &mut deck,\n+            CEvent::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE)),\n+        )\n+        .await\n+        .unwrap();\n+        assert!(\n+            state.take_copy_request().is_none(),\n+            \"key request must reach transport\"\n+        );\n+        assert_eq!(state.input(), \"unfinished Ω draft\");\n+        let detail = oc_tui::views::render_test(&state, 120, 40).join(\"\\n\");\n+        assert_eq!(detail.contains(\"✓ copied\"), succeeds);\n+        assert_eq!(detail.contains(\"c copy details\"), !succeeds);\n+        assert!(\n+            inbox.try_recv().is_err(),\n+            \"copy neither submits nor reconnects\"\n+        );\n+    }\n+}\n+\n #[tokio::test]\n async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_toast() {\n     use oc_core::queries::ModelEntry;\ndiff --git a/crates/oc/tests/mcp_application.rs b/crates/oc/tests/mcp_application.rs\nindex 8264b1a76..65b492e5d 100644\n--- a/crates/oc/tests/mcp_application.rs\n+++ b/crates/oc/tests/mcp_application.rs\n@@ -1235,7 +1235,7 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {\n     let diagnostic = String::from_utf8_lossy(&process.output.lock().unwrap()).to_ascii_lowercase();\n     assert!(\n         diagnostic.contains(&diagnostic_name(\"oversized\")[..20])\n-            && diagnostic.contains(\"code: catalog_limit\"),\n+            && diagnostic.contains(\"tools-list: catalog_limit\"),\n         \"visible catalog diagnostic: {diagnostic}\"\n     );\n     std::thread::sleep(Duration::from_millis(300));\n@@ -2452,7 +2452,26 @@ fn inspect_mcp_code(tui: &mut PtyProcess, server: &str, code: &str) {\n     tui.wait_screen(\"MCP servers\", TIMEOUT);\n     tui.raw(server.as_bytes());\n     tui.raw(b\"\\r\");\n-    tui.wait_screen(&format!(\"Code: {code}\"), TIMEOUT);\n+    // Dedicated read-only details paint the safe owner diagnostic, not Select\n+    // rows headed Code/Retryable. The recorded facts and privacy checks remain.\n+    tui.wait_screen(\"MCP server:\", TIMEOUT);\n+    let needle = format!(\"{code} (retryable=\");\n+    let deadline = Instant::now() + TIMEOUT;\n+    loop {\n+        let rows = tui.screen();\n+        let text = rows\n+            .iter()\n+            .map(|row| row.trim())\n+            .collect::<Vec<_>>()\n+            .join(\" \");\n+        if text.contains(&needle) {\n+            break;\n+        }\n+        assert!(Instant::now() < deadline, \"missing {needle:?}: {rows:?}\");\n+        std::thread::sleep(POLL);\n+    }\n+    tui.wait_screen(\"c copy details\", TIMEOUT);\n+    assert!(!tui.screen().iter().any(|row| row.trim() == \"Search\"));\n     tui.raw(b\"\\x1b\");\n     tui.wait_screen(\"MCP servers\", TIMEOUT);\n     lifecycle::close_mcps(tui);\n@@ -2995,7 +3014,7 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {\n     assert!(first.wait_exit().success());\n     let failure = String::from_utf8_lossy(&first.output.lock().unwrap()).to_string();\n     assert!(\n-        failure.contains(\"Code: unauthorized\") && failure.contains(\"Retryable: false\"),\n+        failure.contains(\"unauthorized\") && failure.contains(\"retryable=false\"),\n         \"missing explicit degraded-server diagnostic: {failure}\"\n     );\n     for private in [\ndiff --git a/crates/oc/tests/mcp_application/lifecycle.rs b/crates/oc/tests/mcp_application/lifecycle.rs\nindex 4aa9d54b1..86e45f159 100644\n--- a/crates/oc/tests/mcp_application/lifecycle.rs\n+++ b/crates/oc/tests/mcp_application/lifecycle.rs\n@@ -534,11 +534,17 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe\n     tui.resize(140, 44);\n     wait_row(&tui, \"repair\", \"Connecting\");\n     // A previously painted Connecting row does not acknowledge the queued\n-    // spaces. Observe the following Enter and return while catalog stays held,\n-    // so none of those pending connects becomes a post-release disconnect.\n-    tui.raw(b\"\\r\");\n-    tui.wait_screen(\"enter/esc back\", TIMEOUT);\n+    // spaces. Pending Enter now stays in the list rather than opening details.\n+    // Observe a following filter paint while catalog stays held, so none of\n+    // those queued connects becomes a post-release disconnect.\n     tui.raw(b\"\\r\");\n+    let acknowledgement = \"zz-mcp08-ack\";\n+    tui.raw(acknowledgement.as_bytes());\n+    tui.wait_screen(\"No results found\", TIMEOUT);\n+    assert!(tui.screen().iter().any(|row| row.contains(\"MCP servers\")));\n+    assert!(!tui.screen().iter().any(|row| row.contains(\"MCP server:\")));\n+    tui.raw(&vec![0x7f; acknowledgement.len()]);\n+    wait_row(&tui, \"repair\", \"Connecting\");\n     tui.wait_screen(\"connection pending\", TIMEOUT);\n     assert_eq!(event_count(&fixture, \"repair\", \"spawn\"), 1);\n     fs::write(&catalog, \"release\").unwrap();\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex 7c5149e17..c19be1f26 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -653,7 +653,7 @@ try {\n          if(toolPreview) {\n             const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\\n');};\n             const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,\n-               mcpProbe:mcpStatus?args=>probeMcpStatus(args):null,\n+               mcpProbe:mcpStatus?args=>probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')}):null,\n               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,\n             control:command=>child.stdin.write(JSON.stringify(command)+'\\n'),\n              resize,\ndiff --git a/scripts/tui_capture/mcp_status.mjs b/scripts/tui_capture/mcp_status.mjs\nindex fe3c603a2..e57fee254 100644\n--- a/scripts/tui_capture/mcp_status.mjs\n+++ b/scripts/tui_capture/mcp_status.mjs\n@@ -1,5 +1,5 @@\n // Mixed actual MCP inventory; observes complete rows, never seeds renderer state.\n-export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot}) {\n+export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,readVt}) {\n   const labels=['Connected ✓','Disabled ○','Failed !'];\n   await waitFor(f=>f.text.includes('Ask anything')&&f.text.includes('1 MCP failed /mcps'),'mixed MCP inventory',15000);\n   await waitFor(f=>!f.text.includes('service issue'),'startup toast naturally settled',15000);\n@@ -33,12 +33,62 @@ export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatc\n   send('visfailed','mcp_label_search');\n   await shot('mcp-status-configured-search',f=>f.text.includes('MCP servers')&&f.text.includes('visfailed')&&f.text.includes('Failed !')&&!f.text.includes('Connected ✓')&&!f.text.includes('Disabled ○'));\n   send('\\r','mcp_label_details');\n-  await shot('mcp-status-configured-details',f=>f.text.includes('visfailed')&&!f.text.includes('Failed !')&&!f.text.includes('Connected ✓'));\n-  send('\\x1b','mcp_label_details_close');\n+  const detail=f=>f.text.includes('MCP server: visfailed')&&f.text.includes('investigate')&&f.text.includes('↑/↓ scroll')&&!f.text.includes('Search')&&!f.cursor.visible;\n+  const details=await shot('mcp-status-configured-details',detail);\n+  // These real short owner diagnostics fit the viewport. The long-body bounds\n+  // and overflow are separately exercised by the native owner regression.\n+  send('\\x1b[B\\x1b[A\\x1b[6~\\x1b[5~\\x1b[H\\x1b[F','mcp_detail_navigation');\n+  const navigated=await shot('mcp-status-detail-navigation',detail);\n+  if(JSON.stringify(details.cells)!==JSON.stringify(navigated.cells))throw Error('Short detail navigation changed the available diagnostic');\n+  const copies=[];\n+  const observeCopy=offset=>{\n+    // This is the actual OSC52 wire protocol, not inference from a UI toast.\n+    const payloads=[...readVt().slice(offset).matchAll(/\\x1b\\]52;[^;]*;([^\\x07\\x1b]*)(?:\\x07|\\x1b\\\\)/g)].map(m=>Buffer.from(m[1],'base64').toString());\n+    if(payloads.length!==1||!payloads[0].startsWith('MCP server: visfailed\\n')||!payloads[0].includes('\\nError: '))throw Error('Missing exact detail title/error clipboard transport: '+JSON.stringify(payloads));\n+    if(origin==='upstream'&&payloads[0]!=='MCP server: visfailed\\nStatus: failed\\nConfiguration: mcp.servers.visfailed\\nError: VIS-MCP-CONNECTION-ERROR')throw Error('Original clipboard did not carry the actual fixture context/error');\n+    if(origin==='oc'&&(!payloads[0].includes('retryable=')||payloads[0].includes('VIS-MCP-CONNECTION-ERROR')))throw Error('Native copy did not use the safe owner diagnostic');\n+    copies.push(payloads[0]);\n+  };\n+  let offset=readVt().length;\n+  send('c','mcp_detail_copy_key');\n+  const copied=await shot('mcp-status-detail-copied',f=>detail(f)&&f.text.includes('✓ copied'));\n+  observeCopy(offset);\n+  const click=(f,label,event)=>{\n+    const hits=visibleMatches(f,label);if(hits.length!==1)throw Error('Detail action not unique: '+label);\n+    const p=hits[0];send(`\\x1b[<0;${p.x+1};${p.y+1}M\\x1b[<0;${p.x+1};${p.y+1}m`,event);\n+  };\n+  offset=readVt().length;\n+  click(copied,'✓ copied','mcp_detail_copy_mouse');\n+  await shot('mcp-status-detail-copied-mouse',f=>detail(f)&&f.text.includes('✓ copied'));\n+  observeCopy(offset);\n+  if(copies[0]!==copies[1])throw Error('Keyboard/mouse Copy disagree on the captured detail');\n+  click(await frame(),'esc','mcp_detail_back_mouse');\n   await waitFor(f=>f.text.includes('MCP servers')&&f.text.includes('Failed !'),'MCP label details return to filtered list',6000);\n   send('\\x1b','mcp_status_close');\n   const restored=await shot('mcp-status-restored',f=>f.text.includes('preserve MCP Ω界')&&!f.text.includes('MCP servers'));\n   if(JSON.stringify(idle.cursor)!==JSON.stringify(restored.cursor))throw Error('Mixed MCP list changed composer caret');\n+  const openDetails=async()=>{\n+    click(await frame(),'/mcps','mcp_detail_reopen');\n+    await waitFor(f=>f.text.includes('MCP servers')&&f.text.includes('Failed !'),'reopened mixed list',6000);\n+    send('visfailed','mcp_detail_refilter');\n+    await waitFor(f=>f.text.includes('Failed !')&&!f.text.includes('Connected ✓'),'refiltered failed row',6000);\n+    send('\\r','mcp_detail_enter');\n+    return waitFor(detail,'reopened read-only details',6000);\n+  };\n+  await openDetails();\n+  send('i','mcp_detail_investigate_key');\n+  const investigation=f=>!f.text.includes('MCP servers')&&!f.text.includes('↑/↓ scroll')&&f.cursor.visible&&f.text.includes('MCP server: visfailed')&&f.text.includes('Investigate')&&!f.text.includes('preserve MCP Ω界');\n+  await shot('mcp-status-detail-investigate-key',investigation);\n+  send('\\x03','mcp_detail_clear_investigation');\n+  await waitFor(f=>!f.text.includes('MCP server: visfailed'),'clear unsent diagnostic draft',6000);\n+  click(await openDetails(),'investigate','mcp_detail_investigate_mouse');\n+  const mouseInvestigation=await shot('mcp-status-detail-investigate-mouse',f=>investigation(f)||origin==='upstream'&&f.text.includes('Ask anything')&&!f.text.includes('MCP servers')&&!f.text.includes('↑/↓ scroll'));\n+  // The pinned Home route reconciles an identical previously injected prompt.\n+  // After the user clears it, repeating the same investigation may close the\n+  // dialog without reinjecting text. Record the real full frame; never imitate\n+  // that loss in native or claim it satisfies the native draft contract.\n+  const mouse_investigation_draft=investigation(mouseInvestigation);\n+  if(origin==='oc'&&!mouse_investigation_draft)throw Error('Native mouse investigation lost the unsent diagnostic');\n   const facts=await snapshot('mcp_status_complete');\n   if(logs.some(e=>e.kind==='provider'||e.kind==='fixture_tool_call')||facts.mcp_calls.length||facts.shell_effect!==null)throw Error('Mixed MCP observation caused model/tool effects');\n   if(!facts.mcp_lifecycle.some(e=>e.phase==='failed')||!facts.mcp_lifecycle.some(e=>e.phase==='healthy'))throw Error('Mixed statuses lack real initialize receipts');\n@@ -50,5 +100,8 @@ export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatc\n   return {status:'OBSERVED_MCP_STATUS',provider_requests:0,tool_effects:0,draft_and_caret_restored:true,selections,geometries,\n     semantic_tones,intrinsic_connected_bold,\n     configured_labels:['visdisabled','visfailed','vishealthy'],configured_search_and_details:true,\n+    read_only_details:true,copy_transport:{payloads:copies,keyboard_and_mouse:true,system_clipboard:'NOT_VERIFIED_BY_PTY'},\n+    back_restores_filter_and_composer:true,investigation_unsent_keyboard:true,investigation_unsent_mouse:mouse_investigation_draft,\n+    repeated_reference_investigation:mouse_investigation_draft?'DRAFT_PRESENT':'DIALOG_CLOSED_DRAFT_NOT_REINJECTED',\n     source_contract:'Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold.'};\n }\ndiff --git a/scripts/tui_capture/tool_preview.mjs b/scripts/tui_capture/tool_preview.mjs\nindex 6d0c2e67b..d3e50f49f 100644\n--- a/scripts/tui_capture/tool_preview.mjs\n+++ b/scripts/tui_capture/tool_preview.mjs\n@@ -6,7 +6,8 @@ import {probeHomeMcp} from './home_mcp.mjs';\n export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe}) {\n   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[\n     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',\n-    'Configured-label projection, safe native diagnostics and action-footer interaction remain independently open.'\n+    'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',\n+    'Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open.'\n   ]:[\n     'Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.',\n     'Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.',\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application/accounts.rs\u0000crates/oc-adapters/src/application/accounts_tests.rs\u0000crates/oc-adapters/src/application/authentication.rs\u0000crates/oc-adapters/src/application/authentication_tests.rs\u0000crates/oc-adapters/src/application/chat_wire_tests.rs\u0000crates/oc-adapters/src/application/command_tests.rs\u0000crates/oc-adapters/src/application/commands.rs\u0000crates/oc-adapters/src/application/configless_tests.rs\u0000crates/oc-adapters/src/application/dcp_controls_tests.rs\u0000crates/oc-adapters/src/application/effective_wire_tests.rs\u0000crates/oc-adapters/src/application/fatal_tests.rs\u0000crates/oc-adapters/src/application/inherited_tests.rs\u0000crates/oc-adapters/src/application/live_switch_tests.rs\u0000crates/oc-adapters/src/application/mcp_lookup.rs\u0000crates/oc-adapters/src/application/mcp_tests.rs\u0000crates/oc-adapters/src/application/mcp_tests/lookups.rs\u0000crates/oc-adapters/src/application/messages_wire_tests.rs\u0000crates/oc-adapters/src/application/plan_tests.rs\u0000crates/oc-adapters/src/application/plugin_tests.rs\u0000crates/oc-adapters/src/application/profile_tests.rs\u0000crates/oc-adapters/src/application/provider_catalog.rs\u0000crates/oc-adapters/src/application/provider_catalog/tests.rs\u0000crates/oc-adapters/src/application/provider_tests.rs\u0000crates/oc-adapters/src/application/provider_view_tests.rs\u0000crates/oc-adapters/src/application/session_move.rs\u0000crates/oc-adapters/src/application/terminal_tests.rs\u0000crates/oc-adapters/src/application/terminals.rs\u0000crates/oc-adapters/src/application/tests.rs\u0000crates/oc-adapters/src/application_conversation_tests.rs\u0000crates/oc-adapters/src/application_fork_tests.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/approval.rs\u0000crates/oc-adapters/src/approval_tests.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/auth.rs\u0000crates/oc-adapters/src/auth/attempts.rs\u0000crates/oc-adapters/src/auth/attempts/tests.rs\u0000crates/oc-adapters/src/auth/callback.html\u0000crates/oc-adapters/src/auth/fixture.rs\u0000crates/oc-adapters/src/auth/openai.rs\u0000crates/oc-adapters/src/auth/openai/binding_tests.rs\u0000crates/oc-adapters/src/auth/openai/tests.rs\u0000crates/oc-adapters/src/cli_permissions.rs\u0000crates/oc-adapters/src/compaction.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/composition/catalog.rs\u0000crates/oc-adapters/src/composition/catalog/tests.rs\u0000crates/oc-adapters/src/composition/controls_tests.rs\u0000crates/oc-adapters/src/composition/go_catalog.rs\u0000crates/oc-adapters/src/composition/go_catalog/tests.rs\u0000crates/oc-adapters/src/composition/mcp_tests.rs\u0000crates/oc-adapters/src/composition/openai_catalog.rs\u0000crates/oc-adapters/src/composition/openai_catalog/tests.rs\u0000crates/oc-adapters/src/composition/plugin_tests.rs\u0000crates/oc-adapters/src/composition/provider_readiness.rs\u0000crates/oc-adapters/src/composition/provider_views.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/config/diagnostic.rs\u0000crates/oc-adapters/src/config/mcp.rs\u0000crates/oc-adapters/src/config/mcp_tests.rs\u0000crates/oc-adapters/src/config/plugin_tests.rs\u0000crates/oc-adapters/src/config/providers.rs\u0000crates/oc-adapters/src/config/providers_tests.rs\u0000crates/oc-adapters/src/config/request_bindings.rs\u0000crates/oc-adapters/src/config/request_bindings_tests.rs\u0000crates/oc-adapters/src/config/tool_output_tests.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp/renewal_tests.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/dcp_auto/cadence_tests.rs\u0000crates/oc-adapters/src/dcp_auto/child_tests.rs\u0000crates/oc-adapters/src/dcp_auto/controls_tests.rs\u0000crates/oc-adapters/src/dcp_auto/defaults_tests.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/defs/builtin_tests.rs\u0000crates/oc-adapters/src/defs/profile_tests.rs\u0000crates/oc-adapters/src/defs/step_tests.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/endpoint.rs\u0000crates/oc-adapters/src/endpoint/tests.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/files/external_tests.rs\u0000crates/oc-adapters/src/files/read.rs\u0000crates/oc-adapters/src/files/read/tests.rs\u0000crates/oc-adapters/src/files/search.rs\u0000crates/oc-adapters/src/files/tests.rs\u0000crates/oc-adapters/src/instructions.rs\u0000crates/oc-adapters/src/instructions/tests.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_lookup.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_result/media.rs\u0000crates/oc-adapters/src/mcp_result/media/tests.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/models/lookup.rs\u0000crates/oc-adapters/src/models/tests.rs\u0000crates/oc-adapters/src/models/tool_tests.rs\u0000crates/oc-adapters/src/models_dev.rs\u0000crates/oc-adapters/src/models_dev/document.rs\u0000crates/oc-adapters/src/models_dev/document/tests.rs\u0000crates/oc-adapters/src/models_dev/openai_tests.rs\u0000crates/oc-adapters/src/models_dev/tests.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/effects.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/patch/mutation.rs\u0000crates/oc-adapters/src/patch/mutation/tests.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/plan.rs\u0000crates/oc-adapters/src/plan/tests.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/provider/chat.rs\u0000crates/oc-adapters/src/provider/chat_tests.rs\u0000crates/oc-adapters/src/provider/context.rs\u0000crates/oc-adapters/src/provider/context_tests.rs\u0000crates/oc-adapters/src/provider/failure.rs\u0000crates/oc-adapters/src/provider/go_live_tests.rs\u0000crates/oc-adapters/src/provider/messages.rs\u0000crates/oc-adapters/src/provider/messages_tests.rs\u0000crates/oc-adapters/src/provider/protocol.rs\u0000crates/oc-adapters/src/provider/protocol_tests.rs\u0000crates/oc-adapters/src/provider/settings.rs\u0000crates/oc-adapters/src/provider/settings_tests.rs\u0000crates/oc-adapters/src/provider/tests/openai.rs\u0000crates/oc-adapters/src/provider/tests/reconciliation.rs\u0000crates/oc-adapters/src/provider/tests/typed_failures.rs\u0000crates/oc-adapters/src/provider/timeout_tests.rs\u0000crates/oc-adapters/src/provider/websocket.rs\u0000crates/oc-adapters/src/provider/websocket/tests.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/runtime/binding_replay_tests.rs\u0000crates/oc-adapters/src/runtime/builtin_tests.rs\u0000crates/oc-adapters/src/runtime/child_dcp_tests.rs\u0000crates/oc-adapters/src/runtime/children.rs\u0000crates/oc-adapters/src/runtime/children/tests.rs\u0000crates/oc-adapters/src/runtime/compaction_renewal_tests.rs\u0000crates/oc-adapters/src/runtime/context.rs\u0000crates/oc-adapters/src/runtime/controls_tests.rs\u0000crates/oc-adapters/src/runtime/environment.rs\u0000crates/oc-adapters/src/runtime/environment/tests.rs\u0000crates/oc-adapters/src/runtime/file_tool_tests.rs\u0000crates/oc-adapters/src/runtime/instructions.rs\u0000crates/oc-adapters/src/runtime/instructions/tests.rs\u0000crates/oc-adapters/src/runtime/mcp.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/lookups.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/tests.rs\u0000crates/oc-adapters/src/runtime/media_tests.rs\u0000crates/oc-adapters/src/runtime/read_tests.rs\u0000crates/oc-adapters/src/runtime/retry.rs\u0000crates/oc-adapters/src/runtime/retry/tests.rs\u0000crates/oc-adapters/src/runtime/terminals.rs\u0000crates/oc-adapters/src/runtime/tests.rs\u0000crates/oc-adapters/src/runtime/tool_stream.rs\u0000crates/oc-adapters/src/runtime/turn.rs\u0000crates/oc-adapters/src/runtime/turn/commands.rs\u0000crates/oc-adapters/src/runtime/turn/foreground.rs\u0000crates/oc-adapters/src/runtime_compaction.rs\u0000crates/oc-adapters/src/runtime_compaction_tests.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/shell/jobs.rs\u0000crates/oc-adapters/src/shell/jobs/output.rs\u0000crates/oc-adapters/src/shell/jobs/output_tests.rs\u0000crates/oc-adapters/src/shell/jobs/tests.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/storage/session_move_tests.rs\u0000crates/oc-adapters/src/storage/tests.rs\u0000crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs\u0000crates/oc-adapters/src/storage_children.rs\u0000crates/oc-adapters/src/storage_children/tests.rs\u0000crates/oc-adapters/src/storage_compaction.rs\u0000crates/oc-adapters/src/storage_conversation.rs\u0000crates/oc-adapters/src/storage_conversation_tests.rs\u0000crates/oc-adapters/src/storage_credentials.rs\u0000crates/oc-adapters/src/storage_credentials/tests.rs\u0000crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs\u0000crates/oc-adapters/src/storage_dcp_view.rs\u0000crates/oc-adapters/src/storage_dcp_view_tests.rs\u0000crates/oc-adapters/src/storage_effort.rs\u0000crates/oc-adapters/src/storage_effort/tests.rs\u0000crates/oc-adapters/src/storage_fork.rs\u0000crates/oc-adapters/src/storage_fork_context.rs\u0000crates/oc-adapters/src/storage_fork_dcp_tests.rs\u0000crates/oc-adapters/src/storage_grants.rs\u0000crates/oc-adapters/src/storage_instructions.rs\u0000crates/oc-adapters/src/storage_instructions_tests.rs\u0000crates/oc-adapters/src/storage_session_move.rs\u0000crates/oc-adapters/src/storage_shell_jobs.rs\u0000crates/oc-adapters/src/storage_terminals.rs\u0000crates/oc-adapters/src/storage_tool_output.rs\u0000crates/oc-adapters/src/storage_tool_output/access.rs\u0000crates/oc-adapters/src/storage_tool_output/tests.rs\u0000crates/oc-adapters/src/storage_turn_history.rs\u0000crates/oc-adapters/src/storage_turn_history/tests.rs\u0000crates/oc-adapters/src/terminals.rs\u0000crates/oc-adapters/src/terminals/tests.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/tools/mcp_log.rs\u0000crates/oc-adapters/src/tools/mcp_log/tests.rs\u0000crates/oc-adapters/src/tools/model_history.rs\u0000crates/oc-adapters/src/tools/model_history_tests.rs\u0000crates/oc-adapters/src/tools/output.rs\u0000crates/oc-adapters/src/tools/output/tests.rs\u0000crates/oc-adapters/src/tools/read.rs\u0000crates/oc-adapters/src/tools/shell_call.rs\u0000crates/oc-adapters/src/tools/tests/file_mutations.rs\u0000crates/oc-adapters/src/tools/tests/search.rs\u0000crates/oc-adapters/src/tools/tests/shell.rs\u0000crates/oc-adapters/src/tools/tests/webfetch.rs\u0000crates/oc-adapters/src/tools/turn_history.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/src/webfetch/PROVENANCE.md\u0000crates/oc-adapters/src/webfetch/format_tests.rs\u0000crates/oc-adapters/src/webfetch/render.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/fixtures/approval_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/background_children.rs\u0000crates/oc-adapters/tests/fixtures/background_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/child_dcp.rs\u0000crates/oc-adapters/tests/fixtures/command_routing.rs\u0000crates/oc-adapters/tests/fixtures/compaction_normalization.json\u0000crates/oc-adapters/tests/fixtures/foreground_children.rs\u0000crates/oc-adapters/tests/fixtures/question_lifecycle.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_remote/config_admission.rs\u0000crates/oc-adapters/tests/mcp_remote/lookups.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/mcp_stdio/config_admission.rs\u0000crates/oc-adapters/tests/mcp_stdio/lookups.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/patch_effects.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/runtime/context.rs\u0000crates/oc-adapters/tests/runtime/file_mutations.rs\u0000crates/oc-adapters/tests/runtime/mcp_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/model_session_tools.rs\u0000crates/oc-adapters/tests/runtime/provider_readiness.rs\u0000crates/oc-adapters/tests/runtime/reconciliation.rs\u0000crates/oc-adapters/tests/runtime/session_move.rs\u0000crates/oc-adapters/tests/runtime/tool_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/turns.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/approval.rs\u0000crates/oc-core/src/compaction.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/core_app/diagnostic_tests.rs\u0000crates/oc-core/src/dcp_view.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/patch.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/queries/accounts.rs\u0000crates/oc-core/src/queries/auth.rs\u0000crates/oc-core/src/queries/mcp_lookup.rs\u0000crates/oc-core/src/queries/terminals.rs\u0000crates/oc-core/src/question.rs\u0000crates/oc-core/src/question/tests.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-core/src/tool_output.rs\u0000crates/oc-core/src/tool_stream.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/app/accounts.rs\u0000crates/oc-tui/src/app/accounts_tests.rs\u0000crates/oc-tui/src/app/input.rs\u0000crates/oc-tui/src/app/live.rs\u0000crates/oc-tui/src/app/mcp.rs\u0000crates/oc-tui/src/app/model_selection.rs\u0000crates/oc-tui/src/app/model_selection_tests.rs\u0000crates/oc-tui/src/app/services.rs\u0000crates/oc-tui/src/app/tabs.rs\u0000crates/oc-tui/src/app/tests.rs\u0000crates/oc-tui/src/app/tests/dcp_controls.rs\u0000crates/oc-tui/src/app/tests/input.rs\u0000crates/oc-tui/src/app/tests/lifecycle.rs\u0000crates/oc-tui/src/app/tests/mcp.rs\u0000crates/oc-tui/src/app/tests/model_selection.rs\u0000crates/oc-tui/src/app/tests/retry.rs\u0000crates/oc-tui/src/app/tests/services.rs\u0000crates/oc-tui/src/app/tests/tabs.rs\u0000crates/oc-tui/src/app/tests/tool_output.rs\u0000crates/oc-tui/src/app/tests/transcript.rs\u0000crates/oc-tui/src/app/transcript.rs\u0000crates/oc-tui/src/approval_view.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/child_view.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/compaction.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dcp_view.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/messages/tests.rs\u0000crates/oc-tui/src/patch_view.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/question_view.rs\u0000crates/oc-tui/src/question_view/tests.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/shell/tests.rs\u0000crates/oc-tui/src/shell/tests/home_mcp.rs\u0000crates/oc-tui/src/shell_jobs_view.rs\u0000crates/oc-tui/src/shell_jobs_view/tests.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/terminal/tests.rs\u0000crates/oc-tui/src/terminal_view.rs\u0000crates/oc-tui/src/terminal_view/tests.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/tools/presentation_tests.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/approval_tests.rs\u0000crates/oc/src/auth_cmd.rs\u0000crates/oc/src/auth_cmd/tests.rs\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/cli/tests.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/models_cmd.rs\u0000crates/oc/src/models_cmd/tests.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/src/tui_cmd/auth_controls.rs\u0000crates/oc/src/tui_cmd/auth_controls/tests.rs\u0000crates/oc/src/tui_cmd/child_controls.rs\u0000crates/oc/src/tui_cmd/child_controls/tests.rs\u0000crates/oc/src/tui_cmd/terminal_controls.rs\u0000crates/oc/src/tui_cmd/terminal_controls/tests.rs\u0000crates/oc/src/tui_cmd/tests.rs\u0000crates/oc/src/tui_cmd/tests/lifecycle.rs\u0000crates/oc/src/tui_cmd/tests/routing.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/approval_binary.rs\u0000crates/oc/tests/auth_cli.rs\u0000crates/oc/tests/auth_oauth.rs\u0000crates/oc/tests/auth_tui.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/configured_workspace/models_cli.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/dcp_runtime/defaults.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/live_bounded/envelope.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/mcp_application/config_admission.rs\u0000crates/oc/tests/mcp_application/lifecycle.rs\u0000crates/oc/tests/mcp_application/lookups.rs\u0000crates/oc/tests/mcp_application/media.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t39/accounts.rs\u0000crates/oc/tests/pty_t39/fatal_diagnostics.rs\u0000crates/oc/tests/pty_t39/inherited_selection.rs\u0000crates/oc/tests/pty_t39/interaction.rs\u0000crates/oc/tests/pty_t39/lifecycle.rs\u0000crates/oc/tests/pty_t39/plugin_admission.rs\u0000crates/oc/tests/pty_t39/provider_readiness.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_startup/fatal_diagnostics.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/auth_cli.py\u0000crates/oc/tests/support/auth_oauth.py\u0000crates/oc/tests/support/auth_tui.py\u0000crates/oc/tests/support/context_ids.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/screen.rs\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/terminal.rs\u0000crates/oc/tests/support/terminals.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/terminals.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/analyze_apply_patch.mjs\u0000scripts/tui_capture/analyze_compaction_frames.mjs\u0000scripts/tui_capture/analyze_leader_pairs.mjs\u0000scripts/tui_capture/analyze_leader_pending.mjs\u0000scripts/tui_capture/analyze_permission.mjs\u0000scripts/tui_capture/analyze_prompt_paste.mjs\u0000scripts/tui_capture/apply_patch.mjs\u0000scripts/tui_capture/apply_patch_admission.mjs\u0000scripts/tui_capture/apply_patch_fixture.py\u0000scripts/tui_capture/bounded.mjs\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_compaction_evidence.mjs\u0000scripts/tui_capture/check_cursor_temporal.py\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_leader_roles.mjs\u0000scripts/tui_capture/check_permission_evidence.mjs\u0000scripts/tui_capture/check_permission_headless_pair.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/check_revert_redo_evidence.mjs\u0000scripts/tui_capture/compaction.mjs\u0000scripts/tui_capture/compaction_fixture.py\u0000scripts/tui_capture/cursor_frontend.js\u0000scripts/tui_capture/cursor_temporal.mjs\u0000scripts/tui_capture/dcp_README.md\u0000scripts/tui_capture/dcp_check_reference.mjs\u0000scripts/tui_capture/dcp_display_audit.py\u0000scripts/tui_capture/dcp_display_fixture.py\u0000scripts/tui_capture/dcp_from_native.ts\u0000scripts/tui_capture/dcp_native_bridge.py\u0000scripts/tui_capture/dcp_native_qualify.py\u0000scripts/tui_capture/dcp_oracle.ts\u0000scripts/tui_capture/dcp_pair_audit.mjs\u0000scripts/tui_capture/dcp_reference_bridge.py\u0000scripts/tui_capture/dcp_reference_capture.mjs\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/home_mcp.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000scripts/tui_capture/leader_pending.mjs\u0000scripts/tui_capture/mcp_status.mjs\u0000scripts/tui_capture/message_actions.mjs\u0000scripts/tui_capture/observe_compaction_timeline.mjs\u0000scripts/tui_capture/permission.mjs\u0000scripts/tui_capture/permission_association.mjs\u0000scripts/tui_capture/permission_fix_cells.mjs\u0000scripts/tui_capture/permission_fixture.py\u0000scripts/tui_capture/permission_headless.py\u0000scripts/tui_capture/permission_mcp.py\u0000scripts/tui_capture/permission_reference_headless.py\u0000scripts/tui_capture/permission_rejection_audit.mjs\u0000scripts/tui_capture/permission_syscall_audit.py\u0000scripts/tui_capture/prompt_paste.mjs\u0000scripts/tui_capture/revert_redo.mjs\u0000scripts/tui_capture/run_prompt_paste.mjs\u0000scripts/tui_capture/services.mjs\u0000scripts/tui_capture/services_fixture.py\u0000scripts/tui_capture/sessions.mjs\u0000scripts/tui_capture/summarize_permission.mjs\u0000scripts/tui_capture/summarize_prompt_paste.mjs\u0000scripts/tui_capture/summarize_wheel.mjs\u0000scripts/tui_capture/tabs_audit.py\u0000scripts/tui_capture/tabs_bridge.py\u0000scripts/tui_capture/tabs_capture.mjs\u0000scripts/tui_capture/tabs_check.mjs\u0000scripts/tui_capture/tabs_oracle.ts\u0000scripts/tui_capture/tool_preview.mjs\u0000scripts/tui_capture/tool_preview_fixture.py\u0000scripts/tui_capture/tool_preview_mcp.py\u0000scripts/tui_capture/variants_audit.py\u0000scripts/tui_capture/variants_bridge.py\u0000scripts/tui_capture/variants_capture.mjs\u0000scripts/tui_capture/wheel.mjs\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.67s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"f043d426ae8fc084f16275191b44f37e3da6a247e688f6f1783044f84a607bda\", \"actual_sha256\": \"855eb44f9f9b3517ec7b3ee6e887bfa7520f1fc1a1834ba69d68e6a2667692a3\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [41, 21, 117, 38], \"samples\": [{\"x\": 41, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 21, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 21, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"01c4cffc38daeb35ab3b14c3d6da65c88d22a2536f0473170bedda14d61cb962\", \"actual_sha256\": \"3805e6e761bfd62921c76db45739993c17a64e0dec3660d22555403e276bcda1\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 2036, \"changed_fraction_diagnostic_only\": 0.003146636993076162, \"difference_bbox_inclusive\": [345, 338, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-draft\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"3eb9697275c3fa619f0b63965f24225787c5bfb4352edf6a22c5b3b17f298e97\", \"actual_sha256\": \"b1241483a085bb39e9ae6f17985edc8d3599e0820d0f2a1cae5526eee5dcb6ec\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"34cc7e0f0daeb4c835c3d968a6f2597f46540f18c9a5e22e58cb9694d082da04\", \"actual_sha256\": \"b5d789069d460dd70b61441cd149f58b649f769949ec0e5ab98f565c20c4f717\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.000459013353115727, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-list\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"8d3624baf9741ffe8719c4c1f61e846d084a84a9d0442ec47af55a1368070bb0\", \"actual_sha256\": \"f6f0b570f98f1fb1f97cd75fc493fdfabd6efa562425c84699a651656f59cd46\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 90, \"cursor_differs\": false, \"difference_bbox_inclusive\": [34, 15, 117, 38], \"samples\": [{\"x\": 34, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 40, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 41, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 42, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 43, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 44, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 45, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 46, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 47, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 48, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 49, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 50, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 51, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 52, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 53, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4e80b709340fbcf9e29d2644b771e31b0faee6703cd3b5e1a52ca813d863a337\", \"actual_sha256\": \"6aace74a706acb611cb3cd8194eae8d704fe881cfa15ff0fac5290dd3ad7dae0\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 4199, \"changed_fraction_diagnostic_only\": 0.006489552423343224, \"difference_bbox_inclusive\": [286, 241, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-disabled-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-disabled-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-disabled-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-disabled-list\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"960f52b2cbd94d50e9937b1e80485962af0418f3296b2010608eba28a6822549\", \"actual_sha256\": \"d6b7be5ed06712b7e782fdacbba5cbcc804e4493fcd7b756f202c5e9ef15cacf\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 77, \"cursor_differs\": false, \"difference_bbox_inclusive\": [34, 15, 117, 38], \"samples\": [{\"x\": 34, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 40, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 41, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 42, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 43, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 44, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 45, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 46, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 47, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 48, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 49, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 50, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 51, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 52, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 53, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-disabled-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-disabled-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-disabled-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"da9aafe35b0a9b67d5b7a135caf36c9d4a37fd3e5a4d966ae2d209fb7ef0bba1\", \"actual_sha256\": \"351f96c8ae1ab92cac0fcc0b6352f7f20498dfc9e8418973ea11313e413787af\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 3659, \"changed_fraction_diagnostic_only\": 0.005654982690405539, \"difference_bbox_inclusive\": [286, 241, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-disabled.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-disabled.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-disabled.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-disabled\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"2ff7e4275900883a9e6a85877f529aea247a95912c7265dd821d8115a29b3c9f\", \"actual_sha256\": \"135bf1376d57fd4911d8f8af2f0eee9d7b902ec7b35f1a0c1802510b15599f57\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-disabled.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-disabled.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-disabled.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"057e0d74be9ee04bea202c41cbf0123be261778af729bceda23ada9a45b2c4ab\", \"actual_sha256\": \"e39b5c0e30389e035240fec60203da9443e09d9628828ee0c6f56bf7ddba0f0e\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.000459013353115727, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-failed-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-failed-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-failed-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-failed-list\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"6087a0ac97c0738cf8429c7835f4108b5c200331a1461bb0cf971b7ea55082ba\", \"actual_sha256\": \"525502393c54729852a00ec865ea7327cf59e4b513d577819c092ab8a06bb57c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 317, \"cursor_differs\": false, \"difference_bbox_inclusive\": [26, 1, 117, 38], \"samples\": [{\"x\": 68, \"y\": 1, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 70, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 71, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 72, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 73, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 74, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 75, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 76, \"y\": 1, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 117, \"y\": 1, \"different_fields\": [\"fg\"]}, {\"x\": 68, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 70, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 71, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 72, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 73, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 74, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 75, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 76, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 77, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-failed-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-failed-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-failed-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6aa002e7df2a238fcc8f754123f3dce2b131d439fd65351a9db92b56df464e4e\", \"actual_sha256\": \"49c3f35971ba7a451a76fbf875658e44081fb4e03500d751be0d41b614ea7733\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 26029, \"changed_fraction_diagnostic_only\": 0.04022780662710188, \"difference_bbox_inclusive\": [219, 16, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-failed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-failed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-failed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-failed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"b46efc8801536918dbe7214ebe3b400396713902753ed019db3010fff2e8c2dc\", \"actual_sha256\": \"e9f3e632cc3c7721c72b39588b9d080b3722e8a72084862b705eefe254e124f2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 78, \"cursor_differs\": false, \"difference_bbox_inclusive\": [26, 25, 117, 38], \"samples\": [{\"x\": 26, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 25, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-failed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-failed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-failed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3304fc6bfca5531dd3978025a6479f763565c3a8ccba55b4a96fb1dd5aa3e103\", \"actual_sha256\": \"8b363db14788543da90c2e2d5a0b066739f3eb5b1cfcdb61c5272ad8b1b353da\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 3940, \"changed_fraction_diagnostic_only\": 0.006089268051434223, \"difference_bbox_inclusive\": [219, 402, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-restored\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"0f84b9c9529dc559332d9fbb04bb3c17f48369be841c70706cdf60ae598683e8\", \"actual_sha256\": \"d5bd3847cf8951142f355f2bf82443151a9803faa5d350027d722630a99c599a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"34cc7e0f0daeb4c835c3d968a6f2597f46540f18c9a5e22e58cb9694d082da04\", \"actual_sha256\": \"b5d789069d460dd70b61441cd149f58b649f769949ec0e5ab98f565c20c4f717\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.000459013353115727, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-44x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-44x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-44x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-44x24\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"d6c33e38d4533c7ee22b66012d70334c2b1ab362b1ba7e16f2b24aa26a912e4f\", \"reference_sha256\": \"45da33a176208f9cbe40c0c1c393bb679d1288f7f6d79b9097a2873258f26e22\", \"actual_sha256\": \"a5cfad831630546d90b977e0d06fc04f357cc793001985723079fc6f5bd9d316\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 1056, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-44x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-44x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-44x24.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"d84c59f9cdda4adef30d90f2c85ba100cb9c727d92615714ff523df08c399b46\", \"actual_sha256\": \"2568d08ea7c5e2e5f4156d4c6d920a2c1819eeb32f72f30fd52429f5513dc295\", \"width\": 371, \"height\": 384, \"pixels_checked\": 142464, \"different_pixels\": 41, \"changed_fraction_diagnostic_only\": 0.00028779200359389036, \"difference_bbox_inclusive\": [370, 240, 370, 280]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-63x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-63x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-63x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-63x24\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"d3c6963625965ef4faca19899827fb448c59b130d87d00a9b557f8b94d48431c\", \"reference_sha256\": \"0345edef59be003197cfc641c5a2ec2285cb70605fa2056931e746379cf15560\", \"actual_sha256\": \"3087a66e6a1ad4ad06be55d21f2837827faaaf06ac91e22cc02c5e1799d1aaa0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 1512, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-63x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-63x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-63x24.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5a3649067ed19b383b831ee529d3752fd5cbe5d7ef505ccc2db95fc0b649f4a6\", \"actual_sha256\": \"5a3649067ed19b383b831ee529d3752fd5cbe5d7ef505ccc2db95fc0b649f4a6\", \"width\": 531, \"height\": 384, \"pixels_checked\": 203904, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-64x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-64x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-64x24.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-64x24\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"2ddcee902151a64ac3cd78071ffbb250b5356269f69f6a021cd564a7ec3a0c9c\", \"reference_sha256\": \"eabe54e96e31d46d8f4a3514c1bcce42c575e1d862ef8a0fe8c187ef436848af\", \"actual_sha256\": \"84e3dad439bfa410103d689da88a3708df900058843c2d8b79a6bff1a316684b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 1536, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [56, 22, 61, 22], \"samples\": [{\"x\": 56, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-64x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-64x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-64x24.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"7b07f664862a3a041110ef414b2da50c1edfd7c82520cfd06a6953db0b0000d6\", \"actual_sha256\": \"7cabf0fe144767301d3fd516b04096103f58c631b46c9f04f3d707b4d9f1a599\", \"width\": 539, \"height\": 384, \"pixels_checked\": 206976, \"different_pixels\": 294, \"changed_fraction_diagnostic_only\": 0.0014204545454545455, \"difference_bbox_inclusive\": [472, 355, 520, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-43x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-43x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-43x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-43x24\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"cdad077e4f55143f5f3702aaed21c31557da4cf9e2a2b3ecc21541e4a6d5abb0\", \"reference_sha256\": \"e2abf5a68c13c1fe438b66d08f92fd042f6ef6b16aef8e66255ed052e70a8c98\", \"actual_sha256\": \"f061051bda3adaf371b36624f2b878aec3fe042f7710444d5f66be680a70b3e0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 1032, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-43x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-43x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-43x24.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"0c642ca74e14efed2d7d01477a39fd4ca646d254789b27c4125c1c5d05b9bcbc\", \"actual_sha256\": \"077a77abdb16085cee1fcbf4517d7bf48dfbe9a79a91bc206e70adedae40a926\", \"width\": 362, \"height\": 384, \"pixels_checked\": 139008, \"different_pixels\": 49, \"changed_fraction_diagnostic_only\": 0.00035249769797421733, \"difference_bbox_inclusive\": [361, 112, 361, 263]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-64x12.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-64x12.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-64x12.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-64x12\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"7b1f2419ad017b1dc45e70a737629e5e2b54a9482dc18e1c02e5af4889bfbb04\", \"reference_sha256\": \"08d703f844ae5734154d8988963c9bfae1d3001064da1dc710aefa34bd63ea64\", \"actual_sha256\": \"48d0d7846abc5b99363b56d125eec24083d8ddadde531bbee96282a68c75704c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 768, \"different_cells\": 9, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 11, 61, 11], \"samples\": [{\"x\": 3, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 5, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 11, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-64x12.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-64x12.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-64x12.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3036bc39a1a1226a31bbe84572ee91c7c274c9541ec82e14fb32905a7e112c2b\", \"actual_sha256\": \"959a16e06e8e5f6b8575092d0fe684f106bf5660a33b2c4011a8d58fd6fb91a4\", \"width\": 539, \"height\": 192, \"pixels_checked\": 103488, \"different_pixels\": 523, \"changed_fraction_diagnostic_only\": 0.005053726035868893, \"difference_bbox_inclusive\": [25, 179, 520, 190]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-resized-back.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-resized-back.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-resized-back.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-resized-back\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"32cabe67b951918df5020bfd4ab5ca61e10006ba0cd4e803b24842980196fe91\", \"actual_sha256\": \"fdc9bc28cde224d86064c7a1cdd8353e397b6108204aec807bc5d786cf319448\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-home-mcp-resized-back.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-home-mcp-resized-back.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-home-mcp-resized-back.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"34cc7e0f0daeb4c835c3d968a6f2597f46540f18c9a5e22e58cb9694d082da04\", \"actual_sha256\": \"b5d789069d460dd70b61441cd149f58b649f769949ec0e5ab98f565c20c4f717\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 297, \"changed_fraction_diagnostic_only\": 0.000459013353115727, \"difference_bbox_inclusive\": [943, 611, 992, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-completed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"a10ea5149a0bedcdc95455f4dbfd207874291a0bcffc73ea23ff61eecffe73fb\", \"actual_sha256\": \"5eb8adfa7c51af9c0441c28a5e84575032244fde0767afc8b207b0b57b83a321\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 1022, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"97e0f33113f3324e33d5b89b2ac39eb1009e1f3cdcc1785ec64c47b9f456821e\", \"actual_sha256\": \"03ef664d1276dc71b69d6de018dc2ec3ec3df4b4ce5eb9d4bba84a97cc73f9ce\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 66840, \"changed_fraction_diagnostic_only\": 0.10330118694362017, \"difference_bbox_inclusive\": [17, 98, 992, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-hover.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-hover.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-hover.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-hover\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"ce887386d1cae2c5d5ff21b6b773b959af75ad0290d54a3ddc642df2e826f5f3\", \"actual_sha256\": \"e512d3e9540754d65b7119995e72e61573a22e274ca986a53f1db38f50a94a71\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-hover.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-hover.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-hover.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"75363b6d8b2d5c33165d81ba3ba4c98788d2829e4d001df5170778097094a023\", \"actual_sha256\": \"77ad4b9cf7dc0acbc985f9551ccf24aed06f41cea400dfce547331063ca4dde3\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 61079, \"changed_fraction_diagnostic_only\": 0.05492221922488985, \"difference_bbox_inclusive\": [17, 98, 992, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-1-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-1-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-1-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-1-expanded\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"8bc1e1ac95c03fac89083b130dff0f636de535f49bcadd5765c06543b34468ba\", \"actual_sha256\": \"0b9ed3a8e15950b3fbf9e291457ea0f838e22e0b74e26d5144bc53e5732c1ede\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1845, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-1-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-1-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-1-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"53edc25d4125a494eda8185a868d0404d0988207d234f7c68351b0fe09c3561e\", \"actual_sha256\": \"beea9cd9c250a817d032e71f62eb1563702bc9d6acc224ce4a6323ee5c387bb2\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 150833, \"changed_fraction_diagnostic_only\": 0.13562899019872313, \"difference_bbox_inclusive\": [17, 98, 992, 796]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-1-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-1-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-1-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-1-recollapsed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"0d7790d30f94bdf01fc2cfd6c9249411281844bae9f45bce1d9d4010dc873b59\", \"actual_sha256\": \"f8ee25f4379a31113819fc6e78f4e94333a3766523a0defb99f4c987cba4020c\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-1-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-1-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-1-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"75363b6d8b2d5c33165d81ba3ba4c98788d2829e4d001df5170778097094a023\", \"actual_sha256\": \"77ad4b9cf7dc0acbc985f9551ccf24aed06f41cea400dfce547331063ca4dde3\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 61079, \"changed_fraction_diagnostic_only\": 0.05492221922488985, \"difference_bbox_inclusive\": [17, 98, 992, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-2-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-2-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-2-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-2-expanded\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"2752f2b9a68630e1aabeb19c1991de41d6a4425b719985419bc1202a5f0101c2\", \"actual_sha256\": \"2c20e50e0ae1545036507214a9957d905244fd628c23f6f05290d019a9f5badc\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1758, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-2-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-2-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-2-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ca2d4eb7c42eaddaf9664fa198e40b507aaf15cbfc26453e1afdfd296da6591a\", \"actual_sha256\": \"c6aab0da1565e7291c0a8dfeabc3fdf0826c1d248af569d8a0912ab8d821be36\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 147430, \"changed_fraction_diagnostic_only\": 0.13256901357791565, \"difference_bbox_inclusive\": [17, 98, 992, 796]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-2-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-2-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-2-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-2-recollapsed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"42f3ce533d07e8512cac4f7653ee5da38ec5c7d469bb7fd72b35dde082ae1fd4\", \"actual_sha256\": \"c9e7e3b408bab988a424e062500c2d28d23e931f422771ef5b7830509eab84af\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-mcp-2-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-mcp-2-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-mcp-2-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"97d64598eef639058b30e6c08603caf0d197edcaa0e93e31f7542085c776fa41\", \"actual_sha256\": \"f29406d7d0503edb2b31e5f5cf70add7f35058d69f8ffd3f84de54ee9f3a0a2d\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 61080, \"changed_fraction_diagnostic_only\": 0.0549231184246021, \"difference_bbox_inclusive\": [17, 98, 992, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-error-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-error-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-error-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-error-expanded\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"e38b1cea11413f17d173d2a6b2ac4bf75178953f3ec7d6a012a6cae03d7e2b51\", \"actual_sha256\": \"dbd65a3b31aea8fc0de367889970d9bb88603b190c5359173b2405802909dfc1\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1082, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-error-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-error-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-error-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"aa276694a987e9e678eb9714a4b1eb0e9c87bae2a0b10d220819431911af1a2a\", \"actual_sha256\": \"3852ddbc52d2bbca58e97dfdbb4b949a5abcd3d5240269414f0597344eef91e9\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 63508, \"changed_fraction_diagnostic_only\": 0.0571063753259599, \"difference_bbox_inclusive\": [17, 98, 992, 492]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-error-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-error-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-error-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-error-recollapsed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"93cf3ddc4391bc0066b55bed7f1a6166af5cf7e12bcd82049099e62d2afad78e\", \"actual_sha256\": \"dbdf30847a29a63dbd7ea10e046d68347e6cb2b2493cdc32b3f63163dfc8b0a0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-error-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-error-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-error-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"22f46e927b30e94ebf00c550d86598f2eddea103fe700df662f51855ad92e4cb\", \"actual_sha256\": \"d9e17c45ab0fa0a65ea45f4fc7160f85d3c693904d81e30414e3ee3dc997bf8d\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 61060, \"changed_fraction_diagnostic_only\": 0.05490513443035698, \"difference_bbox_inclusive\": [17, 98, 992, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-shell-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-shell-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-shell-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-shell-expanded\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"166014c5e550a029da42613e5f419df12aa8e0e492fcc8813e3570ae3b861c40\", \"reference_sha256\": \"afb5f3692a5e2b2e55e1289f74439c7bed2de631c1f7078f5fbed93837019d6d\", \"actual_sha256\": \"0e8649b73db1c5f0d54efcb8b28318021b041e911275cc53e628f70240e3ed29\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 9600, \"different_cells\": 6788, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-shell-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-shell-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-shell-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5df83a6647898b727073a373c2c972d6429a1d60b8201ed1b83fba2e763ab2f8\", \"actual_sha256\": \"8012837491485118eaa022fcaddf787fb69347aee31966a7ad38dbf2a579bb9d\", \"width\": 1011, \"height\": 1100, \"pixels_checked\": 1112100, \"different_pixels\": 873657, \"changed_fraction_diagnostic_only\": 0.7855921230105206, \"difference_bbox_inclusive\": [17, 98, 992, 1087]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-shell-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-shell-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-shell-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-shell-recollapsed\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"52691e3aacc2c2d0144a8356a640b610f4cb0988cd8d3544029d0ca47af185ae\", \"actual_sha256\": \"6bba97d6caa0f204cb84b27c01a6cbef1415c0daabf087125dc89ad6e94a36c0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-shell-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-shell-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-shell-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"eb6a35b30f05eea1ea9c72a84c57b67d338f052ae1d04ee57d6b2ad95573b194\", \"actual_sha256\": \"96ac8de4855d6ee77349912fe482cd5eb9458729cee63691389fe63bda222b2d\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 231449, \"changed_fraction_diagnostic_only\": 0.3577043150346192, \"difference_bbox_inclusive\": [17, 98, 992, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-switched.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-switched.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-switched.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-switched\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"4f4ee90d1e55663e979b31f8c20f7fd56cf2fb4748b4ab2b8a499aca1268c7f9\", \"actual_sha256\": \"1ae28a849a3182b1818944a65eacba01974b04a53827d886c50857a27ca8a7d2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 18, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 38, 117, 38], \"samples\": [{\"x\": 2, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 3, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 4, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 5, \"y\": 38, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 10, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 11, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 12, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 13, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 14, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-switched.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-switched.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-switched.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"a60dc2c5a2390d6a9fd2dcb1d55201d8c7702bd468f6db60ad20294639b84bd7\", \"actual_sha256\": \"04d9fba1fce6031f787004cf85567eb61f49ba8db669b6356f4f1e3c309cb9d2\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 749, \"changed_fraction_diagnostic_only\": 0.0011575791295746786, \"difference_bbox_inclusive\": [17, 611, 992, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-reopened.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-reopened.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-reopened.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-reopened\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"8de91a267166af222af7e2efc7927ed10aee59ad7dd209a7a7d5ac9343db2ce5\", \"actual_sha256\": \"04a963cab2312d4504e46277687faee42fc3bd2f75da094f89fb1f26aa17b1ca\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-reopened.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-reopened.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-reopened.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3507066a774f9f70219a69bc42064e14cd36f89760979056a12f3e55620e47bd\", \"actual_sha256\": \"03ef664d1276dc71b69d6de018dc2ec3ec3df4b4ce5eb9d4bba84a97cc73f9ce\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 231449, \"changed_fraction_diagnostic_only\": 0.3577043150346192, \"difference_bbox_inclusive\": [17, 98, 992, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-restarted.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-restarted.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-restarted.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-restarted\", \"fixture_sha256\": \"0b7c0eb7436f7a4eb06ce0392e6132361303e08deae6413cc8f4c2ba2ef218b7\", \"environment_id\": \"ba17abfe68a1beb64d4fad5285d58524b5c158583e601ba0eb77d4877efbff4f\", \"reference_sha256\": \"116adc8f2c74448c2d6a3a7e4a84370bb7c1bbb9dd7132e8ad0c122c7aa2e438\", \"actual_sha256\": \"80c4f7097934055cf6d67cea8588a1f83b5ce82ff2e48dbafe16c5a4599694b2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"43db2fe87fbe08d83b47821cbe215118404d8653\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/upstream/tool-preview-restarted.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/oc/tool-preview-restarted.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-025/tool-preview-restarted.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"3507066a774f9f70219a69bc42064e14cd36f89760979056a12f3e55620e47bd\", \"actual_sha256\": \"03ef664d1276dc71b69d6de018dc2ec3ec3df4b4ce5eb9d4bba84a97cc73f9ce\", \"width\": 1011, \"height\": 640, \"pixels_checked\": 647040, \"different_pixels\": 231449, \"changed_fraction_diagnostic_only\": 0.3577043150346192, \"difference_bbox_inclusive\": [17, 98, 992, 623]}\n",
+    "stderr": ""
+  }
+]

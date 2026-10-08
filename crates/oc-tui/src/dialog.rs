@@ -704,6 +704,10 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         render_card_detail(frame, state);
         return;
     }
+    if state.panel() == &TuiPanel::Mcps && state.mcp_detail_server().is_some() {
+        render_mcp_detail(frame, state);
+        return;
+    }
     let title = match state.panel() {
         TuiPanel::None => return,
         TuiPanel::Commands => "Commands",
@@ -890,6 +894,149 @@ fn render_card_detail(frame: &mut Frame<'_>, state: &TuiState) {
     }
     let (start, visible, count) = crate::views::card_window(state);
     state.card_rows_painted(start, (start + visible).min(count));
+}
+
+pub(crate) struct McpDetailLayout {
+    pub rect: Rect,
+    pub body: Rect,
+    pub back: Rect,
+    pub investigate: Rect,
+    pub copy: Rect,
+    pub scroll_hint: Rect,
+    pub count: usize,
+    rows: Vec<crate::styled::Line>,
+}
+
+/// One row map owns read-only painting, scroll limits and action hits. It never
+/// delegates to SelectList, so the originating filter/selection remains intact.
+pub(crate) fn mcp_detail_layout(state: &TuiState, area: Rect) -> McpDetailLayout {
+    let base = DialogFrame::rect(area, DialogSize::Medium, 0);
+    let width = base.width.saturating_sub(4) as usize;
+    let rows = state
+        .mcp_detail_server()
+        .and_then(|server| server.diagnostic.as_ref())
+        .map(|diagnostic| {
+            diagnostic
+                .to_string()
+                .split('\n')
+                .flat_map(|line| {
+                    let inert = line.chars().filter(|c| !c.is_control()).collect::<String>();
+                    crate::styled::wrap_line(&crate::styled::Line::plain(inert), width)
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut action_row = 0_u16;
+    let mut x = 0_u16;
+    let mut actions = [Rect::default(); 3];
+    for (index, wanted) in [13_u16, if state.mcp_detail_copied() { 8 } else { 14 }, 10]
+        .into_iter()
+        .enumerate()
+    {
+        let wanted = wanted.min(width as u16);
+        if x > 0 && x + wanted > width as u16 {
+            action_row += 1;
+            x = 0;
+        }
+        actions[index] = Rect::new(base.x + 2 + x, action_row, wanted, u16::from(width > 0));
+        x += wanted + 3;
+    }
+    let available = area.bottom().saturating_sub(base.y);
+    let height = rows
+        .len()
+        .min(20)
+        .min(available.saturating_sub(6 + action_row) as usize) as u16;
+    let rect = DialogFrame::rect(area, DialogSize::Medium, height + 6 + action_row);
+    let body = Rect::new(
+        rect.x + 2,
+        (rect.y + 3).min(rect.bottom()),
+        width as u16,
+        height.min(rect.height.saturating_sub(3)),
+    );
+    let footer_y = body.bottom() + 1;
+    for action in &mut actions {
+        action.y = (footer_y + action.y).min(rect.bottom());
+        action.height = action.height.min(rect.bottom().saturating_sub(action.y));
+    }
+    McpDetailLayout {
+        rect,
+        body,
+        back: Rect::new(
+            rect.right().saturating_sub(5),
+            (rect.y + 1).min(rect.bottom()),
+            3.min(rect.width),
+            u16::from(rect.height > 1),
+        ),
+        investigate: actions[0],
+        copy: actions[1],
+        scroll_hint: actions[2],
+        count: rows.len(),
+        rows,
+    }
+}
+
+fn render_mcp_detail(frame: &mut Frame<'_>, state: &TuiState) {
+    let Some(server) = state.mcp_detail_server() else {
+        return;
+    };
+    let layout = mcp_detail_layout(state, frame.area());
+    let theme = Theme::dark();
+    DialogFrame::paint(frame, layout.rect, theme);
+    if layout.rect.width < 8 || layout.rect.height < 3 {
+        return;
+    }
+    let text = Style::default().fg(slot(theme, "text.base"));
+    let muted = Style::default().fg(slot(theme, "text.muted"));
+    frame.render_widget(
+        Paragraph::new(format!("MCP server: {}", server.name))
+            .style(text.add_modifier(Modifier::BOLD)),
+        Rect::new(
+            layout.rect.x + 2,
+            layout.rect.y + 1,
+            layout.rect.width.saturating_sub(9),
+            1,
+        ),
+    );
+    frame.render_widget(Paragraph::new("esc").style(muted), layout.back);
+    let start = state
+        .mcp_detail_scroll()
+        .min(layout.count.saturating_sub(layout.body.height as usize));
+    let rows = layout
+        .rows
+        .into_iter()
+        .skip(start)
+        .take(layout.body.height as usize)
+        .map(|row| row.into_ratatui())
+        .collect::<Vec<_>>();
+    frame.render_widget(Paragraph::new(rows).style(text), layout.body);
+    let span = |value: &str, style| ratatui::text::Span::styled(value.to_string(), style);
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(vec![
+            span("i", text.add_modifier(Modifier::BOLD)),
+            span(" investigate", muted),
+        ])),
+        layout.investigate,
+    );
+    frame.render_widget(
+        Paragraph::new(ratatui::text::Line::from(if state.mcp_detail_copied() {
+            vec![span(
+                "✓ copied",
+                Style::default()
+                    .fg(slot(theme, "text.feedback.success.base"))
+                    .add_modifier(Modifier::BOLD),
+            )]
+        } else {
+            vec![
+                span("c", text.add_modifier(Modifier::BOLD)),
+                span(" copy details", muted),
+            ]
+        })),
+        layout.copy,
+    );
+    frame.render_widget(
+        Paragraph::new("↑/↓ scroll").style(muted),
+        layout.scroll_hint,
+    );
 }
 
 pub fn size_for(panel: &TuiPanel) -> DialogSize {

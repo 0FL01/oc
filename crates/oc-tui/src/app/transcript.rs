@@ -625,6 +625,16 @@ impl TuiState {
 
     /// The binary reports the actual asynchronous clipboard write outcome.
     pub fn report_clipboard_result(&mut self, result: Result<(), String>) {
+        if let Some(detail) = &mut self.mcp_detail
+            && detail.copy_pending
+        {
+            detail.copy_pending = false;
+            detail.copied = result.is_ok();
+            if let Err(error) = result {
+                self.push_transient_note(&error, NoteVariant::Error);
+            }
+            return;
+        }
         match result {
             Ok(()) => {
                 if matches!(self.panel, TuiPanel::MessageActions { .. }) {

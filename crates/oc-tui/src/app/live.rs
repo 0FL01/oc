@@ -506,6 +506,14 @@ impl TuiState {
         if self.chrome.location != snapshot.chrome.location {
             previous_issues.clear();
             self.mcp_snapshot = None;
+            if self
+                .mcp_detail
+                .as_ref()
+                .is_some_and(|detail| detail.copy_pending)
+            {
+                self.pending_copy = None;
+            }
+            self.mcp_detail = None;
             self.service_pending_issues.clear();
             self.refused_submission = None;
             self.generation += 1;

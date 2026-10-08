@@ -707,11 +707,15 @@ impl TuiState {
     fn selected_diagnostic(&self) -> Option<oc_core::queries::ServiceDiagnostic> {
         let options = self.modal_options();
         if self.panel == TuiPanel::Mcps {
-            let id = self.mcp_detail.as_deref().or_else(|| {
-                options
-                    .get(self.select.cursor)
-                    .map(|option| option.value.as_str())
-            })?;
+            let id = self
+                .mcp_detail
+                .as_ref()
+                .map(|detail| detail.server.as_str())
+                .or_else(|| {
+                    options
+                        .get(self.select.cursor)
+                        .map(|option| option.value.as_str())
+                })?;
             return self
                 .mcp_snapshot
                 .as_ref()?
@@ -1179,6 +1183,7 @@ impl TuiState {
         self.card_output = None;
         self.card_scroll = 0;
         self.card_seen.set(0);
+        self.mcp_detail = None;
         self.mouse_down = None;
         self.tab_down = None;
         if was_open {
@@ -1699,6 +1704,61 @@ impl TuiState {
             }
             return KeyOutcome::default();
         }
+        if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {
+            self.set_detail_area(area);
+            let layout = crate::dialog::mcp_detail_layout(self, area);
+            let point = (event.column, event.row).into();
+            let hit = if !layout.rect.contains(point) {
+                DialogHit::Backdrop
+            } else if layout.back.contains(point) {
+                DialogHit::Close
+            } else if layout.investigate.contains(point) {
+                DialogHit::Option(0)
+            } else if layout.copy.contains(point) {
+                DialogHit::Option(1)
+            } else {
+                DialogHit::Surface
+            };
+            match event.kind {
+                MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
+                    if layout.body.contains(point) =>
+                {
+                    for _ in 0..3 {
+                        self.mcp_detail_key(if event.kind == MouseEventKind::ScrollUp {
+                            KeyAction::Up
+                        } else {
+                            KeyAction::Down
+                        });
+                    }
+                }
+                MouseEventKind::Down(MouseButton::Left) => {
+                    if let Some(detail) = &mut self.mcp_detail {
+                        detail.pressed = Some((area, hit));
+                    }
+                }
+                MouseEventKind::Drag(MouseButton::Left) => {
+                    if let Some(detail) = &mut self.mcp_detail {
+                        detail.pressed = None;
+                    }
+                }
+                MouseEventKind::Up(MouseButton::Left)
+                    if self
+                        .mcp_detail
+                        .as_mut()
+                        .and_then(|detail| detail.pressed.take())
+                        == Some((area, hit)) =>
+                {
+                    return self.mcp_detail_key(match hit {
+                        DialogHit::Backdrop | DialogHit::Close => KeyAction::Cancel,
+                        DialogHit::Option(0) => KeyAction::Char('i'),
+                        DialogHit::Option(1) => KeyAction::Char('c'),
+                        _ => return KeyOutcome::default(),
+                    });
+                }
+                _ => {}
+            }
+            return KeyOutcome::default();
+        }
         let options = self.modal_options();
         let size = crate::dialog::size_for(&self.panel);
         let hit = self
@@ -1819,6 +1879,9 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
+            if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {
+                return KeyOutcome::default();
+            }
             if self.panel == TuiPanel::Rename {
                 return self.paste_rename(text);
             }
@@ -2896,6 +2959,9 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.key(action);
         }
+        if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {
+            return self.mcp_detail_key(action);
+        }
         if self.panel == TuiPanel::Settings
             && action == KeyAction::Cancel
             && !self.select.query.is_empty()
@@ -2968,14 +3034,8 @@ impl TuiState {
         if self.panel == TuiPanel::Rename {
             return self.handle_rename_key(action);
         }
-        if self.panel == TuiPanel::Mcps {
-            if action == KeyAction::Char(' ') {
-                return self.mcp_toggle();
-            }
-            if action == KeyAction::Cancel && self.mcp_detail.take().is_some() {
-                self.select.reset();
-                return KeyOutcome::default();
-            }
+        if self.panel == TuiPanel::Mcps && action == KeyAction::Char(' ') {
+            return self.mcp_toggle();
         }
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (start, height, count) = crate::views::card_window(self);

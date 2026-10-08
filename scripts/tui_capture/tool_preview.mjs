@@ -6,7 +6,8 @@ import {probeHomeMcp} from './home_mcp.mjs';
 export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
-    'Configured-label projection, safe native diagnostics and action-footer interaction remain independently open.'
+    'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
+    'Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open.'
   ]:[
     'Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.',
     'Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.',

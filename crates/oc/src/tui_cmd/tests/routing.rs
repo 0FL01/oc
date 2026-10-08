@@ -364,6 +364,85 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
 }
 
 #[tokio::test]
+async fn mcp_detail_keyboard_copy_drains_actual_transport_before_outcome() {
+    use oc_core::queries::{
+        McpBinding, McpServerSnapshot, McpSnapshot, McpStatus, ServiceAction, ServiceCode,
+        ServiceDiagnostic, ServiceKind, ServiceStage,
+    };
+
+    for succeeds in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let mut state = TuiState::new(app.clone(), SessionId::new("detail-copy-ui").unwrap());
+        let mut chrome = catalog();
+        chrome.chrome.location = Some("/fixture".into());
+        state.apply_catalog(chrome);
+        state.restore_prompt("unfinished Ω draft".into());
+        state.apply_mcp_snapshot(McpSnapshot {
+            binding: McpBinding {
+                location: "/fixture".into(),
+                generation: 1,
+                instance: 1,
+            },
+            revision: 1,
+            servers: vec![McpServerSnapshot {
+                id: "opaque-control".into(),
+                name: "safe-label".into(),
+                configured_enabled: true,
+                status: McpStatus::Failed,
+                pending_action: None,
+                tools: 0,
+                actions: Vec::new(),
+                diagnostic: Some(ServiceDiagnostic {
+                    kind: ServiceKind::Mcp,
+                    service: "opaque-diagnostic".into(),
+                    source: "safe-source".into(),
+                    field: vec!["mcp".into()],
+                    stage: ServiceStage::Initialize,
+                    code: ServiceCode::ConnectionFailed,
+                    action: ServiceAction::RetryConnection,
+                }),
+            }],
+        });
+        state.restore_prompt("/mcps".into());
+        state.handle_key(KeyAction::Enter).await;
+        state.restore_prompt("unfinished Ω draft".into());
+        state.handle_key(KeyAction::Enter).await;
+        fn success(text: &str) -> Result<(), String> {
+            assert!(text.starts_with("MCP server: safe-label\nError: mcp opaque-diagnostic"));
+            Ok(())
+        }
+        fn failure(text: &str) -> Result<(), String> {
+            success(text)?;
+            Err("transport failed".into())
+        }
+        let mut deck = LoopState {
+            copy_transport: Some(if succeeds { success } else { failure }),
+            ..Default::default()
+        };
+        handle_event(
+            &app,
+            &mut state,
+            &mut deck,
+            CEvent::Key(KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE)),
+        )
+        .await
+        .unwrap();
+        assert!(
+            state.take_copy_request().is_none(),
+            "key request must reach transport"
+        );
+        assert_eq!(state.input(), "unfinished Ω draft");
+        let detail = oc_tui::views::render_test(&state, 120, 40).join("\n");
+        assert_eq!(detail.contains("✓ copied"), succeeds);
+        assert_eq!(detail.contains("c copy details"), !succeeds);
+        assert!(
+            inbox.try_recv().is_err(),
+            "copy neither submits nor reconnects"
+        );
+    }
+}
+
+#[tokio::test]
 async fn selecting_model_updates_local_draft_without_owner_commit_or_selection_toast() {
     use oc_core::queries::ModelEntry;
 

@@ -653,7 +653,7 @@ try {
          if(toolPreview) {
             const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
             const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
-               mcpProbe:mcpStatus?args=>probeMcpStatus(args):null,
+               mcpProbe:mcpStatus?args=>probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')}):null,
               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
              resize,

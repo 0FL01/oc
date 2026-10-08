@@ -1,0 +1,40 @@
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                          ▄                                             
+                                         █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█                                        
+                                         █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀                                        
+                                         ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀                                        
+                                                                                                                        
+                                                                                                                        
+                       ┃                                                                                                
+                       ┃  Investigate why this OpenCode component failed in the current project.                        
+                       ┃                                                                                                
+                       ┃  MCP server: visfailed                                                                         
+                       ┃  Status: failed                                                                                
+                       ┃  Configuration: mcp.servers.visfailed                                                          
+                       ┃  Error: VIS-MCP-CONNECTION-ERROR                                                               
+                       ┃                                                                                                
+                       ┃  Inspect the relevant project and global OpenCode configuration,                               
+                       ┃  startup or loading behavior, required environment variables or                                
+                       ┃  credentials, dependencies, and logs. Identify the root cause and                              
+                       ┃  recommend a fix. Do not expose credentials.                                                   
+                       ┃                                                                                                
+                       ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                     
+                       ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                      
+                       /…/runs/mcp-status-attempt-012/project    shift+tab agents  ctrl+p commands                      
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+  ⊙ 1 MCP failed /mcps                                                                                          2.0.12  
+                                                                                                                        

@@ -878,9 +878,13 @@ no renderer state, SQL row or result is seeded. Real SGR Home clicks, arrows and
 resize select every status at120×40,80×24 and160×48. Every selection must show the
 exact safe configured names `visdisabled`, `visfailed`, `vishealthy`, distinct from
 the handshake name/argv and known inherited protected values. Real search for
-`visfailed`, Enter to its details and Escape back to the filtered list precede
-exact Unicode draft/caret restoration at120×40. Thirteen full paired frames are
-saved unmasked; the ordinary tool-effect fixture retains its original server key.
+`visfailed` and Enter open a dedicated read-only detail (no Search/hardware caret).
+Arrow/Page/Home/End input checks the short available body, not overflow. Keyboard
+and mouse Copy each require actual OSC52 delivery and copied feedback; mouse Back
+restores the originating filter before exact Unicode draft/caret restoration.
+Explicit keyboard and mouse investigation produce an unsent diagnostic draft in
+native, never an automatic model/tool action. Eighteen full paired frames are saved
+unmasked; the ordinary tool-effect fixture retains its original server key.
 
 ```sh
 CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
@@ -897,11 +901,17 @@ node scripts/tui_capture/capture.mjs \
 selected action fg/bg override, intrinsic Connected bold separately. Native must
 retain frozen source-required bold; the running original's absent bold is recorded,
 not treated as native failure or equality. Zero provider/tool/MCP-call/Shell effects
-and real healthy/failed initialization receipts are required. This bounded slice
-does not qualify every pending/auth/control/detail or whole VIS40 outcome. Unsafe
+and real healthy/failed initialization receipts are required. Copy decodes the real
+OSC52 wire, not a toast; it does not prove desktop/SSH terminal clipboard acceptance
+(`NOT_VERIFIED_BY_PTY`). Native uses the safe owner diagnostic, not the peer's raw
+exception. The pinned Home route can close a repeated identical investigation
+after user clear without reinjecting the draft; the full observed reference frame
+and false reference draft field are retained, never imitated or accepted in native.
+This bounded slice does not qualify every pending/auth/control/footer interaction
+or whole VIS40 outcome. Unsafe
 label protection and activation/refusal are separately checked at the existing
 config/runtime/application and actual-binary owners; the paired probe does not
-seed masked rows or read inactive credential files. The current26 full-grid/PNG
+seed masked rows or read inactive credential files. The current36 full-grid/PNG
 comparisons remain DIFFERENT; `PASS_BEHAVIOR_ONLY` is
 not pixel PASS. Separate ordinary and temporal runs qualify their regressions.
 

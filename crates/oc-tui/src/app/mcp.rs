@@ -1,7 +1,18 @@
 //! Direct typed MCP projection; no endpoint, credential or inferred status.
 
 use super::*;
-use oc_core::queries::{McpAction, McpControl, McpServerSnapshot, McpSnapshot, McpStatus};
+use oc_core::queries::{
+    McpAction, McpBinding, McpControl, McpServerSnapshot, McpSnapshot, McpStatus,
+};
+
+pub(super) struct McpDetail {
+    binding: McpBinding,
+    pub(super) server: String,
+    pub(super) scroll: usize,
+    pub(super) copied: bool,
+    pub(super) copy_pending: bool,
+    pub(super) pressed: Option<(Rect, crate::dialog::DialogHit)>,
+}
 
 impl TuiState {
     pub(crate) fn mcp_list_servers(&self) -> Option<&[McpServerSnapshot]> {
@@ -58,7 +69,30 @@ impl TuiState {
             None
         };
         let previous_issues = self.service_issues();
+        let detail_changed = self.mcp_detail.as_ref().is_some_and(|detail| {
+            let before = self
+                .mcp_snapshot
+                .as_ref()
+                .and_then(|old| old.servers.iter().find(|row| row.id == detail.server));
+            let after = snapshot.servers.iter().find(|row| row.id == detail.server);
+            before.map(|row| (&row.name, &row.diagnostic))
+                != after.map(|row| (&row.name, &row.diagnostic))
+                || snapshot.binding != detail.binding
+        });
+        if detail_changed && let Some(detail) = &mut self.mcp_detail {
+            if detail.copy_pending {
+                self.pending_copy = None;
+            }
+            detail.copy_pending = false;
+            detail.copied = false;
+            detail.pressed = None;
+        }
         self.mcp_snapshot = Some(snapshot);
+        if self.mcp_detail.is_some() && self.mcp_detail_server().is_none() {
+            // A replacement generation/recovery must not leave a stale detail
+            // (or its copy/investigate actions) attached to another owner.
+            self.mcp_detail = None;
+        }
         if let Some(focus) = focus {
             let options = self.modal_options();
             if let Some(index) = options.iter().position(|option| option.value == focus) {
@@ -74,46 +108,6 @@ impl TuiState {
         let Some(snapshot) = &self.mcp_snapshot else {
             return Vec::new();
         };
-        if let Some(id) = &self.mcp_detail {
-            let Some(server) = snapshot.servers.iter().find(|server| &server.id == id) else {
-                return Vec::new();
-            };
-            let lines = match &server.diagnostic {
-                Some(diagnostic) => vec![
-                    format!("Server: {}", server.name),
-                    format!("Stage: {}", diagnostic.stage.as_str()),
-                    format!("Code: {}", diagnostic.code.as_str()),
-                    format!(
-                        "Retryable: {}",
-                        matches!(
-                            diagnostic.action,
-                            oc_core::queries::ServiceAction::RetryConnection
-                                | oc_core::queries::ServiceAction::RefreshCatalog
-                        )
-                    ),
-                    format!("Source: {}", diagnostic.source),
-                    format!("Field: {}", diagnostic.field.join(".")),
-                    diagnostic.to_string(),
-                ],
-                None => vec![
-                    format!("Server: {}", server.name),
-                    format!("Tools: {}", server.tools),
-                ],
-            };
-            return lines
-                .into_iter()
-                .enumerate()
-                .map(|(index, title)| crate::dialog::SelectOption {
-                    value: index.to_string(),
-                    title,
-                    category: String::new(),
-                    footer: String::new(),
-                    current: false,
-                    running: false,
-                    destructive: false,
-                })
-                .collect();
-        }
         snapshot
             .servers
             .iter()
@@ -171,19 +165,135 @@ impl TuiState {
     }
 
     pub(super) fn mcp_enter(&mut self) -> KeyOutcome {
-        if self.mcp_detail.take().is_none() {
-            self.mcp_detail = self
-                .modal_options()
-                .get(self.select.cursor)
-                .map(|option| option.value.clone());
+        let options = self.modal_options();
+        let Some(snapshot) = &self.mcp_snapshot else {
+            return KeyOutcome::default();
+        };
+        let Some(server) = options.get(self.select.cursor).and_then(|option| {
+            snapshot
+                .servers
+                .iter()
+                .find(|server| server.id == option.value)
+        }) else {
+            return KeyOutcome::default();
+        };
+        // Enter is not a connection action, nor a dismissal for healthy,
+        // disabled or pending rows. Native unsupported-auth diagnostics remain
+        // honest safe details, never a pretend OAuth flow.
+        if matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
+            && server.diagnostic.is_some()
+        {
+            self.mcp_detail = Some(McpDetail {
+                binding: snapshot.binding.clone(),
+                server: server.id.clone(),
+                scroll: 0,
+                copied: false,
+                copy_pending: false,
+                pressed: None,
+            });
+            self.mouse_down = None;
         }
-        self.select.reset();
+        KeyOutcome::default()
+    }
+
+    pub(crate) fn mcp_detail_server(&self) -> Option<&McpServerSnapshot> {
+        if self.panel != TuiPanel::Mcps {
+            return None;
+        }
+        let detail = self.mcp_detail.as_ref()?;
+        let snapshot = self.mcp_snapshot.as_ref()?;
+        if snapshot.binding != detail.binding {
+            return None;
+        }
+        snapshot
+            .servers
+            .iter()
+            .find(|server| server.id == detail.server && server.diagnostic.is_some())
+    }
+
+    pub(crate) fn mcp_detail_scroll(&self) -> usize {
+        self.mcp_detail.as_ref().map_or(0, |detail| detail.scroll)
+    }
+
+    pub(crate) fn mcp_detail_copied(&self) -> bool {
+        self.mcp_detail.as_ref().is_some_and(|detail| detail.copied)
+    }
+
+    pub(super) fn mcp_detail_key(&mut self, action: KeyAction) -> KeyOutcome {
+        let layout = crate::dialog::mcp_detail_layout(self, self.detail_area());
+        let start = self
+            .mcp_detail_scroll()
+            .min(layout.count.saturating_sub(layout.body.height as usize));
+        if let Some(detail) = &mut self.mcp_detail {
+            let end = layout.count.saturating_sub(layout.body.height as usize);
+            detail.scroll = match action {
+                KeyAction::Up => start.saturating_sub(1),
+                KeyAction::Down => (start + 1).min(end),
+                KeyAction::PageUp => start.saturating_sub(20),
+                KeyAction::PageDown => (start + 20).min(end),
+                KeyAction::Home | KeyAction::CtrlA => 0,
+                KeyAction::End => end,
+                _ => start,
+            };
+        }
+        match action {
+            KeyAction::Cancel | KeyAction::Interrupt => {
+                self.mcp_detail = None;
+                self.mouse_down = None;
+            }
+            KeyAction::Char('c') => {
+                if let Some(server) = self.mcp_detail_server() {
+                    let text = format!(
+                        "MCP server: {}\nError: {}",
+                        server.name,
+                        server.diagnostic.as_ref().expect("detail diagnostic")
+                    );
+                    match self.copy_message_text(text) {
+                        Ok(()) => {
+                            if let Some(detail) = &mut self.mcp_detail {
+                                detail.copy_pending = true;
+                                detail.copied = false;
+                            }
+                        }
+                        Err(error) => self.push_transient_note(&error, NoteVariant::Error),
+                    }
+                }
+            }
+            KeyAction::Char('i') => {
+                if self.linked_child().is_some() {
+                    return KeyOutcome {
+                        note: Some("linked child is read-only".into()),
+                        ..Default::default()
+                    };
+                }
+                if let Some(server) = self.mcp_detail_server() {
+                    let draft = format!(
+                        "MCP server: {}\n{}",
+                        server.name,
+                        server
+                            .diagnostic
+                            .as_ref()
+                            .expect("detail diagnostic")
+                            .investigation_draft()
+                    );
+                    if draft.len() > MAX_INPUT_BYTES {
+                        return KeyOutcome {
+                            note: Some("diagnostic exceeds composer input limit".into()),
+                            ..Default::default()
+                        };
+                    }
+                    self.close_panel();
+                    self.restore_prompt(draft);
+                }
+            }
+            _ => {}
+        }
         KeyOutcome::default()
     }
 
     pub fn mcp_footer(&self) -> &str {
         if self.mcp_detail.is_some() {
-            return "enter/esc back · safe details";
+            return "esc back · c copy details · i investigate · ↑/↓ scroll";
         }
         let options = self.modal_options();
         let server = options.get(self.select.cursor).and_then(|option| {

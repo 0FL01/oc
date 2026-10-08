@@ -38,6 +38,7 @@ pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
             | TuiPanel::Skills
             | TuiPanel::Mcps
     ) && state.approvals.active().is_none()
+        && state.mcp_detail_server().is_none()
     {
         crate::theme::Theme::dark()
             .color("@dialog.text.formfield.$focused")

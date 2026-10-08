@@ -739,7 +739,7 @@ pub struct TuiState {
     pub(crate) skills_cursor: usize,
     skills_loaded: bool,
     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
-    mcp_detail: Option<String>,
+    mcp_detail: Option<mcp::McpDetail>,
     /// DCP panel state: snapshot in, request out, transient outcome (UI04).
     pub(crate) dcp: DcpPanelState,
     /// Command ids known to the application (templates stay there).

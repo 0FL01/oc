@@ -1,0 +1,3435 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T06:08:20.298Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "16f83c81a5f78db1a6d16834fd9145093ad7fb5c13ac907a9fa4a581d0f606a7",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "2a123f542a18e97bbb5b894ffa11fc2cb084af12f3068f9129db2106c07beaac",
+    "tool_preview_fixture.py": "428af9489578b95007af8129494acf691591dafd7b855e92e7a5d9f9aa86400c",
+    "tool_preview_mcp.py": "eb94847f2cc44c012947f3faa9cd43236b981f83d4024a0012ab1c35341cfa7d",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "mcp_status.mjs": "91bf6f909b6efbee1a3fe111d858d6296ae355a07528e3635827aa507a25aea4"
+  },
+  "fixture_sha256": "0c8bd174a48b388593439d577ed54d6e9b110e07b5d9c81c7cfdcc04c1a79c3b",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "43db2fe87fbe08d83b47821cbe215118404d8653",
+    "tree": "54601f6ff111811d9679206bc4cf351fe94e8f2b",
+    "dirty_diff_sha256": "405f016abeeb887375a9a64702d43b1cb5616642b4d0ba6d1b7991f3297bbfab",
+    "source_manifest_sha256": "a7304cb1f67cf6295d01a399d94c6de549c580c206a1cd16c0af1ad02a80a4f0",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "1c2703d74963027bea562821f8f26c364978d433ad598944a0595eed09c09962",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-navigation",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-navigation",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-copied",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-copied",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-copied-mouse",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-copied-mouse",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-investigate-key",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-investigate-key",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-investigate-mouse",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-detail-investigate-mouse",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "1615c90b5a1b5b5e2b8334226a59876a772de7adc600db0fd6d97a406f721f58",
+      "png_sha256": "82800b0de4e52c233ec6f374f0877516bea3e5c6a77b98f4134eb57fee8141fe",
+      "render_sha256": "634b68b6555bc83e1cedd9ac50c6642b5bc057f29d0e7a3c934b6d34947e86ad",
+      "path": "upstream/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "ff2d1c2de6804384df6b3f9594cda6fd60703a4714df57e6b5b5158e8c052ddc",
+      "png_sha256": "8587018834e0812312f0d0a088f094be1200537b77058f01632c285c177ff8a2",
+      "render_sha256": "cc2736a717572c908e6422b4e911580c099d52916b994be22907dcda804b22d0",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "1700434c44b3d56812cf2be6336a564240217e74439082ca3c8555af19d2763a",
+      "png_sha256": "0f77da576922caf065b5ed896756bda4a6fba401bdf7cbbb8cc875660460d1d2",
+      "render_sha256": "b465849724c38cf7cdf108ce1cde3326658347c62161f89d812a42522fcfa509",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "066aa096510bf86d6fa61b88dc4fcdaedc4fb7fa3a1d12a4ccb31927a2f3ca0e",
+      "png_sha256": "f2672460c23885565a127e77989229441c8e6618e1b116bc1cdec7cf7454419e",
+      "render_sha256": "06c24d9df1efea170e326ffc483317fa2c201119128f6cfc3c4264a00e9d3075",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "bda6eec375fa7fe8577550f44cec0a15d3c7a4731f7a574f4ad7d0e757a078e1",
+      "png_sha256": "552aef835b5ce0119dd9cfe926e1cb5093916c401c36c6d1cab115506c67f9db",
+      "render_sha256": "47eb3c3e537658c38e5586fc3cbeb99bfe850303afef00b9f6b1e606c16a2da3",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "c456f393507b99445ecadc923ccb9e5e93b72add7701ab71de5d20576eadd0a1",
+      "png_sha256": "493454a3b94301767117abc34d111c8330f0163afa24e4bd9f141e42064f0f96",
+      "render_sha256": "44788d42397acfc8645617370924a1e36516e03b7999e2ba6905954e7dbe4fd8",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "c518e714a195158459f0e0d811b01883ead826d40c756178cbef5466f647e8b6",
+      "png_sha256": "29901be91e60efa7efeef9e7215cef057d7b40c80acc31b7d7173482d688265e",
+      "render_sha256": "829af315961f1906b6d036c7eaf3198819b2ab029bd0537a117925495748b35a",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "6448d2b357507ed7590a41a3c314467509bb0401938c1380e8bccabfb8e8a73c",
+      "png_sha256": "3fbf200e41dbe78f006595201def83f329e5030f2fef317e8888b9c746460fe9",
+      "render_sha256": "08013e636225da898b71252df1be1a6193f9aaaa76d3242df6b41ba6f8914dc6",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "e79bf1df4dc05d8edc086f28377d1b537306bbf6f5edb034f8854589194ea6ac",
+      "png_sha256": "c62321da2d451366010c3d9d97419e2fe4309b97f204f1a047d649b8e2860c97",
+      "render_sha256": "f89b5e5a0091e7ba1f38215d1f0912fe89d8a5829d400559615952212494d90f",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "1bd568714249c753d1861eea68bcc805706f2bcdc4e65352266c8ca5823e2374",
+      "png_sha256": "88661c7ee6366d08051a65ef2bb56a29dbf05623eaf5db610c17cb0e134cec59",
+      "render_sha256": "65c0722c40ce942a81ac773ae20cfbd87dc37db5ba13ac8c0dd9b3d59aa47ee7",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "d06f81807877b8851978da6ca6442289afe53807510079c319a5ecd54673c1ac",
+      "png_sha256": "c793cdaee0c8e8f81167e947648fee3807a540ec9b33693b497c8e69a509fe4d",
+      "render_sha256": "29c4382b0fda9d83665be51ea4d1539fdbe21496f952b6018f4c6740833ed1c2",
+      "path": "upstream/tool-preview-mcp-status-configured-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "0d9d556d0efaa35239ec5a63d9d18de50fbb73cf033641aff429775793b5d85f",
+      "png_sha256": "ed2dc9fafa2b7f05ebfc70064700739d331f7238f03aff83dcc09598c19c55dc",
+      "render_sha256": "52ee0b784cb5bf581ae802c6237e28b583b795d5a92d8a5024ee90e9408ac6bd",
+      "path": "upstream/tool-preview-mcp-status-configured-details"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-detail-navigation",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "88a16989921e3265475d667b19336dbf74cec9751082de0bc5938502bd137548",
+      "png_sha256": "ed2dc9fafa2b7f05ebfc70064700739d331f7238f03aff83dcc09598c19c55dc",
+      "render_sha256": "c03ebf49711965422e47e093e6e2632fd77bd6ba17023f04bf050a5094c5ada5",
+      "path": "upstream/tool-preview-mcp-status-detail-navigation"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-detail-copied",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "fac2f236880692d6b688365380f54e31e42b4f5bb61799117d922079414ac209",
+      "png_sha256": "d5b24127166b466a9e36da051a2188ff6c992d754ca32f700f3c3c9626d77ae2",
+      "render_sha256": "b2e92bbb6145e48778c09fb4002d2bfbcfb377d81e70be92fc89c7f8bd21e86c",
+      "path": "upstream/tool-preview-mcp-status-detail-copied"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-detail-copied-mouse",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "2dcfddf17baa6b8dd624750530cd56ff16d88a5a1ba644ef37ab048e37bf3994",
+      "png_sha256": "d5b24127166b466a9e36da051a2188ff6c992d754ca32f700f3c3c9626d77ae2",
+      "render_sha256": "49769134f0d539657ac7ff7bc158de336af6d7d54aa846b8d1eb0758dc286fd1",
+      "path": "upstream/tool-preview-mcp-status-detail-copied-mouse"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "d7d74d2851a4b956e082cea69a910913e8c77f5a2d0e41902f1c1d4d8b2aae17",
+      "png_sha256": "9db194945348cafe86b00907d0b06b0ca504bd1641cf9d6a920ac62d72e0bad4",
+      "render_sha256": "1d9296b8915b4911a8267c0f75ace36278ad06bb7e6b118da146b2cb7bc78ad8",
+      "path": "upstream/tool-preview-mcp-status-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-detail-investigate-key",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "35383a494dc8dbb520a4c74758c71a938b5932391da66f584b43e64444559fc4",
+      "png_sha256": "cec7fee06ba6a5f6b704a025aa2c5d9576361b37e55ef364ac134da14682e6f0",
+      "render_sha256": "ef32182acd609021bd1629d96fda9577b5c3e9ce0fa64ac06533cf8fca1ecec6",
+      "path": "upstream/tool-preview-mcp-status-detail-investigate-key"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "f47f3ae9753475e1bddfd01b5e46c09b72e6ba67251bd5d9a14112998b17b124",
+      "png_sha256": "d4da51b0623383d2bebed8b634310f750fe7b7a63e3de5b48093964824fb7c3e",
+      "render_sha256": "db00f9ff47363a8ade611c0693600eb3e47c15c6e1ba3810496f094b4381c2d4",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "8bff3f3500f25a8fccf8ba57e3850205ddf305271362d3b02f606f261d745269",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "7323159b56d1c4fe34b27ac8bd4725765937000406ae1eb24044ea16ae957af4",
+      "path": "oc/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "e5e1d746cf3cbb0295b880b45af52dd7cdacba3376faaf1eaef889d859f324aa",
+      "png_sha256": "c8c2cafdd3380506f7897a223ae8d393028d9d939ce820941147acec884dc5f5",
+      "render_sha256": "47d565773836685acebedc985a641b6a2fdff8274d2873d21ad1341043d31492",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "be922613560f62009627dc4ae4e3b5fe27a46e4213ea892faa257c94f8ae83eb",
+      "png_sha256": "d437381462c67d9931456631d1f46f2849f52bdc872232c932df1a6119cdb4d7",
+      "render_sha256": "bcdec2ae63a33a13bec6f6ae056c36d8ffa31455ed6ce049842b9d43ea4a871d",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "ddb0773bd5c071abd2f93796dad64c8268baa2b5725c23bb90e9421ec4207ef8",
+      "png_sha256": "94233370bf2f26d8592b0c5cc54b4676c56cec678f6941e5405c6aa864114d37",
+      "render_sha256": "406e9d35d1e528a630ed7d5f1b08fd1252bdec43f66c8951fcc4847072449016",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "1f93135c0121215443c6dfcbb5640cd9315268e87a1b43ea9d8b54d1643396f0",
+      "png_sha256": "fa8af8e39ec54bd364919224697609c9f1258244abaa9cc9e271057eaddbee63",
+      "render_sha256": "38529a4a0b0ff4bf4a3d693bc4e86797029881bf4bcba639e89a45ab8ee99251",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "2840b1c883e0e1baa15893cbfdb4f2350043bc5652b4a238c14dcb643d69862b",
+      "png_sha256": "149685f6c50ec7ed84b11e1219b21cebe1d521fc5871ddd9867e422851e38614",
+      "render_sha256": "e36873b7077f500e9c9765f399650a56d226dccd94bceab9a871faf7deadb727",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "26716c5371a64c2860cadb2e6062557a2c256c0ce3d0c3d15fcb054e98b2a11b",
+      "png_sha256": "3dcad6bc018350f6bf23b4d2c8761ac1a518379bd7d85e07b415ee9073df9cc6",
+      "render_sha256": "e225a10081a9e3b34c13cc21e5382b39623546e05dbc405625df93e2daeb1522",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "acd8a2392013bcf139430ab500f0e239596a767a9c7d4407962c6b4841d7e57b",
+      "png_sha256": "46fbbea468aae5478892752a6090656fcf5a60e747d1bf2899084b2d8fc29ae7",
+      "render_sha256": "85f663c2bf09a3e3a701a015c71e3baf613802b6f973366ce3cd1e062f2ed685",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "bd3ca997a270d5179cb120f4bde165ce240e9b8c52d35c4d5e2b4ec8c11ca911",
+      "png_sha256": "0fb8a9ea44e126b34ddc14b56b9533341a5df4c0841c856b55ab61dbb5cbbe19",
+      "render_sha256": "a3a7638b70e788454a9b6e9f9a18077a915a7536b45704d4e2f66664c8d2adf0",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "12c0b150075d47e57891b50d9cb88b8adea00848b0013848c232bd528b94a81d",
+      "png_sha256": "73be5aa05a0a0a60ad6acdcd9f898ebff9be57802faff777fc61480242df8cd8",
+      "render_sha256": "892bb6e99279ce6eb910d2577769deb72974cf87ff651b0763f121efe547df46",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "2662253e6e9b0032b9de6ee6b691d9f9e4a4abac9643e64b5186960232efe6ab",
+      "png_sha256": "dfb59a1282642fd4b64dbbf69df29590d9799f205374602082e66b301991f65b",
+      "render_sha256": "dc3053a480db0410ac9209e757bd3b052af5a3ef9e5810ff09c7bbe98cb0eaab",
+      "path": "oc/tool-preview-mcp-status-configured-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "9d993854f96caef2c87b1a7d984527641db077509f6201edf0f49f3373b38c9f",
+      "png_sha256": "0b05d33f29bf089ad7244c91e7fa68ef5cb3e665a4032873830af342aa06c728",
+      "render_sha256": "9d6ffa67dbde3816a22d16e704193e3647b5bbacd8b7a79291ceb7485d3a0b08",
+      "path": "oc/tool-preview-mcp-status-configured-details"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-detail-navigation",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "2e3051c57aa8f3a72e5115683b460ebde75d0e31e4d0aac9bf7e4b1eee6f2ab7",
+      "png_sha256": "0b05d33f29bf089ad7244c91e7fa68ef5cb3e665a4032873830af342aa06c728",
+      "render_sha256": "ce5f1f997457efd00a0095034b8dc52af7cf0623d1895f2999b98a9f9f26d8c4",
+      "path": "oc/tool-preview-mcp-status-detail-navigation"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-detail-copied",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "f4601498e8a05cb2c29115c059232a32b6cd88f87fd21f0659202cd3da71d93e",
+      "png_sha256": "c456b1a9cb1166e79c54c1e7e466a096dbd52a944d76a842acee55aa698ec098",
+      "render_sha256": "a43ac92c8be3cd75408064b3e3b7b49ad1856c20056e7e4d8e9d58460c956ec7",
+      "path": "oc/tool-preview-mcp-status-detail-copied"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-detail-copied-mouse",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "1d0661d8b985fa6dede95235a4c36fe0970abc3f6cb2c7e1073595132d5c62e7",
+      "png_sha256": "c456b1a9cb1166e79c54c1e7e466a096dbd52a944d76a842acee55aa698ec098",
+      "render_sha256": "47ed0c98b0f82e2723a0436098e46c105837b29cdf7a42b5d33db9d02dac64a8",
+      "path": "oc/tool-preview-mcp-status-detail-copied-mouse"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "e2d88d38ee7d71d618b0707be178e6dc3b310af161f78c26457e7187693ce46a",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "410363a5bc13326df748ee82fea5397153d9a5ca5a93bb279dc5c02dc5a684be",
+      "path": "oc/tool-preview-mcp-status-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-detail-investigate-key",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "bd8b59197429b7d9af11e09b6bc7d858d8de95a987e97f317eaf252e3604d8d1",
+      "png_sha256": "56e2e8cdd0c964ed46f24d8ff338bdba1693e4ab92c886ec410322962a5dcd11",
+      "render_sha256": "cfeda87f504c987509340206ae47ec49d38750cca65ce618fc508bd68b8ceecf",
+      "path": "oc/tool-preview-mcp-status-detail-investigate-key"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-detail-investigate-mouse",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "d6514307c53b8dfdd50eca99c11e08687d2a398c1a4ffaf15cfe79b1a277cc9f",
+      "png_sha256": "56e2e8cdd0c964ed46f24d8ff338bdba1693e4ab92c886ec410322962a5dcd11",
+      "render_sha256": "b914de18b6ef7a89eb7d4b0e670cf6feeb846801f53bd10fa4dfac50d814a5a0",
+      "path": "oc/tool-preview-mcp-status-detail-investigate-mouse"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-search",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-details",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 90,
+            "y": 18,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-navigation",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 90,
+            "y": 18,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-copied",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 75,
+            "y": 15,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-copied-mouse",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 75,
+            "y": 15,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-investigate-key",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 69,
+            "y": 26,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "reason": "Timed out waiting for mcp-status-detail-investigate-mouse"
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-search",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-details",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 90,
+            "y": 20,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-navigation",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 90,
+            "y": 20,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-copied",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 75,
+            "y": 19,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-copied-mouse",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 75,
+            "y": 19,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-investigate-key",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 59,
+            "y": 24,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-detail-investigate-mouse",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 59,
+            "y": 24,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_STATUS",
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "draft_and_caret_restored": true,
+        "selections": [
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ]
+        ],
+        "geometries": [
+          {
+            "columns": 120,
+            "rows": 40
+          },
+          {
+            "columns": 80,
+            "rows": 24
+          },
+          {
+            "columns": 160,
+            "rows": 48
+          }
+        ],
+        "semantic_tones": true,
+        "intrinsic_connected_bold": true,
+        "configured_labels": [
+          "visdisabled",
+          "visfailed",
+          "vishealthy"
+        ],
+        "configured_search_and_details": true,
+        "read_only_details": true,
+        "copy_transport": {
+          "payloads": [
+            "MCP server: visfailed\nError: mcp server-ddb7f332caf01f470165cae9de23fd773c2fb228847e8038509354ae initialize: transport (retryable=true); source-21e5f3ab/opencode.json mcp.entry.entry: retry connection",
+            "MCP server: visfailed\nError: mcp server-ddb7f332caf01f470165cae9de23fd773c2fb228847e8038509354ae initialize: transport (retryable=true); source-21e5f3ab/opencode.json mcp.entry.entry: retry connection"
+          ],
+          "keyboard_and_mouse": true,
+          "system_clipboard": "NOT_VERIFIED_BY_PTY"
+        },
+        "back_restores_filter_and_composer": true,
+        "investigation_unsent_keyboard_and_mouse": true,
+        "source_contract": "Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold."
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_MCP_STATUS_ONLY",
+    "actual_requests": "Zero model requests/tools; three actual configured connected/disabled/failed MCP rows",
+    "observation": "Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately"
+  },
+  "finished": "2026-10-08T06:12:00.619Z",
+  "exit_code": 1
+}
