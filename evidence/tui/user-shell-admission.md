@@ -56,6 +56,10 @@ Go13/24 ledgers unchanged.
 
 ## Current-source association
 
+Reviewed implementation/evidence commit
+`999a5880a8b9c17f3824eaf7463b05f45fd12d01` is PUSHED to
+`origin/agent/oc-rust-port`; [delivery receipt](user-shell-admission-delivery.md).
+
 Capture locks use base `07437fc1c95a3680b59a9b399b4cfe2ce979e9a1` (external docs-only
 T58 commit preserved), tree `253569d28eb7c391a8e9e13b7bc40dd7a8446900`:
 

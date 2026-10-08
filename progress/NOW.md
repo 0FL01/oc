@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T20:10:36+00:00
+State updated: 2026-10-08T20:19:37+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,40 +12,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — structured user-Shell admission
+# T44 structured user Shell — delivery
 
 ## Result
-Actual ! composer has a separate captured receipt and the existing Jobs owner.
-Policy/pinned CWD/Ask and bounded slot precede one atomic history/NULL-turn intent/
-fresh-root/selection commit, acknowledgement and supervised launch. No provider,
-fake LLM turn, optimistic history or unknown replay. Current receipt:
-evidence/tui/user-shell-admission.md. Whole frozen T44 ACTIVE/NOT_PASS.
+Reviewed implementation/evidence commit
+`999a5880a8b9c17f3824eaf7463b05f45fd12d01` is PUSHED to verified
+`origin/agent/oc-rust-port`; remote moved07437fc1c→999a5880a, ahead/behind0/0.
+Source/report/checkpoint0097 and exact five qualified capture/audit prefixes are
+committed. Historical failed001/other untracked diagnostics preserved, not staged.
+See evidence/tui/user-shell-admission.md for atomic admission/owner/effect proof.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1761/0/11 across46 results, locked+
-ordinary debug/locked release/help and actual release startup/discovery PASS.
-Real Core/application/Jobs/storage/UI and two existing-target actual PTY cases
-prove Allow/Ask/Reject/Deny/cancel/stale scope/history fault/zero Responses-title-
-extra-discovery/fresh promotion/no replay/terminal restore. Current idle/fairness/
-equal-view retention/queue/cache/children/AUD32 PASS under unchanged bounds.
-Paired UserShell00280x24/003120x40 both11 stages/22 full comparisons ALL DIFFERENT:
-2explicit effects/0Responses-title-MCP, native pre-effect committed history/NULL
-turns/2distinct operations/restart no replay. Normal regression27 stages6requests/
-4effects/3MCP:4EQUAL/50DIFFERENT+4native-only. Default temporal6owners each side,
-zero cycles/phantom/replay;144opaque PNGs audited,72matched pairs/160DIFFERENT.
-Repo Python47, Node/Python syntax/source/diff checks PASS; docs/journal on delivery.
+Same production source: fmt/strict workspace Clippy,1761/0/11 across46 results,
+debug/release/help, release startup/GET discovery and unchanged resource gates PASS.
+ActualPTY2 plus real policy/fault/queue/UI/Jobs/storage cases; UserShell00280x24/
+003120x40 both11 stages/22 ALL DIFFERENT,2explicit effects/0Responses-title-MCP,
+committed history before effects/NULL model turns/restart no replay. Independent
+normal27/default temporal6owners/144opaque PNG audit qualified, pixel NOT_PASS.
+Repo Python47/Node-Python syntax/source/docs/journal PASS. Git diff/staged review
+and exact padded .txt/.vt-only whitespace exclusions; no secret/config/lockfile
+staging, force push, release/tag or acceptance reset.
 
 ## Risks
-Full styled-cell/PNG parity NOT_PASS. Original RAW not decoded. Full parts/mode/
-Mini history explicitly excluded by frozen VIS12 (2235–2238), not a new dependency;
-actual original recalled Shell mode/native text-only difference disclosed. No
-schema/store/timer/RAW cache/new selection API/raised threshold, .opencode/env/
-GOAL/acceptance/Cargo.lock changes; external T58 docs commit preserved. AUTH06 and
-original24/24/Go13/24 ledgers unchanged. Failed capture001 remains immutable.
+Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Full parts/mode/Mini history is explicitly
+excluded by frozenVIS12 (2235–2238), not newly pending; real recalled-mode difference
+disclosed. Original RAW not decoded. .opencode/env/GOAL/acceptance/Cargo.lock and
+external T58 docs commit preserved. AUTH06 and original24/24/Go13/24 unchanged.
 
 ## Next
-Reviewed source/evidence commit/push, then every remaining frozen R1–R6/VIS01–45
-outcome and final current R6/V09. Do not finish/reset acceptance on this slice.
+Continue remaining frozen prompt/pacing/scroll/profile/model/live-selection/tabs/
+session/Revert/compaction/files/approval/question/DCP/child/Shell/Terminals/MCP/
+retry/auth outcomes, including actual structured Shell presentation versus raw
+data-only notices, and final current-source R6/V09. Do not finish T44 on delivery.
 
 
 Ready (до 5): T58
