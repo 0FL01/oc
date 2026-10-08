@@ -59,6 +59,9 @@ the same source/binary inputs:
 
 No Rust/capture runtime edits follow these final qualifications. Documentation
 and delivery association are separate from the immutable capture metadata.
+Reviewed implementation/evidence commit
+`d5bafad7ec7b3e0d23b12747647143001ff311b2` is **PUSHED** by ordinary fast-forward
+to the verified own `agent/oc-rust-port` branch at `github.com/0FL01/oc`.
 
 ## Actual paired MCP detail/actions
 
