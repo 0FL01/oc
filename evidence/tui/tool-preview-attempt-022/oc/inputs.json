@@ -1,0 +1,202 @@
+[
+  {
+    "at_ms": 1791426584635,
+    "kind": "home_mcp_draft",
+    "base64": "G1syMDB+Zm9vdGVyIM6p55WMG1syMDF+"
+  },
+  {
+    "at_ms": 1791426587607,
+    "kind": "home_mcp_click",
+    "base64": "G1s8MDs1OzM5TRtbPDA7NTszOW0="
+  },
+  {
+    "at_ms": 1791426590350,
+    "kind": "home_mcp_disconnect",
+    "base64": "IA=="
+  },
+  {
+    "at_ms": 1791426593094,
+    "kind": "home_mcp_close",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791426596045,
+    "kind": "home_mcp_click",
+    "base64": "G1s8MDs1OzM5TRtbPDA7NTszOW0="
+  },
+  {
+    "at_ms": 1791426598511,
+    "kind": "home_mcp_connect",
+    "base64": "IA=="
+  },
+  {
+    "at_ms": 1791426601478,
+    "kind": "home_mcp_close",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791426608950,
+    "kind": "home_mcp_click",
+    "base64": "G1s8MDs1OzM5TRtbPDA7NTszOW0="
+  },
+  {
+    "at_ms": 1791426611774,
+    "kind": "home_mcp_retry",
+    "base64": "IA=="
+  },
+  {
+    "at_ms": 1791426614452,
+    "kind": "home_mcp_close",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791426627949,
+    "kind": "home_mcp_clear_draft",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791426630319,
+    "kind": "tool_preview_prompt",
+    "base64": "G1syMDB+VklTMTYgcHJldmlldzogZXhlY3V0ZSB0aGUgc3VwcGxpZWQgTUNQIGFuZCBTaGVsbCBjYWxscyBleGFjdGx5IG9uY2UuG1syMDF+"
+  },
+  {
+    "at_ms": 1791426630319,
+    "kind": "tool_preview_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426637786,
+    "kind": "tool_preview_draft",
+    "base64": "G1syMDB+cHJlc2VydmVkIGRyYWZ0G1syMDF+"
+  },
+  {
+    "at_ms": 1791426641364,
+    "kind": "tool_preview_hover",
+    "base64": "G1s8MzU7ODs3TQ=="
+  },
+  {
+    "at_ms": 1791426646295,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzdNG1s8MDs4Ozdt"
+  },
+  {
+    "at_ms": 1791426651141,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzdNG1s8MDs4Ozdt"
+  },
+  {
+    "at_ms": 1791426655996,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzlNG1s8MDs4Ozlt"
+  },
+  {
+    "at_ms": 1791426660649,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzlNG1s8MDs4Ozlt"
+  },
+  {
+    "at_ms": 1791426665549,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzI0TRtbPDA7ODsyNG0="
+  },
+  {
+    "at_ms": 1791426670327,
+    "kind": "tool_preview_click",
+    "base64": "G1s8MDs4OzI0TRtbPDA7ODsyNG0="
+  },
+  {
+    "at_ms": 1791426674953,
+    "kind": "tool_preview_shell_click",
+    "base64": "G1s8MDs2OzEyTRtbPDA7NjsxMm0="
+  },
+  {
+    "at_ms": 1791426679729,
+    "kind": "tool_preview_shell_click",
+    "base64": "G1s8MDs2OzEyTRtbPDA7NjsxMm0="
+  },
+  {
+    "at_ms": 1791426682520,
+    "kind": "tool_preview_clear_draft",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791426686616,
+    "kind": "tool_preview_command",
+    "base64": "L2NhcmRz"
+  },
+  {
+    "at_ms": 1791426688382,
+    "kind": "tool_preview_command_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426690125,
+    "kind": "tool_preview_cards_detail",
+    "base64": "G1tCG1tCG1tCDQ=="
+  },
+  {
+    "at_ms": 1791426692067,
+    "kind": "tool_preview_cards_page_down",
+    "base64": "G1s2fg=="
+  },
+  {
+    "at_ms": 1791426693872,
+    "kind": "tool_preview_cards_next_page",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426695846,
+    "kind": "tool_preview_close_card_detail",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791426697609,
+    "kind": "tool_preview_close_cards",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791426701730,
+    "kind": "tool_preview_command",
+    "base64": "L25ldw=="
+  },
+  {
+    "at_ms": 1791426704119,
+    "kind": "tool_preview_command_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426706792,
+    "kind": "tool_preview_command",
+    "base64": "L3Nlc3Npb25z"
+  },
+  {
+    "at_ms": 1791426709152,
+    "kind": "tool_preview_command_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426711468,
+    "kind": "tool_preview_reopen",
+    "base64": "G1s8MDsyMTsxN00bWzwwOzIxOzE3bQ=="
+  },
+  {
+    "at_ms": 1791426714262,
+    "kind": "tool_preview_exit",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791426716799,
+    "kind": "tool_preview_command",
+    "base64": "L3Nlc3Npb25z"
+  },
+  {
+    "at_ms": 1791426719209,
+    "kind": "tool_preview_command_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791426721650,
+    "kind": "tool_preview_reopen",
+    "base64": "G1s8MDsyMTsxN00bWzwwOzIxOzE3bQ=="
+  }
+]

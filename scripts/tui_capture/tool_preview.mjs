@@ -3,8 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe}) {
-  const result={origin,status:'IN_PROGRESS',stages:[],differences:[
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe}) {
+  const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
+    'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
+    'Configured-label projection, safe native diagnostics and action-footer interaction remain independently open.'
+  ]:[
     'Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.',
     'Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.',
     'Compact native viewing/capture status has no promised donor pixel equivalent.'
@@ -38,6 +41,10 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(mcpProbe) {
+      result.mcp_status=await mcpProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     await shot('home',f=>f.text.includes('Ask anything')&&f.text.includes('1 MCP /mcps'));
     if(!cursorProbe)result.home_mcp=await probeHomeMcp({send,shot,waitFor,frame,visibleMatches,resize,logs,control,snapshot});
     send('\x1b[200~VIS16 preview: execute the supplied MCP and Shell calls exactly once.\x1b[201~','tool_preview_prompt');send('\r','tool_preview_submit');

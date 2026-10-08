@@ -17,6 +17,7 @@ import {probeApplyPatch} from './apply_patch.mjs';
 import {probePermission} from './permission.mjs';
 import {probeServices} from './services.mjs';
 import {probeToolPreview} from './tool_preview.mjs';
+import {probeMcpStatus} from './mcp_status.mjs';
 import {probeCursorTemporal} from './cursor_temporal.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
@@ -32,6 +33,8 @@ const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const cleanServices = args['clean-services'] === 'true';
 const toolPreview = args['tool-preview'] === 'true';
+const mcpStatus = args['mcp-status'] === 'true';
+if(args['mcp-status']!==undefined&&(!toolPreview||!['true','false'].includes(args['mcp-status'])||args['cursor-temporal']))throw Error('--mcp-status requires ordinary tool-preview and true|false');
 const cursorTemporal = args['cursor-temporal'];
 if(cursorTemporal&&(!toolPreview||!['blink','steady','default'].includes(cursorTemporal)))throw Error('--cursor-temporal requires --tool-preview true and blink|steady|default');
 const cursorRenderer=args['cursor-renderer']||'dom';
@@ -44,7 +47,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -322,7 +325,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
-    ...(toolPreview ? {tool_preview:true,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py')))} : {}),
+    ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{})} : {}),
     ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
     ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
     ...(applyPatch ? {apply_patch:true,view:args['patch-view'],wrap:args['patch-wrap'],probe:sha(fs.readFileSync(path.join(here,'apply_patch.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'apply_patch_fixture.py'))),admission:sha(fs.readFileSync(path.join(here,'apply_patch_admission.mjs')))} : {}),
@@ -362,6 +365,7 @@ if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py','home_mcp.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(mcpStatus)lock.runner_hashes['mcp_status.mjs']=sha(fs.readFileSync(path.join(here,'mcp_status.mjs')));
 if(cursorTemporal)for(const n of ['cursor_temporal.mjs','cursor_frontend.js'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorRenderer==='webgl') {
   const packageFile=path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/package.json');
@@ -432,7 +436,7 @@ try {
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
      cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
-     ...(toolPreview?{refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
+      ...(toolPreview?{mcp_status:mcpStatus,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
@@ -461,7 +465,8 @@ try {
                ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
               apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
                clean_services:cleanServices,
-                tool_preview:toolPreview,
+                 tool_preview:toolPreview,
+                 mcp_status:mcpStatus,
                 cursor_temporal:cursorTemporal||null,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
@@ -647,7 +652,8 @@ try {
          }
          if(toolPreview) {
             const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
-           const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+            const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
+               mcpProbe:mcpStatus?args=>probeMcpStatus(args):null,
               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
              resize,
@@ -2996,7 +3002,8 @@ try {
     mcp_error_and_stall: 'NOT_RUN (V00 three-screen capture only)'
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
-    if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
+     if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
+     if(mcpStatus)lock.qualification={status:'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
     if(cursorTemporal)lock.qualification={status:'DIAGNOSTIC_CURSOR_TEMPORAL_ONLY',mode:cursorTemporal,renderer:cursorRenderer,synchronized_output:cursorSync,card_case:cursorCase,observation:'Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting',unresolved:['Temporal frames are timestamped observations, not settled-frame claims','Behavior qualification is separate from unmasked whole-grid/PNG parity','DOM hover blink suppression is not qualified as PASS']};
      if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]

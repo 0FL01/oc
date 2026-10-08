@@ -32,6 +32,11 @@ def configure(spec, home, project, config, cli):
         config['animations'] = False
         config['permissions'] = {'*':'deny', 'vis16__output':'allow', 'bash':{'*':'deny',command(spec):'allow'}}
         config['mcp'] = {'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'enabled':True}}
+    if spec.get('mcp_status'):
+        servers = config['mcp']['servers'] if spec['origin'] == 'upstream' else config['mcp']
+        servers['visdisabled'] = {'type':'local','command':['/usr/bin/python3',str(peer)],
+                                  **({'disabled':True} if spec['origin'] == 'upstream' else {'enabled':False})}
+        servers['visfailed'] = {'type':'local','command':['/usr/bin/python3',str(peer),'--failed']}
 
 def control(home, action):
     if action not in ('fail', 'recover'):

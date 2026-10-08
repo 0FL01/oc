@@ -1,9 +1,18 @@
 //! Direct typed MCP projection; no endpoint, credential or inferred status.
 
 use super::*;
-use oc_core::queries::{McpAction, McpControl, McpSnapshot, McpStatus};
+use oc_core::queries::{McpAction, McpControl, McpServerSnapshot, McpSnapshot, McpStatus};
 
 impl TuiState {
+    pub(crate) fn mcp_list_servers(&self) -> Option<&[McpServerSnapshot]> {
+        if self.panel != TuiPanel::Mcps || self.mcp_detail.is_some() {
+            return None;
+        }
+        self.mcp_snapshot
+            .as_ref()
+            .map(|snapshot| snapshot.servers.as_slice())
+    }
+
     /// Live inventory only: unavailable/empty and disabled are not failures.
     pub(crate) fn mcp_status_counts(&self) -> Option<(usize, usize)> {
         let snapshot = self.mcp_snapshot.as_ref()?;
@@ -112,13 +121,12 @@ impl TuiState {
                 value: server.id.clone(),
                 title: server.name.clone(),
                 category: String::new(),
-                footer: match (server.pending_action, server.status) {
-                    (Some(McpAction::Disconnect), _) => "Disconnecting …",
-                    (_, McpStatus::Pending) => "Connecting …",
+                footer: match (server.pending_action.is_some(), server.status) {
+                    (true, _) | (_, McpStatus::Pending) => "Connecting …",
                     (_, McpStatus::Connected) => "Connected ✓",
                     (_, McpStatus::Disabled) => "Disabled ○",
                     (_, McpStatus::Failed) => "Failed !",
-                    (_, McpStatus::NeedsAuth) => "Sign in required (unsupported)",
+                    (_, McpStatus::NeedsAuth) => "Sign in required →",
                 }
                 .into(),
                 current: false,

@@ -1,0 +1,25 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 42,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "reason": "Timed out waiting for mcp-status-selection-0"
+}

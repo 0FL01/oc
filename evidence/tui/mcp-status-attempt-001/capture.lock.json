@@ -1,0 +1,1027 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T01:52:46.704Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "1301b8e141ea47f799fb83116c4b937a2795b022b0a4c49dabe74335f7c3cf3b",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "731cbe7fb50dfb303f4172bae1352757ea005e6c1656f8b54d180a55ace73b72",
+    "tool_preview_fixture.py": "ca013607242cf7d8c4ae6533ab385b86e3b0df216f1756ad5249eee876edc926",
+    "tool_preview_mcp.py": "eb94847f2cc44c012947f3faa9cd43236b981f83d4024a0012ab1c35341cfa7d",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "mcp_status.mjs": "4cd4942e53e14b64ac4a299d46e396b2764cbc3340c73ba0d4d20e18594e19f1"
+  },
+  "fixture_sha256": "b1fbf4102d48048d2f73e95cbc9d25bb8af51282865f270d44e704c67dbb8cc4",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "aff2d8f97702fb00b3c6d20b00f1d73e593bf879",
+    "tree": "5b772271a04fb01168c88d141816f83ff32a84f3",
+    "dirty_diff_sha256": "470a7b95ae643da3c5e30d62e940faaf70073b407772945861ee800779ee7dce",
+    "source_manifest_sha256": "949ae3d295c11d2833460bfaaec8937a561665f15bd532bb8e797ae08453d403",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "60d1b05000042a12845b041126d156acc3c9ea498124023adb39a08f40884f9a",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-0",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-0",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-1",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-1",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-2",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-selection-2",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "9251106f0c3aba355355210be9b0b7cce6fc1e904698d2d342ff0ce21c72447c",
+      "png_sha256": "dd5ccb64352db74e261395370f73251830db8a7bdbb05c1ce50d63c3ecaeee92",
+      "render_sha256": "634b68b6555bc83e1cedd9ac50c6642b5bc057f29d0e7a3c934b6d34947e86ad",
+      "path": "upstream/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "91f068f46ae017c8751dfe78518f6dcb971377493e6516ff8ea5cf6e4cbe3420",
+      "png_sha256": "2049110bd5d37eebd8ca985687dabc57751bf0c9c825ccec6691073022e43a60",
+      "render_sha256": "d7ed2c8fe9b8bc6dcffb98926bd8ff9228db66e852fd993bcda8cd5c886a3e83",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "41484203d8b9421801b018eb5cc4247f4cf40598b15252f249c5cbe83379c101",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "7323159b56d1c4fe34b27ac8bd4725765937000406ae1eb24044ea16ae957af4",
+      "path": "oc/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "9069ce3dbc2ddd6270e8e2e484ab92e8c2f4e0211fdba8f531191876b35386f8",
+      "png_sha256": "d53158fa4b7aa1b6c916992c648e7489bc71a7ef76d871f518f5aa103f026af4",
+      "render_sha256": "142792cdd969ed561cc6904066326d68cb4f40de7fa76211d3c7d242dd999b0c",
+      "path": "oc/tool-preview-mcp-status-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "7494997d4c1ea6fd423764aa602fdf2f8896720cfd6bdad8dffdba5afd5bc3bc",
+      "png_sha256": "f06416a07b1465cc7d10ba2129154e8890333636be09f635c63ea27ab9c28980",
+      "render_sha256": "a20f9d7262a60b1dc9e49cfe3aa5d354cf277e60de320925165a18dcefb44732",
+      "path": "oc/tool-preview-mcp-status-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "7407bd9747480025c77617d0feb35db415a69407946df616ce92e75e4089fdce",
+      "png_sha256": "036db625f7b2bf517120b832887aa4d7cf8f96c4f48f7f29eea59720c7a4bfb7",
+      "render_sha256": "db9103146a7c2fdb2ef90c04986eca6854707c86c908f0a9d36f6e4658ecd8df",
+      "path": "oc/tool-preview-mcp-status-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "f59dc55e36f460f012eef04a15dc72a098fbeec9d361830b72b120fab23bc277",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "b9febc710936b15008c39af5fd95e9bb1076dd6880331448404889e889fcb9f8",
+      "path": "oc/tool-preview-mcp-status-restored"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "reason": "Timed out waiting for mcp-status-selection-0"
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_STATUS",
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "draft_and_caret_restored": true,
+        "selections": [
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ]
+        ],
+        "source_contract": "Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold."
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_MCP_STATUS_ONLY",
+    "actual_requests": "Zero model requests/tools; three actual configured connected/disabled/failed MCP rows",
+    "observation": "Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately"
+  },
+  "finished": "2026-10-08T01:53:41.919Z",
+  "exit_code": 1
+}

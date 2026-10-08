@@ -868,6 +868,36 @@ redaction is never bypassed to force fixture text equality. `PASS_BEHAVIOR_ONLY`
 does not qualify VIS16/VIS17 pixels, prompt blink, all history paging/capture
 faults, release behavior or T44/V09. Missing/failed attempts stay diagnostic.
 
+## VIS40 mixed MCP modal status
+
+`--tool-preview true --mcp-status true` exclusively selects a zero-model diagnostic
+instead of the ordinary Home/body or temporal sequence. It configures three real
+MCP entries: healthy stdio, disabled (not started), and genuine failed initialize.
+The original's canonical disabled field and native admitted field are distinct;
+no renderer state, SQL row or result is seeded. Real SGR Home clicks, arrows and
+resize select every status at120×40,80×24 and160×48, then restore the exact Unicode
+draft/caret at120×40. Eleven full paired frames are saved unmasked.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true --mcp-status true \
+  --output /home/opencode/ai/oc/evidence/tui/MCP-STATUS-NEW-IMMUTABLE-ATTEMPT
+```
+
+`mcp_status.mjs` observes typed-result styled cells: unselected semantic tones,
+selected action fg/bg override, intrinsic Connected bold separately. Native must
+retain frozen source-required bold; the running original's absent bold is recorded,
+not treated as native failure or equality. Zero provider/tool/MCP-call/Shell effects
+and real healthy/failed initialization receipts are required. This bounded slice
+does not qualify every pending/auth/control/detail/label or whole VIS40 outcome.
+The current22 full-grid/PNG comparisons remain DIFFERENT; `PASS_BEHAVIOR_ONLY` is
+not pixel PASS. Separate ordinary and temporal runs qualify their regressions.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

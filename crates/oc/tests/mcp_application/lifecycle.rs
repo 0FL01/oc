@@ -286,7 +286,8 @@ fn mcp08_disabled_activation_controls_held_request_snapshots_reopen_and_restart(
     tui.send_line("/mcps");
     wait_row(&tui, "dormant", "Connected");
     tui.raw(b" ");
-    wait_row(&tui, "dormant", "Disconnecting");
+    // VIS40 uses the same source-derived loading label for every pending action.
+    wait_row(&tui, "dormant", "Connecting");
     assert_eq!(
         counters(&fixture, "dormant")["closed"],
         0,

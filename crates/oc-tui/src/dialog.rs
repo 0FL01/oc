@@ -5,6 +5,7 @@ use std::{
     rc::Rc,
 };
 
+use oc_core::queries::{McpServerSnapshot, McpStatus};
 use ratatui::{
     Frame,
     layout::Rect,
@@ -350,6 +351,7 @@ impl SelectList {
         size: DialogSize,
         options: &[SelectOption],
         footer: Option<&str>,
+        mcps: Option<&[McpServerSnapshot]>,
     ) {
         let theme = Theme::dark();
         self.footer_visible.set(footer.is_some());
@@ -586,13 +588,40 @@ impl SelectList {
                     style
                 },
             );
+            // Status comes from the current typed inventory, never label text.
+            // The selected foreground override and intrinsic bold are separate.
+            let mut footer_style = if active { style } else { style.fg(muted) };
+            if let Some(server) =
+                mcps.and_then(|servers| servers.iter().find(|server| server.id == option.value))
+            {
+                let pending =
+                    server.pending_action.is_some() || server.status == McpStatus::Pending;
+                if !active {
+                    footer_style = footer_style.fg(slot(
+                        theme,
+                        if pending {
+                            "text.muted"
+                        } else {
+                            match server.status {
+                                McpStatus::Connected => "text.feedback.success.base",
+                                McpStatus::Failed => "text.feedback.error.base",
+                                McpStatus::NeedsAuth => "text.feedback.warning.base",
+                                McpStatus::Pending | McpStatus::Disabled => "text.muted",
+                            }
+                        },
+                    ));
+                }
+                if !pending && server.status == McpStatus::Connected {
+                    footer_style = footer_style.add_modifier(Modifier::BOLD);
+                }
+            }
             line(
                 frame,
                 area.right() - 4 - right_width,
                 y,
                 right_width,
                 &right,
-                if active { style } else { style.fg(muted) },
+                footer_style,
             );
         }
         if let Some(footer) = footer {
@@ -714,6 +743,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
                 "all projects ctrl+a"
             })
         },
+        state.mcp_list_servers(),
     );
 }
 
@@ -893,7 +923,9 @@ mod tests {
         for width in [36, 120] {
             let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
             terminal
-                .draw(|frame| list.render(frame, "Sessions", DialogSize::Large, &options, None))
+                .draw(|frame| {
+                    list.render(frame, "Sessions", DialogSize::Large, &options, None, None)
+                })
                 .unwrap();
             let buffer = terminal.backend().buffer();
             let rows: Vec<String> = (0..40)
@@ -941,6 +973,7 @@ mod tests {
                     DialogSize::Large,
                     &options,
                     Some("all projects ctrl+a"),
+                    None,
                 )
             })
             .unwrap();
@@ -1197,9 +1230,10 @@ mod tests {
                         value: String::new(),
                         title: "Default".into(),
                         category: String::new(),
-                        footer: String::new(),
+                        footer: "Connected ✓".into(),
                         current: true,
                     }],
+                    None,
                     None,
                 );
             })
@@ -1223,6 +1257,14 @@ mod tests {
         // A space that is part of newly drawn modal text keeps its text styling.
         assert_eq!(b[(60, 13)].fg, Theme::dark().text());
         assert_eq!(b[(60, 13)].modifier, Modifier::BOLD);
+        // Matching prose in an unrelated footer is not typed MCP status.
+        for x in 95..106 {
+            assert_eq!(
+                b[(x, 17)].fg,
+                slot(Theme::dark(), "text.action.primary.$focused")
+            );
+            assert!(!b[(x, 17)].modifier.contains(Modifier::BOLD));
+        }
     }
 
     #[test]

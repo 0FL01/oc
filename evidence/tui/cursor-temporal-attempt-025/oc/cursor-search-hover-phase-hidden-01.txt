@@ -1,0 +1,40 @@
+   VIS16 tool preview fixture    +                                                                                      
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  VIS16 preview: execute the supplied MCP and Shell calls exactly once.                                              
+  ┃                                                                                                                     
+                                                                                                                        
+     ✓ vis16__output [index=1, query=native needle]                                                                     
+       index: 1                                                                                                         
+       query: native needle                                                                                             
+       nested: {                                                                                                        
+                 "value": "ava                                                                                          
+               }                  Commands                                         esc                                  
+       output: VIS-MCP-FIRST-B                                                                                          
+               [Part preview t    Search                                                                                
+               [output preview                                                                                          
+               [truncated]        Suggested                                                                             
+               VIS-MCP-FIRST-L    Switch session                              ctrl+x l                                  
+               VIS-MCP-FIRST-L    New session                                 ctrl+x n                                  
+               VIS-MCP-FIRST-L    Switch model                                ctrl+x m                                  
+               VIS-MCP-FIRST-L                                                                                          
+               VIS-MCP-FIRST-L    Session                                                                               
+               VIS-MCP-FIRST-L    New terminal                                                                          
+               VIS-MCP-FIRST-L    Select terminal                          ctrl+x down                                  
+               VIS-MCP-FIRST-L    Toggle terminal pane                        ctrl+x t                                  
+                                  Hide terminal pane                         ctrl+x up                                  
+     ✓ vis16__output [index=2,    Focus session pane                       ctrl+x left                                  
+                                  Focus terminal pane                     ctrl+x right                                  
+  ┃                                                                                                                     
+  ┃  $ printf 'VIS-SHELL-LINE-    System                                                  1 22 23 24 25 26 27 28 29 30  
+  ┃  31 32 33 34 35 36 37 38 3                                                            9 60 61 62 63 64 65 …         
+  ┃                                                                                                                     
+  ┃  (43 earlier lines)                                                                                                 
+                                                                                                      Jump to latest ↓  
+  ┃                                                                                                                     
+  ┃  preserved draft Ω界                                                                                                
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/ope…/opencode/t44-reference/runs/cursor-temporal-attempt-025/project  1.3K (1%)  ctrl+p commands  Preview limited  
+                                                                                                                        

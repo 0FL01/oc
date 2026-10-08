@@ -249,6 +249,7 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
 mod dcp_controls;
 mod input;
 mod lifecycle;
+mod mcp;
 mod model_selection;
 mod retry;
 mod services;

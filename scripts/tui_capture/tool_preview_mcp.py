@@ -10,7 +10,7 @@ for line in sys.stdin:
     if 'id' not in request:
         continue
     if method == 'initialize':
-        phase = json.loads((Path(os.environ['HOME']) / 'vis16-peer-phase.json').read_text())['phase']
+        phase = 'failed' if '--failed' in sys.argv else json.loads((Path(os.environ['HOME']) / 'vis16-peer-phase.json').read_text())['phase']
         with (Path(os.environ['HOME']) / 'vis16-mcp-lifecycle.jsonl').open('a') as log:
             log.write(json.dumps({'method':method, 'phase':phase}) + '\n')
         if phase == 'failed':
