@@ -10,6 +10,8 @@ defaults and root shortcuts cannot leak. Sessions-owned Rename/Delete remain.
 Page overshoot uses source boundary wrap; startup restore future is heap-pinned
 at its existing owner boundary without stack/thread/task growth.
 Receipt: evidence/tui/mcp-select-footer.md. Whole T44 remains ACTIVE/NOT_PASS.
+Reviewed implementation/evidence `33d62cfae2f6177dbdd0c3b312323df31581506a`
+PUSHED by ordinary fast-forward to verified own origin/branch.
 
 ## Checks
 Current fmt/strict locked workspace Clippy,1745/0/11 across46 results, locked/
@@ -32,6 +34,6 @@ resource/security thresholds weakened. AUTH06 deferred/original24/24/Go13/24
 unchanged; .opencode and immutable captures untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then shared durable prompt-history and ordinary
-prompt click-caret VIS12, followed by every remaining frozen R1–R6/VIS01–VIS45.
+Continue shared durable prompt-history and ordinary prompt click-caret VIS12,
+followed by every remaining frozen R1–R6/VIS01–VIS45.
 Final R6/V09 only after complete closure; no task finish or acceptance reset here.

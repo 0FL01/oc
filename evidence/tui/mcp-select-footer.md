@@ -31,6 +31,11 @@ This is functional qualification, **not whole VIS40/R6/V09/T44 PASS**. Full
 unmasked frames remain different. Root acceptance, AUTH06 deferral and the
 original24/24 / Go13/24 campaign ledgers are unchanged.
 
+Reviewed implementation/evidence commit
+`33d62cfae2f6177dbdd0c3b312323df31581506a` is **PUSHED** by ordinary
+fast-forward to verified `github.com/0FL01/oc`, own `agent/oc-rust-port` branch.
+The historical checkpoint remains unchanged; Git and this receipt record delivery.
+
 ## Owners and deterministic regressions
 
 - `oc-core/src/queries.rs::DialogShortcuts`, existing
