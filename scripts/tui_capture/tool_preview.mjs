@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -42,6 +42,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(promptProbe) {
+      result.differences=['Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked.'];
+      result.prompt_caret=await promptProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(mcpProbe) {
       result.mcp_status=await mcpProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot});
       result.status='PASS_BEHAVIOR_ONLY';save();return result;
@@ -134,7 +139,8 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     result.status='PASS_BEHAVIOR_ONLY';
   } catch(error) {
     result.status='FAILED';result.reason=error.message;
-    await capture('tool-preview-failure',await frame(),'FAILED_STATE');
+    const failed=await frame();result.failure_cursor=failed.cursor;
+    await capture('tool-preview-failure',failed,'FAILED_STATE');
   }
   save();return result;
 }

@@ -521,7 +521,7 @@ struct VisibleTranscriptProjection {
     targets: Vec<Option<crate::messages::UserMessageTarget>>,
 }
 
-/// Only actual visible chip cells from the latest prompt paint are actionable.
+/// Visible editor insertion stops and chip cells from the latest prompt paint.
 struct PaintedPrompt {
     frame: Rect,
     main: Rect,
@@ -531,6 +531,9 @@ struct PaintedPrompt {
     generation: u64,
     cursor: usize,
     anchor: Option<usize>,
+    input: Rect,
+    rows: Vec<Vec<(usize, usize)>>,
+    toast: Option<Rect>,
     chips: Vec<(Rect, usize)>,
 }
 

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T10:28:16+00:00
+State updated: 2026-10-08T12:22:20+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,43 +12,42 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — Select MCP footer focus and effective bindings
+# T44 — painted ordinary prompt click-caret
 
 ## Result
-Existing Select owns typed MCP footer focus/paint/hits. Tab/Shift+Tab cycle,
-focused submit controls the current opaque server/binding, hover/movement clears
-action focus without stealing Search caret. Shared geometry handles narrow stack;
-press/release revalidation rejects drag/resize/filter/snapshot/modified release.
-Eight effective admitted dialog bindings drive dispatch/hints; disabled/remapped
-defaults and root shortcuts cannot leak. Sessions-owned Rename/Delete remain.
-Page overshoot uses source boundary wrap; startup restore future is heap-pinned
-at its existing owner boundary without stack/thread/task growth.
-Receipt: evidence/tui/mcp-select-footer.md. Whole T44 remains ACTIVE/NOT_PASS.
+Existing editor/layout provides visible legal insertion stops to PaintedPrompt;
+unmodified Left Down revalidates paint/draft/caret/current owner and moves the same
+editor before typing. Chip expansion and overlay/terminal/child/Shell authority
+win; no navigation bytes/request/policy change. Shared wrap-end stops follow the
+running reference before soft separators. Receipt: evidence/tui/prompt-click-caret.md.
+Whole T44 remains ACTIVE/NOT_PASS; shared durable input history is still pending.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1745/0/11 across46 results, locked/
-ordinary debug, release/help and actual startup/discovery PASS. Two Select owner
-scenarios plus existing config/Sessions/MessageActions/MCP lifecycle guards.
-Repo Python47/0, Node/Python syntax/source/docs/journal checks PASS. Final default005
-27paired stages54 strict comparisons DIFFERENT; remap00426 stages52 DIFFERENT.
-80/120/160 focus/caret/navigation/hints, exact control initialize counts1/0/1→2/1/2,
-zero model/tool effects, disabled starts only explicitly, Unicode draft restored.
-Ordinary0274 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes
-and RAW/artifacts through restart. Temporal030 six states≥3cycles/zero phantom,
-144opaque PNGs audited,67 matched pairs134 strict comparisons ALL DIFFERENT.
+Current targeted VIS12 2/0 and inherited VIS07 8/0; strict locked workspace Clippy,
+1747/0/11 across46 results, fmt/locked+ordinary debug/release/help and actual release
+startup/discovery PASS. Exact editor Unicode mutations, clipped/resize/modified/
+changed-owner and busy-session cases have no queued request. Repo Python47/0,
+Node/Python/source/docs/journal checks PASS with delivery.
+Final primary006 both25 paired stages/50 strict grid+PNG ALL DIFFERENT; exact
+Проведи RECXON, жду план wire/native durable row,2requests(one main/title),0tools,
+real session edit/new/reopen/clean restart with unchanged accepted observations.
+Normal0284 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes
+and RAW/artifacts. Temporal031 six states≥3cycles/zero phantom/no replay;144 opaque
+PNGs audited,67 matched pairs134 strict comparisons ALL DIFFERENT.
 
 ## Risks
-Whole styled-cell/PNG parity remains NOT_PASS. Source-required native Connected
-bold, safe DTO and genuine version differences are unmasked. Earlier page/probe/
-stack/modal-owned-action failures and pre-modifier captures remain factual history;
-final source proof is default005/remap004/ordinary027/temporal030 only. No tests or
-resource/security thresholds weakened. AUTH06 deferred/original24/24/Go13/24
-unchanged; .opencode and immutable captures untouched.
+Whole styled-cell/PNG parity remains NOT_PASS. Shared Unicode11 raster loses one
+ZWJ component; actual paired prefixes and native full-byte tests are distinct,
+not normalized fake raster equality. Original RAW is not decoded; actual wire
+and saved-session frames are its independent proof. Earlier wrap/helper/target
+failures and pre-final005 remain immutable. No test/resource/security threshold
+weakened; AUTH06/original24/24/Go13/24 unchanged; .opencode untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then shared durable prompt-history and ordinary
-prompt click-caret VIS12, followed by every remaining frozen R1–R6/VIS01–VIS45.
-Final R6/V09 only after complete closure; no task finish or acceptance reset here.
+Commit/push reviewed code/evidence, then shared durable newest-50/consecutive-dedup
+prompt history and effective previous/next bindings, followed by every remaining
+frozen R1–R6/VIS01–VIS45 outcome. No task finish or acceptance reset here; final
+R6/V09 only after complete closure.
 
 
 Ready (до 5): нет

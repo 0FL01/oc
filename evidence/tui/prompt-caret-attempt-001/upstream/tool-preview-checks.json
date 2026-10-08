@@ -1,0 +1,49 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 37,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 38,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+  ],
+  "reason": "Timed out waiting for painted fixture draft"
+}

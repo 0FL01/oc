@@ -1,0 +1,2269 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T11:54:14.465Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "ff0032cb09b47ac22062eaa1ca04d802145c8b983ee195f985da4f0fab643954",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "4ab22745095d6016ae0600183df0a6b9fb5372d1c90ed46dac998d804b03b439",
+    "tool_preview_fixture.py": "78fe16562db78314d6f159ad24e7e62427b412510cbaa7a3d3924be85f46e471",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_caret.mjs": "3932934293e7491b0feec1bf59216bd1a558caabf69d02c1a7ccdf399e91e6aa",
+    "prompt_caret_fixture.py": "1ca9fd58037a7ae4f6348f5b24300bcc394067283c4dc6fdd9867e14fa11d91f"
+  },
+  "fixture_sha256": "d28dec57fa7627cdc64f5f44708752daa0d4730f20b2a97ee7534e628cffd430",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f8db58ecb34344e46eaa59a4f4186effbd28961d",
+    "tree": "75bfe9b22c5e09fc6264405cf05de52c355f9566",
+    "dirty_diff_sha256": "6315afca54b6a89b41f24ac2088109fd5c70b09ddc48f84c4741b988859ea436",
+    "source_manifest_sha256": "85a82511c1dbbf13496216d8199c4161b557118ae524fc4d465011336097bbb6",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "4c4e029e7a07d369680163fa8c8eb74b28ff44b45b3ab20f0fedc3330be54b01",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-reopened",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-reopened",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-restarted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-restarted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "1704b5553600c15f69e2259c4a500c8eb4b8cc0cfde95566c3426fd7d169276c",
+      "png_sha256": "6eb94e52703682a73fbcd7ad4ddf4a82e75a1131ab90260542e53b2fe9d52a0b",
+      "render_sha256": "374470cb7f2f8db097f498399a9b0ff7f4cb29a9080299d5bc2f9c09a20f29fd",
+      "path": "upstream/tool-preview-caret-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "90094c517e58e134d742f724f5faa78d15175c4fb5c1817fe0d88f3790144473",
+      "png_sha256": "c158c5b7279c4e71dad749988a1478ab9fd9d55123ed6ce959a1a9eff4c20cdd",
+      "render_sha256": "8b71bcdfbd76f07f76e5f89fd46b8a093ce2bce579d19e28a71196da61c4b9e9",
+      "path": "upstream/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3cafb25521f20c98a0c368d8b0414457dfbae414c7c651d3fa4f3638c72ee653",
+      "png_sha256": "19ed4b63ad135a196fb0337c1c92c93b3fbdb9f733c4ec70b18bf643d601e4b4",
+      "render_sha256": "9221e625cf8ee9d9a51eadb3210076fee6e2aeef59812a4c0c18e8ae20c49698",
+      "path": "upstream/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "807da30d9c4af7abd9d5d32899386202f02a6a87a5dd668616068d9bddee7bbc",
+      "png_sha256": "c121a8776ce412f78fce407872dbce1d5988c148aeb753ec2399f6b65e810b4d",
+      "render_sha256": "2747b4f556485efd9cb13f65f22b1be7af3abe74b50cbb3da3c937b061d84658",
+      "path": "upstream/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "56eb731feb3f450a81edeebe83d734ef11e0cc1b9d2d90f4674be0cecb8f2b46",
+      "png_sha256": "75952306fc8be98895a02dbe3bb16751cd547fea57a8ccf38635acc67d4040e6",
+      "render_sha256": "a927b07a7348ce94f1c384855fb3154560b493309a5500456225aea19d5b6776",
+      "path": "upstream/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c5f252b8ee95afb8e3f637ae5a20d0471b3923886bb85749da52a6a8cc69f3d4",
+      "png_sha256": "d621d20d4b39ad718172e99632f3dde6af3ca916b918e80f41b89019c6873215",
+      "render_sha256": "f3b0d7cbf3b0fd0b0acd576f54576ba22cde5379e91a5a88f53145f4f614abf3",
+      "path": "upstream/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0cc98dd2c5a4fb78c8d61b32fbcbca87f760683c0d1da2bb8da9a93df9ca8dea",
+      "png_sha256": "4b5acebad3d9f3e7fd8493e62df8a83b3a9ffb9b0b76c024783a21d156de295f",
+      "render_sha256": "af18398705d70d2a1880d9680ea302bf673444fe95f4a454f574c8922e6ccd56",
+      "path": "upstream/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "7541d70ec7c28569844e7229d99e06d7eebb1d8c8d89fabc9c02dc22ea7380d9",
+      "png_sha256": "75d3d92e5afa630e195b68de76b8a8abb5adead0700a774d1c80071af4979b97",
+      "render_sha256": "89aaee8771f71b826dafc9dce792ad2310e17cfdb4e2a93cb3113a7c22a2d1a8",
+      "path": "upstream/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0137e0743646e5daff49196e13c8a3eb44a640d0e5ab08438aa009b27b7bdba2",
+      "png_sha256": "f7fc8ee2153006a015e17eea78b87df0538260aee8dd713e195204949d6a395b",
+      "render_sha256": "b6697c2642849d1d41a30b56f1b695bea7c2b645bd3f7df429f5d644a1bbc386",
+      "path": "upstream/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "00a3a816c822ca5dbcfb10ad9095ded6edd49ce6d4c381765fd193338eaafe21",
+      "png_sha256": "85d6b2294e3ab199e4c0b5c7309a180eff8c57d1e476af2bc9fcb69dbd5fa3e9",
+      "render_sha256": "cbd6c2f697bafa113a2c63f18505d9a156f330a16736cf3b5445161f3a265f0a",
+      "path": "upstream/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f5c9118d9fae5f37568c3445132eeb29889455865fdad952822793c56b8df3bd",
+      "png_sha256": "8c22debad7e0c9a48133f3d2e7163d970c8d2fd145ddf2c5636f28cc9b0e9006",
+      "render_sha256": "e6de23c9a9524202bddc607238224d0cf0fef4daf3b79e9ce4f1efb37bd03216",
+      "path": "upstream/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dc75431317bb1f5526c1970bfc8d3ef758ee114f78ae148d7bc740845221c87e",
+      "png_sha256": "3ff0d7872343535b839c529e7bf9440b8a067abf357545ee933ff0020a7157a2",
+      "render_sha256": "4b8b8724fcd4a58b20f4c3b8e08ff726f28cbd2cfec04915b0533c78cab213aa",
+      "path": "upstream/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "7fcbb2fb631f60f591ed5a7face7bded1ff6bb381484008ac087b978d415335f",
+      "png_sha256": "748b6756d48a3c4530399cd8d699a46c9c0a9fa3a7b633f004e2aa4749339668",
+      "render_sha256": "5fc6f14f930ffa62ceb587c61ae9d950c705c895f7444375f72186190515dc49",
+      "path": "upstream/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0e402318e3109d2ac75c43c4331df209ae1d0559fa2228d8f149e9ed778a9664",
+      "png_sha256": "99d39a1f494c178e93f5f8412325684e9ea36bf8bb37f231d66e2f5143b53bbc",
+      "render_sha256": "15f84d8f2c90472b4989e8b06d45fffaf257750ba169639569fa961a07754ecf",
+      "path": "upstream/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "afc100d58c7ec6bcac247c994c9bfb9b3a1e975670e2f21d35135d543df19c74",
+      "png_sha256": "abbcd5a44622deba8d29bf94709fd111d0a77bf7f8d4990f7327fe79edf53b51",
+      "render_sha256": "0b857a8a930afb97ccff940cb0d4851bee5810b51d675237e4d502e23236cb66",
+      "path": "upstream/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "83e54fd66a837cb9944905daad9978d5cea5bbb107474d9898d59c6e9b930fe3",
+      "png_sha256": "17c73821e4460b6f2805a1207f2b20a081eeb9418f631a02082405f2cd9723a7",
+      "render_sha256": "da1f4d712df3719b63cfeece1cf4349f8fe9284f3c958815570b42435db57291",
+      "path": "upstream/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "6dfd19d3661b5a62c8bf160f414c8a3e99bc88bd092cf7fa6ac046771fb5cda0",
+      "png_sha256": "1f1b929b78b6ffe3b8608f36b0b1dd81bb1604a231bfce8c0e4a8d4c0fa24cdd",
+      "render_sha256": "ffe1d9e2143a74ebc15081d7b0c0eb2d75e18ce66c9574e5d0a44706c4ed1522",
+      "path": "upstream/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dd4cb5e8cda28f7e65416ec89a69d5e4917a1b37a673855f9e0acb654fa69591",
+      "png_sha256": "38e0734c99ae51662e4b793fd4f50d57d283b8f6e1bb29d46914a5fd71f3fbc5",
+      "render_sha256": "14e102f050c4cbd2c52e7b84e620c17211ff539c48200369187e9215a31e2566",
+      "path": "upstream/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5bce7676242556036b06483f9db11c0a45c64c45285a3f9bafc1cfbba747d957",
+      "png_sha256": "3327c279d0d3ecd5ad2fa14be9cab7696fbaf3405d04273fdfe0f97144f27a48",
+      "render_sha256": "f012fb0eea0619ec581aaefd4d3de6a48ad55a70112ece7c241a1db218b09dd5",
+      "path": "upstream/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ba470c3ca96ac5e3872f3195048a3f5c5440f0e54ef72d0a3dfcae10fc7c886a",
+      "png_sha256": "e6c0a6e671214041c83714244fbd75268fc1bfdfddc074ede92f2a7c9cc487d9",
+      "render_sha256": "327896afa2a2aa00075d93a17c79e8d46beab3bff7df1c413667ef46f2a10491",
+      "path": "upstream/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "81cb1596685ef84e74ff89519636503f1e6c3bfc30e5c6b0ed940f7d4c0e119f",
+      "png_sha256": "19ed4b63ad135a196fb0337c1c92c93b3fbdb9f733c4ec70b18bf643d601e4b4",
+      "render_sha256": "a30786cacf9fd932eb8ffabe40cf231279fcb47cdc169db9d5184fbb64f22192",
+      "path": "upstream/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "2bf9651f256fa30a7a5781d62537435458786b891e198e004d983f4951deee79",
+      "png_sha256": "4be2c0949a8f5b51d734c15441950ae56ffce99f1bdebea5440a5246ba08b8b8",
+      "render_sha256": "513c286f941334504b6cb4a7410a51ebd6afb426bc55caa21d42068d03612dfe",
+      "path": "upstream/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4ee0015d02512a9fef87d19eb9d25bf39b62feadabc6699ac462250648114728",
+      "png_sha256": "96ce0b7e88c99dea909f2b8852495f36304d806040c354f6d56fdeb1dcfc2a0a",
+      "render_sha256": "a74ae29b59255bd30ab81e31125e040e834585b94f19bb5c4fb7f73fa9df0e1b",
+      "path": "upstream/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a19916294c76cfd8c601866c6b9e46e3324b77431dee99d13bd194b645969cd9",
+      "png_sha256": "4be2c0949a8f5b51d734c15441950ae56ffce99f1bdebea5440a5246ba08b8b8",
+      "render_sha256": "07f20a06f0e95841c25d4f84e93f797f7fd8afec9f6ff109e4d93352860403c1",
+      "path": "upstream/tool-preview-caret-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "fae52608298003f482e69f57feff57c07ef4c12378877c5990cbd8f130af16c3",
+      "png_sha256": "4be2c0949a8f5b51d734c15441950ae56ffce99f1bdebea5440a5246ba08b8b8",
+      "render_sha256": "9b7737391ac2aff8b2934fed18740d8c57569f3fb66ff03dcf4bf5a50337b583",
+      "path": "upstream/tool-preview-caret-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0f18868da25465064b696602937d3fdea7fdbd5774cf089255699d642556d3b2",
+      "png_sha256": "ee758136a58c8599f943e1096abced81620a9e1427374aa2a5c79dbe89b9de56",
+      "render_sha256": "0d8b50ebb20e2101487ede1f11edf64047a4aea4c5e023ea1ed8dfaf3646993e",
+      "path": "oc/tool-preview-caret-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c2ebc97a669e5d0cbfcfff9c08d7145d30fe32afb576a875f40ca7402e9d4a02",
+      "png_sha256": "6c6c232d9e849a334548b62f7e2468681b7c7a5a49f63c15e6412737957bc916",
+      "render_sha256": "505300412d1fb136bb80b0fd29b0ffbc9a182060eb6ae467b4c77b6c459cf196",
+      "path": "oc/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "758fd34fdfde55d5fd52fdba211f946135371820fae0c370fd168fd102de3d2c",
+      "png_sha256": "d77d2689882162c2fb3ebd4073367d6f8cd137b2714273ea90fa8b03e62f1bb5",
+      "render_sha256": "90ae4651acb0d2663a13d4100972b5adcfba0b0353296cab74d7bd7886c431b7",
+      "path": "oc/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ec173f1c14e61345714541e23bc4d39ad369c81f5832f8b6d0dc32863aeb3f38",
+      "png_sha256": "2bc0e5276c3bc7b927e814aee823a96fd901a86b081e1fcd590963dc25f08451",
+      "render_sha256": "22057dcff3088787c82e627d5dfca5c4ba7bd7fd3aa1b8022a2562e37349821b",
+      "path": "oc/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "9f0730b646426711a337b145c3846401a6eb76fb8dd6e67120b778b6da59f15d",
+      "png_sha256": "2a892a9b3909df0655f2767ab4f2d87a8ea1e3aa3b26934eb93623ce68d68557",
+      "render_sha256": "d0b976ae9851d001f1d47ff9bfc789613c3d138c3724a2fb3f421e138b5aa517",
+      "path": "oc/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dd62e247c030a63887728d37f88c40211db12384bd90dfede46f839bc2b0f40e",
+      "png_sha256": "d808fde393e56ec69d91d45a34795062646e82d14477e6813521e585b6dd2eee",
+      "render_sha256": "d7847901b5badec64e0c24ca4ea8a936c1490df0a2d23a3acdb36fd16ddd63e1",
+      "path": "oc/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "16b0c04a8ec8e841f0acd42fddda6237b3f852253c3a03e9d12caae6d469d4a0",
+      "png_sha256": "7216b325f30fede7d19ca448c7d3b9cb52a1353de5846a533ce5a41a7f17f198",
+      "render_sha256": "49f99c4845d916ec80aab8b2a637f4fb06da0068847c4aa0769a66426e234db3",
+      "path": "oc/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "666bf6a77d4f8fd0b1a5e97d972c53daec3217917cf141de226476c7fa382499",
+      "png_sha256": "339850651c9cd200719233671b18adf13a71a96f5553a0dd7abcb3ace9f703df",
+      "render_sha256": "f1759190954ab5ff9c896da80c6cae348b927a276d884ab8cb4bf0a9034ca966",
+      "path": "oc/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "774614cf0914518139ea0df5af4b109c2c02d048c4897978d286f8a08708cdcf",
+      "png_sha256": "53d72d4e796bbac58bc02b029067840ad6b37fb983e6b8446806211e3aa12128",
+      "render_sha256": "9a6584b64c5b73c8f27784c0605e97914ac0e66501e20a39dba4f9cfbe30d5e4",
+      "path": "oc/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "338413873b3545a091e6ac55eba724d329f347366ac6a8e5c65bacb68db8af0b",
+      "png_sha256": "40d7edd15bb69f0252473fc01557b38b2b9230c7e94a82fc75d07ce8e7ca8337",
+      "render_sha256": "70b86f1ed5fc7d23078a4606d5c41300c9cdfebe45cdb690dc410491c575ef56",
+      "path": "oc/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c3de68ee09ca8d3c1f551a38dd49827d0c091cebb96ac89213cf1a424dc38644",
+      "png_sha256": "4b9f39f9e7b48802fae2467bd743abac6c409e07654eee057639edc06ad4c9b3",
+      "render_sha256": "917728a1fe3e33ab0b0a5887c252650a06cee9c2a64e97f26515eb989fd1c9f3",
+      "path": "oc/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5c0d22dc889f615d9cdd2af5fc627ba684e3b9dccb4196a067e01f8286b4d565",
+      "png_sha256": "19cda814bb5c71a36a9382c2e401804bea61ad873dc00da7e755b64e01769303",
+      "render_sha256": "7c220860e0136ccc39e30ef7cfc2bca95075a9c14bf5bf5d967ec6b2d3c7640c",
+      "path": "oc/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "85bc1567e0962cbdaa1a4dc66fbf98622cd1c96c965c6baacb51b012dbacd438",
+      "png_sha256": "7ae1eef8fd5f2170abdc43893645987268c691a15ccc54d94924f14b98eabd44",
+      "render_sha256": "990394d50b45416c6cd39afd6138c091554a6083fe97ee726aaaa187ba70c113",
+      "path": "oc/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "7e7bfbfe08e077ac0a0b43bfa456bf8618cef7a6d27d13a5da991765a961b8bc",
+      "png_sha256": "897cec87269a39907267106f8b4944ef3deeea2166f5fc5da58c005b145fa220",
+      "render_sha256": "4328334446d7032fba0a967513492334d878a0dd88dc059299fd0a417305f9b9",
+      "path": "oc/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "ac7a94a4e7ce5387eb63b8cbbf795b92aac8a711b6a1a6c011b3d271dd25fb6b",
+      "png_sha256": "b908ffa91128b0cead6e9f4e6e89ce9b82225ec538960cd994ddc1168c575f21",
+      "render_sha256": "3db7f223736f2305fe84436d3d59b4a41140d5becbc7e77d21c61da43e9230e0",
+      "path": "oc/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "b5045b343f7c4a4a556c9803c27976a78e49f2fd67b1d63994e1b826fc37361f",
+      "png_sha256": "15e0feb6f44995006b633a6e1e6b3b62884534a16ba0016d45dba5d0075a795d",
+      "render_sha256": "0095d807bff30dc27290e4663f7047eb9f36c70682c92c629a8d1a35e867088b",
+      "path": "oc/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "539868fb37daf2d86bd3749b0a8ba86a57fc4c7a92129f2ef339d7b8ee76bbcc",
+      "png_sha256": "41626f35c69ca93189c6a185124e3a912be25ddccae1e49cf25d7bc3cfdd5770",
+      "render_sha256": "e289b62289f24c52c1f31cf24999e9862cd6b0a906288c699c721879ac6ff6aa",
+      "path": "oc/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4742300d24c3e93efda5d8bc465d8ce2fb5a720a122ea048f631cc46ed85b55c",
+      "png_sha256": "3457695ef4ec01d772eca930026d8f68b7e0538c50277c668c4e696bcc9fcc41",
+      "render_sha256": "a4374dc7551d28d6f7bb38f9191bf5e8c21629680c2e82dac65a6b7377e5841a",
+      "path": "oc/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "749b574a4dfd9a432e6c8b5e385a45e543b9a399f812fe1705b6f7e48899f343",
+      "png_sha256": "9b42c08c19b103b6a904769ae9388f7ad45d61b82e28bf79f1bb2c5a178bb956",
+      "render_sha256": "3ba809b877fe7c132e09b5cae86cfd3a76ba21b5ad7c863b3393ff377e91ed92",
+      "path": "oc/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e29a59143bec7e8424774f55b71a8c30bca9ff090cac9ee1693dd9b5f2d87be1",
+      "png_sha256": "21e58e1cff9db2c0c45a95e8942ec585097ba4fb1d5f9f63595d263ee3e98f7f",
+      "render_sha256": "8de95d030901d57e0cb5887d7d070263499146a364284e6d0dd358f6a7dbc650",
+      "path": "oc/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "9c3f0e56ba65711850f377a0286c1d4ad89055852bd16b3c21bad837c7a81530",
+      "png_sha256": "d77d2689882162c2fb3ebd4073367d6f8cd137b2714273ea90fa8b03e62f1bb5",
+      "render_sha256": "bf5b946403375ac7d00ebd3c49c1e1c73e7fcce2d36aff968a6834dba6992765",
+      "path": "oc/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b8f90e6558a02d6d2b41cd7b525dfbc359d7c46b1fddb7b970a61a5158e6ada8",
+      "png_sha256": "aef89f2e3e680c6aae26fe94865eae8100644dfa5c90e53d11f6a50d648143c3",
+      "render_sha256": "f9bf8fadd6368dd7582fd98a57d1644e3a6d238fa72adb844e186323d547ca2f",
+      "path": "oc/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c6d9b2983e715e123506b715fee35567b07f9a45081c91dfde38101d30caca8a",
+      "png_sha256": "a6b92b04b5b73f77680a4bad2cfa035c6c26a41fcd168bb0c206554812a3abb8",
+      "render_sha256": "89abf640c40ddefffbb5369acaca24efaad3cf8af12195ca3484c7537b4d3934",
+      "path": "oc/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "579ebf0d9943c959f0386283b41aff66b3169779452130d749d52cd9320c4e8f",
+      "png_sha256": "aef89f2e3e680c6aae26fe94865eae8100644dfa5c90e53d11f6a50d648143c3",
+      "render_sha256": "a6bde5933643a7491724244ead22f40565b2716e6dba587ec54af5844b562ebe",
+      "path": "oc/tool-preview-caret-reopened"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "2ad103b1e1f061d150d4c3f0ad662275c7ace1b6e574c427caf9def6348945e0",
+      "png_sha256": "aef89f2e3e680c6aae26fe94865eae8100644dfa5c90e53d11f6a50d648143c3",
+      "render_sha256": "e5b21a1cc69877d66c9acde3980a317661ae0e2532091f9b5152449d8018a9ab",
+      "path": "oc/tool-preview-caret-restarted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 86,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_caret": {
+        "status": "OBSERVED_PROMPT_CARET",
+        "observations": [
+          {
+            "stage": "caret-home-word",
+            "target": {
+              "x": 37,
+              "y": 21
+            },
+            "before": {
+              "x": 49,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 37,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 38,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          },
+          {
+            "stage": "caret-wide-second",
+            "target": {
+              "x": 32,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 32,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI αX界é"
+          },
+          {
+            "stage": "caret-combining",
+            "target": {
+              "x": 33,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界Xé"
+          },
+          {
+            "stage": "caret-zwj-start",
+            "target": {
+              "x": 34,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 35,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界éX"
+          },
+          {
+            "stage": "caret-trailing",
+            "target": {
+              "x": 66,
+              "y": 21
+            },
+            "before": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "TAILX"
+          },
+          {
+            "stage": "caret-wrap-gap",
+            "target": {
+              "x": 95,
+              "y": 21
+            },
+            "before": {
+              "x": 34,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 91,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 92,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX"
+          },
+          {
+            "stage": "caret-resized-word",
+            "target": {
+              "x": 17,
+              "y": 21
+            },
+            "before": {
+              "x": 29,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 17,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 18,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          }
+        ],
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_accepted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_reopened",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_restarted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 2,
+        "explicit_user_submissions": 1,
+        "user_text": "Проведи RECXON, жду план",
+        "native_durable_user_verified": false,
+        "tool_effects": 0,
+        "reopen_restart_no_replay": true
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_caret": {
+        "status": "OBSERVED_PROMPT_CARET",
+        "observations": [
+          {
+            "stage": "caret-home-word",
+            "target": {
+              "x": 37,
+              "y": 21
+            },
+            "before": {
+              "x": 49,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 37,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 38,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          },
+          {
+            "stage": "caret-wide-second",
+            "target": {
+              "x": 32,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 32,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI αX界é"
+          },
+          {
+            "stage": "caret-combining",
+            "target": {
+              "x": 33,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界Xé"
+          },
+          {
+            "stage": "caret-zwj-start",
+            "target": {
+              "x": 34,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 35,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界éX"
+          },
+          {
+            "stage": "caret-trailing",
+            "target": {
+              "x": 66,
+              "y": 21
+            },
+            "before": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "TAILX"
+          },
+          {
+            "stage": "caret-wrap-gap",
+            "target": {
+              "x": 95,
+              "y": 21
+            },
+            "before": {
+              "x": 34,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 91,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 92,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX"
+          },
+          {
+            "stage": "caret-resized-word",
+            "target": {
+              "x": 17,
+              "y": 21
+            },
+            "before": {
+              "x": 29,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 17,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 18,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          }
+        ],
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_accepted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8c144fbacc89-1ce0dc-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_reopened",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8c144fbacc89-1ce0dc-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8c144fbacc89-1ce0dc-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 2,
+        "explicit_user_submissions": 1,
+        "user_text": "Проведи RECXON, жду план",
+        "native_durable_user_verified": true,
+        "tool_effects": 0,
+        "reopen_restart_no_replay": true
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_CARET_ONLY",
+    "actual_requests": "One explicit edited user prompt plus title; zero tools/MCP/Shell effects",
+    "observation": "Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay"
+  },
+  "finished": "2026-10-08T12:00:20.080Z",
+  "exit_code": 1
+}

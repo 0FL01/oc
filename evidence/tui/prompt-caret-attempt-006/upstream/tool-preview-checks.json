@@ -1,0 +1,632 @@
+{
+  "origin": "upstream",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 37,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 38,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 31,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 32,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 35,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 30,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 31,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 91,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 92,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 27,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 17,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 18,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 31,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 86,
+        "y": 27,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 94,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 38,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 17,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+  ],
+  "prompt_caret": {
+    "status": "OBSERVED_PROMPT_CARET",
+    "observations": [
+      {
+        "stage": "caret-home-word",
+        "target": {
+          "x": 37,
+          "y": 21
+        },
+        "before": {
+          "x": 49,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 37,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 38,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "Проведи RECXON, жду план"
+      },
+      {
+        "stage": "caret-wide-second",
+        "target": {
+          "x": 32,
+          "y": 21
+        },
+        "before": {
+          "x": 41,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 31,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 32,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "UNI αX界é"
+      },
+      {
+        "stage": "caret-combining",
+        "target": {
+          "x": 33,
+          "y": 21
+        },
+        "before": {
+          "x": 41,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 33,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 34,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "UNI α界Xé"
+      },
+      {
+        "stage": "caret-zwj-start",
+        "target": {
+          "x": 34,
+          "y": 21
+        },
+        "before": {
+          "x": 41,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 34,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 35,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "UNI α界éX"
+      },
+      {
+        "stage": "caret-trailing",
+        "target": {
+          "x": 66,
+          "y": 21
+        },
+        "before": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 30,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 31,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "TAILX"
+      },
+      {
+        "stage": "caret-wrap-gap",
+        "target": {
+          "x": 95,
+          "y": 21
+        },
+        "before": {
+          "x": 34,
+          "y": 22,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 91,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 92,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX"
+      },
+      {
+        "stage": "caret-resized-word",
+        "target": {
+          "x": 17,
+          "y": 21
+        },
+        "before": {
+          "x": 29,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "clicked": {
+          "x": 17,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "edited": {
+          "x": 18,
+          "y": 21,
+          "visible": true,
+          "shape": "block"
+        },
+        "expected": "Проведи RECXON, жду план"
+      }
+    ],
+    "before": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "caret_accepted",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "after": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "caret_reopened",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "restarted": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "caret_restarted",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "provider_requests": 2,
+    "explicit_user_submissions": 1,
+    "user_text": "Проведи RECXON, жду план",
+    "native_durable_user_verified": false,
+    "tool_effects": 0,
+    "reopen_restart_no_replay": true
+  }
+}

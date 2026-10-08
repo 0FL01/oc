@@ -991,6 +991,18 @@ impl TuiState {
         self.painted_prompt.borrow_mut().take();
     }
 
+    fn prompt_mouse_editable(&self) -> bool {
+        self.panel == TuiPanel::None
+            && self.approvals.active().is_none()
+            && self.questions.active().is_none()
+            && !self.children.open
+            && self.linked_child().is_none()
+            && !self.shells.open
+            && !self.terminals.open
+            && !self.terminal_focused()
+            && self.status != TuiStatus::Quit
+    }
+
     pub(crate) fn observe_prompt_paint(
         &self,
         frame: Rect,
@@ -999,7 +1011,7 @@ impl TuiState {
         rows: &[crate::editor::PromptRow],
     ) {
         self.prompt_width.set(Some(input.width as usize));
-        if self.panel != TuiPanel::None || self.approvals.active().is_some() {
+        if !self.prompt_mouse_editable() {
             return;
         }
         let toast = crate::shell::toast_rect(self, frame);
@@ -1042,6 +1054,14 @@ impl TuiState {
             generation: self.generation,
             cursor: self.editor.cursor,
             anchor: self.editor.anchor,
+            input,
+            rows: rows
+                .iter()
+                .skip(top)
+                .take(input.height as usize)
+                .map(|row| row.positions.clone())
+                .collect(),
+            toast,
             chips,
         });
     }
@@ -1498,9 +1518,10 @@ impl TuiState {
                 return self.run_command(CommandAction::OpenMcps);
             }
             if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+                && self.prompt_mouse_editable()
                 && !self.transcript_overpainted(area, event.column, event.row)
             {
-                let start = self
+                let (start, offset) = self
                     .painted_prompt
                     .borrow()
                     .as_ref()
@@ -1514,12 +1535,34 @@ impl TuiState {
                             && p.cursor == self.editor.cursor
                             && p.anchor == self.editor.anchor
                     })
-                    .and_then(|p| {
-                        p.chips
+                    .map(|p| {
+                        let chip = p
+                            .chips
                             .iter()
                             .find(|(rect, _)| rect.contains((event.column, event.row).into()))
-                            .map(|&(_, start)| start)
-                    });
+                            .map(|&(_, start)| start);
+                        let offset = (event.modifiers.is_empty()
+                            && p.input.contains((event.column, event.row).into())
+                            && !p.toast.is_some_and(|rect| {
+                                rect.contains((event.column, event.row).into())
+                            }))
+                        .then(|| {
+                            let column = (event.column - p.input.x) as usize;
+                            p.rows
+                                .get((event.row - p.input.y) as usize)
+                                .and_then(|stops| {
+                                    stops
+                                        .iter()
+                                        .rev()
+                                        .find(|&&(cell, _)| cell <= column)
+                                        .or_else(|| stops.first())
+                                        .map(|&(_, offset)| offset)
+                                })
+                        })
+                        .flatten();
+                        (chip, offset)
+                    })
+                    .unwrap_or((None, None));
                 if let Some(start) = start
                     && self.editor.expand_chip(&self.input, start)
                 {
@@ -1527,6 +1570,18 @@ impl TuiState {
                     self.slash_selected = 0;
                     self.mention_selected = 0;
                     self.selection_gesture = false;
+                    self.click = None;
+                    self.tab_down = None;
+                    self.exploration_down = None;
+                    self.reasoning_down = None;
+                    self.clear_prompt_paint();
+                    return KeyOutcome::default();
+                }
+                if let Some(offset) = offset {
+                    self.editor.move_to(offset, false);
+                    self.slash_selected = 0;
+                    self.mention_selected = 0;
+                    self.clear_transcript_selection();
                     self.click = None;
                     self.tab_down = None;
                     self.exploration_down = None;

@@ -1,0 +1,2269 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T11:24:35.602Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "ff0032cb09b47ac22062eaa1ca04d802145c8b983ee195f985da4f0fab643954",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "4ab22745095d6016ae0600183df0a6b9fb5372d1c90ed46dac998d804b03b439",
+    "tool_preview_fixture.py": "78fe16562db78314d6f159ad24e7e62427b412510cbaa7a3d3924be85f46e471",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_caret.mjs": "3932934293e7491b0feec1bf59216bd1a558caabf69d02c1a7ccdf399e91e6aa",
+    "prompt_caret_fixture.py": "1ca9fd58037a7ae4f6348f5b24300bcc394067283c4dc6fdd9867e14fa11d91f"
+  },
+  "fixture_sha256": "d28dec57fa7627cdc64f5f44708752daa0d4730f20b2a97ee7534e628cffd430",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f8db58ecb34344e46eaa59a4f4186effbd28961d",
+    "tree": "75bfe9b22c5e09fc6264405cf05de52c355f9566",
+    "dirty_diff_sha256": "6315afca54b6a89b41f24ac2088109fd5c70b09ddc48f84c4741b988859ea436",
+    "source_manifest_sha256": "08dc6e6b39f703821946e1c77dc9f344115855f9e233a020cadaa7988d2a79b9",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "4c4e029e7a07d369680163fa8c8eb74b28ff44b45b3ab20f0fedc3330be54b01",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-reopened",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-reopened",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-restarted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-restarted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4a76aab5cd53b5ca6f1a1be150e4d80dbcaa64811c0ac94ed88152adbb467263",
+      "png_sha256": "70a025bb8dc33fcb9b4a19bac60adbd8d0d9aad4e3b299d0b1e6a1422b56b36e",
+      "render_sha256": "374470cb7f2f8db097f498399a9b0ff7f4cb29a9080299d5bc2f9c09a20f29fd",
+      "path": "upstream/tool-preview-caret-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b663a35429957c2357c015bd718119edaafc2aaeebef2d046df98a80bc3d97f6",
+      "png_sha256": "7caba9bb07e41b2d0dc7fdc616e699d0c879f1ad0a5ef35c6a0f57aaf3d66e91",
+      "render_sha256": "8b71bcdfbd76f07f76e5f89fd46b8a093ce2bce579d19e28a71196da61c4b9e9",
+      "path": "upstream/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "29d50b666a4f1e76c8e578cdd95758e052ab7d45433b61d7e349452e172a777b",
+      "png_sha256": "03414cdb22ac910ca7f5dda3858cd3e3f24ea236cedb5fd5eadc3e1aaa48b993",
+      "render_sha256": "9221e625cf8ee9d9a51eadb3210076fee6e2aeef59812a4c0c18e8ae20c49698",
+      "path": "upstream/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4f7c3ac99425c99e01701716e8c4dc9b659b7242d8abb65a89ef8445b9b90215",
+      "png_sha256": "9cda7cbaebaefc596fdd2e8a05bf9073411b90562056da936e0894b205f5db40",
+      "render_sha256": "2747b4f556485efd9cb13f65f22b1be7af3abe74b50cbb3da3c937b061d84658",
+      "path": "upstream/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "18d279fc66c40e37feb968a62afd9c716358f5a01a9d988e35dd5af6d40ba5fa",
+      "png_sha256": "0a2df094e21bbafda23996ffad051142e2427ca09dd84e49293997327490d0f4",
+      "render_sha256": "a927b07a7348ce94f1c384855fb3154560b493309a5500456225aea19d5b6776",
+      "path": "upstream/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ce38b9250f8dadb7d27ea9278cf4cdea9f4a24ad09054b6f9e0d3e2df46b49d9",
+      "png_sha256": "c70a3cc0c1c16c68112e25078567dae84e65ad8c338f9740f42c3b19ac26f333",
+      "render_sha256": "f3b0d7cbf3b0fd0b0acd576f54576ba22cde5379e91a5a88f53145f4f614abf3",
+      "path": "upstream/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "fadd587c873d8e8ab3150be7e327faddf98088642b790ce0d0519f39364c173f",
+      "png_sha256": "9efa625be8bfc29b9245d01b0685d3cadc939c932e8e609c26612ccb05e6c03e",
+      "render_sha256": "af18398705d70d2a1880d9680ea302bf673444fe95f4a454f574c8922e6ccd56",
+      "path": "upstream/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "6dd1a4e16756e37d6c100a64edfd2bc3c84861babfd6a01d7860e6d449074001",
+      "png_sha256": "2ecbd6b734641437438479aed774db57c6749c62b88143f0df012263c9b4fc01",
+      "render_sha256": "89aaee8771f71b826dafc9dce792ad2310e17cfdb4e2a93cb3113a7c22a2d1a8",
+      "path": "upstream/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5022cbcd653137f6d91b0e79f50901a6b7cc714994eb16e26541caf57aad3440",
+      "png_sha256": "45cb422ca1cd4b313ed811754a8420f8983af1f4fbc8db96ec3dc2029e3ea5b6",
+      "render_sha256": "b6697c2642849d1d41a30b56f1b695bea7c2b645bd3f7df429f5d644a1bbc386",
+      "path": "upstream/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c1962fffe4caaff95dcaf99c2efc61cd2e111b3633fc4cb580e90362c0df45e8",
+      "png_sha256": "e19207c135c76cd2dd929418516b57e26fa5c24d9c3127810d1351dca47e4932",
+      "render_sha256": "cbd6c2f697bafa113a2c63f18505d9a156f330a16736cf3b5445161f3a265f0a",
+      "path": "upstream/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "72c4e9625c4f824e8155c14ab5d70a9e6eaa93efdd6b55300c260bd4bbeaf466",
+      "png_sha256": "3048af06f921c8814169fa043f70f1ca2b89ac2b5767a92a56185ae9c5aaa2ec",
+      "render_sha256": "e6de23c9a9524202bddc607238224d0cf0fef4daf3b79e9ce4f1efb37bd03216",
+      "path": "upstream/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c86d5cdb4dbf2a3c8de44f6813fc9faa2e53209dcc60b27dc76c5425be67a03d",
+      "png_sha256": "b3213eef6d2960f1dab0e1759bd8a2cc011f12d11ed167908d865a3b39b89ac6",
+      "render_sha256": "4b8b8724fcd4a58b20f4c3b8e08ff726f28cbd2cfec04915b0533c78cab213aa",
+      "path": "upstream/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "9f380f80eb726069d20e6c02c281ce1d30e6d10435de3f1281f77ca72e61dcb1",
+      "png_sha256": "d03bb82f5a17a3b37c7d4aba83755b1ae3784e34f3ac7d0f3f015fbd7abdb5db",
+      "render_sha256": "5fc6f14f930ffa62ceb587c61ae9d950c705c895f7444375f72186190515dc49",
+      "path": "upstream/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b72bfb90142ebba3864ef29989a386edfd4898160b597b0febfdcd158ea9cf60",
+      "png_sha256": "238446c25fa42eda7cb4ac987299a933def3e31620be23fd92da59615812fd1d",
+      "render_sha256": "15f84d8f2c90472b4989e8b06d45fffaf257750ba169639569fa961a07754ecf",
+      "path": "upstream/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "4b938131f2a33bea86923f655d208c1a5543eff27f16f9e6b036afe88704a74d",
+      "png_sha256": "ab162116926514de8a1386bef5581166cea141c1b26cd030973f24eb77c46dee",
+      "render_sha256": "0b857a8a930afb97ccff940cb0d4851bee5810b51d675237e4d502e23236cb66",
+      "path": "upstream/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "06f92299a3ad12d45460ca91c176e46c676f2ce433533f47a3edf3dd957b06ce",
+      "png_sha256": "5020812439089421586c8fd04167ebf6481cfdb6380e9822f0ad5d2135f0a72d",
+      "render_sha256": "da1f4d712df3719b63cfeece1cf4349f8fe9284f3c958815570b42435db57291",
+      "path": "upstream/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "41e107a0563fc26281e73fa8697fe139df4fc259a328effad9322d7c10e399a8",
+      "png_sha256": "c53317bc9c99a006f29b53a8d12af01efa90d33622b46f9acec35e6ae4574154",
+      "render_sha256": "ffe1d9e2143a74ebc15081d7b0c0eb2d75e18ce66c9574e5d0a44706c4ed1522",
+      "path": "upstream/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f9d83ac1c27b58e1edba32a758e2aab2134585f710181c129b4ec7a46cc3c10b",
+      "png_sha256": "b94ff1c3329afd957a5b1c4689d84829be6401dc3adc6f61471c0076c10ac2c1",
+      "render_sha256": "14e102f050c4cbd2c52e7b84e620c17211ff539c48200369187e9215a31e2566",
+      "path": "upstream/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5bce7676242556036b06483f9db11c0a45c64c45285a3f9bafc1cfbba747d957",
+      "png_sha256": "3327c279d0d3ecd5ad2fa14be9cab7696fbaf3405d04273fdfe0f97144f27a48",
+      "render_sha256": "f012fb0eea0619ec581aaefd4d3de6a48ad55a70112ece7c241a1db218b09dd5",
+      "path": "upstream/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c43450b40e2c8ab40dba1aaa35dd59225186e542dfd1d9652f4ccdf060f6ffc7",
+      "png_sha256": "a4cb64b0a404b19806edb092f869da1890cb3a5459093d8fb02d9d75cde23c8f",
+      "render_sha256": "327896afa2a2aa00075d93a17c79e8d46beab3bff7df1c413667ef46f2a10491",
+      "path": "upstream/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "37cce30db5b1872622ade9ff2c8991569d22c963cd502a416f48502d632f4ace",
+      "png_sha256": "03414cdb22ac910ca7f5dda3858cd3e3f24ea236cedb5fd5eadc3e1aaa48b993",
+      "render_sha256": "a30786cacf9fd932eb8ffabe40cf231279fcb47cdc169db9d5184fbb64f22192",
+      "path": "upstream/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "bd4732d254e2d380a381781cdd895df7913b0a6829757439cc6f550906a8edac",
+      "png_sha256": "fe21cc369199bceea280f346562731afcd2adc93981bfd0b82dc24a3ddc3d619",
+      "render_sha256": "9e81ed9c0987c487916b8aa21a5e6405953a96bbc839a7d001d0488fe4742cb3",
+      "path": "upstream/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5363ca1e2a614a56289e295e88cadca0f5fb762a577525b517835f2a5f7e58b5",
+      "png_sha256": "c3a4d7b8e9230a6a26dc28a45d6eabad5746d73387991befd4d836fca6d5ff44",
+      "render_sha256": "2d87f487532f1bc174ce891ee189dd2b4ab0c36e59ef9692737af09bbf60608f",
+      "path": "upstream/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "fda3d85d542797928b59ea8b161bb54778efb61198691074a5aab239968ae79d",
+      "png_sha256": "fe21cc369199bceea280f346562731afcd2adc93981bfd0b82dc24a3ddc3d619",
+      "render_sha256": "e212b65b284163a614b7803379c1edfa1a90b82f07bceeee8dc491bd82ffcb62",
+      "path": "upstream/tool-preview-caret-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3ba22bb2bc2b6bae1d54d56936560be261620a32619ceffc32cede03fc6ca6e3",
+      "png_sha256": "fe21cc369199bceea280f346562731afcd2adc93981bfd0b82dc24a3ddc3d619",
+      "render_sha256": "a42e96234af1d993d468dcd215c6debbdbac327f984dfdbedecbd5d8ea62dcfe",
+      "path": "upstream/tool-preview-caret-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "aa8c1600ffeb31394a3ed21ce0ea23e67d98f2d7810eb37edde9626e02dc29f9",
+      "png_sha256": "61121c7a9686828acd764d965d0e6fb11c8e0f0db22e36c5232a99ec8190744c",
+      "render_sha256": "167b4894948c8be22ec9443111256dd370d430c93ee6fa1ecf230304a61bc9ff",
+      "path": "oc/tool-preview-caret-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a0a3f4b106b2729ffd68644bc191a3c95269e6bb11780073533e6ab0caa0c50b",
+      "png_sha256": "3e000f9e93432f1cea7d34caa44b1a7b7cfb89b9c1b62d83276ef453e8ea7a58",
+      "render_sha256": "505300412d1fb136bb80b0fd29b0ffbc9a182060eb6ae467b4c77b6c459cf196",
+      "path": "oc/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "24995a1832be1eca37017c813f7c5f96d0dde3e3de3b524eb47beedc0e78e955",
+      "png_sha256": "d3fc4eb7dfd02a48157a1f5fd6c615c047a25ccc1ba3457899174f19bc26c02c",
+      "render_sha256": "90ae4651acb0d2663a13d4100972b5adcfba0b0353296cab74d7bd7886c431b7",
+      "path": "oc/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "6ee0c11d7f7cde1ea4fb114a2d11e9da8503c63ba1ab54a0211582c43df0999f",
+      "png_sha256": "14e90a61410657829ad9ccfcba6d00d28d1f5e82d2a84a5fb0d7cff35cd2459f",
+      "render_sha256": "22057dcff3088787c82e627d5dfca5c4ba7bd7fd3aa1b8022a2562e37349821b",
+      "path": "oc/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4a48d91be014ef6fd90423f99819b944c347e4292a138311f852989726fdcdb0",
+      "png_sha256": "f00c2b514d725a6462ad9fba5f923ca901460a302242b522289049745cbc40bc",
+      "render_sha256": "d0b976ae9851d001f1d47ff9bfc789613c3d138c3724a2fb3f421e138b5aa517",
+      "path": "oc/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "34e5ffb0f011d0b03d21cae327cee36d244bccb417c97008a153d651cc905181",
+      "png_sha256": "74aa1df1c3d8dd5b53709a88c9a972668e38336a1eb46a99a9b184bf01d9c42d",
+      "render_sha256": "d7847901b5badec64e0c24ca4ea8a936c1490df0a2d23a3acdb36fd16ddd63e1",
+      "path": "oc/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ae50ef55d97e258aaf2ab3a4d8c11546c4a0d4d46400fe1f9045c11d4ecf711e",
+      "png_sha256": "773acf8da39cbea1496c11c597005daca804721ed1050636b8aa68de75e63da0",
+      "render_sha256": "49f99c4845d916ec80aab8b2a637f4fb06da0068847c4aa0769a66426e234db3",
+      "path": "oc/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "6830725ca1842bc74fbad1e24a2c3616837f2e5567570cbefbca06b0f116cd49",
+      "png_sha256": "990bc815a50dae123b3e9d4dd6541fb86355ca8d6a95a75936d2f5bc2e52d118",
+      "render_sha256": "f1759190954ab5ff9c896da80c6cae348b927a276d884ab8cb4bf0a9034ca966",
+      "path": "oc/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "9e7975a307194493cb9c0969ba3bec80f3f096df414140286c8f596a7504c14b",
+      "png_sha256": "56eadef1b1e42ff0e6226a27a13ebda1a50b63ee0dab30bb3526e97440db0b8f",
+      "render_sha256": "9a6584b64c5b73c8f27784c0605e97914ac0e66501e20a39dba4f9cfbe30d5e4",
+      "path": "oc/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "334a794671fa0a9e024550166e66a65a63517c26934bf21d0c06aa40e78f7bfd",
+      "png_sha256": "014b42e63e569015c344bd596d1aa3a0b6ebeed040fcd42ab4dd5053af843fc5",
+      "render_sha256": "70b86f1ed5fc7d23078a4606d5c41300c9cdfebe45cdb690dc410491c575ef56",
+      "path": "oc/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3b99e08e9b020334ad59c597245583ebcc68357f1518ab483899eff4f3523888",
+      "png_sha256": "96d27b3be905a0e003f1a53fda0984cab7aaa24f17a26170e7ca6ed5968fd828",
+      "render_sha256": "917728a1fe3e33ab0b0a5887c252650a06cee9c2a64e97f26515eb989fd1c9f3",
+      "path": "oc/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "d734fc3c41a1d53c20468b046c971867b71cdbbd1700ec973098f54c5e31e5d3",
+      "png_sha256": "fcba55dadfc151ba632b1c0ff66303f0d8c5582cd140ee61a61b4ecb227c2b11",
+      "render_sha256": "7c220860e0136ccc39e30ef7cfc2bca95075a9c14bf5bf5d967ec6b2d3c7640c",
+      "path": "oc/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "cc95fe147ac050aa6ae5de97e4a4ddcd115818accd133c2dc0646072a42ee4c1",
+      "png_sha256": "33872c240885ef8ec78e0c20458f0e56341d8e2f5e056a121e24d6253cd8c872",
+      "render_sha256": "990394d50b45416c6cd39afd6138c091554a6083fe97ee726aaaa187ba70c113",
+      "path": "oc/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0322768e0a6c7c153cd20691cd27fc9406717720421a35ca9ba9682f3c466aa3",
+      "png_sha256": "1c02b3dd561b8dcf985f9571101919162068da266a572c52e1aea5d4e481572f",
+      "render_sha256": "4328334446d7032fba0a967513492334d878a0dd88dc059299fd0a417305f9b9",
+      "path": "oc/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "322371e0889359dc10fcead8099f8ca1b1d697d08b9f5ead7ccacbacab7c2c7f",
+      "png_sha256": "74df89b387bf90e97369705f1d8773f14a57c7a78467a96bc777802d55264670",
+      "render_sha256": "3db7f223736f2305fe84436d3d59b4a41140d5becbc7e77d21c61da43e9230e0",
+      "path": "oc/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "33e9285d1d1f7d3129f0e38679e962e3e58181acccf27a4dce186147d152a86d",
+      "png_sha256": "c37e57f7acf864f5ccf2eb75f06fb130962c4cbbbafc31425ca821031253eff8",
+      "render_sha256": "0095d807bff30dc27290e4663f7047eb9f36c70682c92c629a8d1a35e867088b",
+      "path": "oc/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "1a4bc43174f3eebbf9baaa8e6d660e5a2464d939f9adc93ea108f9dcaf40c3b9",
+      "png_sha256": "36c07e1ece7cdbbc8b82e5f289f44d8745fad4649945de6976042f584cb1481a",
+      "render_sha256": "e289b62289f24c52c1f31cf24999e9862cd6b0a906288c699c721879ac6ff6aa",
+      "path": "oc/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "aa9eb0635d7e82f068a05f0fd1ddf69fbbd860c21447e0b0ea3c5feb64960247",
+      "png_sha256": "d8251ba888b80e8f99d0c69d38ba2862db64601669aa33f289570fe02345e3b9",
+      "render_sha256": "a4374dc7551d28d6f7bb38f9191bf5e8c21629680c2e82dac65a6b7377e5841a",
+      "path": "oc/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "749b574a4dfd9a432e6c8b5e385a45e543b9a399f812fe1705b6f7e48899f343",
+      "png_sha256": "9b42c08c19b103b6a904769ae9388f7ad45d61b82e28bf79f1bb2c5a178bb956",
+      "render_sha256": "3ba809b877fe7c132e09b5cae86cfd3a76ba21b5ad7c863b3393ff377e91ed92",
+      "path": "oc/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "fbde71f68323bce2ec4a0b5a7795fb7bd9fdd21f71a7763cee19046dfc6e5f5b",
+      "png_sha256": "1779bcdd0638289eaa31da6264d7e19f9c0b4a53b520d0f2d2739f75943a60c0",
+      "render_sha256": "8de95d030901d57e0cb5887d7d070263499146a364284e6d0dd358f6a7dbc650",
+      "path": "oc/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3d6ad72ea4f550229e314d30d5d68485e8133c9d82a09276f064cbc8b3258d5b",
+      "png_sha256": "d3fc4eb7dfd02a48157a1f5fd6c615c047a25ccc1ba3457899174f19bc26c02c",
+      "render_sha256": "bf5b946403375ac7d00ebd3c49c1e1c73e7fcce2d36aff968a6834dba6992765",
+      "path": "oc/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "8cd33036cd123046a0a32c441a381b9425b40ffa969fedab4380afaa3eed405e",
+      "png_sha256": "e74bea1ae9c314d70f876247046cd2f5f41d59b10e37192473826a2598cd1026",
+      "render_sha256": "f9bf8fadd6368dd7582fd98a57d1644e3a6d238fa72adb844e186323d547ca2f",
+      "path": "oc/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b12fdc0c136b39e27d98b2305bfeb06365fe7ab42527a35fa1646e4972a1eb7e",
+      "png_sha256": "b077ee1a56c6e0966183d23db12599c1099a45a1c5218bd229b5579b7fe74966",
+      "render_sha256": "89abf640c40ddefffbb5369acaca24efaad3cf8af12195ca3484c7537b4d3934",
+      "path": "oc/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "cba17a00cd0d94b5ee47dd5610519c97a97ee121e9259e47c7fcb31b9da19c9e",
+      "png_sha256": "e74bea1ae9c314d70f876247046cd2f5f41d59b10e37192473826a2598cd1026",
+      "render_sha256": "a6bde5933643a7491724244ead22f40565b2716e6dba587ec54af5844b562ebe",
+      "path": "oc/tool-preview-caret-reopened"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "bd418dbcdb113f178965930e797e07992ec4b5071f6f7105d3a726e6ef754517",
+      "png_sha256": "e74bea1ae9c314d70f876247046cd2f5f41d59b10e37192473826a2598cd1026",
+      "render_sha256": "e5b21a1cc69877d66c9acde3980a317661ae0e2532091f9b5152449d8018a9ab",
+      "path": "oc/tool-preview-caret-restarted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 86,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_caret": {
+        "status": "OBSERVED_PROMPT_CARET",
+        "observations": [
+          {
+            "stage": "caret-home-word",
+            "target": {
+              "x": 37,
+              "y": 21
+            },
+            "before": {
+              "x": 49,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 37,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 38,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          },
+          {
+            "stage": "caret-wide-second",
+            "target": {
+              "x": 32,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 32,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI αX界é"
+          },
+          {
+            "stage": "caret-combining",
+            "target": {
+              "x": 33,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界Xé"
+          },
+          {
+            "stage": "caret-zwj-start",
+            "target": {
+              "x": 34,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 35,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界éX"
+          },
+          {
+            "stage": "caret-trailing",
+            "target": {
+              "x": 66,
+              "y": 21
+            },
+            "before": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "TAILX"
+          },
+          {
+            "stage": "caret-wrap-gap",
+            "target": {
+              "x": 95,
+              "y": 21
+            },
+            "before": {
+              "x": 34,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 91,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 92,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX"
+          },
+          {
+            "stage": "caret-resized-word",
+            "target": {
+              "x": 17,
+              "y": 21
+            },
+            "before": {
+              "x": 29,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 17,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 18,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          }
+        ],
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_accepted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_reopened",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_restarted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 2,
+        "explicit_user_submissions": 1,
+        "user_text": "Проведи RECXON, жду план",
+        "native_durable_user_verified": false,
+        "tool_effects": 0,
+        "reopen_restart_no_replay": true
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_caret": {
+        "status": "OBSERVED_PROMPT_CARET",
+        "observations": [
+          {
+            "stage": "caret-home-word",
+            "target": {
+              "x": 37,
+              "y": 21
+            },
+            "before": {
+              "x": 49,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 37,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 38,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          },
+          {
+            "stage": "caret-wide-second",
+            "target": {
+              "x": 32,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 32,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI αX界é"
+          },
+          {
+            "stage": "caret-combining",
+            "target": {
+              "x": 33,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 33,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界Xé"
+          },
+          {
+            "stage": "caret-zwj-start",
+            "target": {
+              "x": 34,
+              "y": 21
+            },
+            "before": {
+              "x": 41,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 34,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 35,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "UNI α界éX"
+          },
+          {
+            "stage": "caret-trailing",
+            "target": {
+              "x": 66,
+              "y": 21
+            },
+            "before": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 30,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 31,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "TAILX"
+          },
+          {
+            "stage": "caret-wrap-gap",
+            "target": {
+              "x": 95,
+              "y": 21
+            },
+            "before": {
+              "x": 34,
+              "y": 22,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 91,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 92,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX"
+          },
+          {
+            "stage": "caret-resized-word",
+            "target": {
+              "x": 17,
+              "y": 21
+            },
+            "before": {
+              "x": 29,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "clicked": {
+              "x": 17,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "edited": {
+              "x": 18,
+              "y": 21,
+              "visible": true,
+              "shape": "block"
+            },
+            "expected": "Проведи RECXON, жду план"
+          }
+        ],
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_accepted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8a72e68e542e-1c47cb-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_reopened",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8a72e68e542e-1c47cb-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "caret_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc8a72e68e542e-1c47cb-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "Проведи RECXON, жду план"
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 2,
+        "explicit_user_submissions": 1,
+        "user_text": "Проведи RECXON, жду план",
+        "native_durable_user_verified": true,
+        "tool_effects": 0,
+        "reopen_restart_no_replay": true
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_CARET_ONLY",
+    "actual_requests": "One explicit edited user prompt plus title; zero tools/MCP/Shell effects",
+    "observation": "Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay"
+  },
+  "finished": "2026-10-08T11:30:27.394Z",
+  "exit_code": 1
+}

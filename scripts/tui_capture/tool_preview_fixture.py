@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import sqlite3
 import threading
+import prompt_caret_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -48,6 +49,8 @@ def configure(spec, home, project, config, cli):
                 'dialog.select.page_up':'alt+u','dialog.select.page_down':'alt+d',
                 'dialog.select.home':'alt+h','dialog.select.end':'alt+e',
                 'dialog.select.submit':'f4','dialog.mcp.toggle':'f6,<leader>t'}
+    if spec.get('prompt_caret'):
+        config['mcp'] = {'servers':{}} if spec['origin'] == 'upstream' else {}
 
 def control(home, action):
     if action not in ('fail', 'recover'):
@@ -72,6 +75,9 @@ def snapshot(home, project, spec):
                     data[table] = [dict(r) for r in connection.execute(f'SELECT * FROM "{table}" ORDER BY rowid LIMIT 10')]
             if 'events' in tables:
                 data['presentation'] = [json.loads(r[0]) for r in connection.execute("SELECT payload FROM events WHERE kind='tool_output_presentation' ORDER BY seq LIMIT 10")]
+            if spec.get('prompt_caret') and spec['origin'] == 'oc' and 'messages' in tables:
+                data['prompt_user_messages'] = [dict(r) for r in connection.execute(
+                    "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY seq LIMIT 2")]
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
@@ -99,6 +105,8 @@ def respond(handler, body, spec, emit):
     items = body.get('input', [])
     system = str(body.get('instructions','')) + json.dumps([x for x in items if x.get('role') in ('system','developer')])
     title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
+    if spec.get('prompt_caret'):
+        return prompt_caret_fixture.respond(handler, body, spec, emit, title, number)
     results = [x for x in items if x.get('type') == 'function_call_output']
     definitions = {x.get('name'):x for x in body.get('tools', [])}
     mcp = 'vis16__output' if spec['origin'] == 'oc' else 'vis16_output'

@@ -1,0 +1,166 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 37,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 38,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 31,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 32,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 35,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 30,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 31,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 91,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+  ],
+  "reason": "Timed out waiting for caret-wrap-gap-edited"
+}

@@ -953,6 +953,39 @@ body/reopen and temporal blink regressions run separately. Receipt:
 pixel PASS; pending/auth/security/fault and remaining frozen outcomes retain their
 separate mandatory acceptance.
 
+## VIS12 ordinary prompt mouse click-caret
+
+`--tool-preview true --prompt-caret true` exclusively selects `prompt_caret.mjs`
+instead of MCP/status/body/temporal probes. Both actual isolated binaries start
+without MCP entries. Real SGR Left Down/Up and typed `X` prove Home and session
+insertion, second wide cell, combining/ZWJ start, trailing blank, wrap gap, blank
+line,80-column resize, chip neighbor/expansion priority and modal backdrop ownership.
+Hover does not own the caret. Twenty-five full paired stages stay unmasked.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true --prompt-caret true \
+  --output /home/opencode/ai/oc/evidence/tui/PROMPT-CARET-NEW-IMMUTABLE-ATTEMPT
+```
+
+There are zero model/tool effects until one explicit Enter. The fixture accepts
+exactly `Проведи RECXON, жду план` as the sole user request, plus one title request.
+Native SQLite is read-only audited for that exact user row before/after real
+`/new`, saved-session reopen and clean same-root restart. The original's distinct
+RAW schema is not decoded; its real wire and saved-dialog/restart frames are
+separate evidence. No tool/MCP/Shell calls occur. Full emoji bytes are tested at
+the native editor owner: the common Unicode11 raster may lose the second ZWJ
+component, so the paired probe verifies insertion prefixes and retains the actual
+unmodified full raster, not a normalized emoji. Current50 whole-grid/PNG
+comparisons are DIFFERENT. Receipt: `evidence/tui/prompt-click-caret.md`.
+This does not qualify shared durable newest-50 input history or whole VIS12/T44;
+ordinary tool-output and temporal blink regressions run separately.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

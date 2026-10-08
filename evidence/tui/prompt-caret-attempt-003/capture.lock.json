@@ -1,0 +1,1394 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T11:09:31.999Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "ff0032cb09b47ac22062eaa1ca04d802145c8b983ee195f985da4f0fab643954",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "1c3c3522520f0d00997bcdf1911edc9a563bd1ef559eaa8d9b866c252d9f1f43",
+    "tool_preview_fixture.py": "78fe16562db78314d6f159ad24e7e62427b412510cbaa7a3d3924be85f46e471",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_caret.mjs": "533bed00473dc0c20e10966ca9201b475cc8e7d921df45d6aaac78c02b54584f",
+    "prompt_caret_fixture.py": "1ca9fd58037a7ae4f6348f5b24300bcc394067283c4dc6fdd9867e14fa11d91f"
+  },
+  "fixture_sha256": "4c9cde283aca94c2907223efee8da6ef84978b7ee0ce108c49b83f7cc8da5810",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f8db58ecb34344e46eaa59a4f4186effbd28961d",
+    "tree": "75bfe9b22c5e09fc6264405cf05de52c355f9566",
+    "dirty_diff_sha256": "9d925d478f7500fd0bdf28b24b1de5d47f54cc160052d2881dbf1f7984272db9",
+    "source_manifest_sha256": "50562f7acc29a084d7b5d6944e5901d5a7daa04667385df0a257ac930aa6c0ae",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "4c4e029e7a07d369680163fa8c8eb74b28ff44b45b3ab20f0fedc3330be54b01",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e2596d6458113a1171938f214c9e122f6431679f8815dae443dd8465cec2f551",
+      "png_sha256": "cadf3a67453acc23fa65ae080a9d6f3924cd9d7304fd9c09871425afd507c300",
+      "render_sha256": "5db6938fe207b4dfeef616b80ed23fff7da1216e152be53c89c4964bc4963480",
+      "path": "upstream/tool-preview-caret-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f8ca533fc8acdc00c1226fbf2acb102e5e31a6a5b13e59d622ec1b6efa99ced2",
+      "png_sha256": "37383ab83f621d836dbfd4267d9c186887a139bbffc657af199206552b8dff1d",
+      "render_sha256": "8b71bcdfbd76f07f76e5f89fd46b8a093ce2bce579d19e28a71196da61c4b9e9",
+      "path": "upstream/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "00f5764bc8e5a8d43a0ea82d28ee00962f17db2da43423094e3cba0bd717e8f4",
+      "png_sha256": "0cd1b77d32b08fc2b6efc97af810f757cc5cb31ef0fa8b4d13f7c51d0d905165",
+      "render_sha256": "9221e625cf8ee9d9a51eadb3210076fee6e2aeef59812a4c0c18e8ae20c49698",
+      "path": "upstream/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "2384f332db0131ca7f286cb55f22c23923a5d5f0c9630f2956b07e4590bca2e2",
+      "png_sha256": "aa794d457bd6791353e9e8cb2311774bd4a908e7e3bb0527e3a6ac8387fb4079",
+      "render_sha256": "2747b4f556485efd9cb13f65f22b1be7af3abe74b50cbb3da3c937b061d84658",
+      "path": "upstream/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "84abaf71cece5eb833b370b583728c8bb45486cd714fd389ab8310ace688c067",
+      "png_sha256": "1a42da54104c85525e2e001549f61a7c5138ed4b7427c03ec5b7d8a24034e26e",
+      "render_sha256": "a927b07a7348ce94f1c384855fb3154560b493309a5500456225aea19d5b6776",
+      "path": "upstream/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e3e5ed7da40d6acff5bc62bcc69a25a4e0f1f80a7fa9cd83e334069cf41d38c1",
+      "png_sha256": "128551ba9d3d444235d7a60e8ad6250365c046d365fdd7bf91a3a9f3c6e4a79e",
+      "render_sha256": "f3b0d7cbf3b0fd0b0acd576f54576ba22cde5379e91a5a88f53145f4f614abf3",
+      "path": "upstream/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b40daa28b3108953f8409bd4877ab0f91846fe45f8765bbd1387a3cfd24f265e",
+      "png_sha256": "4a72400f8e1c0bb35e38a2015b76882d854c9eb32de1b919ca957f572ac194a2",
+      "render_sha256": "af18398705d70d2a1880d9680ea302bf673444fe95f4a454f574c8922e6ccd56",
+      "path": "upstream/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e7373dff60e5fd11ce4aa9c63e8f68466b15683aeb7d7221ecb54852ec180d3f",
+      "png_sha256": "ab91ee9b86e0fbc93e936631bbbb1a7194eae2530a6e404713f1fadba126db4f",
+      "render_sha256": "89aaee8771f71b826dafc9dce792ad2310e17cfdb4e2a93cb3113a7c22a2d1a8",
+      "path": "upstream/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "00156b3a19ee89b7f4b3594141af7a7e47df2650f82d60ec04cbb1c5c12f6690",
+      "png_sha256": "2833a963d316cc33f040eab147791363a0e207a11a379ed4800bf2f633551813",
+      "render_sha256": "b6697c2642849d1d41a30b56f1b695bea7c2b645bd3f7df429f5d644a1bbc386",
+      "path": "upstream/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "166dd8d9ce7d55fa5e12f9a16a2100a458da8566b0c6ac98070cfde6f7be8e06",
+      "png_sha256": "dadaabdec2c61d5ca565209a9a8c08a6d6318926d21f540c65dda44a5f9de1b2",
+      "render_sha256": "cbd6c2f697bafa113a2c63f18505d9a156f330a16736cf3b5445161f3a265f0a",
+      "path": "upstream/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ffeefadf3081e23a549b89a7109d316a5947264224473b319065be67c66c212a",
+      "png_sha256": "b56a4aee196ecac89f1fc886a4db41b495daa2c5885ceb5ea4f6fd9664b08587",
+      "render_sha256": "e6de23c9a9524202bddc607238224d0cf0fef4daf3b79e9ce4f1efb37bd03216",
+      "path": "upstream/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a43da6a29d44a237352d901a92894ac3ffe7439c727e77e60e19fea328f5149a",
+      "png_sha256": "9b335e8ebd8e424ccf1d983abd18e8ac7f0d18afbd652a770124c57559230801",
+      "render_sha256": "4b8b8724fcd4a58b20f4c3b8e08ff726f28cbd2cfec04915b0533c78cab213aa",
+      "path": "upstream/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "df2731a70d33c60b4f630f7ea75c4eb3b2aa238f4f09d39d284fa1382845f965",
+      "png_sha256": "720a3d8a5448dd500034c0333f615fe6100e4e388802f70a6273704784b1208b",
+      "render_sha256": "5fc6f14f930ffa62ceb587c61ae9d950c705c895f7444375f72186190515dc49",
+      "path": "upstream/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e8ca96316c5e42300ccdcf238f5f7442332064dcd986cfc11316ac340e1e5f63",
+      "png_sha256": "86c698dac13b5bbcfa12ba7f568e72c9953df7aa86f2f22018954b4b1c7f5e59",
+      "render_sha256": "15f84d8f2c90472b4989e8b06d45fffaf257750ba169639569fa961a07754ecf",
+      "path": "upstream/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "10a6de0ad2d8fbaf57e335ed99f7135ce6bb2a821e38750a710be23814a1865f",
+      "png_sha256": "88973d3932ea9a95319301cd0c605e42aceec4685d5358dc63e6ff18afbc9d6c",
+      "render_sha256": "7d1b0af23c5ceb4c1f141768db0a2a42c06eb362956e5f1e4597ab30e8b1d648",
+      "path": "upstream/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "6ea935e3aa79bcd78e43f6ba1e2ce9788c0360b9b8313dca098f1ea4e2d74671",
+      "png_sha256": "e63527e2f6fcaa881d8472e869287593ae467d44a73c8a99d0d14fa801278e9e",
+      "render_sha256": "c03be79382bf98be6b67f84fe91a7714b4aaa1dcb95abd096216d60293240a30",
+      "path": "upstream/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "2ca32f3336d3474084fac33b53440026478d67e59bd3599bcacbf2a756be47ff",
+      "png_sha256": "6684272caa07ae3646b69a4a83a5a6b024580c63d5829e897df6eceb70a67254",
+      "render_sha256": "ffe1d9e2143a74ebc15081d7b0c0eb2d75e18ce66c9574e5d0a44706c4ed1522",
+      "path": "upstream/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "508d42395787af595fa56a10f72df423ce43b41e0de1f76d2a9d42db72681b1c",
+      "png_sha256": "0f8b21e61dcb299b29eddb5132c896c019f3962dff69334f560ed07e50571b72",
+      "render_sha256": "14e102f050c4cbd2c52e7b84e620c17211ff539c48200369187e9215a31e2566",
+      "path": "upstream/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "51ee83d4b17e08bb32e739acd58eefaf1928ffff51482c7c6ef715c549085430",
+      "png_sha256": "ee3bd7b6da8530cd33e870c587bcf51f54a9a6dbe7fb1ade5d22dae64585ead7",
+      "render_sha256": "afa34d4bb593a9f0bfaaea473c5380ef7216f756e421728353c9fc2e53370b4e",
+      "path": "upstream/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "631f6a2aed3919bcbc56ccc67dfaaebbcfc11de7926e54461f41c9150f857ad4",
+      "png_sha256": "cadf3a67453acc23fa65ae080a9d6f3924cd9d7304fd9c09871425afd507c300",
+      "render_sha256": "1c9e1a65cd445d6294950d8d9b9e28bbdc711f156fe7454bb3104caeac19cc06",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e6413fe1a63a8c247bb9c9e96aa7a27850f0e709f4588855e20da281b7a1c121",
+      "png_sha256": "2975cbc8e13f1ce96ab79028b5f277469cd883dfea327969c707902853d4fa57",
+      "render_sha256": "430cee998e5d66723271b01cf44f4b909b154511fc371723326aafe9caf65010",
+      "path": "oc/tool-preview-caret-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "36791cf40e894fbdd97c44ad9970027f2600884cb5bd234ee57c33b291c66d80",
+      "png_sha256": "e863b95982ce2db9c71e062b5237314136d4d3a90712a0009f8b612551fc516d",
+      "render_sha256": "505300412d1fb136bb80b0fd29b0ffbc9a182060eb6ae467b4c77b6c459cf196",
+      "path": "oc/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "cd0afb499f3e5de70c3121a128e7b1ba728c10af7f07411ad506658db4b23132",
+      "png_sha256": "c6a38eb3ccc0ec4b101c03b875d12cf8691910a697f18a4928c7e35a5de78669",
+      "render_sha256": "90ae4651acb0d2663a13d4100972b5adcfba0b0353296cab74d7bd7886c431b7",
+      "path": "oc/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "afb116d4c8d9c6110147a04893148f5f3d554fd3a449347d48ca26219835c9f5",
+      "png_sha256": "698348aab2ca92ad57bed0a20897d47fcf05f412d5cf99a3aea4381034edbe65",
+      "render_sha256": "22057dcff3088787c82e627d5dfca5c4ba7bd7fd3aa1b8022a2562e37349821b",
+      "path": "oc/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c58eff3c1e51e319ad22dee80d7b5e6b00a0ea7ec35a4ee38317eee8217ade04",
+      "png_sha256": "b2df8acf34cc7bbe42f3f7f3a1a08aed1c63064c979da0f3a51587d585f50de8",
+      "render_sha256": "d0b976ae9851d001f1d47ff9bfc789613c3d138c3724a2fb3f421e138b5aa517",
+      "path": "oc/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0639bc16e5e04e11fbc4a2aabcbebd62ab3cbf947d8cb4e18190d18a513d341b",
+      "png_sha256": "1c1e0e04bde903c99b8622a7da84b6478499b903305e4d096eb17aa5ef6744e6",
+      "render_sha256": "d7847901b5badec64e0c24ca4ea8a936c1490df0a2d23a3acdb36fd16ddd63e1",
+      "path": "oc/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3ca527be81c4aea4da94b1fde033f384bed08d2b51d2fdf3487a337b92d96f2b",
+      "png_sha256": "a44cddfcabb9bbbd62c784343682dd47542d5db9c9394cd6f490bdc05fb25a92",
+      "render_sha256": "49f99c4845d916ec80aab8b2a637f4fb06da0068847c4aa0769a66426e234db3",
+      "path": "oc/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a10b43744fb19e86d27f25d1809e3a5d228c8200365b437bf1ff52e377a36f47",
+      "png_sha256": "3112f6d99b0f7cf9e2ebf86c857a8157f413eb687b4f4ca240f211ba37c59b69",
+      "render_sha256": "f1759190954ab5ff9c896da80c6cae348b927a276d884ab8cb4bf0a9034ca966",
+      "path": "oc/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "48d089658afab356d98015b60aedfe09db48e990ee608add8c24a8df5153c0c8",
+      "png_sha256": "ffd5f32dc3bfc9a05295bd6c9163fed225d1a3a120b5db2a02b8b90b72a12335",
+      "render_sha256": "9a6584b64c5b73c8f27784c0605e97914ac0e66501e20a39dba4f9cfbe30d5e4",
+      "path": "oc/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dbc063080fcb018567b67833fc023734bcb6b09798a0e2e40db5a3ed465d4fec",
+      "png_sha256": "1d17f4205d7b8a733e8a4e058135c1200aa85936e2b32d144696c91701cc8da0",
+      "render_sha256": "70b86f1ed5fc7d23078a4606d5c41300c9cdfebe45cdb690dc410491c575ef56",
+      "path": "oc/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "d9067d0580bbc9ac5c9b0d5631798fd3b070fe642a28360421dc900f041f65f6",
+      "png_sha256": "0b184d7927c92219be2c27bcdd0248c285687bd10a95e243bc02f439ab5ed83d",
+      "render_sha256": "917728a1fe3e33ab0b0a5887c252650a06cee9c2a64e97f26515eb989fd1c9f3",
+      "path": "oc/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "61ddcf6cc2cdc85084ef97c01a6f3b5d81612af38984053e732d9eb5f1951466",
+      "png_sha256": "bee32ca8e47d09a5588f847a709e351127771ce2e0bbe2360c82f8a00debc742",
+      "render_sha256": "7c220860e0136ccc39e30ef7cfc2bca95075a9c14bf5bf5d967ec6b2d3c7640c",
+      "path": "oc/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ea5c218c94edc117cc3758f1840f975061fbd78eebe1bd5caf108f85d6608887",
+      "png_sha256": "9716e7fa55270b96dc55ec8e3cf92d8d405553b5c3edfec108a76e219522ed90",
+      "render_sha256": "990394d50b45416c6cd39afd6138c091554a6083fe97ee726aaaa187ba70c113",
+      "path": "oc/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c387d05a5240199554e4f1c1d00530982dd6504c1f2678f671598932de31a5ab",
+      "png_sha256": "96a93f91b54a0c43c2c4278d29ce98bcc545ed0136f1d8da881b2291ec5e8cce",
+      "render_sha256": "4328334446d7032fba0a967513492334d878a0dd88dc059299fd0a417305f9b9",
+      "path": "oc/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "17c7890cb0e8bb73309f0f81bd3a485ec8f6f55cda008da17b767a86bd3d19bf",
+      "png_sha256": "e7d18e2f317649655f95ea5d9a522cd074b0d67d51b69ac804427046782af918",
+      "render_sha256": "3db7f223736f2305fe84436d3d59b4a41140d5becbc7e77d21c61da43e9230e0",
+      "path": "oc/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "ee3b6782844b3bd1ee4d7d667dbb86b246218304b28db71b4e1cf4cf7632e5c1",
+      "png_sha256": "a149eaceebed06d3d17cc9a67d5890681e6b6229934a2fd78d87ad9560a22c23",
+      "render_sha256": "0095d807bff30dc27290e4663f7047eb9f36c70682c92c629a8d1a35e867088b",
+      "path": "oc/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "aaacdcad6b17cdaf805aa9902de38b2cd7e3d37d3e2faa61aca569e7d691c3cd",
+      "png_sha256": "a1a0eff9666e8c07deb86730f0cfb2b1ea0f162a699f5a41594ccbd1ffa6bc3a",
+      "render_sha256": "e289b62289f24c52c1f31cf24999e9862cd6b0a906288c699c721879ac6ff6aa",
+      "path": "oc/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "d29eabb47c1522526566025dcbfc7439e9c4852ca0c52b40c4e03ba5bb8e1e20",
+      "png_sha256": "73459fe4279aec403da7eb9d4f7b689ecb3381386aa7e6f6a6c30d3858758a8f",
+      "render_sha256": "a4374dc7551d28d6f7bb38f9191bf5e8c21629680c2e82dac65a6b7377e5841a",
+      "path": "oc/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e814ba2f625eac6c86780b0884c39081876a9746fef47401cb9b296d4c85ea50",
+      "png_sha256": "7958e9cdafba5fe97b7befbf919f548f8a8fbec1b0938bfc6a52eedccb4ccdac",
+      "render_sha256": "99d32a49f3c770323b779e470092c7ed139ee390d9df475eee3e5c8c759f98d3",
+      "path": "oc/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dcbeb20dd559fc515345008cc2ae710f9a9d806ed6c315cef798a0dcb21869c0",
+      "png_sha256": "0b10643d957b7dead15266294fd8f83cd86c5c66f1c639f1226dee190ec0d85d",
+      "render_sha256": "a9bf61abbd0c5986f683544e9d26bd333d56d348639f8384439dc83425da46b8",
+      "path": "oc/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0dc1d3751d855d22d11294d77c08aab854208d4a66ed4f680a1bb00301dc0278",
+      "png_sha256": "710d72bced1e3356981bc0ca7afac6e2fe6ad750cc92b7b4108a1231c36a13b1",
+      "render_sha256": "64225f1146bb1f64ab01beafd8136ffa3ee01a75c0ad9f56785476a05140e30f",
+      "path": "oc/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "42daf4e97ce425b0eb8d06053666dc96ee0f408fb468e40ef78fb58d9f113d8a",
+      "png_sha256": "c30a820fbff14eac5bcb6119af734347eb9d8ec6e98c1f7d528a864924061db4",
+      "render_sha256": "f9bf8fadd6368dd7582fd98a57d1644e3a6d238fa72adb844e186323d547ca2f",
+      "path": "oc/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a4ec21251c9d3c98e1ff9c5ab7286b65f1b96ebb681ed20ddf2babf18ef54dfe",
+      "png_sha256": "79edd8a0f9bbed03f075644e525b4bc08215f071a5c54f750c76175181813e95",
+      "render_sha256": "89abf640c40ddefffbb5369acaca24efaad3cf8af12195ca3484c7537b4d3934",
+      "path": "oc/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "1d192c446b5535e78497e7d8f56e0ccdf8677d375f39bdb9db157f24819d0ffc",
+      "png_sha256": "c30a820fbff14eac5bcb6119af734347eb9d8ec6e98c1f7d528a864924061db4",
+      "render_sha256": "6dcbd55627494981e216c0e1755a18b37ccab118ddefc74cd5f00bcfad6ccffb",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 86,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Timed out waiting for overlay owns pointer"
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Timed out waiting for empty composer"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_CARET_ONLY",
+    "actual_requests": "One explicit edited user prompt plus title; zero tools/MCP/Shell effects",
+    "observation": "Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay"
+  },
+  "finished": "2026-10-08T11:14:13.396Z",
+  "exit_code": 1
+}

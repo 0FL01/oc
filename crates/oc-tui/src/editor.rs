@@ -886,6 +886,10 @@ fn layout_wrapped(
         // it at the next row's start. Keep its offsets at that visual boundary.
         if words && whitespace && (suppressed || column + cells > width) {
             if !suppressed {
+                rows.last_mut()
+                    .expect("one row")
+                    .positions
+                    .push((column, offset));
                 rows.push(PromptRow::empty());
                 column = 0;
                 suppressed = true;
@@ -902,6 +906,12 @@ fn layout_wrapped(
         if column > 0
             && (column + cells > width || (word_cells <= width && column + word_cells > width))
         {
+            let previous = rows.last_mut().expect("one row");
+            // A soft-wrap separator belongs to the next raw word, but a click
+            // in this row's trailing blank stops before that separator. Using
+            // the next word offset would place the caret on the following row.
+            let end = offset - (previous.text.len() - previous.text.trim_end().len());
+            previous.positions.push((column, end));
             rows.push(PromptRow::empty());
             column = 0;
         }

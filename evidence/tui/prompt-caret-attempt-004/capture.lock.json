@@ -1,0 +1,1498 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T11:16:58.216Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "ff0032cb09b47ac22062eaa1ca04d802145c8b983ee195f985da4f0fab643954",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "4ab22745095d6016ae0600183df0a6b9fb5372d1c90ed46dac998d804b03b439",
+    "tool_preview_fixture.py": "78fe16562db78314d6f159ad24e7e62427b412510cbaa7a3d3924be85f46e471",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_caret.mjs": "1f6cf579abdf6fa16a5ccb3a95f2b8e191178266e4bd343e273f3d541525d9f1",
+    "prompt_caret_fixture.py": "1ca9fd58037a7ae4f6348f5b24300bcc394067283c4dc6fdd9867e14fa11d91f"
+  },
+  "fixture_sha256": "d28dec57fa7627cdc64f5f44708752daa0d4730f20b2a97ee7534e628cffd430",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "f8db58ecb34344e46eaa59a4f4186effbd28961d",
+    "tree": "75bfe9b22c5e09fc6264405cf05de52c355f9566",
+    "dirty_diff_sha256": "6315afca54b6a89b41f24ac2088109fd5c70b09ddc48f84c4741b988859ea436",
+    "source_manifest_sha256": "7ab541ba07dc631bef7fdc02aef4d3d308eaf36d1618c0159f9b935860c78832",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "4c4e029e7a07d369680163fa8c8eb74b28ff44b45b3ab20f0fedc3330be54b01",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-home-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-combining-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-trailing-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-blank-line",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-chip-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-overlay-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-before-submit",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-submitted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-caret-session-edited",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a7160be74f76027df6d8a63ed5d9b1b9634b3d223e01d99b19cd8843a887466d",
+      "png_sha256": "daea25660bfee446668690678bc490e52097938da9458cebc7215d3d85dcdb5a",
+      "render_sha256": "0c4dc882b1f47ec5c4f9760e45f93c24c17389e827ce680ad20aac9e1f9c6529",
+      "path": "upstream/tool-preview-caret-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e6438b528db03d8bc98e7b2e7aadbdcb13378778621ddb39584ffb5ba3bc9cde",
+      "png_sha256": "e5fcb836fc18feb6d54d3455a28b9f7985f348903055a34b709d6fb832f99210",
+      "render_sha256": "8b71bcdfbd76f07f76e5f89fd46b8a093ce2bce579d19e28a71196da61c4b9e9",
+      "path": "upstream/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5b60067027aa307b0f457816a2cc0d72d84a0578bcd284a02de9c54b236b6c40",
+      "png_sha256": "9becfc4313c808196b4578921143925a73058ce80b7707dceb7f9a45fc1919e3",
+      "render_sha256": "9221e625cf8ee9d9a51eadb3210076fee6e2aeef59812a4c0c18e8ae20c49698",
+      "path": "upstream/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "cd1829b6ed01c5af75e02df765d547d365bcff68b362874ed14c117c95fc5a17",
+      "png_sha256": "2b021fd033f95580af3a175993c8b072f14e8786866a50617b3af0eba29ab169",
+      "render_sha256": "2747b4f556485efd9cb13f65f22b1be7af3abe74b50cbb3da3c937b061d84658",
+      "path": "upstream/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "1ff75de1fe4f3e0219484fae48e1b95bcc472cbec49c91384ee54b93976db23a",
+      "png_sha256": "d9306c1c011c7686080ba1b6031c56068c27d461340b160f50d5b99b2c7d8b67",
+      "render_sha256": "a927b07a7348ce94f1c384855fb3154560b493309a5500456225aea19d5b6776",
+      "path": "upstream/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "52aed573e6fb36896cd04af13a63d26f590ef6d9e1c72143b11b5439967331a6",
+      "png_sha256": "2b31bac378464f514aa39b5e18238136974f6fe82b26b2b78e475c40908379b6",
+      "render_sha256": "f3b0d7cbf3b0fd0b0acd576f54576ba22cde5379e91a5a88f53145f4f614abf3",
+      "path": "upstream/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "a678fcd50ec391bec5dd592cbacd1a5d0d832422857a4a14b1decdbcfae8218d",
+      "png_sha256": "677e44221a9feae277a70c2956c18c30a587284af1157e2e79a154f1a0aa608f",
+      "render_sha256": "af18398705d70d2a1880d9680ea302bf673444fe95f4a454f574c8922e6ccd56",
+      "path": "upstream/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "986f3c679fc14a58dc385a16e3cdc0e3ee764ba9f33b7a9c9ff43557a9379832",
+      "png_sha256": "b958ca02fc93a57d9d1def956b907851239e993aff6d616cebfc2ea6fe1d4fb9",
+      "render_sha256": "89aaee8771f71b826dafc9dce792ad2310e17cfdb4e2a93cb3113a7c22a2d1a8",
+      "path": "upstream/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ddc2dd1b09f5c4884bf3ba7869e6eb7e69718472b73702e9bb3d115d23a873ea",
+      "png_sha256": "44d4f2dae2305defb463e1d1fa46d7138c60b5cf9329749b8c8fda42ae558784",
+      "render_sha256": "b6697c2642849d1d41a30b56f1b695bea7c2b645bd3f7df429f5d644a1bbc386",
+      "path": "upstream/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f1d038f3f56522b1ce35d486c1ca9a737174cd77d3a3cf73ad5788a708c67b35",
+      "png_sha256": "48a55b3fa66e0248753a9be2e1165550549201a880c33da7f48a2536217c2f09",
+      "render_sha256": "cbd6c2f697bafa113a2c63f18505d9a156f330a16736cf3b5445161f3a265f0a",
+      "path": "upstream/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f66fbbb58bd6273199a68447961e68bcd24db78167a958442b07c8b23ef80ba3",
+      "png_sha256": "fddd42565ed677009b7e364262b7f892ba1ccacc1d3b7e1334baf6878612a8d4",
+      "render_sha256": "e6de23c9a9524202bddc607238224d0cf0fef4daf3b79e9ce4f1efb37bd03216",
+      "path": "upstream/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "7e5b92b593085ad2d219af0f9c23d5b0fa2071136730d85cb2a8b693641152b8",
+      "png_sha256": "0e1c0fa364c5b0c9596d4c821594d2421bfd6fdabffe8bacb01122bc4bb2f48c",
+      "render_sha256": "4b8b8724fcd4a58b20f4c3b8e08ff726f28cbd2cfec04915b0533c78cab213aa",
+      "path": "upstream/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "ecd08c10d8600a076923ee6f2949fe30f007daa1eab6da7d22abfbcf79620ad1",
+      "png_sha256": "c1d07f58ce1c619c7391b22ead30ce3d0c5e550a06a3e3630b2be7b5201a6474",
+      "render_sha256": "5fc6f14f930ffa62ceb587c61ae9d950c705c895f7444375f72186190515dc49",
+      "path": "upstream/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b87a7ee5b2518175d43982aaf5a2b97181c81a40af4560248ee259c3080f9c7d",
+      "png_sha256": "a492798efccfb8987be617347b825c3d4e8f79031ab805a7fb4e13b2a001a2fe",
+      "render_sha256": "15f84d8f2c90472b4989e8b06d45fffaf257750ba169639569fa961a07754ecf",
+      "path": "upstream/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "d6178646d790da9a353b80ab716fa5668f0d50ab18c2657d8ab5d354237f644a",
+      "png_sha256": "4f8e3ddd01415b9d6d59b6464f28b0c150422050d6d546dc24644647b97e729f",
+      "render_sha256": "7d1b0af23c5ceb4c1f141768db0a2a42c06eb362956e5f1e4597ab30e8b1d648",
+      "path": "upstream/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "df758e0552d5deb3144f0fe18777b0d7e2e9766b2657f2cac7d97e169479ef6d",
+      "png_sha256": "e972c6e4b7f9e508347835e720f3f374d10460364cf00bc5b6050e062f1e81a3",
+      "render_sha256": "c03be79382bf98be6b67f84fe91a7714b4aaa1dcb95abd096216d60293240a30",
+      "path": "upstream/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "97fbd9839185d1a642063716c72fdb1802c61828b62af3ee7958399b8585b9ec",
+      "png_sha256": "8f0340b8ccbd0e6a3d435d4b1df5148878eab7e4fe15d25478229f375bb4052d",
+      "render_sha256": "ffe1d9e2143a74ebc15081d7b0c0eb2d75e18ce66c9574e5d0a44706c4ed1522",
+      "path": "upstream/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "e1a87b120761e10af6a816eb2adfb1e941f29e2911577d155adbf012e5d7ad68",
+      "png_sha256": "67bcb923a13b64506077cc5f7b115425a140923feb5be524db38699efc175a7c",
+      "render_sha256": "14e102f050c4cbd2c52e7b84e620c17211ff539c48200369187e9215a31e2566",
+      "path": "upstream/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "5bce7676242556036b06483f9db11c0a45c64c45285a3f9bafc1cfbba747d957",
+      "png_sha256": "3327c279d0d3ecd5ad2fa14be9cab7696fbaf3405d04273fdfe0f97144f27a48",
+      "render_sha256": "f012fb0eea0619ec581aaefd4d3de6a48ad55a70112ece7c241a1db218b09dd5",
+      "path": "upstream/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "216f80d2e2387c6dc4c4ac16fcafc919c24d8d29d19bac717cb9212551196c6b",
+      "png_sha256": "3f3dfd776eddcb0ec23c1971eec0008761b8bf64940613652fce5736833394a5",
+      "render_sha256": "327896afa2a2aa00075d93a17c79e8d46beab3bff7df1c413667ef46f2a10491",
+      "path": "upstream/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "8ba38ac460260a4671be1da8c1bc18be0f0329733b8e83923a41218538dd3137",
+      "png_sha256": "9becfc4313c808196b4578921143925a73058ce80b7707dceb7f9a45fc1919e3",
+      "render_sha256": "a30786cacf9fd932eb8ffabe40cf231279fcb47cdc169db9d5184fbb64f22192",
+      "path": "upstream/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "95c8e79b4afad4698a72b3570b699b5d85201f9d789b6643ee74d46d0c264614",
+      "png_sha256": "8c4f5194aa61a58001914ade6e4952cdfdc26a4061904afdaf74190ba83faaf8",
+      "render_sha256": "9e81ed9c0987c487916b8aa21a5e6405953a96bbc839a7d001d0488fe4742cb3",
+      "path": "upstream/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "d4c103dc638ee86ca8f744e836175fad9791ce9774c216526977d490cc3a09a8",
+      "png_sha256": "eb5011aad15bead429a636a1c0e94bc3e7e8d063ba93544208015ba405a09b81",
+      "render_sha256": "2d87f487532f1bc174ce891ee189dd2b4ab0c36e59ef9692737af09bbf60608f",
+      "path": "upstream/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "c4034c2a6762b960d6bba9f99a2b5828b97369cb0845743a459b0e39d2ecadf5",
+      "png_sha256": "7551682a5e9490438b9938ed4cc4ccfc0b5f1c504110b51424611f93bf7d2d3a",
+      "render_sha256": "5bc5641d74d6be1133d590d6a5ff8a18e1baf9d6b6a280c4c67b6dc5cc8b98c8",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "9a1858cb9abbc9a36d51a141eae4a2757c0d177775c0e5c23af7e663c7d209c6",
+      "png_sha256": "f47f2651426eec3b637dc2dd4c081ee39b242be04499734302ec3aab8ce9e0e2",
+      "render_sha256": "430cee998e5d66723271b01cf44f4b909b154511fc371723326aafe9caf65010",
+      "path": "oc/tool-preview-caret-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b725d2cd865c748ac2dffe0bfcdc7bee61e1e2c63f9042160b4658be2fb0e01d",
+      "png_sha256": "fbdfbed2400245e1761e374b0940273edd155d75b78ecbde356541f9c4f8bf3f",
+      "render_sha256": "505300412d1fb136bb80b0fd29b0ffbc9a182060eb6ae467b4c77b6c459cf196",
+      "path": "oc/tool-preview-caret-home-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-home-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "81d815aaf55fd9be97db377d1de7f3472b74fa168ea49f67a3d63d012639c1a5",
+      "png_sha256": "1f918027de55d27340f852d4b75855f6f26e066c3a8b490363e7db1cb7bdeb95",
+      "render_sha256": "90ae4651acb0d2663a13d4100972b5adcfba0b0353296cab74d7bd7886c431b7",
+      "path": "oc/tool-preview-caret-home-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "8be7271cb50c84266a7f4fff8776e7f810c0acf31d168eda4107cbdb21794a71",
+      "png_sha256": "6569e805a250c3eec8174f5a014137a1f2a8c03e87551587bcaf5101efe91ca1",
+      "render_sha256": "22057dcff3088787c82e627d5dfca5c4ba7bd7fd3aa1b8022a2562e37349821b",
+      "path": "oc/tool-preview-caret-wide-second-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wide-second-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "b842d7cb850d64de1c26558338866827d35180df7c252b051c77087c989cc3b3",
+      "png_sha256": "2456d9725430078860ff8288933f5cae2b71495f6b9eebb6b77cadcdc0742b5b",
+      "render_sha256": "d0b976ae9851d001f1d47ff9bfc789613c3d138c3724a2fb3f421e138b5aa517",
+      "path": "oc/tool-preview-caret-wide-second-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dd2e9aafc0711bf6e92f5d47136eeafc54aa9a73b64dc8bca30391f1dace8f81",
+      "png_sha256": "c8083b62a546809cde0e38721c95fcdfd8af2d4867aaf4eb3dfc026d61fab3f2",
+      "render_sha256": "d7847901b5badec64e0c24ca4ea8a936c1490df0a2d23a3acdb36fd16ddd63e1",
+      "path": "oc/tool-preview-caret-combining-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-combining-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "22974f8380c6d52eaf580de9335b81974e8a41939b74a9581e3f67bef9e96472",
+      "png_sha256": "241843607d67fa5354b1ab4cba9fe42e0355ad1074117994f431e41a3f4d04c9",
+      "render_sha256": "49f99c4845d916ec80aab8b2a637f4fb06da0068847c4aa0769a66426e234db3",
+      "path": "oc/tool-preview-caret-combining-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "f14b20f7a95d9ca8d1c7cee5c0204204be76cf67c134ac9e7d46d8e88b58cdf5",
+      "png_sha256": "1b2b0ff2a4cbb105a6917a3c913a2f38d78b1e27c5771670150ca18fb56e0e89",
+      "render_sha256": "f1759190954ab5ff9c896da80c6cae348b927a276d884ab8cb4bf0a9034ca966",
+      "path": "oc/tool-preview-caret-zwj-start-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-zwj-start-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "8c1b8beb6ce573ab1a5c075bd73360de7d791d5eec9455cf9a3ab2a00e929d90",
+      "png_sha256": "c7c2fbbb6b34190c5fec170e819acd280176aed973ccb2a9d3e78c3e964191b7",
+      "render_sha256": "9a6584b64c5b73c8f27784c0605e97914ac0e66501e20a39dba4f9cfbe30d5e4",
+      "path": "oc/tool-preview-caret-zwj-start-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "126875d7d06be5afddba3381258bb4fb6b3f65e9c4b61f80417608c3760f0cd8",
+      "png_sha256": "2496ce70bc422d800e7a0ec2153d4b5484462f6822c07f6fc0066001ef696226",
+      "render_sha256": "70b86f1ed5fc7d23078a4606d5c41300c9cdfebe45cdb690dc410491c575ef56",
+      "path": "oc/tool-preview-caret-trailing-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-trailing-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "4ac1655eeb3981df3886a272ad1908f28575cbf5c49cbb0dc47d69418075f854",
+      "png_sha256": "520358df8c398634c72460838cfba0750bb678acf941f20baccb5e19b5e06519",
+      "render_sha256": "917728a1fe3e33ab0b0a5887c252650a06cee9c2a64e97f26515eb989fd1c9f3",
+      "path": "oc/tool-preview-caret-trailing-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "0bee15b474909e1c65b6cc64d2316c0be09951e658c2113609704367ed4ab344",
+      "png_sha256": "b2a96e8e8c0750b185117a1f590968929fdf840cc777117cc81c799ab5e449fa",
+      "render_sha256": "7c220860e0136ccc39e30ef7cfc2bca95075a9c14bf5bf5d967ec6b2d3c7640c",
+      "path": "oc/tool-preview-caret-wrap-gap-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-wrap-gap-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "67b0d509b3a256e98c539a453b6b8a93317f6dbb5cc2144441c9843893eb2a44",
+      "png_sha256": "b4c194788541d6be73a708609e5ac6204292ec50c88f073e3d5941e45ad5ab89",
+      "render_sha256": "990394d50b45416c6cd39afd6138c091554a6083fe97ee726aaaa187ba70c113",
+      "path": "oc/tool-preview-caret-wrap-gap-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-blank-line",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "3c726b67d86c881339931a6959140dc01fb3fcfcb4a3ef89f765ec0aa9825a6d",
+      "png_sha256": "82ad1ca9bc7f8a975f713c4a7c5cfb4a06a64afdca37db4c9e25ed4c004a05eb",
+      "render_sha256": "4328334446d7032fba0a967513492334d878a0dd88dc059299fd0a417305f9b9",
+      "path": "oc/tool-preview-caret-blank-line"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-clicked",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "7419316a7b10dbc0417002d8723ab168ef940e19e58f9a358f7bb1fef04b7da6",
+      "png_sha256": "381d47f910e00e833ad91b63ac68dda45e41bd2c673409a23c9185f3e0d6517b",
+      "render_sha256": "3db7f223736f2305fe84436d3d59b4a41140d5becbc7e77d21c61da43e9230e0",
+      "path": "oc/tool-preview-caret-resized-word-clicked"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-resized-word-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "afd8f714623ba1d155001192cf700c093c71f5bd2731a1c30701cb2ab23e6eab",
+      "cells_sha256": "ace8e68989998b74fdc5d3a33333a21c6ed435bef48874c40f40d1dd269b5dad",
+      "png_sha256": "3f89bfd215be2130b45ea6865c80cc7f09fceb26b888a2adcb56895d227b001d",
+      "render_sha256": "0095d807bff30dc27290e4663f7047eb9f36c70682c92c629a8d1a35e867088b",
+      "path": "oc/tool-preview-caret-resized-word-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-neighbor",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "d9de817ffefbc18c241ca26fa6cf3d3586b009ae3b83f1569ae3636c3b729bde",
+      "png_sha256": "1dfeb8fbd52f2b64c1d1c877bd71e4ddf7e13a4b9a65521195a6804cf59b5021",
+      "render_sha256": "e289b62289f24c52c1f31cf24999e9862cd6b0a906288c699c721879ac6ff6aa",
+      "path": "oc/tool-preview-caret-chip-neighbor"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-chip-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "89cf0906199a9c180896a4aee065d3b04e6d4b09c3150b6dec30eadc1f86fe05",
+      "png_sha256": "f7a3ac63558cd3a87926889dccc619ba61db9a83c5955a187742fbd3fa48e30e",
+      "render_sha256": "a4374dc7551d28d6f7bb38f9191bf5e8c21629680c2e82dac65a6b7377e5841a",
+      "path": "oc/tool-preview-caret-chip-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "749b574a4dfd9a432e6c8b5e385a45e543b9a399f812fe1705b6f7e48899f343",
+      "png_sha256": "9b42c08c19b103b6a904769ae9388f7ad45d61b82e28bf79f1bb2c5a178bb956",
+      "render_sha256": "3ba809b877fe7c132e09b5cae86cfd3a76ba21b5ad7c863b3393ff377e91ed92",
+      "path": "oc/tool-preview-caret-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-overlay-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "65f2cbd3db278d57ce283939ffd78a439cf85d1a0f2b50934fb35ce71296d409",
+      "png_sha256": "5b0a377694e934350fd3cf775da265f945dd9bb38841ddd60603bfe092e5b841",
+      "render_sha256": "8de95d030901d57e0cb5887d7d070263499146a364284e6d0dd358f6a7dbc650",
+      "path": "oc/tool-preview-caret-overlay-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-before-submit",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "55ab01cef6bbd1a28bcc77e0d78dc337bf7676bd9e283266fb6f3f5d38723e7c",
+      "png_sha256": "1f918027de55d27340f852d4b75855f6f26e066c3a8b490363e7db1cb7bdeb95",
+      "render_sha256": "bf5b946403375ac7d00ebd3c49c1e1c73e7fcce2d36aff968a6834dba6992765",
+      "path": "oc/tool-preview-caret-before-submit"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-submitted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "dd80cc661b5fb82f598e2061fb44cf34851b6a6fca9df069349615c22c63a1d5",
+      "png_sha256": "b5503677f4c8e4dc0ae29421d4748d4733541e3d431f72bd006f066769d3ad25",
+      "render_sha256": "f9bf8fadd6368dd7582fd98a57d1644e3a6d238fa72adb844e186323d547ca2f",
+      "path": "oc/tool-preview-caret-submitted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-caret-session-edited",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "61357c99d9d817451fe2abe279f5720a518b3ea42cad1d72614485493698b3b8",
+      "png_sha256": "83c9fd916291ba9227ddb9ae7b893da7c5634586ee3a761cc63697faa1326acd",
+      "render_sha256": "89abf640c40ddefffbb5369acaca24efaad3cf8af12195ca3484c7537b4d3934",
+      "path": "oc/tool-preview-caret-session-edited"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "5e5f2c229664ff6760c49b1c24b6587f65af5535d82d1ca4178a4f22ac7b43d4",
+      "cells_sha256": "29f630f2ac72d295297343b9ebd600e0c380db6b65d22c73d2d640904cb31e6c",
+      "png_sha256": "18786a7590f5d8d2ec77d1afd369d570c0c6f26de9ddc08fd6b5cfd0d7ac2d1e",
+      "render_sha256": "348efa4dfd6b75f656b23b0cd7b114ced6527b6db4bbe39c3ad2cc3802601352",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 86,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Prompt target not unique VIS prompt caret fixture",
+      "failure_cursor": {
+        "x": 20,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "caret-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 37,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-home-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wide-second-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 32,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-combining-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-zwj-start-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 35,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-trailing-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 91,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-wrap-gap-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 92,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-blank-line",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 27,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-clicked",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-resized-word-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 18,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-neighbor",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 31,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-chip-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 27,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-overlay-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 94,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-before-submit",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 38,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-submitted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "caret-session-edited",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 17,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Caret behavior is proved by real edits and one exact provider input/durable native user row; full styled-grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Prompt target not unique VIS prompt caret fixture",
+      "failure_cursor": {
+        "x": 20,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_CARET_ONLY",
+    "actual_requests": "One explicit edited user prompt plus title; zero tools/MCP/Shell effects",
+    "observation": "Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay"
+  },
+  "finished": "2026-10-08T11:22:22.857Z",
+  "exit_code": 1
+}
