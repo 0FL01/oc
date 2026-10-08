@@ -4,6 +4,11 @@ Date: 2026-10-08. Functional slice qualified; whole T44/R6/V09 remains ACTIVE,
 not a whole VIS or pixel-parity PASS. No external blocker, paid generation, user
 configuration change, acceptance/baseline change or task finish.
 
+Code/evidence commit: `9d9d5f96ca980d044c0d2e98afd5456335d92f74`.
+Delivery: **PUSHED**, ordinary fast-forward to verified `github.com/0FL01/oc`,
+branch `agent/oc-rust-port`. The generated immutable checkpoint is
+`progress/M9/T44/0089.md`; its pre-delivery next action is historical, not Git state.
+
 ## Existing owners and implementation
 
 - `app/mcp.rs::mcp_status_counts` derives connected/failed counts from the already
@@ -113,8 +118,8 @@ checks PASS. Includes461 TUI,97 binary,52 PTY T39,41 MCP,670 adapter,120 runtime
 Live campaign ignores are not exercised or reset. The startup probes preserve
 expected failure exits/terminal restoration and discovery-only request behavior.
 
-Node syntax/Python compile, repo Python/docs/journal and source diff checks are
-recorded with delivery. Captured padded `.txt` and raw `.vt` retain exact bytes;
+Node syntax/Python compile, repo Python47/0, docs/journal and source diff checks
+PASS, including the generated0089 leaf. Captured padded `.txt` and raw `.vt` retain exact bytes;
 they alone are excluded from Git whitespace checking for the final attempt paths,
 never from visual comparison or source/code/docs/JSON validation.
 

@@ -7,6 +7,8 @@ item or inferred failure; short footer uses its real padding breakpoint. Exact
 item clicks route to existing controls, not effects; drag/modal/frame guards and
 Unicode composer draft/caret restoration remain. No registry/store/poll/timer.
 Receipt: evidence/tui/home-mcp-footer.md. Whole T44 remains ACTIVE.
+Code/evidence9d9d5f96ca980d044c0d2e98afd5456335d92f74 PUSHED by ordinary
+fast-forward to verified origin/agent/oc-rust-port; generated0089 stays immutable.
 
 ## Checks
 Current fmt/strict locked workspace Clippy, workspace1733/0/11 across46 records,
@@ -28,6 +30,5 @@ settling, never hides pixels. AUTH06 deferred/original24/24/Go13/24 unchanged.
 Unrelated .opencode/ untouched; no paid calls, config/credential edits or RAW rewrite.
 
 ## Next
-Commit/push reviewed source and immutable current evidence, then continue Home43
-geometry/raster and all remaining frozen R1–R6/VIS01–VIS45 requirements. Final
+Continue Home43 geometry/raster and all remaining frozen R1–R6/VIS01–VIS45 requirements. Final
 current-source R6/V09 only after full closure; no task finish on this slice.
