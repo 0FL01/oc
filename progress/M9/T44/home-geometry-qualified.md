@@ -7,6 +7,8 @@ now EQUAL, including Unicode draft. No new production owner/API/timer/dependency
 Read-only bounded DOM tail-attribute observations explain retained off-viewport
 edge paint without modifying either buffer, CSS or screenshot.
 Receipt: evidence/tui/home-geometry.md. Whole T44 remains ACTIVE.
+Code/evidence44ae4df19cf820b2f12d8af5db27d78b655907ce PUSHED by ordinary
+fast-forward to verified origin/agent/oc-rust-port; generated0090 stays immutable.
 
 ## Checks
 Current fmt/strict locked workspace Clippy,1733/0/11 across46 completed results,
@@ -29,6 +31,6 @@ PASS or acceptance/threshold changes. AUTH06 deferred/original24/24/Go13/24 unch
 Unrelated .opencode/ and all immutable earlier captures untouched; no paid calls.
 
 ## Next
-Commit/push reviewed code and current evidence, then continue next observed MCP
-modal/frame responsibility and all remaining frozen R1–R6/VIS01–VIS45. Final
+Continue typed MCP modal status styling through the existing select-row owner
+and all remaining frozen R1–R6/VIS01–VIS45. Final
 current-source R6/V09 only after full closure; no task finish on this slice.

@@ -19,6 +19,10 @@ Full raw styled cells, cursor and PNG are compared without masks or normalizatio
 
 ## Current-source association
 
+Code/evidence `44ae4df19cf820b2f12d8af5db27d78b655907ce` is PUSHED by ordinary
+fast-forward to verified `origin/agent/oc-rust-port`; numbered checkpoint0090
+remains immutable. No whole-task finish accompanies this delivery.
+
 Primary `tool-preview-attempt-021`, additional WebGL020 and temporal023 share:
 
 - Captured base: `a974704be99dfff877fef4bf7264e871be7a92eb`;
