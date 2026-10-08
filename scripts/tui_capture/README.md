@@ -810,9 +810,21 @@ Payload includes literal `[Part preview truncated]`,
 `[output preview truncated; full result retained]` and `[truncated]`: their
 presence is required where the retained body is expanded, not globally forbidden.
 
+Before those effects, `home_mcp.mjs` exercises the live Home footer: click to the
+existing `/mcps` modal, real disconnect, failed initialization and retry/recovery,
+then width44/63/64/43 and short64×12 resize boundaries. The Unicode draft and
+composer caret are restored; these controls must make zero provider requests.
+The isolated peer's `fail`/`recover` phase file affects real `initialize` replies,
+not renderer state, and its lifecycle record proves the genuine failure.
+Failure-footer capture waits for the existing toast to expire naturally; it does
+not mask the alert or alter its clock. Twenty-seven paired stages now include the
+thirteen Home additions plus the fourteen original tool-presentation stages.
+The short original footer overpaints prompt-footer spaces; this and the true
+product-version identities remain in the full comparisons, not normalized away.
+
 The actual default collapse, hover, two MCP expand/recollapse sequences, failure
 detail, Shell expand/resize/recollapse, `/new`/history reopen and clean same-root
-restart produce fourteen paired full styled-grid/PNG/VT/cursor stages. Hover and
+restart produce fourteen further paired full styled-grid/PNG/VT/cursor stages. Hover and
 clicks retain the real draft/caret at 120×80 before returning to 120×40. Ordinary
 expansion must not reveal the discarded distant-end marker, display generated
 model guidance as body, execute a tool again or change recorded operation facts.

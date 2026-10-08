@@ -14,6 +14,7 @@ def command(spec):
     return COMMAND + "; printf 'VIS-SHELL-EFFECT\\n' >> tool-preview-" + spec['origin'] + '.effects'
 
 def configure(spec, home, project, config, cli):
+    (home / 'vis16-peer-phase.json').write_text(json.dumps({'phase':'healthy'}))
     config['snapshots'] = False
     config['compaction'] = {'auto':False}
     config['tool_output'] = {'max_lines':12, 'max_bytes':1024}
@@ -32,6 +33,15 @@ def configure(spec, home, project, config, cli):
         config['permissions'] = {'*':'deny', 'vis16__output':'allow', 'bash':{'*':'deny',command(spec):'allow'}}
         config['mcp'] = {'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'enabled':True}}
 
+def control(home, action):
+    if action not in ('fail', 'recover'):
+        raise ValueError('Unknown owned Home MCP fixture action')
+    phase = 'failed' if action == 'fail' else 'healthy'
+    temporary = home / 'vis16-peer-phase.next'
+    temporary.write_text(json.dumps({'phase':phase}))
+    temporary.replace(home / 'vis16-peer-phase.json')
+    return {'phase':phase}
+
 def snapshot(home, project, spec):
     observations = []
     for database in (home / 'data').rglob('*'):
@@ -48,6 +58,7 @@ def snapshot(home, project, spec):
                 data['presentation'] = [json.loads(r[0]) for r in connection.execute("SELECT payload FROM events WHERE kind='tool_output_presentation' ORDER BY seq LIMIT 10")]
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
+    lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
     artifacts = {str(p.relative_to(home)): {'bytes':p.stat().st_size, 'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
                  for p in (home / 'data').rglob('tool-output/*') if p.is_file()}
     effect = project / ('tool-preview-' + spec['origin'] + '.effects')
@@ -61,6 +72,7 @@ def snapshot(home, project, spec):
         'bytes':len(effect_bytes), 'lines':len(effect_bytes.splitlines()),
         'sha256':hashlib.sha256(effect_bytes).hexdigest()}
     return {'observations':observations, 'artifacts':artifacts, 'shell_effect':shell_effect,
+            'mcp_lifecycle':[json.loads(line) for line in lifecycle.read_text().splitlines()] if lifecycle.exists() else [],
             'mcp_calls':[json.loads(line) for line in peer.read_text().splitlines()] if peer.exists() else []}
 
 def respond(handler, body, spec, emit):

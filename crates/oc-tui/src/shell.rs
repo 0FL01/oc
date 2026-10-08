@@ -1170,7 +1170,8 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     // footer. The pinned footer mounts at 44 columns, but its version content
     // starts at 64; with no other footer items this leaves one less occupied
     // row at 44..63 (home.tsx and feature-plugins/home/footer.tsx).
-    let empty_footer = area.height >= 16 && (44..64).contains(&area.width);
+    let empty_footer =
+        area.height >= 16 && (44..64).contains(&area.width) && state.mcp_status_counts().is_none();
     // The upstream 3-row spacer may flex-shrink to zero before the logo when
     // the prompt, underline and footer consume the entire short viewport.
     let top_spacer = 3.min(area.height.saturating_sub(h + logo_height + 4));
@@ -1220,6 +1221,16 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     render_footer(frame, state, theme, footer, area.width);
     render_slash(frame, state, theme, body);
     render_mentions(frame, state, theme, body);
+    if let Some((rect, line)) = home_mcp_slot(state, theme, area) {
+        frame.render_widget(
+            Paragraph::new(line).style(
+                Style::default()
+                    .fg(Color::Rgb(255, 255, 255))
+                    .bg(theme.background()),
+            ),
+            rect,
+        );
+    }
     // The pinned Home footer exists at 44x12 but its version slot is shown
     // only at widths >= 64 (`homeFooterVisibility`). Keep the real package
     // version at wider sizes instead of substituting the reference identity.
@@ -1231,12 +1242,56 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
             Paragraph::new(version).style(Style::default().fg(theme.text_muted())),
             Rect::new(
                 area.x + row_width.saturating_sub(version_width),
-                area.bottom() - 2,
+                home_footer_y(area),
                 row_width.min(version_width),
                 1,
             ),
         );
     }
+}
+
+/// Pinned Home footer's live MCP item; command visibility follows viewport width.
+fn home_mcp_slot(state: &TuiState, theme: &Theme, area: Rect) -> Option<(Rect, Line<'static>)> {
+    if !state.home || area.height < 12 || area.width < 44 {
+        return None;
+    }
+    let (connected, failed) = state.mcp_status_counts()?;
+    let (label, color) = if failed > 0 {
+        (format!("{failed} MCP failed"), theme.error())
+    } else {
+        (
+            format!("{connected} MCP"),
+            if connected > 0 {
+                theme.success()
+            } else {
+                theme.text_muted()
+            },
+        )
+    };
+    let mut spans = vec![
+        Span::styled("⊙ ", Style::default().fg(color)),
+        Span::styled(label, Style::default().fg(theme.text())),
+    ];
+    if area.width >= 64 {
+        spans.push(Span::raw(" "));
+        spans.push(Span::styled(
+            "/mcps",
+            Style::default().fg(theme.text_muted()),
+        ));
+    }
+    let line = Line::from(spans);
+    let rect = Rect::new(area.x + 2, home_footer_y(area), line.width() as u16, 1);
+    Some((rect, line))
+}
+
+fn home_footer_y(area: Rect) -> u16 {
+    // Pinned footer drops its top/bottom padding below 16 terminal rows.
+    area.bottom() - if area.height < 16 { 1 } else { 2 }
+}
+
+/// The exact drawn item, not the whole footer row, owns MCP modal activation.
+pub(crate) fn home_mcp_rect(state: &TuiState, frame: Rect) -> Option<Rect> {
+    home_mcp_slot(state, Theme::dark(), prompt_main(state, frame)).map(|(rect, _)| rect)
 }
 
 /// Upstream logo.ts/component/logo.tsx glyphs; theme-derived shadow cells.

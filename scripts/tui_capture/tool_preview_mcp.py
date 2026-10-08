@@ -10,6 +10,13 @@ for line in sys.stdin:
     if 'id' not in request:
         continue
     if method == 'initialize':
+        phase = json.loads((Path(os.environ['HOME']) / 'vis16-peer-phase.json').read_text())['phase']
+        with (Path(os.environ['HOME']) / 'vis16-mcp-lifecycle.jsonl').open('a') as log:
+            log.write(json.dumps({'method':method, 'phase':phase}) + '\n')
+        if phase == 'failed':
+            print(json.dumps({'jsonrpc':'2.0','id':request['id'],
+                              'error':{'code':-32603,'message':'VIS-MCP-CONNECTION-ERROR'}}), flush=True)
+            continue
         result = {'protocolVersion':'2025-11-25', 'capabilities':{'tools':{}},
                   'serverInfo':{'name':'vis16', 'version':'fixture'}}
     elif method == 'tools/list':

@@ -4,6 +4,25 @@ use super::*;
 use oc_core::queries::{McpAction, McpControl, McpSnapshot, McpStatus};
 
 impl TuiState {
+    /// Live inventory only: unavailable/empty and disabled are not failures.
+    pub(crate) fn mcp_status_counts(&self) -> Option<(usize, usize)> {
+        let snapshot = self.mcp_snapshot.as_ref()?;
+        if snapshot.servers.is_empty() {
+            return None;
+        }
+        Some(
+            snapshot
+                .servers
+                .iter()
+                .fold((0, 0), |(connected, failed), server| {
+                    (
+                        connected + usize::from(server.status == McpStatus::Connected),
+                        failed + usize::from(server.status == McpStatus::Failed),
+                    )
+                }),
+        )
+    }
+
     pub fn apply_mcp_snapshot(&mut self, snapshot: McpSnapshot) {
         // bind_events can announce the new owner's constructor before start
         // publishes its admitted inventory. Revision zero is not recovery or

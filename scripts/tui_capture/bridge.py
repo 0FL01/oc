@@ -633,6 +633,8 @@ try:
                         command = json.loads(line)
                         if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
                             emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
+                        elif command['kind'] == 'tool_preview_control' and spec.get('tool_preview'):
+                            emit({'kind':'tool_preview_control_ack','request_id':command['request_id'], **tool_preview_fixture.control(home, command['action'])})
                         elif command['kind'] == 'services_snapshot' and spec.get('clean_services'):
                             emit({'kind':'services_snapshot','request_id':command['request_id'], 'snapshot':services_fixture.snapshot(home)})
                         elif command['kind'] == 'services_control' and spec.get('clean_services'):

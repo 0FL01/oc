@@ -10,6 +10,8 @@ use oc_core::queries::{
 use oc_core::session::Role;
 use ratatui::{Terminal, backend::TestBackend, style::Color};
 
+mod home_mcp;
+
 fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
     HistoryMessage {
         id: oc_core::session::MessageId(format!("fixture-{seq}")),
@@ -827,7 +829,7 @@ async fn home_version_slot_matches_pinned_width_and_height_breakpoints() {
         let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
         terminal.draw(|frame| render(frame, &state)).unwrap();
         let buffer = terminal.backend().buffer();
-        let version_row = height - 2;
+        let version_row = height - if height < 16 { 1 } else { 2 };
         let version_x = width - 2 - version.len() as u16;
         let actual = (version_x..version_x + version.len() as u16)
             .map(|x| buffer[(x, version_row)].symbol())

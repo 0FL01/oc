@@ -609,6 +609,7 @@ pub struct TuiState {
     /// Press origin prevents drag-release across the backdrop from dismissing a dialog.
     mouse_down: Option<crate::dialog::DialogHit>,
     tab_down: Option<TabPress>,
+    home_mcp_down: Option<(Rect, Rect)>,
     tab_view: std::cell::RefCell<TabView>,
     pub(crate) tab_scroll: std::cell::Cell<usize>,
     last_mouse: Option<(u16, u16, Rect)>,
@@ -837,6 +838,7 @@ impl TuiState {
             select: Default::default(),
             mouse_down: None,
             tab_down: None,
+            home_mcp_down: None,
             tab_view: Default::default(),
             tab_scroll: std::cell::Cell::new(0),
             last_mouse: None,

@@ -1,6 +1,7 @@
 // VIS16/17 real tool cards and read-only owner facts; not a renderer substitute.
 import fs from 'node:fs';
 import path from 'node:path';
+import {probeHomeMcp} from './home_mcp.mjs';
 
 export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:[
@@ -37,7 +38,8 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
-    await shot('home',f=>f.text.includes('Ask anything'));
+    await shot('home',f=>f.text.includes('Ask anything')&&f.text.includes('1 MCP /mcps'));
+    if(!cursorProbe)result.home_mcp=await probeHomeMcp({send,shot,waitFor,frame,visibleMatches,resize,logs,control,snapshot});
     send('\x1b[200~VIS16 preview: execute the supplied MCP and Shell calls exactly once.\x1b[201~','tool_preview_prompt');send('\r','tool_preview_submit');
     const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&(cursorProbe||target(f,1).length===1));
     if(requests()!==6||calls()!==4||logs.some(e=>e.kind==='provider'&&!e.valid))throw Error('Unexpected provider/call count or unpaired result');

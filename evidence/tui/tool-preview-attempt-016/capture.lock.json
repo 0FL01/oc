@@ -1,0 +1,1475 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T00:10:59.023Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "845a28a23d5b5fcf7598102fe3b42e14f1897aa9b58c285c347e0cbf52eac1c6",
+    "frontend.js": "64ce5df2f7f4b2bfaca9c71eff4c62d2e4d9cde27cb58f307687e1b03c703a34",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "776309de8a28e7da885efa612c109e5ac21fd20ca48ea87fb30692005a7f9407",
+    "tool_preview_fixture.py": "b6db9bca129f8432f0a6164978f25c0f5409632705a034b1f2f6789dc7518f2b",
+    "tool_preview_mcp.py": "ea2b87a23d905e67f29847866b95f1da9be71287dff7b900201fd7b690e2c642",
+    "home_mcp.mjs": "1cfd6a3e01d10e198ef8e49737dd0526cad93e32344914036fedf075a47cb4ec"
+  },
+  "fixture_sha256": "0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "bfbe229652407b0fc7e32463b41ef22aa043eaf9",
+    "tree": "fc63296d0cb38a004d3d967acc0e6df262c8654e",
+    "dirty_diff_sha256": "942fe059a4e1c88677da8b08a198c878170a5475b8f56ecb8b2c95471af85344",
+    "source_manifest_sha256": "d1572d488ad92f9ddd8900b90a482e99ebc3d92f540c3f2da128690e8a6a21fd",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "0d784b22c54504c6647f2abd84faab0e4ae9a47fb8ae8a0039d75793c042eb37",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-failed",
+      "status": "UNSTABLE_CAPTURE",
+      "reason": "VT grid changed during PNG capture"
+    },
+    {
+      "scenario": "tool-preview-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-draft",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-draft",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-restored",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-restored",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-44x24",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-44x24",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-63x24",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-63x24",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x24",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x24",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-43x24",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-43x24",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x12",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x12",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-hover",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-hover",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-1-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-1-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-2-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-2-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-error-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-error-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-error-recollapsed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-error-recollapsed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-shell-expanded",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-shell-expanded",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-shell-recollapsed",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-shell-recollapsed",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-switched",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-switched",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-reopened",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-reopened",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-restarted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-restarted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "55af624e05ef6ec3d36714230dbc5b1942a9a8ec75a12fee505a068db69ff103",
+      "png_sha256": "caa93b79deb061e993cff11a7b1958f230fe3f96d3badfa4e596b5754f09102f",
+      "render_sha256": "e5f71cc481f852d48b3c8a2acbe04e7a9cc071f7a1df77e57785e9c4bcbf1045",
+      "path": "upstream/tool-preview-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "d44e78a0a77fca31fb40f569c0e0ecee39f04ef2db2daf86386ed9af467fd549",
+      "png_sha256": "ba31f4e1936b28fe96d9dab90957e3d59484cc0cc0ad20039fd3647d6727b30c",
+      "render_sha256": "188187aeab3e4a83ca874ccf534bb1f3bf3c2257097a33386ca802be118c44b9",
+      "path": "upstream/tool-preview-home-mcp-draft"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "3c2555cc41d312556e925cdaf75394398002a85989df72f1728a2311fb2eccc5",
+      "png_sha256": "71e15d95f306ddc2559a987736cdbcaf3dec9206a246c90d12bfb6e66b67b3f4",
+      "render_sha256": "e4f3db45cd5bcd205e4e2b748d267b171b38f47790ea06b51719b498fe5259c1",
+      "path": "upstream/tool-preview-home-mcp-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "29c251a8c503825bed74a8e6ab5c00e490359709b297a63d3ed3760e2e8c5766",
+      "png_sha256": "c940816d87d852d412958728fe4342ab184109fa853c36f253cde05374ea183e",
+      "render_sha256": "abda6f9f50461a00d95de0e02b0ac2e74507652a74e90ccc2a32b9d45135fdd2",
+      "path": "upstream/tool-preview-home-mcp-disabled-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "f2d0c6bedb4a645d10504f41d91779c2443dc4794c92a0990b218b01d6827ac8",
+      "png_sha256": "3779ab06a7413e954e45f718ee7b57c19be4adcd1fe80af471e3704f80fc7fb4",
+      "render_sha256": "904bf781946bc3136697e607fc9ccefb92a9cbeefd49428065dbaee2edc682d1",
+      "path": "upstream/tool-preview-home-mcp-disabled"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "56c1b5d7bef1da194d881505b552b81db471e8b6d109ae38607408b9004697b6",
+      "png_sha256": "13118f64e2fb5fd11006cfb1796f86ff981815fa0315ab9b964592b5c65f4411",
+      "render_sha256": "a145468ae994e3bb1c6f9740c4e311aa85c0348796aa727cbf687e145cd02ad6",
+      "path": "upstream/tool-preview-home-mcp-failed-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-failed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "a7c0b9794b55dfd08835c90f74e9d7e0654244e0934b4562467d91ba5ca9d22a",
+      "png_sha256": "45e35726c383f9978ce32e57568679b3968805bdc9e15aa09dac2ee5bbe747db",
+      "render_sha256": "4824a485a98138bad0881a5dc21b4628cf382d2ad9b207477d331a7a60971613",
+      "path": "upstream/tool-preview-home-mcp-failed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "9cd91e681c2ece4f68ade25621ee45684e7a9197e39d931f1b6761d22aa65186",
+      "png_sha256": "ba31f4e1936b28fe96d9dab90957e3d59484cc0cc0ad20039fd3647d6727b30c",
+      "render_sha256": "1bdfda8c2d3a1065fce276d715484ab1e07060401b7ab2967272f34ff7fbc2ed",
+      "path": "upstream/tool-preview-home-mcp-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-44x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ca2165ba630c2fee8f1797907bb336a000ef989c16ff08152b127a9931f0d27c",
+      "cells_sha256": "88f9fda72cd81263c04256343b5928a82998b03955c6178267f9f7e6c6bacbf4",
+      "png_sha256": "d84c59f9cdda4adef30d90f2c85ba100cb9c727d92615714ff523df08c399b46",
+      "render_sha256": "8996ae12408cd5613b592d4c63e4cf4bdc0a84abad6d4ceb108b09c3decf61ed",
+      "path": "upstream/tool-preview-home-mcp-44x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-63x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "606f3adb6605d46cefd9629e3dca984d181b06a0a7d16ddc6cf88863a4a8687c",
+      "cells_sha256": "5f6b735e1da1f3b9e42cf32ca9bc7f4e94be53c7623fdf01521706e7b9f9113c",
+      "png_sha256": "5a3649067ed19b383b831ee529d3752fd5cbe5d7ef505ccc2db95fc0b649f4a6",
+      "render_sha256": "8566e69668f8d9d06ae7d9162bd8e9c931c2e2d7114b86eeb59af3f5b9a5ef43",
+      "path": "upstream/tool-preview-home-mcp-63x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-64x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea15d816a6475040f255c8fa1a3f60ccbcb4711d8f7ad3b0ad986cf2b844b95a",
+      "cells_sha256": "3593fd37427c298d3a3c80348392cc8543e43e160f756f77d9d88cf4792b8405",
+      "png_sha256": "7b07f664862a3a041110ef414b2da50c1edfd7c82520cfd06a6953db0b0000d6",
+      "render_sha256": "1c12c3b3f8a1eca859027c17d82e846ffbb0d57033f668765ef636fc8be51639",
+      "path": "upstream/tool-preview-home-mcp-64x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-43x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f21f950d50ee98e293faf2415bfae3ea89675d6f785cbe18bb3621a6546c51c",
+      "cells_sha256": "1acec60e4583dbba19f23c25a53f607f85307b07aaa7b15ca270b9291b1a78ec",
+      "png_sha256": "34d05c617d3e5e77962fb05bc064f96a77c3e720a147393fec48fdbe6a64df29",
+      "render_sha256": "eb379ba1261ce9c2b48470564bd9c2b0966ef826bbc3bc894b1c3504f667e0f6",
+      "path": "upstream/tool-preview-home-mcp-43x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-64x12",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "565970f2a4bf01e0da009df97865693b985eae485b6f0a4741cd156b79eb45fa",
+      "cells_sha256": "fdeaa290e65afdfa72b306338038048b03c2082bcf3b2b7a423785f025f95d69",
+      "png_sha256": "3036bc39a1a1226a31bbe84572ee91c7c274c9541ec82e14fb32905a7e112c2b",
+      "render_sha256": "8d79a78850c5b8542b4891c265b75f4d470060bea50787422a1891ca7cf10360",
+      "path": "upstream/tool-preview-home-mcp-64x12"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "184c24d9e442cfa3bab93b215a58fd027ba8abb84601b20957b6753f03b6cf8e",
+      "png_sha256": "ba31f4e1936b28fe96d9dab90957e3d59484cc0cc0ad20039fd3647d6727b30c",
+      "render_sha256": "5c16b660e7f4623e694ab88da5399fbaeacd3b7b0c2ebb50126367e3fc66879b",
+      "path": "upstream/tool-preview-home-mcp-resized-back"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "0d5b4467456c82242c41770ead9f53c773ed38f7c57b386061ccd74d59277992",
+      "png_sha256": "00bebdca2657ece10a1a736442203f3aa2ad2d99a919e8729a07d435cd8790af",
+      "render_sha256": "93d5b54224ebef3d64f19fdba68d5c134b16f1664d213d4f77890c26801a31e3",
+      "path": "upstream/tool-preview-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "521a661f1693bcc840cf4eff148a1f112a063cc7d1841abe23e301c9f4a12992",
+      "png_sha256": "52d8c5069aefb8a7aac462a92cdc56202441f076d8c1cf5d4b1722e8caf33202",
+      "render_sha256": "b542251e7444fb3b7fe1aab5ca0296f3eead8d9491e763c4312d76b1e0172318",
+      "path": "upstream/tool-preview-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "6f689a2c4e3c051ddf623f9719a40c834bd2007176a6e989b9e6b67123cc72fb",
+      "png_sha256": "92d71eba1124ae4acf41bb37dbcc9480f3ec2f3d2cad7dca8d25b6c7a6e45bbe",
+      "render_sha256": "322b026f7b77ae70127705b2af0260ec922eaf34bfb043cc8f32f95a68f87bca",
+      "path": "upstream/tool-preview-mcp-1-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "1fbbafc97da3a12ca19ffb1a26eb1db2c437a79c4be6a7c4034e4d975c67b74c",
+      "png_sha256": "52d8c5069aefb8a7aac462a92cdc56202441f076d8c1cf5d4b1722e8caf33202",
+      "render_sha256": "d771945035d7ea1dd89fcef959afb7fc9b9aff800d29f397bfe53780452fd0a4",
+      "path": "upstream/tool-preview-mcp-1-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "e638d7d546c94bc74b34a988447bc914ae55a6cfb875d59332817e3f7522cb70",
+      "png_sha256": "a9797bb7d48274e7225dcc6fbb372cee7b77b644d1b503d7504f978b5a556c82",
+      "render_sha256": "34f87ba6825c7668c32ebeda6798747f0959b071b576bdf886800c804c796065",
+      "path": "upstream/tool-preview-mcp-2-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "4240d1adc12c6d8a5c04b0a15404ce81e2a5948b8efc3b87d46d13996555963c",
+      "png_sha256": "e134ae5e4f77ce3e308f595b05a079efc6dff237638747b87d3a3144b3e14dae",
+      "render_sha256": "1e053e41bdb9a61641f9dfc476ac6f77a1ca91269b46cec239c0d040bf09a125",
+      "path": "upstream/tool-preview-mcp-2-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "e81b48cece0a4601bfc7ae8bfb1e2a80b457124885148e21be4be4689653ece2",
+      "png_sha256": "f03c2d04635a72373ef449a35ad6026255b71f27ce232bf63a25bc0b572b5738",
+      "render_sha256": "5019545c59751c4617f550b892d2038a2eea4505dc196b49a98347c1a7123fa0",
+      "path": "upstream/tool-preview-error-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "f37a7b0ad1519cb2af7c5e8f9fbece80fca427df18d85734a3c4e7741ce34f60",
+      "png_sha256": "99169300840ff12c0bf449cf20a70da106d2e70e756e99a9d8ff5b7394dc520a",
+      "render_sha256": "35722e278fd21cc4115d624c23261367f887345440b2a894044bc2a7d9bb1514",
+      "path": "upstream/tool-preview-error-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9ca378caad1be68187c54a2ec9c3c1acad80fa2ca0f4565b8ddb1ef4e7e72b8d",
+      "cells_sha256": "4e11c6308d0f04a15f7778aabb7ecc1a8d0249de961e37e87fac4c2115083351",
+      "png_sha256": "dea7f4fbfd90b01a021dcc47326a90e69ecf837ed0a26bf5f2258c0fdfcbc923",
+      "render_sha256": "618bfc1a6349bd79feba22a2f1c849f0eb9a1ee3a6be4aff001402a92c95de7c",
+      "path": "upstream/tool-preview-shell-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "1bdabf23bc291090e55e24df4c6e55c263fda8d595b991a9f143f350a4fedf78",
+      "png_sha256": "6f8c2b459a8e371a3f4beaa79525722de16d665599fd23c98a94dab389db5e9f",
+      "render_sha256": "9845911bb16d40702ec435dec2190536e4d3b789ea8ccc33b6ec4cd9276e0ef2",
+      "path": "upstream/tool-preview-shell-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "19bd3dea01b1bdd0382b50127764c0b482735b20d84b854b5eb7c34c61be6d6e",
+      "png_sha256": "772ba220ba366e0f2adcbc9c42b62877ae4ad9f74edf856e8ca09c121e7ec55b",
+      "render_sha256": "932695a653f07ba600d1b9db7817abc5c48162d649ceb43fdf15d2b065a48765",
+      "path": "upstream/tool-preview-switched"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "a00d36db6d2cdfbacecd27ad8e119415492cbcd8909624278c1cfd97b704670f",
+      "png_sha256": "3ceeeddde05d8c907a0a34a858541934a40c1b534b34fbb2b81ebf2292211ee9",
+      "render_sha256": "6c7cde4ce1f293dfa5abcab21aa1b644cf1733d8b6f73ecfd9e9419762743648",
+      "path": "upstream/tool-preview-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "279c88121cf8b7ac782bcafe49780794582ac5caf8307d619b7ae41ddfc3367c",
+      "png_sha256": "3ceeeddde05d8c907a0a34a858541934a40c1b534b34fbb2b81ebf2292211ee9",
+      "render_sha256": "129be95905fa4bc4ee692305009bf89b6ace9eab16a7b14d346443b4bfd0b5c6",
+      "path": "upstream/tool-preview-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "27ca15265e7f6a92b68dadd8b60b1fcc638a47085255961bf3acf3a9d0764e34",
+      "png_sha256": "159310be81f0fc8a7201ce2420c52e043e25b442ddfc44340a5233050698f01d",
+      "render_sha256": "c0fb337965e9cc004de2472266d72a46bee8e2244f8c32cefe537f5b60c14727",
+      "path": "oc/tool-preview-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "54e490ef8de1496b639a005487d0d551c1408cabe9e2c84135b7de13715baede",
+      "png_sha256": "3e5a9cd158c29c9933b0097e811f417079d8772859c643ac24ac436f1773f203",
+      "render_sha256": "7b2f51604d6322303a68fe99a5a2b3872701c286cb4f053650e77050fc03fe58",
+      "path": "oc/tool-preview-home-mcp-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "b035203902e673db2580e19278b67b35dbdf619769db6999e1c949e396ef44b3",
+      "png_sha256": "69d8d411fd89957a49f206b07e996d0fc772f2d97f836c7774ecf4e3fc223b6d",
+      "render_sha256": "19d703de5e37ba9365e504c5e0d4d810ceb4de4977bd3931d150387205ddffde",
+      "path": "oc/tool-preview-home-mcp-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "b36350d1d482e0e58bbc2b9fb929a09fe912c61db1a1fbf23c89878508d0b455",
+      "png_sha256": "ef35ab9a1b2e5d2ff429682a745a80fac1e894cea2afe92eff31bcf994876e77",
+      "render_sha256": "b99e9362c994d20eb9a8a5871f8f2e38121235c28d7084de02815f945747d512",
+      "path": "oc/tool-preview-home-mcp-disabled-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "c0f0e75901e07e1ace69fe9cd2ed61ab538d66e00d659196510694ead3b15fc8",
+      "png_sha256": "bcb9a576f0be85dd86a1df6be756d67fd53feedf78a63a0d75a53d595f4d3bdb",
+      "render_sha256": "6ddf1e3b0aaa2f7f0c40eb3c381ada79dbf74d22f5332a8f86d53a56cedeafb9",
+      "path": "oc/tool-preview-home-mcp-disabled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "f76b4e01c3c6ada514c728453135e6d9705243cad03f06ff94a8e4d38e9c8d5c",
+      "png_sha256": "49c3f35971ba7a451a76fbf875658e44081fb4e03500d751be0d41b614ea7733",
+      "render_sha256": "5761d4a4d32d6ee55a3d6a0183e7889d9a05b4f1b1dfbab5c03a22f73b3e470b",
+      "path": "oc/tool-preview-home-mcp-failed-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-failed",
+      "status": "UNSTABLE_CAPTURE",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "0dabd11ad2fc4c641b8f3fb1c2ba97ee58b8f819c038dec9b2a119b92552f747",
+      "png_sha256": "8b363db14788543da90c2e2d5a0b066739f3eb5b1cfcdb61c5272ad8b1b353da",
+      "render_sha256": "92b28cbcc49899eeff5e0eb1de102f5607a12aee1fc0ec7106b4324323574866",
+      "path": "oc/tool-preview-home-mcp-failed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "cec0b237187f6297bb5eb96601b384024feae8b7570a1617fe3abc84ce64654a",
+      "cells_sha256": "278a62b9f7cf330547cf92b02a8730c9c2dd82d975a9ca8fa4abd78aa7b185c3",
+      "png_sha256": "8b363db14788543da90c2e2d5a0b066739f3eb5b1cfcdb61c5272ad8b1b353da",
+      "render_sha256": "23a40b1e123ed58ea346681ac96df309ff799258afaa91993e241c1e38fb4e3c",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-draft",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-44x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-63x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-43x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 13,
+            "y": 16,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x12",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 7,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-resized-back",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "hover",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "switched",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "home_mcp": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "provider_requests": 0,
+        "real_failed_initialize": true,
+        "draft_and_caret_restored": true,
+        "disclosed_reference_difference": "At64x12 pinned footer spaces overpaint underlying prompt-footer text; full frame remains unmasked."
+      },
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_118da17560017MLEvKTKcJQEU6": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_118da16fd001SAgDv50g6MaGTr": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "restarted",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_118da17560017MLEvKTKcJQEU6": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_118da16fd001SAgDv50g6MaGTr": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-draft",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed",
+          "status": "UNSTABLE_CAPTURE",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "reason": "Bad capture/check home-mcp-failed"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_TOOL_PREVIEW_ONLY",
+    "actual_requests": "Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only",
+    "replay": "Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Native 2048-byte presentation and compact status are disclosed differences",
+      "Actual history multi-page traversal and capture fault matrices remain separate gates"
+    ]
+  },
+  "finished": "2026-10-08T00:13:34.854Z",
+  "exit_code": 1
+}

@@ -360,7 +360,7 @@ if(leaderPending)for(const n of ['leader_pending.mjs',...(pasteNavigation?['prom
 if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Fixture context hook admits existing bundled U19; executor is not replaced'};
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
-if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py','home_mcp.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorTemporal)for(const n of ['cursor_temporal.mjs','cursor_frontend.js'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorRenderer==='webgl') {
   const packageFile=path.join(cursorRendererRoot,'node_modules/@xterm/addon-webgl/package.json');
@@ -644,7 +644,7 @@ try {
            json('capture.lock.json',lock);continue;
          }
          if(toolPreview) {
-           const resize=async rows=>{profile.rows=rows;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns:profile.columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns:profile.columns,rows})+'\n');};
+            const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
            const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),

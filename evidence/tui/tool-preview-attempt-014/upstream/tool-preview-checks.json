@@ -1,0 +1,142 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-44x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-63x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-64x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-43x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 3,
+        "y": 16,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "reason": "Timed out waiting for home-mcp-64x12"
+}

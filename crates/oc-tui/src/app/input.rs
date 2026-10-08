@@ -1195,6 +1195,14 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.panel != TuiPanel::None
+            || matches!(
+                event.kind,
+                MouseEventKind::Down(_) | MouseEventKind::Drag(_)
+            )
+        {
+            self.home_mcp_down = None;
+        }
         if self.panel == TuiPanel::None
             && let Some(outcome) = self.terminal_mouse(event, area)
         {
@@ -1322,6 +1330,27 @@ impl TuiState {
             return KeyOutcome::default();
         }
         if self.panel == TuiPanel::None {
+            let home_mcp = crate::shell::home_mcp_rect(self, area);
+            if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+                && event.modifiers.is_empty()
+                && let Some(rect) = home_mcp
+                && rect.contains((event.column, event.row).into())
+            {
+                self.home_mcp_down = Some((area, rect));
+            }
+            let mcp_pressed = matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+                .then(|| self.home_mcp_down.take())
+                .flatten();
+            if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+                && event.modifiers.is_empty()
+                && !self.selection_gesture
+                && home_mcp.is_some_and(|rect| {
+                    rect.contains((event.column, event.row).into())
+                        && (mcp_pressed == Some((area, rect)) || !pointer_down)
+                })
+            {
+                return self.run_command(CommandAction::OpenMcps);
+            }
             if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
                 && !self.transcript_overpainted(area, event.column, event.row)
             {
@@ -2714,6 +2743,7 @@ impl TuiState {
         self.select.reset();
         self.mouse_down = None;
         self.tab_down = None;
+        self.home_mcp_down = None;
         self.tab_view.get_mut().reset_hover();
         self.close_hold = None;
         self.last_mouse = None;
