@@ -133,6 +133,8 @@ pub(crate) const MAX_TAB_DECK_BYTES: usize = 4096;
 pub(crate) struct StoredDeck {
     pub(crate) version: u8,
     pub(crate) sessions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) new_session_titles: Vec<bool>,
     pub(crate) active: Option<String>,
 }
 
@@ -149,10 +151,15 @@ pub(crate) fn parse_stored_deck(raw: Option<&str>) -> Result<StoredDeck, Storage
         None => StoredDeck {
             version: 1,
             sessions: Vec::new(),
+            new_session_titles: Vec::new(),
             active: None,
         },
     };
-    if deck.version != 1 || deck.sessions.len() > MAX_TABS {
+    if deck.version != 1
+        || deck.sessions.len() > MAX_TABS
+        || (!deck.new_session_titles.is_empty()
+            && deck.new_session_titles.len() != deck.sessions.len())
+    {
         return Err(invalid_stored_tab_deck());
     }
     Ok(deck)
@@ -1096,6 +1103,9 @@ impl Db {
         for id in &pending {
             if !deck.sessions.contains(id) {
                 deck.sessions.push(id.clone());
+                if !deck.new_session_titles.is_empty() {
+                    deck.new_session_titles.push(false);
+                }
             }
             deck.active = Some(id.clone());
         }
@@ -1117,6 +1127,12 @@ impl Db {
         }
         if let Some(index) = deck.sessions.iter().position(|id| id == session) {
             deck.sessions.remove(index);
+            if !deck.new_session_titles.is_empty() {
+                deck.new_session_titles.remove(index);
+                if !deck.new_session_titles.iter().any(|value| *value) {
+                    deck.new_session_titles.clear();
+                }
+            }
             if deck.active.as_deref() == Some(session) {
                 deck.active = deck.sessions.get(index.saturating_sub(1)).cloned();
             }
@@ -1131,6 +1147,7 @@ impl Db {
                 .map(oc_core::domain::SessionId)
                 .collect(),
             active: deck.active.map(oc_core::domain::SessionId),
+            new_session_titles: deck.new_session_titles,
         };
         tx.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?1,?2,strftime('%s','now')) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at", params![key,encoded])?;
         for id in pending {
@@ -2099,6 +2116,8 @@ impl Db {
             if deck.projected()
                 || deck.location.is_empty()
                 || deck.sessions.len() > MAX_TABS
+                || (!deck.new_session_titles.is_empty()
+                    && deck.new_session_titles.len() != deck.sessions.len())
                 || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
                 || deck
                     .active
@@ -2136,6 +2155,7 @@ impl Db {
             let raw = serde_json::to_string(&StoredDeck {
                 version: 1,
                 sessions: deck.sessions.iter().map(|id| id.0.clone()).collect(),
+                new_session_titles: deck.new_session_titles.clone(),
                 active: deck.active.as_ref().map(|id| id.0.clone()),
             })
             .map_err(|_| CoreError::InvalidTabDeck)?;

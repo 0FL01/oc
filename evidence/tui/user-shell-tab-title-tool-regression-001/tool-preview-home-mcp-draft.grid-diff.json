@@ -1,0 +1,66 @@
+{
+  "kind": "grid",
+  "status": "FAIL",
+  "scope": "frame equality only; capture provenance is not attested",
+  "scenario": "tool-preview-home-mcp-draft",
+  "fixture_sha256": "02c6a7347d738b07b3b7125e73e71563af0a59f230266f838b562d0929f48d06",
+  "environment_id": "0f3e50ea12ee113c03ccdd85a09dded4141646f247ecdc0cc3e8d90dca898b40",
+  "reference_sha256": "0cf79eb04bf2f6c9ba5449f1a514bd208b38253c50f0563dc7cf75413b19ec52",
+  "actual_sha256": "b7922a50815ebb14d106315e679d66b2c7e503e7ee98a844577f8fdd1aa667b6",
+  "reference_commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "actual_commit": "6644f4a867cf2d6e535c76c5c76fb39ac0618c3a",
+  "cells_checked": 4800,
+  "different_cells": 6,
+  "cursor_differs": false,
+  "difference_bbox_inclusive": [
+    112,
+    38,
+    117,
+    38
+  ],
+  "samples": [
+    {
+      "x": 112,
+      "y": 38,
+      "different_fields": [
+        "symbol",
+        "fg"
+      ]
+    },
+    {
+      "x": 113,
+      "y": 38,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 114,
+      "y": 38,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 115,
+      "y": 38,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 116,
+      "y": 38,
+      "different_fields": [
+        "symbol"
+      ]
+    },
+    {
+      "x": 117,
+      "y": 38,
+      "different_fields": [
+        "symbol"
+      ]
+    }
+  ]
+}

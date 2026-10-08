@@ -1308,6 +1308,7 @@ fn fresh_admission_checks_union_before_root_insert_and_deduplicates_markers() {
     let deck = StoredDeck {
         version: 1,
         sessions: names,
+        new_session_titles: Vec::new(),
         active: Some("saved-0".into()),
     };
     db.set_pref(&key, &serde_json::to_string(&deck).unwrap())

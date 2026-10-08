@@ -18,6 +18,7 @@ fn deck(base: &TabDeckSnapshot, ids: &[&str], active: Option<&str>) -> TabDeckSn
         location: base.location.clone(),
         revision: base.revision.clone(),
         sessions: ids.iter().map(|id| SessionId((*id).into())).collect(),
+        new_session_titles: Vec::new(),
         active: active.map(id),
     }
 }
@@ -1012,6 +1013,106 @@ async fn malformed_preference_on_restart_refuses_restore_and_stale_save() {
     assert_eq!(
         stored(&conn, &saved.location).as_deref(),
         Some("{malformed")
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn new_session_tab_fallback_is_bounded_presentation_metadata_not_a_durable_title() {
+    let (a, _, data, env) = setup();
+    let (app, guard, _) = application::spawn_with_env(a.path(), data.path(), env.clone())
+        .await
+        .unwrap();
+    let empty = app.tab_deck().await.unwrap();
+    for root in ["legacy", "promoted", "later"] {
+        app.create_session(id(root)).await.unwrap();
+    }
+    let legacy = app
+        .save_tab_deck(deck(&empty, &["legacy"], Some("legacy")))
+        .await
+        .unwrap();
+    assert!(
+        app.tab_deck().await.unwrap().new_session_titles.is_empty(),
+        "v1 decks without flags remain readable"
+    );
+    let mut requested = deck(&legacy, &["legacy", "promoted", "later"], Some("promoted"));
+    requested.new_session_titles = vec![false, true, false];
+    let saved = app.save_tab_deck(requested.clone()).await.unwrap();
+    assert_eq!(
+        app.tab_deck().await.unwrap().new_session_titles,
+        [false, true, false]
+    );
+    let conn = sqlite(&data);
+    assert_eq!(count(&conn, "turns", "promoted"), 0);
+    assert_eq!(count(&conn, "messages", "promoted"), 0);
+    assert_eq!(
+        app.history_page(id("promoted"), None, None, 1)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    let raw = stored(&conn, &saved.location);
+    let mut invalid = saved.clone();
+    invalid.new_session_titles = vec![true];
+    assert_eq!(
+        app.save_tab_deck(invalid).await,
+        Err(CoreError::InvalidTabDeck)
+    );
+    assert_eq!(
+        stored(&conn, &saved.location),
+        raw,
+        "invalid alignment never rewrites the deck"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+
+    let (app, guard, _) = application::spawn_with_env(a.path(), data.path(), env)
+        .await
+        .unwrap();
+    let restored = app.tab_deck().await.unwrap();
+    assert_eq!(restored, saved);
+    assert_eq!(
+        app.history_page(id("promoted"), None, None, 1)
+            .await
+            .unwrap()
+            .title,
+        None
+    );
+    app.rename_session(id("promoted"), "Actual durable title".into())
+        .await
+        .unwrap();
+    assert_eq!(
+        app.history_page(id("promoted"), None, None, 1)
+            .await
+            .unwrap()
+            .title
+            .as_deref(),
+        Some("Actual durable title")
+    );
+    assert_eq!(
+        app.tab_deck().await.unwrap().new_session_titles,
+        [false, true, false],
+        "rename does not rewrite tab fallback metadata"
+    );
+    let result = app
+        .picker_session_action(
+            id("legacy"),
+            String::new(),
+            false,
+            oc_core::queries::SessionPickerAction::Delete,
+        )
+        .await
+        .unwrap();
+    let oc_core::queries::SessionPickerResult::Deleted(deleted) = result else {
+        panic!("delete result")
+    };
+    assert_contents(&deleted, &["promoted", "later"], Some("promoted"));
+    assert_eq!(deleted.new_session_titles, [true, false]);
+    assert_eq!(
+        app.tab_deck().await.unwrap().new_session_titles,
+        [true, false]
     );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();

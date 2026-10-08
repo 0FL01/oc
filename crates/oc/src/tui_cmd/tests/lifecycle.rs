@@ -565,6 +565,7 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("unchanged".into()),
+            new_session_titles: vec![false, true, true],
             sessions: ["good", "broken", "last"]
                 .into_iter()
                 .map(|id| SessionId::new(id).unwrap())
@@ -626,6 +627,11 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
     .await
     .unwrap();
     assert_eq!(state.session().0, "last");
+    assert!(
+        state.new_session_tab,
+        "pruning a failed middle view preserves the later tab's flag"
+    );
+    assert_eq!(deck.snapshot(&state).new_session_titles, [false, true]);
     assert_eq!(deck.revision.as_deref(), Some("unchanged"));
     assert_eq!(
         state.note(),
@@ -685,6 +691,7 @@ async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("keep".into()),
+            new_session_titles: Vec::new(),
             sessions: ["broken", "good"]
                 .into_iter()
                 .map(|id| SessionId::new(id).unwrap())
@@ -1972,6 +1979,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("rev-1".into()),
+            new_session_titles: Vec::new(),
             sessions: vec![
                 SessionId::new("one").unwrap(),
                 SessionId::new("two").unwrap(),
@@ -2081,6 +2089,7 @@ async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("rev-home".into()),
+            new_session_titles: Vec::new(),
             sessions: (0..MAX_TABS - 1)
                 .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
                 .collect(),
@@ -2131,6 +2140,7 @@ async fn bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("full".into()),
+            new_session_titles: Vec::new(),
             sessions: (0..MAX_TABS)
                 .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
                 .collect(),
@@ -2180,6 +2190,7 @@ async fn explicit_restore_adopts_successful_revision_for_next_save() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/fixture".into(),
             revision: Some("loaded".into()),
+            new_session_titles: Vec::new(),
             sessions: vec![SessionId::new("one").unwrap()],
             active: None,
         }))
@@ -3323,6 +3334,7 @@ async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_sur
                 revision: Some("accepted".into()),
                 sessions: vec![SessionId("survivor".into())],
                 active: Some(SessionId("survivor".into())),
+                new_session_titles: Vec::new(),
             },
         )))
         .unwrap();
@@ -3383,6 +3395,60 @@ async fn committed_title_event_refreshes_only_the_open_session() {
     .await
     .unwrap();
     assert_eq!(state.session_title.as_deref(), Some("Real title"));
+}
+
+#[tokio::test]
+async fn fresh_home_tab_fallback_survives_titleless_refresh_and_yields_to_committed_title() {
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let session = SessionId::new("promoted-shell").unwrap();
+    let mut state = TuiState::new(app.clone(), session.clone());
+    let mut deck = LoopState::default();
+    deck.sync_tabs(&mut state); // The accepted Home receipt has attached a root.
+    assert_eq!(state.session_title, None, "no invented durable title");
+    assert_eq!(
+        state.tab_presentation().0[0].title.as_deref(),
+        Some("New session")
+    );
+    assert_eq!(deck.snapshot(&state).new_session_titles, [true]);
+    state.refresh_completed_page(&Default::default());
+    deck.sync_tabs(&mut state);
+    assert_eq!(
+        state.tab_presentation().0[0].title.as_deref(),
+        Some("New session")
+    );
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut deck,
+        &session,
+        CoreEvent::SessionTitleUpdated {
+            session: session.clone(),
+            title: "Explicit rename".into(),
+        },
+    )
+    .await
+    .unwrap();
+    deck.sync_tabs(&mut state);
+    assert_eq!(
+        state.tab_presentation().0[0].title.as_deref(),
+        Some("Explicit rename")
+    );
+    assert!(
+        inbox.try_recv().is_err(),
+        "promotion and title presentation make no owner/model request"
+    );
+
+    let mut ordinary = TuiState::new(app, SessionId::new("opened-legacy").unwrap());
+    let mut existing = LoopState {
+        active_tab: Some(0),
+        tabs: vec![None],
+        tab_cards_before: vec![None],
+        ..Default::default()
+    };
+    existing.sync_tabs(&mut ordinary);
+    assert!(ordinary.tab_title_fallback().is_none());
+    assert!(ordinary.tab_presentation().0[0].title.is_none());
+    assert!(existing.snapshot(&ordinary).new_session_titles.is_empty());
 }
 
 #[tokio::test]

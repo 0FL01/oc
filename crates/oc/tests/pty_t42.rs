@@ -3220,7 +3220,9 @@ fn bare_first_accepted_prompt_creates_exactly_one_bound_root_and_turn() {
     pty.wait_visible("█▀▀█", DEADLINE);
     assert!(!render_screen(&pty.snapshot()).rows()[0].contains(READY));
     let off = submit(&mut pty, "slow stream");
-    wait_screen_row(&pty, READY, DEADLINE);
+    // OC2 preserves the promoted Home tab's label until a durable title arrives;
+    // explicit/ordinary title-less roots still use READY's untitled fallback.
+    wait_screen_row(&pty, "New session", DEADLINE);
     let accepted = fixture.wait_requests(1);
     assert_eq!(last_user_text(&accepted[0]).as_deref(), Some("slow stream"));
     // The scripted peer is still sending heartbeats: acceptance has committed

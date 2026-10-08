@@ -37,6 +37,7 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   const completed=await shot('user-shell-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
   const structured=(f,count)=>{
     const rows=f.cells.map(glyphs);
+    if(!rows[0].includes('New session')||rows[0].includes('Untitled session'))throw Error('Fresh Shell lost its tab-only New session fallback');
     if(rows.filter(row=>row.includes(`$ ${COMMAND}`)).length!==count||f.text.includes('native admission; data only')||f.text.includes('native durable notice')||f.text.includes('Command exited with code 0'))throw Error('User Shell completion is not a single structured command/output block');
   };
   structured(completed,1);
@@ -67,11 +68,12 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   const deadline=Date.now()+6000;while(!logs.some(e=>e.kind==='exit'&&e.generation===0)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,25));
   if(!logs.some(e=>e.kind==='exit'&&e.generation===0))throw Error('User Shell process did not exit');
   await relaunch();
-  await shot('user-shell-restarted-home',f=>f.text.includes('Ask anything')||f.text.includes('VIS-USER-SHELL-DONE'));
+  const restartedHome=await shot('user-shell-restarted-home',f=>f.text.includes('Ask anything')||f.text.includes('VIS-USER-SHELL-DONE'));
+  if(glyphs(restartedHome.cells[0]).includes('Untitled session'))throw Error('Restart lost the persisted tab fallback');
   send('\x1b[A','user_shell_restarted_recall');
   await shot('user-shell-restarted-recalled',f=>promptHas(f,COMMAND));
   const restarted=await snapshot('user_shell_restarted');verify(restarted,2);
   return {status:'OBSERVED_USER_SHELL',command:COMMAND,before,during,first,recalled,second,restarted,
     provider_requests:0,explicit_commands:2,effects:2,recalled_shell_mode:recalledShellMode,
-    native_history_before_effect:origin==='oc',no_restart_replay:true};
+    native_history_before_effect:origin==='oc',new_session_tab_fallback:true,no_restart_replay:true};
 }

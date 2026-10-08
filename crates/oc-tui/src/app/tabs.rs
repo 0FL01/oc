@@ -907,6 +907,12 @@ impl TuiState {
         }
     }
 
+    /// Fresh-Home promotion label, independent of durable title/history refresh.
+    pub fn tab_title_fallback(&self) -> Option<&'static str> {
+        self.new_session_tab
+            .then_some(crate::shell::NEW_SESSION_TAB_TITLE)
+    }
+
     pub(crate) fn tab_title(&self, index: usize) -> &str {
         if self.home && index == self.tabs.len() {
             crate::shell::NEW_SESSION_TAB_TITLE
@@ -917,7 +923,11 @@ impl TuiState {
                 .or_else(|| {
                     self.tabs
                         .is_empty()
-                        .then_some(self.session_title.as_deref())
+                        .then_some(
+                            self.session_title
+                                .as_deref()
+                                .or_else(|| self.tab_title_fallback()),
+                        )
                         .flatten()
                 })
                 .unwrap_or(crate::shell::UNTITLED_SESSION)

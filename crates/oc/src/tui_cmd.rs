@@ -489,6 +489,25 @@ impl LoopState {
             location: self.location.clone().unwrap_or_default(),
             revision: self.revision.clone(),
             sessions,
+            new_session_titles: {
+                let flags = self
+                    .tabs
+                    .iter()
+                    .enumerate()
+                    .map(|(index, parked)| {
+                        if self.active_tab == Some(index) {
+                            state.new_session_tab
+                        } else {
+                            parked.as_ref().expect("parked tab").new_session_tab
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                if flags.iter().any(|value| *value) {
+                    flags
+                } else {
+                    Vec::new()
+                }
+            },
             active: self
                 .active_tab
                 .and_then(|_| state.attached_session().cloned()),
@@ -585,6 +604,7 @@ impl LoopState {
         // session; subsequent Home submissions append to the existing deck.
         if self.active_tab.is_none() && state.attached_session().is_some() {
             debug_assert!(self.tabs.len() < MAX_TABS);
+            state.new_session_tab = true;
             self.active_tab = Some(self.tabs.len());
             self.tabs.push(None);
             self.tab_cards_before.push(self.cards_before);
@@ -600,7 +620,10 @@ impl LoopState {
                     parked.as_ref().expect("parked tab")
                 };
                 TabPresentation {
-                    title: view.session_title.clone(),
+                    title: view
+                        .session_title
+                        .clone()
+                        .or_else(|| view.tab_title_fallback().map(str::to_owned)),
                     detail: view.chrome.location.as_deref().and_then(|location| {
                         std::path::Path::new(location)
                             .file_name()
@@ -768,6 +791,12 @@ impl LoopState {
             .map_err(|_| "tab close refused; saved tabs unavailable".to_string())?;
         let mut candidate = self.snapshot(state);
         candidate.sessions.remove(index);
+        if !candidate.new_session_titles.is_empty() {
+            candidate.new_session_titles.remove(index);
+            if !candidate.new_session_titles.iter().any(|value| *value) {
+                candidate.new_session_titles.clear();
+            }
+        }
         candidate.active = if self.active_tab == Some(index) {
             // Immediately previous if available, otherwise the next tab.
             (self.tabs.len() > 1).then(|| candidate.sessions[index.saturating_sub(1)].clone())
@@ -1651,7 +1680,7 @@ async fn standalone_explicit(
 async fn restore_views(
     app: &CoreApp,
     deck: &mut LoopState,
-    ids: Vec<SessionId>,
+    ids: Vec<(SessionId, bool)>,
     active: Option<SessionId>,
     explicit: Option<&SessionId>,
     home: Option<TuiState>,
@@ -1662,9 +1691,12 @@ async fn restore_views(
     Box::pin(async move {
     let mut views = Vec::with_capacity(ids.len());
     let mut unavailable = Vec::new();
-    for id in ids {
+    for (id, new_session_tab) in ids {
         match load_tab(app, id.clone()).await {
-            Ok(view) => views.push((id, view)),
+            Ok(mut view) => {
+                view.new_session_tab = new_session_tab;
+                views.push((id, view));
+            }
             Err(error)
                 if explicit == Some(&id)
                     || (matches!(&error, CoreError::Diagnostic(_) | CoreError::TabDeckStorage)
@@ -1765,6 +1797,8 @@ async fn restore_initial(
     };
     if stored.location.is_empty()
         || stored.sessions.len() > MAX_TABS
+        || (!stored.new_session_titles.is_empty()
+            && stored.new_session_titles.len() != stored.sessions.len())
         || (stored.active.is_none() && stored.sessions.len() == MAX_TABS)
         || stored
             .active
@@ -1813,7 +1847,19 @@ async fn restore_initial(
     let mut state = restore_views(
         app,
         &mut deck,
-        ids,
+        ids.into_iter()
+            .enumerate()
+            .map(|(index, id)| {
+                (
+                    id,
+                    stored
+                        .new_session_titles
+                        .get(index)
+                        .copied()
+                        .unwrap_or(false),
+                )
+            })
+            .collect(),
         active,
         explicit.as_ref(),
         None,
@@ -3170,12 +3216,20 @@ async fn adopt_picker_open(
     }
     // Adopt the accepted route before any optional parked-view refresh.
     *state = active;
-    for session in receipt.deck.sessions {
+    for (index, session) in receipt.deck.sessions.into_iter().enumerate() {
+        let new_session_tab = receipt
+            .deck
+            .new_session_titles
+            .get(index)
+            .copied()
+            .unwrap_or(false);
         if session == receipt.session {
+            state.new_session_tab = new_session_tab;
             deck.active_tab = Some(deck.tabs.len());
             deck.tabs.push(None);
         } else {
             let mut view = TuiState::new(app.clone(), session.clone());
+            view.new_session_tab = new_session_tab;
             view.apply_catalog(receipt.catalog.clone());
             if let Some((_, draft)) = drafts.iter().find(|(id, _)| id.as_ref() == Some(&session)) {
                 view.restore_prompt(draft.clone());
@@ -3242,6 +3296,8 @@ async fn adopt_location(
             if snapshot.location != location
                 || snapshot.location.is_empty()
                 || snapshot.sessions.len() > MAX_TABS
+                || (!snapshot.new_session_titles.is_empty()
+                    && snapshot.new_session_titles.len() != snapshot.sessions.len())
                 || (snapshot.active.is_none() && snapshot.sessions.len() == MAX_TABS)
                 || snapshot
                     .active
@@ -3260,7 +3316,21 @@ async fn adopt_location(
             *state = restore_views(
                 app,
                 deck,
-                snapshot.sessions,
+                snapshot
+                    .sessions
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, id)| {
+                        (
+                            id,
+                            snapshot
+                                .new_session_titles
+                                .get(index)
+                                .copied()
+                                .unwrap_or(false),
+                        )
+                    })
+                    .collect(),
                 snapshot.active,
                 None,
                 Some(home),
@@ -3391,6 +3461,8 @@ async fn handle_worker_event(
                 Ok(snapshot)
                     if _loop_state.location.as_deref() == Some(snapshot.location.as_str())
                         && _loop_state.snapshot(state).sessions == snapshot.sessions
+                        && _loop_state.snapshot(state).new_session_titles
+                            == snapshot.new_session_titles
                         && _loop_state.snapshot(state).active == snapshot.active =>
                 {
                     _loop_state.revision = snapshot.revision;

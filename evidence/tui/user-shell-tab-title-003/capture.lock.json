@@ -1,0 +1,2064 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T23:32:42.933Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "e6a6b398ea8473dbe934073ac26a7ae01fb6cbad3377098ef8193d01df0e25d1",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "a3837edc4bf42d60aa7d719b621d5aaa724197baf748877a77dee67dde06b3cd",
+    "tool_preview_fixture.py": "1a0fa29bdd2d39ec37f9804a5a52339647223ded8c7a3774417a1241164fc87e",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "user_shell.mjs": "a265ac6e0d4ff0d5768f6a9f0687710164790daa86a2f3206f1bc576b83c9b2a",
+    "user_shell_fixture.py": "a3cc8046ad08e6c67d26c6b2ac30e6b79829ac2936451cbf11af37e5bfe3ea0d"
+  },
+  "fixture_sha256": "700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "6644f4a867cf2d6e535c76c5c76fb39ac0618c3a",
+    "tree": "0efc3f3886fce8b65bdd2d79b06c8f821e39c125",
+    "dirty_diff_sha256": "4eb4fce24095377dd9bbcaaba174fdb1b35dce9086aa754400c475900a297693",
+    "source_manifest_sha256": "79af9540f7bef8c6b20017305448c550df44f6415a7fc9b073de388667147a8e",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "88d3d89693d69e753f3e4e034da65a5e20c0cf8bd68c22ed03ea3629f6345508",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-user-shell-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-mode",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-mode",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-escape",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-escape",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-input",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-input",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-running",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-running",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-completed",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-completed",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled-normal",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled-normal",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled-mode",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-recalled-mode",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-second-completed",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-second-completed",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-user-shell-restarted-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-restarted-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-restarted-recalled",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-user-shell-restarted-recalled",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "f06dc63f966793e7b28bbdc1433e0756270b5ebcf08ea99892dbd95c52ccb738",
+      "png_sha256": "440d964e1cd2d5f53117e5af62f2931f59653fe1b27abc29f1eabff397ea015e",
+      "render_sha256": "976b5431dc134b8740b14b11d10d2fe5c588f030259a997145e1dd2607f2c21d",
+      "path": "upstream/tool-preview-user-shell-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "8d0f449c5c4e333c027829ee21580b3f3c0edb0ae0f13b01b349101eed5a6ed5",
+      "png_sha256": "d31099be9960cf188405856fd1d754a403c1b067da380df1930eb90d21e306c6",
+      "render_sha256": "ab6e98689611dbf83fd54b4631a8b9a65286cc10378fb11474e6ad79601ce1b7",
+      "path": "upstream/tool-preview-user-shell-mode"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-escape",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "16ca4ec67622ad130769eef27c768f667f646a76eef6af0f45b78880ff2927d8",
+      "png_sha256": "fc3bdd422e559c33d6be646b30317bc7f8a17ce80be3f85162c94585615b356b",
+      "render_sha256": "a5d2f040c64adeca27ec91adcaf0d7174adf859418579cca5842a2c6e4aa69f4",
+      "path": "upstream/tool-preview-user-shell-escape"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-input",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "e0076878201b075f2f17a179beca5e832de3b468a4efea119352574b758f56d2",
+      "png_sha256": "497a2221038d098b5814c82709444292ce517e7577346d61f872b4e711142ae5",
+      "render_sha256": "13a60193900512c232099d7e2ed8509d280423fc5129284f664b0151d06bf66f",
+      "path": "upstream/tool-preview-user-shell-input"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-running",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "1616e57bd27c030cd39e874a3fe28c9ebf1f25e0a0dc7c1fa3d916e5346a859b",
+      "png_sha256": "2dcd1b00ca91a7adc8786272d692636ed1814100d74f6784e49a9ac1b84db7f9",
+      "render_sha256": "ee70d2f219176e933b6223b4aa6deb105fef70c72054086c74fd9b20505e08aa",
+      "path": "upstream/tool-preview-user-shell-running"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "6f56c963b565d12e1f64c6d8fe7fc1ed3720d2a368d74c2957a02535617118c5",
+      "png_sha256": "acee8ce7917e9a673cdc54731dfb31745b1794f6be7018cc98a1b928c1b73190",
+      "render_sha256": "4629dcca096ecd05c683135ae12c38cac0a7f62ddc5232b5f92dd7f2a229b323",
+      "path": "upstream/tool-preview-user-shell-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "b93987028fef1aaee604ea596292478f398101e0a203be541a3d5d6c2883344b",
+      "png_sha256": "6eaf63022d4711e280c85b46977cb1977732b276c4ec3d6f787b7e6db6fe5d4a",
+      "render_sha256": "4f265f77df33ef3763457f26d765e3ec4bb167b11954b04a184e60ac0f4c0d85",
+      "path": "upstream/tool-preview-user-shell-recalled"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-recalled-normal",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "69bad167cb0c19f7dfadd1442a148b7751aaed9baa06e718d189948d97dc4353",
+      "png_sha256": "6cb0fa77956ab5fa04235128dfd8b0fec676dd7a86e60cef524fa856452732c3",
+      "render_sha256": "475cc6db54d2e3b72933aba76e326d176f659a456dda2d659358678c6a32d933",
+      "path": "upstream/tool-preview-user-shell-recalled-normal"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-recalled-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "7b046d6ca33159f2b7f7049edd4584bcdc8229cbc4ea3ab871e3f3e74404c0bd",
+      "png_sha256": "6eaf63022d4711e280c85b46977cb1977732b276c4ec3d6f787b7e6db6fe5d4a",
+      "render_sha256": "1659614cfdb318618cd89e4ce19b61b2accf3087dcb4d025751a86895d50cfde",
+      "path": "upstream/tool-preview-user-shell-recalled-mode"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-second-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "737762273cd59bdd2e378fedbdac57d83b5a4b656b959466b0433438b868ea76",
+      "png_sha256": "f02dbd10d68782f236751d8456448232c2d2e5bfdd39f64e3b913f8ebffb06a9",
+      "render_sha256": "88277badb2b093a0566b3ac3a37e72198e40a5a5fbe70950296481acb35a6165",
+      "path": "upstream/tool-preview-user-shell-second-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-restarted-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "c960bab710158b960b3c65c601e472af1fdc46f85b00352afc06c31223974fd6",
+      "png_sha256": "005610bf3954c881ed60d5a299e3e4e36f60bb9173156e80750d4f6102292ffe",
+      "render_sha256": "d93c4587ef50713f6029b69686d83243b14bc72764fe5db065c1ebf0e6c10027",
+      "path": "upstream/tool-preview-user-shell-restarted-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-user-shell-restarted-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "4c78f8b77b90bf8e28256fd3f9f4d9290c82d17f835f1b056285a54e592bbc09",
+      "png_sha256": "5e95f07e921e4b50b42ec58855b9055550599860366fbee3156c90bc4ece73b9",
+      "render_sha256": "2a38a08069433f422357e76ad25a214c530058f786a4ffe10f2eadbdaff4bd82",
+      "path": "upstream/tool-preview-user-shell-restarted-recalled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "4c8384926df471d88d62c11eb0a92e720d747c3099326c396f7a8ae69dbab669",
+      "png_sha256": "4fb13e718a8317df43f810c6124279b93070515d9d815dc0799d69f651f896ab",
+      "render_sha256": "0e888d93c923cc4dfe0f3571c097b29215ea426218613f5163fe9982a6bd77a8",
+      "path": "oc/tool-preview-user-shell-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "17ef7036081ffcf9f6f1d10bfd7c804474bf563502ef0b8362b55a1db8fd22d6",
+      "png_sha256": "fbe2183b0fbf8f994559525e609a7fb1131c680f67fd11cb5df2cf5cd830965d",
+      "render_sha256": "554d9fd1b86ae091b407ffbaf645ae1277bcabe09ea0801f1c50c4b7b849fcf5",
+      "path": "oc/tool-preview-user-shell-mode"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-escape",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "dc53ba934b85453f3df157cbdec6c87df62f860566d0d50d48bb2bb933b465dc",
+      "png_sha256": "4fb13e718a8317df43f810c6124279b93070515d9d815dc0799d69f651f896ab",
+      "render_sha256": "2416f1f9cb6dfcc9f32899fca1fbda49d448deb82ea3cd0c532de635727416cc",
+      "path": "oc/tool-preview-user-shell-escape"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-input",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "9a428bd558d59f06022f8b08fe3fbdb7bb9e340c8de241edc9453368377563a3",
+      "png_sha256": "4e4e38d0276887a795f7051599b09381d48856b9c46de3db6f461295ba73c5c4",
+      "render_sha256": "d4e3367ded7afac1e7001df409c2351c16cb9e5b26685e5f339da6d0d4f87649",
+      "path": "oc/tool-preview-user-shell-input"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-running",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "8aa35f0fffff77f1d51882523e6f5235a4515293712adda6223df87cdc1ac873",
+      "png_sha256": "1ae472fd6c1bf5b9fb1eed04704630ae14aa3f4883339cdb96d837145a1733e6",
+      "render_sha256": "63fc1c0d791c12a7721af6a7d1052a422ef7317f83720850641b3818729e54f7",
+      "path": "oc/tool-preview-user-shell-running"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "f889fdeb03f23ba670a21aa825ca41218ae954480b75378389ed6d31084e0c0a",
+      "png_sha256": "acee8ce7917e9a673cdc54731dfb31745b1794f6be7018cc98a1b928c1b73190",
+      "render_sha256": "7fd897c89a87467393c394a8418f1ecee0975bbf0f27006095aa2f167055d278",
+      "path": "oc/tool-preview-user-shell-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "dce54059c66b51649d14898b2516bcef6b6c6a387337d1f6908168e5a222fa67",
+      "png_sha256": "6cb0fa77956ab5fa04235128dfd8b0fec676dd7a86e60cef524fa856452732c3",
+      "render_sha256": "86ab531202db218e4df20e3ddf53616a4996c9a89e75cd2f22f1dfbc8a9680d1",
+      "path": "oc/tool-preview-user-shell-recalled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-recalled-normal",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "698cbdcf3210f35cf055d630cf33aae105bfff395ffee08c14aad338d1b65b48",
+      "png_sha256": "6cb0fa77956ab5fa04235128dfd8b0fec676dd7a86e60cef524fa856452732c3",
+      "render_sha256": "d880b92ebff89dc5f42e6978716ace60429b4885462c00ff8869be738f6517da",
+      "path": "oc/tool-preview-user-shell-recalled-normal"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-recalled-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "66b5212403e0bba23a3960a74c2e01c21ec5ee2161fa2513c221bf24ed6c676f",
+      "png_sha256": "15683e37f8aa8091af231f0e9f226c2fb96ae9225f3ad9203854f5648cfb5707",
+      "render_sha256": "978ffbc279d8db98817a2bd767eb5596915a4e4f21a1f4b122fa79bc66c974ec",
+      "path": "oc/tool-preview-user-shell-recalled-mode"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-second-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "ed7ab4641461dca0f570e243c3a38e73d0d1274942bee599ad6b75ccdd9586e0",
+      "png_sha256": "f02dbd10d68782f236751d8456448232c2d2e5bfdd39f64e3b913f8ebffb06a9",
+      "render_sha256": "f8b6600d12657a482a625cc0d3f312a3e1ec8add8ee0eb21bc96b239373864ff",
+      "path": "oc/tool-preview-user-shell-second-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-restarted-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "206d345328f1ea4210782eab81f37c4dcb74e91759334f6face6e16d64a1d920",
+      "png_sha256": "4b4a446f8d9d0faddf144a2feb5caf6cfad8983471101d84d06ee864ffaeb582",
+      "render_sha256": "81a310408df8594236dc1ba5d8654834e37bbda66ebf50cd5641ad93cb47de92",
+      "path": "oc/tool-preview-user-shell-restarted-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-user-shell-restarted-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "c8a0cb0c055012f4d761910b2fd80f6d3538e306a963ec39eb5317cce9e34a6c",
+      "cells_sha256": "0486398b381e8109650dd0e7ca7fcb9e05f7e9aa98a3e42c65fc3331d00354c3",
+      "png_sha256": "028a2232d088fe720e3cbc45a7f2d3c249b9c67f13452a52d4ab218a83c6c219",
+      "render_sha256": "5f5e14df62e12873f5702544f40b3a9649c564a9c80bf643f451140480c1ca19",
+      "path": "oc/tool-preview-user-shell-restarted-recalled"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": null,
+    "user_shell": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "user-shell-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-mode",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-escape",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-input",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 53,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-running",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled-normal",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled-mode",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-second-completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-restarted-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-restarted-recalled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed."
+      ],
+      "user_shell": {
+        "status": "OBSERVED_USER_SHELL",
+        "command": "python3 user-shell-probe.py",
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_before_enter",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "user_shell_boundary": [],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "during": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_running_before_effect",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "user_shell_boundary": [
+            {
+              "origin": "upstream"
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "first": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_first_completed",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": {
+            "bytes": 22,
+            "lines": 1,
+            "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "upstream"
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "recalled": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_recalled",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": {
+            "bytes": 22,
+            "lines": 1,
+            "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "upstream"
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "second": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_second_60",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": {
+            "bytes": 44,
+            "lines": 2,
+            "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "upstream"
+            },
+            {
+              "origin": "upstream"
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_restarted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": {
+            "bytes": 44,
+            "lines": 2,
+            "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "upstream"
+            },
+            {
+              "origin": "upstream"
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 0,
+        "explicit_commands": 2,
+        "effects": 2,
+        "recalled_shell_mode": true,
+        "native_history_before_effect": false,
+        "new_session_tab_fallback": true,
+        "no_restart_replay": true
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "user-shell-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-mode",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-escape",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-input",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 53,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-running",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled-normal",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-recalled-mode",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-second-completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-restarted-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "user-shell-restarted-recalled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed."
+      ],
+      "user_shell": {
+        "status": "OBSERVED_USER_SHELL",
+        "command": "python3 user-shell-probe.py",
+        "before": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_before_enter",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [],
+                "prompt_input_history": [],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "user_shell_boundary": [],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "during": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_running_before_effect",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "started",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": null,
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791502423-2612335-0",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502423-2612335-0.part",
+                    "descriptor": "{\"id\":\"tool_1791502423-2612335-0\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.part\",\"bytes\":0,\"lines\":0,\"admitted_bytes\":0,\"admitted_lines\":0,\"state\":\"Active\"}",
+                    "dev": 65027,
+                    "ino": 5363351,
+                    "extent": 0,
+                    "state": "Active",
+                    "completed": null
+                  }
+                ],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"command\":\"python3 user-shell-probe.py\"}"
+                  }
+                ],
+                "prompt_input_history": [
+                  "python3 user-shell-probe.py"
+                ],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791502423-2612335-0.part": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "shell_effect": null,
+          "user_shell_boundary": [
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "first": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_first_completed",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791502423-2612335-0",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502423-2612335-0.txt",
+                    "descriptor": "{\"id\":\"tool_1791502423-2612335-0\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363351,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502426
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  }
+                ],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0002",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 2,
+                    "role": "user",
+                    "text": null
+                  }
+                ],
+                "prompt_input_history": [
+                  "python3 user-shell-probe.py"
+                ],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791502423-2612335-0.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            }
+          },
+          "shell_effect": {
+            "bytes": 22,
+            "lines": 1,
+            "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "recalled": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_recalled",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791502423-2612335-0",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502423-2612335-0.txt",
+                    "descriptor": "{\"id\":\"tool_1791502423-2612335-0\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363351,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502426
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  }
+                ],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0002",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 2,
+                    "role": "user",
+                    "text": null
+                  }
+                ],
+                "prompt_input_history": [
+                  "python3 user-shell-probe.py"
+                ],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791502423-2612335-0.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            }
+          },
+          "shell_effect": {
+            "bytes": 22,
+            "lines": 1,
+            "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "second": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_second_71",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  },
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791502423-2612335-0",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502423-2612335-0.txt",
+                    "descriptor": "{\"id\":\"tool_1791502423-2612335-0\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363351,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502426
+                  },
+                  {
+                    "id": "tool_1791502437-2612335-1",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502437-2612335-1.txt",
+                    "descriptor": "{\"id\":\"tool_1791502437-2612335-1\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502437-2612335-1.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363379,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502440
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  },
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502437-2612335-1.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  }
+                ],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0002",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 2,
+                    "role": "user",
+                    "text": null
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0004",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 4,
+                    "role": "user",
+                    "text": null
+                  }
+                ],
+                "prompt_input_history": [
+                  "python3 user-shell-probe.py"
+                ],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791502437-2612335-1.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            },
+            "data/oc/tool-output/tool_1791502423-2612335-0.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            }
+          },
+          "shell_effect": {
+            "bytes": 44,
+            "lines": 2,
+            "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            },
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "restarted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "user_shell_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  },
+                  {
+                    "id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "turn_id": null,
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"background\":true}",
+                    "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                    "provider_call_id": null,
+                    "call_occurrence": null,
+                    "original_input_index": null
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791502423-2612335-0",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502423-2612335-0.txt",
+                    "descriptor": "{\"id\":\"tool_1791502423-2612335-0\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363351,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502426
+                  },
+                  {
+                    "id": "tool_1791502437-2612335-1",
+                    "operation_id": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "name": "tool_1791502437-2612335-1.txt",
+                    "descriptor": "{\"id\":\"tool_1791502437-2612335-1\",\"operation\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1\",\"session\":\"s-tui-18dcb1f64d66af4f-27dc6f-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/project\",\"generation\":1,\"source\":\"source-ce482541/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502437-2612335-1.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 5363379,
+                    "extent": 29,
+                    "state": "Complete",
+                    "completed": 1791502440
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502423-2612335-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  },
+                  {
+                    "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+                    "presentation": {
+                      "body": "VIS-USER-SHELL-DONE\n",
+                      "body_bytes": 20,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-tab-title-003/oc/home/data/oc/tool-output/tool_1791502437-2612335-1.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 29,
+                        "retained_bytes": 29,
+                        "admitted_lines": 2,
+                        "retained_lines": 2
+                      },
+                      "shell": {
+                        "stdout": "VIS-USER-SHELL-DONE\n",
+                        "stderr": "",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  }
+                ],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0002",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 2,
+                    "role": "user",
+                    "text": null
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1\",\"command\":\"python3 user-shell-probe.py\"}"
+                  },
+                  {
+                    "id": "m0004",
+                    "session_id": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+                    "seq": 4,
+                    "role": "user",
+                    "text": null
+                  }
+                ],
+                "prompt_input_history": [
+                  "python3 user-shell-probe.py"
+                ],
+                "model_turns": 0
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791502437-2612335-1.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            },
+            "data/oc/tool-output/tool_1791502423-2612335-0.txt": {
+              "bytes": 29,
+              "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+            }
+          },
+          "shell_effect": {
+            "bytes": 44,
+            "lines": 2,
+            "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+          },
+          "user_shell_boundary": [
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502423206-2612335-0",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            },
+            {
+              "origin": "oc",
+              "operation": "user-shell:ts-tui-18dcb1f64d66af4f-27dc6f-0-1791502437403-2612335-1",
+              "session": "s-tui-18dcb1f64d66af4f-27dc6f-0",
+              "turn": null,
+              "state": "started",
+              "model_turns": 0,
+              "history_exact": true
+            }
+          ],
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "provider_requests": 0,
+        "explicit_commands": 2,
+        "effects": 2,
+        "recalled_shell_mode": false,
+        "native_history_before_effect": true,
+        "new_session_tab_fallback": true,
+        "no_restart_replay": true
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_TOOL_PREVIEW_ONLY",
+    "actual_requests": "Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only",
+    "replay": "Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Native 2048-byte presentation and compact status are disclosed differences",
+      "Actual history multi-page traversal and capture fault matrices remain separate gates"
+    ]
+  },
+  "finished": "2026-10-08T23:34:12.866Z",
+  "exit_code": 1
+}

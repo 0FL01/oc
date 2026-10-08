@@ -155,6 +155,7 @@ impl TuiState {
             Ok(operation) => {
                 if pending.fresh {
                     self.session = Some(pending.session.clone());
+                    self.new_session_tab = true;
                 }
                 self.model_submission_accepted(&pending.session, pending.selection.as_ref());
                 self.home = false;

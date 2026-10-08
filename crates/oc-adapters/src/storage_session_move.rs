@@ -181,7 +181,15 @@ impl Db {
                 BoundedPref::TooLarge => return Err(invalid_stored_tab_deck()),
             };
             let mut deck = parse_stored_deck(raw.as_deref())?;
-            deck.sessions.retain(|s| s != &record.session);
+            if let Some(index) = deck.sessions.iter().position(|s| s == &record.session) {
+                deck.sessions.remove(index);
+                if !deck.new_session_titles.is_empty() {
+                    deck.new_session_titles.remove(index);
+                    if !deck.new_session_titles.iter().any(|value| *value) {
+                        deck.new_session_titles.clear();
+                    }
+                }
+            }
             if deck.active.as_deref() == Some(&record.session) {
                 deck.active = deck.sessions.last().cloned();
             }

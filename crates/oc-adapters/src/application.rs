@@ -2780,6 +2780,9 @@ async fn prepare_picker_open(
             return Err(CoreError::InvalidTabDeck);
         }
         target.sessions.push(session.clone());
+        if !target.new_session_titles.is_empty() {
+            target.new_session_titles.push(false);
+        }
     }
     target.active = Some(session.clone());
     let mut decks = if old_deck.location == runtime.location() {

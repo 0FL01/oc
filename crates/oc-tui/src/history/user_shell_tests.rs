@@ -60,6 +60,22 @@ fn direct_user_shell_is_a_single_typed_block_without_assistant_graph_or_user_act
         "donor Shell ID is expandable even for short output"
     );
     let theme = crate::theme::Theme::dark();
+    let block = crate::tools::tool_block(card, theme, 120);
+    assert!(
+        block.iter().all(|row| row.spans()[1].style().fg.is_none()),
+        "standalone box padding inherits foreground, not muted output styling"
+    );
+    let mut model_card = card.clone();
+    let crate::tools::ToolRender::Shell(shell) = &mut model_card.render else {
+        panic!("Shell render")
+    };
+    shell.direct_user = false;
+    assert!(
+        crate::tools::tool_block(&model_card, theme, 120)
+            .iter()
+            .all(|row| row.spans()[1].style().fg == Some(theme.text_muted())),
+        "model Shell frame styling is unchanged"
+    );
     let painted = crate::messages::transcript(&rows, theme, 120, 120, |_| theme.text());
     let text = painted
         .iter()

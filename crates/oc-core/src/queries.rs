@@ -122,6 +122,10 @@ pub struct TabDeckSnapshot {
     pub revision: Option<String>,
     /// Existing Location-bound root sessions, in display order.
     pub sessions: Vec<SessionId>,
+    /// Tab-only `New session` fallback for each ordered session. Empty means
+    /// no fallbacks (legacy decks); otherwise exactly one flag per session.
+    /// Durable session titles always win and are never changed by these flags.
+    pub new_session_titles: Vec<bool>,
     /// Selected tab, or sessionless Home.
     pub active: Option<SessionId>,
 }

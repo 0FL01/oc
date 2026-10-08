@@ -1467,6 +1467,7 @@ mod tests {
         let deck = StoredDeck {
             version: 1,
             sessions: (0..MAX_TABS).map(|n| format!("tab-{n}")).collect(),
+            new_session_titles: Vec::new(),
             active: None,
         };
         db.set_pref(

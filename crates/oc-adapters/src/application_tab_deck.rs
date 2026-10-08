@@ -52,11 +52,19 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
     let stored = parse_stored_deck(raw.as_deref()).map_err(|_| CoreError::StoredTabDeck)?;
     let revision = raw.as_deref().map(pref_revision);
     let mut sessions = Vec::new();
+    let mut new_session_titles = Vec::new();
     let mut seen = HashSet::new();
     let mut projected = false;
-    for id in stored.sessions {
+    for (index, id) in stored.sessions.into_iter().enumerate() {
         if valid_tab_id(&id) && seen.insert(id.clone()) && root_exists(db, runtime, &id)? {
             sessions.push(SessionId(id));
+            new_session_titles.push(
+                stored
+                    .new_session_titles
+                    .get(index)
+                    .copied()
+                    .unwrap_or(false),
+            );
         } else {
             projected = true;
         }
@@ -79,6 +87,7 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
         }
         if seen.insert(id.clone()) {
             sessions.push(SessionId(id.clone()));
+            new_session_titles.push(false);
         }
         active = Some(SessionId(id.clone()));
     }
@@ -90,10 +99,14 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
     if active.is_none() && sessions.len() == MAX_TABS {
         return Err(CoreError::StoredTabDeck);
     }
+    if !new_session_titles.iter().any(|value| *value) {
+        new_session_titles.clear();
+    }
     let mut snapshot = TabDeckSnapshot {
         location,
         revision,
         sessions,
+        new_session_titles,
         active,
     };
     if projected {
@@ -113,7 +126,10 @@ pub(super) fn save(
     if deck.projected() {
         return Err(CoreError::TabDeckConflict);
     }
-    if deck.sessions.len() > MAX_TABS || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
+    if deck.sessions.len() > MAX_TABS
+        || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
+        || (!deck.new_session_titles.is_empty()
+            && deck.new_session_titles.len() != deck.sessions.len())
     {
         return Err(CoreError::InvalidTabDeck);
     }
@@ -134,6 +150,7 @@ pub(super) fn save(
     let stored = StoredDeck {
         version: 1,
         sessions: deck.sessions.iter().map(|id| id.0.clone()).collect(),
+        new_session_titles: deck.new_session_titles.clone(),
         active: deck.active.as_ref().map(|id| id.0.clone()),
     };
     let raw = serde_json::to_string(&stored).map_err(|_| CoreError::InvalidTabDeck)?;

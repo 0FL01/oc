@@ -1544,6 +1544,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
         ack.send(Ok(TabDeckSnapshot {
             location: "/B".into(),
             revision: Some("B-loaded".into()),
+            new_session_titles: Vec::new(),
             sessions: vec![SessionId::new("b-root").unwrap()],
             active: None,
         }))
@@ -1869,6 +1870,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
             deck: TabDeckSnapshot {
                 location: "/b".into(),
                 revision: Some("accepted-b".into()),
+                new_session_titles: vec![true, false],
                 sessions: vec![session.clone(), SessionId("parked-b".into())],
                 active: Some(session),
             },
@@ -1905,6 +1907,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
             deck: TabDeckSnapshot {
                 location: "/a".into(),
                 revision: Some("accepted-a".into()),
+                new_session_titles: vec![true],
                 sessions: vec![session.clone()],
                 active: Some(session),
             },

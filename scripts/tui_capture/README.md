@@ -1033,13 +1033,19 @@ explicit effects, zero Responses/title/MCP and no restart replay. Original uses
 actual `session.shell`; no original RAW decoding. Native text-only recalled mode
 differs from original; full parts/mode/Mini are explicitly outside frozen VIS12.
 Historical admission pairs have11 stages/ALL22 strict grid+PNG differences;
-receipt `evidence/tui/user-shell-admission.md`. Current built presentation pairs
+receipt `evidence/tui/user-shell-admission.md`. Historical typed presentation pairs
 have12 stages/ALL24 differences, adding a genuine bounded running phase before
 effect and checking exactly one/two typed command/output blocks after explicit
 Enter, without RAW admission/notices or a generated successful-exit line. Use
 `--build-oc true` for current-source association; receipt
 `evidence/tui/user-shell-presentation.md`. This is behavior qualification, not
-whole pixel/T44 PASS. Normal tool and temporal regressions remain independent.
+whole pixel/T44 PASS. Current tab-title/padding pairs00280×24/003120×40 retain12
+stages each: completed, recalled-normal and second-completed are exact full grid
+AND PNG matches (6 EQUAL/18 DIFFERENT comparisons per geometry). Tab-only
+`New session` survives title-less refresh/restart; real durable titles win.
+Running/composer/Home differences remain unmasked. Receipt:
+`evidence/tui/user-shell-tab-title.md`. Normal tool and temporal regressions remain
+independent; this does not mark the whole Shell episode or T44 pixel PASS.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

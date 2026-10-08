@@ -596,6 +596,9 @@ pub struct TuiState {
     click: Option<TranscriptClick>,
     /// Current session's durable human title, refreshed with history.
     pub session_title: Option<String>,
+    /// Tab presentation only, persisted by the existing deck owner. Never a
+    /// session title or a request to generate one.
+    pub new_session_tab: bool,
     /// Session autoaccept capability supplied by the application.
     pub auto_accept: oc_core::queries::AutoAcceptState,
     app: CoreApp,
@@ -823,6 +826,7 @@ impl TuiState {
             selection_gesture: false,
             click: None,
             session_title: None,
+            new_session_tab: false,
             auto_accept: oc_core::queries::AutoAcceptState::Unsupported,
             approvals: Default::default(),
             questions: Default::default(),
@@ -996,6 +1000,7 @@ impl TuiState {
         self.parent_id = None;
         self.auto_accept = oc_core::queries::AutoAcceptState::Unsupported;
         self.session_title = None;
+        self.new_session_tab = false;
         self.generation += 1;
         self.invalidate_submission();
         self.picker = None;
@@ -1054,6 +1059,7 @@ impl TuiState {
         self.parent_id = None;
         self.home = false;
         self.session_title = None;
+        self.new_session_tab = false;
         self.generation += 1;
         self.invalidate_submission();
         self.session = Some(session);

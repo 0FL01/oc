@@ -629,6 +629,7 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
 struct BlockFrame<'t> {
     theme: &'t Theme,
     bg: ratatui::style::Color,
+    padding: ratatui::style::Style,
     width: usize,
 }
 
@@ -639,6 +640,9 @@ impl BlockFrame<'_> {
             // Block tools sit on `background.raised.base`
             // (`index.tsx:2784-2866`), the same surface as user rows.
             bg: theme.background_raised(),
+            padding: ratatui::style::Style::default()
+                .fg(theme.text_muted())
+                .bg(theme.background_raised()),
             width: width as usize,
         }
     }
@@ -653,7 +657,7 @@ impl BlockFrame<'_> {
     /// One padded row with the left border.
     fn row(&self, spans: &[Span]) -> Line {
         let mut all = vec![Span::styled("┃", self.border_style())];
-        all.push(Span::styled(" ".repeat(TOOL_PADDING), self.body_style()));
+        all.push(Span::styled(" ".repeat(TOOL_PADDING), self.padding));
         all.extend(spans.iter().cloned());
         let used: usize = all.iter().map(styled::span_width).sum();
         if used < self.width {
@@ -684,7 +688,12 @@ pub(crate) fn shell_block_expanded(
     width: u16,
     expanded: bool,
 ) -> Vec<Line> {
-    let frame = BlockFrame::new(theme, width);
+    let mut frame = BlockFrame::new(theme, width);
+    if shell.direct_user {
+        // Standalone ShellDisplay's box padding inherits the terminal text
+        // foreground, separately from its muted captured output child.
+        frame.padding = ratatui::style::Style::default().bg(frame.bg);
+    }
     let mut out = vec![frame.row(&[])];
     let running = is_running(&card.state);
     let mut header = vec![Span::styled(
