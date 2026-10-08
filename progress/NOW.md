@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T22:40:50+00:00
+State updated: 2026-10-08T22:41:39+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,36 +12,36 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 typed user Shell — qualified major slice
+# T44 typed user Shell — delivery
 
 ## Result
-Direct-user Shell input/running/completion now has typed standalone presentation
-from exact existing job/message facts. Late/result-only/evicted-page races, exact
-current-branch notice lookup and atomic admission after Undo/Revert are qualified.
-No fake model graph, RAW rewrite, new schema/store/executor/poll or replay.
-Receipt: evidence/tui/user-shell-presentation.md. Implementation is not yet
-committed at this checkpoint; reviewed own-branch delivery follows.
+Reviewed implementation/evidence commit
+`bab3da67ba12ab1d97c72c9ccef845760582e92d` is PUSHED to verified
+`origin/agent/oc-rust-port`; remote moved6be8b57a2→bab3da67b, ahead/behind0/0.
+Source/tests/report/checkpoint0099 and exact five final built capture/audit
+prefixes are committed. Historical diagnostic/unattested001–005 preserved,
+not staged. Receipt: evidence/tui/user-shell-presentation.md.
 
 ## Checks
-Current fmt/strict workspace Clippy;1770/0/11 across46 results; debug/ordinary/
-release/help; actual release startup/GET discovery and unchanged resource gates
-PASS. Python47/Node-Python syntax/source/docs/journal checks PASS. Built paired
-00780x24/006120x40 both12 stages/24 ALL DIFFERENT,2effects/0Responses-title-MCP,
-NULL-turn/pre-effect committed history/restart no replay. Normal27/default six
-owners and independent144opaque PNG audit qualified behavior, pixel NOT_PASS.
+Same production source: fmt/strict workspace Clippy,1770/0/11 across46 results,
+debug/ordinary/release/help, actual release startup/GET-only discovery and unchanged
+resource gates PASS. Python47/Node-Python syntax/source/docs/journal PASS. Paired
+00780x24/006120x40 both12 stages/24 ALL DIFFERENT,2explicit effects/0Responses-title-
+MCP, committed history before effects/NULL model turns/restart no replay. Normal27/
+default temporal six owners/144opaque PNG audit qualified behavior, pixel NOT_PASS.
+Reviewed source/staged diff; only exact capture .txt/.vt padding excluded from
+whitespace checks. No secret/config/lockfile staging, force push or release/tag.
 
 ## Risks
-Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS.26 remaining completed-frame styled cells
-are fresh-title and blank-padding foreground, not waived pixel acceptance. Full
-parts/mode/Mini is explicitly excluded by frozen VIS12; recalled mode difference
-disclosed. Failed/unattested001–005 and other historical diagnostics preserved,
-not staged. .opencode/env/GOAL/acceptance/Cargo.lock/auth ledgers unchanged.
+Whole frozen R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS.26 completed-frame styled-cell
+differences remain: fresh-session title and blank-padding foreground. Full parts/
+mode/Mini is explicitly outside frozen VIS12; observed recalled mode disclosed.
+.opencode/env/GOAL/acceptance/Cargo.lock and auth ledgers unchanged; RAW immutable.
 
 ## Next
-Review/stage only this slice and exact five final capture/audit prefixes, commit
-and normal push verified own branch. Then fix fresh-title/padding owners with real
-frames and continue every remaining frozen outcome plus final current R6/V09.
-Do not finish T44 on major-slice delivery.
+Fix fresh-session title/promotion and actual standalone Shell padding owners with
+new real native/OC2 frames, then continue every remaining frozen outcome and final
+current-source R6/V09. Do not finish T44 on this delivery.
 
 
 Ready (до 5): T58

@@ -49,6 +49,10 @@ original24/24 / Go13/24 ledgers unchanged.
 
 ## Current-source association
 
+Reviewed implementation/evidence commit
+`bab3da67ba12ab1d97c72c9ccef845760582e92d` is PUSHED to verified
+`origin/agent/oc-rust-port`; [delivery receipt](user-shell-presentation-delivery.md).
+
 The four built capture locks independently retain base
 `6be8b57a20b42566f6c71729ef84bc04404fa4cc`, tree
 `6483eddee54b9bde6f2b9442e80b9e7ee54f4688` and:
