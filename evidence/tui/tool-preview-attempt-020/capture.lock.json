@@ -1,0 +1,2560 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T01:07:41.122Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "517c04605640d574ae407582b48c8ba3ded46e71916b0b62e516d7f9e267029d",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "776309de8a28e7da885efa612c109e5ac21fd20ca48ea87fb30692005a7f9407",
+    "tool_preview_fixture.py": "b6db9bca129f8432f0a6164978f25c0f5409632705a034b1f2f6789dc7518f2b",
+    "tool_preview_mcp.py": "ea2b87a23d905e67f29847866b95f1da9be71287dff7b900201fd7b690e2c642",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979"
+  },
+  "fixture_sha256": "0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "a974704be99dfff877fef4bf7264e871be7a92eb",
+    "tree": "45d291842402d9e44cdf1479482030fa7184cc44",
+    "dirty_diff_sha256": "f94f11deb3f59effd3afe19464c640206ed7186bf960046c48e30ee2235c4e04",
+    "source_manifest_sha256": "fcec44d9e7620087e3b682bfc2118c7727397e5aacd88c2c48f85345e59a37ad",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "60d1b05000042a12845b041126d156acc3c9ea498124023adb39a08f40884f9a",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-draft",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-draft",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-disabled",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-failed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-44x24",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-44x24",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-63x24",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-63x24",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x24",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x24",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-43x24",
+      "mode": "grid",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-43x24",
+      "mode": "png",
+      "status": "EQUAL",
+      "exit_code": 0
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x12",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-64x12",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-1-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-1-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-2-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-2-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-error-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-error-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-error-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-error-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-shell-expanded",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-shell-expanded",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-shell-recollapsed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-shell-recollapsed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-switched",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-switched",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-reopened",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-reopened",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-restarted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-restarted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "native-tool-preview-capture-details",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS"
+    },
+    {
+      "scenario": "native-tool-preview-capture-details",
+      "mode": "png",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS"
+    },
+    {
+      "scenario": "native-tool-preview-cards-paged",
+      "mode": "grid",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS"
+    },
+    {
+      "scenario": "native-tool-preview-cards-paged",
+      "mode": "png",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "0f5b62c5d8511490b0439d8a1eebc873515f6b215344d83b9516320b8cfe099c",
+      "png_sha256": "04aeb07b38d851e02c60605ba682dc33a1c3cc4e73fd1211db7c46e68ffe817d",
+      "render_sha256": "b43f1bd29f3e78b471ead1307ace2a09a4a2bd1373e7dde60c71e06f49a0adae",
+      "path": "upstream/tool-preview-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "504fe6e82ac6be1410e5a2912e979c3095759a6612ce8102b5a40b5dcba1a422",
+      "png_sha256": "4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011",
+      "render_sha256": "abecb38b50e11bd52518526bc3b9b5e731d7d900f606d303b1545d5ce10faa94",
+      "path": "upstream/tool-preview-home-mcp-draft"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "aa1d576d9f6bc624198a2c99b4682c75a812903ef90bc9f9dbf7fa8e2f63a2ef",
+      "png_sha256": "099b85e73fcf7adee8f224193783a231166531f144d355e03db7a3266c216722",
+      "render_sha256": "f3b59ec78cc0bc32b12c7af18af38057ed9b75ed7e974b34f566acf9f1c119f6",
+      "path": "upstream/tool-preview-home-mcp-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "a6cafb4e289b44852a93bf510031d1752ef2f2f504fde9f80b7cca2b97871ba3",
+      "png_sha256": "8f4e6a93065b7741af7573c32c27218bdb304746a5d0eae3147318a401a59f19",
+      "render_sha256": "258b815e91172571afe9feb7d5baa73774e8d0677ba523a1e618f54a1abc32dc",
+      "path": "upstream/tool-preview-home-mcp-disabled-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "1a4fee780255b2d80df9c0b40676c96222a37cf4c2313b9212fb37a865270c9a",
+      "png_sha256": "f177162ba2a6bdbfef7df37346f0076deae66ff0157d8eab2b53a2f30b8e8b83",
+      "render_sha256": "1dbf368e6672ccf57ffc31a87dd21b7cbc83cfd618900d3fa22678403cc4b2ac",
+      "path": "upstream/tool-preview-home-mcp-disabled"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "6965ff84f73acde3ed7e98a76da011fa21256b3a8644a2b2e057df2ff686fac4",
+      "png_sha256": "7c5451bf49f44432b94997d9e17fc298bfefe0b0e2ea92effa98c67f869cfeb1",
+      "render_sha256": "065df8a3af351de3cfd0559765d38a2643beb113b4c4eeb195a64a685af2a735",
+      "path": "upstream/tool-preview-home-mcp-failed-list"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-failed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "c1d741f571dbc942600912d4952610c1769b1d3a2f38de574ff315bb28142967",
+      "png_sha256": "9b3a2c961ec86e92b20692b505284a0dad51f1ff6fe7dbc07baed7fa9667f1e0",
+      "render_sha256": "42faddf7743d189628a63edf2e4e2349ff3512e6fb3f97d101ea83722fa0e4d3",
+      "path": "upstream/tool-preview-home-mcp-failed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "f343ea1c0dc287748e6ecd69be7c9e51f5b0f25245c98d954174f5821ecd79c5",
+      "png_sha256": "4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011",
+      "render_sha256": "ace5ef482b68914de007f76a78a3d7dda29cb8034d9fa5fdf2e8237738bcba11",
+      "path": "upstream/tool-preview-home-mcp-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-44x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "7d515cc6f0dccd54659de70e37762fed05ff4fbd2a24efb789b663ca940b2da5",
+      "cells_sha256": "969ee203da9841e66c20d5c6aea3859ba1229b41029afc85936022deaa48d234",
+      "png_sha256": "5183f917455970ca817e8860088b92e76c4f8d370fe2b3312f586cee2cd34109",
+      "render_sha256": "7b62f291c19ae8c6736febbbdf3fb5e3b72a0177d5310fcd103b30a25c12928c",
+      "path": "upstream/tool-preview-home-mcp-44x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-63x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ce9dc75585b3e0cfe0f57429021fd7d619703a717e6e9a82642a4aab7ad4c1a3",
+      "cells_sha256": "3b9ac5f506e032c360cf01179c54f844d4422589c5019ad3bb6c5374499ac7fd",
+      "png_sha256": "84f96938b2fef99cdd87085e0c4d371d1711f65b01082040460405bdf057bc10",
+      "render_sha256": "7996336f0c8d243da0d7b3c1d75a001ab1657a76f92ba3e21852ca8af17ba405",
+      "path": "upstream/tool-preview-home-mcp-63x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-64x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "513688feabf99cc1cdbce15276413a1e92fb79c9bf4f474158347634270994d5",
+      "cells_sha256": "19095ebd5eb57eb4f84ababe6794d9f56c1d3d16f33b6362a00ccca7176d8791",
+      "png_sha256": "ceee308eabc010828220c8cfcb869f140b893a4fc9e53de9e393b9a5eed1c7f8",
+      "render_sha256": "2481ec96ea914ff4f7d393e26b07a1bb05844988db5dbd3be1bdca83c58badf2",
+      "path": "upstream/tool-preview-home-mcp-64x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-43x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "92e8111fbb911ed3b244aed60d6f17ac6566f78ef8c2318b63c15ddad447a20f",
+      "cells_sha256": "967331572c710b36397bd826454676dcad4bb5f1e9e58d50d8286e7ccf64e3a1",
+      "png_sha256": "fa5a348b8d88903ff847bfe29463a9b6d2a55bcc667c87040b3c5cd5fa7f373f",
+      "render_sha256": "2bc1a491d144b41292edc86d0fed0c7f5e14b0d680435d723199441538aa30c7",
+      "path": "upstream/tool-preview-home-mcp-43x24"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-64x12",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "3add515a6966e46bddb01ddc036ea3f5727252bdb5d12c46979281ed9e78eedf",
+      "cells_sha256": "7bcaa3f64b810a82ef9b40fb196fbc88267f5a6f24b71bde8ad2154f79f50bb3",
+      "png_sha256": "67e30ba7d112096087424cd07b0b421e7781f0ab96e6a10eff6e936d16428e54",
+      "render_sha256": "d14a3d0f07cba33d4c814232ccd25688df0c485c97c43499e9a9745193aa280c",
+      "path": "upstream/tool-preview-home-mcp-64x12"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "e39a64f3625af7d9b76e0150a2fe4e7e01bef3a33f0939e5197a61a7a1cad1ec",
+      "png_sha256": "4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011",
+      "render_sha256": "99ce93473a4e7bdf4ce68a08ce2d00c153afb8d22f45304156c40dd456f15064",
+      "path": "upstream/tool-preview-home-mcp-resized-back"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "dc77ef079a949c7ce8090cca7ef739e6e65cf15c4229052eb1add4c493f5c711",
+      "png_sha256": "abbc539425aa53dacc18dad0e863f0715399b989293eed7a9aa8f2e2eaa8a50c",
+      "render_sha256": "8da7320f824e32b83f5048a69d785def8e2ff7e4185c984006b9214bf6d6275e",
+      "path": "upstream/tool-preview-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "d655ee6f97a6fbdda47b8d32ad4c7fa5e0e4a498e50abff18c9f4a678a77db17",
+      "png_sha256": "bc1fdb7ac1ed9ac2a66d53de3296165ad7293f32e5606d7d4a402871415bcaf1",
+      "render_sha256": "6b9bc3c3a433a93b34e9dddba5b57956b9bf1087d9912ec15b081e1b6da4079d",
+      "path": "upstream/tool-preview-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "b70cbcbe6d0bb03b4628815eeeadc6f35b5c583bf6f73709819188ebbb1814e1",
+      "png_sha256": "73bdfccdabf080ad0157e61e8a4df72c541f8b77d9163607e213fb4bf1f19916",
+      "render_sha256": "ac541300aec054f6f86880420de1260aa1068b0ed00653be04fefcf746dbecb8",
+      "path": "upstream/tool-preview-mcp-1-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "2c9d55dfa5cdb48c6da8bb913aa1fc81a383449c21a4513c9272d6f637beae20",
+      "png_sha256": "bc1fdb7ac1ed9ac2a66d53de3296165ad7293f32e5606d7d4a402871415bcaf1",
+      "render_sha256": "550594c91f85b2dda7b243529c51d21b36a906f17140c533f87da60430df2392",
+      "path": "upstream/tool-preview-mcp-1-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "becbf5f306d9aaaa8b2910c7c8e4595baf54617a0be6761297f875f7b23b632b",
+      "png_sha256": "5c5e0dac62bd2bc9cb0be7e91310e5657eb2beebb2403b82403618f1086e214a",
+      "render_sha256": "50493d09cce9ad492a0c02f286c828891d02df06445a5d20ccb924e39dba3f1b",
+      "path": "upstream/tool-preview-mcp-2-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "cf1f75ff705de03f00401bb521beff76004a706cda25b03a59962c2e17bcf3ee",
+      "png_sha256": "79af37f2f7c571466287534c3a4d4141a17654fbe71ca8ed5819e5bc83587ed8",
+      "render_sha256": "463cd4eadb3bf6880eb9bd69e53c12fa52f809ebdb0493f05f1bdf7d39b717ee",
+      "path": "upstream/tool-preview-mcp-2-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "d38b88e40f4d85e4d70552620a0b72b55ec8665054fc60acf25329be79543f46",
+      "png_sha256": "c59a0f7f16c806e5e98f8002561c7b39359a980da3f55b4cde3b1cabf64b0a00",
+      "render_sha256": "2e5dd85d23d34d2947bc22cd5f014fec1b894efcee80dbf5d9a02b040f940de0",
+      "path": "upstream/tool-preview-error-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "d637f672d9f0ca097e5f07192794f7fe74d5ed6d42f1a701520b661d51e99c42",
+      "png_sha256": "953bc43e49d037df0f47dfa7261936e2debdd1cca6e28defef643fdfea20c651",
+      "render_sha256": "010ebd62e83ac7eee519ceaa739039289d11c4fe73389e0f581ba8a0e4309cb9",
+      "path": "upstream/tool-preview-error-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "284d35eac6fa58948c9fec43997823fc44f91c4a186a352694fb207f24d8c039",
+      "png_sha256": "5cd84f0c7c12fe4ae18c065646f23d7a8b8d9ce438809cfcfaaf049e18b00bb7",
+      "render_sha256": "786345470940eb2a73d62b143d19d87b44b4feb6eb394a49b6aee14235879e1c",
+      "path": "upstream/tool-preview-shell-expanded"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "57c6c1d0f77f69ddbabf937785f7dbf107dbb6a2e71d62f76e12a76c9a4c4d7b",
+      "png_sha256": "ad3fdde1c8b8c641a12bbf551416deb7fb534472e0a83b29d331e4ba5775ba6f",
+      "render_sha256": "829565e3fe953569e7d55d515242206c438f83a09fa2a336e5f04eb9c4c7b4ab",
+      "path": "upstream/tool-preview-shell-recollapsed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "cdb48dcbcc35d946e28a9d4e4b3c027a84ac6d87d32c230be3efc6c2b73356b8",
+      "png_sha256": "72f18718bcbb85fbb46e4918bee2fe115ff0144498e96adf9056cd30f7020f10",
+      "render_sha256": "bdaefee2ee1306892ddd86f65145408ce5bd1dba397812aee9cbad742faadc3d",
+      "path": "upstream/tool-preview-switched"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "320d9bcd26c314e892e092a4d56971d020a7dfd497566529b90e16e95489cc27",
+      "png_sha256": "6077ebc09fc44fa46c8f8da587c40e92210086bcc16485347b289ffba89f9cfb",
+      "render_sha256": "d057d0fe576d7f068c895aa709630b0ea08ed78638e7b411bf0207a71ddeb1aa",
+      "path": "upstream/tool-preview-reopened"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "9d3dfac78ee7c5ac12b90c10d3baf60a8cd459205e2d9682841636dda0772582",
+      "png_sha256": "6077ebc09fc44fa46c8f8da587c40e92210086bcc16485347b289ffba89f9cfb",
+      "render_sha256": "3678da19132ca6944cda584bba49cb362de50276465d1481a0a23efdaa100e9f",
+      "path": "upstream/tool-preview-restarted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "10711d1a0f2590e5b8b858823b74ce0cc454cbdf19d64a78e860b881474449ed",
+      "png_sha256": "ddb775fd4455570888c71ec071663277cdd9d16cf2f52ff51ba64133d24ab076",
+      "render_sha256": "2218a3e1056c10f2e0e3388f879c04bce4089ffc95f4463f8db31964b4d4cb89",
+      "path": "oc/tool-preview-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "111c74ac9679c06c617b5992b4d7d60d5796c3f3599bce2ae7a5a2f014a87e50",
+      "png_sha256": "8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3",
+      "render_sha256": "51dd1823da5cc402862851b1a34587c466dbd2984d8ae7af7ddc94b0e7ec90a1",
+      "path": "oc/tool-preview-home-mcp-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "d2edc91a9caf1a0c9283c85d0b6e3e479f58e6edccf18bce3af2821a627e23e0",
+      "png_sha256": "7b9f7641015b8d5bc7eccb355f5a9a6bf4528e64b39ebd1827078c692b944999",
+      "render_sha256": "2cd487b43e71989dc9efb8ecd521081a08fd2f22fbf111ed32fe59c03a89528a",
+      "path": "oc/tool-preview-home-mcp-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "7cb605feb45b998ac26d7d70496634f9d46fd5aeeddc6c775ed0bc10372b05f1",
+      "png_sha256": "1ba2c42960b219b8f19b03403533b4a9a4625a16732f6b3ea30d5750f74ac269",
+      "render_sha256": "6cb287f30fd77722d8b8e385ea28dcdc3196e79d7b307d7b9e2821b90b4f904d",
+      "path": "oc/tool-preview-home-mcp-disabled-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "e4890973ed1ff99f5d4ad0db53bbb23af1452d6d442976488bc67baabb5392c2",
+      "png_sha256": "1aa79ca96b7ac1d4c16cba030f010e334cb8ffb1fc4b6a8a67d57756daa98758",
+      "render_sha256": "a4d6157e5b26a09f705142eedc0534f82ef65d5ca2fcb24ccfd2d7ed150323a1",
+      "path": "oc/tool-preview-home-mcp-disabled"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-failed-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "357007af58add6eb5246308cb175deb1c66a94508439d233d69df66b45bd9cc4",
+      "png_sha256": "ed84aa5bfc2975360207b54c6e971f001e827e7faa5aba149e45ec35e7c65e3f",
+      "render_sha256": "1982d9b4f28c1fe1cec3d5dab1796116af1e47b2f0473e199e0e44ab053f1043",
+      "path": "oc/tool-preview-home-mcp-failed-list"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-failed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "e3b8f8c2f0f86ded5d7f50c8b138cfe1474abb4a20a782b9cd86f1fef639e80a",
+      "png_sha256": "3278dcd9a36240cb91d8bef1939b9259b39c32b8429d799762bf349bdb950e02",
+      "render_sha256": "fe169323565fe2cc69e8aea3b0d7292ecc665129c5ea3babb28d1b138fce712e",
+      "path": "oc/tool-preview-home-mcp-failed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "56d550028886d6f00a89c1f34f7ed8f835c853fdd3936c9338462b98ea7fcc5b",
+      "png_sha256": "8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3",
+      "render_sha256": "a2f8eb22005d3f64788965a7f72d39514d6ad5717c88061378b21e859ecd57d6",
+      "path": "oc/tool-preview-home-mcp-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-44x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "7d515cc6f0dccd54659de70e37762fed05ff4fbd2a24efb789b663ca940b2da5",
+      "cells_sha256": "bae350b4b36f66a435e6db3080805a130fa36f6767e095f9115781d93546ef7a",
+      "png_sha256": "5183f917455970ca817e8860088b92e76c4f8d370fe2b3312f586cee2cd34109",
+      "render_sha256": "2da06de9a1cbba039865a1ff5482421d84e3ba33998cd4b93d0363e34139a3d4",
+      "path": "oc/tool-preview-home-mcp-44x24"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-63x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ce9dc75585b3e0cfe0f57429021fd7d619703a717e6e9a82642a4aab7ad4c1a3",
+      "cells_sha256": "0938901e9045ba42fef2a50f97dab4e2005f5b90b7cd263f6f8f9f01d87021dd",
+      "png_sha256": "84f96938b2fef99cdd87085e0c4d371d1711f65b01082040460405bdf057bc10",
+      "render_sha256": "8016e84d5ad9dbc3981ad314bf40e93b74c86e4c3bf510dbc2ca4a66e1349f5b",
+      "path": "oc/tool-preview-home-mcp-63x24"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-64x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "513688feabf99cc1cdbce15276413a1e92fb79c9bf4f474158347634270994d5",
+      "cells_sha256": "12f4a5f60f6f407536cb7113420177b453d716372e319e9ddfb9d8c4c0479d89",
+      "png_sha256": "aec78c835a69b38d04f100677c984beb42ae9a8b44e2c5ee61cdce5f45e286ef",
+      "render_sha256": "f8295341afa582cc918023192f6bdb58a39a6aca0eeddf27aa002ca6cb2232da",
+      "path": "oc/tool-preview-home-mcp-64x24"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-43x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "92e8111fbb911ed3b244aed60d6f17ac6566f78ef8c2318b63c15ddad447a20f",
+      "cells_sha256": "a532d3a3a2016970b80c9cc04d57b3fe99f611696050e02e15c897d9ef61bddd",
+      "png_sha256": "fa5a348b8d88903ff847bfe29463a9b6d2a55bcc667c87040b3c5cd5fa7f373f",
+      "render_sha256": "d3c24c89ceaa314c95f00b5ae5f304406b2d681c5d542d24799c76c59b415ac6",
+      "path": "oc/tool-preview-home-mcp-43x24"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-64x12",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "3add515a6966e46bddb01ddc036ea3f5727252bdb5d12c46979281ed9e78eedf",
+      "cells_sha256": "2cab04075bf2a4c0160dac673c256cddeb4a120357d24d1a5aabcbdc5fa33f29",
+      "png_sha256": "dd971509f72732b31ea8f721799cc25feffdac440bb95303e025e3111f644022",
+      "render_sha256": "66c93b3ac204a547a8b6b4b1853c9c7dba9328ec35466a6f9892c638f05df893",
+      "path": "oc/tool-preview-home-mcp-64x12"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home-mcp-resized-back",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "204c44dacc34ec08d222e0c68e9aa7c83c07eae92caf8e87bd97eb53d1927c98",
+      "png_sha256": "8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3",
+      "render_sha256": "55f39a43a5334f656085d6ad2719c95a4beb8a3c8826990d1a9e8cb3de851df3",
+      "path": "oc/tool-preview-home-mcp-resized-back"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "a6fef55611a2947da7ae3ef07f1e2340d42613ce4e2309cfacb881779c2a8d88",
+      "png_sha256": "1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f",
+      "render_sha256": "6f101398d00e539b4e37b15a06aacbf63d34cf5c36b988109ec3f189bc0f16b6",
+      "path": "oc/tool-preview-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "c4d6c249f8917911fb9adad2f379ff9a823aeb46db803482c1de0c39e050e7af",
+      "png_sha256": "672449bdf25f6a2993bea2a9b19e2ed0b8202f3a8da8ffd2dee7c4dbc355c25c",
+      "render_sha256": "b330ba12d7fa93d8956560599d29b0b952285f5c0af0381b48aac352c7e018f7",
+      "path": "oc/tool-preview-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "e4ce193ba75a7da81448635b81ca7725f17ed58ed7609bd841e020f7f243a186",
+      "png_sha256": "6de523e268cc3f3ae6adea3984a8bf46474092f69f418713ce1275133376573e",
+      "render_sha256": "06a6085fb439a8ca2b1791ff58367fac8acbd84363f23c9809b7cfae4ef1e70d",
+      "path": "oc/tool-preview-mcp-1-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "977e523010f72da7af3816da9e36da9dc21175c995d4d972bbd362bda34b23c3",
+      "png_sha256": "672449bdf25f6a2993bea2a9b19e2ed0b8202f3a8da8ffd2dee7c4dbc355c25c",
+      "render_sha256": "b7078ee2f1c1149d27ef591a986e9fe13bce83ddb91367f775febe9b63dc5280",
+      "path": "oc/tool-preview-mcp-1-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "4e662eb80c05760a0c227ca76be2552806fb18966fc2584074a6cc826396e2b4",
+      "png_sha256": "ea98d02465abe2d10f57f455ded8fd5792f60dde6a08051e518d6a9daf799f92",
+      "render_sha256": "4cfab278ac7fdd0eaafa09bdd08eee2836e3ee46116d8a7b56037b40268ed33c",
+      "path": "oc/tool-preview-mcp-2-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "8f999e2cf9f515c018a8d1a51aff7502a84952e3053cf9a4dc34d98655bc06a2",
+      "png_sha256": "054d823d6cc29d3ab187c94292e980477628145b4db40022e9ad925cd8e84b61",
+      "render_sha256": "335b31fb6d80216a5e214d1ee1ece6ca06f24ba87f7c85e490cc464b697227e9",
+      "path": "oc/tool-preview-mcp-2-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "4ea30503dcbadb78c39e9fd7e2b9e266a9eebba0e5893867bda41b182e3aea2b",
+      "png_sha256": "1e2e9d38026a808a4a29d069785cc631124dfde14102436b7f3fbcf581d6dbaa",
+      "render_sha256": "d164dd259ba82257d801fd63993e6fcfb660927e86e48a0c2d2abb320b1248df",
+      "path": "oc/tool-preview-error-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "8ef910a0c265bdbd50d7bc08a51b6113d8a730cf22f84a4529e0a2da50dd8269",
+      "png_sha256": "e58b2d3700f1ecff063b1be5d74045a67a2be36ca241ce87ebaf637ff82c33b0",
+      "render_sha256": "3f925cc464fa3f7d584f4f3983b2b757c214d05ca53fc4c25b2169b9b24c533b",
+      "path": "oc/tool-preview-error-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11",
+      "cells_sha256": "a8fb0bf9b6a1cc38a028661405f6517d6dec6d94441cd1128202e45e549bddda",
+      "png_sha256": "edbc4916916a9ab482dbc02c8046ff1fafc66ab88e21926ebc032185d2be229b",
+      "render_sha256": "f33ffc9679af647cd37d4b522ed31aa033d9ba4402a4110b22981c51841a954c",
+      "path": "oc/tool-preview-shell-expanded"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "16b0cf750cd9b6219e3af2709b2be80618e83ca39079f11e3cd6fbee995c8358",
+      "png_sha256": "ac3e4888265d534d46e9c6bd0cdabbb291732c827213fb0c02517d3d574fb255",
+      "render_sha256": "88b0edf36c3d2a910962e21e0825d952c096ed41cbfd59bbe108ff25d8c8a3e0",
+      "path": "oc/tool-preview-shell-recollapsed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-tool-preview-capture-details",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS",
+      "environment_id": "c558548e03dfaf5e33fb3dc9e295ba16890d778c13e2229c4719ea63ad375b26",
+      "cells_sha256": "99e670336dc5fbab82dd3866319bb2fbaa3750baed96c3698dca2229af458e1d",
+      "png_sha256": "4b262bb607e006a37b93d22b37bd36382592565cdc26a4732af64bc56ee55b88",
+      "render_sha256": "866ca3fac2d51811683105349432a5430b55cd71e75019459a4f55822a139d07",
+      "path": "oc/native-tool-preview-capture-details"
+    },
+    {
+      "origin": "oc",
+      "scenario": "native-tool-preview-cards-paged",
+      "status": "NATIVE_ONLY_RESOURCE_DETAILS",
+      "environment_id": "c558548e03dfaf5e33fb3dc9e295ba16890d778c13e2229c4719ea63ad375b26",
+      "cells_sha256": "e10b279d0f186a99c0c591d6c3cda7534785a1769a22168a67046b8ae83ffdb4",
+      "png_sha256": "1db8b174e4deb28a5253c58e6a3ca7c93f7825914b7708a5917b0943b3cf6d17",
+      "render_sha256": "204c8db95f6cdc9b967290036944e4cd13172edf5f87f2eb62ccc765afcc0f6a",
+      "path": "oc/native-tool-preview-cards-paged"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "1d68fb5731311d96cf471690f4bca92237e8aae6e73ac995b3e9dc8ac2641480",
+      "png_sha256": "312510ea077d3ded8b9e2a03604d00f0240610dd4ee82d7f0f791a013b1db094",
+      "render_sha256": "e9a7b7ccb7762e6b3b14524dab6b40773b969ab1cc6c7cf922f61190a0be2f97",
+      "path": "oc/tool-preview-switched"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "f0ebb399b286352b29c1d50d768037fa985bb99f0cf849845a0717991e9a5c84",
+      "png_sha256": "1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f",
+      "render_sha256": "de25da492ff63c3988a45d049a947ade39e854240e0c705fda0b522f8c6d2a0e",
+      "path": "oc/tool-preview-reopened"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2",
+      "cells_sha256": "890d675c127830c53e7bd6457cb5051b45ffb300cd35a504260f34a661bb8425",
+      "png_sha256": "1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f",
+      "render_sha256": "1b56e345cd5e49155e8bbdae016aa8d3493857ce673a4bee34e2b159c5ce2d79",
+      "path": "oc/tool-preview-restarted"
+    }
+  ],
+  "cursor_renderer": {
+    "name": "@xterm/addon-webgl",
+    "version": "0.19.0",
+    "bundle_sha256": "b85f8d4b3e9756bebb757e3fe47134d70f03ea3d6b187624426d2e2b65dec06c",
+    "package_lock_sha256": "36993eb1fab63c766b44aa384ee3dd150b1355c309d0346ae051f6171b5e7ed7"
+  },
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "webgl",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-draft",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-44x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-63x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-43x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 13,
+            "y": 16,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x12",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 7,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-resized-back",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "hover",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "switched",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "home_mcp": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "provider_requests": 0,
+        "real_failed_initialize": true,
+        "draft_and_caret_restored": true,
+        "disclosed_reference_difference": "At64x12 pinned footer spaces overpaint underlying prompt-footer text; full frame remains unmasked."
+      },
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_1190e00cf001sZyHrx4zeS9iC8": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_1190e0095001ZIwc8xrTSVSdQt": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "restarted",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_1190e00cf001sZyHrx4zeS9iC8": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_1190e0095001ZIwc8xrTSVSdQt": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-draft",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-disabled",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed-list",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-failed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-44x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-63x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-43x24",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 13,
+            "y": 16,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-64x12",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 7,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "home-mcp-resized-back",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 36,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "hover",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-1-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "mcp-2-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "error-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-expanded",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 74,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {
+            "draft_preserved": true,
+            "prompt_caret_preserved": true
+          }
+        },
+        {
+          "stage": "shell-recollapsed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "switched",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "reopened",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        },
+        {
+          "stage": "restarted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "home_mcp": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "provider_requests": 0,
+        "real_failed_initialize": true,
+        "draft_and_caret_restored": true,
+        "disclosed_reference_difference": "At64x12 pinned footer spaces overpaint underlying prompt-footer text; full frame remains unmasked."
+      },
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "blobs",
+              "child_jobs",
+              "compression_blocks",
+              "compression_identity",
+              "compression_members",
+              "conversation_contexts",
+              "conversation_exclusions",
+              "conversation_objects",
+              "conversation_points",
+              "conversation_redo",
+              "conversation_revision",
+              "conversation_state",
+              "conversation_tracked",
+              "conversation_versions",
+              "credential_accounts",
+              "dcp_accounting",
+              "dcp_coverage",
+              "dcp_run_identity",
+              "dcp_run_views",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "events",
+              "messages",
+              "patch_effects",
+              "permission_grants",
+              "prefs",
+              "prune_marks",
+              "schema_migrations",
+              "session_checkpoint",
+              "session_compactions",
+              "session_moves",
+              "session_usage_anchor",
+              "sessions",
+              "shell_jobs",
+              "sqlite_sequence",
+              "terminal_selection",
+              "terminals",
+              "tool_operations",
+              "tool_output_resources",
+              "turn_acceptances",
+              "turn_raw_segments",
+              "turns"
+            ],
+            "data": {
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_0",
+                  "call_occurrence": 0,
+                  "original_input_index": 1
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_1",
+                  "call_occurrence": 0,
+                  "original_input_index": 3
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "shell",
+                  "state": "completed",
+                  "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+                  "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_2",
+                  "call_occurrence": 0,
+                  "original_input_index": 5
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r4-c0-call_vis16_3",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "failed",
+                  "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "error: mcp tool reported failure",
+                  "provider_call_id": "call_vis16_3",
+                  "call_occurrence": 0,
+                  "original_input_index": 7
+                }
+              ],
+              "tool_output_resources": [
+                {
+                  "id": "tool_1791421835-1134748-0",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421835-1134748-0.txt",
+                  "descriptor": "{\"id\":\"tool_1791421835-1134748-0\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4835003,
+                  "extent": 5769,
+                  "state": "Complete",
+                  "completed": 1791421835
+                },
+                {
+                  "id": "tool_1791421836-1134748-1",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421836-1134748-1.txt",
+                  "descriptor": "{\"id\":\"tool_1791421836-1134748-1\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4835004,
+                  "extent": 5891,
+                  "state": "Complete",
+                  "completed": 1791421836
+                },
+                {
+                  "id": "tool_1791421836-1134748-2",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421836-1134748-2.txt",
+                  "descriptor": "{\"id\":\"tool_1791421836-1134748-2\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                  "dev": 65027,
+                  "ino": 4835005,
+                  "extent": 1615,
+                  "state": "Complete",
+                  "completed": 1791421836
+                }
+              ],
+              "presentation": [
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "presentation": {
+                    "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                    "body_bytes": 5769,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5769,
+                      "retained_bytes": 5769,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "presentation": {
+                    "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                    "body_bytes": 5891,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5891,
+                      "retained_bytes": 5891,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "presentation": {
+                    "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                    "body_bytes": 1606,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 1615,
+                      "retained_bytes": 1615,
+                      "admitted_lines": 84,
+                      "retained_lines": 84
+                    },
+                    "shell": {
+                      "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                      "stderr": "",
+                      "stdout_limited": true,
+                      "stderr_limited": false,
+                      "exit": 0,
+                      "signal": null,
+                      "timed_out": false,
+                      "cancelled": false
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r4-c0-call_vis16_3",
+                  "presentation": {
+                    "body": "error: mcp tool reported failure",
+                    "body_bytes": 32,
+                    "body_limited": false,
+                    "generated_guidance": false,
+                    "producer_limited": null
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "artifacts": {
+          "data/oc/tool-output/tool_1791421835-1134748-0.txt": {
+            "bytes": 5769,
+            "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+          },
+          "data/oc/tool-output/tool_1791421836-1134748-2.txt": {
+            "bytes": 1615,
+            "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+          },
+          "data/oc/tool-output/tool_1791421836-1134748-1.txt": {
+            "bytes": 5891,
+            "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "owner_facts": {
+        "bounded": true,
+        "separate_body_guidance": true,
+        "presentation_count": 4,
+        "artifacts": 3
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "restarted",
+        "observations": [
+          {
+            "tables": [
+              "blobs",
+              "child_jobs",
+              "compression_blocks",
+              "compression_identity",
+              "compression_members",
+              "conversation_contexts",
+              "conversation_exclusions",
+              "conversation_objects",
+              "conversation_points",
+              "conversation_redo",
+              "conversation_revision",
+              "conversation_state",
+              "conversation_tracked",
+              "conversation_versions",
+              "credential_accounts",
+              "dcp_accounting",
+              "dcp_coverage",
+              "dcp_run_identity",
+              "dcp_run_views",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "events",
+              "messages",
+              "patch_effects",
+              "permission_grants",
+              "prefs",
+              "prune_marks",
+              "schema_migrations",
+              "session_checkpoint",
+              "session_compactions",
+              "session_moves",
+              "session_usage_anchor",
+              "sessions",
+              "shell_jobs",
+              "sqlite_sequence",
+              "terminal_selection",
+              "terminals",
+              "tool_operations",
+              "tool_output_resources",
+              "turn_acceptances",
+              "turn_raw_segments",
+              "turns"
+            ],
+            "data": {
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_0",
+                  "call_occurrence": 0,
+                  "original_input_index": 1
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_1",
+                  "call_occurrence": 0,
+                  "original_input_index": 3
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "shell",
+                  "state": "completed",
+                  "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+                  "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-8da35f52/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_2",
+                  "call_occurrence": 0,
+                  "original_input_index": 5
+                },
+                {
+                  "id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r4-c0-call_vis16_3",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "turn_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0",
+                  "name": "vis16__output",
+                  "state": "failed",
+                  "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "error: mcp tool reported failure",
+                  "provider_call_id": "call_vis16_3",
+                  "call_occurrence": 0,
+                  "original_input_index": 7
+                }
+              ],
+              "tool_output_resources": [
+                {
+                  "id": "tool_1791421835-1134748-0",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421835-1134748-0.txt",
+                  "descriptor": "{\"id\":\"tool_1791421835-1134748-0\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4835003,
+                  "extent": 5769,
+                  "state": "Complete",
+                  "completed": 1791421835
+                },
+                {
+                  "id": "tool_1791421836-1134748-1",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421836-1134748-1.txt",
+                  "descriptor": "{\"id\":\"tool_1791421836-1134748-1\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 4835004,
+                  "extent": 5891,
+                  "state": "Complete",
+                  "completed": 1791421836
+                },
+                {
+                  "id": "tool_1791421836-1134748-2",
+                  "operation_id": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc68ab14b9f5cc-11509c-0",
+                  "name": "tool_1791421836-1134748-2.txt",
+                  "descriptor": "{\"id\":\"tool_1791421836-1134748-2\",\"operation\":\"ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc68ab14b9f5cc-11509c-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/project\",\"generation\":1,\"source\":\"source-8da35f52/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                  "dev": 65027,
+                  "ino": 4835005,
+                  "extent": 1615,
+                  "state": "Complete",
+                  "completed": 1791421836
+                }
+              ],
+              "presentation": [
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r1-c0-call_vis16_0",
+                  "presentation": {
+                    "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                    "body_bytes": 5769,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421835-1134748-0.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5769,
+                      "retained_bytes": 5769,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r2-c0-call_vis16_1",
+                  "presentation": {
+                    "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                    "body_bytes": 5891,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-1.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5891,
+                      "retained_bytes": 5891,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r3-c0-call_vis16_2",
+                  "presentation": {
+                    "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                    "body_bytes": 1606,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/tool-preview-attempt-020/oc/home/data/oc/tool-output/tool_1791421836-1134748-2.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 1615,
+                      "retained_bytes": 1615,
+                      "admitted_lines": 84,
+                      "retained_lines": 84
+                    },
+                    "shell": {
+                      "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                      "stderr": "",
+                      "stdout_limited": true,
+                      "stderr_limited": false,
+                      "exit": 0,
+                      "signal": null,
+                      "timed_out": false,
+                      "cancelled": false
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc68ab14b9f5cc-11509c-0-1791421835795-1134748-0-r4-c0-call_vis16_3",
+                  "presentation": {
+                    "body": "error: mcp tool reported failure",
+                    "body_bytes": 32,
+                    "body_limited": false,
+                    "generated_guidance": false,
+                    "producer_limited": null
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "artifacts": {
+          "data/oc/tool-output/tool_1791421835-1134748-0.txt": {
+            "bytes": 5769,
+            "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+          },
+          "data/oc/tool-output/tool_1791421836-1134748-2.txt": {
+            "bytes": 1615,
+            "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+          },
+          "data/oc/tool-output/tool_1791421836-1134748-1.txt": {
+            "bytes": 5891,
+            "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "failed"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          },
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_TOOL_PREVIEW_ONLY",
+    "actual_requests": "Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only",
+    "replay": "Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Native 2048-byte presentation and compact status are disclosed differences",
+      "Actual history multi-page traversal and capture fault matrices remain separate gates"
+    ]
+  },
+  "finished": "2026-10-08T01:12:16.437Z",
+  "exit_code": 1
+}

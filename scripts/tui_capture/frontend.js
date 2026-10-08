@@ -52,14 +52,28 @@ window.readCaptureGeometry = () => {
   };
   const rows = document.querySelector('.xterm-rows');
   const lastRows = rows ? [...rows.children].slice(-2) : [];
+  const paintRows = rows ? [...rows.children].slice(0, 80) : [];
+  const describeRow = (row, rowIndex) => {
+    const buffer = term.buffer.active;
+    const line = buffer.getLine(buffer.viewportY + rowIndex);
+    return {row_index: rowIndex, ...paint(row),
+      buffer_line_length: line?.length ?? 0,
+      // Alternate-screen shrink may retain styled cells beyond the viewport.
+      // Observe only bounded attribute facts, never discarded glyph content.
+      outside_column_attributes: Array.from({length: Math.min(4, Math.max(0, (line?.length ?? 0) - term.cols))}, (_, index) => {
+        const cell = line.getCell(term.cols + index);
+        return {column: term.cols + index, fg_mode: cell.getFgColorMode(), fg: cell.getFgColor(),
+          bg_mode: cell.getBgColorMode(), bg: cell.getBgColor(), bold: !!cell.isBold()};
+      }),
+      element_child_count: row.children.length,
+      last_element_children: [...row.children].slice(-4).map((child, childIndex, children) => ({
+        child_index: row.children.length - children.length + childIndex, ...paint(child)}))};
+  };
   const domRows = {element_count: rows?.children.length ?? 0,
-    last_rows: lastRows.map((row, index) => {
-      const lastChildren = [...row.children].slice(-4);
-      return {row_index: rows.children.length - lastRows.length + index, ...paint(row),
-        element_child_count: row.children.length,
-        last_element_children: lastChildren.map((child, childIndex) => ({
-          child_index: row.children.length - lastChildren.length + childIndex, ...paint(child)}))};
-    })};
+    // Bounded tail-span geometry across the viewport also diagnoses edge paint
+    // on prompt/tool rows. No text, arbitrary attributes or raster is read.
+    paint_rows: paintRows.map((row, index) => describeRow(row, index)),
+    last_rows: lastRows.map((row, index) => describeRow(row, rows.children.length - lastRows.length + index))};
   return {device_pixel_ratio: window.devicePixelRatio,
     viewport: {width: window.innerWidth, height: window.innerHeight,
       document_client_width: document.documentElement.clientWidth,

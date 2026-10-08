@@ -40,6 +40,19 @@ try {
   assert.ok(geometry.layers['.xterm-screen'].css.background_color);
   assert.ok(geometry.layers['.xterm-text-layer'] || geometry.layers['.xterm-rows']);
   assert.equal(geometry.dom_rows.element_count,24);
+  assert.equal(geometry.dom_rows.paint_rows.length,24);
+  for (const row of geometry.dom_rows.paint_rows) {
+    assert.ok(row.buffer_line_length>=80);
+    assert.ok(row.outside_column_attributes.length<=4);
+    for (const cell of row.outside_column_attributes) {
+      assert.ok(cell.column>=80);
+      assert.equal(typeof cell.bg_mode,'number');
+      assert.equal(typeof cell.bg,'number');
+      assert.equal(typeof cell.fg_mode,'number');
+      assert.equal(typeof cell.fg,'number');
+      assert.equal(typeof cell.bold,'boolean');
+    }
+  }
   assert.deepEqual(geometry.dom_rows.last_rows.map(row => row.row_index),[22,23]);
   for (const row of geometry.dom_rows.last_rows) {
     assert.equal(row.rect.height,16);

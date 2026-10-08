@@ -1166,19 +1166,22 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec
     let h = input_height + 3;
     let logo = home_logo(theme, area.width, area.height);
     let logo_height = logo.len() as u16;
-    // Home's two flex spacers surround the top spacer, logo, prompt and
-    // footer. The pinned footer mounts at 44 columns, but its version content
-    // starts at 64; with no other footer items this leaves one less occupied
-    // row at 44..63 (home.tsx and feature-plugins/home/footer.tsx).
-    let empty_footer =
-        area.height >= 16 && (44..64).contains(&area.width) && state.mcp_status_counts().is_none();
+    // The footer is a separate flex child: absent below 44x12, padding-only
+    // without an item at 44..63, and unpadded below 16 rows. Inventory that
+    // cannot be painted must not reserve a footer row in the centered content.
+    let footer_rows = if area.width < 44 || area.height < 12 {
+        0
+    } else {
+        2 * u16::from(area.height >= 16)
+            + u16::from(area.width >= 64 || state.mcp_status_counts().is_some())
+    };
     // The upstream 3-row spacer may flex-shrink to zero before the logo when
     // the prompt, underline and footer consume the entire short viewport.
     let top_spacer = 3.min(area.height.saturating_sub(h + logo_height + 4));
     let y = area.y
         + area
             .height
-            .saturating_sub(h + logo_height + 9 - u16::from(empty_footer))
+            .saturating_sub(h + logo_height + 6 + footer_rows)
             / 2
         + top_spacer;
     let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;

@@ -847,7 +847,13 @@ async fn empty_narrow_home_footer_keeps_original_logo_and_prompt_rows() {
     let mut state = golden_state().await;
     state.home = true;
     state.chrome.devtools = Some(false);
-    for (width, logo_y, prompt_y) in [(44, 8, 14), (63, 8, 14), (64, 7, 13), (120, 15, 21)] {
+    for (width, logo_y, prompt_y) in [
+        (43, 6, 16),
+        (44, 8, 14),
+        (63, 8, 14),
+        (64, 7, 13),
+        (120, 15, 21),
+    ] {
         let rows = screen(&state, width, if width == 120 { 40 } else { 24 });
         let locate = |needle: &str| rows.iter().position(|row| row.contains(needle));
         assert_eq!(locate("█▀▀█ █▀▀█"), Some(logo_y), "Home width {width}");

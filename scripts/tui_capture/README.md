@@ -822,6 +822,25 @@ thirteen Home additions plus the fourteen original tool-presentation stages.
 The short original footer overpaints prompt-footer spaces; this and the true
 product-version identities remain in the full comparisons, not normalized away.
 
+The primary ordinary profile remains unrefreshed DOM. For an independent mature
+renderer control, ordinary tool-preview also admits `--cursor-renderer webgl`
+using the same exact external test-only addon described below. Both binaries run
+on that profile; WebGL's measured integer cell geometry differs from DOM's
+fractional geometry, and its equality is not substituted for a DOM result.
+`--refresh-before-capture true` is an explicit ordinary diagnostic only: the
+profile and render record disclose a repaint of the unchanged VT buffer. It is
+rejected with cursor-temporal qualification, where forced repaint would disturb
+the measured blink state.
+
+`readCaptureGeometry` records at most eighty actual DOM rows and each row's last
+four child boxes/styles. At most four retained buffer cells beyond the viewport
+are observed as color-mode/color/bold facts only, never glyphs or text. This
+diagnoses xterm DOM painting of retained off-viewport styled tails after shrink;
+it does not clear, extend or recolor either application's buffer. Current43/44
+Home grids/cursors agree, while DOM's last fractional PNG column still differs.
+The full unmasked DOM, refreshed diagnostic and WebGL results are retained in
+`evidence/tui/home-geometry.md`; no edge crop, CSS fix or comparison mask is used.
+
 The actual default collapse, hover, two MCP expand/recollapse sequences, failure
 detail, Shell expand/resize/recollapse, `/new`/history reopen and clean same-root
 restart produce fourteen further paired full styled-grid/PNG/VT/cursor stages. Hover and

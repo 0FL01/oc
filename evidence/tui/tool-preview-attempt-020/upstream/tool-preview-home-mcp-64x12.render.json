@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "origin": "upstream",
+  "scenario": "tool-preview-home-mcp-64x12",
+  "environment_id": "3add515a6966e46bddb01ddc036ea3f5727252bdb5d12c46979281ed9e78eedf",
+  "terminal_refresh_from_buffer": false,
+  "paint_wait_request_animation_frames": 2,
+  "before": {
+    "device_pixel_ratio": 1,
+    "viewport": {
+      "width": 1800,
+      "height": 1100,
+      "document_client_width": 1800,
+      "document_client_height": 1100
+    },
+    "screen_rect": {
+      "x": 0,
+      "y": 0,
+      "width": 512,
+      "height": 192,
+      "right": 512,
+      "bottom": 192
+    },
+    "measured_cell_width": 8,
+    "measured_cell_height": 16,
+    "columns": 64,
+    "rows": 12,
+    "layers": {
+      ".xterm": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-viewport": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgb(0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "auto",
+          "overflow_y": "scroll",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-screen": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-text-layer": null,
+      ".xterm-rows": null,
+      ".xterm-cursor-layer": null,
+      ".xterm-selection-layer": null
+    },
+    "canvases": [
+      {
+        "index": 0,
+        "parent_class": "xterm-screen",
+        "intrinsic_width": 512,
+        "intrinsic_height": 192,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "clip",
+          "overflow_y": "clip",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      {
+        "index": 1,
+        "parent_class": "xterm-screen",
+        "intrinsic_width": 512,
+        "intrinsic_height": 192,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "clip",
+          "overflow_y": "clip",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      }
+    ],
+    "dom_rows": {
+      "element_count": 0,
+      "paint_rows": [],
+      "last_rows": []
+    }
+  },
+  "after": {
+    "device_pixel_ratio": 1,
+    "viewport": {
+      "width": 1800,
+      "height": 1100,
+      "document_client_width": 1800,
+      "document_client_height": 1100
+    },
+    "screen_rect": {
+      "x": 0,
+      "y": 0,
+      "width": 512,
+      "height": 192,
+      "right": 512,
+      "bottom": 192
+    },
+    "measured_cell_width": 8,
+    "measured_cell_height": 16,
+    "columns": 64,
+    "rows": 12,
+    "layers": {
+      ".xterm": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-viewport": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgb(0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "auto",
+          "overflow_y": "scroll",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-screen": {
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "relative",
+          "transform": "none",
+          "overflow_x": "visible",
+          "overflow_y": "visible",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      ".xterm-text-layer": null,
+      ".xterm-rows": null,
+      ".xterm-cursor-layer": null,
+      ".xterm-selection-layer": null
+    },
+    "canvases": [
+      {
+        "index": 0,
+        "parent_class": "xterm-screen",
+        "intrinsic_width": 512,
+        "intrinsic_height": 192,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "clip",
+          "overflow_y": "clip",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      },
+      {
+        "index": 1,
+        "parent_class": "xterm-screen",
+        "intrinsic_width": 512,
+        "intrinsic_height": 192,
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 192,
+          "right": 512,
+          "bottom": 192
+        },
+        "layout": {
+          "client_width": 512,
+          "client_height": 192,
+          "offset_width": 512,
+          "offset_height": 192,
+          "scroll_width": 512,
+          "scroll_height": 192
+        },
+        "css": {
+          "width": "512px",
+          "height": "192px",
+          "background_color": "rgba(0, 0, 0, 0)",
+          "opacity": "1",
+          "position": "absolute",
+          "transform": "none",
+          "overflow_x": "clip",
+          "overflow_y": "clip",
+          "padding_left": "0px",
+          "padding_right": "0px",
+          "border_left_width": "0px",
+          "border_right_width": "0px"
+        }
+      }
+    ],
+    "dom_rows": {
+      "element_count": 0,
+      "paint_rows": [],
+      "last_rows": []
+    }
+  },
+  "layout_changed_during_screenshot": false,
+  "screenshot": {
+    "clip": {
+      "x": 0,
+      "y": 0,
+      "width": 512,
+      "height": 192
+    },
+    "png_width": 512,
+    "png_height": 192
+  }
+}

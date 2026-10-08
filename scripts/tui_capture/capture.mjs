@@ -35,7 +35,7 @@ const toolPreview = args['tool-preview'] === 'true';
 const cursorTemporal = args['cursor-temporal'];
 if(cursorTemporal&&(!toolPreview||!['blink','steady','default'].includes(cursorTemporal)))throw Error('--cursor-temporal requires --tool-preview true and blink|steady|default');
 const cursorRenderer=args['cursor-renderer']||'dom';
-if(args['cursor-renderer']&&(!cursorTemporal||!['dom','webgl'].includes(cursorRenderer)))throw Error('--cursor-renderer requires cursor-temporal and dom|webgl');
+if(args['cursor-renderer']&&(!toolPreview||!['dom','webgl'].includes(cursorRenderer)))throw Error('--cursor-renderer requires tool-preview and dom|webgl');
 const cursorRendererRoot='/home/opencode/.cache/opencode-tmp/opencode/cursor-renderer';
 const cursorCase=args['cursor-case']||'collapsed', cursorSync=args['cursor-sync']||'supported';
 if(args['cursor-case']&&(!cursorTemporal||!['collapsed','expanded'].includes(cursorCase)))throw Error('--cursor-case requires cursor-temporal and collapsed|expanded');
@@ -43,7 +43,8 @@ if(args['cursor-sync']&&(!cursorTemporal||!['supported','unsupported'].includes(
 const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -430,7 +431,8 @@ try {
     fallback_fonts: null,
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
-    cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
+     cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
+     ...(toolPreview?{refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),

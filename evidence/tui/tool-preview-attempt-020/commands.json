@@ -1,0 +1,874 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "short",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "120",
+      "--rows",
+      "40",
+      "--tool-preview",
+      "true",
+      "--cursor-renderer",
+      "webgl",
+      "--output",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "a974704be99dfff877fef4bf7264e871be7a92eb\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "45d291842402d9e44cdf1479482030fa7184cc44\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex 573c5e722..f8818e990 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -1166,19 +1166,22 @@ fn render_home(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: Rec\n     let h = input_height + 3;\n     let logo = home_logo(theme, area.width, area.height);\n     let logo_height = logo.len() as u16;\n-    // Home's two flex spacers surround the top spacer, logo, prompt and\n-    // footer. The pinned footer mounts at 44 columns, but its version content\n-    // starts at 64; with no other footer items this leaves one less occupied\n-    // row at 44..63 (home.tsx and feature-plugins/home/footer.tsx).\n-    let empty_footer =\n-        area.height >= 16 && (44..64).contains(&area.width) && state.mcp_status_counts().is_none();\n+    // The footer is a separate flex child: absent below 44x12, padding-only\n+    // without an item at 44..63, and unpadded below 16 rows. Inventory that\n+    // cannot be painted must not reserve a footer row in the centered content.\n+    let footer_rows = if area.width < 44 || area.height < 12 {\n+        0\n+    } else {\n+        2 * u16::from(area.height >= 16)\n+            + u16::from(area.width >= 64 || state.mcp_status_counts().is_some())\n+    };\n     // The upstream 3-row spacer may flex-shrink to zero before the logo when\n     // the prompt, underline and footer consume the entire short viewport.\n     let top_spacer = 3.min(area.height.saturating_sub(h + logo_height + 4));\n     let y = area.y\n         + area\n             .height\n-            .saturating_sub(h + logo_height + 9 - u16::from(empty_footer))\n+            .saturating_sub(h + logo_height + 6 + footer_rows)\n             / 2\n         + top_spacer;\n     let logo_width = logo.iter().map(Line::width).max().unwrap_or(0) as u16;\ndiff --git a/crates/oc-tui/src/shell/tests.rs b/crates/oc-tui/src/shell/tests.rs\nindex 475e30737..8b89f660f 100644\n--- a/crates/oc-tui/src/shell/tests.rs\n+++ b/crates/oc-tui/src/shell/tests.rs\n@@ -847,7 +847,13 @@ async fn empty_narrow_home_footer_keeps_original_logo_and_prompt_rows() {\n     let mut state = golden_state().await;\n     state.home = true;\n     state.chrome.devtools = Some(false);\n-    for (width, logo_y, prompt_y) in [(44, 8, 14), (63, 8, 14), (64, 7, 13), (120, 15, 21)] {\n+    for (width, logo_y, prompt_y) in [\n+        (43, 6, 16),\n+        (44, 8, 14),\n+        (63, 8, 14),\n+        (64, 7, 13),\n+        (120, 15, 21),\n+    ] {\n         let rows = screen(&state, width, if width == 120 { 40 } else { 24 });\n         let locate = |needle: &str| rows.iter().position(|row| row.contains(needle));\n         assert_eq!(locate(\"█▀▀█ █▀▀█\"), Some(logo_y), \"Home width {width}\");\ndiff --git a/crates/oc-tui/src/shell/tests/home_mcp.rs b/crates/oc-tui/src/shell/tests/home_mcp.rs\nindex 008504003..eeb6e4202 100644\n--- a/crates/oc-tui/src/shell/tests/home_mcp.rs\n+++ b/crates/oc-tui/src/shell/tests/home_mcp.rs\n@@ -81,6 +81,15 @@ async fn home_mcp_live_counts_styles_and_breakpoints_use_the_typed_inventory() {\n             if width < 44 || height < 12 || label.is_none() {\n                 assert!(!row.contains(\"MCP\"), \"{width}x{height}: {row}\");\n                 assert!(home_mcp_rect(&state, Rect::new(0, 0, width, height)).is_none());\n+                if width == 43 {\n+                    let rows = screen(&state, width, height);\n+                    assert_eq!(\n+                        rows.iter().position(|row| row.contains(\"█▀▀█ █▀▀█\")),\n+                        Some(6),\n+                        \"An unmounted footer must not reserve inventory space\"\n+                    );\n+                    assert!(rows[16].contains(\"Ask anything\"));\n+                }\n                 continue;\n             }\n             let text = format!(\ndiff --git a/scripts/tui_capture/capture.mjs b/scripts/tui_capture/capture.mjs\nindex cbd26cb62..165e6a78c 100644\n--- a/scripts/tui_capture/capture.mjs\n+++ b/scripts/tui_capture/capture.mjs\n@@ -35,7 +35,7 @@ const toolPreview = args['tool-preview'] === 'true';\n const cursorTemporal = args['cursor-temporal'];\n if(cursorTemporal&&(!toolPreview||!['blink','steady','default'].includes(cursorTemporal)))throw Error('--cursor-temporal requires --tool-preview true and blink|steady|default');\n const cursorRenderer=args['cursor-renderer']||'dom';\n-if(args['cursor-renderer']&&(!cursorTemporal||!['dom','webgl'].includes(cursorRenderer)))throw Error('--cursor-renderer requires cursor-temporal and dom|webgl');\n+if(args['cursor-renderer']&&(!toolPreview||!['dom','webgl'].includes(cursorRenderer)))throw Error('--cursor-renderer requires tool-preview and dom|webgl');\n const cursorRendererRoot='/home/opencode/.cache/opencode-tmp/opencode/cursor-renderer';\n const cursorCase=args['cursor-case']||'collapsed', cursorSync=args['cursor-sync']||'supported';\n if(args['cursor-case']&&(!cursorTemporal||!['collapsed','expanded'].includes(cursorCase)))throw Error('--cursor-case requires cursor-temporal and collapsed|expanded');\n@@ -43,7 +43,8 @@ if(args['cursor-sync']&&(!cursorTemporal||!['supported','unsupported'].includes(\n const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};\n const toolPreviewGeometry=cursorTemporal?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;\n if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');\n-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');\n+if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');\n+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');\n if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');\n if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');\n const leaderPending = args['leader-pending'] === 'true';\n@@ -430,7 +431,8 @@ try {\n     fallback_fonts: null,\n     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,\n     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',\n-    cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,\n+     cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,\n+     ...(toolPreview?{refresh_before_capture:args['refresh-before-capture']==='true'}:{}),\n     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',\n      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',\n           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),\ndiff --git a/scripts/tui_capture/check_capture_geometry.mjs b/scripts/tui_capture/check_capture_geometry.mjs\nindex efacfa52f..27589466c 100644\n--- a/scripts/tui_capture/check_capture_geometry.mjs\n+++ b/scripts/tui_capture/check_capture_geometry.mjs\n@@ -40,6 +40,19 @@ try {\n   assert.ok(geometry.layers['.xterm-screen'].css.background_color);\n   assert.ok(geometry.layers['.xterm-text-layer'] || geometry.layers['.xterm-rows']);\n   assert.equal(geometry.dom_rows.element_count,24);\n+  assert.equal(geometry.dom_rows.paint_rows.length,24);\n+  for (const row of geometry.dom_rows.paint_rows) {\n+    assert.ok(row.buffer_line_length>=80);\n+    assert.ok(row.outside_column_attributes.length<=4);\n+    for (const cell of row.outside_column_attributes) {\n+      assert.ok(cell.column>=80);\n+      assert.equal(typeof cell.bg_mode,'number');\n+      assert.equal(typeof cell.bg,'number');\n+      assert.equal(typeof cell.fg_mode,'number');\n+      assert.equal(typeof cell.fg,'number');\n+      assert.equal(typeof cell.bold,'boolean');\n+    }\n+  }\n   assert.deepEqual(geometry.dom_rows.last_rows.map(row => row.row_index),[22,23]);\n   for (const row of geometry.dom_rows.last_rows) {\n     assert.equal(row.rect.height,16);\ndiff --git a/scripts/tui_capture/frontend.js b/scripts/tui_capture/frontend.js\nindex ffe764d42..99768908f 100644\n--- a/scripts/tui_capture/frontend.js\n+++ b/scripts/tui_capture/frontend.js\n@@ -52,14 +52,28 @@ window.readCaptureGeometry = () => {\n   };\n   const rows = document.querySelector('.xterm-rows');\n   const lastRows = rows ? [...rows.children].slice(-2) : [];\n+  const paintRows = rows ? [...rows.children].slice(0, 80) : [];\n+  const describeRow = (row, rowIndex) => {\n+    const buffer = term.buffer.active;\n+    const line = buffer.getLine(buffer.viewportY + rowIndex);\n+    return {row_index: rowIndex, ...paint(row),\n+      buffer_line_length: line?.length ?? 0,\n+      // Alternate-screen shrink may retain styled cells beyond the viewport.\n+      // Observe only bounded attribute facts, never discarded glyph content.\n+      outside_column_attributes: Array.from({length: Math.min(4, Math.max(0, (line?.length ?? 0) - term.cols))}, (_, index) => {\n+        const cell = line.getCell(term.cols + index);\n+        return {column: term.cols + index, fg_mode: cell.getFgColorMode(), fg: cell.getFgColor(),\n+          bg_mode: cell.getBgColorMode(), bg: cell.getBgColor(), bold: !!cell.isBold()};\n+      }),\n+      element_child_count: row.children.length,\n+      last_element_children: [...row.children].slice(-4).map((child, childIndex, children) => ({\n+        child_index: row.children.length - children.length + childIndex, ...paint(child)}))};\n+  };\n   const domRows = {element_count: rows?.children.length ?? 0,\n-    last_rows: lastRows.map((row, index) => {\n-      const lastChildren = [...row.children].slice(-4);\n-      return {row_index: rows.children.length - lastRows.length + index, ...paint(row),\n-        element_child_count: row.children.length,\n-        last_element_children: lastChildren.map((child, childIndex) => ({\n-          child_index: row.children.length - lastChildren.length + childIndex, ...paint(child)}))};\n-    })};\n+    // Bounded tail-span geometry across the viewport also diagnoses edge paint\n+    // on prompt/tool rows. No text, arbitrary attributes or raster is read.\n+    paint_rows: paintRows.map((row, index) => describeRow(row, index)),\n+    last_rows: lastRows.map((row, index) => describeRow(row, rows.children.length - lastRows.length + index))};\n   return {device_pixel_ratio: window.devicePixelRatio,\n     viewport: {width: window.innerWidth, height: window.innerHeight,\n       document_client_width: document.documentElement.clientWidth,\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application/accounts.rs\u0000crates/oc-adapters/src/application/accounts_tests.rs\u0000crates/oc-adapters/src/application/authentication.rs\u0000crates/oc-adapters/src/application/authentication_tests.rs\u0000crates/oc-adapters/src/application/chat_wire_tests.rs\u0000crates/oc-adapters/src/application/command_tests.rs\u0000crates/oc-adapters/src/application/commands.rs\u0000crates/oc-adapters/src/application/configless_tests.rs\u0000crates/oc-adapters/src/application/dcp_controls_tests.rs\u0000crates/oc-adapters/src/application/effective_wire_tests.rs\u0000crates/oc-adapters/src/application/fatal_tests.rs\u0000crates/oc-adapters/src/application/inherited_tests.rs\u0000crates/oc-adapters/src/application/live_switch_tests.rs\u0000crates/oc-adapters/src/application/mcp_lookup.rs\u0000crates/oc-adapters/src/application/mcp_tests.rs\u0000crates/oc-adapters/src/application/mcp_tests/lookups.rs\u0000crates/oc-adapters/src/application/messages_wire_tests.rs\u0000crates/oc-adapters/src/application/plan_tests.rs\u0000crates/oc-adapters/src/application/plugin_tests.rs\u0000crates/oc-adapters/src/application/profile_tests.rs\u0000crates/oc-adapters/src/application/provider_catalog.rs\u0000crates/oc-adapters/src/application/provider_catalog/tests.rs\u0000crates/oc-adapters/src/application/provider_tests.rs\u0000crates/oc-adapters/src/application/provider_view_tests.rs\u0000crates/oc-adapters/src/application/session_move.rs\u0000crates/oc-adapters/src/application/terminal_tests.rs\u0000crates/oc-adapters/src/application/terminals.rs\u0000crates/oc-adapters/src/application/tests.rs\u0000crates/oc-adapters/src/application_conversation_tests.rs\u0000crates/oc-adapters/src/application_fork_tests.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/approval.rs\u0000crates/oc-adapters/src/approval_tests.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/auth.rs\u0000crates/oc-adapters/src/auth/attempts.rs\u0000crates/oc-adapters/src/auth/attempts/tests.rs\u0000crates/oc-adapters/src/auth/callback.html\u0000crates/oc-adapters/src/auth/fixture.rs\u0000crates/oc-adapters/src/auth/openai.rs\u0000crates/oc-adapters/src/auth/openai/binding_tests.rs\u0000crates/oc-adapters/src/auth/openai/tests.rs\u0000crates/oc-adapters/src/cli_permissions.rs\u0000crates/oc-adapters/src/compaction.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/composition/catalog.rs\u0000crates/oc-adapters/src/composition/catalog/tests.rs\u0000crates/oc-adapters/src/composition/controls_tests.rs\u0000crates/oc-adapters/src/composition/go_catalog.rs\u0000crates/oc-adapters/src/composition/go_catalog/tests.rs\u0000crates/oc-adapters/src/composition/mcp_tests.rs\u0000crates/oc-adapters/src/composition/openai_catalog.rs\u0000crates/oc-adapters/src/composition/openai_catalog/tests.rs\u0000crates/oc-adapters/src/composition/plugin_tests.rs\u0000crates/oc-adapters/src/composition/provider_readiness.rs\u0000crates/oc-adapters/src/composition/provider_views.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/config/diagnostic.rs\u0000crates/oc-adapters/src/config/mcp.rs\u0000crates/oc-adapters/src/config/mcp_tests.rs\u0000crates/oc-adapters/src/config/plugin_tests.rs\u0000crates/oc-adapters/src/config/providers.rs\u0000crates/oc-adapters/src/config/providers_tests.rs\u0000crates/oc-adapters/src/config/request_bindings.rs\u0000crates/oc-adapters/src/config/request_bindings_tests.rs\u0000crates/oc-adapters/src/config/tool_output_tests.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp/renewal_tests.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/dcp_auto/cadence_tests.rs\u0000crates/oc-adapters/src/dcp_auto/child_tests.rs\u0000crates/oc-adapters/src/dcp_auto/controls_tests.rs\u0000crates/oc-adapters/src/dcp_auto/defaults_tests.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/defs/builtin_tests.rs\u0000crates/oc-adapters/src/defs/profile_tests.rs\u0000crates/oc-adapters/src/defs/step_tests.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/endpoint.rs\u0000crates/oc-adapters/src/endpoint/tests.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/files/external_tests.rs\u0000crates/oc-adapters/src/files/read.rs\u0000crates/oc-adapters/src/files/read/tests.rs\u0000crates/oc-adapters/src/files/search.rs\u0000crates/oc-adapters/src/files/tests.rs\u0000crates/oc-adapters/src/instructions.rs\u0000crates/oc-adapters/src/instructions/tests.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_lookup.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_result/media.rs\u0000crates/oc-adapters/src/mcp_result/media/tests.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/models/lookup.rs\u0000crates/oc-adapters/src/models/tests.rs\u0000crates/oc-adapters/src/models/tool_tests.rs\u0000crates/oc-adapters/src/models_dev.rs\u0000crates/oc-adapters/src/models_dev/document.rs\u0000crates/oc-adapters/src/models_dev/document/tests.rs\u0000crates/oc-adapters/src/models_dev/openai_tests.rs\u0000crates/oc-adapters/src/models_dev/tests.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/effects.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/patch/mutation.rs\u0000crates/oc-adapters/src/patch/mutation/tests.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/plan.rs\u0000crates/oc-adapters/src/plan/tests.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/provider/chat.rs\u0000crates/oc-adapters/src/provider/chat_tests.rs\u0000crates/oc-adapters/src/provider/context.rs\u0000crates/oc-adapters/src/provider/context_tests.rs\u0000crates/oc-adapters/src/provider/failure.rs\u0000crates/oc-adapters/src/provider/go_live_tests.rs\u0000crates/oc-adapters/src/provider/messages.rs\u0000crates/oc-adapters/src/provider/messages_tests.rs\u0000crates/oc-adapters/src/provider/protocol.rs\u0000crates/oc-adapters/src/provider/protocol_tests.rs\u0000crates/oc-adapters/src/provider/settings.rs\u0000crates/oc-adapters/src/provider/settings_tests.rs\u0000crates/oc-adapters/src/provider/tests/openai.rs\u0000crates/oc-adapters/src/provider/tests/reconciliation.rs\u0000crates/oc-adapters/src/provider/tests/typed_failures.rs\u0000crates/oc-adapters/src/provider/timeout_tests.rs\u0000crates/oc-adapters/src/provider/websocket.rs\u0000crates/oc-adapters/src/provider/websocket/tests.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/runtime/binding_replay_tests.rs\u0000crates/oc-adapters/src/runtime/builtin_tests.rs\u0000crates/oc-adapters/src/runtime/child_dcp_tests.rs\u0000crates/oc-adapters/src/runtime/children.rs\u0000crates/oc-adapters/src/runtime/children/tests.rs\u0000crates/oc-adapters/src/runtime/compaction_renewal_tests.rs\u0000crates/oc-adapters/src/runtime/context.rs\u0000crates/oc-adapters/src/runtime/controls_tests.rs\u0000crates/oc-adapters/src/runtime/environment.rs\u0000crates/oc-adapters/src/runtime/environment/tests.rs\u0000crates/oc-adapters/src/runtime/file_tool_tests.rs\u0000crates/oc-adapters/src/runtime/instructions.rs\u0000crates/oc-adapters/src/runtime/instructions/tests.rs\u0000crates/oc-adapters/src/runtime/mcp.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/lookups.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/tests.rs\u0000crates/oc-adapters/src/runtime/media_tests.rs\u0000crates/oc-adapters/src/runtime/read_tests.rs\u0000crates/oc-adapters/src/runtime/retry.rs\u0000crates/oc-adapters/src/runtime/retry/tests.rs\u0000crates/oc-adapters/src/runtime/terminals.rs\u0000crates/oc-adapters/src/runtime/tests.rs\u0000crates/oc-adapters/src/runtime/tool_stream.rs\u0000crates/oc-adapters/src/runtime/turn.rs\u0000crates/oc-adapters/src/runtime/turn/commands.rs\u0000crates/oc-adapters/src/runtime/turn/foreground.rs\u0000crates/oc-adapters/src/runtime_compaction.rs\u0000crates/oc-adapters/src/runtime_compaction_tests.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/shell/jobs.rs\u0000crates/oc-adapters/src/shell/jobs/output.rs\u0000crates/oc-adapters/src/shell/jobs/output_tests.rs\u0000crates/oc-adapters/src/shell/jobs/tests.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/storage/session_move_tests.rs\u0000crates/oc-adapters/src/storage/tests.rs\u0000crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs\u0000crates/oc-adapters/src/storage_children.rs\u0000crates/oc-adapters/src/storage_children/tests.rs\u0000crates/oc-adapters/src/storage_compaction.rs\u0000crates/oc-adapters/src/storage_conversation.rs\u0000crates/oc-adapters/src/storage_conversation_tests.rs\u0000crates/oc-adapters/src/storage_credentials.rs\u0000crates/oc-adapters/src/storage_credentials/tests.rs\u0000crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs\u0000crates/oc-adapters/src/storage_dcp_view.rs\u0000crates/oc-adapters/src/storage_dcp_view_tests.rs\u0000crates/oc-adapters/src/storage_effort.rs\u0000crates/oc-adapters/src/storage_effort/tests.rs\u0000crates/oc-adapters/src/storage_fork.rs\u0000crates/oc-adapters/src/storage_fork_context.rs\u0000crates/oc-adapters/src/storage_fork_dcp_tests.rs\u0000crates/oc-adapters/src/storage_grants.rs\u0000crates/oc-adapters/src/storage_instructions.rs\u0000crates/oc-adapters/src/storage_instructions_tests.rs\u0000crates/oc-adapters/src/storage_session_move.rs\u0000crates/oc-adapters/src/storage_shell_jobs.rs\u0000crates/oc-adapters/src/storage_terminals.rs\u0000crates/oc-adapters/src/storage_tool_output.rs\u0000crates/oc-adapters/src/storage_tool_output/access.rs\u0000crates/oc-adapters/src/storage_tool_output/tests.rs\u0000crates/oc-adapters/src/storage_turn_history.rs\u0000crates/oc-adapters/src/storage_turn_history/tests.rs\u0000crates/oc-adapters/src/terminals.rs\u0000crates/oc-adapters/src/terminals/tests.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/tools/mcp_log.rs\u0000crates/oc-adapters/src/tools/mcp_log/tests.rs\u0000crates/oc-adapters/src/tools/model_history.rs\u0000crates/oc-adapters/src/tools/model_history_tests.rs\u0000crates/oc-adapters/src/tools/output.rs\u0000crates/oc-adapters/src/tools/output/tests.rs\u0000crates/oc-adapters/src/tools/read.rs\u0000crates/oc-adapters/src/tools/shell_call.rs\u0000crates/oc-adapters/src/tools/tests/file_mutations.rs\u0000crates/oc-adapters/src/tools/tests/search.rs\u0000crates/oc-adapters/src/tools/tests/shell.rs\u0000crates/oc-adapters/src/tools/tests/webfetch.rs\u0000crates/oc-adapters/src/tools/turn_history.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/src/webfetch/PROVENANCE.md\u0000crates/oc-adapters/src/webfetch/format_tests.rs\u0000crates/oc-adapters/src/webfetch/render.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/fixtures/approval_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/background_children.rs\u0000crates/oc-adapters/tests/fixtures/background_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/child_dcp.rs\u0000crates/oc-adapters/tests/fixtures/command_routing.rs\u0000crates/oc-adapters/tests/fixtures/compaction_normalization.json\u0000crates/oc-adapters/tests/fixtures/foreground_children.rs\u0000crates/oc-adapters/tests/fixtures/question_lifecycle.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_remote/config_admission.rs\u0000crates/oc-adapters/tests/mcp_remote/lookups.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/mcp_stdio/config_admission.rs\u0000crates/oc-adapters/tests/mcp_stdio/lookups.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/patch_effects.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/runtime/context.rs\u0000crates/oc-adapters/tests/runtime/file_mutations.rs\u0000crates/oc-adapters/tests/runtime/mcp_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/model_session_tools.rs\u0000crates/oc-adapters/tests/runtime/provider_readiness.rs\u0000crates/oc-adapters/tests/runtime/reconciliation.rs\u0000crates/oc-adapters/tests/runtime/session_move.rs\u0000crates/oc-adapters/tests/runtime/tool_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/turns.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/approval.rs\u0000crates/oc-core/src/compaction.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/core_app/diagnostic_tests.rs\u0000crates/oc-core/src/dcp_view.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/patch.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/queries/accounts.rs\u0000crates/oc-core/src/queries/auth.rs\u0000crates/oc-core/src/queries/mcp_lookup.rs\u0000crates/oc-core/src/queries/terminals.rs\u0000crates/oc-core/src/question.rs\u0000crates/oc-core/src/question/tests.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-core/src/tool_output.rs\u0000crates/oc-core/src/tool_stream.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/app/accounts.rs\u0000crates/oc-tui/src/app/accounts_tests.rs\u0000crates/oc-tui/src/app/input.rs\u0000crates/oc-tui/src/app/live.rs\u0000crates/oc-tui/src/app/mcp.rs\u0000crates/oc-tui/src/app/model_selection.rs\u0000crates/oc-tui/src/app/model_selection_tests.rs\u0000crates/oc-tui/src/app/services.rs\u0000crates/oc-tui/src/app/tabs.rs\u0000crates/oc-tui/src/app/tests.rs\u0000crates/oc-tui/src/app/tests/dcp_controls.rs\u0000crates/oc-tui/src/app/tests/input.rs\u0000crates/oc-tui/src/app/tests/lifecycle.rs\u0000crates/oc-tui/src/app/tests/model_selection.rs\u0000crates/oc-tui/src/app/tests/retry.rs\u0000crates/oc-tui/src/app/tests/services.rs\u0000crates/oc-tui/src/app/tests/tabs.rs\u0000crates/oc-tui/src/app/tests/tool_output.rs\u0000crates/oc-tui/src/app/tests/transcript.rs\u0000crates/oc-tui/src/app/transcript.rs\u0000crates/oc-tui/src/approval_view.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/child_view.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/compaction.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dcp_view.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/messages/tests.rs\u0000crates/oc-tui/src/patch_view.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/question_view.rs\u0000crates/oc-tui/src/question_view/tests.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/shell/tests.rs\u0000crates/oc-tui/src/shell/tests/home_mcp.rs\u0000crates/oc-tui/src/shell_jobs_view.rs\u0000crates/oc-tui/src/shell_jobs_view/tests.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/terminal/tests.rs\u0000crates/oc-tui/src/terminal_view.rs\u0000crates/oc-tui/src/terminal_view/tests.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/tools/presentation_tests.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/approval_tests.rs\u0000crates/oc/src/auth_cmd.rs\u0000crates/oc/src/auth_cmd/tests.rs\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/cli/tests.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/models_cmd.rs\u0000crates/oc/src/models_cmd/tests.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/src/tui_cmd/auth_controls.rs\u0000crates/oc/src/tui_cmd/auth_controls/tests.rs\u0000crates/oc/src/tui_cmd/child_controls.rs\u0000crates/oc/src/tui_cmd/child_controls/tests.rs\u0000crates/oc/src/tui_cmd/terminal_controls.rs\u0000crates/oc/src/tui_cmd/terminal_controls/tests.rs\u0000crates/oc/src/tui_cmd/tests.rs\u0000crates/oc/src/tui_cmd/tests/lifecycle.rs\u0000crates/oc/src/tui_cmd/tests/routing.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/approval_binary.rs\u0000crates/oc/tests/auth_cli.rs\u0000crates/oc/tests/auth_oauth.rs\u0000crates/oc/tests/auth_tui.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/configured_workspace/models_cli.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/dcp_runtime/defaults.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/live_bounded/envelope.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/mcp_application/config_admission.rs\u0000crates/oc/tests/mcp_application/lifecycle.rs\u0000crates/oc/tests/mcp_application/lookups.rs\u0000crates/oc/tests/mcp_application/media.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t39/accounts.rs\u0000crates/oc/tests/pty_t39/fatal_diagnostics.rs\u0000crates/oc/tests/pty_t39/inherited_selection.rs\u0000crates/oc/tests/pty_t39/interaction.rs\u0000crates/oc/tests/pty_t39/lifecycle.rs\u0000crates/oc/tests/pty_t39/plugin_admission.rs\u0000crates/oc/tests/pty_t39/provider_readiness.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_startup/fatal_diagnostics.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/auth_cli.py\u0000crates/oc/tests/support/auth_oauth.py\u0000crates/oc/tests/support/auth_tui.py\u0000crates/oc/tests/support/context_ids.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/screen.rs\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/terminal.rs\u0000crates/oc/tests/support/terminals.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/terminals.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/analyze_apply_patch.mjs\u0000scripts/tui_capture/analyze_compaction_frames.mjs\u0000scripts/tui_capture/analyze_leader_pairs.mjs\u0000scripts/tui_capture/analyze_leader_pending.mjs\u0000scripts/tui_capture/analyze_permission.mjs\u0000scripts/tui_capture/analyze_prompt_paste.mjs\u0000scripts/tui_capture/apply_patch.mjs\u0000scripts/tui_capture/apply_patch_admission.mjs\u0000scripts/tui_capture/apply_patch_fixture.py\u0000scripts/tui_capture/bounded.mjs\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_compaction_evidence.mjs\u0000scripts/tui_capture/check_cursor_temporal.py\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_leader_roles.mjs\u0000scripts/tui_capture/check_permission_evidence.mjs\u0000scripts/tui_capture/check_permission_headless_pair.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/check_revert_redo_evidence.mjs\u0000scripts/tui_capture/compaction.mjs\u0000scripts/tui_capture/compaction_fixture.py\u0000scripts/tui_capture/cursor_frontend.js\u0000scripts/tui_capture/cursor_temporal.mjs\u0000scripts/tui_capture/dcp_README.md\u0000scripts/tui_capture/dcp_check_reference.mjs\u0000scripts/tui_capture/dcp_display_audit.py\u0000scripts/tui_capture/dcp_display_fixture.py\u0000scripts/tui_capture/dcp_from_native.ts\u0000scripts/tui_capture/dcp_native_bridge.py\u0000scripts/tui_capture/dcp_native_qualify.py\u0000scripts/tui_capture/dcp_oracle.ts\u0000scripts/tui_capture/dcp_pair_audit.mjs\u0000scripts/tui_capture/dcp_reference_bridge.py\u0000scripts/tui_capture/dcp_reference_capture.mjs\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/home_mcp.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000scripts/tui_capture/leader_pending.mjs\u0000scripts/tui_capture/message_actions.mjs\u0000scripts/tui_capture/observe_compaction_timeline.mjs\u0000scripts/tui_capture/permission.mjs\u0000scripts/tui_capture/permission_association.mjs\u0000scripts/tui_capture/permission_fix_cells.mjs\u0000scripts/tui_capture/permission_fixture.py\u0000scripts/tui_capture/permission_headless.py\u0000scripts/tui_capture/permission_mcp.py\u0000scripts/tui_capture/permission_reference_headless.py\u0000scripts/tui_capture/permission_rejection_audit.mjs\u0000scripts/tui_capture/permission_syscall_audit.py\u0000scripts/tui_capture/prompt_paste.mjs\u0000scripts/tui_capture/revert_redo.mjs\u0000scripts/tui_capture/run_prompt_paste.mjs\u0000scripts/tui_capture/services.mjs\u0000scripts/tui_capture/services_fixture.py\u0000scripts/tui_capture/sessions.mjs\u0000scripts/tui_capture/summarize_permission.mjs\u0000scripts/tui_capture/summarize_prompt_paste.mjs\u0000scripts/tui_capture/summarize_wheel.mjs\u0000scripts/tui_capture/tabs_audit.py\u0000scripts/tui_capture/tabs_bridge.py\u0000scripts/tui_capture/tabs_capture.mjs\u0000scripts/tui_capture/tabs_check.mjs\u0000scripts/tui_capture/tabs_oracle.ts\u0000scripts/tui_capture/tool_preview.mjs\u0000scripts/tui_capture/tool_preview_fixture.py\u0000scripts/tui_capture/tool_preview_mcp.py\u0000scripts/tui_capture/variants_audit.py\u0000scripts/tui_capture/variants_bridge.py\u0000scripts/tui_capture/variants_capture.mjs\u0000scripts/tui_capture/wheel.mjs\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.82s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"0f5b62c5d8511490b0439d8a1eebc873515f6b215344d83b9516320b8cfe099c\", \"actual_sha256\": \"10711d1a0f2590e5b8b858823b74ce0cc454cbdf19d64a78e860b881474449ed\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"04aeb07b38d851e02c60605ba682dc33a1c3cc4e73fd1211db7c46e68ffe817d\", \"actual_sha256\": \"ddb775fd4455570888c71ec071663277cdd9d16cf2f52ff51ba64133d24ab076\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0004443359375, \"difference_bbox_inclusive\": [897, 611, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-draft.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-draft.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-draft.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-draft\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"504fe6e82ac6be1410e5a2912e979c3095759a6612ce8102b5a40b5dcba1a422\", \"actual_sha256\": \"111c74ac9679c06c617b5992b4d7d60d5796c3f3599bce2ae7a5a2f014a87e50\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-draft.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-draft.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-draft.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011\", \"actual_sha256\": \"8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0004443359375, \"difference_bbox_inclusive\": [897, 611, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-list\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"aa1d576d9f6bc624198a2c99b4682c75a812903ef90bc9f9dbf7fa8e2f63a2ef\", \"actual_sha256\": \"d2edc91a9caf1a0c9283c85d0b6e3e479f58e6edccf18bce3af2821a627e23e0\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 79, \"cursor_differs\": false, \"difference_bbox_inclusive\": [34, 15, 117, 38], \"samples\": [{\"x\": 34, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 40, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 41, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 42, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 43, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 44, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 45, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 46, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 47, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 48, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 49, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 50, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 51, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 52, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 53, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"099b85e73fcf7adee8f224193783a231166531f144d355e03db7a3266c216722\", \"actual_sha256\": \"7b9f7641015b8d5bc7eccb355f5a9a6bf4528e64b39ebd1827078c692b944999\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 3535, \"changed_fraction_diagnostic_only\": 0.005753580729166667, \"difference_bbox_inclusive\": [272, 241, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-disabled-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-disabled-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-disabled-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-disabled-list\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"a6cafb4e289b44852a93bf510031d1752ef2f2f504fde9f80b7cca2b97871ba3\", \"actual_sha256\": \"7cb605feb45b998ac26d7d70496634f9d46fd5aeeddc6c775ed0bc10372b05f1\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 77, \"cursor_differs\": false, \"difference_bbox_inclusive\": [34, 15, 117, 38], \"samples\": [{\"x\": 34, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 15, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 40, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 41, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 42, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 43, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 44, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 45, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 46, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 47, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 48, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 49, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 50, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 51, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 52, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}, {\"x\": 53, \"y\": 15, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-disabled-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-disabled-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-disabled-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"8f4e6a93065b7741af7573c32c27218bdb304746a5d0eae3147318a401a59f19\", \"actual_sha256\": \"1ba2c42960b219b8f19b03403533b4a9a4625a16732f6b3ea30d5750f74ac269\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 3398, \"changed_fraction_diagnostic_only\": 0.005530598958333333, \"difference_bbox_inclusive\": [272, 241, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-disabled.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-disabled.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-disabled.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-disabled\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"1a4fee780255b2d80df9c0b40676c96222a37cf4c2313b9212fb37a865270c9a\", \"actual_sha256\": \"e4890973ed1ff99f5d4ad0db53bbb23af1452d6d442976488bc67baabb5392c2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-disabled.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-disabled.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-disabled.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f177162ba2a6bdbfef7df37346f0076deae66ff0157d8eab2b53a2f30b8e8b83\", \"actual_sha256\": \"1aa79ca96b7ac1d4c16cba030f010e334cb8ffb1fc4b6a8a67d57756daa98758\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0004443359375, \"difference_bbox_inclusive\": [897, 611, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-failed-list.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-failed-list.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-failed-list.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-failed-list\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"6965ff84f73acde3ed7e98a76da011fa21256b3a8644a2b2e057df2ff686fac4\", \"actual_sha256\": \"357007af58add6eb5246308cb175deb1c66a94508439d233d69df66b45bd9cc4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 317, \"cursor_differs\": false, \"difference_bbox_inclusive\": [26, 1, 117, 38], \"samples\": [{\"x\": 68, \"y\": 1, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 70, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 71, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 72, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 73, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 74, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 75, \"y\": 1, \"different_fields\": [\"bg\"]}, {\"x\": 76, \"y\": 1, \"different_fields\": [\"symbol\", \"fg\", \"bg\"]}, {\"x\": 117, \"y\": 1, \"different_fields\": [\"fg\"]}, {\"x\": 68, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 69, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 70, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 71, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 72, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 73, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 74, \"y\": 2, \"different_fields\": [\"bg\"]}, {\"x\": 75, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 76, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"bg\", \"modifiers\"]}, {\"x\": 77, \"y\": 2, \"different_fields\": [\"symbol\", \"fg\", \"modifiers\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-failed-list.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-failed-list.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-failed-list.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"7c5451bf49f44432b94997d9e17fc298bfefe0b0e2ea92effa98c67f869cfeb1\", \"actual_sha256\": \"ed84aa5bfc2975360207b54c6e971f001e827e7faa5aba149e45ec35e7c65e3f\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 24618, \"changed_fraction_diagnostic_only\": 0.040068359375, \"difference_bbox_inclusive\": [208, 16, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-failed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-failed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-failed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-failed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"c1d741f571dbc942600912d4952610c1769b1d3a2f38de574ff315bb28142967\", \"actual_sha256\": \"e3b8f8c2f0f86ded5d7f50c8b138cfe1474abb4a20a782b9cd86f1fef639e80a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 78, \"cursor_differs\": false, \"difference_bbox_inclusive\": [26, 25, 117, 38], \"samples\": [{\"x\": 26, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 25, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 25, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-failed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-failed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-failed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"9b3a2c961ec86e92b20692b505284a0dad51f1ff6fe7dbc07baed7fa9667f1e0\", \"actual_sha256\": \"3278dcd9a36240cb91d8bef1939b9259b39c32b8429d799762bf349bdb950e02\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 3774, \"changed_fraction_diagnostic_only\": 0.006142578125, \"difference_bbox_inclusive\": [208, 402, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-restored.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-restored.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-restored.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-restored\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"f343ea1c0dc287748e6ecd69be7c9e51f5b0f25245c98d954174f5821ecd79c5\", \"actual_sha256\": \"56d550028886d6f00a89c1f34f7ed8f835c853fdd3936c9338462b98ea7fcc5b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-restored.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-restored.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-restored.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011\", \"actual_sha256\": \"8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0004443359375, \"difference_bbox_inclusive\": [897, 611, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-44x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-44x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-44x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-44x24\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"7d515cc6f0dccd54659de70e37762fed05ff4fbd2a24efb789b663ca940b2da5\", \"reference_sha256\": \"969ee203da9841e66c20d5c6aea3859ba1229b41029afc85936022deaa48d234\", \"actual_sha256\": \"bae350b4b36f66a435e6db3080805a130fa36f6767e095f9115781d93546ef7a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 1056, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-44x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-44x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-44x24.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5183f917455970ca817e8860088b92e76c4f8d370fe2b3312f586cee2cd34109\", \"actual_sha256\": \"5183f917455970ca817e8860088b92e76c4f8d370fe2b3312f586cee2cd34109\", \"width\": 352, \"height\": 384, \"pixels_checked\": 135168, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-63x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-63x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-63x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-63x24\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ce9dc75585b3e0cfe0f57429021fd7d619703a717e6e9a82642a4aab7ad4c1a3\", \"reference_sha256\": \"3b9ac5f506e032c360cf01179c54f844d4422589c5019ad3bb6c5374499ac7fd\", \"actual_sha256\": \"0938901e9045ba42fef2a50f97dab4e2005f5b90b7cd263f6f8f9f01d87021dd\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 1512, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-63x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-63x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-63x24.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"84f96938b2fef99cdd87085e0c4d371d1711f65b01082040460405bdf057bc10\", \"actual_sha256\": \"84f96938b2fef99cdd87085e0c4d371d1711f65b01082040460405bdf057bc10\", \"width\": 504, \"height\": 384, \"pixels_checked\": 193536, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-64x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-64x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-64x24.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-64x24\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"513688feabf99cc1cdbce15276413a1e92fb79c9bf4f474158347634270994d5\", \"reference_sha256\": \"19095ebd5eb57eb4f84ababe6794d9f56c1d3d16f33b6362a00ccca7176d8791\", \"actual_sha256\": \"12f4a5f60f6f407536cb7113420177b453d716372e319e9ddfb9d8c4c0479d89\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 1536, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [56, 22, 61, 22], \"samples\": [{\"x\": 56, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-64x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-64x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-64x24.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ceee308eabc010828220c8cfcb869f140b893a4fc9e53de9e393b9a5eed1c7f8\", \"actual_sha256\": \"aec78c835a69b38d04f100677c984beb42ae9a8b44e2c5ee61cdce5f45e286ef\", \"width\": 512, \"height\": 384, \"pixels_checked\": 196608, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0013885498046875, \"difference_bbox_inclusive\": [449, 355, 495, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-43x24.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-43x24.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-43x24.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-43x24\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"92e8111fbb911ed3b244aed60d6f17ac6566f78ef8c2318b63c15ddad447a20f\", \"reference_sha256\": \"967331572c710b36397bd826454676dcad4bb5f1e9e58d50d8286e7ccf64e3a1\", \"actual_sha256\": \"a532d3a3a2016970b80c9cc04d57b3fe99f611696050e02e15c897d9ef61bddd\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 1032, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-43x24.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-43x24.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-43x24.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"fa5a348b8d88903ff847bfe29463a9b6d2a55bcc667c87040b3c5cd5fa7f373f\", \"actual_sha256\": \"fa5a348b8d88903ff847bfe29463a9b6d2a55bcc667c87040b3c5cd5fa7f373f\", \"width\": 344, \"height\": 384, \"pixels_checked\": 132096, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-64x12.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-64x12.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-64x12.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-64x12\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"3add515a6966e46bddb01ddc036ea3f5727252bdb5d12c46979281ed9e78eedf\", \"reference_sha256\": \"7bcaa3f64b810a82ef9b40fb196fbc88267f5a6f24b71bde8ad2154f79f50bb3\", \"actual_sha256\": \"2cab04075bf2a4c0160dac673c256cddeb4a120357d24d1a5aabcbdc5fa33f29\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 768, \"different_cells\": 9, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 11, 61, 11], \"samples\": [{\"x\": 3, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 5, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 11, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 56, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 59, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 60, \"y\": 11, \"different_fields\": [\"symbol\"]}, {\"x\": 61, \"y\": 11, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-64x12.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-64x12.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-64x12.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"67e30ba7d112096087424cd07b0b421e7781f0ab96e6a10eff6e936d16428e54\", \"actual_sha256\": \"dd971509f72732b31ea8f721799cc25feffdac440bb95303e025e3111f644022\", \"width\": 512, \"height\": 192, \"pixels_checked\": 98304, \"different_pixels\": 355, \"changed_fraction_diagnostic_only\": 0.0036112467447916665, \"difference_bbox_inclusive\": [24, 179, 495, 188]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-resized-back.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-resized-back.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-resized-back.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-home-mcp-resized-back\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"e39a64f3625af7d9b76e0150a2fe4e7e01bef3a33f0939e5197a61a7a1cad1ec\", \"actual_sha256\": \"204c44dacc34ec08d222e0c68e9aa7c83c07eae92caf8e87bd97eb53d1927c98\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [112, 38, 117, 38], \"samples\": [{\"x\": 112, \"y\": 38, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 113, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 114, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 115, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 116, \"y\": 38, \"different_fields\": [\"symbol\"]}, {\"x\": 117, \"y\": 38, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-home-mcp-resized-back.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-home-mcp-resized-back.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-home-mcp-resized-back.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"4407705aac71792e47534fc6fd9c9a4b5eeed8ecb5dd6d011e927040ac1c0011\", \"actual_sha256\": \"8b8155e149446a69a081418633ed4fed5fe8cf4c2ecbba440184edb89c00fff3\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 273, \"changed_fraction_diagnostic_only\": 0.0004443359375, \"difference_bbox_inclusive\": [897, 611, 943, 620]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-completed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-completed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"dc77ef079a949c7ce8090cca7ef739e6e65cf15c4229052eb1add4c493f5c711\", \"actual_sha256\": \"a6fef55611a2947da7ae3ef07f1e2340d42613ce4e2309cfacb881779c2a8d88\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 1022, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-completed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"abbc539425aa53dacc18dad0e863f0715399b989293eed7a9aa8f2e2eaa8a50c\", \"actual_sha256\": \"1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 63604, \"changed_fraction_diagnostic_only\": 0.10352213541666666, \"difference_bbox_inclusive\": [16, 98, 943, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-hover.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-hover.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-hover.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-hover\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"d655ee6f97a6fbdda47b8d32ad4c7fa5e0e4a498e50abff18c9f4a678a77db17\", \"actual_sha256\": \"c4d6c249f8917911fb9adad2f379ff9a823aeb46db803482c1de0c39e050e7af\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-hover.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-hover.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-hover.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bc1fdb7ac1ed9ac2a66d53de3296165ad7293f32e5606d7d4a402871415bcaf1\", \"actual_sha256\": \"672449bdf25f6a2993bea2a9b19e2ed0b8202f3a8da8ffd2dee7c4dbc355c25c\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 58047, \"changed_fraction_diagnostic_only\": 0.05496875, \"difference_bbox_inclusive\": [16, 98, 943, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-1-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-1-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-1-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-1-expanded\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"b70cbcbe6d0bb03b4628815eeeadc6f35b5c583bf6f73709819188ebbb1814e1\", \"actual_sha256\": \"e4ce193ba75a7da81448635b81ca7725f17ed58ed7609bd841e020f7f243a186\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1845, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-1-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-1-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-1-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"73bdfccdabf080ad0157e61e8a4df72c541f8b77d9163607e213fb4bf1f19916\", \"actual_sha256\": \"6de523e268cc3f3ae6adea3984a8bf46474092f69f418713ce1275133376573e\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 143460, \"changed_fraction_diagnostic_only\": 0.13585227272727274, \"difference_bbox_inclusive\": [16, 98, 943, 796]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-1-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-1-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-1-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-1-recollapsed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"2c9d55dfa5cdb48c6da8bb913aa1fc81a383449c21a4513c9272d6f637beae20\", \"actual_sha256\": \"977e523010f72da7af3816da9e36da9dc21175c995d4d972bbd362bda34b23c3\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-1-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-1-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-1-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"bc1fdb7ac1ed9ac2a66d53de3296165ad7293f32e5606d7d4a402871415bcaf1\", \"actual_sha256\": \"672449bdf25f6a2993bea2a9b19e2ed0b8202f3a8da8ffd2dee7c4dbc355c25c\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 58047, \"changed_fraction_diagnostic_only\": 0.05496875, \"difference_bbox_inclusive\": [16, 98, 943, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-2-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-2-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-2-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-2-expanded\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"becbf5f306d9aaaa8b2910c7c8e4595baf54617a0be6761297f875f7b23b632b\", \"actual_sha256\": \"4e662eb80c05760a0c227ca76be2552806fb18966fc2584074a6cc826396e2b4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1758, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-2-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-2-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-2-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5c5e0dac62bd2bc9cb0be7e91310e5657eb2beebb2403b82403618f1086e214a\", \"actual_sha256\": \"ea98d02465abe2d10f57f455ded8fd5792f60dde6a08051e518d6a9daf799f92\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 140127, \"changed_fraction_diagnostic_only\": 0.13269602272727274, \"difference_bbox_inclusive\": [16, 98, 943, 796]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-2-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-2-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-2-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-mcp-2-recollapsed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"cf1f75ff705de03f00401bb521beff76004a706cda25b03a59962c2e17bcf3ee\", \"actual_sha256\": \"8f999e2cf9f515c018a8d1a51aff7502a84952e3053cf9a4dc34d98655bc06a2\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-mcp-2-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-mcp-2-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-mcp-2-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"79af37f2f7c571466287534c3a4d4141a17654fbe71ca8ed5819e5bc83587ed8\", \"actual_sha256\": \"054d823d6cc29d3ab187c94292e980477628145b4db40022e9ad925cd8e84b61\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 58051, \"changed_fraction_diagnostic_only\": 0.05497253787878788, \"difference_bbox_inclusive\": [16, 98, 943, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-error-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-error-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-error-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-error-expanded\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"d38b88e40f4d85e4d70552620a0b72b55ec8665054fc60acf25329be79543f46\", \"actual_sha256\": \"4ea30503dcbadb78c39e9fd7e2b9e266a9eebba0e5893867bda41b182e3aea2b\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1082, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-error-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-error-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-error-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"c59a0f7f16c806e5e98f8002561c7b39359a980da3f55b4cde3b1cabf64b0a00\", \"actual_sha256\": \"1e2e9d38026a808a4a29d069785cc631124dfde14102436b7f3fbcf581d6dbaa\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 60237, \"changed_fraction_diagnostic_only\": 0.057042613636363634, \"difference_bbox_inclusive\": [16, 98, 943, 492]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-error-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-error-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-error-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-error-recollapsed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"d637f672d9f0ca097e5f07192794f7fe74d5ed6d42f1a701520b661d51e99c42\", \"actual_sha256\": \"8ef910a0c265bdbd50d7bc08a51b6113d8a730cf22f84a4529e0a2da50dd8269\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 1010, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-error-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-error-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-error-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"953bc43e49d037df0f47dfa7261936e2debdd1cca6e28defef643fdfea20c651\", \"actual_sha256\": \"e58b2d3700f1ecff063b1be5d74045a67a2be36ca241ce87ebaf637ff82c33b0\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 58003, \"changed_fraction_diagnostic_only\": 0.054927083333333335, \"difference_bbox_inclusive\": [16, 98, 943, 476]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-shell-expanded.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-shell-expanded.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-shell-expanded.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-shell-expanded\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"ac365e30e80847264546b7f79e5a42336719e6e651db90171b92b4b1104f6d11\", \"reference_sha256\": \"284d35eac6fa58948c9fec43997823fc44f91c4a186a352694fb207f24d8c039\", \"actual_sha256\": \"a8fb0bf9b6a1cc38a028661405f6517d6dec6d94441cd1128202e45e549bddda\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 9600, \"different_cells\": 6788, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 78], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-shell-expanded.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-shell-expanded.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-shell-expanded.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"5cd84f0c7c12fe4ae18c065646f23d7a8b8d9ce438809cfcfaaf049e18b00bb7\", \"actual_sha256\": \"edbc4916916a9ab482dbc02c8046ff1fafc66ab88e21926ebc032185d2be229b\", \"width\": 960, \"height\": 1100, \"pixels_checked\": 1056000, \"different_pixels\": 829539, \"changed_fraction_diagnostic_only\": 0.7855482954545454, \"difference_bbox_inclusive\": [16, 98, 943, 1087]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-shell-recollapsed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-shell-recollapsed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-shell-recollapsed.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-shell-recollapsed\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"57c6c1d0f77f69ddbabf937785f7dbf107dbb6a2e71d62f76e12a76c9a4c4d7b\", \"actual_sha256\": \"16b0cf750cd9b6219e3af2709b2be80618e83ca39079f11e3cd6fbee995c8358\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-shell-recollapsed.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-shell-recollapsed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-shell-recollapsed.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ad3fdde1c8b8c641a12bbf551416deb7fb534472e0a83b29d331e4ba5775ba6f\", \"actual_sha256\": \"ac3e4888265d534d46e9c6bd0cdabbb291732c827213fb0c02517d3d574fb255\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 219855, \"changed_fraction_diagnostic_only\": 0.3578369140625, \"difference_bbox_inclusive\": [16, 98, 943, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-switched.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-switched.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-switched.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-switched\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"cdb48dcbcc35d946e28a9d4e4b3c027a84ac6d87d32c230be3efc6c2b73356b8\", \"actual_sha256\": \"1d68fb5731311d96cf471690f4bca92237e8aae6e73ac995b3e9dc8ac2641480\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 58, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 22, 117, 38], \"samples\": [{\"x\": 41, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 42, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 43, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 44, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 45, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 46, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 47, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 48, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 49, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 50, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 51, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 52, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 53, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 54, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 55, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 56, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 57, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 58, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 59, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 60, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-switched.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-switched.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-switched.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"72f18718bcbb85fbb46e4918bee2fe115ff0144498e96adf9056cd30f7020f10\", \"actual_sha256\": \"312510ea077d3ded8b9e2a03604d00f0240610dd4ee82d7f0f791a013b1db094\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 2098, \"changed_fraction_diagnostic_only\": 0.0034147135416666666, \"difference_bbox_inclusive\": [16, 354, 943, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-reopened.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-reopened.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-reopened.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-reopened\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"320d9bcd26c314e892e092a4d56971d020a7dfd497566529b90e16e95489cc27\", \"actual_sha256\": \"f0ebb399b286352b29c1d50d768037fa985bb99f0cf849845a0717991e9a5c84\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-reopened.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-reopened.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-reopened.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6077ebc09fc44fa46c8f8da587c40e92210086bcc16485347b289ffba89f9cfb\", \"actual_sha256\": \"1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 219855, \"changed_fraction_diagnostic_only\": 0.3578369140625, \"difference_bbox_inclusive\": [16, 98, 943, 623]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-restarted.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-restarted.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-restarted.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-restarted\", \"fixture_sha256\": \"0f6a77183c835282a1ad514d798d4467a4a14e5dfaf0d4a0c996049c16944726\", \"environment_id\": \"962d7c7175441d89f21d7b4bbe357c890893a5575bd7fdbe2abef4f5760674c2\", \"reference_sha256\": \"9d3dfac78ee7c5ac12b90c10d3baf60a8cd459205e2d9682841636dda0772582\", \"actual_sha256\": \"890d675c127830c53e7bd6457cb5051b45ffb300cd35a504260f34a661bb8425\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"a974704be99dfff877fef4bf7264e871be7a92eb\", \"cells_checked\": 4800, \"different_cells\": 1917, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 6, 117, 38], \"samples\": [{\"x\": 13, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 14, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 15, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 16, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 17, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 18, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 19, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 20, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 21, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 6, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 6, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/upstream/tool-preview-restarted.png",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/oc/tool-preview-restarted.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/tool-preview-attempt-020/tool-preview-restarted.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"6077ebc09fc44fa46c8f8da587c40e92210086bcc16485347b289ffba89f9cfb\", \"actual_sha256\": \"1faccac160ce656e35b60b70707b46317b2fb118c74ec31d5c3e46abca18d45f\", \"width\": 960, \"height\": 640, \"pixels_checked\": 614400, \"different_pixels\": 219855, \"changed_fraction_diagnostic_only\": 0.3578369140625, \"difference_bbox_inclusive\": [16, 98, 943, 623]}\n",
+    "stderr": ""
+  }
+]

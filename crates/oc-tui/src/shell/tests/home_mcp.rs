@@ -81,6 +81,15 @@ async fn home_mcp_live_counts_styles_and_breakpoints_use_the_typed_inventory() {
             if width < 44 || height < 12 || label.is_none() {
                 assert!(!row.contains("MCP"), "{width}x{height}: {row}");
                 assert!(home_mcp_rect(&state, Rect::new(0, 0, width, height)).is_none());
+                if width == 43 {
+                    let rows = screen(&state, width, height);
+                    assert_eq!(
+                        rows.iter().position(|row| row.contains("█▀▀█ █▀▀█")),
+                        Some(6),
+                        "An unmounted footer must not reserve inventory space"
+                    );
+                    assert!(rows[16].contains("Ask anything"));
+                }
                 continue;
             }
             let text = format!(

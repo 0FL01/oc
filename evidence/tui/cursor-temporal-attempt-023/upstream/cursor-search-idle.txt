@@ -1,0 +1,40 @@
+   VIS16 tool preview fixture    +                                                                                      
+  ┃                                                                                                                     
+                                                                                                                        
+     ✓ vis16_output [index=1, query=native needle]                                                                      
+       index: 1                                                                                                         
+       query: native needle                                                                                             
+       nested: {                                                                                                        
+                 "value": "available parameter"                                                                         
+               }                                                                                                        
+       output: VIS-MCP-FIRST-BEGIN                                                                                      
+               [Part preview t                                                                                          
+               [output preview    Commands                                         esc                                  
+               [truncated]                                                                                              
+               VIS-MCP-FIRST-L    Search                                                                                
+               VIS-MCP-FIRST-L                                                                                          
+               VIS-MCP-FIRST-L    Suggested                                                                             
+               VIS-MCP-FIRST-L    Switch session                              ctrl+x l                                  
+               VIS-MCP-FIRST-L    New session                                 ctrl+x n                                  
+               VIS-MCP-FIRST-L    Switch model                                ctrl+x m                                  
+               VIS-MCP-FIRST-L    Connect an integration                                                                
+               VIS-MCP-FIRST-L    Open settings                                                                         
+               ... 113 lines t    Share session                                           de-tmp/opencode/t44-          
+               reference/runs/                                                            -output/                      
+               tool_119269c130    Prompt                                                                                
+                                  Stash prompt                                                                          
+     ✓ vis16_output [index=2,     Queue prompt                            ctrl+x enter                                  
+                                  Skills                                                                                
+  ┃                                                                                                                     
+  ┃  $ printf 'VIS-SHELL-LINE-    Session                                                 1 22 23 24 25 26 27 28 29 30  
+  ┃   31 32 33 34 35 36 37 38                                                             59 60 61 62 63 64 65 …        
+  ┃                                                                                                                     
+  ┃  (9 earlier lines)                                                                                                  
+                                                                                                      Jump to latest ↓  
+  ┃                                                                                                                     
+  ┃  preserved draft Ω                                                                                                  
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-023/project    1.3K (1%)  ctrl+p commands  
+                                                                                                                        
