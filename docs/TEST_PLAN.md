@@ -45,6 +45,42 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
+## Customize-opencode — T58/SKILL01 (approved 2026-10-08; pending)
+
+Contract: [T58/R1–R3](goals/2026-10-08-customize-opencode-skill.md). SKILL01 owns the
+named bundled delivery, not the generic skill infrastructure or T44 presentation.
+
+- `defs/builtin_tests.rs`: call real `register_builtins`, verify metadata/snapshot
+  acceptance and one order entry; builtin→global→project winner/provenance, malformed
+  collision retains last valid entry plus diagnostic, `autoinvoke:false` filters only
+  preview. At count cap256 replacement succeeds; new257th ID still fails. Byte caps intact.
+- Existing `configured_workspace` Cargo target/Fixture, themed child module: no runtime
+  skill files/checkout, first captured request has metadata and no body-only content;
+  explicit `skill({"id":"customize-opencode"})` produces matching full body including
+  its end under default51 200-byte/2000-line output limits. User limits are not bypassed.
+- Per-ID Deny removes metadata and rejects a forced call without body. Ask uses a fresh
+  store/no saved grants/no `--auto-once`: headless ends with `approval_required` before
+  execution intent, no next main request/body; count ancillary title separately.
+- Reuse existing PATH traps and compare input config bytes/absence of newly created
+  config/skill files. Reuse pinned-generation mutation and TOOL11/CFG07/UI06/E2E05/AUD17/
+  root-child policy/autoinvoke regressions; do not duplicate whole negative matrices.
+- Review manual/short examples against working native consumers; pending/parser-only/
+  upstream claims are not support. Check concise AGENTS/CONFIG links. No new harness,
+  Cargo target, live/paid/provider-quality or paired-visual campaign.
+
+Planning gates: `python3 scripts/progress.py reindex`, `python3 scripts/progress.py check`,
+`python3 scripts/check_docs.py` and existing Python docs/journal regressions.
+Implementation targets:
+
+```sh
+cargo test -p oc-adapters builtin_tests --locked
+cargo test -p oc --test configured_workspace --locked
+cargo test -p oc-adapters --locked
+```
+
+Final fmt/clippy/workspace tests/locked build/help above remain required. Factual T58
+report distinguishes these future gates from plan validation: SKILL01 is NOT_RUN here.
+
 ## Canonical effort ordering qualification — T47/VAR01 + T44 (approved 2026-09-27; pending)
 
 VAR01 belongs only to T47; DISC06/T14 and UI02/T39 retain ownership. T44 VIS09/VIS29

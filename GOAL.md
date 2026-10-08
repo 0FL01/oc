@@ -871,6 +871,17 @@ permission/question priority и прочие VIS39/VIS43 требования с
 baseline/evidence и task/gate ownership неизменны; active T57 и PAUSED T44 сохраняются.
 Публикация плана не запускает реализацию, не меняет progress и не даёт runtime/visual PASS.
 
+## Owner amendment (2026-10-08 — встроенный конфигурационный ранбук)
+
+Владелец утвердил [T58 / customize-opencode](docs/goals/2026-10-08-customize-opencode-skill.md):
+один встроенный informational skill-мануал для настройки native `oc` агентом,
+без обязательного checkout/network fetch, через existing metadata-only catalog,
+native `skill`, permissions, snapshots и обычные пользовательские overrides.
+Это новая поставка, не дефект закрытого T45/R10 и не разрешение JS/executable skills/
+config-authoring UI. Единственный owner SKILL01 — T58; final T30 зависит от T58.
+План зарегистрирован todo/implementation NOT_STARTED; active T44 и прежние статусы
+сохраняются, runtime/visual PASS не заявляется. Метод — TEST_PLAN, порядок — M8.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

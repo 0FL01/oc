@@ -53,7 +53,7 @@ and every remaining frozen R1–R6/VIS01–VIS45 outcome. Do not finish T44 or r
 acceptance on this functional slice; final R6/V09 follows complete closure.
 
 
-Ready (до 5): нет
+Ready (до 5): T58
 Blocked: T27, T45, T57
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

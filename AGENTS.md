@@ -8,6 +8,7 @@
 - Работай над одним task из `planning/tasks.json`. Если active task нет, перед изменениями запусти `python3 scripts/progress.py start Txx`. Читай только его spec и нужные контракты.
 - `crates/oc-core` — runtime и порты без UI; `crates/oc-adapters` — provider, storage и tools; `crates/oc-tui` — интерфейс; `crates/oc` — бинарник и сборка приложения.
 - Workflow и разрешения: `docs/AGENT_RUNBOOK.md`; критерии проверки: `docs/TEST_PLAN.md`. Старые journal leaves, архивы и upstream открывай только по конкретному вопросу.
+- `customize-opencode` — [план поставки нативного конфигурационного ранбука](docs/goals/2026-10-08-customize-opencode-skill.md); пока не реализован.
 
 ## Границы продукта
 

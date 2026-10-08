@@ -508,7 +508,8 @@
         "T53",
         "T54",
         "T56",
-        "T57"
+        "T57",
+        "T58"
       ],
       "tests": [
         "OPS02",
@@ -886,6 +887,16 @@
       "work": "T57 BUILD_READY_LIVE_BLOCKED, not DONE; frozen R1-R6/AUTH01-AUTH06/restricted-error amendment unchanged. Thirteen implementation/test slices pushed through d43d084fa. R1-R5 verified offline: shared SQLite metadata/refresh/CAS/attempt/Core, captured account-model-actor/public catalog/native WS-HTTP/runtime effects and functional shared CLI/TUI. Current normal debug/release controls, workspace1711/0/11 across46 results, default/feature strict Clippy/fmt/build/help green; fixture release fake approval/native requests/own-env-config13WS/6HTTP explicitly not live. No independent local blocker remains. R6 required real browser AND device operator confirmation plus explicitly permitted ordinary OpenAI test input/key were not supplied; real login/request/reopen NOT_RUN. Same t57-openai-20261006 durable zero NOT_STARTED preflight is not a qualified guard; on authorized resume establish <=24 all-lane physical counting/<=2048 before first dial, token-control separate/10min attempt, never reset unknown effects. No credential search/import, Go/OpenProxy substitute or paid fallback. T44/VIS45 PAUSED, T53/T56/other history ownership unchanged; no finish, full visual parity or overall READY.",
       "evidence": "evidence/T57/report.md",
       "spec": "docs/goals/2026-10-06-codex-oauth-and-openai-key.md"
+    },
+    {
+      "id": "T58",
+      "phase": "M8",
+      "title": "Встроенный customize-opencode: конфигурационный ранбук native oc",
+      "depends_on": ["T13"],
+      "tests": ["A03", "A05", "A08", "A13", "SKILL01"],
+      "work": "Owner-approved 2026-10-08 additive delivery: one bundled offline native config manual, narrow metadata and ordinary skill registration/snapshot/permissions/user overrides. Existing defs registration and configured_workspace fake-provider binary fixture suffice; only adjacent production fix is replacement-safe skill count guard without raising caps. Preserve malformed-override diagnostics/last valid winner, autoinvoke filtering, Deny and headless Ask refusal. Native recommendations follow working consumers, not upstream schema or Proposed examples; concise AGENTS link and touched CONFIG corrections, no generic docs audit. Frozen R1-R3 and method in spec/TEST_PLAN, SKILL01 only T58; TOOL11/CFG07/UI06/E2E05/AUD17 owners unchanged. Plan-only registration todo/implementation NOT_STARTED; active T44 and historical states/leaves intact, no new loader/registry/schema/JS host/paid campaign or runtime PASS.",
+      "evidence": "evidence/T58/report.md",
+      "spec": "docs/goals/2026-10-08-customize-opencode-skill.md"
     }
   ]
 }
