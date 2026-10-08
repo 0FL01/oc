@@ -111,6 +111,40 @@ pub struct FreshSelection {
     pub variant: Option<String>,
 }
 
+/// Captured placement/selection for an explicit user command, not a model turn.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UserShellSelection {
+    Existing(Option<crate::queries::ModelCommit>),
+    Fresh(Option<FreshSelection>),
+}
+
+/// The owner admits history and command intent before launching its supervised
+/// job. Dropping a receipt does not replay or relinquish the owned operation.
+pub struct UserShellReceipt {
+    result: oneshot::Receiver<Result<String, CoreError>>,
+    cancel: Arc<AtomicBool>,
+}
+
+impl UserShellReceipt {
+    pub fn try_result(&mut self) -> Option<Result<String, CoreError>> {
+        match self.result.try_recv() {
+            Ok(result) => Some(result),
+            Err(oneshot::error::TryRecvError::Empty) => None,
+            Err(oneshot::error::TryRecvError::Closed) => Some(Err(CoreError::Shutdown)),
+        }
+    }
+
+    /// Cancel pending admission without blocking the frontend/approval owner.
+    /// After acceptance, use CoreApp::cancel_shell with the returned operation.
+    pub fn cancel(&self) {
+        self.cancel.store(true, Ordering::Release);
+    }
+
+    pub async fn wait(&mut self) -> Result<String, CoreError> {
+        (&mut self.result).await.map_err(|_| CoreError::Shutdown)?
+    }
+}
+
 /// One enqueued submission's acceptance receipt. The application owns the
 /// operation even if this receipt is dropped; cancel/shutdown it through CoreApp.
 pub struct SubmissionReceipt(oneshot::Receiver<Result<WorkerTurnId, CoreError>>);
@@ -396,6 +430,13 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    UserShell {
+        session: SessionId,
+        command: String,
+        selection: UserShellSelection,
+        cancel: Arc<AtomicBool>,
+        ack: oneshot::Sender<Result<String, CoreError>>,
+    },
     PromptHistory {
         append: Option<String>,
         ack: oneshot::Sender<Result<Vec<String>, CoreError>>,
@@ -1243,6 +1284,35 @@ impl CoreApp {
         text: String,
     ) -> Result<SubmissionReceipt, CoreError> {
         self.request_submit_selected(session, text, None)
+    }
+
+    /// Queue an explicit command through the same bounded application owner.
+    /// No model request, interactive-terminal byte inference, or optimistic
+    /// input-history write occurs at this boundary.
+    pub fn request_user_shell(
+        &self,
+        session: SessionId,
+        command: String,
+        selection: UserShellSelection,
+    ) -> Result<UserShellReceipt, CoreError> {
+        if command.len() > MAX_INPUT_BYTES {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, result) = oneshot::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        self.inbox
+            .try_send(InboxMsg::UserShell {
+                session,
+                command,
+                selection,
+                cancel: cancel.clone(),
+                ack,
+            })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        Ok(UserShellReceipt { result, cancel })
     }
 
     /// Capture selection now; the single inbox owner commits it at preparation.
@@ -2268,6 +2338,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::UserShell { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::PromptHistory { ack, .. } => {
             let _ = ack.send(Err(error()));
         }

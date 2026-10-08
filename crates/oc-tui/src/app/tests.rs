@@ -258,6 +258,7 @@ mod select;
 mod services;
 mod tool_output;
 mod transcript;
+mod user_shell;
 
 #[tokio::test]
 async fn r6_explicit_profile_color_wins_over_categorical_slot() {

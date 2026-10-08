@@ -6,6 +6,7 @@ import sqlite3
 import threading
 import prompt_caret_fixture
 import prompt_history_fixture
+import user_shell_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -50,8 +51,10 @@ def configure(spec, home, project, config, cli):
                 'dialog.select.page_up':'alt+u','dialog.select.page_down':'alt+d',
                 'dialog.select.home':'alt+h','dialog.select.end':'alt+e',
                 'dialog.select.submit':'f4','dialog.mcp.toggle':'f6,<leader>t'}
-    if spec.get('prompt_caret') or spec.get('prompt_history'):
+    if spec.get('prompt_caret') or spec.get('prompt_history') or spec.get('user_shell'):
         config['mcp'] = {'servers':{}} if spec['origin'] == 'upstream' else {}
+    if spec.get('user_shell'):
+        user_shell_fixture.configure(spec, home, project, config)
     if spec.get('prompt_history'):
         (project / 'note.txt').write_text('HISTORY_FILE_CURRENT_CANARY')
         if spec['prompt_history'] == 'remap':
@@ -84,11 +87,13 @@ def snapshot(home, project, spec):
             if spec.get('prompt_caret') and spec['origin'] == 'oc' and 'messages' in tables:
                 data['prompt_user_messages'] = [dict(r) for r in connection.execute(
                     "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY seq LIMIT 2")]
-            if spec.get('prompt_history') and spec['origin'] == 'oc' and 'messages' in tables:
+            if (spec.get('prompt_history') or spec.get('user_shell')) and spec['origin'] == 'oc' and 'messages' in tables:
                 data['prompt_user_messages'] = [dict(r) for r in connection.execute(
                     "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY rowid LIMIT 8")]
                 row = connection.execute("SELECT CASE WHEN length(CAST(value AS BLOB))<=16384 THEN value END FROM prefs WHERE key='tui.prompt_history.v1'").fetchone()
                 data['prompt_input_history'] = json.loads(row[0]) if row and row[0] else []
+            if spec.get('user_shell') and spec['origin'] == 'oc' and 'turns' in tables:
+                data['model_turns'] = connection.execute('SELECT COUNT(*) FROM turns').fetchone()[0]
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
@@ -105,6 +110,7 @@ def snapshot(home, project, spec):
         'bytes':len(effect_bytes), 'lines':len(effect_bytes.splitlines()),
         'sha256':hashlib.sha256(effect_bytes).hexdigest()}
     return {'observations':observations, 'artifacts':artifacts, 'shell_effect':shell_effect,
+            **({'user_shell_boundary':user_shell_fixture.boundary(project, spec)} if spec.get('user_shell') else {}),
             'mcp_lifecycle':[json.loads(line) for line in lifecycle.read_text().splitlines()] if lifecycle.exists() else [],
             'mcp_calls':[json.loads(line) for line in peer.read_text().splitlines()] if peer.exists() else []}
 

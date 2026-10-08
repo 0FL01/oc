@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -42,6 +42,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(userShellProbe) {
+      result.differences=['Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed.'];
+      result.user_shell=await userShellProbe({origin,send,shot,waitFor,frame,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(historyProbe) {
       result.differences=['Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked.'];
       result.prompt_history=await historyProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,relaunch});

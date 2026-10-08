@@ -7,8 +7,10 @@ normal/root, local slash and retained-clear admission paths. Home, different
 sessions and restart use one application/Db list, not conversation-window rows.
 Newest50, exact consecutive deduplication, legacy filtering and effective history
 bindings are implemented. Whole VIS12/R1–R6/VIS01–VIS45/T44 remains ACTIVE/NOT_PASS.
-The absent structured user Shell composer/admission boundary remains the next
-mandatory dependency: raw PTY bytes and model shell tools are not user commands.
+At this historical slice, structured user Shell was the next mandatory dependency.
+It is now independently qualified in [user-shell-admission.md](user-shell-admission.md):
+actual `!` commands, atomic pre-effect history/intent, Ask/refusal and restart without
+replay. Raw PTY bytes and model shell tools still are not user commands.
 Full mode/files/agents/pasted-part restoration and Mini are outside this narrow
 history slice under the frozen supplement, not newly claimed features.
 
@@ -174,7 +176,8 @@ fixed the probe. Temporal032 had sparse502.5/450.1ms reference raster gaps and
 033 independently qualified unchanged source and unchanged criteria. No threshold,
 CSS phase, parser, clock, frame, model ID or donor binary was rewritten for green.
 
-Continue structured user Shell admission/history, then every remaining frozen
+Structured user Shell admission/history is now functionally qualified separately;
+continue every remaining frozen
 prompt/pacing/scroll/profile/model/tabs/session/Revert/compaction/files/approval/
 question/DCP/child/Shell/Terminals/MCP/retry/auth outcome and final current R6/V09.
 AUTH06 deferred; original24/24 and Go13/24 ledgers remain unchanged. No whole task

@@ -78,9 +78,12 @@ impl ScriptDriver {
                             .into_iter()
                             .filter(|r| {
                                 state
-                                    .session
-                                    .as_ref()
+                                    .user_shell_admission_session()
                                     .is_some_and(|s| s.0 == r.binding.session)
+                                    || state
+                                        .session
+                                        .as_ref()
+                                        .is_some_and(|s| s.0 == r.binding.session)
                             })
                             .map(|r| (r, state.parent_id.is_some()))
                             .collect();
@@ -949,6 +952,7 @@ impl TuiState {
     /// events. Failure leaves the editable draft intact. No worker is spawned.
     pub fn poll_submission(&mut self) {
         self.poll_model_commits();
+        self.poll_user_shell();
         let Some(result) = self.pending.as_mut().and_then(|p| p.receipt.try_result()) else {
             return;
         };
@@ -961,6 +965,7 @@ impl TuiState {
     /// then resolve the *same* receipt before the application shuts down.
     /// Existing-session turns already have a durable tab and need no wait.
     pub async fn reconcile_fresh_quit(&mut self) -> Result<(), CoreError> {
+        self.reconcile_user_shell_quit().await?;
         let Some(pending) = self.pending.as_mut().filter(|p| p.fresh) else {
             return Ok(());
         };

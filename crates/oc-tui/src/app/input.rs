@@ -1146,7 +1146,10 @@ impl TuiState {
 
     /// Only the focused prompt, not a dialog or a dismissed revision, owns the overlay.
     pub(crate) fn slash_options(&self) -> Option<Vec<crate::autocomplete::SlashOption>> {
-        if self.panel != TuiPanel::None || self.slash_dismissed == Some(self.input_revision) {
+        if self.prompt_shell_mode()
+            || self.panel != TuiPanel::None
+            || self.slash_dismissed == Some(self.input_revision)
+        {
             return None;
         }
         let filter = crate::autocomplete::query(&self.input, self.editor.cursor)?;
@@ -1204,7 +1207,10 @@ impl TuiState {
     /// No storage or filesystem access: the binary asks the owner after the
     /// input burst, then delivers the bounded snapshot using this exact key.
     pub fn mention_request(&self) -> Option<MentionRequest> {
-        if self.panel != TuiPanel::None || self.editor.selected().is_some() {
+        if self.prompt_shell_mode()
+            || self.panel != TuiPanel::None
+            || self.editor.selected().is_some()
+        {
             return None;
         }
         let location = self.chrome.location.as_ref()?.clone();
@@ -2634,6 +2640,36 @@ impl TuiState {
         ) {
             self.leader = None;
         }
+        if self.prompt_mouse_editable() {
+            let visual_start = self
+                .editor
+                .layout(&self.input, self.prompt_width.get().unwrap_or(usize::MAX))
+                .1
+                .1
+                == 0;
+            if matches!(action, KeyAction::Cancel) && self.cancel_pending_user_shell() {
+                return KeyOutcome::default();
+            }
+            if self.prompt_shell_mode()
+                && (matches!(action, KeyAction::Cancel)
+                    || matches!(action, KeyAction::Interrupt) && self.input.is_empty()
+                    || matches!(action, KeyAction::Backspace) && visual_start)
+            {
+                self.change_prompt_shell_mode(false);
+                return KeyOutcome::default();
+            }
+            if matches!(action, KeyAction::Char('!'))
+                && !self.prompt_shell_mode()
+                && visual_start
+                && self.slash_options().is_none()
+                && self.mention_request().is_none()
+                && self.pending.is_none()
+                && !self.user_shell_pending()
+            {
+                self.change_prompt_shell_mode(true);
+                return KeyOutcome::default();
+            }
+        }
         match action {
             KeyAction::Commands => self.run_command(CommandAction::OpenCommands),
             KeyAction::TerminalFocusLeft
@@ -2951,6 +2987,15 @@ impl TuiState {
     async fn handle_enter(&mut self) -> KeyOutcome {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
+        }
+        if self.prompt_shell_mode() {
+            return self.submit_user_shell();
+        }
+        if self.user_shell_pending() {
+            return KeyOutcome {
+                note: Some("shell admission pending; Esc to cancel".into()),
+                ..Default::default()
+            };
         }
         if self.input.trim().is_empty() {
             return match self.commit_composer_model() {

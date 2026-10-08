@@ -459,8 +459,65 @@ impl Jobs {
         foreground: bool,
         output_secrets: Vec<String>,
     ) -> Result<String, StorageError> {
-        let id = provenance.operation.clone();
         self.db.admit_shell_job_mode(&provenance, foreground)?;
+        self.launch_admitted(
+            shell,
+            env,
+            argv,
+            cwd,
+            timeout,
+            approved,
+            provenance,
+            slot,
+            foreground,
+            output_secrets,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn launch_user(
+        self: &Arc<Self>,
+        shell: Shell,
+        env: BTreeMap<String, String>,
+        argv: Vec<String>,
+        cwd: String,
+        timeout: Duration,
+        approved: Arc<PinnedCwd>,
+        admission: crate::storage::AdmittedUserShell,
+        slot: tokio::sync::OwnedSemaphorePermit,
+        output_secrets: Vec<String>,
+    ) -> Result<String, StorageError> {
+        self.launch_admitted(
+            shell,
+            env,
+            argv,
+            cwd,
+            timeout,
+            approved,
+            admission.into_provenance(),
+            slot,
+            false,
+            output_secrets,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn launch_admitted(
+        self: &Arc<Self>,
+        shell: Shell,
+        env: BTreeMap<String, String>,
+        argv: Vec<String>,
+        cwd: String,
+        timeout: Duration,
+        approved: Arc<PinnedCwd>,
+        provenance: Provenance,
+        slot: tokio::sync::OwnedSemaphorePermit,
+        foreground: bool,
+        output_secrets: Vec<String>,
+    ) -> Result<String, StorageError> {
+        let id = provenance.operation.clone();
         let cancel = Arc::new(AtomicBool::new(false));
         let owned_cancel = cancel.clone();
         let (started_tx, started_rx) = tokio::sync::oneshot::channel();

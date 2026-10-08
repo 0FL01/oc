@@ -1,6 +1,62 @@
 use super::*;
 
 #[tokio::test]
+async fn vis12_user_shell_port_bounds_queue_and_cancels_pending_admission_without_dispatch() {
+    let (app, mut inbox, _) = CoreApp::channel(1);
+    let session = SessionId::new("user-shell-port").unwrap();
+    let mut receipt = app
+        .request_user_shell(
+            session.clone(),
+            "printf 'Ω界'".into(),
+            UserShellSelection::Fresh(None),
+        )
+        .unwrap();
+    assert!(receipt.try_result().is_none());
+    assert!(matches!(
+        app.request_user_shell(
+            session.clone(),
+            "next".into(),
+            UserShellSelection::Fresh(None)
+        ),
+        Err(CoreError::QueueFull)
+    ));
+    assert!(matches!(
+        app.request_user_shell(
+            session.clone(),
+            "x".repeat(MAX_INPUT_BYTES + 1),
+            UserShellSelection::Fresh(None)
+        ),
+        Err(CoreError::InputTooLarge)
+    ));
+    receipt.cancel();
+    let InboxMsg::UserShell {
+        command,
+        selection,
+        cancel,
+        ack,
+        ..
+    } = inbox.recv().await.unwrap()
+    else {
+        panic!("one typed user-command admission, not a model submit");
+    };
+    assert_eq!(command, "printf 'Ω界'");
+    assert_eq!(selection, UserShellSelection::Fresh(None));
+    assert!(cancel.load(Ordering::Acquire));
+    ack.send(Err(CoreError::Application("cancelled".into())))
+        .unwrap();
+    assert_eq!(
+        receipt.wait().await,
+        Err(CoreError::Application("cancelled".into()))
+    );
+    assert!(inbox.try_recv().is_err());
+    drop(inbox);
+    assert!(matches!(
+        app.request_user_shell(session, "next".into(), UserShellSelection::Existing(None)),
+        Err(CoreError::Shutdown)
+    ));
+}
+
+#[tokio::test]
 async fn vis12_history_port_is_global_bounded_available_while_active_and_fails_closed() {
     let (app, mut inbox, _) = CoreApp::channel(1);
     let (ack, _) = tokio::sync::oneshot::channel();

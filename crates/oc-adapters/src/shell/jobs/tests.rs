@@ -125,6 +125,74 @@ impl Held {
 }
 
 #[tokio::test]
+async fn user_shell_consumes_committed_admission_and_reuses_supervised_job_owner() {
+    let h = Held::new();
+    let command = "printf user-output; touch user.entered; while [ ! -f user.release ]; do sleep .01; done; printf '\nfinished'; touch user.effect";
+    let shell = Shell::new(&h.project).unwrap();
+    let argv = vec!["/bin/sh".into(), "-c".into(), command.into()];
+    let pinned = shell.pin_cwd(&argv, ".").unwrap();
+    let provenance = Provenance {
+        version: 1,
+        session: "user-root".into(),
+        turn: String::new(),
+        operation: "user-command".into(),
+        location: h.project.to_string_lossy().into(),
+        generation: 17,
+        output_limits: Default::default(),
+        output_source: "defaults".into(),
+        agent: None,
+        agent_digest: None,
+        model: "captured-model".into(),
+        provider: "fixture".into(),
+        command: command.into(),
+        cwd: h.project.to_string_lossy().into(),
+        selected_shell: "/bin/sh".into(),
+    };
+    let slot = h.jobs.reserve().unwrap();
+    let admission = h.db.admit_user_shell_job(&provenance, true, None).unwrap();
+    assert_eq!(h.db.prompt_history(None).unwrap(), [command]);
+    assert!(!h.project.join("user.entered").exists());
+    let id = h
+        .jobs
+        .launch_user(
+            shell,
+            BTreeMap::new(),
+            argv,
+            ".".into(),
+            Duration::ZERO,
+            pinned,
+            admission,
+            slot,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(id, "user-command");
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !h.project.join("user.entered").exists() {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
+    let running = h.db.shell_job_identity("user-root", &id).unwrap();
+    assert!(running.turn.is_empty());
+    assert!(running.pid.is_some());
+    assert_eq!(running.model, "captured-model");
+    std::fs::write(h.project.join("user.release"), b"").unwrap();
+    h.terminal(&id, "user-root").await;
+    let outcome = h.db.shell_job_outcome("user-root", &id).unwrap();
+    assert_eq!(outcome.state, "completed");
+    assert_eq!(outcome.exit, Some(0));
+    assert!(outcome.stdout.contains("user-output"));
+    assert!(h.project.join("user.effect").exists());
+    assert_eq!(h.db.deliver_shell_notices().unwrap().len(), 1);
+    assert!(h.db.deliver_shell_notices().unwrap().is_empty());
+    assert_eq!(h.db.prompt_history(None).unwrap(), [command]);
+    h.jobs.shutdown().await.unwrap();
+}
+
+#[tokio::test]
 async fn tool13_conversion_retains_pid_admission_capture_and_final_view_after_removal() {
     let held = Held::new();
     let pid = held.launch("fg", "source", true, true).await;

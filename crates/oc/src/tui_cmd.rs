@@ -923,6 +923,11 @@ async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), St
     let attached = state.attached_session().cloned();
     for request in pending {
         let mut current = SessionId(request.binding.session.clone());
+        if state.parent_id.is_none() && state.user_shell_admission_session() == Some(&current) {
+            roots.insert(current.0.clone());
+            visible.push((request, false));
+            continue;
+        }
         let mut child = false;
         let mut belongs = false;
         let mut seen = std::collections::BTreeSet::new();
@@ -1281,6 +1286,17 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
                 apply_mcp_to_views(&mut state, &mut loop_state, snapshot);
             } else if matches!(event, CoreEvent::ProviderChanged) {
                 refresh_provider_views(app, &mut state, &mut loop_state).await;
+            } else if matches!(
+                &event,
+                CoreEvent::PermissionAsked(_)
+                    | CoreEvent::PermissionResolved { .. }
+                    | CoreEvent::QuestionAsked(_)
+                    | CoreEvent::QuestionResolved { .. }
+            ) {
+                // Fresh direct-user Shell Ask exists before a root history does.
+                // Control events must reach its receipt owner even on Home.
+                refresh_approvals(app, &mut state).await?;
+                loop_state.approvals_checked = None;
             } else if let Some(current) = state.attached_session().cloned() {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }

@@ -1021,6 +1021,21 @@ remain separate. Receipt: `evidence/tui/prompt-input-history.md`; structured use
 Shell admission/full parts/Mini and remaining VIS12/T44 outcomes are not inferred
 from this text-history proof.
 
+## VIS12 structured user-Shell follow-up
+
+The exclusive `--tool-preview true --user-shell true` episode admits80×24 or120×40.
+Use the history command above with `--user-shell true` instead of `--prompt-history`
+and a fresh immutable output. `user_shell.mjs` exercises actual `!`/Esc/exact Shell
+Enter/recall/explicit second Enter/relaunch, not model tools. Its ordinary process
+reads only owned native SQLite URI modeRO BEFORE effect, asserting committed exact
+history, started NULL-turn intent and zero model turns; each side has exactly2
+explicit effects, zero Responses/title/MCP and no restart replay. Original uses
+actual `session.shell`; no original RAW decoding. Native text-only recalled mode
+differs from original; full parts/mode/Mini are explicitly outside frozen VIS12.
+Both11-stage80/120 pairs retain ALL22 strict grid+PNG differences. Receipt:
+`evidence/tui/user-shell-admission.md`; not whole pixel/T44 PASS. Normal tool and
+temporal regressions remain independent.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

@@ -2063,3 +2063,5 @@ mod plugin_admission;
 mod prompt_history;
 #[path = "pty_t39/provider_readiness.rs"]
 mod provider_readiness;
+#[path = "pty_t39/user_shell.rs"]
+mod user_shell;

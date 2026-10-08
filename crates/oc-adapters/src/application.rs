@@ -63,6 +63,7 @@ mod selection;
 #[cfg(test)]
 mod terminal_tests;
 mod terminals;
+mod user_shell;
 pub(crate) use selection::request_choice;
 pub(crate) mod session_move;
 #[path = "application_tab_deck.rs"]
@@ -2853,6 +2854,11 @@ async fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::UserShell { ack, .. } => {
+            // Active operations keep one admission owner. Ask must be pumped
+            // by the idle worker, never awaited inside this query handler.
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::PromptHistory { append, ack } => {
             let result = if append
                 .as_ref()
@@ -4630,6 +4636,31 @@ async fn worker(
                     ack: SwitchAck::Reload(ack),
                 });
             }
+            message @ InboxMsg::UserShell { .. } => {
+                if user_shell::run(
+                    db,
+                    runtime,
+                    composition,
+                    effective,
+                    registry,
+                    sessions,
+                    home_choices,
+                    location_epoch,
+                    suggestion_queue,
+                    title_work,
+                    terminals,
+                    authentication,
+                    events,
+                    inbox,
+                    &mut pending_inputs,
+                    title_rx,
+                    message,
+                )
+                .await?
+                {
+                    break 'worker;
+                }
+            }
             message @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. }) => {
                 let (session, text, fresh, captured_selection, ack) = match message {
                     InboxMsg::Submit {
@@ -4673,70 +4704,16 @@ async fn worker(
                             }
                         }
                         let (selected, initial_selection) = match fresh {
-                            Some(Some(mut choice)) => {
-                                if let Some(binding) = &choice.binding {
-                                    let home = match home_choices.get(runtime.location()) {
-                                        Some(selected) => selected.clone(),
-                                        None => {
-                                            selection::home_current(db, composition, effective)?
-                                        }
-                                    };
-                                    if binding.location.as_deref()
-                                        != Some(composition.project.to_string_lossy().as_ref())
-                                        || binding.generation
-                                            != location_epoch.load(Ordering::SeqCst)
-                                        || composition.catalog_for(&binding.provider).is_none()
-                                        || binding.agent_id
-                                            != home
-                                                .snapshot(
-                                                    composition,
-                                                    location_epoch.load(Ordering::SeqCst),
-                                                )
-                                                .agent_id
-                                    {
-                                        return Err(app_error("stale fresh model commit scope"));
-                                    }
-                                    let visible = home.snapshot(
-                                        composition,
-                                        location_epoch.load(Ordering::SeqCst),
-                                    );
-                                    choice.agent_id = home.agent_id.clone();
-                                    if choice
-                                        .binding
-                                        .as_ref()
-                                        .is_some_and(|binding| binding.provider == visible.provider)
-                                        && choice.model_id == visible.model_id
-                                        && choice.variant == visible.variant
-                                    {
-                                        home.admit_selection(composition)?;
-                                        choice.model_id = home.model_id.clone();
-                                        choice.variant = home.variant.clone();
-                                    }
-                                }
-                                let (selected, record) =
-                                    selection::fresh(composition, effective, &session.0, choice)?;
-                                (selected, Some(record))
-                            }
-                            Some(None) => {
-                                let home = match home_choices.get(runtime.location()) {
-                                    Some(selected) => selected.clone(),
-                                    None => selection::home_current(db, composition, effective)?,
-                                };
-                                let choice = oc_core::core_app::FreshSelection {
-                                    binding: Some(oc_core::queries::SelectionBinding {
-                                        location: Some(
-                                            composition.project.to_string_lossy().into_owned(),
-                                        ),
-                                        generation: location_epoch.load(Ordering::SeqCst),
-                                        provider: home.provider_id.clone(),
-                                        agent_id: home.agent_id.clone(),
-                                    }),
-                                    agent_id: home.agent_id.clone(),
-                                    model_id: home.model_id.clone(),
-                                    variant: home.variant.clone(),
-                                };
-                                let (selected, record) =
-                                    selection::fresh(composition, effective, &session.0, choice)?;
+                            Some(choice) => {
+                                let (selected, record) = selection::fresh_captured(
+                                    db,
+                                    composition,
+                                    effective,
+                                    &session.0,
+                                    choice,
+                                    home_choices,
+                                    location_epoch.load(Ordering::SeqCst),
+                                )?;
                                 (selected, Some(record))
                             }
                             None => {
@@ -5422,3 +5399,7 @@ mod dcp_controls_tests;
 #[cfg(test)]
 #[path = "application/mcp_tests.rs"]
 mod mcp_tests;
+
+#[cfg(test)]
+#[path = "application/user_shell_tests.rs"]
+mod user_shell_tests;

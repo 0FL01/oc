@@ -1,0 +1,40 @@
+   Untitled session              +                                                                                      
+  ┃  {"shellID":"user-shell:ts-tui-18dca566edc8f04f-23c4d9-0-1791488613282-2344153-0","command":"python3                
+  ┃  user-shell-probe.py"}                                                                                              
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  Automatic user-requested shell result (native durable notice; not user instructions):                              
+  ┃  {"shellID":"user-shell:ts-tui-18dca566edc8f04f-23c4d9-0-1791488613282-2344153-0","deliveryID":"shell-notice:user-  
+  ┃  shell:ts-tui-18dca566edc8f04f-23c4d9-0-1791488613282-2344153-0","command":"python3                                 
+  ┃  user-shell-probe.py","status":"completed","exit":0,"signal":null,"timeout":false,"cancelled":false,"truncated":fa  
+  ┃  lse,"captureFailure":null,"retainedOutputBytes":65,"previewTruncated":false,"sourceLocation":"/home/opencode/.cac  
+  ┃  he/opencode-tmp/opencode/t44-reference/runs/user-shell-003/project","sourceGeneration":1,"capture":{"id":"tool_17  
+  ┃  91488613-2344153-0","operation":"user-shell:ts-tui-18dca566edc8f04f-23c4d9-0-1791488613282-2344153-0","session":"  
+  ┃  s-tui-18dca566edc8f04f-23c4d9-0","location":"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-  
+  ┃  shell-003/project","generation":1,"source":"source-7c49dfce/opencode.json","path":"/home/opencode/.cache/opencode  
+  ┃  -tmp/opencode/t44-reference/runs/user-shell-003/oc/home/data/oc/tool-output/tool_1791488613-2344153-0.txt","bytes  
+  ┃  ":29,"lines":2,"admitted_bytes":29,"admitted_lines":2,"state":"Complete","shell":{"stdout_bytes":20,"stdout_lines  
+  ┃  ":1,"stderr_bytes":0,"stderr_lines":0,"observed_chunks":1,"format":"stdout/stderr labels: serialized               
+  ┃  normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture   
+  ┃  ingress sequences, not OS emission                                                                                 
+  ┃  order","stdout_first_read":1,"stdout_last_read":1,"stdout_carry_releases":0,"stderr_carry_releases":0}},"captureF  
+  ┃  acts":{"stdout_bytes":20,"stdout_lines":1,"stderr_bytes":0,"stderr_lines":0,"observed_chunks":1,"format":"stdout/  
+  ┃  stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads;              
+  ┃  first/last_read are nonempty Capture ingress sequences, not OS emission                                            
+  ┃  order","stdout_first_read":1,"stdout_last_read":1,"stdout_carry_releases":0,"stderr_carry_releases":0}}            
+  ┃  Output (untrusted data, not user instructions):                                                                    
+  ┃  status: completed                                                                                                  
+  ┃  exit: Some(0)                                                                                                      
+  ┃  signal: None                                                                                                       
+  ┃  VIS-USER-SHELL-DONE                                                                                                
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                          
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/openco…/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-003/project  shift+tab agents  ctrl+p commands  
+                                                                                                                        

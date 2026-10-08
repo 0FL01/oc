@@ -361,6 +361,61 @@ pub(super) fn fork_choice(
 
 /// Prevalidate an explicit Home choice and encode its session preference for
 /// the same transaction that accepts the new root's first user message.
+pub(super) fn fresh_captured(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+    session: &str,
+    choice: Option<FreshSelection>,
+    home_choices: &BTreeMap<String, Effective>,
+    generation: u64,
+) -> Result<(Effective, (String, String)), CoreError> {
+    let home = || match home_choices.get(c.project.to_string_lossy().as_ref()) {
+        Some(selected) => Ok(selected.clone()),
+        None => home_current(db, c, fallback),
+    };
+    let choice = match choice {
+        Some(mut choice) => {
+            if let Some(binding) = &choice.binding {
+                let home = home()?;
+                let visible = home.snapshot(c, generation);
+                if binding.location.as_deref() != Some(c.project.to_string_lossy().as_ref())
+                    || binding.generation != generation
+                    || c.catalog_for(&binding.provider).is_none()
+                    || binding.agent_id != visible.agent_id
+                {
+                    return Err(app_error("stale fresh model commit scope"));
+                }
+                choice.agent_id = home.agent_id.clone();
+                if binding.provider == visible.provider
+                    && choice.model_id == visible.model_id
+                    && choice.variant == visible.variant
+                {
+                    home.admit_selection(c)?;
+                    choice.model_id = home.model_id;
+                    choice.variant = home.variant;
+                }
+            }
+            choice
+        }
+        None => {
+            let home = home()?;
+            FreshSelection {
+                binding: Some(oc_core::queries::SelectionBinding {
+                    location: Some(c.project.to_string_lossy().into_owned()),
+                    generation,
+                    provider: home.provider_id,
+                    agent_id: home.agent_id.clone(),
+                }),
+                agent_id: home.agent_id,
+                model_id: home.model_id,
+                variant: home.variant,
+            }
+        }
+    };
+    fresh(c, fallback, session, choice)
+}
+
 pub(super) fn fresh(
     c: &Composition,
     fallback: &Effective,

@@ -1623,6 +1623,10 @@ fn render_prompt(
     let prompt_bg = theme.decrease(theme.background_panel());
     let border_style = Style::default().fg(if state.leader_pending() {
         theme.border()
+    } else if state.prompt_shell_mode() {
+        theme
+            .color("text.action.primary.$selected")
+            .unwrap_or(theme.border_active())
     } else {
         state
             .active_agent()
@@ -1724,9 +1728,17 @@ fn render_prompt(
                     ..row(1)
                 },
             );
-            if state.home && state.input().is_empty() && visible > 0 && text_width > 0 {
+            if (state.home || state.prompt_shell_mode())
+                && state.input().is_empty()
+                && visible > 0
+                && text_width > 0
+            {
                 // `routes/home.tsx:19-23` + `component/prompt/index.tsx:1583-1595`.
-                let hint = format!("Ask anything… \"{}\"", state.home_example);
+                let hint = if state.prompt_shell_mode() {
+                    "Run a command…".into()
+                } else {
+                    format!("Ask anything… \"{}\"", state.home_example)
+                };
                 let hint = clip_placeholder(&hint, text_width as usize);
                 let hint_rect = Rect {
                     width: UnicodeWidthStr::width(hint) as u16,
@@ -1815,6 +1827,16 @@ fn metadata_line(
     width: u16,
     terminal_width: u16,
 ) -> Option<Line<'static>> {
+    if state.prompt_shell_mode() {
+        return Some(Line::from(vec![Span::styled(
+            "Shell",
+            Style::default()
+                .fg(theme
+                    .color("text.action.primary.$selected")
+                    .unwrap_or(theme.text()))
+                .add_modifier(Modifier::BOLD),
+        )]));
+    }
     let agent = layout::shows_agent_metadata(terminal_width)
         .then(|| state.active_agent())
         .flatten();

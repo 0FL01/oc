@@ -707,6 +707,7 @@ pub struct TuiState {
     /// interrupts it (pinned prompt/index.tsx:499–528).
     interrupt_armed_until: Option<Instant>,
     pending: Option<PendingSubmission>,
+    user_shell: user_shell::UserShellState,
     compress_turn: Option<WorkerTurnId>,
     request_id: u64,
     generation: u64,
@@ -911,6 +912,7 @@ impl TuiState {
             retry_due: None,
             interrupt_armed_until: None,
             pending: None,
+            user_shell: Default::default(),
             compress_turn: None,
             request_id: 0,
             generation: 0,
@@ -1116,7 +1118,7 @@ impl TuiState {
     /// Owner receipts need reconciliation until accepted, independently from
     /// streaming and animation. A settled view has no receipt polling work.
     pub fn has_pending_submission(&self) -> bool {
-        self.pending.is_some()
+        self.pending.is_some() || self.user_shell_pending()
     }
 
     /// Active view deadlines only; input/provider paints never reset these
@@ -1234,6 +1236,7 @@ impl TuiState {
     pub fn is_busy(&self) -> bool {
         self.active_turn.is_some()
             || self.pending.is_some()
+            || self.user_shell_pending()
             || self.compactions.iter().any(crate::compaction::active)
     }
 
@@ -1426,6 +1429,7 @@ mod model_selection;
 mod services;
 mod tabs;
 mod transcript;
+mod user_shell;
 
 pub use live::{PumpOutcome, ScriptDriver};
 pub(crate) use tabs::{TAB_SPINNER_FRAMES, TabCloseHold, TabPulseFrame, tab_glow_intensity};

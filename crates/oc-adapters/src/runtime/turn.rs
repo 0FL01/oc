@@ -922,7 +922,7 @@ impl<'a> Runtime<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    async fn admit_tool<'p>(
+    pub(super) async fn admit_tool<'p>(
         &self,
         session: &str,
         turn: &str,
@@ -957,7 +957,7 @@ impl<'a> Runtime<'a> {
             compression_permission.unwrap_or_else(|| policy.effect(&call.name, resource))
         };
         if resources.iter().any(|r| effect(r) == Permission::Deny) {
-            return Err(format!("denied {}", call.name).into());
+            return Err(AdmissionFailure::Denied(call.name.clone()));
         }
         let mut permitted = policy.clone();
         // Exact registered artifacts use the same Ask/Deny owner but their

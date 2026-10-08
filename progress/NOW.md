@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T16:35:28+00:00
+State updated: 2026-10-08T20:10:36+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,45 +12,40 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — shared durable prompt-input history
+# T44 — structured user-Shell admission
 
 ## Result
-Existing application/Db preferences own one newest50 input list with exact
-consecutive dedup/filtering/derived input bounds. Root accepted input records in
-the same transaction before acknowledgement/provider; resume/manual/child do not
-replay. Local slash and exact donor-retained clear record before dispatch/clear.
-Existing Editor preserves boundary-first movement, undo/edit refusal/native
-unfinished draft; admitted previous/next/legacy/leader bindings share one owner.
-Receipt: evidence/tui/prompt-input-history.md. Whole T44 remains ACTIVE/NOT_PASS;
-structured user Shell composer/admission remains mandatory and pending.
+Actual ! composer has a separate captured receipt and the existing Jobs owner.
+Policy/pinned CWD/Ask and bounded slot precede one atomic history/NULL-turn intent/
+fresh-root/selection commit, acknowledgement and supervised launch. No provider,
+fake LLM turn, optimistic history or unknown replay. Current receipt:
+evidence/tui/user-shell-admission.md. Whole frozen T44 ACTIVE/NOT_PASS.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1752/0/11 across46 results, locked+
-ordinary debug/release/help and actual release startup/discovery PASS. Storage/
-Core/UI/config owner cases and actual existing-target VIS12 PTY prove newest50/
-dedup/rollback/query errors/three accepted inputs/Home/new/restart/held busy wire.
-Extra idle/fairness/equal-view RSS/PSS/queue/cache/children/AUD32 gates PASS under
-unchanged limits. Repo Python/Node/Python/source/docs/journal checks with delivery.
-Default00380x24 both25 stages/50 strict comparisons ALL DIFFERENT; remap001120x40
-both28 stages/56 ALL DIFFERENT,4main+2title/0tools, exact native global list/RAW,
-shared restart/local slash and effective F2/F3/CtrlG p. Original nonempty scratch
-refusal/forward empty captured, not copied into native draft-loss behavior.
-Normal0294 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes.
-Temporal033 six states≥3cycles/zero phantom/no replay;144 opaque PNGs audited,
-68 matched pairs136 strict comparisons ALL DIFFERENT. Failed032 remains immutable.
+Current fmt/strict locked workspace Clippy,1761/0/11 across46 results, locked+
+ordinary debug/locked release/help and actual release startup/discovery PASS.
+Real Core/application/Jobs/storage/UI and two existing-target actual PTY cases
+prove Allow/Ask/Reject/Deny/cancel/stale scope/history fault/zero Responses-title-
+extra-discovery/fresh promotion/no replay/terminal restore. Current idle/fairness/
+equal-view retention/queue/cache/children/AUD32 PASS under unchanged bounds.
+Paired UserShell00280x24/003120x40 both11 stages/22 full comparisons ALL DIFFERENT:
+2explicit effects/0Responses-title-MCP, native pre-effect committed history/NULL
+turns/2distinct operations/restart no replay. Normal regression27 stages6requests/
+4effects/3MCP:4EQUAL/50DIFFERENT+4native-only. Default temporal6owners each side,
+zero cycles/phantom/replay;144opaque PNGs audited,72matched pairs/160DIFFERENT.
+Repo Python47, Node/Python syntax/source/diff checks PASS; docs/journal on delivery.
 
 ## Risks
-Full styled-cell/PNG parity is NOT_PASS. Original RAW is not decoded; actual wire/
-frames are independent proof. Structured Shell submit and full parts/mode/Mini are
-not inferred from terminal bytes or model tools. No schema/store/RAW cache/API
-selection change or raised threshold; .opencode untouched, AUTH06/ledgers unchanged.
-Manual test channels now ACK exact accepted history while retaining original
-control assertions; transcript wheel replaces obsolete history-owned Up fixture.
+Full styled-cell/PNG parity NOT_PASS. Original RAW not decoded. Full parts/mode/
+Mini history explicitly excluded by frozen VIS12 (2235–2238), not a new dependency;
+actual original recalled Shell mode/native text-only difference disclosed. No
+schema/store/timer/RAW cache/new selection API/raised threshold, .opencode/env/
+GOAL/acceptance/Cargo.lock changes; external T58 docs commit preserved. AUTH06 and
+original24/24/Go13/24 ledgers unchanged. Failed capture001 remains immutable.
 
 ## Next
-Commit/push reviewed source/evidence, then structured user Shell composer/admission
-and every remaining frozen R1–R6/VIS01–VIS45 outcome. Do not finish T44 or reset
-acceptance on this functional slice; final R6/V09 follows complete closure.
+Reviewed source/evidence commit/push, then every remaining frozen R1–R6/VIS01–45
+outcome and final current R6/V09. Do not finish/reset acceptance on this slice.
 
 
 Ready (до 5): T58

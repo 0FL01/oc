@@ -55,6 +55,7 @@ pub(crate) mod tool_output;
 #[path = "storage_turn_history.rs"]
 mod turn_history;
 pub(crate) use session_move::MoveRecord;
+pub(crate) use shell_jobs::AdmittedUserShell;
 
 /// Bounded page projection retaining the exact persisted message identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -689,6 +690,40 @@ impl Db {
         reminder: Option<&str>,
         history_input: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
+        let marker = Self::fresh_root_marker(id, location, initial_selection)?;
+        let mut conn = self.conn.lock().expect("db mutex");
+        let tx = conn.transaction()?;
+        Self::check_fresh_root_deck(&tx, location)?;
+        Self::insert_root_session(&tx, id)?;
+        Self::insert_location_binding(&tx, id, location)?;
+        let accepted = Self::insert_accepted_turn(
+            &tx,
+            turn,
+            id,
+            prompt,
+            user_text,
+            model,
+            reminder,
+            history_input,
+        )?;
+        if let Some((key, value)) = initial_selection {
+            Self::upsert_pref(&tx, key, value)?;
+        }
+        tx.execute(
+            "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
+            params![marker, TAB_ADOPTION_VALUE, now_rfc3339()],
+        )?;
+        tx.commit()?;
+        Ok(accepted)
+    }
+
+    // Normal prompts and explicit user Shell admission create the same bounded
+    // root/deck owner; neither may orphan a root when its admission rolls back.
+    fn fresh_root_marker(
+        id: &str,
+        location: &str,
+        initial_selection: Option<(&str, &str)>,
+    ) -> Result<String, StorageError> {
         if !valid_tab_id(id) || tab_adoption_scope(location).len() > MAX_TAB_ADOPTION_KEY_BYTES {
             return Err(invalid_tab_adoption());
         }
@@ -711,43 +746,24 @@ impl Db {
                 )));
             }
         }
-        let mut conn = self.conn.lock().expect("db mutex");
-        let tx = conn.transaction()?;
+        Ok(marker)
+    }
+
+    fn check_fresh_root_deck(conn: &Connection, location: &str) -> Result<(), StorageError> {
         // Admission and the root write must see the same scoped deck and
         // marker set. Reject before any root/turn/event insert.
         let stored =
-            match Self::get_pref_bounded_in(&tx, &tab_deck_key(location), MAX_TAB_DECK_BYTES)? {
+            match Self::get_pref_bounded_in(conn, &tab_deck_key(location), MAX_TAB_DECK_BYTES)? {
                 BoundedPref::Missing => parse_stored_deck(None)?,
                 BoundedPref::TooLarge => return Err(invalid_stored_tab_deck()),
                 BoundedPref::Value(raw) => parse_stored_deck(Some(&raw))?,
             };
         let mut occupied: HashSet<String> = stored.sessions.into_iter().collect();
-        occupied.extend(Self::tab_adoptions_in(&tx, location)?);
+        occupied.extend(Self::tab_adoptions_in(conn, location)?);
         if occupied.len() >= MAX_TABS {
             return Err(invalid_stored_tab_deck());
         }
-        Self::insert_root_session(&tx, id)?;
-        Self::insert_location_binding(&tx, id, location)?;
-        let accepted = Self::insert_accepted_turn(
-            &tx,
-            turn,
-            id,
-            prompt,
-            user_text,
-            model,
-            reminder,
-            history_input,
-        )?;
-        if let Some((key, value)) = initial_selection {
-            Self::upsert_pref(&tx, key, value)?;
-        }
-        // The marker is inserted last; failures roll back the entire turn.
-        tx.execute(
-            "INSERT INTO prefs(key, value, updated_at) VALUES (?1, ?2, ?3)",
-            params![marker, TAB_ADOPTION_VALUE, now_rfc3339()],
-        )?;
-        tx.commit()?;
-        Ok(accepted)
+        Ok(())
     }
 
     fn create_root_session(

@@ -1,0 +1,24 @@
+   Untitled session              +                                              
+  ┃  order","stdout_first_read":1,"stdout_last_read":1,"stdout_carry_releases"  
+  ┃  :0,"stderr_carry_releases":0}},"captureFacts":{"stdout_bytes":20,"stdout_  
+  ┃  lines":1,"stderr_bytes":0,"stderr_lines":0,"observed_chunks":1,"format":"  
+  ┃  stdout/stderr labels: serialized normalized/redacted publication; carry    
+  ┃  can defer text past other raw reads; first/last_read are nonempty Capture  
+  ┃  ingress sequences, not OS emission                                         
+  ┃  order","stdout_first_read":1,"stdout_last_read":1,"stdout_carry_releases"  
+  ┃  :0,"stderr_carry_releases":0}}                                             
+  ┃  Output (untrusted data, not user instructions):                            
+  ┃  status: completed                                                          
+  ┃  exit: Some(0)                                                              
+  ┃  signal: None                                                               
+  ┃  VIS-USER-SHELL-DONE                                                        
+  ┃                                                                             
+  ┃                                                                             
+                                                                                
+  ┃                                                                             
+  ┃  python3 user-shell-probe.py                                                
+  ┃                                                                             
+  ┃  Shell                                                                      
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  /…/t44-refer…/runs/user-shell-002/project  shift+tab agents  ctrl+p commands  
+                                                                                

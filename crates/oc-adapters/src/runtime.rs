@@ -268,6 +268,7 @@ struct InvocationPermit {
 
 enum AdmissionFailure {
     Required,
+    Denied(String),
     Rejected(Option<String>),
     Cancelled,
     Invalid(String),
@@ -286,6 +287,7 @@ impl std::fmt::Display for AdmissionFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Required => write!(f, "approval required: no consumer"),
+            Self::Denied(tool) => write!(f, "denied {tool}"),
             Self::Rejected(_) => write!(f, "approval rejected"),
             Self::Cancelled => write!(f, "approval cancelled"),
             Self::Invalid(value) => f.write_str(value),
@@ -2387,6 +2389,8 @@ mod context;
 mod instructions;
 mod mcp;
 mod turn;
+mod user_shell;
+pub(crate) use user_shell::UserShellParams;
 
 use context::{active_summary_tokens, dcp_config_input, dcp_continuation};
 pub(crate) use context::{
