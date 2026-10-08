@@ -7,6 +7,97 @@ fn model(id: &str) -> oc_core::queries::ModelRef {
         variant: None,
     }
 }
+
+#[test]
+fn direct_user_shell_is_not_an_undo_prompt_and_whole_tail_redo_preserves_raw_and_job() {
+    for explicit in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let db = Db::open(root.path()).unwrap();
+        let first = db
+            .create_bound_session_and_accept_turn_with_reminder(
+                "s",
+                "/project",
+                "one",
+                "one",
+                "one",
+                None,
+                &model("fixture"),
+                None,
+                None,
+            )
+            .unwrap()
+            .user_message;
+        db.commit_turn("one", "completed", None, Some("answer one"))
+            .unwrap();
+        let second = turn(&db, "two", "two", "fixture");
+        let p = crate::shell::jobs::Provenance {
+            version: 1,
+            session: "s".into(),
+            turn: String::new(),
+            operation: "owned-shell".into(),
+            location: "/project".into(),
+            generation: 1,
+            output_limits: Default::default(),
+            output_source: "defaults".into(),
+            agent: None,
+            agent_digest: None,
+            model: "fixture".into(),
+            provider: "fixture".into(),
+            command: "printf data".into(),
+            cwd: "/project".into(),
+            selected_shell: "/bin/sh".into(),
+        };
+        drop(db.admit_user_shell_job(&p, false, None).unwrap());
+        let mut outcome = crate::shell::jobs::Outcome::unknown("fixture outcome");
+        outcome.state = "completed".into();
+        outcome.exit = Some(0);
+        outcome.stdout = "process output".into();
+        db.finish_shell_job(&p.operation, &outcome).unwrap();
+        let notice = db.deliver_shell_notices().unwrap().remove(0);
+        let raw = db.read_history_full("s").unwrap();
+        let projected = db
+            .user_shell_result("s", &oc_core::session::MessageId(notice.message_id.clone()))
+            .unwrap()
+            .unwrap();
+        let action = if explicit {
+            ConversationAction::Revert {
+                message: oc_core::session::MessageId(first),
+            }
+        } else {
+            ConversationAction::Undo
+        };
+        let undone = db.change_conversation("s", action).unwrap();
+        assert_eq!(
+            undone.draft.as_deref(),
+            Some(if explicit { "one" } else { "two" })
+        );
+        assert!(undone.can_redo);
+        assert_eq!(
+            undone.reverted.as_ref().unwrap().user_messages,
+            if explicit { 2 } else { 1 }
+        );
+        if !explicit {
+            assert_eq!(undone.reverted.unwrap().message.0, second);
+        }
+        assert_eq!(db.read_history_full("s").unwrap(), raw);
+        assert!(db.deliver_shell_notices().unwrap().is_empty());
+        drop(db);
+        let db = Db::open(root.path()).unwrap();
+        let redo = db
+            .change_conversation("s", ConversationAction::Redo)
+            .unwrap();
+        assert!(!redo.can_redo && redo.reverted.is_none());
+        assert_eq!(db.conversation_history_full("s").unwrap(), raw);
+        assert_eq!(
+            db.user_shell_result("s", &oc_core::session::MessageId(notice.message_id))
+                .unwrap()
+                .unwrap(),
+            projected
+        );
+        assert_eq!(db.shell_job_phase("s", "owned-shell").unwrap(), "terminal");
+        assert!(db.deliver_shell_notices().unwrap().is_empty());
+    }
+}
 fn turn(db: &Db, id: &str, text: &str, selected: &str) -> String {
     let user = db
         .accept_turn(id, "s", text, text, &model(selected))
@@ -15,6 +106,153 @@ fn turn(db: &Db, id: &str, text: &str, selected: &str) -> String {
     db.commit_turn(id, "completed", None, Some(&format!("answer {text}")))
         .unwrap();
     user
+}
+
+#[test]
+fn direct_user_shell_admission_after_undo_or_revert_atomically_opens_the_new_branch() {
+    for revert in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let db = Db::open(root.path()).unwrap();
+        let first = db
+            .create_bound_session_and_accept_turn_with_reminder(
+                "s",
+                "/project",
+                "one",
+                "one",
+                "one",
+                None,
+                &model("fixture"),
+                None,
+                None,
+            )
+            .unwrap()
+            .user_message;
+        db.commit_turn("one", "completed", None, Some("answer one"))
+            .unwrap();
+        let second = turn(&db, "two", "two", "fixture");
+        let raw = db.read_history_full("s").unwrap();
+        let staged = db
+            .change_conversation(
+                "s",
+                if revert {
+                    ConversationAction::Revert {
+                        message: oc_core::session::MessageId(first),
+                    }
+                } else {
+                    ConversationAction::Undo
+                },
+            )
+            .unwrap();
+        assert!(staged.can_redo);
+        let visible = db.conversation_history_full("s").unwrap();
+        let p = crate::shell::jobs::Provenance {
+            version: 1,
+            session: "s".into(),
+            turn: String::new(),
+            operation: "new-branch-shell".into(),
+            location: "/project".into(),
+            generation: 1,
+            output_limits: Default::default(),
+            output_source: "defaults".into(),
+            agent: None,
+            agent_digest: None,
+            model: "fixture".into(),
+            provider: "fixture".into(),
+            command: "printf new-branch".into(),
+            cwd: "/project".into(),
+            selected_shell: "/bin/sh".into(),
+        };
+        db.conn.lock().unwrap().execute_batch("CREATE TRIGGER fail_shell_branch BEFORE INSERT ON prefs WHEN NEW.key='tui.prompt_history.v1' BEGIN SELECT RAISE(ABORT,'fixture'); END;").unwrap();
+        assert!(db.admit_user_shell_job(&p, false, None).is_err());
+        assert_eq!(db.conversation_history_full("s").unwrap(), visible);
+        assert_eq!(db.read_history_full("s").unwrap(), raw);
+        assert_eq!(db.reverted_conversation("s").unwrap(), staged.reverted);
+        let redo: bool = db
+            .conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM conversation_redo WHERE session_id='s')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            redo,
+            "failed admission rolls back the branch transition too"
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER fail_shell_branch")
+            .unwrap();
+        drop(db.admit_user_shell_job(&p, false, None).unwrap());
+        assert!(db.reverted_conversation("s").unwrap().is_none());
+        assert!(
+            db.change_conversation("s", ConversationAction::Redo)
+                .is_err()
+        );
+        let input = db.read_history_page_typed("s", 1, None).unwrap().remove(0);
+        assert!(db.user_shell_result("s", &input.id).unwrap().unwrap().input);
+        let mut outcome = crate::shell::jobs::Outcome::unknown("fixture outcome");
+        outcome.state = "completed".into();
+        outcome.exit = Some(0);
+        outcome.stdout = "new branch output".into();
+        db.finish_shell_job(&p.operation, &outcome).unwrap();
+        let notice = db.deliver_shell_notices().unwrap().remove(0);
+        assert!(notice.user_requested);
+        let result_id = oc_core::session::MessageId(notice.message_id);
+        assert!(
+            db.read_history_message_typed("s", &result_id)
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            db.read_history_message_typed("s", &input.id)
+                .unwrap()
+                .is_some()
+        );
+        assert!(
+            db.read_history_message_typed("s", &oc_core::session::MessageId(second))
+                .unwrap()
+                .is_none()
+        );
+        let raw_after = db.read_history_full("s").unwrap();
+        assert_eq!(
+            &raw_after[..raw.len()],
+            raw.as_slice(),
+            "old RAW is unchanged"
+        );
+        assert_eq!(raw_after.len(), raw.len() + 2);
+        let (turns, points): (i64, i64) = db.conn.lock().unwrap().query_row(
+            "SELECT (SELECT COUNT(*) FROM turns WHERE session_id='s'),(SELECT COUNT(*) FROM conversation_points WHERE session_id='s')",
+            [], |row| Ok((row.get(0)?, row.get(1)?)),
+        ).unwrap();
+        assert_eq!(
+            (turns, points),
+            (2, 2),
+            "Shell creates no LLM turn or context point"
+        );
+        drop(db);
+        let db = Db::open(root.path()).unwrap();
+        assert!(
+            db.read_history_message_typed("s", &result_id)
+                .unwrap()
+                .is_some()
+        );
+        assert_eq!(
+            db.user_shell_result("s", &result_id)
+                .unwrap()
+                .unwrap()
+                .output
+                .shell
+                .unwrap()
+                .stdout,
+            "new branch output"
+        );
+        assert_eq!(db.shell_job_phase("s", &p.operation).unwrap(), "terminal");
+        assert!(db.deliver_shell_notices().unwrap().is_empty());
+    }
 }
 
 #[test]

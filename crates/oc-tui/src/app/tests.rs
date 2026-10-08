@@ -26,6 +26,7 @@ pub(super) fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
         id: oc_core::session::MessageId(format!("fixture-{seq}")),
         turn: None,
         model_switch: None,
+        user_shell: None,
         seq,
         role,
         text: text.to_string(),

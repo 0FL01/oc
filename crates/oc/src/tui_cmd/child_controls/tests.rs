@@ -117,6 +117,7 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
         &mut deck,
         &job.child,
         CoreEvent::ShellNotice(ShellNotice {
+            user_requested: false,
             session: job.child.clone(),
             shell_id: "original-leaf".into(),
             delivery_id: "leaf-once".into(),

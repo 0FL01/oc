@@ -251,9 +251,10 @@ impl Db {
         conn: &Connection,
         session: &str,
     ) -> Result<(), StorageError> {
+        let user = Self::last_conversation_user_in(conn, session, i64::MAX, false)?;
         let tip: Option<String> = conn.query_row(
-            "SELECT p.turn_id FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq DESC LIMIT 1) AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
-            [session],
+            "SELECT p.turn_id FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id AND a.session_id=p.session_id WHERE p.session_id=?1 AND p.active=1 AND p.post_context IS NOT NULL AND a.user_message=?2 AND NOT EXISTS(SELECT 1 FROM conversation_state WHERE session_id=?1 AND upper_seq IS NOT NULL)",
+            params![session, user],
             |r| r.get(0),
         ).optional()?;
         if let Some(tip) = tip {
@@ -390,6 +391,23 @@ impl Db {
         turn: &str,
         session: &str,
     ) -> Result<(), StorageError> {
+        Self::conversation_branch_admit(conn, session)?;
+        let pre: i64 = conn.query_row(
+            "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
+            [session],
+            |r| r.get(0),
+        )?;
+        let context = Self::save_context(conn, session)?;
+        conn.execute("INSERT INTO conversation_points(turn_id,session_id,pre_seq,pre_context) VALUES (?1,?2,?3,?4)",params![turn,session,pre,context])?;
+        Ok(())
+    }
+
+    /// Accept a new branch without manufacturing a turn/context checkpoint.
+    /// The caller owns the admission transaction, including rollback on failure.
+    pub(super) fn conversation_branch_admit(
+        conn: &Connection,
+        session: &str,
+    ) -> Result<(), StorageError> {
         let upper: Option<i64> = conn
             .query_row(
                 "SELECT upper_seq FROM conversation_state WHERE session_id=?1",
@@ -413,13 +431,6 @@ impl Db {
                 [session],
             )?;
         }
-        let pre: i64 = conn.query_row(
-            "SELECT COALESCE(MAX(seq),0) FROM conversation_messages WHERE session_id=?1",
-            [session],
-            |r| r.get(0),
-        )?;
-        let context = Self::save_context(conn, session)?;
-        conn.execute("INSERT INTO conversation_points(turn_id,session_id,pre_seq,pre_context) VALUES (?1,?2,?3,?4)",params![turn,session,pre,context])?;
         Ok(())
     }
 
@@ -448,6 +459,31 @@ impl Db {
         Ok(())
     }
 
+    /// Native Shell input/results are untrusted conversation data, not prompts
+    /// with saved LLM context. Legacy ordinary user rows still refuse unsupported
+    /// Undo rather than silently skipping to an older accepted turn.
+    fn last_conversation_user_in(
+        conn: &Connection,
+        session: &str,
+        upper: i64,
+        nonempty: bool,
+    ) -> Result<Option<String>, StorageError> {
+        let mut query = conn.prepare_cached(
+            "SELECT id FROM conversation_messages
+            WHERE session_id=?1 AND role='user' AND seq<=?2 AND (?3=0 OR length(text)>0)
+            ORDER BY seq DESC",
+        )?;
+        for row in query.query_map(params![session, upper, nonempty], |row| {
+            row.get::<_, String>(0)
+        })? {
+            let message = row?;
+            if Self::user_shell_link_in(conn, session, &message)?.is_none() {
+                return Ok(Some(message));
+            }
+        }
+        Ok(None)
+    }
+
     pub(crate) fn change_conversation(
         &self,
         session: &str,
@@ -458,8 +494,9 @@ impl Db {
             let tx = conn.transaction()?;
             Self::require_session(&tx, session)?;
             let upper: i64 = tx.query_row("SELECT COALESCE((SELECT upper_seq FROM conversation_state WHERE session_id=?1),(SELECT COALESCE(MAX(seq),0) FROM messages WHERE session_id=?1))",[session],|r|r.get(0))?;
+            let user = Self::last_conversation_user_in(&tx, session, upper, true)?;
             let (turn, seq, context): (String,i64,String) = match action {
-                ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND length(text)>0 AND seq<=?2 ORDER BY seq DESC LIMIT 1)",params![session,upper],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
+                ConversationAction::Undo => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2",params![session,user],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation undo boundary unavailable: no saved historical context"))?,
                 ConversationAction::Redo => tx.query_row("SELECT '',tip_seq,context FROM conversation_redo WHERE session_id=?1",[session],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation redo boundary unavailable"))?,
                 ConversationAction::Revert { ref message } => tx.query_row("SELECT p.turn_id,p.pre_seq,p.pre_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id JOIN messages m ON m.id=a.user_message WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND m.role='user'",params![session,message.0],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?.ok_or_else(||unavailable("conversation revert boundary unavailable: no saved historical context"))?,
             };
@@ -492,7 +529,8 @@ impl Db {
                 if !staged {
                     // Preserve the last genuinely saved post revision at the original
                     // branch tip, plus DCP nudge state persisted after completion.
-                    let tip: Option<(i64, String)> = tx.query_row("SELECT (SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1),p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' ORDER BY seq DESC LIMIT 1) AND p.post_context IS NOT NULL", [session], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
+                    let tip_user = Self::last_conversation_user_in(&tx, session, i64::MAX, false)?;
+                    let tip: Option<(i64, String)> = tx.query_row("SELECT (SELECT MAX(seq) FROM conversation_messages WHERE session_id=?1),p.post_context FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2 AND p.post_context IS NOT NULL", params![session, tip_user], |r| Ok((r.get(0)?,r.get(1)?))).optional()?;
                     if let Some((tip_seq, tip_context)) = tip {
                         let pending = Self::save_context(&tx, session)?;
                         tx.execute(
@@ -504,7 +542,8 @@ impl Db {
                 Self::restore_context(&tx, session, &context)?;
             }
             tx.execute("INSERT INTO conversation_state(session_id,upper_seq) VALUES (?1,?2) ON CONFLICT(session_id) DO UPDATE SET upper_seq=excluded.upper_seq",params![session,seq])?;
-            let can_undo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=(SELECT id FROM conversation_messages WHERE session_id=?1 AND role='user' AND length(text)>0 AND seq<=?2 ORDER BY seq DESC LIMIT 1))",params![session,seq],|r|r.get(0))?;
+            let user = Self::last_conversation_user_in(&tx, session, seq, true)?;
+            let can_undo: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM conversation_points p JOIN turn_acceptances a ON a.turn_id=p.turn_id WHERE p.session_id=?1 AND p.active=1 AND a.user_message=?2)",params![session,user],|r|r.get(0))?;
             let can_redo: bool = tx.query_row(
                 "SELECT EXISTS(SELECT 1 FROM conversation_redo WHERE session_id=?1)",
                 [session],
@@ -551,10 +590,23 @@ impl Db {
         let Some(boundary) = boundary else {
             return Ok(None);
         };
-        let (message, count): (Option<String>, i64) = conn.query_row("SELECT (SELECT m.id FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq) ORDER BY m.seq LIMIT 1), COUNT(*) FROM messages m WHERE m.session_id=?1 AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq)", params![session,boundary], |r| Ok((r.get(0)?,r.get(1)?)))?;
+        let mut query = conn.prepare_cached(
+            "SELECT m.id FROM messages m WHERE m.session_id=?1
+            AND m.role='user' AND m.seq>?2 AND NOT EXISTS(SELECT 1 FROM conversation_exclusions e
+            WHERE e.session_id=?1 AND m.seq>e.lower_seq AND m.seq<=e.upper_seq) ORDER BY m.seq",
+        )?;
+        let mut message = None;
+        let mut count = 0u64;
+        for row in query.query_map(params![session, boundary], |row| row.get::<_, String>(0))? {
+            let id = row?;
+            if Self::user_shell_link_in(conn, session, &id)?.is_none() {
+                count = count.saturating_add(1);
+                message.get_or_insert(id);
+            }
+        }
         Ok(message.map(|message| RevertedConversation {
             message: oc_core::session::MessageId(message),
-            user_messages: count as u64,
+            user_messages: count,
         }))
     }
 

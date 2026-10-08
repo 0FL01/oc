@@ -521,6 +521,7 @@ mod tests {
                     text: "question".into(),
                     turn: None,
                     model_switch: None,
+                    user_shell: None,
                 },
                 HistoryMessage {
                     id: MessageId("answer".into()),
@@ -528,6 +529,7 @@ mod tests {
                     role: Role::Assistant,
                     text: "final".into(),
                     model_switch: None,
+                    user_shell: None,
                     turn: Some(HistoryTurn {
                         id: "turn".into(),
                         status: "completed".into(),
@@ -559,6 +561,7 @@ mod tests {
                     text: "continue".into(),
                     turn: None,
                     model_switch: None,
+                    user_shell: None,
                 },
             ],
             ..Default::default()

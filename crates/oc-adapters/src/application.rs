@@ -2756,6 +2756,7 @@ async fn prepare_picker_open(
         authentication,
         InboxMsg::History {
             session: session.clone(),
+            message: None,
             before_seq: None,
             after_seq: None,
             limit: HISTORY_PAGE_LIMIT,
@@ -3288,6 +3289,7 @@ async fn query(
         }
         InboxMsg::History {
             session,
+            message,
             before_seq,
             after_seq,
             limit,
@@ -3304,17 +3306,27 @@ async fn query(
                     .history_len(&session.0)
                     .map_err(|error| query_storage_error(db, error))?;
                 let limit = limit.min(HISTORY_PAGE_LIMIT);
-                let (mut page, ascending) = match after_seq {
-                    Some(after) => (
-                        db.read_history_after_typed(&session.0, limit, after)
-                            .map_err(|error| query_storage_error(db, error))?,
-                        true,
-                    ),
-                    None => (
-                        db.read_history_page_typed(&session.0, limit, before_seq)
-                            .map_err(|error| query_storage_error(db, error))?,
+                let (mut page, ascending) = if let Some(message) = message {
+                    (
+                        db.read_history_message_typed(&session.0, &message)
+                            .map_err(|error| query_storage_error(db, error))?
+                            .into_iter()
+                            .collect(),
                         false,
-                    ),
+                    )
+                } else {
+                    match after_seq {
+                        Some(after) => (
+                            db.read_history_after_typed(&session.0, limit, after)
+                                .map_err(|error| query_storage_error(db, error))?,
+                            true,
+                        ),
+                        None => (
+                            db.read_history_page_typed(&session.0, limit, before_seq)
+                                .map_err(|error| query_storage_error(db, error))?,
+                            false,
+                        ),
+                    }
                 };
                 let has_newer = if ascending {
                     matches!((page.last(), max), (Some(row), Some(max)) if row.seq < max)
@@ -3348,8 +3360,12 @@ async fn query(
                             } else {
                                 None
                             };
+                            let user_shell = db
+                                .user_shell_result(&session.0, &id)
+                                .map_err(|error| query_storage_error(db, error))?;
                             Ok(HistoryMessage {
                                 id,
+                                user_shell,
                                 turn: if model_switch.is_some() {
                                     None
                                 } else {
@@ -3979,6 +3995,7 @@ async fn query(
                                 Role::Assistant
                             },
                             text: row.text,
+                            user_shell: None,
                             model_switch: None,
                             turn: db
                                 .history_turn(child, row.seq)

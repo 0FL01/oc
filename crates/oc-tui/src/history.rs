@@ -33,7 +33,8 @@ pub struct HistoryRow {
     pub seq: i64,
     /// Render prefix (`user` / `assistant` for committed rows).
     pub role: String,
-    /// Message text.
+    /// Message text. A hidden `shell_input_delivered` row retains only its
+    /// exact native operation identity here, not RAW text or a render payload.
     pub text: String,
     /// Agent that owns the row: the session agent for user rows, the turn
     /// agent for live assistant rows. `None` when unknown; the renderer then
@@ -83,6 +84,7 @@ impl HistoryWindow {
     pub fn reset(&mut self, page: &HistoryPage) {
         self.revision = self.revision.wrapping_add(1);
         self.rows = page.rows.iter().flat_map(rows_from_page).collect();
+        self.reconcile_shell_inputs();
         self.total = page.total;
         self.has_older = page.has_older;
         self.has_newer = page.has_newer;
@@ -122,6 +124,7 @@ impl HistoryWindow {
         {
             older.append(&mut self.rows);
             self.rows = older;
+            self.reconcile_shell_inputs();
             self.has_older = has_older;
             if self.enforce(Evict::Oldest) {
                 self.has_older = true;
@@ -137,6 +140,7 @@ impl HistoryWindow {
         let added = combined.len();
         combined.append(&mut self.rows);
         self.rows = combined;
+        self.reconcile_shell_inputs();
         self.total = page.total;
         self.has_older = page.has_older;
         if self.enforce(Evict::Newest) {
@@ -151,6 +155,7 @@ impl HistoryWindow {
         self.revision = self.revision.wrapping_add(1);
         let before = self.rows.len();
         self.rows.extend(page.rows.iter().flat_map(rows_from_page));
+        self.reconcile_shell_inputs();
         let added = self.rows.len() - before;
         self.total = page.total;
         self.has_newer = page.has_newer;
@@ -278,6 +283,162 @@ impl HistoryWindow {
         }
     }
 
+    /// Receipt-owned echo: real operation ID, no invented durable message/turn.
+    pub(crate) fn push_user_shell(&mut self, operation: String, command: &str) {
+        if self.rows.iter().any(|row| {
+            row.role == "shell_input_delivered" && row.text == operation
+                || matches!(row.role.as_str(), "shell" | "shell_input")
+                    && row.tool.as_ref().is_some_and(|card| card.op == operation)
+        }) {
+            return;
+        }
+        let end = command.floor_char_boundary(oc_core::tool_output::PREVIEW_BYTES);
+        let card = user_shell_card(&oc_core::queries::UserShellResult {
+            input: true,
+            superseded_input: false,
+            operation,
+            command: command[..end].into(),
+            command_limited: end < command.len(),
+            state: "started".into(),
+            output: Box::new(oc_core::tool_output::Presentation::new("", 0, false)),
+            diagnostic: None,
+        });
+        self.push_row(HistoryRow {
+            message_id: None,
+            seq: i64::MAX,
+            role: "shell_input".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: Vec::new(),
+            reasoning: None,
+            meta: None,
+            tool: Some(card),
+        });
+    }
+
+    /// Selective native Shell update while the live assistant owns its parts.
+    /// Do not attach a second projection of an executing model turn.
+    pub(crate) fn refresh_user_shell(&mut self, page: &HistoryPage) -> bool {
+        let mut changed = false;
+        let tail = self.rows.iter().rev().find(|row| row.message_id.is_some());
+        let tail_seq = tail.map(|row| row.seq);
+        let tail_covered = tail.is_none_or(|row| {
+            page.rows
+                .iter()
+                .any(|message| row.message_id.as_deref() == Some(&message.id))
+        });
+        for message in &page.rows {
+            let Some(shell) = &message.user_shell else {
+                continue;
+            };
+            // The result may be outside a detached window. Its exact operation
+            // still retires a retained input, without inventing a durable row or
+            // losing the input's paging identity.
+            if !shell.input {
+                for row in &mut self.rows {
+                    if row.role == "shell_input"
+                        && row
+                            .tool
+                            .as_ref()
+                            .is_some_and(|card| card.op == shell.operation)
+                    {
+                        row.role = "shell_input_delivered".into();
+                        row.tool = None;
+                        row.text = shell.operation.clone();
+                        changed = true;
+                    }
+                }
+            }
+            let replacement = rows_from_page(message).remove(0);
+            let index = self.rows.iter().position(|row| {
+                row.message_id.as_deref() == Some(&message.id)
+                    || shell.input
+                        && row.message_id.is_none()
+                        && row.role == "shell_input"
+                        && row
+                            .tool
+                            .as_ref()
+                            .is_some_and(|card| card.op == shell.operation)
+            });
+            if let Some(index) = index {
+                if self.rows[index] != replacement {
+                    let synthetic = self.rows[index].message_id.is_none();
+                    if synthetic {
+                        self.rows.remove(index);
+                        self.insert_durable(replacement);
+                    } else {
+                        self.rows[index] = replacement;
+                    }
+                    changed = true;
+                }
+            } else if tail_seq.is_none_or(|seq| message.seq > seq) {
+                // A bulk page can contain an already-evicted older Shell. Never
+                // append it behind the newer retained rows. Nor may a selective
+                // update jump over unseen ordinary/model records.
+                let gap = !tail_covered
+                    || page.rows.iter().any(|between| {
+                        tail_seq.is_some_and(|seq| between.seq > seq)
+                            && between.seq < message.seq
+                            && between.user_shell.is_none()
+                            && !self
+                                .rows
+                                .iter()
+                                .any(|row| row.message_id.as_deref() == Some(&between.id))
+                    });
+                if !self.has_newer && !gap {
+                    self.insert_durable(replacement);
+                    changed = true;
+                } else if !self.has_newer {
+                    self.has_newer = true;
+                    changed = true;
+                }
+            }
+        }
+        if self.total != page.total {
+            self.total = page.total;
+            changed = true;
+        }
+        if changed {
+            self.reconcile_shell_inputs();
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
+    fn insert_durable(&mut self, row: HistoryRow) {
+        let index = self
+            .rows
+            .iter()
+            .position(|existing| existing.message_id.is_none() || existing.seq > row.seq)
+            .unwrap_or(self.rows.len());
+        self.rows.insert(index, row);
+    }
+
+    fn reconcile_shell_inputs(&mut self) {
+        let results = self
+            .rows
+            .iter()
+            .filter(|row| row.role == "shell")
+            .filter_map(|row| row.tool.as_ref().map(|card| card.op.clone()))
+            .collect::<Vec<_>>();
+        for row in &mut self.rows {
+            if row.role == "shell_input"
+                && row
+                    .tool
+                    .as_ref()
+                    .is_some_and(|card| results.contains(&card.op))
+            {
+                row.text = row.tool.as_ref().expect("matched Shell input").op.clone();
+                row.role = "shell_input_delivered".into();
+                row.tool = None;
+            }
+        }
+    }
+
     /// A live acceptance notice arrives after the prompt echo receipt.
     pub(crate) fn insert_before_live_user(&mut self, text: String) {
         if let Some(index) = self
@@ -389,6 +550,18 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
     let message_id = std::sync::Arc::new(row.id.clone());
+    if let Some(shell) = &row.user_shell {
+        let mut result = row_from_page(row, &message_id);
+        result.text.clear();
+        if shell.superseded_input {
+            result.role = "shell_input_delivered".into();
+            result.text = shell.operation.clone();
+            return vec![result];
+        }
+        result.role = if shell.input { "shell_input" } else { "shell" }.into();
+        result.tool = Some(user_shell_card(shell));
+        return vec![result];
+    }
     if row.model_switch.is_some() {
         return vec![row_from_page(row, &message_id)];
     }
@@ -534,6 +707,47 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     rows
 }
 
+fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
+    let facts = shell.output.shell.as_ref();
+    let render = crate::tools::ShellRender {
+        command: shell.command.clone(),
+        direct_user: true,
+        command_limited: shell.command_limited,
+        diagnostic: shell.diagnostic.clone(),
+        exit: facts.and_then(|facts| facts.exit.map(i64::from)),
+        signal: facts.is_some_and(|facts| facts.signal.is_some()),
+        stdout: facts.map_or_else(Vec::new, |facts| {
+            facts.stdout.lines().map(str::to_owned).collect()
+        }),
+        stderr: facts.map_or_else(Vec::new, |facts| {
+            facts.stderr.lines().map(str::to_owned).collect()
+        }),
+        timed_out: facts.is_some_and(|facts| facts.timed_out),
+        cancelled: facts.is_some_and(|facts| facts.cancelled),
+        output_ends_with_newline: false,
+        cwd: None,
+    };
+    // A UI block over the real NULL-turn operation, not a synthetic
+    // TranscriptPart::Tool or provider ToolCallResult.
+    ToolCard {
+        op: shell.operation.clone(),
+        name: "shell".into(),
+        state: shell.state.clone(),
+        input_preview: preview(Some(&shell.command)),
+        output_preview: shell.output.body.clone(),
+        output_bytes: shell.output.body_bytes.min(i64::MAX as u64) as i64,
+        output_truncated: shell.output.body_limited,
+        output_presentation: Some(shell.output.clone()),
+        files: Vec::new(),
+        files_truncated: false,
+        diff: None,
+        patch_effects: None,
+        question: None,
+        diff_settings: Default::default(),
+        render: ToolRender::Shell(render),
+    }
+}
+
 /// One tool card: intent + outcome + bounded previews.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCard {
@@ -573,22 +787,24 @@ impl ToolCard {
     /// Projection loss is independent of producer/capture loss. No text matching
     /// or cold output loading is needed to report the current viewing limit.
     pub(crate) fn preview_limited(&self) -> bool {
-        matches!(
-            &self.render,
-            ToolRender::Inline(crate::tools::InlineRender::Generic {
-                arguments_limited: true,
-                ..
-            })
-        ) || self
-            .output_presentation
-            .as_ref()
-            .map_or(self.output_truncated, |presentation| {
-                presentation.body_limited
-                    || presentation
-                        .shell
-                        .as_ref()
-                        .is_some_and(|shell| shell.stdout_limited || shell.stderr_limited)
-            })
+        matches!(&self.render, ToolRender::Shell(shell) if shell.command_limited)
+            || matches!(
+                &self.render,
+                ToolRender::Inline(crate::tools::InlineRender::Generic {
+                    arguments_limited: true,
+                    ..
+                })
+            )
+            || self
+                .output_presentation
+                .as_ref()
+                .map_or(self.output_truncated, |presentation| {
+                    presentation.body_limited
+                        || presentation
+                            .shell
+                            .as_ref()
+                            .is_some_and(|shell| shell.stdout_limited || shell.stderr_limited)
+                })
     }
 
     /// Retained payload bytes including parsed card/diff strings.
@@ -810,6 +1026,9 @@ fn preview(value: Option<&str>) -> String {
 }
 
 #[cfg(test)]
+mod user_shell_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{
         CARD_FILES, CARD_PREVIEW, HistoryWindow, WINDOW_BYTES, WINDOW_ROWS, card_from_row,
@@ -823,6 +1042,7 @@ mod tests {
             id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
+            user_shell: None,
             seq,
             role,
             text: text.to_string(),

@@ -145,7 +145,20 @@ impl ScriptDriver {
                 Ok(Ok(CoreEvent::SessionMoved { .. })) => {}
                 Ok(Ok(CoreEvent::ShellNotice(notice))) => {
                     if state.attached_session() == Some(&notice.session) {
-                        state.push_note(&notice.text);
+                        if notice.user_requested {
+                            if let Ok(page) = state
+                                .app
+                                .history_message(
+                                    notice.session,
+                                    oc_core::session::MessageId(notice.message_id),
+                                )
+                                .await
+                            {
+                                state.refresh_user_shell_page(&page);
+                            }
+                        } else {
+                            state.push_note(&notice.text);
+                        }
                     }
                 }
                 Ok(Ok(CoreEvent::ChildNotice(_))) => {}

@@ -3476,7 +3476,26 @@ async fn handle_worker_event(
             state.apply_session_model_selected(&session, &commit)
         }
         CoreEvent::ShellNotice(notice) => {
-            if state.is_busy() {
+            if notice.user_requested {
+                let page = app
+                    .history_message(
+                        notice.session.clone(),
+                        oc_core::session::MessageId(notice.message_id),
+                    )
+                    .await
+                    .map_err(|error| error.to_string())?;
+                if page.rows.iter().any(|row| row.user_shell.is_some()) {
+                    if state.is_busy() {
+                        state.refresh_user_shell_page(&page);
+                    } else {
+                        let page = app
+                            .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                            .await
+                            .map_err(|error| error.to_string())?;
+                        state.refresh_completed_page(&page);
+                    }
+                }
+            } else if state.is_busy() {
                 state.push_note(&notice.text);
             } else {
                 let page = if let Some(selected) = state.linked_child().cloned() {

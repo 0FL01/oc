@@ -96,6 +96,10 @@ pub struct ShellRender {
     pub cancelled: bool,
     /// Process output's terminal newline, before native transport markers.
     pub output_ends_with_newline: bool,
+    /// Standalone user command, not the model-facing Shell result renderer.
+    pub direct_user: bool,
+    pub command_limited: bool,
+    pub diagnostic: Option<String>,
 }
 
 /// Legacy `apply_patch` request preview. Confirmed effects live on `ToolCard`.
@@ -182,6 +186,7 @@ impl ToolRender {
             Self::Shell(s) => {
                 s.command.len()
                     + optional(&s.cwd)
+                    + optional(&s.diagnostic)
                     + s.stdout
                         .iter()
                         .chain(&s.stderr)
@@ -709,6 +714,11 @@ pub(crate) fn shell_block_expanded(
     } else {
         input
     };
+    let input = if shell.command_limited {
+        format!("{input} · Input preview")
+    } else {
+        input
+    };
     let input = match capture_status(card) {
         Some(status) => format!("{input} · {status}"),
         None => input,
@@ -758,7 +768,7 @@ pub(crate) fn shell_block_expanded(
         }
         // An error outcome colors the whole recorded output; a successful one
         // keeps stdout muted (`index.tsx:2784-2866` error line).
-        let stdout_style = if is_error_state(&card.state) {
+        let stdout_style = if is_error_state(&card.state) && !shell.direct_user {
             error
         } else {
             muted
@@ -802,7 +812,10 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
     } else {
         None
     };
-    if output.is_empty() && (shell.exit.is_some_and(|code| code != 0) || shell.signal) {
+    if !shell.direct_user
+        && output.is_empty()
+        && (shell.exit.is_some_and(|code| code != 0) || shell.signal)
+    {
         output.push(("(no output)".to_string(), false));
     }
     if status.is_some() && !output.is_empty() && shell.output_ends_with_newline {
@@ -810,7 +823,21 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
         output.push((String::new(), false));
     }
     if let Some(status) = status {
+        let status = if shell.direct_user {
+            if shell.cancelled || card.state == "cancelled" {
+                "Command cancelled".into()
+            } else if shell.timed_out {
+                "Command timed out".into()
+            } else {
+                status.trim_end_matches('.').into()
+            }
+        } else {
+            status
+        };
         output.push((status, is_error_state(&card.state) || shell.timed_out));
+    }
+    if let Some(diagnostic) = &shell.diagnostic {
+        output.push((diagnostic.clone(), true));
     }
     output
 }
@@ -905,7 +932,8 @@ pub(crate) fn shell_expandable(card: &ToolCard, width: u16) -> bool {
     let rows = output.len();
     let chars =
         output.iter().map(|(s, _)| s.chars().count()).sum::<usize>() + rows.saturating_sub(1);
-    overflow
+    shell.direct_user
+        || overflow
         || rows > TOOL_OUTPUT_LINES.saturating_sub(lines + 1).max(1)
         || chars
             > (TOOL_OUTPUT_LINES * (width as usize).saturating_sub(6).max(20))

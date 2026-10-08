@@ -213,6 +213,7 @@ fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {
             text: "# cached markdown".into(),
             turn: None,
             model_switch: None,
+            user_shell: None,
         }],
         total: 1,
         ..Default::default()
@@ -1457,6 +1458,7 @@ async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure(
             text: "COPY STORED PROMPT".into(),
             turn: None,
             model_switch: None,
+            user_shell: None,
         };
         state.attach_page(&HistoryPage {
             rows: vec![row.clone()],

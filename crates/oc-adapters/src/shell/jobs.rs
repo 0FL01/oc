@@ -307,6 +307,25 @@ impl Outcome {
         });
         Box::new(presentation)
     }
+
+    /// Legacy/recovered direct-user jobs may lack prepared stream facts. Never
+    /// reinterpret a prepared model-facing envelope as captured process output.
+    pub(crate) fn user_presentation(&self) -> Box<oc_core::tool_output::Presentation> {
+        let mut source = self.clone();
+        if source.output_prepared {
+            source.stdout = source.stdout_recent.take().unwrap_or_default();
+            source.stderr = source.stderr_recent.take().unwrap_or_default();
+            source.stdout_truncated = true;
+            source.stderr_truncated = true;
+        }
+        let mut presentation = source.prepared_presentation();
+        if let Some(capture) = &mut presentation.capture {
+            // No current descriptor lookup in this legacy fallback. The saved
+            // descriptor is not authority to expose a cold reference.
+            capture.reference = None;
+        }
+        presentation
+    }
 }
 
 struct Work {

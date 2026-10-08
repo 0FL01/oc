@@ -86,6 +86,20 @@ async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves
         assert_eq!(state.status, TuiStatus::Idle);
         assert!(!state.has_pending_submission() && !state.is_busy());
         assert!(state.pending.is_none() && state.active_turn.is_none());
+        assert_eq!(state.window.rows().last().unwrap().role, "shell_input");
+        assert!(state.window.rows().last().unwrap().message_id.is_none());
+        assert_eq!(
+            state
+                .window
+                .rows()
+                .last()
+                .unwrap()
+                .tool
+                .as_ref()
+                .unwrap()
+                .op,
+            "user-shell:owned"
+        );
         assert!(inbox.try_recv().is_err());
     }
 }

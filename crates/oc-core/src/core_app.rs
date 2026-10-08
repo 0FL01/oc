@@ -637,6 +637,8 @@ pub enum InboxMsg {
     History {
         /// Owning session.
         session: SessionId,
+        /// Exact current-branch message lookup, independent of page cursors.
+        message: Option<MessageId>,
         /// Upper bound: rows with a smaller seq (older). `None` = newest page.
         before_seq: Option<i64>,
         /// Lower bound: rows with a larger seq (newer), oldest-first. Exactly
@@ -1711,6 +1713,7 @@ impl CoreApp {
         self.inbox
             .send(InboxMsg::History {
                 session,
+                message: None,
                 before_seq,
                 after_seq,
                 limit,
@@ -1719,6 +1722,28 @@ impl CoreApp {
             .await
             .map_err(|_| CoreError::Shutdown)?;
         ack_rx.await.map_err(|_| CoreError::Shutdown)?
+    }
+
+    /// Resolve one exact committed message on the current conversation branch.
+    /// A hidden or foreign message produces an empty bounded page.
+    pub async fn history_message(
+        &self,
+        session: SessionId,
+        message: MessageId,
+    ) -> Result<HistoryPage, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::History {
+                session,
+                message: Some(message),
+                before_seq: None,
+                after_seq: None,
+                limit: 1,
+                ack,
+            })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
     }
 
     /// Read one bounded tool-operation page (newest-first cursor).

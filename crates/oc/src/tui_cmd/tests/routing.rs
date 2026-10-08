@@ -1,6 +1,173 @@
 use super::*;
 
 #[tokio::test]
+async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_without_raw_toast() {
+    use oc_core::{
+        queries::{HistoryMessage, HistoryPage, ShellNotice, UserShellResult},
+        session::{MessageId, Role},
+        tool_output::{Presentation, Shell},
+    };
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = SessionId::new("user-shell-with-live-model").unwrap();
+    let current = WorkerTurnId("real-live-overlay".into());
+    let mut state = TuiState::new(app.clone(), session.clone());
+    state.restore_prompt("ordinary accepted prompt".into());
+    state.handle_key(KeyAction::Enter).await;
+    let InboxMsg::Submit { ack, .. } = inbox.recv().await.unwrap() else {
+        panic!("model submit");
+    };
+    ack.send(Ok(current.clone())).unwrap();
+    state.poll_submission();
+    state.apply_delta(&current, "live assistant text");
+    state.restore_prompt("unfinished newer draft".into());
+    let mut output = Presentation::new("user process output", 19, false);
+    output.shell = Some(Shell {
+        stdout: "user process output".into(),
+        stderr: String::new(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: Some(0),
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let owner = tokio::spawn(async move {
+        let InboxMsg::History {
+            session,
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("bounded history query");
+        };
+        assert_eq!(session.0, "user-shell-with-live-model");
+        assert_eq!(message, Some(MessageId("actual-shell-notice".into())));
+        assert_eq!(
+            limit, 1,
+            "a delayed notice is not searched in the newest page"
+        );
+        ack.send(Ok(HistoryPage {
+            rows: vec![HistoryMessage {
+                id: MessageId("actual-shell-notice".into()),
+                seq: 7,
+                role: Role::User,
+                text: "RAW technical notice must not become a toast".into(),
+                turn: None,
+                model_switch: None,
+                user_shell: Some(UserShellResult {
+                    input: false,
+                    superseded_input: false,
+                    operation: "owned-user-command".into(),
+                    command: "printf output".into(),
+                    command_limited: false,
+                    state: "completed".into(),
+                    output: Box::new(output),
+                    diagnostic: None,
+                }),
+            }],
+            total: 120,
+            has_newer: true,
+            ..Default::default()
+        }))
+        .unwrap();
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ShellNotice(ShellNotice {
+            session: session.clone(),
+            shell_id: "owned-user-command".into(),
+            delivery_id: "once-only".into(),
+            message_id: "actual-shell-notice".into(),
+            user_requested: true,
+            state: "completed".into(),
+            text: "RAW technical notice must not become a toast".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let mut inbox = owner.await.unwrap();
+    let text = state
+        .transcript_lines(120, 120)
+        .iter()
+        .map(oc_tui::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("$ printf output") && text.contains("user process output"));
+    assert_eq!(text.matches("live assistant text").count(), 1);
+    assert!(!text.contains("must not duplicate") && !text.contains("RAW technical"));
+    assert!(state.note().is_none());
+    assert_eq!(state.active_turn(), Some(&current));
+    assert_eq!(state.input(), "unfinished newer draft");
+
+    let hidden_owner = tokio::spawn(async move {
+        let InboxMsg::History { message, ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("exact current-branch lookup");
+        };
+        assert_eq!(message, Some(MessageId("hidden-native-result".into())));
+        ack.send(Ok(HistoryPage {
+            total: 120,
+            ..Default::default()
+        }))
+        .unwrap();
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ShellNotice(ShellNotice {
+            session: session.clone(),
+            shell_id: "hidden-operation".into(),
+            delivery_id: "hidden-delivery".into(),
+            message_id: "hidden-native-result".into(),
+            user_requested: true,
+            state: "completed".into(),
+            text: "hidden RAW warning".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let mut inbox = hidden_owner.await.unwrap();
+    assert!(
+        state.note().is_none(),
+        "branch-hidden native result does not become RAW prose"
+    );
+    assert_eq!(state.input(), "unfinished newer draft");
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ShellNotice(ShellNotice {
+            session: session.clone(),
+            shell_id: "model-operation".into(),
+            delivery_id: "model-delivery".into(),
+            message_id: "model-result".into(),
+            user_requested: false,
+            state: "completed".into(),
+            text: "existing model background notice".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    assert!(
+        state.note().is_some(),
+        "model background notice retains its existing path"
+    );
+    assert!(
+        inbox.try_recv().is_err(),
+        "model notice does not query native projection"
+    );
+}
+
+#[tokio::test]
 async fn vis38_late_dcp_other_session_child_and_old_turn_never_touch_parent_view_or_query() {
     use oc_core::dcp_view::{DcpAccounting, DcpRunSnapshot};
     let (app, mut inbox, _) = CoreApp::channel(8);
@@ -330,6 +497,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
                 text,
                 turn: None,
                 model_switch: None,
+                user_shell: None,
             }],
             ..Default::default()
         }))
@@ -1450,6 +1618,7 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
             text: "first viewport marker".into(),
             turn: None,
             model_switch: None,
+            user_shell: None,
         }],
         total: 1,
         ..Default::default()
@@ -1826,6 +1995,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         text: format!("row {seq}"),
         turn: None,
         model_switch: None,
+        user_shell: None,
     };
     let mut state = TuiState::new(app.clone(), SessionId("kept".into()));
     state.attach_page(&oc_core::queries::HistoryPage {

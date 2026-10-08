@@ -547,7 +547,13 @@ pub(crate) fn transcript_with_expansion(
                     out.push(exploration_member(member, theme));
                 }
             }
-        } else if let Some(lines) = expandable_tool_entry(row, theme, width, expanded) {
+        } else if let Some(lines) = expandable_tool_entry(
+            row,
+            theme,
+            width,
+            expanded,
+            shell_leading_margin(rows, index),
+        ) {
             out.extend(lines);
         } else {
             out.extend(render_row(
@@ -564,13 +570,26 @@ pub(crate) fn transcript_with_expansion(
     out
 }
 
+fn shell_leading_margin(rows: &[HistoryRow], index: usize) -> bool {
+    // A direct command is the first visible session row; consumed RAW admission
+    // anchors do not create a second leading spacer ahead of its BlockTool.
+    !matches!(rows[index].role.as_str(), "shell" | "shell_input")
+        || rows[..index]
+            .iter()
+            .any(|row| row.role != "shell_input_delivered")
+}
+
 fn expandable_tool_entry(
     row: &HistoryRow,
     theme: &Theme,
     width: u16,
     expanded: &dyn Fn(&str) -> bool,
+    leading: bool,
 ) -> Option<Vec<Line>> {
-    let card = row.tool.as_ref().filter(|_| row.role == "tool")?;
+    let card = row
+        .tool
+        .as_ref()
+        .filter(|_| matches!(row.role.as_str(), "tool" | "shell" | "shell_input"))?;
     let rendered = match &card.render {
         crate::tools::ToolRender::Shell(shell) => {
             crate::tools::shell_block_expanded(shell, card, theme, width, expanded(&card.op))
@@ -585,7 +604,11 @@ fn expandable_tool_entry(
         }
         _ => return None,
     };
-    let mut lines = vec![Line::plain("")];
+    let mut lines = if leading {
+        vec![Line::plain("")]
+    } else {
+        Vec::new()
+    };
     lines.extend(rendered);
     Some(lines.into_iter().map(sanitize_line).collect())
 }
@@ -901,6 +924,7 @@ fn render_row(
 ) -> Vec<Line> {
     let (index, footer_after) = identity;
     let lines = match row.role.as_str() {
+        "shell_input_delivered" => Vec::new(),
         "compaction" | "compaction_failed" | "compaction_queued" => {
             crate::compaction::block(row, theme, width)
         }
@@ -924,7 +948,7 @@ fn render_row(
             agent_color,
             cache,
         ),
-        "tool" => {
+        "tool" | "shell" | "shell_input" => {
             if let Some(card) = &row.tool {
                 let block = crate::tools::tool_block(card, theme, width);
                 let mut lines = Vec::new();
@@ -2103,18 +2127,25 @@ fn visible_transcript_indexed(
                     );
                 }
             }
-        } else if let Some(lines) = expandable_tool_entry(row, theme, width, options.expanded) {
+        } else if let Some(lines) = expandable_tool_entry(
+            row,
+            theme,
+            width,
+            options.expanded,
+            shell_leading_margin(rows, index),
+        ) {
+            let margin = usize::from(shell_leading_margin(rows, index));
             if let Some((x, y)) = options.point
                 && let Some(card) = &row.tool
                 && x < width as usize
-                && start + y > position
+                && start + y >= position + margin
                 && start + y < position + lines.len()
                 && start + y < end
             {
                 let relative = start + y - position;
                 let extent = match &card.render {
                     crate::tools::ToolRender::Shell(_) => {
-                        crate::tools::shell_expandable(card, width).then_some(lines.len() - 1)
+                        crate::tools::shell_expandable(card, width).then_some(lines.len() - margin)
                     }
                     crate::tools::ToolRender::Inline(
                         inline @ crate::tools::InlineRender::Generic { .. },
@@ -2136,8 +2167,8 @@ fn visible_transcript_indexed(
                 if let Some(extent) = extent {
                     hit = Some(TranscriptHit::Exploration(
                         card.op.clone(),
-                        (position + 1).saturating_sub(start)
-                            ..(position + 1 + extent).min(end).saturating_sub(start),
+                        (position + margin).saturating_sub(start)
+                            ..(position + margin + extent).min(end).saturating_sub(start),
                     ));
                 }
             }
@@ -2292,7 +2323,13 @@ pub(crate) fn transcript_part_positions(
                     .len();
                 }
             }
-        } else if let Some(lines) = expandable_tool_entry(row, theme, width, expanded) {
+        } else if let Some(lines) = expandable_tool_entry(
+            row,
+            theme,
+            width,
+            expanded,
+            shell_leading_margin(rows, index),
+        ) {
             for line in lines {
                 total += styled::wrap_line_limited(&line, width as usize, MAX_MARKDOWN_ROWS).len();
             }

@@ -26,7 +26,20 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   const before=await snapshot('user_shell_before_enter');
   if(requests().length||before.shell_effect!==null||before.user_shell_boundary.length||before.mcp_calls.length)throw Error('Shell mode/edit launched an effect');
   send('\r','user_shell_explicit_submit');
-  await shot('user-shell-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+  const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
+  if(running.text.includes('native admission; data only'))throw Error('Running User Shell is still an ordinary user notice');
+  const during=await snapshot('user_shell_running_before_effect');
+  if(requests().length||during.shell_effect!==null||during.mcp_calls.length)throw Error('Held running Shell had an early effect');
+  if(origin==='oc') {
+    const data=during.observations.map(o=>o.data).find(d=>d.prompt_input_history);
+    if(data?.model_turns!==0||data?.tool_operations.length!==1||data?.tool_operations[0].turn_id!==null||data?.tool_operations[0].state!=='started')throw Error('Running Shell does not have its genuine NULL-turn intent');
+  }
+  const completed=await shot('user-shell-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+  const structured=(f,count)=>{
+    const rows=f.cells.map(glyphs);
+    if(rows.filter(row=>row.includes(`$ ${COMMAND}`)).length!==count||f.text.includes('native admission; data only')||f.text.includes('native durable notice')||f.text.includes('Command exited with code 0'))throw Error('User Shell completion is not a single structured command/output block');
+  };
+  structured(completed,1);
   const first=await snapshot('user_shell_first_completed');verify(first,1);
   send('\x1b[A','user_shell_recall_only');
   const recall=await shot('user-shell-recalled',f=>promptHas(f,COMMAND));
@@ -48,7 +61,8 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
     await new Promise(r=>setTimeout(r,25));
   }
   verify(second,2);
-  await shot('user-shell-second-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+  const secondCompleted=await shot('user-shell-second-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+  structured(secondCompleted,2);
   send('\x03','user_shell_clean_exit');
   const deadline=Date.now()+6000;while(!logs.some(e=>e.kind==='exit'&&e.generation===0)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,25));
   if(!logs.some(e=>e.kind==='exit'&&e.generation===0))throw Error('User Shell process did not exit');
@@ -57,7 +71,7 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   send('\x1b[A','user_shell_restarted_recall');
   await shot('user-shell-restarted-recalled',f=>promptHas(f,COMMAND));
   const restarted=await snapshot('user_shell_restarted');verify(restarted,2);
-  return {status:'OBSERVED_USER_SHELL',command:COMMAND,before,first,recalled,second,restarted,
+  return {status:'OBSERVED_USER_SHELL',command:COMMAND,before,during,first,recalled,second,restarted,
     provider_requests:0,explicit_commands:2,effects:2,recalled_shell_mode:recalledShellMode,
     native_history_before_effect:origin==='oc',no_restart_replay:true};
 }

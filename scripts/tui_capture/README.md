@@ -1032,9 +1032,14 @@ history, started NULL-turn intent and zero model turns; each side has exactly2
 explicit effects, zero Responses/title/MCP and no restart replay. Original uses
 actual `session.shell`; no original RAW decoding. Native text-only recalled mode
 differs from original; full parts/mode/Mini are explicitly outside frozen VIS12.
-Both11-stage80/120 pairs retain ALL22 strict grid+PNG differences. Receipt:
-`evidence/tui/user-shell-admission.md`; not whole pixel/T44 PASS. Normal tool and
-temporal regressions remain independent.
+Historical admission pairs have11 stages/ALL22 strict grid+PNG differences;
+receipt `evidence/tui/user-shell-admission.md`. Current built presentation pairs
+have12 stages/ALL24 differences, adding a genuine bounded running phase before
+effect and checking exactly one/two typed command/output blocks after explicit
+Enter, without RAW admission/notices or a generated successful-exit line. Use
+`--build-oc true` for current-source association; receipt
+`evidence/tui/user-shell-presentation.md`. This is behavior qualification, not
+whole pixel/T44 PASS. Normal tool and temporal regressions remain independent.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

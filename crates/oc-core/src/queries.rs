@@ -225,6 +225,27 @@ pub struct HistoryMessage {
     pub turn: Option<HistoryTurn>,
     /// Public model transition committed with the following accepted prompt.
     pub model_switch: Option<ModelSwitchNotice>,
+    /// Direct-user Shell input/result, projected by its exact durable
+    /// message/operation association. Never an assistant tool call or turn.
+    pub user_shell: Option<UserShellResult>,
+}
+
+/// Bounded display facts from a supervised direct-user command. RAW notice text
+/// remains unchanged; missing projection means ordinary text, not guessed Shell.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UserShellResult {
+    /// Exact admission input, as opposed to the later result notice.
+    pub input: bool,
+    /// Admission input represented by a visible durable result. Retain its
+    /// history identity/paging anchor without displaying a duplicate block.
+    pub superseded_input: bool,
+    pub operation: String,
+    pub command: String,
+    pub command_limited: bool,
+    pub state: String,
+    pub output: Box<crate::tool_output::Presentation>,
+    /// Already redacted owner diagnostic, separate from process output.
+    pub diagnostic: Option<String>,
 }
 
 /// Only the validated public model identity; never provider options or credentials.
@@ -1490,6 +1511,8 @@ pub struct ShellNotice {
     pub delivery_id: String,
     /// Immutable history message committed with delivery.
     pub message_id: String,
+    /// Explicit direct-user admission, not inferred from notice prose or paging.
+    pub user_requested: bool,
     /// Durable terminal state.
     pub state: String,
     /// Bounded readable facts identical to provider/history input.

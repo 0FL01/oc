@@ -112,6 +112,7 @@ impl Db {
                 return Err(StorageError::OperationNotFound);
             }
         }
+        Self::conversation_branch_admit(&tx, &provenance.session)?;
         Self::prompt_history_in(&tx, Some(&provenance.command))?;
         let input = serde_json::to_string(&serde_json::json!({
             "command":provenance.command,"workdir":provenance.cwd,"background":true
@@ -362,9 +363,16 @@ impl Db {
                       "sourceLocation":provenance.location,"sourceGeneration":provenance.generation,
                        "capture":result.capture,"captureFacts":result.capture_facts,"captureFailure":result.capture_failure});
             let user_command: bool = tx.query_row(
-                "SELECT EXISTS(SELECT 1 FROM events WHERE kind='user_shell_admitted' AND payload=?1)",
-                [&operation], |r| r.get(0),
+                "SELECT EXISTS(SELECT 1 FROM events e JOIN tool_operations o ON o.id=e.payload
+                 WHERE e.session_id=?1 AND e.kind='user_shell_admitted' AND e.payload=?2
+                 AND o.session_id=e.session_id AND o.turn_id IS NULL AND o.name='shell')",
+                params![session, operation],
+                |r| r.get(0),
             )?;
+            let user_command = user_command
+                && provenance.turn.is_empty()
+                && provenance.session == session
+                && provenance.operation == operation;
             let text = if user_command {
                 // Keep the same durable captured facts, but publish the bounded
                 // direct-user preview last so it isn't buried above JSON wraps.
@@ -398,12 +406,113 @@ impl Db {
                 shell_id: operation,
                 delivery_id: delivery,
                 message_id: message,
+                user_requested: user_command,
                 state: result.state,
                 text,
             });
         }
         tx.commit()?;
         Ok(notices)
+    }
+
+    /// Exact native input/result association, shared with conversation target
+    /// selection. No text classification, provider graph or execution authority.
+    pub(super) fn user_shell_link_in(
+        conn: &Connection,
+        session: &str,
+        message: &str,
+    ) -> Result<Option<(String, bool, bool)>, StorageError> {
+        conn.query_row(
+            "SELECT j.operation_id,
+                    j.message_id IS NOT m.id AND EXISTS(SELECT 1 FROM conversation_messages visible
+                     WHERE visible.session_id=j.session_id AND visible.id=j.message_id),
+                    j.message_id IS NOT m.id
+             FROM messages m
+             JOIN shell_jobs j ON j.session_id=m.session_id AND
+              (j.message_id=m.id OR EXISTS(SELECT 1 FROM events admission
+                 JOIN events input ON input.seq=admission.seq-1
+                 WHERE admission.session_id=j.session_id AND input.session_id=j.session_id
+                 AND admission.kind='user_shell_admitted' AND admission.payload=j.operation_id
+                 AND input.kind='message' AND input.payload=m.id))
+             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id
+             WHERE j.session_id=?1 AND m.id=?2
+             AND o.turn_id IS NULL AND o.name='shell' AND m.role='user'
+             AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id
+                        AND e.kind='user_shell_admitted' AND e.payload=j.operation_id)",
+            params![session, message],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .optional()
+        .map_err(Into::into)
+    }
+
+    /// Bounded display projection over that link; RAW/provider history is intact.
+    pub(crate) fn user_shell_result(
+        &self,
+        session: &str,
+        message: &oc_core::session::MessageId,
+    ) -> Result<Option<oc_core::queries::UserShellResult>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let Some((operation, superseded_input, input)) =
+            Self::user_shell_link_in(&conn, session, &message.0)?
+        else {
+            return Ok(None);
+        };
+        let (provenance, outcome, phase): (String, Option<String>, String) = conn.query_row(
+            "SELECT provenance,outcome,phase FROM shell_jobs WHERE session_id=?1 AND operation_id=?2",
+            params![session, operation], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )?;
+        let provenance: Provenance =
+            serde_json::from_str(&provenance).map_err(|_| StorageError::OperationNotFound)?;
+        // insert_message writes the message event; user_shell_admitted is its
+        // immediate successor in the SAME atomic admission transaction. This
+        // existing relation identifies input without inspecting any RAW prose.
+        let outcome: Outcome = match (phase.as_str(), outcome) {
+            ("terminal", Some(raw)) => {
+                serde_json::from_str(&raw).map_err(|_| StorageError::OperationNotFound)?
+            }
+            ("admitted" | "running", None) => {
+                let mut pending = Outcome::unknown("");
+                pending.state = "started".into();
+                pending.diagnostic = None;
+                pending
+            }
+            _ => return Err(StorageError::OperationNotFound),
+        };
+        if provenance.version != 1
+            || provenance.session != session
+            || provenance.operation != operation
+            || !provenance.turn.is_empty()
+            || outcome.version != 1
+            || if phase == "terminal" {
+                !matches!(
+                    outcome.state.as_str(),
+                    "completed" | "cancelled" | "timed_out" | "failed" | "unknown"
+                )
+            } else {
+                outcome.state != "started"
+            }
+        {
+            return Err(StorageError::OperationNotFound);
+        }
+        let output = Self::tool_presentation_in(&conn, session, &operation)?
+            .filter(|presentation| presentation.shell.is_some())
+            .unwrap_or_else(|| outcome.user_presentation());
+        let end = provenance
+            .command
+            .floor_char_boundary(TOOL_OP_PREVIEW_BYTES);
+        Ok(Some(oc_core::queries::UserShellResult {
+            input,
+            superseded_input,
+            operation,
+            command: provenance.command[..end].into(),
+            command_limited: end < provenance.command.len(),
+            state: outcome.state,
+            output,
+            diagnostic: outcome
+                .diagnostic
+                .map(|text| text[..text.floor_char_boundary(TOOL_OP_PREVIEW_BYTES)].into()),
+        }))
     }
 
     pub(crate) fn shell_notices_after(

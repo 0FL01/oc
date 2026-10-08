@@ -16,8 +16,6 @@ struct PendingUserShell {
     revision: u64,
     generation: u64,
     receipt: UserShellReceipt,
-    agent: Option<String>,
-    color: Option<usize>,
     cancelling: bool,
 }
 
@@ -86,13 +84,6 @@ impl TuiState {
             .request_user_shell(session.clone(), self.input.clone(), choice)
         {
             Ok(receipt) => {
-                let agent = self.active_agent.clone();
-                let color = agent.as_deref().and_then(|id| {
-                    self.agents
-                        .iter()
-                        .find(|a| a.id == id)
-                        .map(|a| a.color_index)
-                });
                 self.user_shell.pending = Some(PendingUserShell {
                     session,
                     fresh,
@@ -101,8 +92,6 @@ impl TuiState {
                     revision: self.input_revision,
                     generation: self.generation,
                     receipt,
-                    agent,
-                    color,
                     cancelling: false,
                 });
                 self.status = TuiStatus::PendingSubmission;
@@ -163,16 +152,15 @@ impl TuiState {
             self.status = TuiStatus::Idle;
         }
         match result {
-            Ok(_) => {
+            Ok(operation) => {
                 if pending.fresh {
                     self.session = Some(pending.session.clone());
                 }
                 self.model_submission_accepted(&pending.session, pending.selection.as_ref());
                 self.home = false;
-                // Mirrors the durable USER command, never ToolCallResult or
-                // an accepted LLM turn. Jobs owns all process/outcome events.
-                self.window
-                    .push_synthetic("user", &pending.command, pending.agent, pending.color);
+                // Receipt identifies the real admitted operation. This echo
+                // never fabricates a model call/result or durable message ID.
+                self.window.push_user_shell(operation, &pending.command);
                 self.invalidate_transcript();
                 self.conversation_available = None;
                 if self.input_revision == pending.revision && !pending.cancelling {

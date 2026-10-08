@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T20:19:37+00:00
+State updated: 2026-10-08T22:40:50+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,36 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 structured user Shell — delivery
+# T44 typed user Shell — qualified major slice
 
 ## Result
-Reviewed implementation/evidence commit
-`999a5880a8b9c17f3824eaf7463b05f45fd12d01` is PUSHED to verified
-`origin/agent/oc-rust-port`; remote moved07437fc1c→999a5880a, ahead/behind0/0.
-Source/report/checkpoint0097 and exact five qualified capture/audit prefixes are
-committed. Historical failed001/other untracked diagnostics preserved, not staged.
-See evidence/tui/user-shell-admission.md for atomic admission/owner/effect proof.
+Direct-user Shell input/running/completion now has typed standalone presentation
+from exact existing job/message facts. Late/result-only/evicted-page races, exact
+current-branch notice lookup and atomic admission after Undo/Revert are qualified.
+No fake model graph, RAW rewrite, new schema/store/executor/poll or replay.
+Receipt: evidence/tui/user-shell-presentation.md. Implementation is not yet
+committed at this checkpoint; reviewed own-branch delivery follows.
 
 ## Checks
-Same production source: fmt/strict workspace Clippy,1761/0/11 across46 results,
-debug/release/help, release startup/GET discovery and unchanged resource gates PASS.
-ActualPTY2 plus real policy/fault/queue/UI/Jobs/storage cases; UserShell00280x24/
-003120x40 both11 stages/22 ALL DIFFERENT,2explicit effects/0Responses-title-MCP,
-committed history before effects/NULL model turns/restart no replay. Independent
-normal27/default temporal6owners/144opaque PNG audit qualified, pixel NOT_PASS.
-Repo Python47/Node-Python syntax/source/docs/journal PASS. Git diff/staged review
-and exact padded .txt/.vt-only whitespace exclusions; no secret/config/lockfile
-staging, force push, release/tag or acceptance reset.
+Current fmt/strict workspace Clippy;1770/0/11 across46 results; debug/ordinary/
+release/help; actual release startup/GET discovery and unchanged resource gates
+PASS. Python47/Node-Python syntax/source/docs/journal checks PASS. Built paired
+00780x24/006120x40 both12 stages/24 ALL DIFFERENT,2effects/0Responses-title-MCP,
+NULL-turn/pre-effect committed history/restart no replay. Normal27/default six
+owners and independent144opaque PNG audit qualified behavior, pixel NOT_PASS.
 
 ## Risks
-Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Full parts/mode/Mini history is explicitly
-excluded by frozenVIS12 (2235–2238), not newly pending; real recalled-mode difference
-disclosed. Original RAW not decoded. .opencode/env/GOAL/acceptance/Cargo.lock and
-external T58 docs commit preserved. AUTH06 and original24/24/Go13/24 unchanged.
+Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS.26 remaining completed-frame styled cells
+are fresh-title and blank-padding foreground, not waived pixel acceptance. Full
+parts/mode/Mini is explicitly excluded by frozen VIS12; recalled mode difference
+disclosed. Failed/unattested001–005 and other historical diagnostics preserved,
+not staged. .opencode/env/GOAL/acceptance/Cargo.lock/auth ledgers unchanged.
 
 ## Next
-Continue remaining frozen prompt/pacing/scroll/profile/model/live-selection/tabs/
-session/Revert/compaction/files/approval/question/DCP/child/Shell/Terminals/MCP/
-retry/auth outcomes, including actual structured Shell presentation versus raw
-data-only notices, and final current-source R6/V09. Do not finish T44 on delivery.
+Review/stage only this slice and exact five final capture/audit prefixes, commit
+and normal push verified own branch. Then fix fresh-title/padding owners with real
+frames and continue every remaining frozen outcome plus final current R6/V09.
+Do not finish T44 on major-slice delivery.
 
 
 Ready (до 5): T58

@@ -169,6 +169,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
                 role: Role::Assistant,
                 text: String::new(),
                 model_switch: None,
+                user_shell: None,
                 turn: Some(HistoryTurn {
                     id: format!("turn-{seq}"),
                     status: "completed".into(),

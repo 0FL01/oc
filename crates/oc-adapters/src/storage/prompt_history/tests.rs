@@ -117,6 +117,17 @@ fn vis12_user_shell_admission_is_atomic_without_model_turn_and_recovers_without_
     };
     let admission = db.admit_user_shell_job(&p, true, None).unwrap();
     assert_eq!(admission.provenance().operation, "user-op");
+    let input_message = db.read_history_page_typed(&p.session, 10, None).unwrap()[0]
+        .id
+        .clone();
+    let input = db
+        .user_shell_result(&p.session, &input_message)
+        .unwrap()
+        .unwrap();
+    assert_eq!(input.state, "started");
+    assert!(input.input);
+    assert!(!input.superseded_input);
+    assert_eq!(input.command, p.command);
     assert_eq!(db.prompt_history(None).unwrap(), [p.command.clone()]);
     assert_eq!(
         db.shell_job_phase(&p.session, &p.operation).unwrap(),
@@ -161,9 +172,75 @@ fn vis12_user_shell_admission_is_atomic_without_model_turn_and_recovers_without_
         .unwrap();
     assert_eq!(state, "completed");
     drop(conn);
-    assert_eq!(db.deliver_shell_notices().unwrap().len(), 1);
+    let notices = db.deliver_shell_notices().unwrap();
+    assert_eq!(notices.len(), 1);
+    assert!(notices[0].user_requested);
+    let message = oc_core::session::MessageId(notices[0].message_id.clone());
+    let projected = db.user_shell_result(&p.session, &message).unwrap().unwrap();
+    assert_eq!(projected.command, p.command);
+    assert_eq!(projected.operation, p.operation);
+    assert_eq!(projected.state, "completed");
+    assert!(!projected.superseded_input);
+    assert!(!projected.input);
+    assert!(
+        db.user_shell_result(&p.session, &input_message)
+            .unwrap()
+            .unwrap()
+            .superseded_input
+    );
+    assert_eq!(
+        projected.output.shell.as_ref().unwrap().stdout,
+        result.stdout
+    );
+    assert_eq!(projected.output.shell.as_ref().unwrap().exit, Some(0));
+    assert!(!projected.command_limited && projected.output.is_valid());
+    assert!(
+        db.user_shell_result("foreign-session", &message)
+            .unwrap()
+            .is_none()
+    );
+    let raw = db.conversation_history_full(&p.session).unwrap();
+    assert_eq!(raw.last().unwrap().2, notices[0].text);
+    let spoof = db
+        .append_message(&p.session, "user", &notices[0].text)
+        .unwrap();
+    assert!(
+        db.user_shell_result(&p.session, &oc_core::session::MessageId(spoof))
+            .unwrap()
+            .is_none()
+    );
+    db.conn.lock().unwrap().execute("UPDATE events SET kind='not_user_shell' WHERE kind='user_shell_admitted' AND payload=?1", [&p.operation]).unwrap();
+    assert!(
+        db.user_shell_result(&p.session, &message)
+            .unwrap()
+            .is_none(),
+        "NULL turn and exact message linkage alone do not classify origin"
+    );
+    db.conn.lock().unwrap().execute("UPDATE events SET kind='user_shell_admitted' WHERE kind='not_user_shell' AND payload=?1", [&p.operation]).unwrap();
     assert!(db.deliver_shell_notices().unwrap().is_empty());
     assert_eq!(db.prompt_history(None).unwrap(), [p.command.clone()]);
+    for _ in 0..105 {
+        db.append_message(&p.session, "assistant", "ordinary later history")
+            .unwrap();
+    }
+    assert!(
+        db.read_history_page_typed(&p.session, 100, None)
+            .unwrap()
+            .iter()
+            .all(|row| row.id != message)
+    );
+    let exact = db
+        .read_history_message_typed(&p.session, &message)
+        .unwrap()
+        .unwrap();
+    assert_eq!(exact.id, message);
+    assert_eq!(exact.text, notices[0].text);
+    db.create_session("foreign-session").unwrap();
+    assert!(
+        db.read_history_message_typed("foreign-session", &message)
+            .unwrap()
+            .is_none()
+    );
     p.session = "interrupted-shell".into();
     p.operation = "interrupted-op".into();
     p.command = "printf never-replay".into();
@@ -196,4 +273,66 @@ fn vis12_user_shell_admission_is_atomic_without_model_turn_and_recovers_without_
     p.location = "/foreign".into();
     assert!(db.admit_user_shell_job(&p, false, None).is_err());
     assert_eq!(db.prompt_history(None).unwrap(), before);
+    drop(db);
+    let db = Db::open(&temp.path().join("data")).unwrap();
+    assert_eq!(
+        db.user_shell_result("user-shell", &message)
+            .unwrap()
+            .unwrap(),
+        projected
+    );
+    assert!(
+        db.deliver_shell_notices()
+            .unwrap()
+            .iter()
+            .all(|notice| notice.shell_id != "user-op")
+    );
+}
+
+#[test]
+fn direct_user_shell_projection_bounds_streams_without_reinterpreting_prepared_envelope() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    let p = crate::shell::jobs::Provenance {
+        version: 1,
+        session: "bounded-shell".into(),
+        turn: String::new(),
+        operation: "bounded-op".into(),
+        location: "/project".into(),
+        generation: 1,
+        output_limits: Default::default(),
+        output_source: "defaults".into(),
+        agent: None,
+        agent_digest: None,
+        model: "fixture".into(),
+        provider: "fixture".into(),
+        command: "Ω界".repeat(1000),
+        cwd: "/project".into(),
+        selected_shell: "/bin/sh".into(),
+    };
+    drop(db.admit_user_shell_job(&p, true, None).unwrap());
+    let mut result = crate::shell::jobs::Outcome::unknown("safe Ω界 diagnostic");
+    result.state = "failed".into();
+    result.output_prepared = true;
+    result.stdout = "model-only output-reference envelope, not stdout".into();
+    result.stdout_recent = Some("literal [truncated] Ω界\n".repeat(1000));
+    result.stderr_recent = Some("literal [timeout] Ω界\n".repeat(1000));
+    db.finish_shell_job(&p.operation, &result).unwrap();
+    let notice = db.deliver_shell_notices().unwrap().remove(0);
+    let projected = db
+        .user_shell_result(&p.session, &oc_core::session::MessageId(notice.message_id))
+        .unwrap()
+        .unwrap();
+    assert!(
+        projected.command_limited && projected.command.len() <= oc_core::tool_output::PREVIEW_BYTES
+    );
+    assert!(p.command.starts_with(&projected.command));
+    assert!(projected.output.is_valid());
+    let streams = projected.output.shell.unwrap();
+    assert!(!streams.stdout.contains("model-only"));
+    assert!(streams.stdout.contains("literal [truncated]"));
+    assert!(streams.stderr.contains("literal [timeout]"));
+    assert!(streams.stdout_limited && streams.stderr_limited);
+    assert!(streams.stdout.len() + streams.stderr.len() <= oc_core::tool_output::PREVIEW_BYTES);
+    assert!(!streams.timed_out && !streams.cancelled);
 }

@@ -1283,6 +1283,31 @@ impl Db {
             .collect())
     }
 
+    /// Exact current-branch lookup, with the same durable-ID bound as paging.
+    pub(crate) fn read_history_message_typed(
+        &self,
+        session: &str,
+        message: &oc_core::session::MessageId,
+    ) -> Result<Option<HistoryPageRow>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let mut remaining = HISTORY_PAGE_ID_BYTES;
+        conn.query_row(
+            "SELECT seq,role,text,id FROM conversation_messages WHERE session_id=?1 AND id=?2",
+            params![session, message.0],
+            |row| {
+                Ok(HistoryPageRow {
+                    id: page_message_id(row, &mut remaining)?,
+                    seq: row.get(0)?,
+                    role: row.get(1)?,
+                    text: row.get(2)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(Into::into)
+    }
+
     /// Newest-first bounded page with exact durable IDs.
     pub fn read_history_page_typed(
         &self,

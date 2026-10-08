@@ -205,6 +205,14 @@ impl TuiState {
         self.wheel_motion = None;
     }
 
+    /// Native command notices can settle during an assistant stream. Update
+    /// only their owner-projected records, preserving its live overlay/draft.
+    pub fn refresh_user_shell_page(&mut self, page: &HistoryPage) {
+        if self.window.refresh_user_shell(page) {
+            self.invalidate_transcript();
+        }
+    }
+
     /// Same-session TurnFinished receipt only. Explicit routing/conversation
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.

@@ -154,6 +154,56 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
             assert_eq!(snapshot.job.model, "fixture");
             assert_eq!(snapshot.job.provider, "fixture");
             assert!(snapshot.text.contains("USER-SHELL-OUTPUT"));
+            let page = tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    let page = app
+                        .history_page(session.clone(), None, None, 10)
+                        .await
+                        .unwrap();
+                    if page.rows.len() >= 2
+                        && page.rows.last().is_some_and(|row| {
+                            row.user_shell.as_ref().is_some_and(|shell| {
+                                !shell.superseded_input && shell.state == "completed"
+                            })
+                        })
+                    {
+                        break page;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            let row = page.rows.last().unwrap();
+            assert!(row.turn.is_none());
+            assert_eq!(row.role, Role::User);
+            assert!(
+                row.text.contains("native durable notice"),
+                "RAW data remains intact"
+            );
+            let projected = row.user_shell.as_ref().unwrap();
+            assert_eq!(projected.operation, operation);
+            assert_eq!(projected.command, command);
+            assert_eq!(
+                projected.output.shell.as_ref().unwrap().stdout,
+                "USER-SHELL-OUTPUT Ω界\n"
+            );
+            assert_eq!(projected.output.shell.as_ref().unwrap().exit, Some(0));
+            assert!(projected.output.is_valid());
+            let exact = app
+                .history_message(session.clone(), row.id.clone())
+                .await
+                .unwrap();
+            assert_eq!(exact.rows.as_slice(), std::slice::from_ref(row));
+            let missing = app
+                .history_message(
+                    session.clone(),
+                    oc_core::session::MessageId("not-a-message-in-this-session".into()),
+                )
+                .await
+                .unwrap();
+            assert!(missing.rows.is_empty());
+            assert_eq!(missing.total, page.total);
         }
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
