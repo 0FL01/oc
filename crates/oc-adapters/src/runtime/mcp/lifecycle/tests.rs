@@ -114,3 +114,36 @@ async fn failed_supervisor_join_remains_fatal_after_its_handle_is_consumed() {
         ));
     }
 }
+
+#[test]
+fn configured_display_label_keeps_unicode_and_long_names_but_not_sensitive_channels() {
+    for label in [
+        "chrome-devtools",
+        "codex_web",
+        "crw",
+        "日本語のMCP",
+        &"long_name_".repeat(100),
+    ] {
+        assert!(safe_display_label(label, &[]));
+    }
+    for label in [
+        "",
+        "https://private.invalid/mcp",
+        "/private/credential",
+        "../credential",
+        "~/credential",
+        "C:\\private\\credential",
+        "mcp\u{1b}[31m",
+        "mcp\nname",
+        "mcp\u{202e}name",
+        "{file:credential}",
+        "{env:AUTH}",
+    ] {
+        assert!(!safe_display_label(label, &[]));
+    }
+    assert!(!safe_display_label(
+        "prefix-protected-suffix",
+        &["protected".into()]
+    ));
+    assert!(safe_display_label("ordinary", &[String::new()]));
+}

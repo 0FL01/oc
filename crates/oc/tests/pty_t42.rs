@@ -3473,7 +3473,7 @@ fn aud38_location_switch_is_one_lifecycle() {
     // R7 starts the target's MCP independently. Observe genuine readiness
     // before asking this text-only scripted model to use its first catalog.
     pty.send(b"/mcps\r");
-    wait_screen_row(&pty, "server-", DEADLINE);
+    wait_screen_row(&pty, "t42mcp", DEADLINE);
     wait_screen_row(&pty, "Connected", DEADLINE);
     pty.send(b"\x1b");
     wait_dialog_closed(&pty, "MCP servers");

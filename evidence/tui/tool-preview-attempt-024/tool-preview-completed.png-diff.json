@@ -1,0 +1,18 @@
+{
+  "kind": "png",
+  "status": "FAIL",
+  "scope": "decoded RGBA equality only; use capture lock for provenance/profile",
+  "reference_sha256": "2e167ac8bdeea059b786e790305600ee3b88d98ca8bf7c0567b24b50b0234761",
+  "actual_sha256": "073d7d3cb932e5db1a7fe0cab99b1729e80edb1693e46fad4f104f0804b31427",
+  "width": 1011,
+  "height": 640,
+  "pixels_checked": 647040,
+  "different_pixels": 66994,
+  "changed_fraction_diagnostic_only": 0.10353919386745797,
+  "difference_bbox_inclusive": [
+    17,
+    98,
+    992,
+    623
+  ]
+}

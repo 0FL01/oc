@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T02:45:34+00:00
+State updated: 2026-10-08T05:31:45+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,40 +12,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — typed MCP modal status presentation
+# T44 — safe configured MCP label projection
 
 ## Result
-Existing bounded typed MCP inventory controls status labels, unselected semantic
-tones and intrinsic Connected bold in the current list. Selected action fg/bg
-remain unchanged; pending disconnect uses frozen Connecting label. Details and
-unrelated Select footers are not inferred from prose. No new owner/store/poll/API.
-Receipt: evidence/tui/mcp-status-presentation.md. Whole T44 remains ACTIVE.
+Existing MCP snapshot.name uses exact safe effective configured labels; unsafe
+keys use prior opaque fallback before publication. Cached recognized sensitive
+fields cover inactive/failed/unsupported entries and legacy endpoints without
+inactive file reads. Activation reports transient resolved values even on partial
+failure/refusal, masks all nodes and stays sticky. Opaque IDs/bindings/diagnostics/
+tool names and launch authority remain unchanged; no registry/store/secret history.
+Service feedback joins typed diagnostic provenance to opaque row ID, never label.
+Receipt: evidence/tui/mcp-label-projection.md. Whole T44 remains ACTIVE.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1734/0/11 across46 completed results,
-locked/ordinary debug, release/help and actual startup/discovery PASS. Typed TUI
-matrix and actual MCP lifecycle1/0 each; repo Python47/0, Node syntax/source checks.
-Final mixed005 eleven paired stages at120/80/160: both behavior-qualified, zero
-model/tool effects, semantic tones true, exact Unicode draft/caret restoration.
-Native Connected bold true/original false;22 full comparisons ALL DIFFERENT.
-Ordinary02227 stages behavior-qualified plus two native resource frames,4 EQUAL/
-50 DIFFERENT+4 native-only entries; six requests/four effects/three MCP calls/
-Shell17-byte single effect and identical artifacts/RAW facts through restart.
-Temporal025 six states≥3 full raster cycles/no phantom/no replay;144 full PNGs
-audited,67 matched pairs/134 strict comparisons ALL DIFFERENT, not pixel PASS.
+Current fmt/strict locked workspace Clippy,1741/0/11 across46 completed results,
+locked/ordinary debug, release/help and actual startup/discovery PASS. MCP08 nine
+cases, actual MCP41/PTYT39/T42/soak guards, VIS42 pending/reload regression; repo
+Python47/0 and Node/source/docs checks. Final mixed008 thirteen paired stages at
+80/120/160 plus real configured-label search/details: both behavior-qualified,
+zero model/tool effects, exact draft/caret restoration;26 full comparisons DIFFERENT.
+Ordinary02427 paired stages plus native resource views:4 EQUAL/50 DIFFERENT+4 native
+only, unchanged six requests/four effects/three MCP calls/Shell17-byte effect and
+RAW/artifacts through restart. Temporal027 six states≥3 cycles/no phantom/no replay;
+144 opaque PNGs audited,71 matched pairs/142 strict comparisons ALL DIFFERENT.
 
 ## Risks
-Running original loses source-required Connected bold. Opaque configured names,
-native safe feedback and all full-frame differences remain unmasked. Temporal024
-failed strict sampling/cadence; no threshold/prod/observer change to admit it.
-No whole VIS40/VIS31/R6/V09 PASS. AUTH06 deferred/original24/24/Go13/24 unchanged.
-Unrelated .opencode/ and all immutable earlier captures untouched; no paid calls.
+Known source-required Connected bold differs from running original; modal details,
+safe feedback, truthful version and all full-frame differences remain unmasked.
+Legacy alias test was RED then fixed; earlier qualified captures remain historical,
+not final source substitutes. No whole VIS40/VIS31/R6/V09 PASS. AUTH06 deferred;
+original24/24/Go13/24 unchanged. Unrelated .opencode/ and immutable captures untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then implement configured MCP label protection
-at the existing owner publication/admission seams (MCP08), preserving opaque action
-IDs and pre-publication secret safety, and every remaining frozen R1–R6/VIS01–VIS45.
-Final current-source R6/V09 only after full closure; no task finish on this slice.
+Commit/push reviewed code/evidence, then continue mandatory MCP modal interaction/
+details and every remaining frozen R1–R6/VIS01–VIS45. Final current-source R6/V09
+only after full closure; no task finish or acceptance reset on this slice.
 
 
 Ready (до 5): нет

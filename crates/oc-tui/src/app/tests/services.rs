@@ -26,7 +26,7 @@ fn mcp(status: McpStatus, diagnostic: Option<ServiceDiagnostic>, revision: u64) 
         revision,
         servers: vec![McpServerSnapshot {
             id: "control-fixture".into(),
-            name: "service-opaque-fixture".into(),
+            name: "configured Unicode Ω MCP".into(),
             configured_enabled: true,
             status,
             pending_action: None,
@@ -321,6 +321,24 @@ async fn vis42_catalog_and_mcp_share_typed_change_detection_without_a_history_le
     let expiry = state.toast_expiry.as_ref().unwrap().started;
     state.apply_mcp_snapshot(mcp(McpStatus::Failed, Some(issue), 1));
     assert_eq!(state.toast_expiry.as_ref().unwrap().started, expiry);
+    state.push_transient_note("independent operation feedback", NoteVariant::Warning);
+    let mut pending = mcp(McpStatus::Pending, None, 2);
+    pending.servers[0].name = "masked-after-activation".into();
+    state.apply_mcp_snapshot(pending);
+    assert_eq!(state.note(), Some("independent operation feedback"));
+    assert_eq!(state.service_pending_count(), 1);
+    assert_eq!(state.service_issue_count(), 0);
+    state.apply_catalog(catalog.clone());
+    assert_eq!(state.note(), Some("independent operation feedback"));
+    state.apply_mcp_snapshot(mcp(
+        McpStatus::Failed,
+        Some(catalog.chrome.service_diagnostics[0].clone()),
+        3,
+    ));
+    assert_eq!(state.note(), Some("independent operation feedback"));
+    assert!(state.service_pending_issues.is_empty());
+    assert_eq!(state.service_issue_count(), 1);
+    let expiry = state.toast_expiry.as_ref().unwrap().started;
     // Selection Location epoch and a rebuilt runtime's MCP generation are
     // different owners/clocks. Republished catalog epochs do not clear MCP.
     catalog.chrome.selection_generation = 73;

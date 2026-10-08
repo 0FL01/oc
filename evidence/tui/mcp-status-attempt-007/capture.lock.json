@@ -1,0 +1,5199 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T04:41:47.696Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "1301b8e141ea47f799fb83116c4b937a2795b022b0a4c49dabe74335f7c3cf3b",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "af705c971eff96b30aed03299f56b8b05bb44ded29b855dee63406440b8dd5e0",
+    "tool_preview_fixture.py": "428af9489578b95007af8129494acf691591dafd7b855e92e7a5d9f9aa86400c",
+    "tool_preview_mcp.py": "eb94847f2cc44c012947f3faa9cd43236b981f83d4024a0012ab1c35341cfa7d",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "mcp_status.mjs": "aa17631581a4f470a7291579ac762dbef3f36aac40df4737cba5cb425908f209"
+  },
+  "fixture_sha256": "a5d5841148452f59567c8f1686dc6c42f834ecdf41616c8d39123eb237154111",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "779b382a9bf8942e2d678da2ee3d9512ad420cb2",
+    "tree": "759f00a55f5aec99a3e4c1e1474fc17100b7c2e5",
+    "dirty_diff_sha256": "9e35e6e814c9f3e7b0cfcb19d7c85a98e482fe834862b13d2421259bcb8b36e5",
+    "source_manifest_sha256": "f6630bdb436132c2749b8a3e667962578f53949661c14660ec7fba9dbd7cda7b",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "24d0e97e32aa013484943dd43c8c403c063af9941df47a8d9da0dd9c5642d1cc",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-status-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "486464159ea0bb3f8e5df4ef27916fc229531a27b77fb417ef37684fc3d1d883",
+      "png_sha256": "f70d18aeed3fa033e7e07e6856ef2ace19c6c23ddb89abc0d61132b6443aed69",
+      "render_sha256": "634b68b6555bc83e1cedd9ac50c6642b5bc057f29d0e7a3c934b6d34947e86ad",
+      "path": "upstream/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "05f465eeaa8e284c851bc4239c4ae0f9ea51e3ab438c09f7130b5436d37c3d54",
+      "png_sha256": "a7b83513488371f3874cfe4b19faf173fec334e083344dbb6b1d4a555b2f0c60",
+      "render_sha256": "cc2736a717572c908e6422b4e911580c099d52916b994be22907dcda804b22d0",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "99363a40a104ef91420482baecbc4be49cd2ce92ee7dad35b824d0d66aaad36e",
+      "png_sha256": "99de1bf73dea3580f91e0f6b93ea482e27969a29dcc64858b93eb46662e7d26b",
+      "render_sha256": "b465849724c38cf7cdf108ce1cde3326658347c62161f89d812a42522fcfa509",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "5dce5830af82c63f7a4d47761ecc2efb89e54fcda01e79db009ed40cd84db27a",
+      "png_sha256": "7eca88b7a154bb122d20324a29077e88c2d618e575d6fb09e0140acfa492de30",
+      "render_sha256": "06c24d9df1efea170e326ffc483317fa2c201119128f6cfc3c4264a00e9d3075",
+      "path": "upstream/tool-preview-mcp-status-120x40-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "026ae253c76aaba61405bde2636e5704f8d0efad8736f328a1ff269d389e4b49",
+      "png_sha256": "209e31b66e48b5141248da859a5079b42ab21b99bed3362a3d080b520fc660c5",
+      "render_sha256": "47eb3c3e537658c38e5586fc3cbeb99bfe850303afef00b9f6b1e606c16a2da3",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "7c1900a4457fc1a15679b8a44d76c6a89c48e17e46756077cf78ebc14f9a9127",
+      "png_sha256": "d1e71be79a9668e7dd022e65fd53f0298cadb40f769b10511dad4b1a330bf2c4",
+      "render_sha256": "44788d42397acfc8645617370924a1e36516e03b7999e2ba6905954e7dbe4fd8",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "dbf500aa9282f751432e73d28718b2f167f0d86659a0be75138649ead6eaa1ca",
+      "png_sha256": "4feb021f42ed2822c3b27aaeb38cd051e86798fa204aa2197ca066dcd2eee0ef",
+      "render_sha256": "829af315961f1906b6d036c7eaf3198819b2ab029bd0537a117925495748b35a",
+      "path": "upstream/tool-preview-mcp-status-80x24-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "8a5f21c8a82ca775cd27dec4314beeb0a88e8db046357987af43292d05f19a35",
+      "png_sha256": "eac69842e530b8f9635a52ae36504b894c44a2bbf29808f39a28b7a8bbcce52f",
+      "render_sha256": "08013e636225da898b71252df1be1a6193f9aaaa76d3242df6b41ba6f8914dc6",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-0"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "080de2834bde2b01ba3811801648010c24515a59532b9c387977c7df134065e3",
+      "png_sha256": "d3f12ed3ac47f7978f184d021681eb4cf5dea3f453452f83f8ee64e85e9a5c65",
+      "render_sha256": "f89b5e5a0091e7ba1f38215d1f0912fe89d8a5829d400559615952212494d90f",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "fa4f02ac6724e10301171cd594f9170bcbfade0b0e4445c72c0b23399c3b12d7",
+      "png_sha256": "931f1f708c31e8330e2bb784b9440244c4227481551d98397b65877799adb982",
+      "render_sha256": "65c0722c40ce942a81ac773ae20cfbd87dc37db5ba13ac8c0dd9b3d59aa47ee7",
+      "path": "upstream/tool-preview-mcp-status-160x48-selection-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "ff7b9a15992bfe04d0be829d6cdfc8ecf2b47e449b6761cd79056420af9cb563",
+      "png_sha256": "f874028d987292750a50abac705ae8d3a87889bcbf0f50f16e0183a0cd329256",
+      "render_sha256": "29c4382b0fda9d83665be51ea4d1539fdbe21496f952b6018f4c6740833ed1c2",
+      "path": "upstream/tool-preview-mcp-status-configured-search"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "b76070001c6dfef0c2b086d9052afff0a02ce0d5b9385dca1ee6ddcce4dafbb4",
+      "png_sha256": "d67be31e2ba503baea23b651fef559530ac2a36ccf5000a1251689b9584fb1b7",
+      "render_sha256": "52ee0b784cb5bf581ae802c6237e28b583b795d5a92d8a5024ee90e9408ac6bd",
+      "path": "upstream/tool-preview-mcp-status-configured-details"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-status-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "0d475ddf9423d248c800218aa26dedca397fa3b62c9427010a3d34cb752448cc",
+      "png_sha256": "f0283680e23a06cc5859f613720d9df603892370da6508ee2c6a8ec3c8aa9e1e",
+      "render_sha256": "1d9296b8915b4911a8267c0f75ace36278ad06bb7e6b118da146b2cb7bc78ad8",
+      "path": "upstream/tool-preview-mcp-status-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "78118103713de2524d3ab16f972ca970fc6e68356cac352f16b45863b4581c0e",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "7323159b56d1c4fe34b27ac8bd4725765937000406ae1eb24044ea16ae957af4",
+      "path": "oc/tool-preview-mcp-status-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "4767faf0af7d8f21ac55bcbaef388b21441093b07d4483df8636a7e3adf96f64",
+      "png_sha256": "c8c2cafdd3380506f7897a223ae8d393028d9d939ce820941147acec884dc5f5",
+      "render_sha256": "47d565773836685acebedc985a641b6a2fdff8274d2873d21ad1341043d31492",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "0ada86b090bc597dd5cbdcf191429fe854f7301146bd646a6d0a835271d2521c",
+      "png_sha256": "d437381462c67d9931456631d1f46f2849f52bdc872232c932df1a6119cdb4d7",
+      "render_sha256": "bcdec2ae63a33a13bec6f6ae056c36d8ffa31455ed6ce049842b9d43ea4a871d",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-120x40-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "e4433923954d02f6777cbe4ac0e3aec62a51019a1e4b38fa866c3b3b091b07e8",
+      "png_sha256": "94233370bf2f26d8592b0c5cc54b4676c56cec678f6941e5405c6aa864114d37",
+      "render_sha256": "406e9d35d1e528a630ed7d5f1b08fd1252bdec43f66c8951fcc4847072449016",
+      "path": "oc/tool-preview-mcp-status-120x40-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "db0aa2c4e50256ea53870acfbec0982738d268dcba5fdca96502c16b83f96d18",
+      "png_sha256": "fa8af8e39ec54bd364919224697609c9f1258244abaa9cc9e271057eaddbee63",
+      "render_sha256": "38529a4a0b0ff4bf4a3d693bc4e86797029881bf4bcba639e89a45ab8ee99251",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "1b60ead4c508b7191319e1fa70e13df9a16f6028dca81cc9f53f88dec37ac5dd",
+      "png_sha256": "149685f6c50ec7ed84b11e1219b21cebe1d521fc5871ddd9867e422851e38614",
+      "render_sha256": "e36873b7077f500e9c9765f399650a56d226dccd94bceab9a871faf7deadb727",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-80x24-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "4bd9d353cd43ada3edb3bba2da71639f028fbfde4bcd04d37a28fb3d4547124a",
+      "cells_sha256": "dd5847143a457682dfd0b654226e9cdf27663156ba395a466c689b0d45cbf911",
+      "png_sha256": "3dcad6bc018350f6bf23b4d2c8761ac1a518379bd7d85e07b415ee9073df9cc6",
+      "render_sha256": "e225a10081a9e3b34c13cc21e5382b39623546e05dbc405625df93e2daeb1522",
+      "path": "oc/tool-preview-mcp-status-80x24-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-0",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "c3ee464c70a32f8551c3262b16e46e2d8124388d475e925bcd21bd834c2d30f6",
+      "png_sha256": "46fbbea468aae5478892752a6090656fcf5a60e747d1bf2899084b2d8fc29ae7",
+      "render_sha256": "85f663c2bf09a3e3a701a015c71e3baf613802b6f973366ce3cd1e062f2ed685",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-0"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "132de0c0cc455b561e90984b1f5fc6e5d72afae7602ea1fe88e7b283bc88b297",
+      "png_sha256": "0fb8a9ea44e126b34ddc14b56b9533341a5df4c0841c856b55ab61dbb5cbbe19",
+      "render_sha256": "a3a7638b70e788454a9b6e9f9a18077a915a7536b45704d4e2f66664c8d2adf0",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-160x48-selection-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "19ba780782fac858ca97f046c482e38bbf8435bdef167fdc909f97a297d65d3f",
+      "cells_sha256": "d2252c20231917d1a0c6bca7fee8756f06432e0a382b3f76d16a80ee92bd98bb",
+      "png_sha256": "73be5aa05a0a0a60ad6acdcd9f898ebff9be57802faff777fc61480242df8cd8",
+      "render_sha256": "892bb6e99279ce6eb910d2577769deb72974cf87ff651b0763f121efe547df46",
+      "path": "oc/tool-preview-mcp-status-160x48-selection-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-configured-search",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "ba0067ed2f0e3b3a7151f2d3fcf2bb9b64d41ec96e951c87d1256be7c5083cc3",
+      "png_sha256": "dfb59a1282642fd4b64dbbf69df29590d9799f205374602082e66b301991f65b",
+      "render_sha256": "dc3053a480db0410ac9209e757bd3b052af5a3ef9e5810ff09c7bbe98cb0eaab",
+      "path": "oc/tool-preview-mcp-status-configured-search"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-configured-details",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "8eec8446549af9aef70cc25aa81e529591ea7628ceca900904a49010d87014a9",
+      "png_sha256": "fe2dc027d2c27634d26ba6d55cc8d2835bc31901a61665115eb120cf17386086",
+      "render_sha256": "06fe66bcdbdc04382777639ae1dede0d5df7fcbaa5a69d5dd621d4d97cc0d841",
+      "path": "oc/tool-preview-mcp-status-configured-details"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-status-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "520bba8ee92e937a97445ad7547179dfc2cf03bfe2a6d847a04df54041b91f35",
+      "cells_sha256": "efca79424dcbe2a33c650b49377eb631d4d73d47c266278cc50e2d302c89c353",
+      "png_sha256": "92e2f3d26ca350611b00f7b9bc85e2f201c4cf67ebe2f12cd9d3cfbd620b0fb8",
+      "render_sha256": "410363a5bc13326df748ee82fea5397153d9a5ca5a93bb279dc5c02dc5a684be",
+      "path": "oc/tool-preview-mcp-status-restored"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-search",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-details",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 90,
+            "y": 18,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Configured-label projection, safe native diagnostics and action-footer interaction remain independently open."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_STATUS",
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "draft_and_caret_restored": true,
+        "selections": [
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ]
+        ],
+        "geometries": [
+          {
+            "columns": 120,
+            "rows": 40
+          },
+          {
+            "columns": 80,
+            "rows": 24
+          },
+          {
+            "columns": 160,
+            "rows": 48
+          }
+        ],
+        "semantic_tones": true,
+        "intrinsic_connected_bold": false,
+        "configured_labels": [
+          "visdisabled",
+          "visfailed",
+          "vishealthy"
+        ],
+        "configured_search_and_details": true,
+        "source_contract": "Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold."
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-status-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-120x40-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-80x24-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-0",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-160x48-selection-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-search",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-configured-details",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-status-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 42,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Configured-label projection, safe native diagnostics and action-footer interaction remain independently open."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_STATUS",
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "draft_and_caret_restored": true,
+        "selections": [
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 75,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 76,
+              "y": 15,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 78,
+              "y": 16,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 55,
+              "y": 13,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 56,
+              "y": 11,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 58,
+              "y": 12,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#7fd88f",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "label": "Connected ✓",
+              "x": 95,
+              "y": 19,
+              "cells": [
+                {
+                  "symbol": "C",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "o",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "n",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "c",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "t",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                },
+                {
+                  "symbol": "✓",
+                  "fg": "#0a0a0a",
+                  "bg": "#fab283",
+                  "width": 1,
+                  "modifiers": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "label": "Disabled ○",
+              "x": 96,
+              "y": 17,
+              "cells": [
+                {
+                  "symbol": "D",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "s",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "b",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "○",
+                  "fg": "#808080",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            },
+            {
+              "label": "Failed !",
+              "x": 98,
+              "y": 18,
+              "cells": [
+                {
+                  "symbol": "F",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "a",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "i",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "l",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "e",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "d",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": " ",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                },
+                {
+                  "symbol": "!",
+                  "fg": "#e06c75",
+                  "bg": "#141414",
+                  "width": 1,
+                  "modifiers": []
+                }
+              ]
+            }
+          ]
+        ],
+        "geometries": [
+          {
+            "columns": 120,
+            "rows": 40
+          },
+          {
+            "columns": 80,
+            "rows": 24
+          },
+          {
+            "columns": 160,
+            "rows": 48
+          }
+        ],
+        "semantic_tones": true,
+        "intrinsic_connected_bold": true,
+        "configured_labels": [
+          "visdisabled",
+          "visfailed",
+          "vishealthy"
+        ],
+        "configured_search_and_details": true,
+        "source_contract": "Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold."
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_MCP_STATUS_ONLY",
+    "actual_requests": "Zero model requests/tools; three actual configured connected/disabled/failed MCP rows",
+    "observation": "Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately"
+  },
+  "finished": "2026-10-08T04:43:57.162Z",
+  "exit_code": 1
+}

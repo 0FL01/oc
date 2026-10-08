@@ -62,9 +62,16 @@ impl Fixture {
         catalog: &str,
         disabled: bool,
     ) -> Value {
+        let gate = |value: &str| {
+            if value == "-" {
+                self.project.display().to_string()
+            } else {
+                value.to_string()
+            }
+        };
         json!({"type":"local","disabled":disabled,
             "command":["/usr/bin/python3", Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/mcp10-lifecycle.py"),
-                report,label,initialize,catalog,&self.project],
+                report,format!("peer-{label}"),gate(initialize),gate(catalog),&self.project],
             "timeout":{"startup":3000,"catalog":3000,"execution":3000}})
     }
 
@@ -76,18 +83,177 @@ impl Fixture {
     }
 }
 
+#[tokio::test]
+async fn mcp08_partial_substitution_refusal_protects_resolved_token_without_spawning() {
+    for value in [
+        "Bearer refusal-secret\n",
+        "Bearer\trefusal-secret",
+        "Bearer  refusal-secret",
+    ] {
+        let fixture = Fixture::new();
+        let report = fixture.project.join("sibling.json");
+        fixture.config(json!({"servers":{
+            "activator":{"type":"remote","url":"https://example.invalid/mcp","disabled":true,
+                "headers":{"Authorization":"{file:first}{file:missing}"}},
+            "refusal-secret":fixture.entry("sibling", &report, "-", "-", true)
+        }}));
+        fs::write(fixture.global.join("first"), value).unwrap();
+        let (app, guard) = fixture.spawn().await;
+        let initial = app.mcp_status().await.unwrap();
+        assert!(
+            initial
+                .servers
+                .iter()
+                .any(|row| row.name == "refusal-secret")
+        );
+        assert!(
+            app.mcp_control(control(&initial, "activator", McpAction::Connect))
+                .await
+                .is_err()
+        );
+        let after = app.mcp_status().await.unwrap();
+        let row = after
+            .servers
+            .iter()
+            .find(|row| row.id == mcp_id("refusal-secret"))
+            .unwrap();
+        assert_eq!(
+            row.name,
+            crate::config::mcp::safe_identity("refusal-secret")
+        );
+        assert!(!format!("{after:?}").contains("refusal-secret"));
+        assert!(!report.exists());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn mcp08_initial_labels_observe_effective_inherited_stdio_protection() {
+    let mut fixture = Fixture::new();
+    fixture
+        .env
+        .insert("BENIGN_ALIAS".into(), "inherited-secret".into());
+    let healthy = fixture.project.join("healthy.json");
+    let sibling = fixture.project.join("sibling.json");
+    fixture.config(json!({"servers":{
+        "healthy":fixture.entry("healthy", &healthy, "-", "-", false),
+        "inherited-secret":fixture.entry("sibling", &sibling, "-", "-", true)
+    }}));
+    let (app, guard) = fixture.spawn().await;
+    let (snapshot, row) = wait_status(&app, "healthy", McpStatus::Connected).await;
+    assert_eq!(row.name, "healthy");
+    let hidden = snapshot
+        .servers
+        .iter()
+        .find(|row| row.id == mcp_id("inherited-secret"))
+        .unwrap();
+    assert_eq!(
+        hidden.name,
+        crate::config::mcp::safe_identity("inherited-secret")
+    );
+    assert!(!format!("{snapshot:?}").contains("inherited-secret"));
+    assert_eq!(events(&healthy, "spawn"), 1);
+    assert!(!sibling.exists());
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_reaped(&healthy);
+}
+
+#[tokio::test]
+async fn mcp08_known_env_in_mixed_inactive_template_is_protected_before_and_after_refusal() {
+    let mut fixture = Fixture::new();
+    fixture
+        .env
+        .insert("BENIGN_ALIAS".into(), "known-env-secret".into());
+    fixture.config(json!({"servers":{
+        "activator":{"type":"remote","url":"http://127.0.0.1:9/mcp","disabled":true,
+            "headers":{"Authorization":"prefix-{env:BENIGN_ALIAS}{file:missing}-suffix"}},
+        "known-env-secret":{"type":"remote","url":"http://127.0.0.1:9/mcp","disabled":true}
+    }}));
+    let (app, guard) = fixture.spawn().await;
+    let initial = app.mcp_status().await.unwrap();
+    let hidden = initial
+        .servers
+        .iter()
+        .find(|row| row.id == mcp_id("known-env-secret"))
+        .unwrap();
+    assert_eq!(
+        hidden.name,
+        crate::config::mcp::safe_identity("known-env-secret")
+    );
+    assert!(!format!("{initial:?}").contains("known-env-secret"));
+    assert!(
+        app.mcp_control(control(&initial, "activator", McpAction::Connect))
+            .await
+            .is_err()
+    );
+    let after = app.mcp_status().await.unwrap();
+    assert!(
+        after
+            .servers
+            .iter()
+            .all(|row| row.status == McpStatus::Disabled)
+    );
+    assert_eq!(
+        after
+            .servers
+            .iter()
+            .find(|row| row.id == hidden.id)
+            .unwrap()
+            .name,
+        hidden.name
+    );
+    assert!(!format!("{after:?}").contains("known-env-secret"));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn mcp08_label_protection_does_not_expand_local_launch_credential_authority() {
+    let fixture = Fixture::new();
+    fixture.config(
+        json!({"servers":{"chrome-devtools":{"type":"local","disabled":true,
+        "command":["never-spawn"],"environment":{"npm_config_offline":"true"}}}}),
+    );
+    fs::write(
+        fixture.project.join("opencode.json"),
+        json!({"mcp":{"peer":{
+            "type":"local","command":["/bin/true"]
+        }}})
+        .to_string(),
+    )
+    .unwrap();
+    let loaded = composition::load_with_env(&fixture.project, fixture.env.clone())
+        .await
+        .unwrap();
+    assert!(loaded.generation.mcp["peer"].resource_admitted);
+    assert!(
+        !loaded.generation.mcp["peer"]
+            .blocked_inherited_values
+            .iter()
+            .any(|value| value == "true")
+    );
+}
+
 fn control(snapshot: &McpSnapshot, name: &str, action: McpAction) -> McpControl {
     McpControl {
         binding: snapshot.binding.clone(),
         server: snapshot
             .servers
             .iter()
-            .find(|row| row.name == crate::config::mcp::safe_identity(name))
+            .find(|row| row.id == mcp_id(name))
             .unwrap()
             .id
             .clone(),
         action,
     }
+}
+
+fn mcp_id(name: &str) -> String {
+    use sha2::Digest;
+    let digest = format!("{:x}", sha2::Sha256::digest(name.as_bytes()));
+    format!("mcp-{}", &digest[..16])
 }
 
 async fn wait_status(
@@ -104,7 +270,7 @@ async fn wait_status(
         let row = snapshot
             .servers
             .iter()
-            .find(|row| row.name == crate::config::mcp::safe_identity(name))
+            .find(|row| row.id == mcp_id(name))
             .unwrap();
         if row.status == status {
             return (snapshot.clone(), row.clone());
@@ -280,7 +446,7 @@ async fn mcp08_disabled_project_activation_cannot_reintroduce_orphan_product_cre
         after
             .servers
             .iter()
-            .find(|r| r.name == crate::config::mcp::safe_identity("healthy"))
+            .find(|r| r.id == mcp_id("healthy"))
             .unwrap()
             .status,
         McpStatus::Connected
@@ -342,4 +508,97 @@ async fn mcp10_reload_and_location_join_old_pending_jobs_and_reject_stale_action
     assert_eq!(events(&new, "spawn"), 1);
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn mcp08_new_activation_values_mask_all_labels_even_on_refusal_and_stay_masked() {
+    const SECRET: &str = "mcp10-activated-canary";
+    for refused in [false, true] {
+        let fixture = Fixture::new();
+        let report = fixture.project.join("activator.json");
+        let sibling = fixture.project.join("sibling.json");
+        let mut entry = fixture.entry("activator", &report, "-", "-", true);
+        entry["environment"] = json!({"MCP10_CANARY":"{file:token}"});
+        if refused {
+            // A real resource-admission refusal AFTER the credential was read.
+            entry["cwd"] = json!(fixture.global);
+        }
+        fixture.config(json!({"servers":{
+            "activator":entry,
+            SECRET:fixture.entry("sibling", &sibling, "-", "-", true)
+        }}));
+        fs::write(fixture.global.join("token"), SECRET).unwrap();
+        let (app, guard) = fixture.spawn().await;
+        let initial = app.mcp_status().await.unwrap();
+        let sibling_id = mcp_id(SECRET);
+        let original = initial
+            .servers
+            .iter()
+            .find(|row| row.id == sibling_id)
+            .unwrap();
+        assert_eq!(
+            original.name, SECRET,
+            "startup read an inactive credential file"
+        );
+        assert!(!report.exists() && !sibling.exists());
+        let result = app
+            .mcp_control(control(&initial, "activator", McpAction::Connect))
+            .await;
+        if refused {
+            assert!(result.is_err());
+            assert!(!report.exists(), "refused entry spawned");
+        } else {
+            result.unwrap();
+            let (connected, row) = wait_status(&app, "activator", McpStatus::Connected).await;
+            assert_eq!(row.name, "activator");
+            assert_eq!(events(&report, "spawn"), 1);
+            app.mcp_control(control(&connected, "activator", McpAction::Disconnect))
+                .await
+                .unwrap();
+            wait_status(&app, "activator", McpStatus::Disabled).await;
+            assert_reaped(&report);
+        }
+        let masked = app.mcp_status().await.unwrap();
+        let row = masked
+            .servers
+            .iter()
+            .find(|row| row.id == sibling_id)
+            .unwrap();
+        assert_eq!(row.name, crate::config::mcp::safe_identity(SECRET));
+        assert_eq!(row.id, original.id);
+        assert_eq!(masked.binding, initial.binding);
+        assert!(!format!("{masked:?}").contains(SECRET));
+        assert!(
+            !sibling.exists(),
+            "label masking redirected the action to its sibling"
+        );
+        // A later action no longer resolving the original value cannot unmask it.
+        fs::write(fixture.global.join("token"), "later-protected-value").unwrap();
+        let result = app
+            .mcp_control(control(&masked, "activator", McpAction::Connect))
+            .await;
+        if refused {
+            assert!(result.is_err());
+        } else {
+            result.unwrap();
+            wait_status(&app, "activator", McpStatus::Connected).await;
+        }
+        let later = app.mcp_status().await.unwrap();
+        assert_eq!(
+            later
+                .servers
+                .iter()
+                .find(|row| row.id == sibling_id)
+                .unwrap()
+                .name,
+            row.name
+        );
+        assert!(!format!("{later:?}").contains(SECRET));
+        assert!(!sibling.exists());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        if !refused {
+            assert_reaped(&report);
+        }
+    }
 }

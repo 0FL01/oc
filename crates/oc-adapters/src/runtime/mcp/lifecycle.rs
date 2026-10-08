@@ -272,6 +272,19 @@ impl McpOwner {
                 "MCP resource runtime unavailable".into(),
             ));
         }
+        let mut protected = mcp_redactions(&config, &env);
+        for entry in config.mcp.values() {
+            protected.extend(crate::config::mcp::entry_credential_values(entry, &env));
+        }
+        if let Some(activation) = &activation
+            && !config.mcp.is_empty()
+        {
+            protected.extend(
+                activation
+                    .protected_values(&env)
+                    .map_err(RuntimeError::InvalidArgs)?,
+            );
+        }
         let mut nodes = BTreeMap::new();
         for (server, entry) in &config.mcp {
             use sha2::{Digest, Sha256};
@@ -296,7 +309,11 @@ impl McpOwner {
                             digest[6],
                             digest[7]
                         ),
-                        name: safe_server_id(server),
+                        name: if safe_display_label(server, &protected) {
+                            server.clone()
+                        } else {
+                            safe_server_id(server)
+                        },
                         configured_enabled: entry.enabled,
                         status: if entry.failure.is_some() {
                             McpStatus::Failed
@@ -550,6 +567,15 @@ impl Drop for McpOwner {
 }
 
 impl Scope {
+    fn protect_labels(&mut self, protected: &[String]) {
+        for (server, node) in &mut self.nodes {
+            // Only mask the existing label: never restore it from a raw key.
+            if !safe_display_label(&node.row.name, protected) {
+                node.row.name = safe_server_id(server);
+            }
+        }
+    }
+
     fn connect(&mut self, server: &str, entry: crate::config::McpEntry) {
         let cancel = Arc::new(AtomicBool::new(false));
         self.nodes.get_mut(server).expect("MCP node").cancel = Some(cancel.clone());
@@ -618,6 +644,10 @@ impl Scope {
                 .count();
         }
         publication.status.servers = self.nodes.values().map(|node| node.row.clone()).collect();
+        publication
+            .status
+            .servers
+            .sort_by(|one, two| one.name.cmp(&two.name).then_with(|| one.id.cmp(&two.id)));
         debug_assert_eq!(
             publication.status.binding.generation,
             self.generation.publication
@@ -949,9 +979,10 @@ impl Scope {
                     .activation
                     .as_ref()
                     .ok_or("MCP activation admission unavailable")?;
-                let entry = activation
-                    .activate(&self.config, &self.project, &self.env, server)
-                    .map_err(|_| "MCP activation admission refused")?;
+                let (entry, protected) =
+                    activation.activate(&self.config, &self.project, &self.env, server);
+                self.protect_labels(&protected);
+                let entry = entry.map_err(|_| "MCP activation admission refused")?;
                 let node = self.nodes.get_mut(server).expect("MCP node");
                 if let Some(failure) = &entry.failure {
                     node.row.status = McpStatus::Failed;
@@ -1014,6 +1045,20 @@ impl Scope {
         }
         self.fatal.map_or(Ok(()), Err)
     }
+}
+
+fn safe_display_label(label: &str, protected: &[String]) -> bool {
+    !label.is_empty()
+        && !label.chars().any(|c| {
+            c.is_control() || matches!(c, '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}')
+        })
+        && !label.contains(['/', '\\'])
+        && !label.contains("{env:")
+        && !label.contains("{file:")
+        && reqwest::Url::parse(label).is_err()
+        && !protected
+            .iter()
+            .any(|value| !value.is_empty() && label.contains(value))
 }
 
 pub(in crate::runtime) fn connection_diagnostic(

@@ -205,6 +205,233 @@ pub(crate) fn source_credential_values(
     Ok(values)
 }
 
+/// Label protection includes inactive/failed definitions, but must not change
+/// the credential-domain inputs used to authorize a local process launch.
+pub(crate) fn source_protected_values(
+    source: &Source,
+    env: &BTreeMap<String, String>,
+) -> Result<Vec<String>, ConfigError> {
+    let value = super::parse_jsonc(&source.text, "config")?;
+    let Some(obj) = value.as_object() else {
+        return Ok(Vec::new());
+    };
+    let mut raw = Vec::new();
+    for namespace in ["provider", "providers"] {
+        if let Some(providers) = obj.get(namespace).and_then(Value::as_object) {
+            for provider in providers.values() {
+                source_provider_credentials(provider, &mut raw);
+                if let Some(models) = provider.get("models").and_then(Value::as_object) {
+                    for model in models.values() {
+                        source_provider_credentials(model, &mut raw);
+                        if let Some(variants) = model.get("variants") {
+                            match variants {
+                                Value::Array(items) => {
+                                    for variant in items {
+                                        source_provider_credentials(variant, &mut raw);
+                                    }
+                                }
+                                Value::Object(items) => {
+                                    for variant in items.values() {
+                                        source_provider_credentials(variant, &mut raw);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut entries = BTreeMap::new();
+    merge_document(
+        source,
+        obj,
+        &mut entries,
+        &mut McpTimeouts::default(),
+        &mut BTreeMap::new(),
+    )?;
+    // Normalization can stop before sensitive fields on a failed/unsupported
+    // entry. Inspect only recognized fields in the original cached document.
+    if let Some(map) = obj.get("mcp").and_then(Value::as_object) {
+        for (name, entry) in map {
+            if name == "servers"
+                && !matches!(
+                    entry.get("type").and_then(Value::as_str),
+                    Some("local" | "remote")
+                )
+            {
+                if let Some(servers) = entry.as_object() {
+                    for entry in servers.values() {
+                        source_entry_credentials(entry, &mut raw);
+                    }
+                }
+            } else {
+                source_entry_credentials(entry, &mut raw);
+            }
+        }
+    }
+    let mut values = Vec::new();
+    for value in raw {
+        // Observe each already-known env input independently of the completed
+        // field: a later/earlier inactive file template may prevent substitution.
+        let mut rest = value;
+        while let Some((_, tail)) = rest.split_once('{') {
+            let Some((tag, next)) = tail.split_once('}') else {
+                break;
+            };
+            if let Some(key) = tag.strip_prefix("env:")
+                && let Some(value) = env.get(key)
+            {
+                protected_value(value, &mut values);
+            }
+            rest = next;
+        }
+        if !value.contains("{file:") {
+            let value = super::substitute(value, &source.path, source.trusted, env)?;
+            protected_value(&value, &mut values);
+        }
+    }
+    Ok(values)
+}
+
+fn source_provider_credentials<'a>(provider: &'a Value, values: &mut Vec<&'a str>) {
+    // Legacy provider/model endpoint aliases are recognized before normalization,
+    // including inactive model overrides whose credentials stay unresolved.
+    values.extend(provider.get("api").and_then(Value::as_str));
+    values.extend(
+        provider
+            .get("provider")
+            .and_then(|provider| provider.get("api"))
+            .and_then(Value::as_str),
+    );
+    for options in [
+        provider.get("options"),
+        provider.get("settings"),
+        Some(provider),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for field in ["apiKey", "authToken", "baseURL", "headers"] {
+            if let Some(value) = options.get(field) {
+                source_sensitive_strings(value, values);
+            }
+        }
+    }
+}
+
+fn source_entry_credentials<'a>(entry: &'a Value, values: &mut Vec<&'a str>) {
+    values.extend(entry.get("url").and_then(Value::as_str));
+    for field in [
+        "headers",
+        "environment",
+        "env",
+        "credentials",
+        "command",
+        "cwd",
+    ] {
+        if let Some(value) = entry.get(field) {
+            source_sensitive_strings(value, values);
+        }
+    }
+    if let Some(oauth) = entry.get("oauth") {
+        for field in ["clientSecret", "client_secret", "clientId", "client_id"] {
+            if let Some(value) = oauth.get(field) {
+                source_sensitive_strings(value, values);
+            }
+        }
+    }
+}
+
+fn source_sensitive_strings<'a>(value: &'a Value, values: &mut Vec<&'a str>) {
+    match value {
+        Value::String(value) => values.push(value),
+        Value::Array(items) => {
+            for item in items {
+                source_sensitive_strings(item, values);
+            }
+        }
+        Value::Object(map) => {
+            for value in map.values() {
+                source_sensitive_strings(value, values);
+            }
+        }
+        _ => {}
+    }
+}
+
+pub(crate) fn protected_value(value: &str, values: &mut Vec<String>) {
+    if value.is_empty() {
+        return;
+    }
+    values.push(value.to_string());
+    let trimmed = value.trim();
+    if trimmed != value && !trimmed.is_empty() {
+        values.push(trimmed.to_string());
+    }
+    if let Some((_, token)) = trimmed.split_once(' ')
+        && !token.is_empty()
+    {
+        values.push(token.to_string());
+    }
+    let mut fields = trimmed.split_ascii_whitespace();
+    if fields
+        .next()
+        .is_some_and(|field| field.eq_ignore_ascii_case("bearer"))
+        && let Some(token) = fields.next()
+        && fields.next().is_none()
+    {
+        values.push(token.to_string());
+    }
+    if let Ok(mut url) = reqwest::Url::parse(trimmed) {
+        let credentials = [
+            Some(url.username().to_string()),
+            url.password().map(str::to_string),
+        ];
+        for value in credentials.into_iter().flatten() {
+            if !value.is_empty() {
+                values.push(value.clone());
+                // Reuse the URL parser's percent decoder, preserving literal
+                // '+'/'&' in userinfo rather than applying form semantics to it.
+                let query = format!(
+                    "credential={}",
+                    value.replace('+', "%2B").replace('&', "%26")
+                );
+                url.set_query(Some(&query));
+                if let Some((_, decoded)) = url.query_pairs().next() {
+                    values.push(decoded.into_owned());
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn entry_credential_values(
+    entry: &McpEntry,
+    env: &BTreeMap<String, String>,
+) -> Vec<String> {
+    let mut values = Vec::new();
+    for value in entry
+        .environment
+        .values()
+        .chain(entry.blocked_inherited_values.iter())
+        .chain(entry.url.iter())
+        .chain(entry.headers.values())
+        .chain(entry.command.iter())
+        .chain(entry.cwd.iter())
+    {
+        protected_value(value, &mut values);
+    }
+    if entry.kind == "local" {
+        let (environment, secrets) = crate::mcp_stdio::effective_environment(entry, env);
+        for value in environment.values().chain(secrets.iter()) {
+            protected_value(value, &mut values);
+        }
+    }
+    values
+}
+
 // JSON.parse in the pinned donor erases integer-valued decimal/exponent
 // spellings. Preserve PositiveInt semantics while checking the native range.
 fn positive_integer(raw: &Value) -> Option<u64> {

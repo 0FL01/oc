@@ -312,6 +312,52 @@ fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
 }
 
 #[test]
+fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_reads() {
+    let src = source(serde_json::json!({
+        "provider":{"old":{"options":{"apiKey":"provider-protected"},
+            "api":"https://user:%6c%65%67%61%63%79-protected@example.invalid/mcp",
+            "models":{"inactive":{"disabled":true,
+                "provider":{"api":"https://user:%6e%65%73%74%65%64-protected@example.invalid/mcp"}}}}},
+        "providers":{"new":{"settings":{"authToken":"other-protected"},
+            "models":{"disabled":{"disabled":true,"settings":{"apiKey":"model-protected"},
+                "variants":[{"id":"disabled","disabled":true,"settings":{"apiKey":"variant-protected"}}]}}}},
+        "mcp":{
+            "legacy":{"type":"local","enabled":false,"command":["never-spawn"],
+                "environment":{"TOKEN":"{env:INACTIVE}","FILE":"{file:missing}"}},
+            "servers":{
+                "failed":{"type":"local","command":false,"headers":{"X":"Bearer failed-protected"}},
+                "unsupported":{"type":"remote","url":"https://example.invalid/mcp",
+                    "oauth":{"client_secret":"oauth-protected"},"credentials":{"nested":["refused-protected"]},
+                    "metadata":"ordinary-not-protected"}
+            }
+        }
+    }));
+    let env = BTreeMap::from([("INACTIVE".into(), "inactive-protected".into())]);
+    let values = mcp::source_protected_values(&src, &env).unwrap();
+    for secret in [
+        "provider-protected",
+        "other-protected",
+        "inactive-protected",
+        "failed-protected",
+        "oauth-protected",
+        "refused-protected",
+        "model-protected",
+        "variant-protected",
+        "legacy-protected",
+        "nested-protected",
+    ] {
+        assert!(values.iter().any(|value| value == secret));
+    }
+    assert!(
+        !values
+            .iter()
+            .any(|value| value.contains("missing") || value == "ordinary-not-protected")
+    );
+    let authority = mcp::source_credential_values(&src, &env).unwrap();
+    assert_eq!(authority, ["provider-protected"]);
+}
+
+#[test]
 fn mcp09_invalid_global_timeout_and_policy_remain_fatal() {
     for raw in [
         serde_json::json!({"mcp":{"timeout":{"startup":0}}}),

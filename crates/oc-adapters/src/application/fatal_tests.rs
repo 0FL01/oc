@@ -86,6 +86,24 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
     );
     config["provider"]["fixture"]["options"][CANARY] = serde_json::json!(CANARY);
     config["mcp"][CANARY] = serde_json::Value::Null;
+    config["mcp"]["chrome-devtools"] = serde_json::json!({
+        "type":"local", "command":["never-spawn-disabled"], "enabled":false,
+        "environment":{"TOKEN":"disabled-protected"}
+    });
+    config["mcp"]["disabled-protected"] = serde_json::Value::Null;
+    config["mcp"]["bad-endpoint"] = serde_json::json!({"type":"remote","url":"{file:endpoint}"});
+    config["mcp"]["url-protected"] = serde_json::Value::Null;
+    std::fs::write(
+        fixture.global.join("endpoint"),
+        "https://user:%75%72%6c%2Dprotected@example.invalid/mcp",
+    )
+    .unwrap();
+    config["mcp"]["argv-carrier"] = serde_json::json!({"type":"local",
+        "command":["never-spawn","{file:argv}"],"cwd":"missing-directory"});
+    config["mcp"]["argv-protected"] = serde_json::Value::Null;
+    std::fs::write(fixture.global.join("argv"), "argv-protected").unwrap();
+    let unicode_label = "日本語_long_name_".repeat(32);
+    config["mcp"][&unicode_label] = serde_json::Value::Null;
     std::fs::write(path, config.to_string()).unwrap();
     let composed = composition::load_with_env(&fixture.project, fixture.env.clone())
         .await
@@ -134,7 +152,19 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
         .await
         .unwrap();
     let complete = app.catalog().await.unwrap();
-    assert!(!format!("{:?}", app.mcp_status().await.unwrap()).contains(CANARY));
+    let snapshot = app.mcp_status().await.unwrap();
+    let shown = format!("{snapshot:?}");
+    assert!(!shown.contains(CANARY) && !shown.contains("disabled-protected"));
+    assert!(!shown.contains("url-protected") && !shown.contains("argv-protected"));
+    for label in ["chrome-devtools", &unicode_label] {
+        assert!(snapshot.servers.iter().any(|row| row.name == label));
+    }
+    assert!(
+        snapshot
+            .servers
+            .iter()
+            .any(|row| row.name == crate::config::mcp::safe_identity(CANARY))
+    );
     let suggestions = app.file_suggestions("".into(), 1).await.unwrap();
     let policy = fixture.project.join("opencode.jsonc");
     std::fs::write(

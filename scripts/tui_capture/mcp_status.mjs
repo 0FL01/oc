@@ -18,6 +18,9 @@ export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatc
     geometries.push({columns,rows});
     for(let index=0;index<3;index++) {
       const f=await shot(`mcp-status-${columns}x${rows}-selection-${index}`,f=>f.text.includes('MCP servers')&&labels.every(label=>f.text.includes(label)));
+      for(const name of ['visdisabled','visfailed','vishealthy']) {
+        if(visibleMatches(f,name).length!==1)throw Error('Configured MCP label not displayed exactly: '+name);
+      }
       const statuses=labels.map(label=>{
         const hits=visibleMatches(f,label);if(hits.length!==1)throw Error('Mixed MCP status not unique: '+label);
         const hit=hits[0];return {label,x:hit.x,y:hit.y,cells:f.cells[hit.y].slice(hit.x,hit.x+[...label].length)};
@@ -27,6 +30,12 @@ export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatc
     }
   }
   await resize(40,120);
+  send('visfailed','mcp_label_search');
+  await shot('mcp-status-configured-search',f=>f.text.includes('MCP servers')&&f.text.includes('visfailed')&&f.text.includes('Failed !')&&!f.text.includes('Connected ✓')&&!f.text.includes('Disabled ○'));
+  send('\r','mcp_label_details');
+  await shot('mcp-status-configured-details',f=>f.text.includes('visfailed')&&!f.text.includes('Failed !')&&!f.text.includes('Connected ✓'));
+  send('\x1b','mcp_label_details_close');
+  await waitFor(f=>f.text.includes('MCP servers')&&f.text.includes('Failed !'),'MCP label details return to filtered list',6000);
   send('\x1b','mcp_status_close');
   const restored=await shot('mcp-status-restored',f=>f.text.includes('preserve MCP Ω界')&&!f.text.includes('MCP servers'));
   if(JSON.stringify(idle.cursor)!==JSON.stringify(restored.cursor))throw Error('Mixed MCP list changed composer caret');
@@ -40,5 +49,6 @@ export async function probeMcpStatus({origin,send,shot,waitFor,frame,visibleMatc
   if(!semantic_tones||origin==='oc'&&!intrinsic_connected_bold)throw Error('MCP typed status tone/bold contract failed');
   return {status:'OBSERVED_MCP_STATUS',provider_requests:0,tool_effects:0,draft_and_caret_restored:true,selections,geometries,
     semantic_tones,intrinsic_connected_bold,
+    configured_labels:['visdisabled','visfailed','vishealthy'],configured_search_and_details:true,
     source_contract:'Unselected status semantic tones; selected action foreground override; intrinsic Connected bold independent of foreground. Running original may differ from source bold.'};
 }

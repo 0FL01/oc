@@ -34,6 +34,9 @@ def configure(spec, home, project, config, cli):
         config['mcp'] = {'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'enabled':True}}
     if spec.get('mcp_status'):
         servers = config['mcp']['servers'] if spec['origin'] == 'upstream' else config['mcp']
+        # A safe display key distinct from handshake/argv and inherited scalar
+        # values; the ordinary tool-effect fixture keeps its existing key.
+        servers['vishealthy'] = servers.pop('vis16')
         servers['visdisabled'] = {'type':'local','command':['/usr/bin/python3',str(peer)],
                                   **({'disabled':True} if spec['origin'] == 'upstream' else {'enabled':False})}
         servers['visfailed'] = {'type':'local','command':['/usr/bin/python3',str(peer),'--failed']}

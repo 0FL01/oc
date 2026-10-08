@@ -11,9 +11,16 @@ fn lifecycle_entry(
     initialize: &str,
     catalog: &str,
 ) -> Value {
+    let gate = |value: &str| {
+        if value == "-" {
+            fixture.project.display().to_string()
+        } else {
+            value.to_string()
+        }
+    };
     json!({"type":"local", "enabled":enabled, "command":[
         "/usr/bin/python3", concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/mcp10-lifecycle.py"),
-        fixture.project.join(format!("{label}.json")), label, initialize, catalog, fixture.project
+        fixture.project.join(format!("{label}.json")), format!("peer-{label}"), gate(initialize), gate(catalog), fixture.project
     ],"environment":{"MCP10_CANARY":"mcp10-activated-canary"}})
 }
 
@@ -48,9 +55,8 @@ fn wait_counter(fixture: &Fixture, label: &str, field: &str, value: i64) -> Valu
 }
 
 pub(super) fn wait_row(tui: &PtyProcess, name: &str, status: &str) {
-    // The table bounds the opaque label; the owner/control/wire ID is unchanged.
-    let identity = diagnostic_name(name);
-    let label = &identity[..20];
+    // Display uses the safe configured label; owner/control/wire ID is unchanged.
+    let label = name;
     let deadline = Instant::now() + TIMEOUT;
     loop {
         if tui

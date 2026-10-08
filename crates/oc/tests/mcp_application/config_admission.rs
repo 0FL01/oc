@@ -263,6 +263,8 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
         "codex_web":{"type":"remote","url":mcp.url,"headers":{"Authorization":"Bearer mcp-key"},"oauth":false},
         "malformed":{"type":"local","command":[trap],"environment":{"X":["malformed-value-CANARY"]},"disabled":true},
         "oauth":{"type":"remote","url":mcp.url,"oauth":{"client_secret":"oauth-value-CANARY"}},
+        "malformed-value-CANARY":null,
+        "oauth-value-CANARY":null,
         "codemode":{"type":"local","command":[trap],"codemode":true},
         "modern":{"type":"remote","url":mcp.url,"protocol":"auto"}
     }}), json!({"codex_web__search":"allow"}));
@@ -271,11 +273,13 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
     let mut tui = PtyProcess::spawn(&fixture, "mcp09-inventory");
     tui.wait_visible(READY);
     for (name, code) in [
-        ("malformed", "invalid_config"),
-        ("oauth", "unsupported_capability"),
-        ("modern", "unsupported_protocol"),
+        ("malformed".to_string(), "invalid_config"),
+        ("oauth".to_string(), "unsupported_capability"),
+        ("modern".to_string(), "unsupported_protocol"),
+        (diagnostic_name("malformed-value-CANARY"), "invalid_config"),
+        (diagnostic_name("oauth-value-CANARY"), "invalid_config"),
     ] {
-        inspect_mcp_code(&mut tui, name, code);
+        inspect_mcp_code(&mut tui, &name, code);
     }
     assert!(responses.requests().is_empty());
     assert!(!trap_counter.exists());

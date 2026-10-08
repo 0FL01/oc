@@ -8,6 +8,10 @@ use oc_core::queries::{
 #[derive(Clone, PartialEq, Eq)]
 pub(super) enum ServiceIssue {
     Diagnostic(ServiceDiagnostic),
+    McpDiagnostic {
+        server: String,
+        diagnostic: ServiceDiagnostic,
+    },
     Unavailable {
         kind: ServiceKind,
         service: String,
@@ -18,6 +22,20 @@ pub(super) enum ServiceIssue {
 }
 
 impl TuiState {
+    fn mcp_diagnostic_server(&self, service: &str) -> Option<&oc_core::queries::McpServerSnapshot> {
+        self.mcp_snapshot.as_ref()?.servers.iter().find(|server| {
+            server.id == service
+                || server
+                    .diagnostic
+                    .as_ref()
+                    .is_some_and(|diagnostic| diagnostic.service == service)
+                || self.service_pending_issues.iter().any(|issue| {
+                    matches!(issue, ServiceIssue::McpDiagnostic { server: id, diagnostic }
+                        if id == &server.id && diagnostic.service == service)
+                })
+        })
+    }
+
     pub(super) fn submission_note(&mut self, error: &CoreError) -> String {
         let diagnostic = match error {
             CoreError::ProviderUnavailable(diagnostic) => diagnostic,
@@ -67,11 +85,7 @@ impl TuiState {
                         && provider.status == ProviderStatus::Pending
                 })
                 || diagnostic.kind == ServiceKind::Mcp
-                    && self.mcp_snapshot.as_ref().is_some_and(|snapshot| {
-                        snapshot.servers.iter().any(|server| {
-                            server.id == diagnostic.service || server.name == diagnostic.service
-                        })
-                    })
+                    && self.mcp_diagnostic_server(&diagnostic.service).is_some()
             {
                 continue;
             }
@@ -112,13 +126,20 @@ impl TuiState {
                     && matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
                 {
                     add(match &server.diagnostic {
-                        Some(diagnostic) => ServiceIssue::Diagnostic(diagnostic.clone()),
+                        Some(diagnostic) => ServiceIssue::McpDiagnostic {
+                            server: server.id.clone(),
+                            diagnostic: diagnostic.clone(),
+                        },
                         None => match self.chrome.service_diagnostics.iter().find(|diagnostic| {
                             diagnostic.kind == ServiceKind::Mcp
-                                && (diagnostic.service == server.id
-                                    || diagnostic.service == server.name)
+                                && self
+                                    .mcp_diagnostic_server(&diagnostic.service)
+                                    .is_some_and(|owner| owner.id == server.id)
                         }) {
-                            Some(diagnostic) => ServiceIssue::Diagnostic(diagnostic.clone()),
+                            Some(diagnostic) => ServiceIssue::McpDiagnostic {
+                                server: server.id.clone(),
+                                diagnostic: diagnostic.clone(),
+                            },
                             None => ServiceIssue::Unavailable {
                                 kind: ServiceKind::Mcp,
                                 service: server.id.clone(),
@@ -209,13 +230,18 @@ impl TuiState {
     fn service_issue_is_pending(&self, issue: &ServiceIssue) -> bool {
         let (kind, service) = match issue {
             ServiceIssue::Diagnostic(diagnostic) => (diagnostic.kind, diagnostic.service.as_str()),
+            ServiceIssue::McpDiagnostic { server, .. } => (ServiceKind::Mcp, server.as_str()),
             ServiceIssue::Unavailable { kind, service, .. } => (*kind, service.as_str()),
             ServiceIssue::Omitted(..) => return false,
         };
         match kind {
             ServiceKind::Mcp => self.mcp_snapshot.as_ref().is_some_and(|snapshot| {
                 snapshot.servers.iter().any(|server| {
-                    (server.id == service || server.name == service)
+                    (server.id == service
+                        || server
+                            .diagnostic
+                            .as_ref()
+                            .is_some_and(|diagnostic| diagnostic.service == service))
                         && (server.status == McpStatus::Pending || server.pending_action.is_some())
                 })
             }),
@@ -227,10 +253,22 @@ impl TuiState {
     }
 
     pub(super) fn reconcile_service_feedback(&mut self, mut previous: Vec<ServiceIssue>) {
-        let current = self.service_issues();
         for issue in std::mem::take(&mut self.service_pending_issues) {
             if !previous.contains(&issue) {
                 previous.push(issue);
+            }
+        }
+        // A diagnostic can arrive through the catalog before the owned row.
+        // Link it through typed provenance, never a mutable display label.
+        for issue in &mut previous {
+            if let ServiceIssue::Diagnostic(diagnostic) = issue
+                && diagnostic.kind == ServiceKind::Mcp
+                && let Some(server) = self.mcp_diagnostic_server(&diagnostic.service)
+            {
+                *issue = ServiceIssue::McpDiagnostic {
+                    server: server.id.clone(),
+                    diagnostic: diagnostic.clone(),
+                };
             }
         }
         // At most the last cause of each *current pending* source survives.
@@ -240,6 +278,7 @@ impl TuiState {
             .filter(|issue| self.service_issue_is_pending(issue))
             .cloned()
             .collect();
+        let current = self.service_issues();
         let count = self.service_issue_count();
         let summary = format!(
             "{count} service issue{} · /settings /mcps",

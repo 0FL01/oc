@@ -2450,7 +2450,7 @@ fn wait_initial_mcp(tui: &mut PtyProcess, server: &str) {
 fn inspect_mcp_code(tui: &mut PtyProcess, server: &str, code: &str) {
     tui.send_line("/mcps");
     tui.wait_screen("MCP servers", TIMEOUT);
-    tui.raw(diagnostic_name(server).as_bytes());
+    tui.raw(server.as_bytes());
     tui.raw(b"\r");
     tui.wait_screen(&format!("Code: {code}"), TIMEOUT);
     tui.raw(b"\x1b");

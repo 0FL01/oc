@@ -536,7 +536,13 @@ async fn run_epoch(harness: &Harness, runtime: &Runtime<'_>, epoch: usize) -> Ep
         .await
         .expect("a degraded server must not abort the turn");
     assert_eq!(degraded.status, TurnStatus::Completed);
-    let identity = bad_runtime.mcp_status().servers[0].name.clone();
+    let status = bad_runtime.mcp_status();
+    assert_eq!(status.servers[0].name, "codex");
+    let identity = &status.servers[0]
+        .diagnostic
+        .as_ref()
+        .expect("actual failed attachment diagnostic")
+        .service;
     assert!(identity.starts_with("server-"));
     assert_ne!(identity, "codex");
     assert_eq!(

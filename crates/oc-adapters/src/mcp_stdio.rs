@@ -186,27 +186,7 @@ impl StdioConfig {
             }
             return Err(StdioError::InvalidConfig);
         }
-        let mut secrets: Vec<String> = parent_env
-            .iter()
-            .filter(|(name, value)| is_credential_name(name) && !value.is_empty())
-            .map(|(_, value)| value.clone())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
-        secrets.extend(entry.blocked_inherited_values.iter().cloned());
-        let mut extra_env: BTreeMap<String, String> = parent_env
-            .iter()
-            .filter(|(name, value)| {
-                entry.inherit_credentials
-                    || (!is_credential_name(name)
-                        && !secrets
-                            .iter()
-                            .any(|secret| !secret.is_empty() && value.contains(secret)))
-            })
-            .map(|(name, value)| (name.clone(), value.clone()))
-            .collect();
-        extra_env.extend(entry.environment.clone());
-        secrets.extend(entry.environment.values().cloned());
+        let (extra_env, secrets) = effective_environment(entry, parent_env);
         let cwd = entry
             .cwd
             .as_ref()
@@ -234,6 +214,36 @@ impl StdioConfig {
         config.validate()?;
         Ok(config)
     }
+}
+
+/// Derive the existing stdio environment/protection policy without filesystem
+/// access or a launch. Label publication observes this same admitted view.
+pub(crate) fn effective_environment(
+    entry: &crate::config::McpEntry,
+    parent_env: &BTreeMap<String, String>,
+) -> (BTreeMap<String, String>, Vec<String>) {
+    let mut secrets: Vec<String> = parent_env
+        .iter()
+        .filter(|(name, value)| is_credential_name(name) && !value.is_empty())
+        .map(|(_, value)| value.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    secrets.extend(entry.blocked_inherited_values.iter().cloned());
+    let mut extra_env: BTreeMap<String, String> = parent_env
+        .iter()
+        .filter(|(name, value)| {
+            entry.inherit_credentials
+                || (!is_credential_name(name)
+                    && !secrets
+                        .iter()
+                        .any(|secret| !secret.is_empty() && value.contains(secret)))
+        })
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect();
+    extra_env.extend(entry.environment.clone());
+    secrets.extend(entry.environment.values().cloned());
+    (extra_env, secrets)
 }
 
 pub(crate) fn is_credential_name(name: &str) -> bool {

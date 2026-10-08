@@ -875,8 +875,12 @@ instead of the ordinary Home/body or temporal sequence. It configures three real
 MCP entries: healthy stdio, disabled (not started), and genuine failed initialize.
 The original's canonical disabled field and native admitted field are distinct;
 no renderer state, SQL row or result is seeded. Real SGR Home clicks, arrows and
-resize select every status at120×40,80×24 and160×48, then restore the exact Unicode
-draft/caret at120×40. Eleven full paired frames are saved unmasked.
+resize select every status at120×40,80×24 and160×48. Every selection must show the
+exact safe configured names `visdisabled`, `visfailed`, `vishealthy`, distinct from
+the handshake name/argv and known inherited protected values. Real search for
+`visfailed`, Enter to its details and Escape back to the filtered list precede
+exact Unicode draft/caret restoration at120×40. Thirteen full paired frames are
+saved unmasked; the ordinary tool-effect fixture retains its original server key.
 
 ```sh
 CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
@@ -894,8 +898,11 @@ selected action fg/bg override, intrinsic Connected bold separately. Native must
 retain frozen source-required bold; the running original's absent bold is recorded,
 not treated as native failure or equality. Zero provider/tool/MCP-call/Shell effects
 and real healthy/failed initialization receipts are required. This bounded slice
-does not qualify every pending/auth/control/detail/label or whole VIS40 outcome.
-The current22 full-grid/PNG comparisons remain DIFFERENT; `PASS_BEHAVIOR_ONLY` is
+does not qualify every pending/auth/control/detail or whole VIS40 outcome. Unsafe
+label protection and activation/refusal are separately checked at the existing
+config/runtime/application and actual-binary owners; the paired probe does not
+seed masked rows or read inactive credential files. The current26 full-grid/PNG
+comparisons remain DIFFERENT; `PASS_BEHAVIOR_ONLY` is
 not pixel PASS. Separate ordinary and temporal runs qualify their regressions.
 
 ## VIS16/VIS31 real caret ordering and temporal blink

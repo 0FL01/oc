@@ -23,7 +23,7 @@ fn query(snapshot: &McpSnapshot, server: &str, session: &str, operation: McpLook
         server: snapshot
             .servers
             .iter()
-            .find(|r| r.name == crate::config::mcp::safe_identity(server))
+            .find(|r| r.id == super::mcp_id(server))
             .unwrap()
             .id
             .clone(),

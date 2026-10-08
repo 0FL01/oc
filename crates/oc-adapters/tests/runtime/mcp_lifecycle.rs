@@ -43,13 +43,16 @@ pub(super) fn diagnostic_name(name: &str) -> String {
 }
 
 async fn wait_mcp_state(runtime: &Runtime<'_>, name: &str, state: oc_core::queries::McpStatus) {
+    use sha2::Digest;
+    let digest = format!("{:x}", sha2::Sha256::digest(name.as_bytes()));
+    let id = format!("mcp-{}", &digest[..16]);
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             if runtime
                 .mcp_status()
                 .servers
                 .iter()
-                .any(|row| row.name == diagnostic_name(name) && row.status == state)
+                .any(|row| row.id == id && row.status == state)
             {
                 return;
             }

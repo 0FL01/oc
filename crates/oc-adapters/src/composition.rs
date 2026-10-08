@@ -1635,48 +1635,77 @@ pub(crate) struct McpActivation {
 }
 
 impl McpActivation {
+    pub(crate) fn protected_values(
+        &self,
+        env: &BTreeMap<String, String>,
+    ) -> Result<Vec<String>, String> {
+        let mut values = Vec::new();
+        for source in &self.sources {
+            values.extend(
+                config::mcp::source_protected_values(source, env)
+                    .map_err(|_| "MCP source protection unavailable")?,
+            );
+        }
+        Ok(values)
+    }
+
     pub(crate) fn activate(
         &self,
         generation: &config::Generation,
         project: &Path,
         env: &BTreeMap<String, String>,
         id: &str,
-    ) -> Result<config::McpEntry, String> {
+    ) -> (Result<config::McpEntry, String>, Vec<String>) {
         let mut generation = generation.clone();
-        let entry = generation.mcp.get_mut(id).ok_or("unknown MCP server")?;
-        // Malformed/unsupported input never becomes executable by toggling it.
-        if entry.failure.is_some() {
-            return Ok(entry.clone());
+        let resolved = std::cell::RefCell::new(Vec::new());
+        let result = (|| {
+            let entry = generation.mcp.get_mut(id).ok_or("unknown MCP server")?;
+            // Malformed/unsupported input never becomes executable by toggling it.
+            if entry.failure.is_some() {
+                return Ok(entry.clone());
+            }
+            if !entry.enabled {
+                let source = generation
+                    .provenance
+                    .get(&format!("mcp.{id}"))
+                    .ok_or("MCP source authority unavailable")?;
+                let trusted = self.sources.iter().any(|s| &s.path == source && s.trusted);
+                config::activate_mcp_entry(id, source, trusted, entry, env, &|path, source| {
+                    let (root, directory) =
+                        self.roots
+                            .get(source)
+                            .ok_or_else(|| config::ConfigError::Untrusted {
+                                origin: source.into(),
+                                reason: "MCP source authority unavailable".into(),
+                            })?;
+                    let value = config::read_trusted_file_rooted(path, source, root, directory)?;
+                    resolved.borrow_mut().push(value.clone());
+                    Ok(value)
+                })
+                .map_err(|_| "MCP activation admission refused")?;
+            }
+            // Revalidate resources/credential domains on every new connection,
+            // including retries; the immutable source/provenance is unchanged.
+            admit_local_mcp(
+                &mut generation,
+                project,
+                self.global.as_deref(),
+                env,
+                &self.sources,
+            )
+            .map_err(|error| error.to_string())?;
+            Ok(generation.mcp[id].clone())
+        })();
+        // Includes partially resolved values on refusal and validation failure.
+        // Nothing here survives as a historical secret cache in the owner.
+        let mut protected = Vec::new();
+        for value in resolved.into_inner() {
+            config::mcp::protected_value(&value, &mut protected);
         }
-        if !entry.enabled {
-            let source = generation
-                .provenance
-                .get(&format!("mcp.{id}"))
-                .ok_or("MCP source authority unavailable")?;
-            let trusted = self.sources.iter().any(|s| &s.path == source && s.trusted);
-            config::activate_mcp_entry(id, source, trusted, entry, env, &|path, source| {
-                let (root, directory) =
-                    self.roots
-                        .get(source)
-                        .ok_or_else(|| config::ConfigError::Untrusted {
-                            origin: source.into(),
-                            reason: "MCP source authority unavailable".into(),
-                        })?;
-                config::read_trusted_file_rooted(path, source, root, directory)
-            })
-            .map_err(|_| "MCP activation admission refused")?;
+        for entry in generation.mcp.values() {
+            protected.extend(config::mcp::entry_credential_values(entry, env));
         }
-        // Revalidate resources/credential domains on every new connection,
-        // including retries; the immutable source/provenance is unchanged.
-        admit_local_mcp(
-            &mut generation,
-            project,
-            self.global.as_deref(),
-            env,
-            &self.sources,
-        )
-        .map_err(|error| error.to_string())?;
-        Ok(generation.mcp.remove(id).expect("activated entry"))
+        (result, protected)
     }
 }
 
