@@ -37,12 +37,27 @@ fn owner_env(f: &Fixture) -> BTreeMap<String, String> {
 fn prefs(f: &Fixture) -> Vec<(String, String)> {
     let conn = rusqlite::Connection::open(f.data_dir().join("oc.sqlite")).unwrap();
     let mut stmt = conn
-        .prepare("SELECT key,value FROM prefs ORDER BY key")
+        // Accepted local input now has its own global pref. Assert that value
+        // separately; every other saved selection/deck/instruction pref remains
+        // byte-identical under restoration and refused generation.
+        .prepare("SELECT key,value FROM prefs WHERE key<>'tui.prompt_history.v1' ORDER BY key")
         .unwrap();
     stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
         .unwrap()
         .map(Result::unwrap)
         .collect()
+}
+
+fn input_history(f: &Fixture) -> Vec<String> {
+    let conn = rusqlite::Connection::open(f.data_dir().join("oc.sqlite")).unwrap();
+    let value: String = conn
+        .query_row(
+            "SELECT CASE WHEN length(CAST(value AS BLOB))<=4096 THEN value END FROM prefs WHERE key='tui.prompt_history.v1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    serde_json::from_str(&value).unwrap()
 }
 
 fn effects(f: &Fixture) -> (i64, i64, i64) {
@@ -269,6 +284,17 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
         saved,
         "Home restoration rewrote an inherited selection or deck"
     );
+    let accepted_local_input = input_history(&fixture);
+    assert_eq!(
+        accepted_local_input,
+        [
+            "r4a seeded history",
+            "/settings",
+            "/agents",
+            "/sessions",
+            "/exit"
+        ]
+    );
     assert_eq!(effects(&fixture), old_effects);
     assert_eq!(main_count(&fixture), old_main);
     assert_eq!(
@@ -324,6 +350,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
         saved,
         "headless refusal rewrote saved selections"
     );
+    assert_eq!(input_history(&fixture), accepted_local_input);
     // The Home choice is explicit and Location-scoped. Repairing it does not
     // silently repair the three independently saved session selections.
     let mut home = home_pty(fixture.clone());
@@ -646,6 +673,19 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
         assert_private(&fixture, &result.stderr);
     }
     assert_eq!(prefs(&fixture), saved);
+    assert_eq!(
+        input_history(&fixture),
+        [
+            "r4a seeded history",
+            "/settings",
+            "/agents",
+            "/exit",
+            "/settings",
+            "r4a blocked pin retained draft",
+            "/exit",
+        ],
+        "only accepted local commands and explicitly retained clear enter input history"
+    );
     assert_eq!(effects(&fixture), old_effects);
     assert_eq!(fixture.requests.lock().unwrap().len(), old_requests);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 0);

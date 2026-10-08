@@ -29,6 +29,23 @@ async fn empty_compactions(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
     ack.send(Ok(Vec::new())).unwrap();
 }
 
+async fn accept_prompt_input(
+    inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>,
+    history: &mut Vec<String>,
+    expected: &str,
+) {
+    let Some(InboxMsg::PromptHistory { append, ack }) =
+        tokio::time::timeout(Duration::from_secs(3), inbox.recv())
+            .await
+            .expect("input history admission must precede command dispatch")
+    else {
+        panic!("accepted input history")
+    };
+    assert_eq!(append.as_deref(), Some(expected));
+    oc_core::queries::append_prompt_history(history, expected).unwrap();
+    ack.send(Ok(history.clone())).unwrap();
+}
+
 async fn empty_mcp_status(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
     empty_mcp_status_at(inbox, "/fixture").await;
 }

@@ -1209,6 +1209,15 @@ fn v05_review_raw_history_edit_down_restores_chip_and_wire() {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
     seed_session(&fixture.data_dir(), &project, "v05-history-chip", 1);
+    // Input history is a separate global preference, never reconstructed from
+    // the seeded conversation rows. Seed it through the existing Db owner.
+    oc_adapters::storage::Db::open(&fixture.data_dir())
+        .unwrap()
+        .set_prefs(&[(
+            "tui.prompt_history.v1".into(),
+            serde_json::to_string(&["seeded row 00000 payload"]).unwrap(),
+        )])
+        .unwrap();
     let mut pty = PtySession::spawn(fixture.clone(), "v05-history-chip", None);
     pty.wait_visible(READY, DEADLINE);
     let draft = "draft\nline\nchip";
@@ -1266,6 +1275,13 @@ fn v05_review_empty_editor_up_uses_history_on_wire() {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
     seed_session(&fixture.data_dir(), &project, "v05-empty-up", 1);
+    oc_adapters::storage::Db::open(&fixture.data_dir())
+        .unwrap()
+        .set_prefs(&[(
+            "tui.prompt_history.v1".into(),
+            serde_json::to_string(&["seeded row 00000 payload"]).unwrap(),
+        )])
+        .unwrap();
     let mut pty = PtySession::spawn(fixture.clone(), "v05-empty-up", None);
     pty.wait_visible(READY, DEADLINE);
     pty.send(b"\x1b[A\r"); // empty editor: Up recalls, Enter submits it
@@ -2209,7 +2225,10 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
     wait_screen_row(&pty, "Sessions", DEADLINE);
     pty.send(b"Original session root\r");
     wait_screen_row(&pty, "echo: original session", DEADLINE);
-    let off = submit(&mut pty, "slow stream");
+    // Hold the actual provider stream until all busy routes are acknowledged.
+    // Their acceptance now includes durable input history, so a two-second
+    // stream can finish before the last assertion even though no guard failed.
+    let off = submit(&mut pty, "vis28 held stream");
     fixture.wait_requests(6);
     // Slash, chord and palette routes all consult the same availability policy.
     let mut draft_len = 0;
@@ -2258,7 +2277,9 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
         "disabled palette action stays open"
     );
     pty.send(b"\x1b");
-    pty.wait_visible_after(off, "answer:slow stream", DEADLINE);
+    dismissed(&pty, "Commands");
+    fixture.vis28_continue.store(true, Ordering::Relaxed);
+    pty.wait_visible_after(off, "answer:vis28 completed", DEADLINE);
     wait_idle(&pty);
     let off = submit(&mut pty, "continued same session");
     pty.wait_visible_after(off, "echo: continued same session", DEADLINE);
@@ -2343,7 +2364,11 @@ fn v04_new_session_aliases_and_disabled_actions_have_real_effects_only_when_idle
             .filter(|(role, _)| role == "user")
             .map(|(_, text)| text.as_str())
             .collect::<Vec<_>>(),
-        ["original session", "slow stream", "continued same session"]
+        [
+            "original session",
+            "vis28 held stream",
+            "continued same session"
+        ]
     );
 }
 

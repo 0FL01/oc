@@ -1,0 +1,2117 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T15:53:04.989Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "01b12a6222075d338ddf33ede60c7f823d69a384f899aacba4d8fe535d151e15",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "a9be7d2818390c20a638d3ad5a1c332e2ab00507045ed851911566aa736d022a",
+    "tool_preview_fixture.py": "b507b908e089347d1a1ac8fce5f563206c31174b9a4f1a3ed942824021607b83",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_history.mjs": "c7e968671a6f163f6a0aac855fc479724b88f8695e9705f706ddc934ed9110b0",
+    "prompt_history_fixture.py": "6009603a11968d9b2ae75a40cbfe63eb8a61cd8731226dacf8897055d95e3f8b",
+    "prompt_caret_fixture.py": "95ea6b2bfcdb815aaa54b68578bd174040f3d9de6c21b0d8ac3c7937e1217ef4"
+  },
+  "fixture_sha256": "d1f8934b1d28e05574b22ad70e092662d5de51a8ad7b1aa720ae121335ce7f41",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "7ef6a58312bcd60e97956dcc4942a57191a43f3a",
+    "tree": "b9ba8229f3da30be3f125bb0f9fb58dd73dabdc2",
+    "dirty_diff_sha256": "0c8f7dd15b4f968e2ab1bad8486fe052f659d9dc261c689ffc2f1a4a69148500",
+    "source_manifest_sha256": "7e228ec249870aef9a4fbf53ec4140335c9a63f3864cbe6327913ca43c762eab",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "792d437f64442ac5753596fe07a66c52c4dbd63f148b64c17ad04c4e3897872d",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "86d8016bdfe453af1c993c47350b67d2a376d2f3dffe0463147699772e8d60f5",
+      "png_sha256": "84fd44660f77e9f42acda54071a173b769df6420ec2075e97211abd15db28a40",
+      "render_sha256": "85d7c644cbadc4029580c71162029355ea6fa5865be38241dee58127b14d0f85",
+      "path": "upstream/tool-preview-history-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9aa4b82821c8b36fd77600201cead642d6d228e84f6efb998c50245481a2daa0",
+      "png_sha256": "62d078f620cf71648924c4f175dd799e7fd34b9416d93300a99a4a37e1bca71c",
+      "render_sha256": "3fcbd7f462017da27cba7f9c9f8e53c255360630ac9710885fce98e511324ef0",
+      "path": "upstream/tool-preview-history-input-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "a8e972a6f54bb0f48f973822125ef16cdbd0196059af915f9065bbbba7f87cfb",
+      "png_sha256": "f114271e0d284e66a64af56c1040cdd9214f77127b6a93ad622aa0d60a6a8cc3",
+      "render_sha256": "fa54ba611e5da4786fdde6207cd7fba412502bfd8af0dd2beb543ff573238c04",
+      "path": "upstream/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "7bd3cbbb70d9d7abaa0878bbe49dc985f1721bafd7bb6b858ce9823d336e75f0",
+      "png_sha256": "0bd34c48a2161173b1ebbbda08f293ca4794cc4e90feffd2fb5e047c8438b051",
+      "render_sha256": "f4a94222f6d2aa0894385ee62d672b461f18360400b04e299fd767d45fd8e2a9",
+      "path": "upstream/tool-preview-history-input-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "377fbecb1c825d903e29546f58b0aa045fe660310fa30e35f079673b1c81946d",
+      "png_sha256": "fa91fc7eba81e6d69dedea468f5a54b7a194293963620cd126bfdf3b6d64944f",
+      "render_sha256": "6292395cb0d5fb516173032002a0b8d05a39478e49c990a2b31243bbd5293291",
+      "path": "upstream/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "0638e1cd40bb273d84c6d8cef2a83cece7f395a37d4a24b66020e551b62a86c3",
+      "png_sha256": "c924ceb051178f86ffff3da864bf130b9f07656853751949cb506d843bd034b2",
+      "render_sha256": "a757ec51a5fa73f00e666cf6b1e4ee1de903ab4f49458590a6a649b897dd44a9",
+      "path": "upstream/tool-preview-history-input-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "fac58c65829f3113b9f2861941ccb65c392af00df32a698c4ef6207b0b789801",
+      "png_sha256": "e66d67937f3a1cb29556c0dba0e067f6b631571e57f7312d8233b72a78428c68",
+      "render_sha256": "858e1244d0afdd9c0fa8780ce180697387e6d5c75af76b13e2b6431de6609b26",
+      "path": "upstream/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "752296c4e961009d6ff16087e7dd908089b2e9c7025342efcd462eaa728674bf",
+      "png_sha256": "06a61c8b8150c040bdcf73bdc7c0e0483fe0cbaf398b47e04329cc1f83db6a2f",
+      "render_sha256": "d0106d4ec837298e86d9f3a73f7671eac9d656ddc9c522578f7a2b7ca9f168b6",
+      "path": "upstream/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "30cf6589559b128d8e46782a674dd2c5263f02db242e61949434abbe4f72e484",
+      "png_sha256": "b924109b31c28188f68ac0366d25980446207b0aceb4aeafba4c34f0dfb79ee5",
+      "render_sha256": "8c6a2a47c9035980b1673d29025934bdb2477ef6e0d5104dfc274544fb190130",
+      "path": "upstream/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "2c7dfa1042b0f3ed8d97fff072e426bb729137ac4a805480356623dd23e81c3c",
+      "png_sha256": "b924109b31c28188f68ac0366d25980446207b0aceb4aeafba4c34f0dfb79ee5",
+      "render_sha256": "99db51db4efc0bfdbcbf1bd8ccbf1927e0d427df3d003b0c536297eecd5473cd",
+      "path": "upstream/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "1ce95c9214c461595a40c38c5a68a814dda1fddcaac712b18c1f720cbfa427da",
+      "png_sha256": "bdb42d1330727fb2ca42e71c2c3e09669de26cf1e2c9b32bc6a8f1e218753924",
+      "render_sha256": "96a5cac7265987cdbbc9877d837802bfeee6c66f92f9751f991c4eeda281e836",
+      "path": "upstream/tool-preview-history-session-older"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "a2274f550f1c3c2889261ffb2613d5367014c32375abf6f4db661b5eac2fc542",
+      "png_sha256": "5cf2824970715d8872d67ffad7a511e06ae28798a6f7a971223d1c322b93f028",
+      "render_sha256": "0818aef98eae945cc64a4176dcc94cfacd792d1b545221854b1e9f419d36a7b9",
+      "path": "upstream/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "4b3c1450f39904f1e457ef0d36811fb14109870bcef13e7b3ef9b07c1e6ed9e6",
+      "png_sha256": "2864d6420963f41888b1008e801ec9b463c55e9ef5d4623c128da40433b387a7",
+      "render_sha256": "c83eadc71c29dcd2c14b642456141a1a9029d20859b63d86a7c28af3a21965f5",
+      "path": "upstream/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "580bed6bb16065fa487083c5be370672a33fe38fbd7ee5893a937409e8b9845e",
+      "png_sha256": "d5cc8c34f854c688709145f703e66c48df38ea87ce3193654206c3329a54c984",
+      "render_sha256": "a89808f83103119865c30ad61bf6252240b2d641f63b7c8f1efd7a9d0f69ff10",
+      "path": "upstream/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "eaaeb47cb18506541fb86fb6f09c08453b427f692837af0a32d322c4c42cf22b",
+      "png_sha256": "e66d67937f3a1cb29556c0dba0e067f6b631571e57f7312d8233b72a78428c68",
+      "render_sha256": "8cad50ba328a30150a0aedc7d5210666a9da277eb2aeee6f7959f3db0a83b1cf",
+      "path": "upstream/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "6237050b373cb0f7f34c2aa3860e4b743f2ada50e07cf3096e9ae5e4b6892164",
+      "png_sha256": "44e6edd6c01ba63028d937df7f3369adf12648734b3c1ea79bf88657531ca8e9",
+      "render_sha256": "1a7db339fe62a0aa97a3d3a75b1702d2ee347ff71fea8bc2b0fb5fa390131183",
+      "path": "upstream/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "38dc9231617f30772fb85fbf26f87c0225404f98dea1550f0d678711c26b8e28",
+      "png_sha256": "e9dc9ba3c5f36077dcfb4dc06d0ae622d02c4000890c5769bf78cb7cd9cb770c",
+      "render_sha256": "a4328446fcf33ce5b5288e355321bd0048e50daacbc6a27579fe736a3f278c87",
+      "path": "upstream/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "0b7d024cdcb9dfc9e0f0afacbd58ee347c1ea6cdbd6f570e63d1fd9382c23a62",
+      "png_sha256": "3ee6356dbc87d51eed596043a6d0f19c671e71f3d21d70dde92a7e9a07dfc819",
+      "render_sha256": "c148ca1025386ae656d2918d3ae628f08dba98f4a0273ea2fc91850396d7b375",
+      "path": "upstream/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "06efbd4249409f5f51c1d4580fb4e4cd26cd57713d7197d63517fe6c3f12fd0c",
+      "png_sha256": "433a987ccdc0616e1584298cb2efdda4aac0430d4fcedab9faa4ae5549fa243c",
+      "render_sha256": "14c3037c29d8f181a86ca045c024b054a7032da43593999ede15b3ba77cd7794",
+      "path": "upstream/tool-preview-history-new-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d9a656939664eb5a0b275d5f903beca5a3644bf600d7cc5707135da66ffd88da",
+      "png_sha256": "ba248c868a1861fc2d3adbacf52cf77fc3f04bdb8032ec9e45a4b5854875565b",
+      "render_sha256": "ec34464df3a586e2a27a8b4bca5b4f53e662d0e6bfe1682ca44d3e7cf52febda",
+      "path": "upstream/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "778524ade5a58278c36a289b1ca8d6bae738ba27b00648338e0d30b9f70c023b",
+      "png_sha256": "7df9a2434cc15a907ab4436f8d69709ddd5554efad651dd22d6486f8e477a30c",
+      "render_sha256": "346f70037a81af52ae8291eb25293318fc1ffb213458b676d141ca552662d013",
+      "path": "upstream/tool-preview-history-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "42de7f483d1a33324cb383eab07d1a79f8d373923575a18d1042d4be528cf68c",
+      "png_sha256": "562a41cfc3ffb5f844087742d379d7af0d68e6b4334d8f01e70bb9605e2f78ea",
+      "render_sha256": "2e01e1b7fcc58f05494bfbc7a61252d8d47eb9ed91e59d3782ddece96f410a08",
+      "path": "upstream/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "e151e0310b84c9144f62fe15358a6ce50d73cbc45db9bde7f54fda14c57d1ae1",
+      "png_sha256": "f2500e45b937dbe8f555e5cd63cfd071fdd1ca437f7de78508536b168434cfbe",
+      "render_sha256": "40ad7fa6e5349c86417574ebb5a2d236e5f8030816fb9396d2092fbe04a79502",
+      "path": "upstream/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "31dd1bb41189838a524f56bec61ebcc5b2ad386678ad72bc4779c4095b0b452f",
+      "png_sha256": "03316f57e43cc68b30c99e3c8b652ca9634d9add9f476f54ee18dc8a12945aa4",
+      "render_sha256": "2343e30eee52a873c6d291c1a758f1947c9c52f109906708f4f3a3e0d39693f4",
+      "path": "upstream/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "107a55186dcf59d4d90156661751baf822c7279765d45b4716038c8aa353fa24",
+      "png_sha256": "9172b3fcf6d198cdc29b4b3262b6d5f24585c6b59f5a6a91cc7d2dc00092b358",
+      "render_sha256": "889793897c25e8d1867d88b12cdf0ccb65b66c90e1d37ad714d6058c7785fd8e",
+      "path": "upstream/tool-preview-history-slash-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b233692f8c698a3ec7fab481f097a7c37cdc9698f8ed033fc3a1fd862d7307c6",
+      "png_sha256": "aaa98e16b10afdf556a85c64cfd3dd07c017945c7e8efb5dbffc1eb3e99928b5",
+      "render_sha256": "a56447c6cef03d45b8772843436da12dd3f4e4f5c42641c48899b78424198608",
+      "path": "oc/tool-preview-history-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d7c18fa7bf1c9301cce7bbd920f28fabd6a06f27cf9e650b72d340810b002359",
+      "png_sha256": "0e76df3d50ac39f57cc22aed97694284addd9a52de3083593acb26f6ef0c81a4",
+      "render_sha256": "5a1f8d06bfa999e019644a175c0ade7b73609ee19b9b2070d189d55511f73be3",
+      "path": "oc/tool-preview-history-input-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "8109f9b0921ea1e783e0788c2faecae66c76eeb6e227e96e757b25fce775633b",
+      "png_sha256": "0e3a971301fc2599a4f67a2dbe3d9b1ea0602398ecf781596ae5f7ef3a8c67a7",
+      "render_sha256": "ad84e3936fbfb0e717ec904ed33929cfb41a567717e05a231b9fcffce5026c24",
+      "path": "oc/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d8d2a23d3fd4b14fef0dc4d5162bce8c539c3f34e19cb1bfe44af6943069c22a",
+      "png_sha256": "b0426aa6d224fd60fcb620c7c28dc7aae5b0f60e9bc5b3217d7a077c5213a5fd",
+      "render_sha256": "9b725c7772ff70aceec1bb2ccb05fab0691d880dc7dbd7af6f100ca5303919d2",
+      "path": "oc/tool-preview-history-input-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "2b54c6b2eb731d015a17fdb1f427f7cd0bf280bb7c38d217dc6918c3588681df",
+      "png_sha256": "1ecbe84d2546a3115b66e49bf40b49778dd135c40f8dddd24a1d46c5ea0b4ac0",
+      "render_sha256": "bf207472a1d84aab9d71553eef51c8bff923f1e7c079d413d7cc9d37ed2b4ae9",
+      "path": "oc/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "46471f9155fdfb836d9d40c30f7f1971ed705f9df2965091f253c08dc1ded62e",
+      "png_sha256": "b9f691f1a958a44e8254c3232f610456cbe24911960f63bf214b8ba0aaeb3f2d",
+      "render_sha256": "58e9c685e0e4e40bda270172e7833b44a8799bbf73757bc75aa4f03f477d85b6",
+      "path": "oc/tool-preview-history-input-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "43ce80f1cac16047ed14889d51460f289b807e9ba8b69f12b2d46b474279299f",
+      "png_sha256": "6ba6f0eb79836d7b73915d83c82f7ad056e7fedf4b0a30145d37d0857ae0d01e",
+      "render_sha256": "84a248f51486b25b0fb51a5ae325484eb84170efe35b473e1e36e1e21937ff8e",
+      "path": "oc/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "8444d6024fa3113f8c13e9d9389589d061483f90fc3f734be9f824e07b7a16bc",
+      "png_sha256": "02c104ba3e313a82a285f4207af82ee0587d951d61e82da0457b55b164ec93ec",
+      "render_sha256": "e90b175b1ec01093df1427791c846b3bf567625b5a5bb0d73474e5c5c21cf058",
+      "path": "oc/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f5b86d659a7056eb2d5913e92db3ab17551241899d6664fce281da18ecccd8ad",
+      "png_sha256": "a869eb0618b029f224b8fef58dd22cd22914b6cc64761ca73b1b0d9abd5db52b",
+      "render_sha256": "f1cfa772c133a714434689e675ec6706c04ef64a594ae4953efdfb09fc7d864b",
+      "path": "oc/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "e7a53bc7fecd578ba9cb54730529f92e5a9ff322ec943106dbbda1bcfe1b86d2",
+      "png_sha256": "1954f53ff21bc17fa25c4d24fa98b197eef0f3f26cdd75d299deaecb4379e2b3",
+      "render_sha256": "47faf025a6e05597dc63c2cca791e694468c5d3d1cb783f49ec61663396a1e24",
+      "path": "oc/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "41c01d181f56a75ebb0ddecf4356d076cb52b17b69e6151f53aa5454768160f0",
+      "png_sha256": "a5c0b1336f361ec651a5fcef67530d9ca7d560de253b84662a3458d5392ea109",
+      "render_sha256": "3c11f3ec2ca355e4676606b13c99ad2bfa32a1460860669d3e71131a85e9a91f",
+      "path": "oc/tool-preview-history-session-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "98874a11560b1b32c82417f4848fae1ae6a61ce3f66e5877f440793c2af563d7",
+      "png_sha256": "8e6c55b052c3124abe46eeaca857030f5798c8af3c20e687dadc652831f9440b",
+      "render_sha256": "7772390cbd0eaa18f05e37a6afee525af757a82fcc27893d4672105beba530af",
+      "path": "oc/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "78776438626046a8f53b3226e9811f8ed45aeeba640244d3d317dfae368c1a6f",
+      "png_sha256": "00048942ed7d83c19add1d9d992559dfcf10d4d9f4ab1adeec6a8f995a03f1b6",
+      "render_sha256": "b85919cf951cf1493f51b3e7d2f9c6bc065b252ebd75e741d52d6c2d26a55f77",
+      "path": "oc/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "036928aef2b43f146807326945801bccc800fa112a024390362f61a44a45ab71",
+      "png_sha256": "e1ed066377077bae3dd8e11ce8215392489b2f66b0debb9ed031dd8eaabe39a7",
+      "render_sha256": "aace4c2f29a5fe61957c450387ceacd0a51b8147a25cddc01ea626f9ea07f0c5",
+      "path": "oc/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "a3d15d61ac5553b90905c78eb5e14c5f79d9e4a85e33e178af7411330554e2ce",
+      "png_sha256": "02c104ba3e313a82a285f4207af82ee0587d951d61e82da0457b55b164ec93ec",
+      "render_sha256": "41fe02bbf0b862186b88d5f37111d861d6c9aa4ebf4f09eb302fb25a9ea34e3c",
+      "path": "oc/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "88d9fdb09ea230c0ba8ff6c5ffbbc5497668e061e1fce40a405baf646703567a",
+      "png_sha256": "1954f53ff21bc17fa25c4d24fa98b197eef0f3f26cdd75d299deaecb4379e2b3",
+      "render_sha256": "7d86dadea0631ace9ccd2514376dc9cf3df14e72d1924c1c0ffead87dee267f2",
+      "path": "oc/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "632c2f3f9ab34786859aa848a1c868d096f7573e7f541e7e326d3fb4f8042c6c",
+      "png_sha256": "ed100edb9ab9bd8b01487bb5c3cb5115dd8ec8b622d414ede4a5f46f55a0f0f6",
+      "render_sha256": "6f03be862f8e3bfa6dd0e7a463b4ae2480830ea62451999da44d0abea8c2e37f",
+      "path": "oc/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "af8de5c7fe67182ab4340c92b26cf038066197f9567336626de89261f69eb4cc",
+      "png_sha256": "42053caf2605f4efff892d73111393e6a98bd104e31709091144dfaf14fc3ec7",
+      "render_sha256": "ed241f9be419c18a645e3bbed25aff151f1340173790d40f0e51e9c9013a04e5",
+      "path": "oc/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "524658bac18b4a2276b4a5f10d2d6e531fe41937dd6ade6a837d29e751a0c8f7",
+      "png_sha256": "d920a6aec73b76665dce03b870a740a7480bd273da7b3484008286ab5e148d5a",
+      "render_sha256": "f0fcb8c269808bd9dcc432c8336f1663dc85d70779608556250efd7cfc56cc44",
+      "path": "oc/tool-preview-history-new-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9b1ec03607d2319347b1ae68c779152d45a40e2ef7860550550e6ecf5580ac92",
+      "png_sha256": "eccb3bd9271a88f729d50079eb368eafedfcfc274ec8c72e613e606be32b1c1b",
+      "render_sha256": "23ef4a00a789b91565f0db967fd8b424e8843b46826667553fa5163a7f2f33be",
+      "path": "oc/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "3c6de8037b509887273a5e031eee7faefc073efa3fdf86b1318fa70de2781a27",
+      "png_sha256": "e9806f39f91139bf464423e36757d36225a2919ca54726db9f9650647a5069a0",
+      "render_sha256": "7d38d199a1d2f8df40f8f5921f79d1c694538f53a4f83bff920b275fdbca5f39",
+      "path": "oc/tool-preview-history-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "5efc4d0ac30841234feac770830a33aa3c0b38e1fc3d643da423dc2b36728552",
+      "png_sha256": "8c989d48de160a759a95efa40b8fc6324200afe0c25d930dfe37ac11d3e7eca2",
+      "render_sha256": "7723ea4314c85d15e35a8fe962e9b04c4973b71b5da76c8d1323ef555a7fb1b7",
+      "path": "oc/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "e3c512e35040720bededcaf841aef261b4321562943cbd787d988b91deb8c941",
+      "png_sha256": "1346adeef203ed2d0649ae855ab3db5e4da6c730b8a4b3cc521ded49b7e7e04f",
+      "render_sha256": "1bad1d81f8aebfacf61a466e41c9cf366e04ace4d78273ebdad3a0f44d109bd7",
+      "path": "oc/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b7aed495d68d1619b32acef01efb41c34949b03ee24448c1173c2a1724eca109",
+      "png_sha256": "1e75aa22f1d43cdac21aafeca9facd099675215181df9043c27e2591ec5a056f",
+      "render_sha256": "f174e33d0e590058eb401222e1aff2804c540f98ba2e27da6d1e7ad240a74956",
+      "path": "oc/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "bf4510b153cf448e718a24c4aa7832c42c210077ebd59179faf6489c59f29c92",
+      "png_sha256": "6f672c1be1ade29f8a9be1417995ca4d7ede3e0a2cbd5784d834805a6f01b6ec",
+      "render_sha256": "b3f2147c1a4e515ccafcbbd2a1c0e0b961471875bb1e56144b5ee1dd3cc6790b",
+      "path": "oc/tool-preview-history-slash-accepted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 80,
+    "rows": 24,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": "default",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 17,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 19,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-slash-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_history": {
+        "status": "OBSERVED_PROMPT_HISTORY",
+        "mode": "default",
+        "accepted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_three_accepted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "before_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_before_restart",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_restarted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "slash": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_slash_recorded",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "explicit_user_submissions": 4,
+        "provider_requests": 6,
+        "tool_effects": 0,
+        "shared_home_session_restart": true,
+        "native_unfinished_draft_restored": false,
+        "reference_forward_boundary": "EMPTY_PROMPT",
+        "reference_nonempty_draft_refused": true,
+        "native_consecutive_dedup_verified": false,
+        "native_raw_users_verified": false,
+        "effective_leader_verified": false
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 17,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-slash-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_history": {
+        "status": "OBSERVED_PROMPT_HISTORY",
+        "mode": "default",
+        "accepted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_three_accepted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "before_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_before_restart",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc98f267b2bf2b-208b78-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc98f267b2bf2b-208b78-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "slash": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_slash_recorded",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc98e6cd5c80c1-208b78-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc98f267b2bf2b-208b78-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done",
+                  "/mcps"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "explicit_user_submissions": 4,
+        "provider_requests": 6,
+        "tool_effects": 0,
+        "shared_home_session_restart": true,
+        "native_unfinished_draft_restored": true,
+        "reference_forward_boundary": "EMPTY_PROMPT",
+        "reference_nonempty_draft_refused": false,
+        "native_consecutive_dedup_verified": true,
+        "native_raw_users_verified": true,
+        "effective_leader_verified": false
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_HISTORY_ONLY",
+    "mode": "default",
+    "actual_requests": "Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects",
+    "observation": "Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor"
+  },
+  "finished": "2026-10-08T15:55:42.662Z",
+  "exit_code": 1
+}

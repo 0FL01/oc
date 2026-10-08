@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T12:22:20+00:00
+State updated: 2026-10-08T16:35:28+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,42 +12,45 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — painted ordinary prompt click-caret
+# T44 — shared durable prompt-input history
 
 ## Result
-Existing editor/layout provides visible legal insertion stops to PaintedPrompt;
-unmodified Left Down revalidates paint/draft/caret/current owner and moves the same
-editor before typing. Chip expansion and overlay/terminal/child/Shell authority
-win; no navigation bytes/request/policy change. Shared wrap-end stops follow the
-running reference before soft separators. Receipt: evidence/tui/prompt-click-caret.md.
-Whole T44 remains ACTIVE/NOT_PASS; shared durable input history is still pending.
+Existing application/Db preferences own one newest50 input list with exact
+consecutive dedup/filtering/derived input bounds. Root accepted input records in
+the same transaction before acknowledgement/provider; resume/manual/child do not
+replay. Local slash and exact donor-retained clear record before dispatch/clear.
+Existing Editor preserves boundary-first movement, undo/edit refusal/native
+unfinished draft; admitted previous/next/legacy/leader bindings share one owner.
+Receipt: evidence/tui/prompt-input-history.md. Whole T44 remains ACTIVE/NOT_PASS;
+structured user Shell composer/admission remains mandatory and pending.
 
 ## Checks
-Current targeted VIS12 2/0 and inherited VIS07 8/0; strict locked workspace Clippy,
-1747/0/11 across46 results, fmt/locked+ordinary debug/release/help and actual release
-startup/discovery PASS. Exact editor Unicode mutations, clipped/resize/modified/
-changed-owner and busy-session cases have no queued request. Repo Python47/0,
-Node/Python/source/docs/journal checks PASS with delivery.
-Final primary006 both25 paired stages/50 strict grid+PNG ALL DIFFERENT; exact
-Проведи RECXON, жду план wire/native durable row,2requests(one main/title),0tools,
-real session edit/new/reopen/clean restart with unchanged accepted observations.
-Normal0284 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes
-and RAW/artifacts. Temporal031 six states≥3cycles/zero phantom/no replay;144 opaque
-PNGs audited,67 matched pairs134 strict comparisons ALL DIFFERENT.
+Current fmt/strict locked workspace Clippy,1752/0/11 across46 results, locked+
+ordinary debug/release/help and actual release startup/discovery PASS. Storage/
+Core/UI/config owner cases and actual existing-target VIS12 PTY prove newest50/
+dedup/rollback/query errors/three accepted inputs/Home/new/restart/held busy wire.
+Extra idle/fairness/equal-view RSS/PSS/queue/cache/children/AUD32 gates PASS under
+unchanged limits. Repo Python/Node/Python/source/docs/journal checks with delivery.
+Default00380x24 both25 stages/50 strict comparisons ALL DIFFERENT; remap001120x40
+both28 stages/56 ALL DIFFERENT,4main+2title/0tools, exact native global list/RAW,
+shared restart/local slash and effective F2/F3/CtrlG p. Original nonempty scratch
+refusal/forward empty captured, not copied into native draft-loss behavior.
+Normal0294 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes.
+Temporal033 six states≥3cycles/zero phantom/no replay;144 opaque PNGs audited,
+68 matched pairs136 strict comparisons ALL DIFFERENT. Failed032 remains immutable.
 
 ## Risks
-Whole styled-cell/PNG parity remains NOT_PASS. Shared Unicode11 raster loses one
-ZWJ component; actual paired prefixes and native full-byte tests are distinct,
-not normalized fake raster equality. Original RAW is not decoded; actual wire
-and saved-session frames are its independent proof. Earlier wrap/helper/target
-failures and pre-final005 remain immutable. No test/resource/security threshold
-weakened; AUTH06/original24/24/Go13/24 unchanged; .opencode untouched.
+Full styled-cell/PNG parity is NOT_PASS. Original RAW is not decoded; actual wire/
+frames are independent proof. Structured Shell submit and full parts/mode/Mini are
+not inferred from terminal bytes or model tools. No schema/store/RAW cache/API
+selection change or raised threshold; .opencode untouched, AUTH06/ledgers unchanged.
+Manual test channels now ACK exact accepted history while retaining original
+control assertions; transcript wheel replaces obsolete history-owned Up fixture.
 
 ## Next
-Commit/push reviewed code/evidence, then shared durable newest-50/consecutive-dedup
-prompt history and effective previous/next bindings, followed by every remaining
-frozen R1–R6/VIS01–VIS45 outcome. No task finish or acceptance reset here; final
-R6/V09 only after complete closure.
+Commit/push reviewed source/evidence, then structured user Shell composer/admission
+and every remaining frozen R1–R6/VIS01–VIS45 outcome. Do not finish T44 or reset
+acceptance on this functional slice; final R6/V09 follows complete closure.
 
 
 Ready (до 5): нет

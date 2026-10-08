@@ -152,6 +152,25 @@ pub const PREF_MODEL_SELECTION: &str = "tui.model_selection";
 /// Prefs key holding the persisted primary agent JSON.
 pub const PREF_PRIMARY_AGENT: &str = "tui.primary_agent";
 
+/// Shared input history is not conversation history or a per-session projection.
+pub const MAX_PROMPT_HISTORY_ENTRIES: usize = 50;
+
+pub fn append_prompt_history(
+    entries: &mut Vec<String>,
+    text: &str,
+) -> Result<(), crate::session::CoreError> {
+    if text.len() > crate::session::MAX_INPUT_BYTES {
+        return Err(crate::session::CoreError::InputTooLarge);
+    }
+    if !text.trim().is_empty() && entries.last().is_none_or(|last| last != text) {
+        entries.push(text.into());
+    }
+    if entries.len() > MAX_PROMPT_HISTORY_ENTRIES {
+        entries.drain(..entries.len() - MAX_PROMPT_HISTORY_ENTRIES);
+    }
+    Ok(())
+}
+
 /// Scoped frontend selection action. Selecting a model restores its preference;
 /// selecting `Variant(None)` explicitly clears the overlay. Legacy headless
 /// `select_model` remains an exact model/variant action.
@@ -588,6 +607,8 @@ pub struct TuiChrome {
     pub conversation_shortcuts: ConversationShortcuts,
     /// Effective Select/MCP modal bindings, independent of root editor shortcuts.
     pub dialog_shortcuts: DialogShortcuts,
+    /// Effective shared input-history bindings; visual prompt movement wins first.
+    pub prompt_history_shortcuts: PromptHistoryShortcuts,
     /// Admitted leader.timeout (preferred over legacy leader_timeout), in milliseconds.
     pub leader_timeout_ms: Option<u64>,
     /// Admitted command.palette.show binding; None keeps the native default.
@@ -604,6 +625,20 @@ pub struct DiffSettings {
 pub struct PermissionShortcuts {
     pub fullscreen: String,
     pub exit: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PromptHistoryShortcuts {
+    pub previous: String,
+    pub next: String,
+}
+impl Default for PromptHistoryShortcuts {
+    fn default() -> Self {
+        Self {
+            previous: "up".into(),
+            next: "down".into(),
+        }
+    }
 }
 impl Default for PermissionShortcuts {
     fn default() -> Self {

@@ -1,0 +1,275 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:40835/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"tool_output\": {\"max_lines\": 12, \"max_bytes\": 1024}, \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"vis16_output\", \"resource\": \"*\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"*\", \"effect\": \"allow\"}], \"mcp\": {\"servers\": {}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_title",
+    "valid": true,
+    "index": 0,
+    "user_texts": [
+      "HISTORY-FIRST Ω界"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_title"
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_submit",
+    "valid": true,
+    "index": 1,
+    "user_texts": [
+      "HISTORY-FIRST Ω界"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_submit"
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_submit",
+    "valid": true,
+    "index": 2,
+    "user_texts": [
+      "HISTORY-FIRST Ω界",
+      "HISTORY-SECOND\nsecond line Ω界"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_submit"
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_submit",
+    "valid": true,
+    "index": 3,
+    "user_texts": [
+      "HISTORY-FIRST Ω界",
+      "HISTORY-SECOND\nsecond line Ω界",
+      "HISTORY-THIRD @note.txt done"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_submit"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "history_three_accepted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_title",
+    "valid": true,
+    "index": 3,
+    "user_texts": [
+      "HISTORY-THIRD @note.txt done"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_title"
+  },
+  {
+    "kind": "provider",
+    "operation": "prompt_history_submit",
+    "valid": true,
+    "index": 4,
+    "user_texts": [
+      "HISTORY-THIRD @note.txt done"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "prompt_history_submit"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "history_before_restart",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  },
+  {
+    "kind": "relaunch",
+    "generation": 1,
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/prompt-history-default-attempt-003/project"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "history_restarted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "history_slash_recorded",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "exit",
+    "generation": 1,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

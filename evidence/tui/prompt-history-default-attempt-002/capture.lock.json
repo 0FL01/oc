@@ -1,0 +1,1762 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T15:20:32.849Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "01b12a6222075d338ddf33ede60c7f823d69a384f899aacba4d8fe535d151e15",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "a9be7d2818390c20a638d3ad5a1c332e2ab00507045ed851911566aa736d022a",
+    "tool_preview_fixture.py": "b507b908e089347d1a1ac8fce5f563206c31174b9a4f1a3ed942824021607b83",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_history.mjs": "360e493857b7ad487490b8192998817ac88ec9785232aad32ce751f9a95b0f60",
+    "prompt_history_fixture.py": "6009603a11968d9b2ae75a40cbfe63eb8a61cd8731226dacf8897055d95e3f8b",
+    "prompt_caret_fixture.py": "95ea6b2bfcdb815aaa54b68578bd174040f3d9de6c21b0d8ac3c7937e1217ef4"
+  },
+  "fixture_sha256": "d1f8934b1d28e05574b22ad70e092662d5de51a8ad7b1aa720ae121335ce7f41",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "7ef6a58312bcd60e97956dcc4942a57191a43f3a",
+    "tree": "b9ba8229f3da30be3f125bb0f9fb58dd73dabdc2",
+    "dirty_diff_sha256": "672628db3e81f4a5acbf11e8af32ea511dd484148205e6ec3cacde7026c4808f",
+    "source_manifest_sha256": "dd190284d6a5990b45a67ec22d05df2c8f2425f2a937da7c82933b7503871093",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "792d437f64442ac5753596fe07a66c52c4dbd63f148b64c17ad04c4e3897872d",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "86d8016bdfe453af1c993c47350b67d2a376d2f3dffe0463147699772e8d60f5",
+      "png_sha256": "84fd44660f77e9f42acda54071a173b769df6420ec2075e97211abd15db28a40",
+      "render_sha256": "85d7c644cbadc4029580c71162029355ea6fa5865be38241dee58127b14d0f85",
+      "path": "upstream/tool-preview-history-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9aa4b82821c8b36fd77600201cead642d6d228e84f6efb998c50245481a2daa0",
+      "png_sha256": "62d078f620cf71648924c4f175dd799e7fd34b9416d93300a99a4a37e1bca71c",
+      "render_sha256": "3fcbd7f462017da27cba7f9c9f8e53c255360630ac9710885fce98e511324ef0",
+      "path": "upstream/tool-preview-history-input-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f16dce54d82b9fe09145eeab6f64ea5b48ee483841a557e27cc8ab4fd36a8e5b",
+      "png_sha256": "2f1788fd4e43e4b349c3560a85884a013ec3c9ca502384c0b239108ae5111db3",
+      "render_sha256": "323b79ca451e7de2cc6c4ba0179043087ed4e85a491d346ac119e9cb1ceac8b5",
+      "path": "upstream/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "80e645dd60f8d5b8fb9bf12e402087bd0cc8b645925c88cf6ea2160aac8d1a3c",
+      "png_sha256": "377e8e16f5639fef9b7c94794ee38a478cefa310e02d1af09b676fd4e39ff2e1",
+      "render_sha256": "fead9781c5a095f7d28711f730fbab1066a475ed6f028db7a82019c2441f5292",
+      "path": "upstream/tool-preview-history-input-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "1e8cf3a4fe6be8e393470c2308d6675ed123af2b21a79abfa2ddeefc790ca850",
+      "png_sha256": "e41e23cc3a17e2951fb15ff186973f729de148e23b99f7a5a70961deddc8fa98",
+      "render_sha256": "76ba9cb6aa2dfd4b14987c07a456f2ce134f18a6c4d19e4b0c4b30d55d0c4ec2",
+      "path": "upstream/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9a274b2bf9194a02cbf10c2ed3033cc7ea4592653d486a313f489efab33a568e",
+      "png_sha256": "9693892f155b65d79b4e02af037c5d328c9944ada5737f454a040df7081af63e",
+      "render_sha256": "f82e123b28f5ce0fad86267fef0a6d5b254184b64b873e7551c274dd45e4dc10",
+      "path": "upstream/tool-preview-history-input-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f51f0348b8f6e4bc20d7afbc771f343e9aeea4505c5fa72183c0eab1672fbda7",
+      "png_sha256": "41a70f27116c903ef42c47a42e892c494f2f9d9bd1b521cf23caa9857ae290cc",
+      "render_sha256": "2e692ade67f5af80c67f395c68046de46ae1449150a8dbe6cd348269ed54d4d2",
+      "path": "upstream/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "98418aca9552f5fd85903e94ee191afac6e9126f4755ffbd4272341b13d15f9e",
+      "png_sha256": "6f2a07798bc1fb7048b66447f0ced668f3859b2934078f5e2fb84b475a86603a",
+      "render_sha256": "4167cb369999e7f545d62fe8d1630a32f6735b54e31ef1a95e43663a861aa667",
+      "path": "upstream/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "45698122d7ebceaff05803d7f6292cecfc9c38e8f7accff55dc3bf29a26182fb",
+      "png_sha256": "4bd2b4d64b7a1ae335effb304eecf05292fd7856ddb2d6bcd09f1dd79f4e1d7b",
+      "render_sha256": "29ab8921981436df3f75e9d7b6e97e9ed9518428965ab2f96fa12232bee99570",
+      "path": "upstream/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "82456faca78671e159b9cdf774501b234fbf50e266b6367281093ab1f460974d",
+      "png_sha256": "4bd2b4d64b7a1ae335effb304eecf05292fd7856ddb2d6bcd09f1dd79f4e1d7b",
+      "render_sha256": "0ed50ee09aeedcef9c7e7557b914ec9cadba6d0894b9716145fa81d62343ee33",
+      "path": "upstream/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "4db06c6ebdd22e78f467af16e233178eef19704fe89116d537be687ba002c87b",
+      "png_sha256": "ee37cd314a8343fb1cd75610a4ed19127678aef20cf5ced57fef303c91f022fa",
+      "render_sha256": "972a2d87301f718e614b9b4922786eaa13440a9f36477f1b78bdb36ee851455d",
+      "path": "upstream/tool-preview-history-session-older"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "71ba5ac77a2634eee5c1c35acf62afa56eb12391cb89958aaa4fb897fa3f7943",
+      "png_sha256": "6ec5321079d6ed181ca1f5c4f1601ac8845719149ad855a4489621c75baf4e38",
+      "render_sha256": "c7cbde361ca5df44e633517bc569f111c17573dae4760ab5a033c539867ed0c9",
+      "path": "upstream/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "86bced34a9d2c15892238f20ff5886d7b79e251fb923e3b9d2dce753e4c1a6c8",
+      "png_sha256": "a846bb0516c24a4f8fe289ac6beb14434006dca782d36bc3a37a37ceea5b3efa",
+      "render_sha256": "75efec7a0787e1acc05445e244bc9254858971ec660a97bfc7b9837ea7d70298",
+      "path": "upstream/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "db34fdb8e71073eef262b7b566f3cb27073d851e9579c548d3030233b6d174a6",
+      "png_sha256": "7b8cd6fa742fbce1c79ac8c95a3d60b19b9e8333677fe2a1f5fc59b41603d655",
+      "render_sha256": "f2f7d2ce19d7a6303a0dc9e89a4e0efddf1bea89f98027cd352c03d3b5197004",
+      "path": "upstream/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b2debe51000a9f62f93cc30082971d6ca0ca2c1e555fc078b413fcbc94a0d9dc",
+      "png_sha256": "41a70f27116c903ef42c47a42e892c494f2f9d9bd1b521cf23caa9857ae290cc",
+      "render_sha256": "080b135aa2e1f93e7517d7d4de3b9c293813b41ded76608793e628253b455152",
+      "path": "upstream/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "01f1015eadbaf360c06ba737a983e1f9320d803e4d7ff4579e85c996815a8ce2",
+      "png_sha256": "d3f68cfbfa1586a9ce21acd6022203f9ce60f5b4beab4cff930832612f891f1f",
+      "render_sha256": "534a23d2e0983016af0415950e51af520d4ea7e2a3d752895c4dd44c7ec31e76",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b233692f8c698a3ec7fab481f097a7c37cdc9698f8ed033fc3a1fd862d7307c6",
+      "png_sha256": "aaa98e16b10afdf556a85c64cfd3dd07c017945c7e8efb5dbffc1eb3e99928b5",
+      "render_sha256": "a56447c6cef03d45b8772843436da12dd3f4e4f5c42641c48899b78424198608",
+      "path": "oc/tool-preview-history-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d7c18fa7bf1c9301cce7bbd920f28fabd6a06f27cf9e650b72d340810b002359",
+      "png_sha256": "0e76df3d50ac39f57cc22aed97694284addd9a52de3083593acb26f6ef0c81a4",
+      "render_sha256": "5a1f8d06bfa999e019644a175c0ade7b73609ee19b9b2070d189d55511f73be3",
+      "path": "oc/tool-preview-history-input-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "ba4cab287f79112b47a0e308c144ac07ba37eabb32530b07f02834542dd0598a",
+      "png_sha256": "59d22895263e8f12588ff773683e79724d6b0fd4e14352ee30d7d1c80f61e30b",
+      "render_sha256": "ad84e3936fbfb0e717ec904ed33929cfb41a567717e05a231b9fcffce5026c24",
+      "path": "oc/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "1f3e2359d40761086544b858abe6f91b8185d08fd0a711c19c97792ae70b0f83",
+      "png_sha256": "22e2f60bd00cbca24007e3293c655420ae4d8c227b6da72c732861e7cfb39f87",
+      "render_sha256": "9b725c7772ff70aceec1bb2ccb05fab0691d880dc7dbd7af6f100ca5303919d2",
+      "path": "oc/tool-preview-history-input-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9a7ad235de1c5b907cca2a7f710ea542d45916e18d3a7a1307b17a4e9a446b3f",
+      "png_sha256": "ab27eb7e81e6f55575b14579075815bc1a069df30c575ab6e98f757ac0d4cb6a",
+      "render_sha256": "bf207472a1d84aab9d71553eef51c8bff923f1e7c079d413d7cc9d37ed2b4ae9",
+      "path": "oc/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "fe9c2a31c092aa1e1a6a80c485fcf9b64128e38e412481c47128327b391fdb9b",
+      "png_sha256": "0a9dc6cf41a5422f8ea675679e8807cc356435b74920a2bb8a0f4702d1c25e08",
+      "render_sha256": "58e9c685e0e4e40bda270172e7833b44a8799bbf73757bc75aa4f03f477d85b6",
+      "path": "oc/tool-preview-history-input-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "35138b6f1b42cf508b9013340ad424abcbf643652c99fe32d8c2f1d6bd047cdf",
+      "png_sha256": "d8cbfb067914c6c18a664e7d157335ee853f08e3610113b312ed338419194adc",
+      "render_sha256": "84a248f51486b25b0fb51a5ae325484eb84170efe35b473e1e36e1e21937ff8e",
+      "path": "oc/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "7793ba5e6be00b5a7f987f9f09460661f0ca4adfc04fd5b357ecbb35a7440256",
+      "png_sha256": "1a81bd380fd61ae9f878c4119b57f24e68c9b5260afe39ff0a318ace02dd7bd9",
+      "render_sha256": "e90b175b1ec01093df1427791c846b3bf567625b5a5bb0d73474e5c5c21cf058",
+      "path": "oc/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b127cd59fbf1cd45f1831d2e6f92b1cfd0abc0888b13fa9334cedcb0913a4a90",
+      "png_sha256": "cc676f1b420d6098bf3fb013997252c6a3e7d54f61bba662a3bbdafe7ece04d6",
+      "render_sha256": "f1cfa772c133a714434689e675ec6706c04ef64a594ae4953efdfb09fc7d864b",
+      "path": "oc/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "c2c8f39cba713997e30a6ba59490e08c264b2676511732d1bb3286a0836b2087",
+      "png_sha256": "255ec9014680fcb7c7aec8c94393c40a8aaaea60e3452ab2d9058b8d991d881f",
+      "render_sha256": "47faf025a6e05597dc63c2cca791e694468c5d3d1cb783f49ec61663396a1e24",
+      "path": "oc/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "886172db113bad1102bcfaf8ec4a41e874d47f0d167bbd2ba47f9c4e36b759ad",
+      "png_sha256": "8c6266a28928c0fdff87ae3691a565cd76ecf951a7bb90a9d293cf074e9b3559",
+      "render_sha256": "3c11f3ec2ca355e4676606b13c99ad2bfa32a1460860669d3e71131a85e9a91f",
+      "path": "oc/tool-preview-history-session-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "8cf9167343dab56290cd0635bd31cc8c2e73aa52a491579069a6ab01a9c72805",
+      "png_sha256": "41d69fa4883db971db5edd5e3a6634a496ee661d584d904861f1674519f597af",
+      "render_sha256": "7772390cbd0eaa18f05e37a6afee525af757a82fcc27893d4672105beba530af",
+      "path": "oc/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "6700f78d66ef51192a277ee358ada51a17d9937f18f0a7b7c1c25a8e9ef45896",
+      "png_sha256": "0024358a3f2719e9bbfab57a0f9e7c7714c021189731e290f826983e8e7723c5",
+      "render_sha256": "b85919cf951cf1493f51b3e7d2f9c6bc065b252ebd75e741d52d6c2d26a55f77",
+      "path": "oc/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f0f378e81c900fcd57eefd5ec66aef4db938ed0c278e8e742806af2576e2f6d6",
+      "png_sha256": "c4bb0b71a00fec35a5cde2c6673cd956f076f942a9e29cbf83ab27319aec1f71",
+      "render_sha256": "aace4c2f29a5fe61957c450387ceacd0a51b8147a25cddc01ea626f9ea07f0c5",
+      "path": "oc/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "c63ee52b34458393b3b980a2dd6cd97b0a899111ce89eb8ca323d4d2c25db3fa",
+      "png_sha256": "1a81bd380fd61ae9f878c4119b57f24e68c9b5260afe39ff0a318ace02dd7bd9",
+      "render_sha256": "41fe02bbf0b862186b88d5f37111d861d6c9aa4ebf4f09eb302fb25a9ea34e3c",
+      "path": "oc/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "084b3c92fc11013c41f4e33167f67ba4a6c04f4b17daeb02879da340066bd2e4",
+      "png_sha256": "255ec9014680fcb7c7aec8c94393c40a8aaaea60e3452ab2d9058b8d991d881f",
+      "render_sha256": "7d86dadea0631ace9ccd2514376dc9cf3df14e72d1924c1c0ffead87dee267f2",
+      "path": "oc/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "a00a70cba7b6ea49ee21c4da1a9d618206ce74932406646cdf72f60771baa513",
+      "png_sha256": "3449a46ad671fb1f0886830b0eb6ad93c19f5f4835eb058bc44aa646d86505dd",
+      "render_sha256": "6f03be862f8e3bfa6dd0e7a463b4ae2480830ea62451999da44d0abea8c2e37f",
+      "path": "oc/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "74b6df159601b5a408bec3529dc5947e106e7b7d19d498049d3f69375e46d86f",
+      "png_sha256": "c663b9262ea90a71ecb8e9f5ae2eda58e015500aa3f4152215a920f969b5ec55",
+      "render_sha256": "ed241f9be419c18a645e3bbed25aff151f1340173790d40f0e51e9c9013a04e5",
+      "path": "oc/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "75f0c612bb99df5d0b0432b595ba390de130c9105592795ee322877da4216bc5",
+      "png_sha256": "1ab8328c765352bac54bc7e7ee9c5a8a4e534f14f0d80eceb2cc4cb56535c319",
+      "render_sha256": "9a69439a287f145cb29050f2aa93d8fab2cfb204ff93435093ed763dbf3d1631",
+      "path": "oc/tool-preview-history-new-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "9b1ec03607d2319347b1ae68c779152d45a40e2ef7860550550e6ecf5580ac92",
+      "png_sha256": "eccb3bd9271a88f729d50079eb368eafedfcfc274ec8c72e613e606be32b1c1b",
+      "render_sha256": "23ef4a00a789b91565f0db967fd8b424e8843b46826667553fa5163a7f2f33be",
+      "path": "oc/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "3c6de8037b509887273a5e031eee7faefc073efa3fdf86b1318fa70de2781a27",
+      "png_sha256": "e9806f39f91139bf464423e36757d36225a2919ca54726db9f9650647a5069a0",
+      "render_sha256": "7d38d199a1d2f8df40f8f5921f79d1c694538f53a4f83bff920b275fdbca5f39",
+      "path": "oc/tool-preview-history-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "5efc4d0ac30841234feac770830a33aa3c0b38e1fc3d643da423dc2b36728552",
+      "png_sha256": "8c989d48de160a759a95efa40b8fc6324200afe0c25d930dfe37ac11d3e7eca2",
+      "render_sha256": "7723ea4314c85d15e35a8fe962e9b04c4973b71b5da76c8d1323ef555a7fb1b7",
+      "path": "oc/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "bf4e372281cac595ad48535bbfe0b8337d71227f8913801522911e191b0bfc67",
+      "png_sha256": "3f5409ffc583ab141ec4086d858da87468ebfec8b310fa934c32f8d435da59d9",
+      "render_sha256": "1bad1d81f8aebfacf61a466e41c9cf366e04ace4d78273ebdad3a0f44d109bd7",
+      "path": "oc/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b7aed495d68d1619b32acef01efb41c34949b03ee24448c1173c2a1724eca109",
+      "png_sha256": "1e75aa22f1d43cdac21aafeca9facd099675215181df9043c27e2591ec5a056f",
+      "render_sha256": "f174e33d0e590058eb401222e1aff2804c540f98ba2e27da6d1e7ad240a74956",
+      "path": "oc/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "bf4510b153cf448e718a24c4aa7832c42c210077ebd59179faf6489c59f29c92",
+      "png_sha256": "6f672c1be1ade29f8a9be1417995ca4d7ede3e0a2cbd5784d834805a6f01b6ec",
+      "render_sha256": "b3f2147c1a4e515ccafcbbd2a1c0e0b961471875bb1e56144b5ee1dd3cc6790b",
+      "path": "oc/tool-preview-history-slash-accepted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 80,
+    "rows": 24,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": "default",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 17,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 19,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Bridge exited 0 waiting for history-edit-base",
+      "failure_cursor": {
+        "x": 0,
+        "y": 8,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 17,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-slash-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_history": {
+        "status": "OBSERVED_PROMPT_HISTORY",
+        "mode": "default",
+        "accepted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_three_accepted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "before_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_before_restart",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc972475ba7fa4-1fdca5-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc972475ba7fa4-1fdca5-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "slash": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_slash_recorded",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc97198c0182b2-1fdca5-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc972475ba7fa4-1fdca5-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done",
+                  "/mcps"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "explicit_user_submissions": 4,
+        "provider_requests": 6,
+        "tool_effects": 0,
+        "shared_home_session_restart": true,
+        "native_unfinished_draft_restored": true,
+        "reference_forward_boundary": "EMPTY_PROMPT",
+        "reference_nonempty_draft_refused": false,
+        "native_consecutive_dedup_verified": true,
+        "native_raw_users_verified": true,
+        "effective_leader_verified": false
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_HISTORY_ONLY",
+    "mode": "default",
+    "actual_requests": "Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects",
+    "observation": "Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor"
+  },
+  "finished": "2026-10-08T15:22:34.200Z",
+  "exit_code": 1
+}

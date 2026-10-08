@@ -498,6 +498,7 @@ impl TuiState {
             || self.chrome.leader_timeout_ms() != snapshot.chrome.leader_timeout_ms()
             || self.chrome.command_palette_shortcut != snapshot.chrome.command_palette_shortcut
             || self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts
+            || self.chrome.prompt_history_shortcuts != snapshot.chrome.prompt_history_shortcuts
         {
             self.leader = None;
         }

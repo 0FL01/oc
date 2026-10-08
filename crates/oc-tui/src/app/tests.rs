@@ -252,6 +252,7 @@ mod lifecycle;
 mod mcp;
 mod model_selection;
 mod prompt;
+mod prompt_history;
 mod retry;
 mod select;
 mod services;

@@ -396,6 +396,10 @@ impl MockProvider {
 
 /// Commands consumed by the single application owner (native or scripted).
 pub enum InboxMsg {
+    PromptHistory {
+        append: Option<String>,
+        ack: oneshot::Sender<Result<Vec<String>, CoreError>>,
+    },
     AuthMethods {
         provider: String,
         ack: oneshot::Sender<Result<Vec<crate::queries::AuthMethod>, CoreError>>,
@@ -937,6 +941,24 @@ impl CoreApp {
     /// Persist a consumer mode preference through the application owner.
     pub async fn set_permission_mode(&self, auto_once: bool) -> Result<(), CoreError> {
         self.approval_consumer(auto_once, true).await
+    }
+    /// Shared bounded input history. Appending is independent of generation,
+    /// while normal input is recorded atomically by durable turn acceptance.
+    pub async fn prompt_history(&self, append: Option<String>) -> Result<Vec<String>, CoreError> {
+        if append
+            .as_ref()
+            .is_some_and(|text| text.len() > MAX_INPUT_BYTES)
+        {
+            return Err(CoreError::InputTooLarge);
+        }
+        let (ack, rx) = oneshot::channel();
+        self.inbox
+            .try_send(InboxMsg::PromptHistory { append, ack })
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => CoreError::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => CoreError::Shutdown,
+            })?;
+        rx.await.map_err(|_| CoreError::Shutdown)?
     }
     async fn approval_consumer(&self, auto_once: bool, persist: bool) -> Result<(), CoreError> {
         let (ack, rx) = oneshot::channel();
@@ -1997,6 +2019,7 @@ async fn worker_loop(
     let mut sessions: HashMap<String, SessionState> = HashMap::new();
     let mut active: Option<ActiveTurn> = None;
     let mut turn_counter: u64 = 0;
+    let mut prompt_history = Vec::new();
 
     loop {
         if let Some(turn) = active.as_mut() {
@@ -2065,6 +2088,10 @@ async fn worker_loop(
                                 .ok_or(CoreError::SessionNotFound);
                             let _ = ack.send(res);
                         }
+                        Some(InboxMsg::PromptHistory { append, ack }) => {
+                            let result = append.as_deref().map_or(Ok(()), |text| crate::queries::append_prompt_history(&mut prompt_history, text));
+                            let _ = ack.send(result.map(|()| prompt_history.clone()));
+                        }
                         Some(other) => scripted_unsupported(other),
                     }
                 }
@@ -2121,6 +2148,7 @@ async fn worker_loop(
                         &mut sessions,
                         &mut active,
                         &mut turn_counter,
+                        &mut prompt_history,
                         session,
                         text,
                         false,
@@ -2139,6 +2167,7 @@ async fn worker_loop(
                         &mut sessions,
                         &mut active,
                         &mut turn_counter,
+                        &mut prompt_history,
                         session,
                         text,
                         true,
@@ -2166,6 +2195,12 @@ async fn worker_loop(
                         .ok_or(CoreError::SessionNotFound);
                     let _ = ack.send(res);
                 }
+                Some(InboxMsg::PromptHistory { append, ack }) => {
+                    let result = append.as_deref().map_or(Ok(()), |text| {
+                        crate::queries::append_prompt_history(&mut prompt_history, text)
+                    });
+                    let _ = ack.send(result.map(|()| prompt_history.clone()));
+                }
                 Some(other) => scripted_unsupported(other),
             }
         }
@@ -2179,6 +2214,7 @@ fn scripted_accept_submit(
     sessions: &mut HashMap<String, SessionState>,
     active: &mut Option<ActiveTurn>,
     turn_counter: &mut u64,
+    prompt_history: &mut Vec<String>,
     session: SessionId,
     text: String,
     fresh: bool,
@@ -2206,6 +2242,7 @@ fn scripted_accept_submit(
     *turn_counter += 1;
     let turn_id = WorkerTurnId(format!("t{:04}", turn_counter));
     sess.push(Role::User, text.clone());
+    crate::queries::append_prompt_history(prompt_history, &text).expect("input already bounded");
     *active = Some(ActiveTurn {
         session: session.clone(),
         turn: turn_id.clone(),
@@ -2231,6 +2268,9 @@ fn elapsed_ms(started: std::time::Instant) -> u64 {
 fn scripted_unsupported(message: InboxMsg) {
     let error = || CoreError::Application("query unsupported by scripted worker".to_string());
     match message {
+        InboxMsg::PromptHistory { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
         InboxMsg::McpLookup { ack, .. } => {
             let _ = ack.send(Err(crate::queries::McpLookupError::Unavailable));
         }
@@ -2414,6 +2454,10 @@ mod fork_tests {
 #[cfg(test)]
 #[path = "core_app/diagnostic_tests.rs"]
 mod diagnostic_tests;
+
+#[cfg(test)]
+#[path = "core_app/prompt_history_tests.rs"]
+mod prompt_history_tests;
 
 #[cfg(test)]
 mod tests {

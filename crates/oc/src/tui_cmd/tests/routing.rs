@@ -404,7 +404,24 @@ async fn mcp_detail_keyboard_copy_drains_actual_transport_before_outcome() {
             }],
         });
         state.restore_prompt("/mcps".into());
-        state.handle_key(KeyAction::Enter).await;
+        let open = state.handle_key(KeyAction::Enter);
+        let history_owner = async {
+            let Some(oc_core::core_app::InboxMsg::PromptHistory { append, ack }) =
+                inbox.recv().await
+            else {
+                panic!("expected bounded input-history admission");
+            };
+            let mut entries = Vec::new();
+            oc_core::queries::append_prompt_history(&mut entries, append.as_deref().unwrap())
+                .unwrap();
+            assert_eq!(entries, ["/mcps"]);
+            ack.send(Ok(entries)).unwrap();
+        };
+        tokio::time::timeout(Duration::from_secs(3), async {
+            tokio::join!(open, history_owner);
+        })
+        .await
+        .expect("slash acceptance records before dispatch");
         state.restore_prompt("unfinished Ω draft".into());
         state.handle_key(KeyAction::Enter).await;
         fn success(text: &str) -> Result<(), String> {
@@ -1583,7 +1600,11 @@ async fn sessions_query_uses_owner_metadata_and_scope_without_legacy_id_enumerat
     let mut state = TuiState::new(app.clone(), SessionId::new("root").unwrap());
     let mut deck = LoopState::default();
     state.handle_paste("/sessions");
-    state.handle_key(KeyAction::Enter).await;
+    let mut input_history = Vec::new();
+    tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/sessions")
+    );
     state.handle_panel_key(KeyAction::Char('N'));
     state.handle_panel_key(KeyAction::CtrlA);
     let worker = tokio::spawn(async move {
@@ -1870,7 +1891,14 @@ async fn sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes() {
     let mut deck = LoopState::default();
     let worker = tokio::spawn(async move {
         let mut scope = false;
-        for expected in [None, None, Some(true), None, Some(false), None] {
+        let mut input_history = Vec::new();
+        for (index, expected) in [None, None, Some(true), None, Some(false), None]
+            .into_iter()
+            .enumerate()
+        {
+            if matches!(index, 0 | 1 | 3 | 5) {
+                accept_prompt_input(&mut inbox, &mut input_history, "/sessions").await;
+            }
             let Some(InboxMsg::SessionPickerContext { all_projects, ack }) = inbox.recv().await
             else {
                 panic!("scope")

@@ -579,6 +579,11 @@ async fn vis25_home_no_match_and_history_keep_editor_ownership() {
 #[tokio::test]
 async fn vis25_up_owns_selection_then_history_recovers_after_escape() {
     let mut state = fresh_state("slash-history").await;
+    state
+        .app
+        .prompt_history(Some("older prompt".into()))
+        .await
+        .unwrap();
     state.attach_page(&page(
         vec![msg(1, Role::User, "older prompt")],
         1,
@@ -1193,7 +1198,7 @@ async fn accepted_text_only_mention_recalled_in_same_session() {
     await_submission(&mut state).await;
     assert!(state.input.is_empty());
     assert_eq!(state.window.rows()[0].text, "@file.rs");
-    assert!(state.recall_history(true));
+    assert!(state.recall_history(true).await.unwrap());
     assert_eq!(state.input, "@file.rs");
     assert_eq!(
         state.editor.layout(&state.input, 80).0[0].spans[0],
@@ -1473,7 +1478,10 @@ async fn vis07_paste_mouse_expands_only_live_painted_prompt_cells() {
 #[tokio::test]
 async fn vis07_up_down_use_painted_width_before_history_and_select_raw_wrap() {
     use ratatui::{Terminal, backend::TestBackend};
-    let (app, _, _) = CoreApp::channel(4);
+    let (app, guard) = CoreApp::spawn(MockProvider::echo());
+    app.prompt_history(Some("previous prompt".into()))
+        .await
+        .unwrap();
     let mut state = TuiState::new_home(app);
     state.attach_page(&page(
         vec![msg(1, Role::User, "previous prompt")],
@@ -1536,6 +1544,8 @@ async fn vis07_up_down_use_painted_width_before_history_and_select_raw_wrap() {
     state.handle_key(KeyAction::Down).await;
     assert_eq!(state.input(), text);
     assert_eq!(state.editor.cursor, text.len());
+    state.app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
 }
 
 #[tokio::test]
@@ -1813,6 +1823,11 @@ async fn ctrl_c_clears_slash_draft_and_editor_history_before_empty_exit() {
     assert_eq!(state.status(), &TuiStatus::Quit);
 
     let mut state = fresh_state("interrupt-draft").await;
+    state
+        .app
+        .prompt_history(Some("stored prompt".into()))
+        .await
+        .unwrap();
     state.attach_page(&page(
         vec![msg(1, Role::User, "stored prompt")],
         1,
@@ -1941,6 +1956,11 @@ async fn v05_review_shift_edges_select_entire_multiline_buffer() {
 #[tokio::test]
 async fn v05_review_empty_draft_up_recalls_durable_history() {
     let mut state = fresh_state("empty-recall").await;
+    state
+        .app
+        .prompt_history(Some("stored prompt".into()))
+        .await
+        .unwrap();
     state.attach_page(&page(
         vec![msg(1, Role::User, "stored prompt")],
         1,

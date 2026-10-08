@@ -1570,6 +1570,10 @@ impl<'a> Runtime<'a> {
             |log| log.turn_id.clone(),
         );
         let user_text = params.invocation.as_deref().unwrap_or(&params.prompt);
+        // Only explicit root input; child instructions/manual compression and
+        // resumed accepted work must not populate or replay composer history.
+        let history_input =
+            (!lane.manual_compression && lane.owning_operation.is_none()).then_some(user_text);
         let model_ref = oc_core::queries::ModelRef {
             provider: params.catalog.provider.clone(),
             id: selection.id.clone(),
@@ -1601,10 +1605,12 @@ impl<'a> Runtime<'a> {
                     .or(initial_selection),
                 &model_ref,
                 plan_reminder.as_deref(),
+                history_input,
             )?
         } else if command
             .and_then(|command| command.selection.as_ref())
             .is_none()
+            && history_input.is_none()
         {
             self.db.accept_turn_with_reminder(
                 &turn_id,
@@ -1628,6 +1634,7 @@ impl<'a> Runtime<'a> {
                         .as_ref()
                         .map(|(key, value)| (key.as_str(), value.as_str()))
                 }),
+                history_input,
             )?
         };
         accepted(&turn_id, accepted_turn.model_switch.as_ref());

@@ -20,6 +20,10 @@ def respond(handler, body, spec, emit, title, number):
         handler.send_error(400, 'VIS12 exact edited prompt rejected')
         return
     text = TITLE if title else 'VIS-CARET-DONE: exact edited prompt accepted.'
+    emit_message(handler, body, text, number)
+    emit({'kind':'provider_completed', 'operation':'prompt_caret_title' if title else 'prompt_caret_submit'})
+
+def emit_message(handler, body, text, number):
     item = {'id':f'msg_caret_{number}', 'type':'message', 'role':'assistant', 'status':'completed',
             'content':[{'type':'output_text', 'text':text, 'annotations':[]}]}
     response = {'id':f'resp_caret_{number}', 'object':'response', 'created_at':1700000000,
@@ -44,4 +48,3 @@ def respond(handler, body, spec, emit, title, number):
     handler.end_headers()
     handler.wfile.write(payload)
     handler.wfile.flush()
-    emit({'kind':'provider_completed', 'operation':'prompt_caret_title' if title else 'prompt_caret_submit'})

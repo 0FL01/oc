@@ -576,6 +576,9 @@ impl Editor {
     pub fn chip_count(&self) -> usize {
         self.chips.len()
     }
+    pub(crate) fn has_prompt_parts(&self) -> bool {
+        !self.chips.is_empty() || !self.mentions.is_empty()
+    }
 
     pub fn undo(&mut self, text: &mut String, redo: bool) -> bool {
         let snapshot = if redo {
@@ -610,11 +613,8 @@ impl Editor {
     }
 
     pub fn recall(&mut self, text: &mut String, previous: bool, entries: Vec<String>) -> bool {
-        if entries.is_empty() {
-            return false;
-        }
         if self.history.is_none() {
-            if !previous {
+            if !previous || entries.is_empty() {
                 return false;
             }
             let len = entries.len();
@@ -669,7 +669,14 @@ impl Editor {
         } else {
             None
         };
+        if *index == items.len() {
+            self.history = None;
+        }
         true
+    }
+
+    pub(crate) fn browsing_history(&self) -> bool {
+        self.history.is_some()
     }
 }
 

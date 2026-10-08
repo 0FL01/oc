@@ -1447,6 +1447,7 @@ async fn load_stages(
     tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
     tui_chrome.terminal_shortcuts = conversation_keybinds.terminal_shortcuts();
     tui_chrome.dialog_shortcuts = conversation_keybinds.dialog_shortcuts();
+    tui_chrome.prompt_history_shortcuts = conversation_keybinds.prompt_history_shortcuts();
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
         provider_views: BTreeMap::new(),

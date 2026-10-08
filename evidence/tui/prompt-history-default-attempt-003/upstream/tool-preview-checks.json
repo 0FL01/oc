@@ -1,0 +1,488 @@
+{
+  "origin": "upstream",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 23,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 17,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 19,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+  ],
+  "prompt_history": {
+    "status": "OBSERVED_PROMPT_HISTORY",
+    "mode": "default",
+    "accepted": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "history_three_accepted",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "before_restart": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "history_before_restart",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "after_restart": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "history_restarted",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "slash": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "history_slash_recorded",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "explicit_user_submissions": 4,
+    "provider_requests": 6,
+    "tool_effects": 0,
+    "shared_home_session_restart": true,
+    "native_unfinished_draft_restored": false,
+    "reference_forward_boundary": "EMPTY_PROMPT",
+    "reference_nonempty_draft_refused": true,
+    "native_consecutive_dedup_verified": false,
+    "native_raw_users_verified": false,
+    "effective_leader_verified": false
+  }
+}

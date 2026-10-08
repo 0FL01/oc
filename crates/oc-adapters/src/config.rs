@@ -309,6 +309,7 @@ pub(crate) struct ConversationKeybinds {
     palette: String,
     terminal: [String; 5],
     dialog: oc_core::queries::DialogShortcuts,
+    prompt_history: [String; 2],
 }
 
 impl Default for ConversationKeybinds {
@@ -331,6 +332,7 @@ impl Default for ConversationKeybinds {
             ]
             .map(str::to_owned),
             dialog: Default::default(),
+            prompt_history: ["up".into(), "down".into()],
         }
     }
 }
@@ -403,6 +405,26 @@ impl ConversationKeybinds {
                 }
             }
         }
+        for (index, names) in [
+            ["history_previous", "prompt.history.previous"],
+            ["history_next", "prompt.history.next"],
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            for name in names {
+                if let Some(value) = bindings.get(name) {
+                    self.prompt_history[index] = value
+                        .as_str()
+                        .or_else(|| (value.as_bool() == Some(false)).then_some("none"))
+                        .ok_or_else(|| ConfigError::Invalid {
+                            field: format!("keybinds.{name}"),
+                            reason: "must be a string or false".into(),
+                        })?
+                        .into();
+                }
+            }
+        }
         for (index, name) in [
             "pane.focus.left",
             "pane.focus.right",
@@ -460,6 +482,7 @@ impl ConversationKeybinds {
             palette: String::new(),
             terminal: Default::default(),
             dialog: Default::default(),
+            prompt_history: Default::default(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
@@ -511,6 +534,21 @@ impl ConversationKeybinds {
             end: resolve(&self.dialog.end),
             submit: resolve(&self.dialog.submit),
             mcp_toggle: resolve(&self.dialog.mcp_toggle),
+        }
+    }
+    pub(crate) fn prompt_history_shortcuts(&self) -> oc_core::queries::PromptHistoryShortcuts {
+        let resolved = self.prompt_history.each_ref().map(|binding| {
+            Self {
+                leader: self.leader.clone(),
+                undo: binding.clone(),
+                ..Self::default()
+            }
+            .resolve()
+            .undo
+        });
+        oc_core::queries::PromptHistoryShortcuts {
+            previous: resolved[0].clone(),
+            next: resolved[1].clone(),
         }
     }
     pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
@@ -2240,13 +2278,15 @@ mod tests {
                 "leader": "ctrl+a", "session_undo": "leader+z,alt+u",
                 "session_redo": "<leader>y,none", "command.palette.show": "<leader>p",
                 "dialog.select.next": "ctrl+j", "dialog.select.submit": "f3",
-                "dialog.mcp.toggle": "<leader>t,f2"
+                "dialog.mcp.toggle": "<leader>t,f2",
+                "history_previous": "alt+p", "history_next": "alt+n",
+                "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j"
             }}))
             .unwrap();
         bindings
             .merge(&serde_json::json!({"keybinds": {
                 "leader": "ctrl+b,ctrl+g", "session.redo": false,
-                "dialog.select.prev": false
+                "dialog.select.prev": false, "prompt.history.next": false
             }}))
             .unwrap();
         assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
@@ -2256,6 +2296,9 @@ mod tests {
         assert_eq!(dialogs.submit, "f3");
         assert_eq!(dialogs.mcp_toggle, "ctrl+b t,ctrl+g t,f2");
         assert_eq!(dialogs.home, "home");
+        let history = bindings.prompt_history_shortcuts();
+        assert_eq!(history.previous, "ctrl+b h,ctrl+g h,f4");
+        assert_eq!(history.next, "");
         assert_eq!(
             bindings.resolve(),
             ConversationShortcuts {
@@ -2278,6 +2321,11 @@ mod tests {
             assert!(
                 bindings
                     .merge(&serde_json::json!({"keybinds": {"dialog.mcp.toggle": invalid}}))
+                    .is_err()
+            );
+            assert!(
+                bindings
+                    .merge(&serde_json::json!({"keybinds": {"prompt.history.previous": invalid}}))
                     .is_err()
             );
         }

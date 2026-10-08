@@ -384,7 +384,13 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
         })
         .unwrap();
         // Ctrl+C polls the receipt before the next frame's poll_and_sync.
-        state.handle_key(KeyAction::Interrupt).await;
+        let retained = state.input().to_owned();
+        let mut input_history = Vec::new();
+        tokio::join!(
+            state.handle_key(KeyAction::Interrupt),
+            accept_prompt_input(&mut inbox, &mut input_history, &retained)
+        );
+        assert_eq!(input_history, vec![retained]);
         assert_eq!(state.input(), "");
         assert_eq!(
             state.status(),
@@ -442,7 +448,13 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
         panic!("one pending fresh submission")
     };
     state.handle_paste("unsent draft");
-    state.handle_key(KeyAction::Interrupt).await;
+    let retained = state.input().to_owned();
+    let mut input_history = Vec::new();
+    tokio::join!(
+        state.handle_key(KeyAction::Interrupt),
+        accept_prompt_input(&mut inbox, &mut input_history, &retained)
+    );
+    assert_eq!(input_history, vec![retained]);
     poll_and_sync(&app, &mut state, &mut deck).await;
     assert!(state.attached_session().is_none());
     assert!(deck.active_tab.is_none());
@@ -759,7 +771,11 @@ async fn vis34_manual_admission_event_race_parked_view_and_read_failure_keep_rec
     let mut state = TuiState::new(app.clone(), session.clone());
     state.restore_prompt("/compact".into());
     let mut deck = LoopState::default();
-    let outcome = state.handle_key(KeyAction::Enter).await;
+    let mut input_history = Vec::new();
+    let (outcome, ()) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/compact")
+    );
     assert_eq!(outcome.intent, Some(PanelIntent::CompactSession));
     apply_intent(&app, &mut state, &mut deck, outcome.intent.unwrap())
         .await
@@ -1314,7 +1330,12 @@ async fn conversation_commands_wait_for_owner_then_refresh_without_submission() 
     let mut state = TuiState::new(app.clone(), session.clone());
     let mut deck = LoopState::default();
     state.handle_paste("/undo");
-    let intent = state.handle_key(KeyAction::Enter).await.intent.unwrap();
+    let mut input_history = Vec::new();
+    let (outcome, ()) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/undo")
+    );
+    let intent = outcome.intent.unwrap();
     assert_eq!(
         intent,
         PanelIntent::ChangeConversation {
@@ -1378,7 +1399,11 @@ async fn conversation_commands_wait_for_owner_then_refresh_without_submission() 
         None
     );
     state.restore_prompt("/redo".into());
-    let intent = state.handle_key(KeyAction::Enter).await.intent.unwrap();
+    let (outcome, ()) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/redo")
+    );
+    let intent = outcome.intent.unwrap();
     assert_eq!(
         intent,
         PanelIntent::ChangeConversation {
@@ -1736,7 +1761,11 @@ async fn closing_tab_with_pending_title_cancels_only_title_and_survivor_can_subm
     state.handle_paste("/rename");
     // Dismiss inline argument completion to submit the bare owner action.
     state.handle_key(KeyAction::Cancel).await;
-    let outcome = state.handle_key(KeyAction::Enter).await;
+    let mut input_history = Vec::new();
+    let (outcome, ()) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/rename")
+    );
     assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
     apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
     let Some(InboxMsg::RegenerateTitle {
@@ -1853,7 +1882,11 @@ async fn refused_close_leaves_pending_title_uncancelled_and_tab_intact() {
     deck.sync_tabs(&mut state);
     state.handle_paste("/rename");
     state.handle_key(KeyAction::Cancel).await;
-    let outcome = state.handle_key(KeyAction::Enter).await;
+    let mut input_history = Vec::new();
+    let (outcome, ()) = tokio::join!(
+        state.handle_key(KeyAction::Enter),
+        accept_prompt_input(&mut inbox, &mut input_history, "/rename")
+    );
     assert_eq!(outcome.intent, Some(PanelIntent::RegenerateTitle));
     apply_outcome(&app, &mut state, &mut deck, outcome, false).await;
     let Some(InboxMsg::RegenerateTitle {
@@ -3138,7 +3171,12 @@ async fn typed_new_consumes_only_successful_command_before_parking() {
     state.handle_paste("ordinary draft");
     // Mouse + leaves the parked editor untouched.
     let worker = tokio::spawn(async move {
-        for _ in 0..2 {
+        let mut input_history = Vec::new();
+        for index in 0..2 {
+            if index == 1 {
+                accept_prompt_input(&mut inbox, &mut input_history, "/new").await;
+                accept_prompt_input(&mut inbox, &mut input_history, "/new").await;
+            }
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("expected Home selection")
             };
@@ -3177,6 +3215,7 @@ async fn rejected_typed_new_keeps_editable_command() {
     deck.sync_tabs(&mut state);
     state.handle_paste("/new");
     let worker = tokio::spawn(async move {
+        accept_prompt_input(&mut inbox, &mut Vec::new(), "/new").await;
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("expected Home selection")
         };

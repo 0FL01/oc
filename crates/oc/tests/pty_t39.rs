@@ -2059,5 +2059,7 @@ mod interaction;
 mod lifecycle;
 #[path = "pty_t39/plugin_admission.rs"]
 mod plugin_admission;
+#[path = "pty_t39/prompt_history.rs"]
+mod prompt_history;
 #[path = "pty_t39/provider_readiness.rs"]
 mod provider_readiness;

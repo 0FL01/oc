@@ -986,6 +986,41 @@ comparisons are DIFFERENT. Receipt: `evidence/tui/prompt-click-caret.md`.
 This does not qualify shared durable newest-50 input history or whole VIS12/T44;
 ordinary tool-output and temporal blink regressions run separately.
 
+## VIS12 shared durable input history
+
+`--tool-preview true --prompt-history default|remap` exclusively selects
+`prompt_history.mjs`/`prompt_history_fixture.py`, without MCP or tool execution.
+Actual accepted First/Second/Third inputs include multiline, Unicode and literal
+`@note.txt`; native read-only SQL checks the shared global list and unchanged user
+rows. Real arrows/visual boundaries/edited refusal, new-Home add-tab, fourth exact
+recalled fresh-session request, clean same-root restart and local `/mcps` admission
+are captured without editor-state seeding or RAW writes. The canary file body must
+not enter any request. Four main requests plus two titles occur; navigation has
+no provider effect before explicit Enter. The existing `pty_t39` target separately
+qualifies active held-stream ownership and three-input durable acceptance.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 80 --rows 24 \
+  --tool-preview true --prompt-history default \
+  --output /home/opencode/ai/oc/evidence/tui/HISTORY-NEW-IMMUTABLE-ATTEMPT
+```
+
+Run `remap` separately at120×40: admitted F2/F3 and registered leader Ctrl+G p
+replace default history arrows, while physical visual movement still wins first.
+Current default25 paired stages/50 full grid+PNG comparisons and remap28/56 are
+ALL DIFFERENT, not pixel PASS. Original refuses an arbitrary nonempty scratch
+draft and forwards to empty; actual refusal and reference-only real clear are
+recorded. Native must preserve its declared unfinished-draft return instead.
+No original RAW/native-SQL claim is made. Normal tool and temporal regressions
+remain separate. Receipt: `evidence/tui/prompt-input-history.md`; structured user
+Shell admission/full parts/Mini and remaining VIS12/T44 outcomes are not inferred
+from this text-history proof.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

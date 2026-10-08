@@ -80,10 +80,13 @@ child, fd = launch('wrapped', 120, 80)
 try:
     initial = drain(fd, .8)
     assert 'LAST-ANCHOR' in initial and 'FIRST-ANCHOR' not in initial
-    os.write(fd, b'\x1b[A' * 200)
+    # Up now owns shared prompt-input history, including retained drafts from
+    # the preceding resize cases. Use the actual transcript wheel owner here;
+    # editor PageUp is deliberately inert, and neither action recalls input.
+    os.write(fd, b'\x1b[<64;40;20M' * 200)
     scrolled = drain(fd, 1)
     assert 'FIRST-ANCHOR' in scrolled, scrolled
-    print('wrapped rendered-row Up PASS')
+    print('wrapped rendered-row wheel scroll PASS')
 finally:
     stop(child, fd)
 

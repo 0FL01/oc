@@ -644,6 +644,11 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
+        if self.prompt_history_key_owner()
+            && let Some(action) = self.prompt_history_key(event)
+        {
+            return Some(action);
+        }
         if !self.select_key_owner()
             && let Some(action) = self.conversation_key(event)
         {
@@ -690,6 +695,56 @@ impl TuiState {
                     && self.panel == TuiPanel::None
                     && self.chrome.command_palette_shortcut.is_some())
         })
+    }
+
+    fn prompt_history_key_owner(&self) -> bool {
+        self.prompt_mouse_editable()
+            && self.slash_options().is_none()
+            && self.mention_request().is_none()
+    }
+
+    fn prompt_history_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        if event.kind == crossterm::event::KeyEventKind::Release {
+            return None;
+        }
+        if self
+            .leader_deadline()
+            .is_some_and(|until| Instant::now() >= until)
+        {
+            self.leader = None;
+        }
+        let raw = crate::events::dialog_binding(&crate::events::binding(event)?);
+        let candidate = if self.leader.is_some() {
+            format!("{} {raw}", self.leader_key)
+        } else {
+            raw
+        };
+        let bindings = [
+            (
+                &self.chrome.prompt_history_shortcuts.previous,
+                KeyAction::PromptHistoryPrevious,
+            ),
+            (
+                &self.chrome.prompt_history_shortcuts.next,
+                KeyAction::PromptHistoryNext,
+            ),
+        ];
+        if let Some(action) = bindings.iter().find_map(|(keys, action)| {
+            keys.split(',')
+                .any(|key| !key.is_empty() && crate::events::dialog_binding(key) == candidate)
+                .then(|| action.clone())
+        }) {
+            self.leader = None;
+            return Some(action);
+        }
+        if bindings.iter().any(|(keys, _)| {
+            keys.split(',')
+                .any(|key| crate::events::dialog_binding(key).starts_with(&format!("{candidate} ")))
+        }) {
+            self.leader_key = candidate;
+            return Some(KeyAction::Leader);
+        }
+        None
     }
 
     fn select_key_owner(&self) -> bool {
@@ -1314,6 +1369,12 @@ impl TuiState {
         }
         // The existing owner path checks availability and returns actual intents;
         // a refused command leaves the editable slash text untouched.
+        if let Err(error) = self.remember_slash_input(&action).await {
+            return KeyOutcome {
+                note: Some(error),
+                ..Default::default()
+            };
+        }
         let result = self.run_command(action);
         if result.note.is_none() {
             let cursor = self.editor.cursor;
@@ -2707,21 +2768,53 @@ impl TuiState {
                 }
                 KeyOutcome::default()
             }
-            KeyAction::Up => {
+            KeyAction::Up | KeyAction::PromptHistoryPrevious => {
                 if self.prompt_vertical(false, false) {
                     return KeyOutcome::default();
                 }
-                if self.recall_history(true) {
-                    return KeyOutcome::default();
+                let enabled = action == KeyAction::PromptHistoryPrevious
+                    || self
+                        .chrome
+                        .prompt_history_shortcuts
+                        .previous
+                        .split(',')
+                        .any(|key| crate::events::dialog_binding(key) == "up");
+                if enabled {
+                    match self.recall_history(true).await {
+                        Ok(true) => return KeyOutcome::default(),
+                        Err(error) => {
+                            return KeyOutcome {
+                                note: Some(format!("prompt history: {error}")),
+                                ..Default::default()
+                            };
+                        }
+                        Ok(false) => {}
+                    }
                 }
                 self.scroll_transcript(true)
             }
-            KeyAction::Down => {
+            KeyAction::Down | KeyAction::PromptHistoryNext => {
                 if self.prompt_vertical(true, false) {
                     return KeyOutcome::default();
                 }
-                if self.recall_history(false) {
-                    return KeyOutcome::default();
+                let enabled = action == KeyAction::PromptHistoryNext
+                    || self
+                        .chrome
+                        .prompt_history_shortcuts
+                        .next
+                        .split(',')
+                        .any(|key| crate::events::dialog_binding(key) == "down");
+                if enabled {
+                    match self.recall_history(false).await {
+                        Ok(true) => return KeyOutcome::default(),
+                        Err(error) => {
+                            return KeyOutcome {
+                                note: Some(format!("prompt history: {error}")),
+                                ..Default::default()
+                            };
+                        }
+                        Ok(false) => {}
+                    }
                 }
                 self.scroll_transcript(false)
             }
@@ -2733,6 +2826,14 @@ impl TuiState {
                 if self.input.is_empty() {
                     self.status = TuiStatus::Quit;
                 } else {
+                    if self.retain_cleared_prompt()
+                        && let Err(error) = self.app.prompt_history(Some(self.input.clone())).await
+                    {
+                        return KeyOutcome {
+                            note: Some(format!("prompt history: {error}")),
+                            ..Default::default()
+                        };
+                    }
                     self.input.clear();
                     self.editor.clear();
                     self.input_revision += 1;
@@ -2821,21 +2922,30 @@ impl TuiState {
         }
     }
 
-    pub(super) fn recall_history(&mut self, previous: bool) -> bool {
-        let entries: Vec<String> = self
-            .window
-            .rows()
-            .iter()
-            .filter(|row| row.role == "user")
-            .map(|row| row.text.clone())
-            .collect();
+    pub(super) async fn recall_history(
+        &mut self,
+        previous: bool,
+    ) -> Result<bool, oc_core::session::CoreError> {
+        if !self.prompt_history_key_owner() {
+            return Ok(false);
+        }
+        let entries = if self.editor.browsing_history() {
+            Vec::new()
+        } else if previous {
+            self.app.prompt_history(None).await?
+        } else {
+            return Ok(false);
+        };
         let changed = self.editor.recall(&mut self.input, previous, entries);
         if changed {
+            // Keep the frozen vis07/v05 native caret policy, including draft return.
             self.editor
                 .move_to(if previous { 0 } else { self.input.len() }, false);
             self.input_revision += 1;
+            self.slash_selected = 0;
+            self.clear_mentions();
         }
-        changed
+        Ok(changed)
     }
 
     async fn handle_enter(&mut self) -> KeyOutcome {
@@ -2855,6 +2965,12 @@ impl TuiState {
             if let Some(action @ (CommandAction::OpenModelPicker | CommandAction::OpenVariants)) =
                 dispatch(self.input.trim())
             {
+                if let Err(error) = self.remember_slash_input(&action).await {
+                    return KeyOutcome {
+                        note: Some(error),
+                        ..Default::default()
+                    };
+                }
                 let outcome = self.run_command(action);
                 if outcome.note.is_none() {
                     self.input.clear();
@@ -2897,10 +3013,22 @@ impl TuiState {
                             ..KeyOutcome::default()
                         };
                     }
+                    if let Err(error) = self.remember_slash_input(&action).await {
+                        return KeyOutcome {
+                            note: Some(error),
+                            ..Default::default()
+                        };
+                    }
                     self.regenerate_pending = Some(self.input_revision);
                     return KeyOutcome {
                         intent: Some(PanelIntent::RegenerateTitle),
                         ..KeyOutcome::default()
+                    };
+                }
+                if let Err(error) = self.remember_slash_input(&action).await {
+                    return KeyOutcome {
+                        note: Some(error),
+                        ..Default::default()
                     };
                 }
                 let outcome = self.run_command(action);
@@ -2958,6 +3086,39 @@ impl TuiState {
                 ..KeyOutcome::default()
             },
         }
+    }
+
+    fn retain_cleared_prompt(&self) -> bool {
+        // ECMAScript String.trim + UTF-16 length is the pinned clear predicate.
+        let whitespace = |c| matches!(c, '\u{0009}'..='\u{000d}' | ' ' | '\u{00a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}');
+        self.input.trim_matches(whitespace).encode_utf16().count() >= 20
+            || self.editor.has_prompt_parts()
+    }
+
+    async fn remember_slash_input(&self, action: &CommandAction) -> Result<(), String> {
+        if let Some(reason) = self.command_unavailable(action) {
+            return Err(reason.into());
+        }
+        if matches!(action, CommandAction::RenameSession { title: None })
+            && self.regenerate_pending.is_some()
+        {
+            return Err("title generation pending".into());
+        }
+        if let CommandAction::RenameSession { title: Some(title) } = action {
+            if self.rename_direct_pending.is_some() {
+                return Err("session rename pending".into());
+            }
+            if oc_core::core_app::normalized_session_title(title).is_none() {
+                return Err(format!(
+                    "session title must be 1–{MAX_SESSION_TITLE_BYTES} bytes of visible text"
+                ));
+            }
+        }
+        self.app
+            .prompt_history(Some(self.input.clone()))
+            .await
+            .map(|_| ())
+            .map_err(|error| format!("prompt history: {error}"))
     }
 
     pub(super) fn run_command(&mut self, action: CommandAction) -> KeyOutcome {

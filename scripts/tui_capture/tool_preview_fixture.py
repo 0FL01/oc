@@ -5,6 +5,7 @@ from pathlib import Path
 import sqlite3
 import threading
 import prompt_caret_fixture
+import prompt_history_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -49,8 +50,13 @@ def configure(spec, home, project, config, cli):
                 'dialog.select.page_up':'alt+u','dialog.select.page_down':'alt+d',
                 'dialog.select.home':'alt+h','dialog.select.end':'alt+e',
                 'dialog.select.submit':'f4','dialog.mcp.toggle':'f6,<leader>t'}
-    if spec.get('prompt_caret'):
+    if spec.get('prompt_caret') or spec.get('prompt_history'):
         config['mcp'] = {'servers':{}} if spec['origin'] == 'upstream' else {}
+    if spec.get('prompt_history'):
+        (project / 'note.txt').write_text('HISTORY_FILE_CURRENT_CANARY')
+        if spec['prompt_history'] == 'remap':
+            cli['keybinds'] = {'leader':'ctrl+g','prompt.history.previous':'f2,<leader>p',
+                               'prompt.history.next':'f3'}
 
 def control(home, action):
     if action not in ('fail', 'recover'):
@@ -78,6 +84,11 @@ def snapshot(home, project, spec):
             if spec.get('prompt_caret') and spec['origin'] == 'oc' and 'messages' in tables:
                 data['prompt_user_messages'] = [dict(r) for r in connection.execute(
                     "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY seq LIMIT 2")]
+            if spec.get('prompt_history') and spec['origin'] == 'oc' and 'messages' in tables:
+                data['prompt_user_messages'] = [dict(r) for r in connection.execute(
+                    "SELECT id,session_id,seq,role,CASE WHEN length(CAST(text AS BLOB))<=2048 THEN text END AS text FROM messages WHERE role='user' ORDER BY rowid LIMIT 8")]
+                row = connection.execute("SELECT CASE WHEN length(CAST(value AS BLOB))<=16384 THEN value END FROM prefs WHERE key='tui.prompt_history.v1'").fetchone()
+                data['prompt_input_history'] = json.loads(row[0]) if row and row[0] else []
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
@@ -107,6 +118,8 @@ def respond(handler, body, spec, emit):
     title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
     if spec.get('prompt_caret'):
         return prompt_caret_fixture.respond(handler, body, spec, emit, title, number)
+    if spec.get('prompt_history'):
+        return prompt_history_fixture.respond(handler, body, spec, emit, title, number)
     results = [x for x in items if x.get('type') == 'function_call_output']
     definitions = {x.get('name'):x for x in body.get('tools', [])}
     mcp = 'vis16__output' if spec['origin'] == 'oc' else 'vis16_output'

@@ -1,0 +1,137 @@
+{
+  "origin": "oc",
+  "mode": "blink",
+  "card_case": "expanded",
+  "geometry": {
+    "columns": 120,
+    "rows": 40
+  },
+  "status": "FAILED_CURSOR_QUALIFICATION",
+  "states": [
+    {
+      "state": "idle",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 307,
+      "commands": 0,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1247.7999997138977,
+        1173.6000003814697,
+        1228.5,
+        1159.3999996185303
+      ],
+      "max_sample_gap_ms": 100.59999990463257,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": true,
+      "cadence_preserved": true
+    },
+    {
+      "state": "hover",
+      "moves": 273,
+      "temporal_full_frames": 12,
+      "samples": 120,
+      "commands": 1850,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1161.4000000953674,
+        1225,
+        1212.7999997138977,
+        1111.4000000953674
+      ],
+      "max_sample_gap_ms": 221.30000019073486,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": true,
+      "cadence_preserved": true
+    },
+    {
+      "state": "restored",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 289,
+      "commands": 0,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        987.8000001907349,
+        1182.1999998092651,
+        1208.4000000953674,
+        1176.5999999046326
+      ],
+      "max_sample_gap_ms": 305.69999980926514,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": false,
+      "cadence_preserved": false
+    },
+    {
+      "state": "search-idle",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 318,
+      "commands": 0,
+      "cycles": 3,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1202.6999998092651,
+        1204.8000001907349,
+        1184
+      ],
+      "max_sample_gap_ms": 87.60000038146973,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": true,
+      "cadence_preserved": true
+    },
+    {
+      "state": "search-hover",
+      "moves": 272,
+      "temporal_full_frames": 12,
+      "samples": 123,
+      "commands": 932,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1125.5,
+        1279.4000000953674,
+        1183.5,
+        1134.6999998092651
+      ],
+      "max_sample_gap_ms": 159.09999990463257,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": true,
+      "cadence_preserved": true
+    },
+    {
+      "state": "composer-restored",
+      "moves": 0,
+      "temporal_full_frames": 12,
+      "samples": 317,
+      "commands": 0,
+      "cycles": 4,
+      "phantom_command_states": 0,
+      "draft_visible": true,
+      "final_caret_preserved": true,
+      "cycle_periods_ms": [
+        1197.0999999046326,
+        1237.6000003814697,
+        1150.5999999046326,
+        1197.5999999046326
+      ],
+      "max_sample_gap_ms": 102.60000038146973,
+      "raster_blink_observed": true,
+      "adequate_raster_sampling": true,
+      "cadence_preserved": true
+    }
+  ]
+}

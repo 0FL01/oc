@@ -1,0 +1,2291 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T15:56:53.246Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "01b12a6222075d338ddf33ede60c7f823d69a384f899aacba4d8fe535d151e15",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "a9be7d2818390c20a638d3ad5a1c332e2ab00507045ed851911566aa736d022a",
+    "tool_preview_fixture.py": "b507b908e089347d1a1ac8fce5f563206c31174b9a4f1a3ed942824021607b83",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_history.mjs": "c7e968671a6f163f6a0aac855fc479724b88f8695e9705f706ddc934ed9110b0",
+    "prompt_history_fixture.py": "6009603a11968d9b2ae75a40cbfe63eb8a61cd8731226dacf8897055d95e3f8b",
+    "prompt_caret_fixture.py": "95ea6b2bfcdb815aaa54b68578bd174040f3d9de6c21b0d8ac3c7937e1217ef4"
+  },
+  "fixture_sha256": "d1f8934b1d28e05574b22ad70e092662d5de51a8ad7b1aa720ae121335ce7f41",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "7ef6a58312bcd60e97956dcc4942a57191a43f3a",
+    "tree": "b9ba8229f3da30be3f125bb0f9fb58dd73dabdc2",
+    "dirty_diff_sha256": "0c8f7dd15b4f968e2ab1bad8486fe052f659d9dc261c689ffc2f1a4a69148500",
+    "source_manifest_sha256": "7e228ec249870aef9a4fbf53ec4140335c9a63f3864cbe6327913ca43c762eab",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "792d437f64442ac5753596fe07a66c52c4dbd63f148b64c17ad04c4e3897872d",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-remapped-old-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-remapped-old-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-remapped-old-down",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-remapped-old-down",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-leader",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-restarted-leader",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-slash-accepted",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "fc8e38fe40b4013cd916f553207ac60aa727733726896515c0ce5dd9bd8ee95b",
+      "png_sha256": "ca726488751cd229bad6d1ff7642106a1eefe18c89fe3291f85a5832cdb34edf",
+      "render_sha256": "e275042b3b998e03727e28506eb179a4c7bf2ee1fbe4c21a8fd06e441a1bf275",
+      "path": "upstream/tool-preview-history-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "85dc251bb890515655ce2b178c4e226da47e94da85d1f146e3e1c03d5c044260",
+      "png_sha256": "5f209a71bf150ea2544b32e14ae19d77f91f871545f1938e20a8a4b1ff83f740",
+      "render_sha256": "2a42a68f0afb0b208f81bf6dfc67cd690ab616505e64e12f98ddcd74565028b4",
+      "path": "upstream/tool-preview-history-input-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "30dffc6f33f5e147f51121da9df7352414c08fc029d4d08abd590ea78af4d813",
+      "png_sha256": "66195c1ced9fb247f78b389e533623e3edfe15f95b4d15a94b6a4bfe4faa89a5",
+      "render_sha256": "30467fd1a99b410b0d3152b0df0fd2751bfe525542665d37e57422a1238d6374",
+      "path": "upstream/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "a7c9dedd509a0791c673febdb513d2b2262d979027a35723c75813f58125042f",
+      "png_sha256": "41b187fe474327bb3c6c0320efb5080513c44f9413e06d121af35e61ad3eada6",
+      "render_sha256": "2fd495abe28515a31a52d2a067387d6da2f36d3f4c90f4ebf4d5c1587e48fbf7",
+      "path": "upstream/tool-preview-history-input-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "68ea70969bf00fdf4c36d400631455ad975a14fd11dce5b543615e3b47cdb2e3",
+      "png_sha256": "044f47206e9de0f44225871ce49de57ae3c28a5d9f6ee6e3367ea1efcf4bb578",
+      "render_sha256": "37881a4410bb5a8120ecff770133074a80c58d81f9e5feafb18cb3065f88a758",
+      "path": "upstream/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "cfd9c3df894afeaabe968bcbc1816819af058055b27475788811e8bd3b7444c3",
+      "png_sha256": "dfca75e73195552e304d94d6ca3d51d6c45f9e8db6f161eb830ce657aa2540f6",
+      "render_sha256": "0f29418da9f79e39267cc9700830a1079c6cfc831dd5588e9c2c5fa1812e7416",
+      "path": "upstream/tool-preview-history-input-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "35fbefb89afa6b59cf5091889de6a154bfb97627f5b81599cc4753bd6897139e",
+      "png_sha256": "724d0b3df9ab74536cd18a9415dac63da3ececd49b4336e6837625eff1533fa6",
+      "render_sha256": "f13985d1763431f89c2e25a3b0c506cb879b3dabfc96dcb5cf12ff33c1e77859",
+      "path": "upstream/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "316ab48fdd8fc8b2480eb9e4aa33a1f54ffdd625960a6fd75c41e84d1cb15020",
+      "png_sha256": "0928ec0aa821468febeee7a794d088eff12b241dd7aa3e108088e61c6d8cf430",
+      "render_sha256": "cff8fb708744030bbf05ddde00cffd330481bb0a423b5c5321ca489830c0ec36",
+      "path": "upstream/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-remapped-old-up",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "29dece667cad6668699f074b7f494735482c0c94cf60d771dd2f8fc73b3645c8",
+      "png_sha256": "0928ec0aa821468febeee7a794d088eff12b241dd7aa3e108088e61c6d8cf430",
+      "render_sha256": "739ca3b21f53efda3a6ec6492e3ca3824005cf843059dc27f9d1c08a9ce46d82",
+      "path": "upstream/tool-preview-history-remapped-old-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "b83ae26ec5fde2bcb39a6e2bac7d5bd3b6216dc0fb81710e090dcd96ad0ba634",
+      "png_sha256": "876fd9074cebc3f8553d763770f34c28812bfcc0a8659f8b98b34938fb44d4bb",
+      "render_sha256": "d0ea256034e4d8eadd12935d9bff65ddca184082a832e43406a9433837c04e0d",
+      "path": "upstream/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "687fd4cf965dd26c1564c071beef9022bc630b5a09b54c64b68455a4d1ab42bf",
+      "png_sha256": "876fd9074cebc3f8553d763770f34c28812bfcc0a8659f8b98b34938fb44d4bb",
+      "render_sha256": "81ee52305e07c29d09b21a64733f440a3cbb5f1dfd8ef25305cbf22799034716",
+      "path": "upstream/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "ac62af4c6043b6020916805d7fcdbead23f48d8e3226c0489013f3901be51563",
+      "png_sha256": "e4a79feeffe4b64835cb188f6a1739223afd1d3b56fbbf5b72ddfa3bfc96bb73",
+      "render_sha256": "efb2146702ecef28993468e3c4b8f205f0914a2d8ec2fd0ad9b5e69c59046a12",
+      "path": "upstream/tool-preview-history-session-older"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "00738d8c27bd38de91d4dafa02d25162b42325e7b2616f2ad1b7ccf64da197cd",
+      "png_sha256": "a7488cda233e747f1c9234f235993b21ed1ada93e2f72aadf6b85c6e0e176984",
+      "render_sha256": "382e5a85665a7d57091948c158cea36321db2a62520c0bd735a10e75ba32f654",
+      "path": "upstream/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "00c33a2bcd7f30cdfe364a3d448cd7e9ab228d210c67e0dca2e56696ee7bb806",
+      "png_sha256": "e140af48e1d9b9bc85f06e2e5629955893c170783f1d255706ca7b2cc373243d",
+      "render_sha256": "d5b41469723f1eb250a0c3daa2dd0ca305f717b5d3acc698b8c3b782c996c1f3",
+      "path": "upstream/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "7390798ec3472a87c73383dbbf9ce492adc105883a5780871b4f07f1b572a819",
+      "png_sha256": "c4c98d451d57c8e59f02c260d45017955d3cb214fd4e4178a05b6778cb5bd66b",
+      "render_sha256": "f20073885ebf3c1ba094d5bdf98ee834d8e0175c113d4c563e0403aa1756c6a3",
+      "path": "upstream/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "cf481ff5511f6889f54f38c0e6aea75103a65ce1ecc4459df2775e03a0c762a0",
+      "png_sha256": "724d0b3df9ab74536cd18a9415dac63da3ececd49b4336e6837625eff1533fa6",
+      "render_sha256": "9c3cb3b0858082a73f159d5ef57a9b664dcec9157edf409f0240621a6609a120",
+      "path": "upstream/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "718ec4c2f8f03cd965579829b791f7709e292309e42cacbe93cb25a6d0187550",
+      "png_sha256": "4acd3408bfacc4f1808436fe7ec8d34af065c8d2343bfe74c1b5e8c713810df4",
+      "render_sha256": "220297c1c71a9facec816ea303e2560276c309fb6920651d3c47194375638978",
+      "path": "upstream/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "d9eb8011139f77f5560982ea39ee72bb3e5243a129566c892e51b055ea992d9f",
+      "png_sha256": "105a0f67d1b7c0bdb9278b1597aa9d6e5db316f049cb9b5f9279fa2bed22a086",
+      "render_sha256": "e2d797a27d61955d799556504dff1474c3bd12e5a1b99ee1b29b4530dd8f0266",
+      "path": "upstream/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "2f47781a07fa321c1e8e6c00d3807d568272f08b7b5601750665d8678b829f0b",
+      "png_sha256": "c9ecb273eb83a943bd7c3165f6e04b8564585906af21206f2b8ca09aa24d45b4",
+      "render_sha256": "0519b4729f4742e7e6bccdcf2a9039885008cb3146ad8dacaa75ec70c308d6a3",
+      "path": "upstream/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "49aac52e733a4ab03568f4eabfdb1a02902adde989788980136bea55f8bb6126",
+      "png_sha256": "6f70a6a1ca8372d771ddd8149709aa8597ce285286056845c23b7cd27025910f",
+      "render_sha256": "6879428d04a7688da73a232d2daba6c976c6014050caf71ed1efc4490830f719",
+      "path": "upstream/tool-preview-history-new-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "d32c0823ba5afdf8e9dbce4b7db09422f664c6ac186454ebb6e4977f64fb6d85",
+      "png_sha256": "dde52c8811cec36b8953142579b40d3561bd4cdf6c1f2d9e7e79ae962ab7f937",
+      "render_sha256": "1d7f248f5be280f1275219a3ab58eab3391b9489a17ced2d85453746d1b45d47",
+      "path": "upstream/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "5778dade5ea41144d31f08ff9d61100589300de69e74df6cc38efa56cf727c46",
+      "png_sha256": "49524bf10dabcd91f534268c81941380aba0332673184ff91d21b4a5c1a4a1d1",
+      "render_sha256": "39c512daa993ac1ebf71c22eb549e5b9a16826c59fdcd18020fc0a0008da8016",
+      "path": "upstream/tool-preview-history-overlay"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "78fce4951b348793195869b44a86125ee6bb7730359e956c6b87458795225b22",
+      "png_sha256": "577a21fdfc407b6b9c6cad35bda88c9fa0d640d41ed93ecf9ac03eaecece0fa5",
+      "render_sha256": "cc5a40bf3be866d58a20ffc582b743f19b3eb5a4ede409a6f5a7a895ed271524",
+      "path": "upstream/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-remapped-old-down",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "5ca7195fed2e4f95876867271238262cc6b3f54778b767d1dca1c74f5f006c2e",
+      "png_sha256": "dde52c8811cec36b8953142579b40d3561bd4cdf6c1f2d9e7e79ae962ab7f937",
+      "render_sha256": "2153533ab02f5e11fd11c46896de052b1512e6590fa30ebd17e780a0aef0f232",
+      "path": "upstream/tool-preview-history-remapped-old-down"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1d709892cce81ff887fd834607c61408cb4640c2db140e41c631fcd3d36dc0e9",
+      "png_sha256": "b2e6c2a6735497dbc706443dc2f40f70bc3d81ca594bd16f5e3c26772da428cd",
+      "render_sha256": "a8edb6b7bef86768ae55b9c52481f76ec1d6485b4cdb04db5009d73a4936344e",
+      "path": "upstream/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "c44485a6fb8f171deb9f82cc3e440bb1576af452f7494a439061638cc851f8f9",
+      "png_sha256": "28d17ddc59ac4aea56f87885d24caa2e24a448aa6d09659f486479209a50c40b",
+      "render_sha256": "c19ad7e84e14634bf8cd6a211605205aed728a43cc23a129bfaa9dabc475c891",
+      "path": "upstream/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-restarted-leader",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "f4332eed90d14e51876c3de19a1b0efa86f666ddd3317ba0474fbb7cabefc0b3",
+      "png_sha256": "28d17ddc59ac4aea56f87885d24caa2e24a448aa6d09659f486479209a50c40b",
+      "render_sha256": "04b0bc0d0f5f11ee2afe5c25236bb675ecc375c9df53851d26347886f0e95437",
+      "path": "upstream/tool-preview-history-restarted-leader"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1e09590f3bded82f4991577e5e92c2c7b5c335102522849ed23a314b7385a1eb",
+      "png_sha256": "7d3aecba4a6d9488340b59d774a0af3d71305a19e1f084f95832ca5469c6d7f7",
+      "render_sha256": "2943f863065258fac4e2e2fa301179d1fcd1d652f9281c320bd7d4141d66c2ef",
+      "path": "upstream/tool-preview-history-slash-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "3644278058a79c44eb615fe1aebf3be1b113f11f7d0e39e7e7ea67735bc44536",
+      "png_sha256": "35c825f4aab96775d1487194ed7d8522298b1a2e290156fcff01bbd0f5dd2b29",
+      "render_sha256": "252a3c4382125365b5457a2c42756d2e0a4d1b127b8c4d39ed41d744d927a2c3",
+      "path": "oc/tool-preview-history-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "caa696030c56ef8da3d0e3df7a4e23c1acd5f90d981bf7a5824d0a2e55b1d016",
+      "png_sha256": "ef6b455c0953d4d4db8f8c03ba76272bafd256ecd743555c65cb4ed9fe718cb5",
+      "render_sha256": "6b2e1c716ca892ef91f84053161d1492eea5221e04ad9e441daba6ee5861c0c5",
+      "path": "oc/tool-preview-history-input-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "6bc275875ce65385082fe824461b0c044a1ef702286708fbcd84160cd31bf24c",
+      "png_sha256": "543f30ec71357c8bd28b3e9a527d8f2ed6a576647c33b9e751013a7c421fe634",
+      "render_sha256": "350407f788172005070392f0c40ee0dcfa07c3199e2a4523025e1f5b307ebb76",
+      "path": "oc/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "ab04e0d42d979deb0e889be706e288d753b87f2a0ae9012aa8c46d20220f2511",
+      "png_sha256": "9b5ebdf31ea50a619e7ff50b1011774c78be0fe1b5ae9675431497d30d994873",
+      "render_sha256": "33b8cd904ba261cd135f552ae28995f10178c5eb961fa23f25467b58314e3811",
+      "path": "oc/tool-preview-history-input-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "afd523c294841ecaddc943a56526fab48754a6c83c27a3fc41dfd4df09fb646c",
+      "png_sha256": "0277562cc4aa6f91fb8281829f7dfcb90acbbd603b2cae81de7aa2fecc9ef2d5",
+      "render_sha256": "e3e6198dcd3ec8b7ebc6eef9262de045ffd397bec812a78e42d554d0b363f420",
+      "path": "oc/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "70ebbb728652cd1bc64b8ccdcf2b37a46092a9f0ef6db2fc980056821119f6fc",
+      "png_sha256": "5d606e721145fcaef171264568180dab889c8fd377e3435c8bff32028b67e43c",
+      "render_sha256": "152f425a205fe72e39563320e7f9d3488a99dd458d2e77507769d3311a835ccf",
+      "path": "oc/tool-preview-history-input-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "eb43328eacd62d33db7d0d06e6b1026c39bdb5405f76534317ef7889fd3078cb",
+      "png_sha256": "c3cd9ac6f59c5f47b4ca7e7545a7a42391e75e646780411d419568ee1a093d21",
+      "render_sha256": "5ef3fb7d151450c3c870e5d7e5881ebaf32baebf1ece95f4cba936bcd7be15e7",
+      "path": "oc/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "6a3d210abd0e29edee9008cab5e0a781199736b9ff435d7e6158b58656703d46",
+      "png_sha256": "bd8e7b3920d7d0c78b562c02efaba7b0e331b651ae00fd7d7ab3b740f3c5a6cf",
+      "render_sha256": "6ec00416cb51e29aa2c00ccbe4f5c6fe12ef61f2fda11cdbe2fefb158dd16ebb",
+      "path": "oc/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-remapped-old-up",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "76ccb00db9fd63b4bcd5bcd6039974d5aebd9d43396ab9312706946d455b2e01",
+      "png_sha256": "a6421c945ad1072c70f7ce4327ee5b4c75f48cdf4e6813ce492a6b807d15d6d5",
+      "render_sha256": "d1686ef86b99a857444ceb4090231b1ccf7a847e647bf2e87274ac02c0881cf8",
+      "path": "oc/tool-preview-history-remapped-old-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1ede90ed02c76263ae28236af6a89d6ace1c44aaed5d5f834d66f5db88c76c3d",
+      "png_sha256": "a6421c945ad1072c70f7ce4327ee5b4c75f48cdf4e6813ce492a6b807d15d6d5",
+      "render_sha256": "1206ee970ddab76e110b3ab9c55671f878595af80784b01695241eaeae2df74e",
+      "path": "oc/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "7931820b19b2a383e46ddedfa5a8d52a09f770a414a0bbdbe74c2c70a2837e5c",
+      "png_sha256": "7b319ae8b8b5f9f06ae450dec75c6dea44e8ddd7e864acf3764d6c342a716eb4",
+      "render_sha256": "b634edc8f6ad9cc12d4a063b303ad35992610bba4412940346c2592c4c80423f",
+      "path": "oc/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "bedcc38174ff2ab65e789d14cc33ea8e2caca9b356804dafef3a2bf5690ce6fa",
+      "png_sha256": "b184ce7dcc421ff272b5db7dca4e4982805aa3941835c6ac149fe9583785805a",
+      "render_sha256": "1aa80e8e2488f94d97cc8d171808c60ae307e51d39b68060d0507ddf80f0abcc",
+      "path": "oc/tool-preview-history-session-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1873a54e02e2c31c71323be40cc45d20f0642420a13da0ffce02eec04f1e21ef",
+      "png_sha256": "671212081f5958b65b7dee200552323918b95529180b5e0615245c453c3b2a5c",
+      "render_sha256": "c2d7ac3c76cfb2140dbd3c6f1c96aa11794e485fc38bd5b278b10327b5deba97",
+      "path": "oc/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "34bd655b8383e3a8bd32c18425075727babe6ee2f595ed54841c82968ffd2acd",
+      "png_sha256": "ed0889561e7e86a76294f24e391aeff5792b2f70e3cece87a367323101ee587e",
+      "render_sha256": "a518031fbc8a7cd70404d0f61e6b065ce57adb542d71f107f0788d7b7d9d9327",
+      "path": "oc/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "79256519882cf9b1902dbc3007675e13458ca98e44057b1342adc58862895c98",
+      "png_sha256": "cf66061df6f65276e9d63dfc76a037693450b704308da836b3ba003a5acb167a",
+      "render_sha256": "49d5b03fa4c8e69081a2b7b7202b38f7e70970f9d5fe32d00b39aa8b43b38541",
+      "path": "oc/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "7a3d32452fab95e4e377b06d2402f4c7aebd60fe749bdde5279e148753e1b69b",
+      "png_sha256": "bd8e7b3920d7d0c78b562c02efaba7b0e331b651ae00fd7d7ab3b740f3c5a6cf",
+      "render_sha256": "287aaadededef6d2449ee874fa764507b081c707f996a881a2bc5ca59391a9d9",
+      "path": "oc/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "97b6fd2f02b7b07aff8b10aa898f45965da002d3b3f0cd9987c22cfd32253d07",
+      "png_sha256": "7b319ae8b8b5f9f06ae450dec75c6dea44e8ddd7e864acf3764d6c342a716eb4",
+      "render_sha256": "34757dfd9f8ad424d7602aa8becadc3bc828baeb32cbc1598d1dfa503f570d8f",
+      "path": "oc/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "27bdb73a4ebf40af4c874c9643c0ff8ed007e2778c8790fc43b3c02e0d85333b",
+      "png_sha256": "57d8bc08bed10ae64fcd5f0b82512ffc2224d04750e8e078e51dd9d228003843",
+      "render_sha256": "cd6bb979881e918fc302ce5cd8724b38e9638aa1b46b5f49d5e92b172b00808e",
+      "path": "oc/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "5889b272ca22c34476818fca9ec036555220e4b1148b927a6faf9b69a03208e9",
+      "png_sha256": "f40369253763e885a7b38e57895b143ac9f9924f4a3af6ec7aa9b39b4f7e1e86",
+      "render_sha256": "4938f1f04f81e4599b2e9f7c2a1f70526e616d7b084f0e86154b1ec7cdc08401",
+      "path": "oc/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1561f11ab4811525e3c85ed5242ad7389cf928f165cab2b15912505bb3dfc938",
+      "png_sha256": "8dfbe161d3a5195239e97812bbd4758fcda7655835c8f0f8f3103ca868a8985f",
+      "render_sha256": "9ae99d945503622e483ba637519ef698f22d0991c432a14bce03da2a5a40428f",
+      "path": "oc/tool-preview-history-new-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "b819c2d21f612e125ad788621ccbe0327442af49458a8242acad9d929552cc32",
+      "png_sha256": "d279cc05c6412f740146b529cca7087a2afeb6dedcad8c09b71aa05da6a3f8c7",
+      "render_sha256": "9c64d208e90945f1e8625f497ec71a52fa194ca786919afe392438aa7595882a",
+      "path": "oc/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "661222391e57d10c57d140dae73e94e83123806baf50e8d17a6de664a46c0dab",
+      "png_sha256": "d8ab4a2d11b1ea1897886b0c53802728bb00c08ec71ebc4485f505c1664fc66f",
+      "render_sha256": "daede41249a55435546a0c479228a32f2a2910ee6a30f1e8074f910c5e0edcaf",
+      "path": "oc/tool-preview-history-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "3c38ccbf57b5f97564611d5f0807c0751e8ce7decd5ff97578f0bf979a90dee2",
+      "png_sha256": "537f2ed8caa35ed8effa8f40e5ca659bd1eda6c30a571e3beb9c661f2d0d793f",
+      "render_sha256": "e93672d28010024790b9770a009a77d0c569331511913879d3af66ab00077089",
+      "path": "oc/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-remapped-old-down",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "7187fd73c195026fe2dd70767d17a18566c62387dc5e0ee94dcd79875e14803d",
+      "png_sha256": "b837b825501fd2a56ebfcef175af3686e25bf73022becde9a6017367e84f334b",
+      "render_sha256": "c20598c8cf1e80777bf9d292298e8dd8ca8a5356e23e45a3b73797b5b7033eb7",
+      "path": "oc/tool-preview-history-remapped-old-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "d88cef72c8510131d0124670e35525d96f2e598de67ecb4c2c2bc48a8df74601",
+      "png_sha256": "00f99171fa019add6d62aa583560fcc3baef616dd849facd4d1e2e0f42ee9c6d",
+      "render_sha256": "81928e2240c62a2b9a344111f1c77956616e3ba5717d820551682d1d02956726",
+      "path": "oc/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "8cc7c545b7e1debf7d6525ad43264128f4649559eb4c0e67551b7ebc8da22384",
+      "png_sha256": "537b1e2a0c9d1d18c4cb3c16863c844510bea8a9156eef838a6fc795b187000f",
+      "render_sha256": "bce036bb5a7df3e8518fbc077514c78bb9754ffdb5cb6e5a8411f1acbc7b2602",
+      "path": "oc/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-restarted-leader",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "1e3c740602898681e70b34231d9458fbce3dd304c32e95312d6cdca249895608",
+      "png_sha256": "537b1e2a0c9d1d18c4cb3c16863c844510bea8a9156eef838a6fc795b187000f",
+      "render_sha256": "6b87007d8189878e6bd96119fb4e2292925496b19fadc9358e1b65567c3b5e72",
+      "path": "oc/tool-preview-history-restarted-leader"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-slash-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cd1dfab67012288a5d06f6d4768613b4a2febef011110abf3ea2c1d20981045f",
+      "cells_sha256": "68ed3b665f9d87001993697e54cae8f363c4729b9a443fb17c05c66d215e7b94",
+      "png_sha256": "1546b265d54c7ced610976a10b2369c701a488c513c85e429d1771565a0bcc49",
+      "render_sha256": "c53054169ed9261c0445c685561f4876af2de1743b223dd0c077008cee396222",
+      "path": "oc/tool-preview-history-slash-accepted"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": "remap",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-remapped-old-up",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 33,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 19,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-remapped-old-down",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-leader",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-slash-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_history": {
+        "status": "OBSERVED_PROMPT_HISTORY",
+        "mode": "remap",
+        "accepted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_three_accepted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "before_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_before_restart",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_restarted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "slash": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_slash_recorded",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "explicit_user_submissions": 4,
+        "provider_requests": 6,
+        "tool_effects": 0,
+        "shared_home_session_restart": true,
+        "native_unfinished_draft_restored": false,
+        "reference_forward_boundary": "EMPTY_PROMPT",
+        "reference_nonempty_draft_refused": true,
+        "native_consecutive_dedup_verified": false,
+        "native_raw_users_verified": false,
+        "effective_leader_verified": true
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-remapped-old-up",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 33,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-remapped-old-down",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 54,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-leader",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 22,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-slash-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native can browse from an unfinished draft and Down restores it, per frozen VIS12. The pinned original may refuse arbitrary nonempty text at index zero; that real frame is observed before explicit reference-only clear/browse, and its forward boundary is empty. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "prompt_history": {
+        "status": "OBSERVED_PROMPT_HISTORY",
+        "mode": "remap",
+        "accepted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_three_accepted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "before_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_before_restart",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc993cb9b98d63-209a63-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "after_restart": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_restarted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc993cb9b98d63-209a63-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "slash": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "history_slash_recorded",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [],
+                "tool_output_resources": [],
+                "presentation": [],
+                "prompt_user_messages": [
+                  {
+                    "id": "m0001",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 1,
+                    "role": "user",
+                    "text": "HISTORY-FIRST Ω界"
+                  },
+                  {
+                    "id": "m0003",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 3,
+                    "role": "user",
+                    "text": "HISTORY-SECOND\nsecond line Ω界"
+                  },
+                  {
+                    "id": "m0005",
+                    "session_id": "s-tui-18dc9927e80501e0-209a63-0",
+                    "seq": 5,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  },
+                  {
+                    "id": "m0007",
+                    "session_id": "s-tui-18dc993cb9b98d63-209a63-1",
+                    "seq": 7,
+                    "role": "user",
+                    "text": "HISTORY-THIRD @note.txt done"
+                  }
+                ],
+                "prompt_input_history": [
+                  "HISTORY-FIRST Ω界",
+                  "HISTORY-SECOND\nsecond line Ω界",
+                  "HISTORY-THIRD @note.txt done",
+                  "/mcps"
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "explicit_user_submissions": 4,
+        "provider_requests": 6,
+        "tool_effects": 0,
+        "shared_home_session_restart": true,
+        "native_unfinished_draft_restored": true,
+        "reference_forward_boundary": "EMPTY_PROMPT",
+        "reference_nonempty_draft_refused": false,
+        "native_consecutive_dedup_verified": true,
+        "native_raw_users_verified": true,
+        "effective_leader_verified": true
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_HISTORY_ONLY",
+    "mode": "remap",
+    "actual_requests": "Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects",
+    "observation": "Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor"
+  },
+  "finished": "2026-10-08T16:01:16.820Z",
+  "exit_code": 1
+}

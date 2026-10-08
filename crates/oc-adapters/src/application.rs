@@ -2853,6 +2853,17 @@ async fn query(
     message: InboxMsg,
 ) {
     match message {
+        InboxMsg::PromptHistory { append, ack } => {
+            let result = if append
+                .as_ref()
+                .is_some_and(|text| text.len() > oc_core::session::MAX_INPUT_BYTES)
+            {
+                Err(CoreError::InputTooLarge)
+            } else {
+                db.prompt_history(append.as_deref()).map_err(app_error)
+            };
+            let _ = ack.send(result);
+        }
         InboxMsg::AuthMethods { provider, ack } => {
             let _ = ack.send(authentication::methods(composition, &provider));
         }

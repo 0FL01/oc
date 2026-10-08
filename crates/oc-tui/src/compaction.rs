@@ -403,10 +403,26 @@ mod tests {
         ));
         view.handle_paste("/compact");
         let revision = view.compaction_request_revision();
+        let history_owner = tokio::spawn(async move {
+            let Some(InboxMsg::PromptHistory { append, ack }) =
+                tokio::time::timeout(Duration::from_secs(3), inbox.recv())
+                    .await
+                    .expect("slash history admission")
+            else {
+                panic!("prompt history before compaction dispatch")
+            };
+            assert_eq!(append.as_deref(), Some("/compact"));
+            let mut entries = Vec::new();
+            oc_core::queries::append_prompt_history(&mut entries, append.as_deref().unwrap())
+                .unwrap();
+            ack.send(Ok(entries)).unwrap();
+            inbox
+        });
         assert_eq!(
             view.handle_key(KeyAction::Enter).await.intent,
             Some(PanelIntent::CompactSession)
         );
+        let mut inbox = history_owner.await.unwrap();
         assert_eq!(view.input(), "/compact", "keep the draft until acceptance");
         view.apply_compaction(snapshot(CompactionState::Running));
         view.compaction_admitted(snapshot(CompactionState::Queued), revision);

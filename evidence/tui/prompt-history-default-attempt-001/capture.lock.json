@@ -1,0 +1,1214 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T14:21:08.016Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "01b12a6222075d338ddf33ede60c7f823d69a384f899aacba4d8fe535d151e15",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "436442709deda6e5a1a9c51bc847f3030d30ac7f7b906918f2dd0fe528e9e7fd",
+    "tool_preview_fixture.py": "b507b908e089347d1a1ac8fce5f563206c31174b9a4f1a3ed942824021607b83",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "prompt_history.mjs": "6498819cc5e28be42d29c4437be9f8a2973ca21b429e16dda4445ab63029a2c9",
+    "prompt_history_fixture.py": "6009603a11968d9b2ae75a40cbfe63eb8a61cd8731226dacf8897055d95e3f8b",
+    "prompt_caret_fixture.py": "95ea6b2bfcdb815aaa54b68578bd174040f3d9de6c21b0d8ac3c7937e1217ef4"
+  },
+  "fixture_sha256": "5e6f422db3cf264b72602db2b3c2a39e9afc78d80d20715bc56ca2f056759dda",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "7ef6a58312bcd60e97956dcc4942a57191a43f3a",
+    "tree": "b9ba8229f3da30be3f125bb0f9fb58dd73dabdc2",
+    "dirty_diff_sha256": "0984248d6ac387bfb2c0b34e1edc3d7a551e0ebac55039e3e2e36f02ba21d352",
+    "source_manifest_sha256": "ede615eef0c31a6b185dbce47a4e75057606ab9f6cfe8f0f994cececd55928c3",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "792d437f64442ac5753596fe07a66c52c4dbd63f148b64c17ad04c4e3897872d",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-1",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-2",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-input-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-accepted-3",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-unfinished-edge",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-session-latest",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-session-older",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-visual",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-edge",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-next-latest",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-forward-boundary",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edit-base",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-copy",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-new-home",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-home-shared",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-overlay-owned",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-recalled-accepted",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-history-restarted-shared",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "82395ffb9ed9f5e842c1d79b2051316309be867866b6ae2ea871fd359f4b6e36",
+      "png_sha256": "56d8f2b0da3491d16446844f04f3667bddca585c00ef36599e35346347c16d76",
+      "render_sha256": "18faa744640ea134a7648a5b6890f854efef017114c3ff718a80a5e7b038a7ae",
+      "path": "upstream/tool-preview-history-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "31b08530016d06c7198805882300cb930c39b5c15eb852a2025fd3d4985f1726",
+      "png_sha256": "62d078f620cf71648924c4f175dd799e7fd34b9416d93300a99a4a37e1bca71c",
+      "render_sha256": "3fcbd7f462017da27cba7f9c9f8e53c255360630ac9710885fce98e511324ef0",
+      "path": "upstream/tool-preview-history-input-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "67ebe1c0ac563b520380fbf714023ff41c822f05e6c8229eaf4565977617829b",
+      "png_sha256": "c88fa6c31311d7330a581c1bb35266f0ca6c8a31d08475ced95d5e49d4ca0afe",
+      "render_sha256": "fa54ba611e5da4786fdde6207cd7fba412502bfd8af0dd2beb543ff573238c04",
+      "path": "upstream/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "fff23c60eb9acf3a66220891bc957fbf2cdacd598937ec426770fd4d30fabd48",
+      "png_sha256": "1a2aa2433b4564f9995d1eb4f939dade9e7a2b105aa6bdcb2f94b67aaadd4c2b",
+      "render_sha256": "f4a94222f6d2aa0894385ee62d672b461f18360400b04e299fd767d45fd8e2a9",
+      "path": "upstream/tool-preview-history-input-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "b85727ea3853448e943719d49868b10998a72fc22a57575426d4a3231b3aa520",
+      "png_sha256": "0575c4e3b2df8c39a3f40c7c9b2ee8572e34ff09a51638f05e922304ce6b7c8d",
+      "render_sha256": "6292395cb0d5fb516173032002a0b8d05a39478e49c990a2b31243bbd5293291",
+      "path": "upstream/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "fcf31f8fc9dab5d1e0f955247679f44b8b3eed35dd4997a4a6e6b142726d3c35",
+      "png_sha256": "46dc264f4b77b9a6d84b25748ede64faeab15ab0aebc82a3a9694cd2b11c10e3",
+      "render_sha256": "a757ec51a5fa73f00e666cf6b1e4ee1de903ab4f49458590a6a649b897dd44a9",
+      "path": "upstream/tool-preview-history-input-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "31358f9800b88ea6a0d64121a733af9536fee280ada4c5098e5556326afe8474",
+      "png_sha256": "e0b5a265dd59f41aed6700f455da5b91dde7ae1bb00cb74d32a007de2c79abfa",
+      "render_sha256": "858e1244d0afdd9c0fa8780ce180697387e6d5c75af76b13e2b6431de6609b26",
+      "path": "upstream/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f1071784768ae7a3dc1e35dba38647a435021546e9d7feb4411ad379dc9ee1d1",
+      "png_sha256": "d42726716b4823394a88944f53d024820671db178879420d507e6a060ed13b34",
+      "render_sha256": "d0106d4ec837298e86d9f3a73f7671eac9d656ddc9c522578f7a2b7ca9f168b6",
+      "path": "upstream/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "3da9adb7c12765e56b6b1a861554fb77ca040070739206d35c34cab54e5a8eaf",
+      "png_sha256": "32cd4addfaa1eb1d33c95ef2f3c4ce0d24595b9125dce8704f8913864b98c2c8",
+      "render_sha256": "8c6a2a47c9035980b1673d29025934bdb2477ef6e0d5104dfc274544fb190130",
+      "path": "upstream/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "65b160a6c868ae1545bf868cccab2c9c561fe766b0fa43b7b15a18bd63180594",
+      "png_sha256": "32cd4addfaa1eb1d33c95ef2f3c4ce0d24595b9125dce8704f8913864b98c2c8",
+      "render_sha256": "8286e7b7d136daf93bb853903c4d3e64e9cb26121dafb55364d762550b0f58c0",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "5a0e04e63cbd93dcee5752e26153c7aa4672d16a32747e533c58dc73ba346cdd",
+      "png_sha256": "775744b9cd51bef72f7d443a829418a33039ac355d722a6078618a38a225c5af",
+      "render_sha256": "46506d51da2ce1a468578e04eb4d452bda5110a64f166589e8b413fbe9e008de",
+      "path": "oc/tool-preview-history-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "28da4b825fed26116a6d413f9749f5fc905e9f15820ec90af3b490e128b81faf",
+      "png_sha256": "0e76df3d50ac39f57cc22aed97694284addd9a52de3083593acb26f6ef0c81a4",
+      "render_sha256": "5a1f8d06bfa999e019644a175c0ade7b73609ee19b9b2070d189d55511f73be3",
+      "path": "oc/tool-preview-history-input-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "beeb5bc2c7ec4a3a817a5ba17eb889ea1f0c4bcef7eb92254af9313aacdb7060",
+      "png_sha256": "5cd3a0f73b3edf20c835ae6fab430fa17bc9aee39e82d5fe4918f18f01252402",
+      "render_sha256": "ad84e3936fbfb0e717ec904ed33929cfb41a567717e05a231b9fcffce5026c24",
+      "path": "oc/tool-preview-history-accepted-1"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "ff912b9604d390a75c1612e28ad4aea0abeb3f7041bf224e369a05e53f50b76b",
+      "png_sha256": "25cb7589f25919ca29d8ef5d076527082f16e9d2ddc87743af337a52a4b85266",
+      "render_sha256": "9b725c7772ff70aceec1bb2ccb05fab0691d880dc7dbd7af6f100ca5303919d2",
+      "path": "oc/tool-preview-history-input-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "0e7fa61db3d36e0857e2f44795d808995d88e8130fc748e20c30d431aac05a1b",
+      "png_sha256": "b94530b3d980b420d2c3411efa788f836708003f13b490524da4df600534eaeb",
+      "render_sha256": "bf207472a1d84aab9d71553eef51c8bff923f1e7c079d413d7cc9d37ed2b4ae9",
+      "path": "oc/tool-preview-history-accepted-2"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "73085edbdf33bb4772382f2e9c37509ee73905b80a383ac24df4db9c07609ca2",
+      "png_sha256": "2045d0d478b671a8abaf96b26ed6170f35618b4129c19680ec7f97a158e3a133",
+      "render_sha256": "58e9c685e0e4e40bda270172e7833b44a8799bbf73757bc75aa4f03f477d85b6",
+      "path": "oc/tool-preview-history-input-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d7c4986d72823c06d0662c99897c77795f4da1565b955adc84ef89675f765da4",
+      "png_sha256": "d10986fbeb586e628f19604e0c660cd3bf1af9a3bdbac5786533271a71286c6a",
+      "render_sha256": "84a248f51486b25b0fb51a5ae325484eb84170efe35b473e1e36e1e21937ff8e",
+      "path": "oc/tool-preview-history-accepted-3"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "32361e7c7ec726f2c29f77f8d5bcc6c677aa7b9e472a54f773441be1564d3f7f",
+      "png_sha256": "6a6bff568445e6b6b312020f54fbb098c92f3214b13f92db38416d9644a3f502",
+      "render_sha256": "e90b175b1ec01093df1427791c846b3bf567625b5a5bb0d73474e5c5c21cf058",
+      "path": "oc/tool-preview-history-unfinished"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "15d8f56559fb8436a333d14e9e1114e59037ac2bed3d5e3ab1b1c3317af34629",
+      "png_sha256": "23120e4102687f7b53f516a37c06c0af18d70bebbca1797e385d23f2ca3d5dec",
+      "render_sha256": "f1cfa772c133a714434689e675ec6706c04ef64a594ae4953efdfb09fc7d864b",
+      "path": "oc/tool-preview-history-unfinished-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "c36d9e693e2073e17470e555476bc7858a189bff5f6db3ffe93d9023aa065520",
+      "png_sha256": "f7870d0fb0671e3348bea86b030f4006145c311fd8ae7ec39775d1c17ae609db",
+      "render_sha256": "47faf025a6e05597dc63c2cca791e694468c5d3d1cb783f49ec61663396a1e24",
+      "path": "oc/tool-preview-history-session-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "801b0cc5babeaa09255025e925ebe1d263f9ea89796557d7dee49a582a1a9e99",
+      "png_sha256": "55baa3b4a7d96d1cbf7cb329d52f1ae3f6d84be6688d5fdcdd4566d2c800fe0e",
+      "render_sha256": "3c11f3ec2ca355e4676606b13c99ad2bfa32a1460860669d3e71131a85e9a91f",
+      "path": "oc/tool-preview-history-session-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "c4a5a5c65baee76b8c5f8960ac616eb672620c5f46641753ab76206f64c00bca",
+      "png_sha256": "309342f08ca2f041d97b95810b6e8a9fa70a4de5070c9669f5c401b8ec706b00",
+      "render_sha256": "7772390cbd0eaa18f05e37a6afee525af757a82fcc27893d4672105beba530af",
+      "path": "oc/tool-preview-history-next-visual"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "ffe857d1f35ab99ccea58ba303a3e859f963f0f2b3273a4a39f413420c31663c",
+      "png_sha256": "aef92f94664ac5746c923ddac60e7f1e3f2882b14423fcc74f570cdedb860dde",
+      "render_sha256": "b85919cf951cf1493f51b3e7d2f9c6bc065b252ebd75e741d52d6c2d26a55f77",
+      "path": "oc/tool-preview-history-next-edge"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "30b75e17d781670ce6665a12e18eeeabcee9da9f1faa76df1b3a572c62c9d6fe",
+      "png_sha256": "fa9efdf1fbb1a762e9497fb0506b391f0793571e9ed65ccbec079b6638467206",
+      "render_sha256": "aace4c2f29a5fe61957c450387ceacd0a51b8147a25cddc01ea626f9ea07f0c5",
+      "path": "oc/tool-preview-history-next-latest"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "406a861d277722c0bc5e7d5b1990e6e5a7e718d322d9d5454e4ce29e577f0449",
+      "png_sha256": "6a6bff568445e6b6b312020f54fbb098c92f3214b13f92db38416d9644a3f502",
+      "render_sha256": "41fe02bbf0b862186b88d5f37111d861d6c9aa4ebf4f09eb302fb25a9ea34e3c",
+      "path": "oc/tool-preview-history-forward-boundary"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "8e3725d69b98a214f44f1431286495b25687eb2476bc30be2afec0e8e0901016",
+      "png_sha256": "f7870d0fb0671e3348bea86b030f4006145c311fd8ae7ec39775d1c17ae609db",
+      "render_sha256": "7d86dadea0631ace9ccd2514376dc9cf3df14e72d1924c1c0ffead87dee267f2",
+      "path": "oc/tool-preview-history-edit-base"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "6690a185b550b97d4275207f3676339fff7d5ca1c9ffe1aa02305708961ddaea",
+      "png_sha256": "0cd6497966f6a326f893888aaffb503aead271e23490e73dd10a1d4dce7c512a",
+      "render_sha256": "6f03be862f8e3bfa6dd0e7a463b4ae2480830ea62451999da44d0abea8c2e37f",
+      "path": "oc/tool-preview-history-edited-copy"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "662f67d552439a777a347a1502d0cb0d36a97f4031a4592c5a06d6992473340e",
+      "png_sha256": "f07a4ec7330bb336614281c0005471516b652d6efedeb93b4aa1716dab518e42",
+      "render_sha256": "ed241f9be419c18a645e3bbed25aff151f1340173790d40f0e51e9c9013a04e5",
+      "path": "oc/tool-preview-history-edited-refuses-older"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "5b9b9d9fbcd71267bfb21e8b98db886fe3b3e930b662425dbace9609b3801e48",
+      "png_sha256": "1ab8328c765352bac54bc7e7ee9c5a8a4e534f14f0d80eceb2cc4cb56535c319",
+      "render_sha256": "9a69439a287f145cb29050f2aa93d8fab2cfb204ff93435093ed763dbf3d1631",
+      "path": "oc/tool-preview-history-new-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "f6e4a315e207d44714316b06029215df28189c8a9d3fc91009964b0b1d810ff5",
+      "png_sha256": "eccb3bd9271a88f729d50079eb368eafedfcfc274ec8c72e613e606be32b1c1b",
+      "render_sha256": "23ef4a00a789b91565f0db967fd8b424e8843b46826667553fa5163a7f2f33be",
+      "path": "oc/tool-preview-history-home-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "1abfc81c2366d967695e95a9dd75c27f2fee20d8c3120e5099e1327055c91729",
+      "png_sha256": "e9806f39f91139bf464423e36757d36225a2919ca54726db9f9650647a5069a0",
+      "render_sha256": "7d38d199a1d2f8df40f8f5921f79d1c694538f53a4f83bff920b275fdbca5f39",
+      "path": "oc/tool-preview-history-overlay"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "18dbb48f7b1d9a572bbb35d754049a886d6de453a0be5b32c3f2fdf12d8e67a5",
+      "png_sha256": "8c989d48de160a759a95efa40b8fc6324200afe0c25d930dfe37ac11d3e7eca2",
+      "render_sha256": "7723ea4314c85d15e35a8fe962e9b04c4973b71b5da76c8d1323ef555a7fb1b7",
+      "path": "oc/tool-preview-history-overlay-owned"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "bcb01ab0d76214181135961630fb6179a1f9b6643dadb41602d64776f68ad572",
+      "png_sha256": "af2bea3b96be6deb67b01bbf96897f3505d6d175c29873f1a99dc7ff3d140f0a",
+      "render_sha256": "1bad1d81f8aebfacf61a466e41c9cf366e04ace4d78273ebdad3a0f44d109bd7",
+      "path": "oc/tool-preview-history-recalled-accepted"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "d0d3963ee023c599f4956ddd6575d9ffc85b05cea5f2e9f7c21418078e145bb6",
+      "png_sha256": "1e75aa22f1d43cdac21aafeca9facd099675215181df9043c27e2591ec5a056f",
+      "render_sha256": "f174e33d0e590058eb401222e1aff2804c540f98ba2e27da6d1e7ad240a74956",
+      "path": "oc/tool-preview-history-restarted-shared"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "e76aba81c8daa3819ea27268ddc117643b450476cb583c8a78f847bdd04ffcc1",
+      "cells_sha256": "0b818d8cf66e82b8afb8095d00cc22313b6bab08f0ebf0ddf132966ee6ebf5f4",
+      "png_sha256": "9a0472f23e919c2c16ff0451ffe5f1fe73d908155e6b87b32c89bdc9ef16ba6e",
+      "render_sha256": "0d4ba7c7326f63aedd43c1c124dba43c8acd58acdbd8ee54815256c5ba3254f8",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 80,
+    "rows": 24,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": "default",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native Down restores the unfinished pre-browse draft; pinned original clears it at the forward boundary, per frozen VIS12. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Timed out waiting for history-session-latest",
+      "failure_cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "history-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 23,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-1",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 2,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-2",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-input-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-accepted-3",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-unfinished-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-session-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 17,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-visual",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-edge",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 20,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-next-latest",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 33,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-forward-boundary",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edit-base",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-copy",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-edited-refuses-older",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-new-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-home-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-overlay-owned",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 14,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-recalled-accepted",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "history-restarted-shared",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 6,
+            "y": 14,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native Down restores the unfinished pre-browse draft; pinned original clears it at the forward boundary, per frozen VIS12. Full styled grid/PNG/cursor differences remain unmasked."
+      ],
+      "reason": "Timed out waiting for empty editable composer",
+      "failure_cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_PROMPT_HISTORY_ONLY",
+    "mode": "default",
+    "actual_requests": "Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects",
+    "observation": "Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor"
+  },
+  "finished": "2026-10-08T14:23:11.560Z",
+  "exit_code": 1
+}

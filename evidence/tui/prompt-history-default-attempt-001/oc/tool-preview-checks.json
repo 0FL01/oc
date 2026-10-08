@@ -1,0 +1,328 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "history-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 23,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-1",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-2",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-input-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-accepted-3",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-unfinished",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-unfinished-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-session-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-session-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 17,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-visual",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-edge",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-next-latest",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-forward-boundary",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edit-base",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edited-copy",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-edited-refuses-older",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-new-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-home-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-overlay",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-overlay-owned",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 14,
+        "y": 9,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 4,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-recalled-accepted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 18,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "history-restarted-shared",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 14,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native Down restores the unfinished pre-browse draft; pinned original clears it at the forward boundary, per frozen VIS12. Full styled grid/PNG/cursor differences remain unmasked."
+  ],
+  "reason": "Timed out waiting for empty editable composer",
+  "failure_cursor": {
+    "x": 6,
+    "y": 14,
+    "visible": true,
+    "shape": "block"
+  }
+}

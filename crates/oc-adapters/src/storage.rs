@@ -43,6 +43,7 @@ mod fork;
 mod grants;
 #[path = "storage_instructions.rs"]
 mod instructions;
+mod prompt_history;
 #[path = "storage_session_move.rs"]
 mod session_move;
 #[path = "storage_shell_jobs.rs"]
@@ -671,6 +672,7 @@ impl Db {
             initial_selection,
             model,
             None,
+            None,
         )
     }
 
@@ -685,6 +687,7 @@ impl Db {
         initial_selection: Option<(&str, &str)>,
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
+        history_input: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
         if !valid_tab_id(id) || tab_adoption_scope(location).len() > MAX_TAB_ADOPTION_KEY_BYTES {
             return Err(invalid_tab_adoption());
@@ -725,8 +728,16 @@ impl Db {
         }
         Self::insert_root_session(&tx, id)?;
         Self::insert_location_binding(&tx, id, location)?;
-        let accepted =
-            Self::insert_accepted_turn(&tx, turn, id, prompt, user_text, model, reminder)?;
+        let accepted = Self::insert_accepted_turn(
+            &tx,
+            turn,
+            id,
+            prompt,
+            user_text,
+            model,
+            reminder,
+            history_input,
+        )?;
         if let Some((key, value)) = initial_selection {
             Self::upsert_pref(&tx, key, value)?;
         }
@@ -2332,7 +2343,9 @@ impl Db {
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
-        self.accept_turn_with_selection(turn, session, prompt, user_text, model, reminder, None)
+        self.accept_turn_with_selection(
+            turn, session, prompt, user_text, model, reminder, None, None,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2345,6 +2358,7 @@ impl Db {
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
         selection: Option<(&str, &str)>,
+        history_input: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
         if let Some((key, _)) = selection {
             let valid = key
@@ -2357,8 +2371,16 @@ impl Db {
         }
         let mut conn = self.conn.lock().expect("db mutex");
         let tx = conn.transaction()?;
-        let accepted =
-            Self::insert_accepted_turn(&tx, turn, session, prompt, user_text, model, reminder)?;
+        let accepted = Self::insert_accepted_turn(
+            &tx,
+            turn,
+            session,
+            prompt,
+            user_text,
+            model,
+            reminder,
+            history_input,
+        )?;
         if let Some((key, value)) = selection {
             Self::upsert_pref(&tx, key, value)?;
         }
@@ -2375,6 +2397,7 @@ impl Db {
         user_text: &str,
         model: &oc_core::queries::ModelRef,
         reminder: Option<&str>,
+        history_input: Option<&str>,
     ) -> Result<AcceptedTurn, StorageError> {
         use oc_core::queries::ModelRef;
         Self::conversation_admit(conn, turn, session)?;
@@ -2417,6 +2440,9 @@ impl Db {
             "INSERT INTO turn_acceptances(turn_id,session_id,user_message,model_ref) VALUES (?1,?2,?3,?4)",
             params![turn,session,user_message,reference],
         )?;
+        if let Some(text) = history_input {
+            Self::prompt_history_in(conn, Some(text))?;
+        }
         Ok(AcceptedTurn {
             user_message,
             model_switch: switch,
