@@ -12,7 +12,8 @@ for line in sys.stdin:
     if method == 'initialize':
         phase = 'failed' if '--failed' in sys.argv else json.loads((Path(os.environ['HOME']) / 'vis16-peer-phase.json').read_text())['phase']
         with (Path(os.environ['HOME']) / 'vis16-mcp-lifecycle.jsonl').open('a') as log:
-            log.write(json.dumps({'method':method, 'phase':phase}) + '\n')
+            role = sys.argv[sys.argv.index('--probe-role') + 1] if '--probe-role' in sys.argv else None
+            log.write(json.dumps({'method':method, 'phase':phase, **({'role':role,'pid':os.getpid()} if role else {})}) + '\n')
         if phase == 'failed':
             print(json.dumps({'jsonrpc':'2.0','id':request['id'],
                               'error':{'code':-32603,'message':'VIS-MCP-CONNECTION-ERROR'}}), flush=True)

@@ -308,6 +308,7 @@ pub(crate) struct ConversationKeybinds {
     legacy_timeout: Option<u64>,
     palette: String,
     terminal: [String; 5],
+    dialog: oc_core::queries::DialogShortcuts,
 }
 
 impl Default for ConversationKeybinds {
@@ -329,6 +330,7 @@ impl Default for ConversationKeybinds {
                 "<leader>up",
             ]
             .map(str::to_owned),
+            dialog: Default::default(),
         }
     }
 }
@@ -422,6 +424,27 @@ impl ConversationKeybinds {
                     .into();
             }
         }
+        for (name, target) in [
+            ("dialog.select.prev", &mut self.dialog.previous),
+            ("dialog.select.next", &mut self.dialog.next),
+            ("dialog.select.page_up", &mut self.dialog.page_up),
+            ("dialog.select.page_down", &mut self.dialog.page_down),
+            ("dialog.select.home", &mut self.dialog.home),
+            ("dialog.select.end", &mut self.dialog.end),
+            ("dialog.select.submit", &mut self.dialog.submit),
+            ("dialog.mcp.toggle", &mut self.dialog.mcp_toggle),
+        ] {
+            if let Some(value) = bindings.get(name) {
+                *target = value
+                    .as_str()
+                    .or_else(|| (value.as_bool() == Some(false)).then_some("none"))
+                    .ok_or_else(|| ConfigError::Invalid {
+                        field: format!("keybinds.{name}"),
+                        reason: "must be a string or false".into(),
+                    })?
+                    .into();
+            }
+        }
         Ok(())
     }
 
@@ -436,6 +459,7 @@ impl ConversationKeybinds {
             legacy_timeout: None,
             palette: String::new(),
             terminal: Default::default(),
+            dialog: Default::default(),
         }
         .resolve();
         oc_core::queries::PermissionShortcuts {
@@ -466,6 +490,27 @@ impl ConversationKeybinds {
                 .resolve()
                 .undo
             }),
+        }
+    }
+    pub(crate) fn dialog_shortcuts(&self) -> oc_core::queries::DialogShortcuts {
+        let resolve = |binding: &str| {
+            Self {
+                leader: self.leader.clone(),
+                undo: binding.into(),
+                ..Self::default()
+            }
+            .resolve()
+            .undo
+        };
+        oc_core::queries::DialogShortcuts {
+            previous: resolve(&self.dialog.previous),
+            next: resolve(&self.dialog.next),
+            page_up: resolve(&self.dialog.page_up),
+            page_down: resolve(&self.dialog.page_down),
+            home: resolve(&self.dialog.home),
+            end: resolve(&self.dialog.end),
+            submit: resolve(&self.dialog.submit),
+            mcp_toggle: resolve(&self.dialog.mcp_toggle),
         }
     }
     pub(crate) fn resolve(self) -> oc_core::queries::ConversationShortcuts {
@@ -2193,15 +2238,24 @@ mod tests {
         bindings
             .merge(&serde_json::json!({"keybinds": {
                 "leader": "ctrl+a", "session_undo": "leader+z,alt+u",
-                "session_redo": "<leader>y,none", "command.palette.show": "<leader>p"
+                "session_redo": "<leader>y,none", "command.palette.show": "<leader>p",
+                "dialog.select.next": "ctrl+j", "dialog.select.submit": "f3",
+                "dialog.mcp.toggle": "<leader>t,f2"
             }}))
             .unwrap();
         bindings
             .merge(&serde_json::json!({"keybinds": {
-                "leader": "ctrl+b,ctrl+g", "session.redo": false
+                "leader": "ctrl+b,ctrl+g", "session.redo": false,
+                "dialog.select.prev": false
             }}))
             .unwrap();
         assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
+        let dialogs = bindings.dialog_shortcuts();
+        assert_eq!(dialogs.previous, "");
+        assert_eq!(dialogs.next, "ctrl+j");
+        assert_eq!(dialogs.submit, "f3");
+        assert_eq!(dialogs.mcp_toggle, "ctrl+b t,ctrl+g t,f2");
+        assert_eq!(dialogs.home, "home");
         assert_eq!(
             bindings.resolve(),
             ConversationShortcuts {
@@ -2219,6 +2273,11 @@ mod tests {
             assert!(
                 bindings
                     .merge(&serde_json::json!({"keybinds": {"session.undo": invalid}}))
+                    .is_err()
+            );
+            assert!(
+                bindings
+                    .merge(&serde_json::json!({"keybinds": {"dialog.mcp.toggle": invalid}}))
                     .is_err()
             );
         }

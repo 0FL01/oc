@@ -740,6 +740,8 @@ pub struct TuiState {
     skills_loaded: bool,
     mcp_snapshot: Option<oc_core::queries::McpSnapshot>,
     mcp_detail: Option<mcp::McpDetail>,
+    mcp_focused: Option<String>,
+    mcp_action_down: Option<(Rect, Rect, oc_core::queries::McpControl)>,
     /// DCP panel state: snapshot in, request out, transient outcome (UI04).
     pub(crate) dcp: DcpPanelState,
     /// Command ids known to the application (templates stay there).
@@ -933,6 +935,8 @@ impl TuiState {
             skills_loaded: false,
             mcp_snapshot: None,
             mcp_detail: None,
+            mcp_focused: None,
+            mcp_action_down: None,
             dcp: DcpPanelState::default(),
             commands: Vec::new(),
             command_descriptions: BTreeMap::new(),

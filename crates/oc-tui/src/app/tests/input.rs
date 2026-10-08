@@ -2875,6 +2875,7 @@ async fn sessions_metadata_keeps_owner_order_routes_ids_and_requeries_search_sco
 #[tokio::test]
 async fn sessions_selected_actions_confirm_exact_row_keep_draft_and_clear_on_move() {
     use crate::commands::CommandAction;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     let mut state = fresh_state("current").await;
     state.handle_paste("draft survives");
     state.run_command(CommandAction::OpenSessions);
@@ -2889,7 +2890,11 @@ async fn sessions_selected_actions_confirm_exact_row_keep_draft_and_clear_on_mov
         worktree: Some("feature-checkout".into()),
     }]);
     assert_eq!(state.modal_options()[0].footer, "feature-checkout");
-    assert_eq!(state.handle_panel_key(KeyAction::DeleteOrQuit).intent, None);
+    let delete = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL))
+        .expect("selected-session delete owns its raw modal key");
+    assert_eq!(delete, KeyAction::DeleteOrQuit);
+    assert_eq!(state.handle_panel_key(delete).intent, None);
     assert!(state.modal_options()[0].destructive);
     assert_eq!(
         state.modal_options()[0].title,
@@ -2906,7 +2911,11 @@ async fn sessions_selected_actions_confirm_exact_row_keep_draft_and_clear_on_mov
     );
     state.session_delete_rejected("owner refused".into());
     assert!(!state.modal_options()[0].destructive);
-    state.handle_panel_key(KeyAction::Rename);
+    let rename = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL))
+        .expect("selected-session rename owns its raw modal key");
+    assert_eq!(rename, KeyAction::Rename);
+    state.handle_panel_key(rename);
     assert_eq!(state.rename_title(), Some("Actual title"));
     assert_eq!(state.selected_session_rename(), Some("selected-other"));
     state.handle_panel_key(KeyAction::Interrupt);

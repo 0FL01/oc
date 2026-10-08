@@ -252,6 +252,7 @@ mod lifecycle;
 mod mcp;
 mod model_selection;
 mod retry;
+mod select;
 mod services;
 mod tool_output;
 mod transcript;

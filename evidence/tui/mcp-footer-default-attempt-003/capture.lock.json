@@ -1,0 +1,1118 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T08:50:24.680Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "4adbf48597917e40345f462497d13af91768e400b025c09db64d18eb92d07254",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "5af181c2daa061d89ddc013c5971a51498574c339d295cd585c752e158ca6171",
+    "tool_preview_fixture.py": "85f85b9ec1e06c42ba41b64d9c3072ec3c49e66faa4ccc38b020bcf54d680a2e",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "mcp_status.mjs": "50dfb273bcede5025beff616ac5fd65b7090dafd127be3f374155dc59e72987f",
+    "mcp_footer.mjs": "a0a4198c36c16fda458e9ba8e1267b6e596bc486d6ddefdefc1bac26dbf1cd46"
+  },
+  "fixture_sha256": "e2ed38b9e3bd336eb42b37dd24706979a8c583539d1808604a35e230f8f420c6",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "38946412c528dfb75f49f381380a1711a0534f77",
+    "tree": "6b596adc3f4cab9c56dd54b871fc1ac5369db707",
+    "dirty_diff_sha256": "acceb4026f39356caf5d6566b646ca6e4b7de96103f71ab3fa332f137c2ab3f4",
+    "source_manifest_sha256": "af3e13e379498ed40c6f6123bca4b711549698a1b666ead85f14c2286595de58",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "15d4f1ba27844026805a1a7d120f729da2ac9bd617af57777653547e0594898b",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-mcp-footer-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "cc575b6470ef6875248c951a8052e2f4f6da61bfd46dd8fb1e8fb6db7e62e33b",
+      "png_sha256": "da92aa0b3602fe1d04639aee0ee79fa04f37f0a7c727cadbdebf7c7247b8dc7c",
+      "render_sha256": "fa3157bc33b134632a6e068f74b320369e36a3c7df4076e5fa09367a1d7a590e",
+      "path": "upstream/tool-preview-mcp-footer-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "a3f65dfd7c2e259c78345f7bd55d5eb984ce16c4562ad9de890f7cce274e18d4",
+      "png_sha256": "e9a5b95ccd0a0601815a2eb6c48e468fa253d73da45cb08bc0c7c3ab43bf234a",
+      "render_sha256": "d9a7aad524878a483316141a0153340cc51f1e12e6fead131ddbecbd64b92926",
+      "path": "upstream/tool-preview-mcp-footer-120x40-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "58137dc61aecc8ae34cd47296e6c8ce0f1e969093d3656cb2934d1bed92be68b",
+      "png_sha256": "a110e75e32bfc2f9fa29c4d3d2d8b8d953564d6cab2c62abd082b5d6007b66f5",
+      "render_sha256": "4fa0a8a107b2b65db2bd9e9f393d03e6c7824bdc111cf3a0f4516c413240c419",
+      "path": "upstream/tool-preview-mcp-footer-120x40-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "92efa2150bceba39cea578723a5be690aea6f539384572e85b53954c80886386",
+      "png_sha256": "e9a5b95ccd0a0601815a2eb6c48e468fa253d73da45cb08bc0c7c3ab43bf234a",
+      "render_sha256": "6a45440b44a1ce406c897946927c196ab9722f889bf6b19bd20a6576a4243198",
+      "path": "upstream/tool-preview-mcp-footer-120x40-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "06c0a09681081ac58f69f10aa7de82ddb880c891a2f612cc03e277efb1816f94",
+      "png_sha256": "e9a5b95ccd0a0601815a2eb6c48e468fa253d73da45cb08bc0c7c3ab43bf234a",
+      "render_sha256": "fade7e0fc8a1375d6d5b4ed1d469570b3b08d8ba6448266545ac9981129b1fb8",
+      "path": "upstream/tool-preview-mcp-footer-120x40-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "20df6af811b34d7eb77ec3038f823f530b99d0caa18a9bfca24eb06626e0c970",
+      "png_sha256": "3dd773c6c49ffb329879cc96329e86cb4874456e896dba79df5acdd864531670",
+      "render_sha256": "084ad0e1a1d8a5b25d6351a7cee485f985145127a5292a308508bef46951f7b4",
+      "path": "upstream/tool-preview-mcp-footer-80x24-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "650a1f7ef59e8aa88c486993df26853a20c7db108e1e78258a7c0777e25a5041",
+      "png_sha256": "db409c20bdbf74ca8c9f051530b0add3ffb6a960c56e8f19e76a7e3a1012d11f",
+      "render_sha256": "3fcf672f3bacc07f268a762c78669d56589f6b72de873f7bdaf4dacebe64bfa2",
+      "path": "upstream/tool-preview-mcp-footer-80x24-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "e66e7448ff2c357434f65f6dbd157530467d4b0bec6123db48f43fae5741c489",
+      "png_sha256": "3dd773c6c49ffb329879cc96329e86cb4874456e896dba79df5acdd864531670",
+      "render_sha256": "60359cdc5e83cc379269bce6e30045f567a126d4851229e4d8f0bb61329e98af",
+      "path": "upstream/tool-preview-mcp-footer-80x24-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "c186fa8e3a10f374ee8e5e75868da35814ce58330ed0130354b38062c030f35b",
+      "png_sha256": "3dd773c6c49ffb329879cc96329e86cb4874456e896dba79df5acdd864531670",
+      "render_sha256": "faddcd8e59246a5f2e457093aaf56d453efc9660511bdf5c57eb645f8bf57ecb",
+      "path": "upstream/tool-preview-mcp-footer-80x24-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "51de97928de9e4e2c9162ad249b1ba81084212572dd51983274ca6a1ee716e12",
+      "png_sha256": "d25018b6affbc66ff4f21903ddd44ba9efc2cc9756a67fd9713ac6a717b050b1",
+      "render_sha256": "d74956c967e20debafff4dace881a42fb2de0cf5e4710351ef882e9334e8d8c1",
+      "path": "upstream/tool-preview-mcp-footer-160x48-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "a2af3f360f019ee1127f90fde051e73919fcecf7da57db6849cb3429e6430b58",
+      "png_sha256": "dcb1d9a2ef7f9a1189065b8ddb01848591ebfaf5ea31f13a03100d69a74d4f37",
+      "render_sha256": "b0ff7e055d22aaf7003096168d4a1ac349086ef54ce692b873c573fe92815105",
+      "path": "upstream/tool-preview-mcp-footer-160x48-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "8c885b7e0d861c1c65bdf9b1a048a9457138a89f5e0babe8b8f6770007ece1ee",
+      "png_sha256": "d25018b6affbc66ff4f21903ddd44ba9efc2cc9756a67fd9713ac6a717b050b1",
+      "render_sha256": "0d44439c64a70bcbe2ecd4145ff0a6cb930c013b8d3740686918e46e1d712167",
+      "path": "upstream/tool-preview-mcp-footer-160x48-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "7665d4a9d5b2197928b585075c481bd66f45b95c8432853b60c10ef9b9dfbfb0",
+      "png_sha256": "d25018b6affbc66ff4f21903ddd44ba9efc2cc9756a67fd9713ac6a717b050b1",
+      "render_sha256": "f3e21ef18234aba39fa85a0665d2c62d6a3e97e8b410507567e7172813da548d",
+      "path": "upstream/tool-preview-mcp-footer-160x48-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "ccebd0a91a2c6277680addfbfc06148618207685075a581c339b479f398dd62f",
+      "png_sha256": "f2fb62bf111994d564fa8d50f4f46e8c1c2a140f7320ec6d319853bf036e7f40",
+      "render_sha256": "56f8dc91dc5697596040a86626c5069e97dc4a1434440d0a51b07270028c5354",
+      "path": "upstream/tool-preview-mcp-footer-effective-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "4ecd6e487a21b1c0d235582d181c1194871b2446afcd0b073db63e3648f0cb39",
+      "png_sha256": "9259bd0aa5ce0aef49dd3cb94b9ca86acb81d268f4e8f9d81ad3c9f88e934d74",
+      "render_sha256": "aedfb9f2b5d40e13f7df10e88851fe81d5936de50930a40fd867502c28c05167",
+      "path": "upstream/tool-preview-mcp-footer-effective-prev"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "1613608a8c931a654a7684c3a3a23298088b38c749f292fda729420f836345d6",
+      "png_sha256": "bfd521f23b5ff2ca06ba1d756126f106744db2813da9923733d0e56c56751aa0",
+      "render_sha256": "0674b24b1c2293f663b76dabddebb42d03f9e5bcb01a2e0efe311fa142f3264e",
+      "path": "upstream/tool-preview-mcp-footer-effective-end"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "9580abb9215020f7961e21752997b0611fcded247b566e4f1eb9bdd850ddc04f",
+      "png_sha256": "bfd521f23b5ff2ca06ba1d756126f106744db2813da9923733d0e56c56751aa0",
+      "render_sha256": "e8516f7afe1a79d7d94700d52af0e9a010508d00c72566870328fc96f4464f16",
+      "path": "upstream/tool-preview-mcp-footer-effective-page-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "8f9c36b13944b67d20d812b353fecea18e53d4fa3461ea3b44c68fd90690c4f1",
+      "png_sha256": "9259bd0aa5ce0aef49dd3cb94b9ca86acb81d268f4e8f9d81ad3c9f88e934d74",
+      "render_sha256": "eff1392b9d07bbf60669995ca99d400116147e27cbad6e53edd24661d3685f4e",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "b25997bc277c07bccece35647ba5ce28fc90537a886e08573da722d58ee2b8a2",
+      "png_sha256": "9310cb47fc0f80452f78275ea8b47b4e34ab2f6db1fc938ace8db038a57fe461",
+      "render_sha256": "8aa1ee72148949bfb0558b17d77d45a29ae4c8844ca109ae0c30ef4455d8219e",
+      "path": "oc/tool-preview-mcp-footer-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "e5aae5886bee067f48fc9a5731b58fcca81145846492446be60cbca072069aaf",
+      "png_sha256": "1293646f3cf4077fb84ce140bc64a9ed15d423754128ce6a89cc1379a0930ef7",
+      "render_sha256": "950b0d94d31df774fa80c8110f3f4928f4d371b8cc898df25fd4788ba9e9ca7c",
+      "path": "oc/tool-preview-mcp-footer-120x40-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "9933e6e33a9054256489d7c6aaae0a1f5e6a71caccb71bf753b57a1324856655",
+      "png_sha256": "ab0463a8e91a88b77f9d0d99db831618d3e2f427b5c262655fba7fc1435d37c7",
+      "render_sha256": "ba5fc653b20b6b98494e73129f82d43efe9de2134f5caae2d41ff11ed4253aae",
+      "path": "oc/tool-preview-mcp-footer-120x40-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "315e4172c234fda0abb2dd6919b03cec83211954590a30e9f73d4aca7243f550",
+      "png_sha256": "1293646f3cf4077fb84ce140bc64a9ed15d423754128ce6a89cc1379a0930ef7",
+      "render_sha256": "a08b51634b352b479390ebf5706b1185f8faf024f7485846ff89ba7345d38eec",
+      "path": "oc/tool-preview-mcp-footer-120x40-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "080c69fcdd7480163c31e9b0c60434a1a08ae7efccc1b905356c03074f937b16",
+      "png_sha256": "1293646f3cf4077fb84ce140bc64a9ed15d423754128ce6a89cc1379a0930ef7",
+      "render_sha256": "c1803e24bdd1e6053b36275b217948e0eb57c39ab71ed1fdc1187e8742a16e9f",
+      "path": "oc/tool-preview-mcp-footer-120x40-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "4115724eb466d3bf3f6e00d61cfb562972c0b36dd3377d638f3f2f1dc4aa3d54",
+      "png_sha256": "2bd8936bab882f4e410f6a8841245773380319e3ceab76a4b318210f3b8d3587",
+      "render_sha256": "b4bcf9349928e7fd4279799695ac892cec934d8cf8b3aecaec38d647e50ddad2",
+      "path": "oc/tool-preview-mcp-footer-80x24-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "ff45086cb2ca84dd7e8212d21a5cccc13f56f7f5a14812e03afa2146329a7b29",
+      "png_sha256": "9bdb3068e1f24c8065b97ff8567da8008eb02943ca7f3213f6ceb22ccf017c17",
+      "render_sha256": "88583d96410d5ae9f2e5f9413066c2b6cf28bd12728806e2ebc889dfb12f38c7",
+      "path": "oc/tool-preview-mcp-footer-80x24-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "9fca6113de0b9a6f2b1af52a9f2e5e9be56067006673afcdfcaede4cf540abb5",
+      "png_sha256": "2bd8936bab882f4e410f6a8841245773380319e3ceab76a4b318210f3b8d3587",
+      "render_sha256": "65febb3ff4614a5d7ee994e9462f9bf2438f383981090e322015c0e720bd1e4d",
+      "path": "oc/tool-preview-mcp-footer-80x24-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "9fe48a7c69b20a62454cd6722ccb2effc5ef58fb965550d0d78473a7e2c426f8",
+      "cells_sha256": "aeb143c12b7eb443b048f1c0382de86ac6382e6dd72ecfb1567ec3e51b4c68e7",
+      "png_sha256": "2bd8936bab882f4e410f6a8841245773380319e3ceab76a4b318210f3b8d3587",
+      "render_sha256": "199f238d908f2180c9e67bb112ea93ad79655d6cf0fdc7746189e06ea48280d3",
+      "path": "oc/tool-preview-mcp-footer-80x24-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "10558c7e2628994f52be161e322e00e03ac23cd734fcfe28a3dfcfe39654d119",
+      "png_sha256": "d8af9ba377fc7f0a27c3a88e6931ae13e046f6672fdc38e0b7915c91682cb4d5",
+      "render_sha256": "01991b3b7c1b8511e58d904e093b69d6a5ef8e6a4c621f7d4fa5b7f4108723da",
+      "path": "oc/tool-preview-mcp-footer-160x48-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "86f9ad327ef216c310ea6dc40ebecea7621c437127b32c05b83f8328b0addde6",
+      "png_sha256": "be22eade6ca746d89f6217e1d942b0f648d16376446df44958e64087f4d87a37",
+      "render_sha256": "cb4d0ce0678d8ad80928b04663fc98dcc67f49bf5fc68dc0600dd8a710924ddd",
+      "path": "oc/tool-preview-mcp-footer-160x48-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "1f6d79cef32b58f3db206ec2da04e7e2a5f74592e5f579a36ef6ed59a4398d96",
+      "png_sha256": "d8af9ba377fc7f0a27c3a88e6931ae13e046f6672fdc38e0b7915c91682cb4d5",
+      "render_sha256": "17a661f1bd9d5f16ae4884f65d701f4741d8620bd008893c678d556b9912bbd2",
+      "path": "oc/tool-preview-mcp-footer-160x48-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "863a08356262d728d8b034fd85cd5edb6a7421b85272af7f82a26ca3b8fc6f7a",
+      "cells_sha256": "b38bad029abadb985b08cbdce6021da06b10e4e96e62c38475a2b33b717433f3",
+      "png_sha256": "d8af9ba377fc7f0a27c3a88e6931ae13e046f6672fdc38e0b7915c91682cb4d5",
+      "render_sha256": "0554062877b29e0ebee207b7b410487ab6f76a01d19b3b50d87105db7da1446d",
+      "path": "oc/tool-preview-mcp-footer-160x48-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "ffea80b9bf5f21aa2b02ca8ac943b60e1400584ad41fa768b852ccff35428e90",
+      "png_sha256": "81db840becfcd4dde99221b71ce0ee0c77dfaff6835d821158e8fc4b7c88916c",
+      "render_sha256": "c9a3c531becd8992da2a288ad7c6c4c10b17392595a0301ab9ced7982e60331c",
+      "path": "oc/tool-preview-mcp-footer-effective-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "26f9fed687c2857c8487ef12b0028260ea2ec24aef01f5940dcd688f55291c34",
+      "png_sha256": "0472a6b716cf993034d160c0dac5c81585f057fcb236419a0da7b2e460a0a7ba",
+      "render_sha256": "35d60d6d5e6320c0f27b7041f74a03e78b39ca0c6d49094932cf9d5f0de52349",
+      "path": "oc/tool-preview-mcp-footer-effective-prev"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "0817a8a62c5db43bd0446c72801827a07edddb5418ea153ab7f77a80ca15547a",
+      "png_sha256": "fb873c1713173f19ad6de65571425f9d255a9f8b42e29b3af31700c6759dc238",
+      "render_sha256": "6c7c035473a510b762c513edc73b0b0be52a56dc0a055329858c3e8d8f13337f",
+      "path": "oc/tool-preview-mcp-footer-effective-end"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "8897252e8ccc7a94faa116e1be27001c1ddc0a7b29fa8d2d3bef818b7893e4cd",
+      "cells_sha256": "2f24952d9ade1e97f7e48d943a53638ec67c671efb689b77980b0ef6c9068c00",
+      "png_sha256": "81db840becfcd4dde99221b71ce0ee0c77dfaff6835d821158e8fc4b7c88916c",
+      "render_sha256": "23194ea5649f1e1e0a0f1ef7449ba1f4945c8ca290576b7027f6984308401a70",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": true,
+    "mcp_footer": "default",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "mcp-footer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-next",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-prev",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-end",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-page-up",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "reason": "Timed out waiting for mcp-footer-effective-page-down"
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "mcp-footer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-next",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-prev",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-end",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "reason": "Timed out waiting for mcp-footer-effective-page-up"
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_MCP_FOOTER_ONLY",
+    "actual_requests": "Zero model requests/tools; three actual configured connected/disabled/failed MCP rows",
+    "observation": "Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames"
+  },
+  "finished": "2026-10-08T08:53:42.084Z",
+  "exit_code": 1
+}

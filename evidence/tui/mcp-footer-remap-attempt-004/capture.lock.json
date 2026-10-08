@@ -1,0 +1,2797 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T10:04:37.898Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "4adbf48597917e40345f462497d13af91768e400b025c09db64d18eb92d07254",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "5af181c2daa061d89ddc013c5971a51498574c339d295cd585c752e158ca6171",
+    "tool_preview_fixture.py": "85f85b9ec1e06c42ba41b64d9c3072ec3c49e66faa4ccc38b020bcf54d680a2e",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "mcp_status.mjs": "50dfb273bcede5025beff616ac5fd65b7090dafd127be3f374155dc59e72987f",
+    "mcp_footer.mjs": "3de8fda0ecca1c99db0fd65095f7845aab3b5b33402f94a100b1420c27980bde"
+  },
+  "fixture_sha256": "e03ccccfa1cca52bc468c20c440f92cb4c8b6e5583e9a6c84758fc520ba2b57a",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "38946412c528dfb75f49f381380a1711a0534f77",
+    "tree": "6b596adc3f4cab9c56dd54b871fc1ac5369db707",
+    "dirty_diff_sha256": "51049400f3dd1ab4d1b6db807059f762e4befbc2daa892a977822adc7faf25f7",
+    "source_manifest_sha256": "4c12f9bd9392cf84b2e67baf1353f95d5101649c51c3df90eb65035500d43fa3",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "c78a6272ad483dd3cce33342c29103fa8cae771d8466065c95395f026ec7d049",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-mcp-footer-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-old-defaults-inert",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-old-defaults-inert",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-down",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-page-down",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-effective-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-no-match",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-no-match",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-disconnected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-disconnected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-reconnected",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-reconnected",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-retried",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-retried",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-disabled-activated",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-disabled-activated",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-mcp-footer-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "16db86abc58637ab92875e26f119751fc23152ec374bfbac6b81e3284b5b20fb",
+      "png_sha256": "9c502f6b0bfe6a479dbc7f4b4bfecdca10a6c273e4e8486164cb53058bafa2b1",
+      "render_sha256": "c28583e49793979f80e44312f8ee99f4f96d359b37f0c64675fb101aa43e69e7",
+      "path": "upstream/tool-preview-mcp-footer-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "8c87876403861ed0a4f2c097781d3cdecb0e5d732573726d5f60ad0b828b84af",
+      "png_sha256": "25b53d50891c06a8e06595c765f3d59b96c773c94f5e402d57c496975667cd0a",
+      "render_sha256": "f6051e169c01c5e664f41b0374755adf218befdc3fb1576256883470e2ace1a3",
+      "path": "upstream/tool-preview-mcp-footer-120x40-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "e2bc6baaaa3f455deccefc88af5a34434003fad7df0ff1039e7f59c07d9188bb",
+      "png_sha256": "74e107f1c808049814f2bf39ba800deea55023c1c075cc8f9895f5a925522cc1",
+      "render_sha256": "3869a5fc9ee9d3334dd2868be81d1517a152f2a8173fd279b1569daf307c504d",
+      "path": "upstream/tool-preview-mcp-footer-120x40-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "461b5277c4972bf41f8cd15f525b6db24b24747502f52f299bf018f426f49f78",
+      "png_sha256": "25b53d50891c06a8e06595c765f3d59b96c773c94f5e402d57c496975667cd0a",
+      "render_sha256": "bf0360b4cbd24b91de5daf1b30990b8e592635a9eafe154c7d2314dce677e505",
+      "path": "upstream/tool-preview-mcp-footer-120x40-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "67abddd40d5c74a67f2de09df3de6208843061c610971be3162f076bdaa02cc5",
+      "png_sha256": "25b53d50891c06a8e06595c765f3d59b96c773c94f5e402d57c496975667cd0a",
+      "render_sha256": "cbfc04b65faa867081de5c7f493d23b9190962f915c56523d99edb1abf9f05b7",
+      "path": "upstream/tool-preview-mcp-footer-120x40-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "cdeed14e5747580378aa5b3290a6d366609730fa895e0967d79fdf36dd6c36a0",
+      "png_sha256": "9c7f20b0a497e81bf5e9d0f2424dd4384aacfb7a54feeac3e85effcbe958f4ce",
+      "render_sha256": "7efaef63c0b33eca5e72f567774915883fca37cdd69d0715c32a36c09b422e75",
+      "path": "upstream/tool-preview-mcp-footer-80x24-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "be90ec3fb64daddaded275050588725134cdf2375d028ced7b06f43718e63f10",
+      "png_sha256": "23b47bae3a71d6f130d93810352231bb4d68dcb0b77f1a53001477789657d14f",
+      "render_sha256": "2d1c97fa319738ddcef17b2996e49be1931dc090d3c9bd86a22b6c1a8300dcf0",
+      "path": "upstream/tool-preview-mcp-footer-80x24-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "ab485880e4f79278d765bc8b1acd37af1df559c812bae4a041282be01a120c27",
+      "png_sha256": "9c7f20b0a497e81bf5e9d0f2424dd4384aacfb7a54feeac3e85effcbe958f4ce",
+      "render_sha256": "1bce87e97ac31af9261007380c184caeba0bf8a1b673fdc31036c2e5779101f9",
+      "path": "upstream/tool-preview-mcp-footer-80x24-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "44879c5939b5b2238cdeb12338e45577ce2a663967aa41cb1aff0a4454fa0faf",
+      "png_sha256": "9c7f20b0a497e81bf5e9d0f2424dd4384aacfb7a54feeac3e85effcbe958f4ce",
+      "render_sha256": "5ce3960f0d810450d881c14dfeb5b53dd4bf798360d2f800df1b19dd0047dc10",
+      "path": "upstream/tool-preview-mcp-footer-80x24-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "21c922e09bbb45d529a5fdc89550379eedec5c0dd85731a578cec1aba674cf6f",
+      "png_sha256": "798ca866092c650ebcf5cbf488e116e95fab73be7e150726bed199c3465c3cf0",
+      "render_sha256": "b3b4bb445db0aaa31c88b3cbd20f83cfda8a715d50967ba7fed0dc1eb95232c8",
+      "path": "upstream/tool-preview-mcp-footer-160x48-row"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "464fbd15f06170d3d6a334a23e9e0800243d50c1b1db02285f609a2fa37864e4",
+      "png_sha256": "63e092a0c18b59b68aac9e77d97606e858342c589ec5ef605b3385d17529a94b",
+      "render_sha256": "45ced4ef3b42e4348639d8df4ee6eff6faa9405e2e443d4103ff41be866a756c",
+      "path": "upstream/tool-preview-mcp-footer-160x48-focused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "3fb5e48dcbbe4e53ca3290e905f76e451a2e0d8ee48a4f647da663a59cf53e35",
+      "png_sha256": "798ca866092c650ebcf5cbf488e116e95fab73be7e150726bed199c3465c3cf0",
+      "render_sha256": "0ce53e349d365171b66e01a23146e3d4096fc78c7cd9767c12f76d389065718a",
+      "path": "upstream/tool-preview-mcp-footer-160x48-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "002a35a3c149ec10a25505d576c7d6954ebbfc5623724310121b870be1e8bcf0",
+      "png_sha256": "798ca866092c650ebcf5cbf488e116e95fab73be7e150726bed199c3465c3cf0",
+      "render_sha256": "6f608c2dbb6562608b485fea79b2ba6651f4cf228d349fbd7597272accca97ba",
+      "path": "upstream/tool-preview-mcp-footer-160x48-hover-unfocused"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-old-defaults-inert",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "eba8ac4cdfb4f3bbf5e91d7ab120b1c1ad103819192335ce887e475e07ff1f19",
+      "png_sha256": "28e765122c5b269179c488a54a9da3a36ffe1063dbc13370525b99c96a4b8e4f",
+      "render_sha256": "987a81fd1ee56089cdedad6b31cc6c80536ee6c61e54c2371c7635f6db7bd984",
+      "path": "upstream/tool-preview-mcp-footer-old-defaults-inert"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "5dcc4553a7423c5b88e163b19cd6f4c41836e920d3b7c96cb3328303caa310c0",
+      "png_sha256": "7821a87b0ae5308cbb25abe979d416d6a3310394a2b79593da8e031d8a1b6a5e",
+      "render_sha256": "2db095b7d8982950f10211d41efa20e5db46a0d0927388e4de737fdbf5360f84",
+      "path": "upstream/tool-preview-mcp-footer-effective-next"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "2e4da9a45727e01302d20a872bd15fecadad4f7d7c24a9df37cf464eace63b3b",
+      "png_sha256": "e4209505b70a452061ed92e545dfad99d2d8c133b9ac718e75340951b4ab2fba",
+      "render_sha256": "4c908d4646fa5174d5f616c5507cf056a2151ac4f6af14410b0e28dae46f119a",
+      "path": "upstream/tool-preview-mcp-footer-effective-prev"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "9dbeb791c913d0f1e172ae20515894a908e4d9af7d96276b7d9c12868c76e6e0",
+      "png_sha256": "65c7e0135726811b76cb48c56f1191be5416b02638bf12c18f6e206aa5846bcd",
+      "render_sha256": "f07023de9f6d409c39fbc939d81bcf8d0738e0494934ade9c25e4c95aa894567",
+      "path": "upstream/tool-preview-mcp-footer-effective-end"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "85ca7e5f1ea9e4f00173f3b5345d5cc788082b84823b1aca66b9d1abe7ec7cda",
+      "png_sha256": "65c7e0135726811b76cb48c56f1191be5416b02638bf12c18f6e206aa5846bcd",
+      "render_sha256": "e1c4507f718d23273b814411263a22c80658387400933ffef4f3331fa35bcde4",
+      "path": "upstream/tool-preview-mcp-footer-effective-page-up"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-page-down",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "0db76d4b9cbd6622fc071086bba032e796f961b01549376386e8e6c7193300b6",
+      "png_sha256": "e4209505b70a452061ed92e545dfad99d2d8c133b9ac718e75340951b4ab2fba",
+      "render_sha256": "2d0170becd997abc30dc07eaa34e0cfd088fb21e6a6e45ccf6b2ca103e90f546",
+      "path": "upstream/tool-preview-mcp-footer-effective-page-down"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-effective-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "90c4975d131c69460f30566a3715d77d5e3977abb28110ecfd246c93ee00d7a3",
+      "png_sha256": "e4209505b70a452061ed92e545dfad99d2d8c133b9ac718e75340951b4ab2fba",
+      "render_sha256": "11772ab84d9a29200584bb425483edd635d64ef7fdd0dfd611e010829fddc380",
+      "path": "upstream/tool-preview-mcp-footer-effective-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-no-match",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "e642b64bb767eb3d33dbec90ccd1ca6eb7193890f78b1f34cb0f51578b171761",
+      "png_sha256": "b48ae04c5726663eb34c68d8e6c4a49b549596f8295a30b04860b3766571f00f",
+      "render_sha256": "cb5686ffd304b085576ee7fecc77964bf4d60678463736e23122d3fcb5361160",
+      "path": "upstream/tool-preview-mcp-footer-no-match"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-disconnected",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "82db586fae23f02fb5cfdda9c5a35bd27d9ea12a9b4516aa9b7bf581f5a53b09",
+      "png_sha256": "4ad1df2d08e81bd93eabc2fbdafb884be24f75921b6880b0e5a44a628ff2ba70",
+      "render_sha256": "d8f07f74f19a16f83f18def37ec2b4aa4fc19cb17bf38e1c4b7328e2bdbb2c7a",
+      "path": "upstream/tool-preview-mcp-footer-disconnected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-reconnected",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "222cb4e71f54e68fbd1ce12108dab01c0c9055074b6353ff03a1ebfca905eba5",
+      "png_sha256": "804d1940f630406cf1b411fb7ac1831cbc8a79c8b0ec5a51dc791909810a66fe",
+      "render_sha256": "55b2c8b0e3a1bbeac9f9eababe3b3fdc2dbd3d2655f4cad38dd5446f5c7e75c3",
+      "path": "upstream/tool-preview-mcp-footer-reconnected"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-retried",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "80c4065b5da1b27f035eea733be90cc9217e0e1c577456ea8997744d8b485675",
+      "png_sha256": "28e765122c5b269179c488a54a9da3a36ffe1063dbc13370525b99c96a4b8e4f",
+      "render_sha256": "5cf33535ecc1ca83b66b70048cf8f0d3bfa768d4b39618f6ad8251f97e3d0471",
+      "path": "upstream/tool-preview-mcp-footer-retried"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-disabled-activated",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "e4bceac6560329015df5f88844ef029ae0d526742574619e81722fe0487f8299",
+      "png_sha256": "75de0b8c0e57c428364114e52f3fa037cf19ea73025003be7d3a10fd6926c806",
+      "render_sha256": "76e1ccf9e81a97b007b94484ca223f8bf2016e378b490ea76e0b0331861024b3",
+      "path": "upstream/tool-preview-mcp-footer-disabled-activated"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-mcp-footer-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "60479d533d6abea32f8bef2e2be5a67f5978856e24959556a5422bb9173bedcb",
+      "png_sha256": "1249b06e450390778f4dca459cc3449f27588323a02edf411b52e82437eab626",
+      "render_sha256": "0a4c5fdb2ed024f9845b41d62b0f943230218d1fe1df47001f4e92f7ae7db912",
+      "path": "upstream/tool-preview-mcp-footer-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "160e614ef45208e54fbc5ad3b74e200abdb94d8b4166fdaf00883859ecbc3b06",
+      "png_sha256": "7e19c70bbb6871f88ce4e457046c98bc02bd023654ce27827be22d15862862d1",
+      "render_sha256": "b2d6a6e9e1a9477f7144a8dd02a2cbc442f9a2a445df24a67f9f265585c931c9",
+      "path": "oc/tool-preview-mcp-footer-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "128006011a9aeec866113f1e00dc6fd91c58bf7f26dc7595bae473b4fd62b944",
+      "png_sha256": "53bbd1f63489f703e149157c278f75be6346c1c8e0d193b9187b7fd571b8cef1",
+      "render_sha256": "9174b601c1cbc9767a2e1a5c43fe326472f8611df98c7bedfdd3a454cfc4cbec",
+      "path": "oc/tool-preview-mcp-footer-120x40-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "74ea70451e4c80b1c31a74c87c5e3ac3b33353bc5703f9d9cdce4035b4a73b15",
+      "png_sha256": "cee902775089b2898ce84ca1612b23bebf049bde1ffa16111a7e0ce976437e3c",
+      "render_sha256": "c6f2279748b18105ab9d773468d4512a99434ef0c36799bed9837816b3a15c0c",
+      "path": "oc/tool-preview-mcp-footer-120x40-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "7a5baeb3b814ec4f4a7d522f90f357c47a5b8181abbcb007a421736cf90db8b9",
+      "png_sha256": "53bbd1f63489f703e149157c278f75be6346c1c8e0d193b9187b7fd571b8cef1",
+      "render_sha256": "6cff2b22312f91301dbc040087d1271a873167fb1919cc3ea7d85a722f6e6237",
+      "path": "oc/tool-preview-mcp-footer-120x40-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-120x40-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "2b6b64182550f75235442e61c5f9d93e46afe46039e8e3358af949cb6c6576a1",
+      "png_sha256": "53bbd1f63489f703e149157c278f75be6346c1c8e0d193b9187b7fd571b8cef1",
+      "render_sha256": "2503da5f40824484a27eb21b0bbc2ada0318e5b7036e37ff6d9d6275b3311fc8",
+      "path": "oc/tool-preview-mcp-footer-120x40-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "e206747c14d7aecf1eb2ce6d868bba72d0240afa5331db29aec1d49252c415a8",
+      "png_sha256": "8af5e56a4cb430d14b762b64a13da5f63fb3047fe4331f2f9517ca8cabb6c1f3",
+      "render_sha256": "f4d8e27ea2f5a8b051c0b4dc7ea12489297019fc82fec71cfe4b43d792f18f0d",
+      "path": "oc/tool-preview-mcp-footer-80x24-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "3a67abd1fa5f589024b940ed540f5fd92e8768b5a609eadd8d42aa3fb91f623f",
+      "png_sha256": "3bfea383e3f46c91c2044c30bdf28adb5cdc973c43ccc4d99e1d78c545cd5c90",
+      "render_sha256": "d328f720be38c684022fb5031b978710a5c8b28aa40a22dbb519e18a12be5b02",
+      "path": "oc/tool-preview-mcp-footer-80x24-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "96b8517b980576591484e6f8e0292220491074c0151f424f36473fa7c7f96b8d",
+      "png_sha256": "8af5e56a4cb430d14b762b64a13da5f63fb3047fe4331f2f9517ca8cabb6c1f3",
+      "render_sha256": "7fce21623592977219f65d132587ac415270c650a149f54669bbff65af8b4e6e",
+      "path": "oc/tool-preview-mcp-footer-80x24-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-80x24-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "30187fa2337b6889fcd5c4dbe74f306739074baef0e42a25b8573b61030a13eb",
+      "cells_sha256": "117bd2d337926fb964527883548292e746364d7d50038222bc082a971bae4bb6",
+      "png_sha256": "8af5e56a4cb430d14b762b64a13da5f63fb3047fe4331f2f9517ca8cabb6c1f3",
+      "render_sha256": "830f022a072601b98449b804bd4d68d8fe2664cfa28d85b2763f5b1d8baf8066",
+      "path": "oc/tool-preview-mcp-footer-80x24-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-row",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "b41e16837f8abfde9c6f00a6ab777dc673fa8406f9a9ecdc9ccbd591860ba344",
+      "png_sha256": "44904e16bf0567644dca610a8cf3a8cc6a4066bedda2997df427c3e909b64047",
+      "render_sha256": "c92ca378d665518b4cdfadc7fe7fe9c7fe6c8e953488f330e958fe2ca526da48",
+      "path": "oc/tool-preview-mcp-footer-160x48-row"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-focused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "3b589454145905739072ba43bda3ab5e83b5992eb421ce53e878eb954ac60373",
+      "png_sha256": "33c3fd2a400c2a8bc311f72d0198978bed40b61a3c4f7f166431fa1cbf735b12",
+      "render_sha256": "4f982ac873ea580c46ded31847d896fdf3df3ca593e942b958815343a6709709",
+      "path": "oc/tool-preview-mcp-footer-160x48-focused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "b5a332fb0c462f12362f235589adc4b75a05a6624a654602875ce3febcc38f17",
+      "png_sha256": "44904e16bf0567644dca610a8cf3a8cc6a4066bedda2997df427c3e909b64047",
+      "render_sha256": "3679308d5e2c6dab7ef3f84b032f9c3d91c22a5e539da621e78f56ff70714624",
+      "path": "oc/tool-preview-mcp-footer-160x48-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-160x48-hover-unfocused",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "2f1cb8ef84bad7ab7e8d49f0201febaf057fccddff0e96d18f903c12a0ae6b35",
+      "cells_sha256": "d23fcb37726c4fb0054932cad5a96cada4ff18b799902445142c5a2365908ece",
+      "png_sha256": "44904e16bf0567644dca610a8cf3a8cc6a4066bedda2997df427c3e909b64047",
+      "render_sha256": "75390c0469d5214b5e7aa6b2ec73018362189f4a16df9873985678052f3e5dcc",
+      "path": "oc/tool-preview-mcp-footer-160x48-hover-unfocused"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-old-defaults-inert",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "54f6a69583a87fdcbb6e01f499c4594f8e68f992032d41a7f3212afda4eacb13",
+      "png_sha256": "034b6cd8b74e0d290680d7d61ee2e044eff205a12d6e6d01acd3196bc8ed5053",
+      "render_sha256": "e15d28ea9678e726bd35df703338d1322bcd6079e3529449ce2294e5680aecb1",
+      "path": "oc/tool-preview-mcp-footer-old-defaults-inert"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-next",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "4eada11cbfe1417ad700c9292acd4ca4533bc3a696580389b27cdd9bdf07c06c",
+      "png_sha256": "cde58a78f717915b591e5649d4d771d8df0c86a61bead75329bf22d74a537744",
+      "render_sha256": "a14ed497057796dc0727a0c6b41b233d990dc3253cd8839f51efc4d77871e098",
+      "path": "oc/tool-preview-mcp-footer-effective-next"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-prev",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "d15fca33ec558bb232b5108bc65fc5bd197b5edfa60acd7ae6cd71a74b94c26b",
+      "png_sha256": "6c3b37c9b6caab02f7ff0bb2e8e95b0212b53740f9f07daf28483288fa58116b",
+      "render_sha256": "fe1a550b729e0ec7ec611d656617ad786fdb281ab7c7b4cd2ff397c7a2e52012",
+      "path": "oc/tool-preview-mcp-footer-effective-prev"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-end",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "ab8c473cb6661903870da8e10413680fa36309e6c81133c686abc030f7f5216d",
+      "png_sha256": "de956917ce7a765596739af5ab13b66d6a2fe69fd77596f30e8f5be53a94ed41",
+      "render_sha256": "60a981620919daa28b994fab10f12b322484051cd6fee5278404eca5f9c4edba",
+      "path": "oc/tool-preview-mcp-footer-effective-end"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-page-up",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "b5106576d309ffa830bc6f81fe7edaadee0b1a83fc31e8fa1465b33d0de0cfa2",
+      "png_sha256": "de956917ce7a765596739af5ab13b66d6a2fe69fd77596f30e8f5be53a94ed41",
+      "render_sha256": "85b03df722aecdd0b4a36d305343f775a0cb94352103ef53b7090de66afffd69",
+      "path": "oc/tool-preview-mcp-footer-effective-page-up"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-page-down",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "739c9596e96df2968f5bc2b7c805804321e299092696ec569b0acc490db3bc64",
+      "png_sha256": "6c3b37c9b6caab02f7ff0bb2e8e95b0212b53740f9f07daf28483288fa58116b",
+      "render_sha256": "9126b382a87626290d983397d9fc54910e8c262b75e5f4a66ac8074658ea74fd",
+      "path": "oc/tool-preview-mcp-footer-effective-page-down"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-effective-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "2752a127806a2e1939b4df5b0376710b5bd91862565d16584d087a537c5ac31a",
+      "png_sha256": "6c3b37c9b6caab02f7ff0bb2e8e95b0212b53740f9f07daf28483288fa58116b",
+      "render_sha256": "f2bfe9aa8b80139602afb899b8e285c476560c5d9c133a42ee8b14cf66d7474c",
+      "path": "oc/tool-preview-mcp-footer-effective-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-no-match",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "7f024e83e6d733c2d73b891211e45c29ca2dc783503ebfac477864b45b8a2531",
+      "png_sha256": "62fe8b1bf9af0e711f8a12f2dbaa99afbc2e34189285a24aa86bff8a91c5c872",
+      "render_sha256": "e327c9c2b019ec375b171ac061735169a77024d3dfe3db5ea297ee9e6aa77426",
+      "path": "oc/tool-preview-mcp-footer-no-match"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-disconnected",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "34c05f5274bec45da4e6d723ad3876390578217cf2fe6e4c30842c126c505853",
+      "png_sha256": "177674eae08dcb9bac0460a73ac27b026539708e1c6ae4ed314d06084a5c34ad",
+      "render_sha256": "41f526ecfea74ca38e36d768d9aade7935a1a748d67892f36f18523835ca7bb9",
+      "path": "oc/tool-preview-mcp-footer-disconnected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-reconnected",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "f1c516781a0c0c09be8ab3adfb9546009c57874f4853b8e2268873c4dc1d3b00",
+      "png_sha256": "53bbd1f63489f703e149157c278f75be6346c1c8e0d193b9187b7fd571b8cef1",
+      "render_sha256": "6571fc78525c9d914e0a8eb6ecb9490e89e379929e3ddfcb107a99e6c62f0dba",
+      "path": "oc/tool-preview-mcp-footer-reconnected"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-retried",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "f46f76f389cb9a32ebde1ca315078540d69348024eb4daab810e9fe17d0189eb",
+      "png_sha256": "034b6cd8b74e0d290680d7d61ee2e044eff205a12d6e6d01acd3196bc8ed5053",
+      "render_sha256": "13dbf7807a97cb00c73dd7e959b9b4c89b4d2096d68aa27a54987a28f321743c",
+      "path": "oc/tool-preview-mcp-footer-retried"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-disabled-activated",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "a5392411339b95c420d8630631453754af4a147de1a925486a0e214b2eebb783",
+      "png_sha256": "8ee3bd97ebf1c620e071b71440972574015673ef370c2895fbabb4580c849459",
+      "render_sha256": "423884b3811e06ab8900882b2c9ab688a01287a6f3e34a180e0fd84dadafa355",
+      "path": "oc/tool-preview-mcp-footer-disabled-activated"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-mcp-footer-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "ea9836cd7e0b8906ddade619b557e0d9745274bd66a6f95971e9f4ec27777a91",
+      "cells_sha256": "96fc80c4ab87326065c37220c7ce345c15d466511deca2d23be848d38a259ac0",
+      "png_sha256": "7e19c70bbb6871f88ce4e457046c98bc02bd023654ce27827be22d15862862d1",
+      "render_sha256": "d9d1fa907ab6849cd8437a60f13930639f65e1454b596573350c790e85d6beca",
+      "path": "oc/tool-preview-mcp-footer-restored"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": true,
+    "mcp_footer": "remap",
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-footer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-old-defaults-inert",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-next",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-prev",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-end",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-page-up",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-page-down",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-no-match",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 55,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-disconnected",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-reconnected",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-retried",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-disabled-activated",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_FOOTER",
+        "mode": "remap",
+        "focusObservations": [
+          {
+            "columns": 120,
+            "rows": 40,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          },
+          {
+            "columns": 80,
+            "rows": 24,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          },
+          {
+            "columns": 160,
+            "rows": 48,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          }
+        ],
+        "initialize_counts": [
+          {
+            "tag": "footer_initial",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_no_match_no_effect",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_disconnect",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_mouse_reconnect",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_retry",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 0,
+              "failed-peer": 2
+            }
+          },
+          {
+            "tag": "footer_explicit_disabled_activation",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 1,
+              "failed-peer": 2
+            }
+          },
+          {
+            "tag": "footer_disabled_park",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 1,
+              "failed-peer": 2
+            }
+          }
+        ],
+        "page_selection_policy": {
+          "source": "boundary wrap, not modulo or clamp",
+          "page_up_from_last": 2,
+          "page_down": 0,
+          "native_source_verified": false,
+          "running_reference_difference": false
+        },
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "disabled_initially_not_started": true,
+        "explicit_controls": true,
+        "effective_dispatch_and_hint": true,
+        "draft_and_caret_restored": true
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "mcp-footer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-120x40-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-80x24-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 24,
+            "y": 9,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-row",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-focused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-160x48-hover-unfocused",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 64,
+            "y": 15,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-old-defaults-inert",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-next",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-prev",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-end",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-page-up",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-page-down",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-effective-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 34,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-no-match",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 55,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-disconnected",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-reconnected",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 44,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-retried",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 43,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-disabled-activated",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 13,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "mcp-footer-restored",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 45,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+        "Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.",
+        "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+      ],
+      "mcp_status": {
+        "status": "OBSERVED_MCP_FOOTER",
+        "mode": "remap",
+        "focusObservations": [
+          {
+            "columns": 120,
+            "rows": 40,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          },
+          {
+            "columns": 80,
+            "rows": 24,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          },
+          {
+            "columns": 160,
+            "rows": 48,
+            "selected": [
+              {
+                "symbol": "v",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "i",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "s",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "e",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "a",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "l",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "t",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "h",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              },
+              {
+                "symbol": "y",
+                "fg": "#808080",
+                "bg": "#1e1e1e",
+                "width": 1,
+                "modifiers": []
+              }
+            ],
+            "action": [
+              {
+                "symbol": "d",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "i",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "s",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "o",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "n",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "e",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "c",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              },
+              {
+                "symbol": "t",
+                "fg": "#0a0a0a",
+                "bg": "#fab283",
+                "width": 1,
+                "modifiers": [
+                  "bold"
+                ]
+              }
+            ],
+            "cursor_preserved": true
+          }
+        ],
+        "initialize_counts": [
+          {
+            "tag": "footer_initial",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_no_match_no_effect",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_disconnect",
+            "actual": {
+              "healthy-peer": 1,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_mouse_reconnect",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 0,
+              "failed-peer": 1
+            }
+          },
+          {
+            "tag": "footer_retry",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 0,
+              "failed-peer": 2
+            }
+          },
+          {
+            "tag": "footer_explicit_disabled_activation",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 1,
+              "failed-peer": 2
+            }
+          },
+          {
+            "tag": "footer_disabled_park",
+            "actual": {
+              "healthy-peer": 2,
+              "disabled-peer": 1,
+              "failed-peer": 2
+            }
+          }
+        ],
+        "page_selection_policy": {
+          "source": "boundary wrap, not modulo or clamp",
+          "page_up_from_last": 2,
+          "page_down": 0,
+          "native_source_verified": true,
+          "running_reference_difference": false
+        },
+        "provider_requests": 0,
+        "tool_effects": 0,
+        "disabled_initially_not_started": true,
+        "explicit_controls": true,
+        "effective_dispatch_and_hint": true,
+        "draft_and_caret_restored": true
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_MCP_FOOTER_ONLY",
+    "actual_requests": "Zero model requests/tools; three actual configured connected/disabled/failed MCP rows",
+    "observation": "Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames"
+  },
+  "finished": "2026-10-08T10:09:14.887Z",
+  "exit_code": 1
+}

@@ -1,0 +1,10452 @@
+{
+  "name": "idle",
+  "input_owner": {
+    "x": 24,
+    "y": 34,
+    "visible": true,
+    "shape": "block"
+  },
+  "started_ms": 40149.299999952316,
+  "samples": [
+    {
+      "at_ms": 40150.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40172,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40183.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40200.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40219.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40236,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40251.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40266.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40283.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40300.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40316.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40374.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40383,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40399.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40416.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40433.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40450.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40466.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40488.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40500,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40516.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40533.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40550.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40566.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40583.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40600.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40617.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40642,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40649.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40666.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40683.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40699.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40716.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40733.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40750,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40766.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40783.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40799.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40816.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40836,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40851.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40868.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40883.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40900,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 40920.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41003.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41019.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41033.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41050.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41071.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41103.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41116.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41133.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41152.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41169.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41188.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41199.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41216.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41234.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41249.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41271.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41283.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41300,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41316.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41333.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41349.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41370.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41383.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41399.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41418.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41436.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41449.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41468.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41484.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41501.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41516.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41597.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41612.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41616.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41633.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41649.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41666.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41683.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41699.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41716.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41735.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41752.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41772.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41787.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41799.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41816.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41833.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41850.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41866.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41883.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41900.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41916.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41934.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41954.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41966.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41986.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 41999.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42020,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42036.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42049.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42066.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42083.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42100.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42119.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42258.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42259.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42266.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42283.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42303.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42317.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42333.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42350.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42367.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42385.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42402.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42416.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42433.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42449.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42466.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42483.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42500.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42524.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42534.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42550.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42586.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42590.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42607,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42617.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42633.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42649.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42666.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42684.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42700.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42717,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42795.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42800,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42819.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42834.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42849.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42867.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42884,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42901.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42916.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42933.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42949.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42966.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42994.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 42999.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43016.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43033.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43050.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43066.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43083.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43103.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43116.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43133.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43150.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43166.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43184.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43201.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43216.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43236.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43251.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43266.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43283.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43299.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43316.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43374.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43383.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43399.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43416.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43434.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43449.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43466.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43483.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43499.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43516.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43533,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43550.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43566.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43583.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43599.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43616.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43633.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43649.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43666.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43683.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43699.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43716.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43733,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43749.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43766.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43783.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43799.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43816.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43833.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43850.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43866.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43882.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43899.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43916.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43990.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 43999.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44016.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44033.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44049.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44066.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44083,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44099.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44116.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44133,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44149.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44168.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44183.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44199.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44216.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44233.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44251.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44266.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44284.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44303.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44316.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44336.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44359.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44367.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44383.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44399.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44416.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44433,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44451.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44466.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44483.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44499.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44516.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44574.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44582.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44599.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44616.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44633.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44652.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44666.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44683.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44701.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44717.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44732.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44750,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44766.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44783.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44800,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44816.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44832.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44849.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44866.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44883,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44900.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44916.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44933.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44949.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44966.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44983,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 44999.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45016.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45032.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45049.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45067.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45083.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45100.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45116.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": true,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45179.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45184.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45199.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45216.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45235.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45251.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45272.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45282.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45299.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45316.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45333,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45349.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45366.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45383.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45401,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45416.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45432.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45449.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45466.299999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45483.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45499.59999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45516.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45533,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45550.199999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45566.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45583.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45599.89999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45616.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45633.09999990463,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45649.699999809265,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45666.5,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45683,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": false
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45699.799999952316,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    },
+    {
+      "at_ms": 45716.39999985695,
+      "cursor": {
+        "x": 24,
+        "y": 34,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "raster": {
+        "kind": "webgl",
+        "rgba": [
+          30,
+          30,
+          30,
+          255
+        ],
+        "expected_rgba": [
+          238,
+          238,
+          238,
+          255
+        ],
+        "read_at": {
+          "x": 24,
+          "y": 34
+        },
+        "visible": false,
+        "manager_visible": true
+      },
+      "css": null,
+      "animation": null
+    }
+  ],
+  "commands": [],
+  "finished_ms": 45788.09999990463
+}

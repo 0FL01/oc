@@ -485,6 +485,7 @@ impl TuiState {
 
     /// Apply a catalog snapshot: picker, agents and the effective selection.
     pub fn apply_catalog(&mut self, snapshot: CatalogSnapshot) {
+        let dialog_changed = self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts;
         let mut previous_issues = self.service_issues();
         self.invalidate_transcript();
         if self.active_agent.as_deref() != snapshot.agent_id.as_deref() {
@@ -496,6 +497,7 @@ impl TuiState {
             != snapshot.chrome.conversation_shortcuts.leader
             || self.chrome.leader_timeout_ms() != snapshot.chrome.leader_timeout_ms()
             || self.chrome.command_palette_shortcut != snapshot.chrome.command_palette_shortcut
+            || self.chrome.dialog_shortcuts != snapshot.chrome.dialog_shortcuts
         {
             self.leader = None;
         }
@@ -514,6 +516,8 @@ impl TuiState {
                 self.pending_copy = None;
             }
             self.mcp_detail = None;
+            self.mcp_focused = None;
+            self.mcp_action_down = None;
             self.service_pending_issues.clear();
             self.refused_submission = None;
             self.generation += 1;
@@ -521,6 +525,10 @@ impl TuiState {
         }
         self.apply_owner_clipboard_mode(snapshot.chrome.terminal_copy);
         self.chrome = snapshot.chrome.clone();
+        if dialog_changed {
+            self.select.clear_action_focus();
+            self.mcp_action_down = None;
+        }
         self.auto_accept = snapshot.auto_accept;
         let mut picker = ModelPicker::new(catalog_from_snapshot(&snapshot));
         let draft = self.composer_catalog(&snapshot);

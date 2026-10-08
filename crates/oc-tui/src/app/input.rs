@@ -644,7 +644,9 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
-        if let Some(action) = self.conversation_key(event) {
+        if !self.select_key_owner()
+            && let Some(action) = self.conversation_key(event)
+        {
             return Some(action);
         }
         if self.panel == TuiPanel::None
@@ -679,11 +681,146 @@ impl TuiState {
             }
             return None;
         }
+        if self.select_key_owner() {
+            return self.select_key(event);
+        }
         crate::events::map_key(event).filter(|action| {
             *action != KeyAction::Leader
                 && !(*action == KeyAction::Commands
                     && self.panel == TuiPanel::None
                     && self.chrome.command_palette_shortcut.is_some())
+        })
+    }
+
+    fn select_key_owner(&self) -> bool {
+        matches!(
+            self.panel,
+            TuiPanel::Commands
+                | TuiPanel::Settings
+                | TuiPanel::Model
+                | TuiPanel::Variant
+                | TuiPanel::Agents
+                | TuiPanel::Sessions
+                | TuiPanel::Skills
+                | TuiPanel::Mcps
+                | TuiPanel::MessageActions { .. }
+        ) && self.mcp_detail.is_none()
+    }
+
+    fn select_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
+        use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+        if event.kind == KeyEventKind::Release {
+            return None;
+        }
+        if event.kind == KeyEventKind::Repeat
+            && event
+                .modifiers
+                .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT)
+        {
+            return None;
+        }
+        if event.code == KeyCode::Esc && event.modifiers.is_empty()
+            || event.code == KeyCode::Char('c') && event.modifiers == KeyModifiers::CONTROL
+        {
+            self.leader = None;
+            return crate::events::map_key(event);
+        }
+        if self
+            .leader_deadline()
+            .is_some_and(|until| Instant::now() >= until)
+        {
+            self.leader = None;
+        }
+        if matches!(event.code, KeyCode::Tab | KeyCode::BackTab)
+            && !event
+                .modifiers
+                .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT)
+        {
+            self.leader = None;
+            return Some(
+                if event.code == KeyCode::BackTab || event.modifiers.contains(KeyModifiers::SHIFT) {
+                    KeyAction::DialogActionPrevious
+                } else {
+                    KeyAction::Tab
+                },
+            );
+        }
+        let raw = crate::events::binding(event)?;
+        let raw = if raw == " " { "space".to_owned() } else { raw };
+        let candidate = if self.leader.is_some() {
+            format!("{} {raw}", self.leader_key)
+        } else {
+            raw
+        };
+        let keys = &self.chrome.dialog_shortcuts;
+        let bindings = [
+            (&keys.previous, KeyAction::Up),
+            (&keys.next, KeyAction::Down),
+            (&keys.page_up, KeyAction::PageUp),
+            (&keys.page_down, KeyAction::PageDown),
+            (&keys.home, KeyAction::Home),
+            (&keys.end, KeyAction::End),
+            (&keys.submit, KeyAction::Enter),
+            (&keys.mcp_toggle, KeyAction::McpToggle),
+        ];
+        if let Some(action) = bindings.iter().find_map(|(keys, action)| {
+            (*action != KeyAction::McpToggle || self.panel == TuiPanel::Mcps)
+                .then(|| {
+                    keys.split(',').any(|key| {
+                        !key.is_empty() && crate::events::dialog_binding(key) == candidate
+                    })
+                })
+                .filter(|matches| *matches)
+                .map(|_| action.clone())
+        }) {
+            self.leader = None;
+            if event.kind == KeyEventKind::Repeat
+                && matches!(action, KeyAction::Enter | KeyAction::McpToggle)
+            {
+                return None;
+            }
+            return Some(action);
+        }
+        if bindings.iter().any(|(keys, action)| {
+            (*action != KeyAction::McpToggle || self.panel == TuiPanel::Mcps)
+                && keys.split(',').any(|key| {
+                    crate::events::dialog_binding(key).starts_with(&format!("{candidate} "))
+                })
+        }) || self
+            .chrome
+            .conversation_shortcuts
+            .leader
+            .split(',')
+            .any(|key| !key.is_empty() && crate::events::dialog_binding(key) == candidate)
+        {
+            self.leader_key = candidate;
+            return Some(KeyAction::Leader);
+        }
+        self.leader = None;
+        // Only Search editing/cancel and this modal's existing selected-session
+        // actions may fall through. Root quit, picker and editor shortcuts are
+        // not modal actions; effective dialog bindings above still win.
+        crate::events::map_key(event).filter(|action| {
+            matches!(
+                action,
+                KeyAction::Cancel
+                    | KeyAction::Interrupt
+                    | KeyAction::Char(_)
+                    | KeyAction::Backspace
+                    | KeyAction::Delete
+                    | KeyAction::WordBackspace
+                    | KeyAction::WordDelete
+                    | KeyAction::CtrlA
+                    | KeyAction::Left
+                    | KeyAction::Right
+                    | KeyAction::WordLeft
+                    | KeyAction::WordRight
+                    | KeyAction::SelectLeft
+                    | KeyAction::SelectRight
+                    | KeyAction::SelectWordLeft
+                    | KeyAction::SelectWordRight
+            ) || self.panel == TuiPanel::Sessions
+                && matches!(action, KeyAction::Rename | KeyAction::DeleteOrQuit)
         })
     }
 
@@ -788,6 +925,7 @@ impl TuiState {
     }
 
     fn changed_modal_query(&mut self) {
+        self.mcp_action_down = None;
         self.session_delete_confirm = None;
         self.select.changed_query();
         if self.panel == TuiPanel::Variant && self.select.query.is_empty() {
@@ -834,6 +972,7 @@ impl TuiState {
                     .position(|s| s.id == option.value)
                     .unwrap_or(0)
             }
+            TuiPanel::Mcps => self.mcp_focused = Some(option.value.clone()),
             _ => {}
         }
     }
@@ -1184,6 +1323,8 @@ impl TuiState {
         self.card_scroll = 0;
         self.card_seen.set(0);
         self.mcp_detail = None;
+        self.mcp_focused = None;
+        self.mcp_action_down = None;
         self.mouse_down = None;
         self.tab_down = None;
         if was_open {
@@ -1759,15 +1900,28 @@ impl TuiState {
             }
             return KeyOutcome::default();
         }
+        let action = (self.panel == TuiPanel::Mcps).then(|| self.mcp_footer_action());
         let options = self.modal_options();
         let size = crate::dialog::size_for(&self.panel);
-        let hit = self
-            .select
-            .hit(area, size, &options, event.column, event.row);
+        let action_rect = action
+            .as_ref()
+            .map(|action| self.select.footer_action_rect(area, size, &options, action));
+        let hit = if action_rect.is_some_and(|rect| rect.contains((event.column, event.row).into()))
+        {
+            DialogHit::FooterAction
+        } else {
+            self.select
+                .hit(area, size, &options, event.column, event.row)
+        };
         match event.kind {
             MouseEventKind::Down(MouseButton::Left) => {
                 self.mouse_down = Some(hit);
+                self.mcp_action_down = (hit == DialogHit::FooterAction
+                    && event.modifiers.is_empty())
+                .then(|| Some((area, action_rect?, self.mcp_control()?)))
+                .flatten();
                 if let DialogHit::Option(index) = hit {
+                    self.select.clear_action_focus();
                     if self.select.cursor != index {
                         self.session_delete_confirm = None;
                     }
@@ -1776,6 +1930,12 @@ impl TuiState {
                 }
             }
             MouseEventKind::Moved | MouseEventKind::Drag(MouseButton::Left) => {
+                if matches!(event.kind, MouseEventKind::Drag(_)) {
+                    self.mcp_action_down = None;
+                }
+                if matches!(hit, DialogHit::Option(_) | DialogHit::Search) {
+                    self.select.clear_action_focus();
+                }
                 if let DialogHit::Option(index) = hit
                     && self.select.cursor != index
                 {
@@ -1800,8 +1960,22 @@ impl TuiState {
             }
             MouseEventKind::Up(MouseButton::Left) => {
                 let pressed = self.mouse_down.take();
+                let captured = self.mcp_action_down.take();
                 if pressed == Some(hit) {
                     match hit {
+                        DialogHit::FooterAction => {
+                            if let Some((frame, rect, control)) = captured
+                                && event.modifiers.is_empty()
+                                && frame == area
+                                && Some(rect) == action_rect
+                                && self.mcp_control().as_ref() == Some(&control)
+                            {
+                                return KeyOutcome {
+                                    intent: Some(PanelIntent::McpControl(control)),
+                                    ..Default::default()
+                                };
+                            }
+                        }
                         DialogHit::Backdrop | DialogHit::Close => self.close_panel(),
                         DialogHit::Option(index)
                             if !matches!(
@@ -2363,7 +2537,9 @@ impl TuiState {
                 self.leader = Some(Instant::now());
                 KeyOutcome::default()
             }
-            KeyAction::SequenceKey(_, _) => KeyOutcome::default(),
+            KeyAction::SequenceKey(_, _)
+            | KeyAction::DialogActionPrevious
+            | KeyAction::McpToggle => KeyOutcome::default(),
             KeyAction::Left
             | KeyAction::Right
             | KeyAction::WordLeft
@@ -3034,8 +3210,27 @@ impl TuiState {
         if self.panel == TuiPanel::Rename {
             return self.handle_rename_key(action);
         }
-        if self.panel == TuiPanel::Mcps && action == KeyAction::Char(' ') {
+        if self.panel == TuiPanel::Mcps
+            && action == KeyAction::Char(' ')
+            && self
+                .chrome
+                .dialog_shortcuts
+                .mcp_toggle
+                .split(',')
+                .any(|key| crate::events::dialog_binding(key) == "space")
+        {
             return self.mcp_toggle();
+        }
+        if self.panel == TuiPanel::Mcps {
+            match action {
+                KeyAction::Tab | KeyAction::DialogActionPrevious => {
+                    self.select.cycle_action(self.mcp_footer_action().enabled);
+                    return KeyOutcome::default();
+                }
+                KeyAction::McpToggle => return self.mcp_toggle(),
+                KeyAction::Enter if self.select.action_focused() => return self.mcp_toggle(),
+                _ => {}
+            }
         }
         if self.panel == TuiPanel::Cards && self.card_output.is_some() {
             let (start, height, count) = crate::views::card_window(self);
@@ -3130,6 +3325,7 @@ impl TuiState {
                         | TuiPanel::MessageActions { .. }
                 ) =>
             {
+                self.select.clear_action_focus();
                 let count = self.modal_options().len();
                 match action {
                     KeyAction::Home => self.select.cursor = 0,

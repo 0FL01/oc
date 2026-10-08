@@ -915,6 +915,44 @@ seed masked rows or read inactive credential files. The current36 full-grid/PNG
 comparisons remain DIFFERENT; `PASS_BEHAVIOR_ONLY` is
 not pixel PASS. Separate ordinary and temporal runs qualify their regressions.
 
+## VIS40 Select MCP footer focus and effective remaps
+
+Add `--mcp-footer default|remap` to the exclusive ordinary
+`--tool-preview true --mcp-status true` mode. This selects `mcp_footer.mjs` instead
+of the status/details sequence. Real three-peer inventory and initializer role/PID
+receipts prove focused-submit disconnect, footer-mouse reconnect, failed retry,
+explicit disabled activation and park. Initial healthy/disabled/failed counts are
+1/0/1, final2/1/2; disabled never starts before the explicit action. All stages have
+zero provider requests, tool calls, MCP tools/call and Shell effect counters.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true --mcp-status true --mcp-footer remap \
+  --output /home/opencode/ai/oc/evidence/tui/MCP-FOOTER-NEW-IMMUTABLE-ATTEMPT
+```
+
+Tab/Shift+Tab focus, title-only action bold, selected-row muted/raised treatment,
+row-hover unfocus and unchanged Search caret are captured at80×24,120×40,160×48.
+Real filtering/no-match submit, prev/next/End/Page±10/Home and exact Unicode composer
+restoration are required. Remap fixture admits F2/F3, Alt+U/D/H/E, F4 submit and
+F6/`<leader>t` toggle with Ctrl+G leader; native dispatch and hints share the effective
+projection. Old Down/Enter/Ctrl+P remain inert. Default additionally checks Ctrl+P/N
+wrap. Page movement records actual selected indexes and requires native source
+boundary-wrap policy, never modulo/clamp or a normalized reference frame.
+
+Final default27/remap26 paired stages yield54/52 strict full-grid/PNG comparisons,
+all DIFFERENT. The full frames, cursor, real controls and source-associated build
+are retained; no crop/mask/version substitution or renderer-state seeding. Ordinary
+body/reopen and temporal blink regressions run separately. Receipt:
+`evidence/tui/mcp-select-footer.md`. `PASS_BEHAVIOR_ONLY` is not whole VIS40/T44 or
+pixel PASS; pending/auth/security/fault and remaining frozen outcomes retain their
+separate mandatory acceptance.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

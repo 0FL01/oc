@@ -108,7 +108,8 @@ pub struct SelectList {
     offset: Cell<usize>,
     follow_cursor: Cell<bool>,
     center_cursor: Cell<bool>,
-    footer_visible: Cell<bool>,
+    footer_rows: Cell<u16>,
+    action_focused: bool,
     session_categories: Cell<bool>,
     cache: RefCell<Option<FilterCache>>,
 }
@@ -122,6 +123,22 @@ pub enum DialogHit {
     Close,
     Option(usize),
     List,
+    FooterAction,
+}
+
+/// One existing Select footer action, projected by its current owner.
+pub(crate) struct SelectAction {
+    pub title: &'static str,
+    pub shortcut: String,
+    pub enabled: bool,
+    pub hint: Option<&'static str>,
+}
+
+impl SelectAction {
+    fn rows(&self, width: u16) -> u16 {
+        u16::from(self.hint.is_some() || !self.shortcut.is_empty())
+            + u16::from(width < 60 && self.hint.is_some() && !self.shortcut.is_empty())
+    }
 }
 
 struct Geometry {
@@ -234,13 +251,20 @@ impl SelectList {
         cache.result.clone()
     }
     pub fn move_by(&mut self, delta: isize, count: usize) {
+        self.action_focused = false;
+        let next = self.cursor as isize + delta;
         self.cursor = if count == 0 {
             0
+        } else if next < 0 {
+            count - 1
+        } else if next >= count as isize {
+            0
         } else {
-            (self.cursor as isize + delta).rem_euclid(count as isize) as usize
+            next as usize
         };
     }
     pub fn changed_query(&mut self) {
+        self.action_focused = false;
         self.cursor = 0;
         self.offset.set(0);
         self.follow_cursor.set(true);
@@ -252,12 +276,25 @@ impl SelectList {
         self.center_cursor.set(true);
     }
 
+    pub(crate) fn action_focused(&self) -> bool {
+        self.action_focused
+    }
+
+    pub(crate) fn clear_action_focus(&mut self) {
+        self.action_focused = false;
+    }
+
+    pub(crate) fn cycle_action(&mut self, enabled: bool) {
+        // A single available action cycles row → action → row in either direction.
+        self.action_focused = enabled && !self.action_focused;
+    }
+
     fn geometry(
         &self,
         area: Rect,
         size: DialogSize,
         options: &[SelectOption],
-        footer: bool,
+        footer_rows: u16,
     ) -> Geometry {
         let mut rows = Vec::new();
         let mut category = "";
@@ -277,7 +314,7 @@ impl SelectList {
             .len()
             .max(1)
             .min((area.height / 2).saturating_sub(6).max(1) as usize);
-        let rect = DialogFrame::rect(area, size, list_height as u16 + 7 + u16::from(footer));
+        let rect = DialogFrame::rect(area, size, list_height as u16 + 7 + footer_rows);
         Geometry {
             rect,
             list_y: rect.y.saturating_add(5),
@@ -300,7 +337,7 @@ impl SelectList {
         size: DialogSize,
         options: &[SelectOption],
     ) {
-        let geo = self.geometry(area, size, options, self.footer_visible.get());
+        let geo = self.geometry(area, size, options, self.footer_rows.get());
         let max = geo.rows.len().saturating_sub(geo.list_height);
         self.offset
             .set(geo.offset.saturating_add_signed(delta).min(max));
@@ -316,7 +353,7 @@ impl SelectList {
         x: u16,
         y: u16,
     ) -> DialogHit {
-        let geo = self.geometry(area, size, options, self.footer_visible.get());
+        let geo = self.geometry(area, size, options, self.footer_rows.get());
         let rect = geo.rect;
         if !rect.contains((x, y).into()) {
             return DialogHit::Backdrop;
@@ -344,6 +381,40 @@ impl SelectList {
         DialogHit::Surface
     }
 
+    pub(crate) fn footer_action_rect(
+        &self,
+        area: Rect,
+        size: DialogSize,
+        options: &[SelectOption],
+        action: &SelectAction,
+    ) -> Rect {
+        self.footer_rows.set(action.rows(area.width));
+        let geo = self.geometry(area, size, options, action.rows(area.width));
+        let hint_width = action
+            .hint
+            .map_or(0, |hint| ratatui::text::Line::raw(hint).width() as u16);
+        let stacked = area.width < 60 && action.hint.is_some();
+        let x = geo.rect.x
+            + 4
+            + if stacked || action.hint.is_none() {
+                0
+            } else {
+                hint_width + 2
+            };
+        let y = geo.rect.y + 6 + geo.list_height as u16 + u16::from(stacked);
+        if action.shortcut.is_empty() || y >= geo.rect.bottom() {
+            return Rect::default();
+        }
+        Rect::new(
+            x,
+            y,
+            ratatui::text::Line::raw(format!("{} {}", action.title, action.shortcut))
+                .width()
+                .min(geo.rect.right().saturating_sub(2 + x) as usize) as u16,
+            1,
+        )
+    }
+
     fn render(
         &self,
         frame: &mut Frame<'_>,
@@ -351,10 +422,16 @@ impl SelectList {
         size: DialogSize,
         options: &[SelectOption],
         footer: Option<&str>,
-        mcps: Option<&[McpServerSnapshot]>,
+        mcp: Option<(&[McpServerSnapshot], &SelectAction)>,
     ) {
+        let (mcps, action) = mcp.map_or((None, None), |(servers, action)| {
+            (Some(servers), Some(action))
+        });
         let theme = Theme::dark();
-        self.footer_visible.set(footer.is_some());
+        let footer_rows =
+            action.map_or(u16::from(footer.is_some()), |a| a.rows(frame.area().width));
+        self.footer_rows.set(footer_rows);
+        let action_focused = self.action_focused && action.is_some_and(|a| a.enabled);
         let sessions = title == "Sessions" || title.starts_with("Sessions for ");
         self.session_categories.set(sessions || title == "Settings");
         // Sessions and Settings retain their actual category headings while filtering.
@@ -371,7 +448,7 @@ impl SelectList {
             }
             rows.push((Some(i), String::new()));
         }
-        let mut geo = self.geometry(frame.area(), size, options, footer.is_some());
+        let mut geo = self.geometry(frame.area(), size, options, footer_rows);
         if self.follow_cursor.get()
             && let Some(row) = geo.rows.iter().position(|item| *item == Some(self.cursor))
         {
@@ -491,6 +568,8 @@ impl SelectList {
             let active = *index == self.cursor;
             let fg = if option.destructive {
                 slot(theme, "text.action.destructive.base")
+            } else if active && action_focused {
+                muted
             } else if active {
                 slot(theme, "text.action.primary.$focused")
             } else if option.current {
@@ -502,6 +581,10 @@ impl SelectList {
                 Style::default()
                     .fg(fg)
                     .bg(slot(theme, "background.action.destructive.base"))
+            } else if active && action_focused {
+                Style::default()
+                    .fg(fg)
+                    .bg(slot(theme, "background.raised.high"))
             } else if active {
                 Style::default()
                     .fg(fg)
@@ -582,7 +665,7 @@ impl SelectList {
                 y,
                 area.width.saturating_sub(9 + right_width),
                 &title,
-                if active {
+                if active && !action_focused {
                     style.add_modifier(Modifier::BOLD)
                 } else {
                     style
@@ -596,10 +679,10 @@ impl SelectList {
             {
                 let pending =
                     server.pending_action.is_some() || server.status == McpStatus::Pending;
-                if !active {
+                if !active || action_focused {
                     footer_style = footer_style.fg(slot(
                         theme,
-                        if pending {
+                        if pending || active && action_focused {
                             "text.muted"
                         } else {
                             match server.status {
@@ -624,7 +707,57 @@ impl SelectList {
                 footer_style,
             );
         }
-        if let Some(footer) = footer {
+        if let Some(action) = action {
+            let y = area.y + 6 + height as u16;
+            if let Some(hint) = action.hint {
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    area.width.saturating_sub(8),
+                    hint,
+                    Style::default().fg(muted),
+                );
+            }
+            let rect = self.footer_action_rect(frame.area(), size, options, action);
+            let base = if !action.enabled {
+                Style::default().fg(slot(theme, "text.action.primary.$disabled"))
+            } else if action_focused {
+                Style::default()
+                    .fg(slot(theme, "text.action.primary.$focused"))
+                    .bg(slot(theme, "background.action.primary.$focused"))
+            } else {
+                Style::default().fg(text)
+            };
+            if rect.width > 0 {
+                frame.render_widget(Block::default().style(base), rect);
+                let title_width = ratatui::text::Line::raw(action.title).width() as u16;
+                line(
+                    frame,
+                    rect.x,
+                    rect.y,
+                    rect.width.min(title_width),
+                    action.title,
+                    if action_focused {
+                        base.add_modifier(Modifier::BOLD)
+                    } else {
+                        base
+                    },
+                );
+                line(
+                    frame,
+                    rect.x + title_width,
+                    rect.y,
+                    rect.width.saturating_sub(title_width),
+                    &format!(" {}", action.shortcut),
+                    if action.enabled && !action_focused {
+                        base.fg(muted)
+                    } else {
+                        base
+                    },
+                );
+            }
+        } else if let Some(footer) = footer {
             if sessions {
                 let y = area.y + 6 + height as u16;
                 let label_style = Style::default().fg(text);
@@ -731,6 +864,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     } else {
         title
     };
+    let action = (state.panel() == &TuiPanel::Mcps).then(|| state.mcp_footer_action());
     state.select.render(
         frame,
         title,
@@ -747,7 +881,9 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
                 "all projects ctrl+a"
             })
         },
-        state.mcp_list_servers(),
+        action
+            .as_ref()
+            .map(|action| (state.mcp_list_servers().unwrap_or_default(), action)),
     );
 }
 
@@ -1124,7 +1260,7 @@ mod tests {
                 )
             })
             .unwrap();
-        let geometry = list.geometry(Rect::new(0, 0, 120, 40), DialogSize::Large, &options, true);
+        let geometry = list.geometry(Rect::new(0, 0, 120, 40), DialogSize::Large, &options, 1);
         let row = geometry
             .rows
             .iter()

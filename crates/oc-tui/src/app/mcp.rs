@@ -88,6 +88,7 @@ impl TuiState {
             detail.pressed = None;
         }
         self.mcp_snapshot = Some(snapshot);
+        self.mcp_action_down = None;
         if self.mcp_detail.is_some() && self.mcp_detail_server().is_none() {
             // A replacement generation/recovery must not leave a stale detail
             // (or its copy/investigate actions) attached to another owner.
@@ -99,6 +100,12 @@ impl TuiState {
                 self.select.cursor = index;
             } else {
                 self.select.cursor = self.select.cursor.min(options.len().saturating_sub(1));
+            }
+        }
+        if self.panel == TuiPanel::Mcps {
+            self.sync_modal_cursor();
+            if !self.mcp_footer_action().enabled {
+                self.select.clear_action_focus();
             }
         }
         self.reconcile_service_feedback(previous_issues);
@@ -148,7 +155,12 @@ impl TuiState {
         else {
             return KeyOutcome::default();
         };
-        let Some(action) = server.actions.first().copied() else {
+        let Some(action) = server
+            .actions
+            .first()
+            .copied()
+            .filter(|_| server.pending_action.is_none() && server.status != McpStatus::Pending)
+        else {
             return KeyOutcome {
                 note: server.diagnostic.as_ref().map(ToString::to_string),
                 ..Default::default()
@@ -161,6 +173,64 @@ impl TuiState {
                 action,
             })),
             ..Default::default()
+        }
+    }
+
+    pub(super) fn mcp_control(&self) -> Option<McpControl> {
+        if self.panel != TuiPanel::Mcps || self.mcp_detail.is_some() {
+            return None;
+        }
+        let options = self.modal_options();
+        let option = options.get(self.select.cursor)?;
+        let snapshot = self.mcp_snapshot.as_ref()?;
+        let server = snapshot
+            .servers
+            .iter()
+            .find(|server| server.id == option.value)?;
+        if server.pending_action.is_some() || server.status == McpStatus::Pending {
+            return None;
+        }
+        Some(McpControl {
+            binding: snapshot.binding.clone(),
+            server: server.id.clone(),
+            action: *server.actions.first()?,
+        })
+    }
+
+    pub(crate) fn mcp_footer_action(&self) -> crate::dialog::SelectAction {
+        let options = self.modal_options();
+        let selected = options
+            .get(self.select.cursor)
+            .map(|option| option.value.as_str());
+        let server = self.mcp_snapshot.as_ref().and_then(|snapshot| {
+            selected
+                .or(self.mcp_focused.as_deref())
+                .and_then(|id| snapshot.servers.iter().find(|server| server.id == id))
+                .or_else(|| snapshot.servers.first())
+        });
+        crate::dialog::SelectAction {
+            title: match server.map(|server| server.status) {
+                Some(McpStatus::Connected) => "disconnect",
+                Some(McpStatus::Failed) => "retry",
+                Some(McpStatus::NeedsAuth) => "sign in",
+                _ => "connect",
+            },
+            shortcut: self
+                .chrome
+                .dialog_shortcuts
+                .mcp_toggle
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+                .join(" "),
+            enabled: self.mcp_control().is_some()
+                && !self.chrome.dialog_shortcuts.mcp_toggle.is_empty(),
+            hint: server
+                .filter(|server| {
+                    matches!(server.status, McpStatus::Failed | McpStatus::NeedsAuth)
+                        && server.diagnostic.is_some()
+                })
+                .map(|_| "enter to view error"),
         }
     }
 

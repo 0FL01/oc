@@ -2703,8 +2703,12 @@ async fn message_actions_focus_intents_clipboard_result_and_escape() {
         (KeyAction::Home, 0),
         (KeyAction::End, 3),
         (KeyAction::Up, 2),
-        (KeyAction::PageUp, 0),
-        (KeyAction::PageDown, 2),
+        // Shared Select source wraps an overshooting page to an endpoint,
+        // rather than retaining the modulo remainder.
+        (KeyAction::PageUp, 3),
+        (KeyAction::PageDown, 0),
+        (KeyAction::Down, 1),
+        (KeyAction::Down, 2),
     ] {
         state.handle_key(key).await;
         assert_eq!(state.select.cursor, cursor);

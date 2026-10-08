@@ -1,0 +1,25 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "mcp-footer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 45,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.",
+    "Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.",
+    "Native read-only details and unsent investigation use the safe owner diagnostic, not a raw peer exception; full styled-frame parity remains independently open."
+  ],
+  "reason": "Timed out waiting for focused vishealthy"
+}

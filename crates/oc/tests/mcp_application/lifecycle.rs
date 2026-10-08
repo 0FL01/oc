@@ -518,7 +518,8 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     tui.wait_visible(READY);
     tui.send_line("/mcps");
     wait_row(&tui, "repair", "Failed");
-    tui.wait_screen("space retry", TIMEOUT);
+    // Select paints the actual action before its effective binding hint.
+    tui.wait_screen("retry space", TIMEOUT);
     assert_eq!(counters(&fixture, "repair"), Value::Null);
     std::os::unix::fs::symlink("/usr/bin/python3", &program).unwrap();
     std::thread::sleep(Duration::from_millis(100));
@@ -545,7 +546,7 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     assert!(!tui.screen().iter().any(|row| row.contains("MCP server:")));
     tui.raw(&vec![0x7f; acknowledgement.len()]);
     wait_row(&tui, "repair", "Connecting");
-    tui.wait_screen("connection pending", TIMEOUT);
+    tui.wait_screen("connect space", TIMEOUT);
     assert_eq!(event_count(&fixture, "repair", "spawn"), 1);
     fs::write(&catalog, "release").unwrap();
     wait_row(&tui, "repair", "Connected");
@@ -571,7 +572,8 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     assert_child_reaped(&fixture, "late");
     fs::write(&old_gate, "late-release-after-retirement").unwrap();
     tui.send_line("/mcps");
-    tui.wait_screen("no configured MCP servers", TIMEOUT);
+    tui.wait_screen("No items available", TIMEOUT);
+    tui.wait_screen("connect space", TIMEOUT);
     assert_eq!(
         event_count(&fixture, "late", "catalog"),
         0,

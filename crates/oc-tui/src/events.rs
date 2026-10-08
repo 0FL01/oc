@@ -66,6 +66,10 @@ pub enum KeyAction {
     Enter,
     /// Complete the focused inline suggestion.
     Tab,
+    /// Previous available Select footer action (modal-owned Shift+Tab).
+    DialogActionPrevious,
+    /// The effective MCP toggle binding, not printable search input.
+    McpToggle,
     /// Cancel active turn.
     Cancel,
     /// Scroll viewport.
@@ -245,6 +249,31 @@ pub(crate) fn binding(event: KeyEvent) -> Option<String> {
     }
     binding.push_str(&key);
     Some(binding)
+}
+
+/// Canonical aliases in the admitted Select key strings, not free-text matching.
+pub(crate) fn dialog_binding(value: &str) -> String {
+    value
+        .split_whitespace()
+        .map(|key| {
+            let lower = key.to_ascii_lowercase();
+            let parts = lower.split('+').collect::<Vec<_>>();
+            let mut result = String::new();
+            for modifier in ["ctrl", "alt", "shift"] {
+                if parts.contains(&modifier) {
+                    result.push_str(modifier);
+                    result.push('+');
+                }
+            }
+            result.push_str(match parts.last().copied().unwrap_or("") {
+                "return" => "enter",
+                "escape" => "esc",
+                key => key,
+            });
+            result
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 #[cfg(test)]

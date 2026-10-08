@@ -40,6 +40,14 @@ def configure(spec, home, project, config, cli):
         servers['visdisabled'] = {'type':'local','command':['/usr/bin/python3',str(peer)],
                                   **({'disabled':True} if spec['origin'] == 'upstream' else {'enabled':False})}
         servers['visfailed'] = {'type':'local','command':['/usr/bin/python3',str(peer),'--failed']}
+        if spec.get('mcp_footer'):
+            for name, role in (('vishealthy','healthy-peer'),('visdisabled','disabled-peer'),('visfailed','failed-peer')):
+                servers[name]['command'] += ['--probe-role', role]
+        if spec.get('mcp_footer') == 'remap':
+            cli['keybinds'] = {'leader':'ctrl+g','dialog.select.prev':'f2','dialog.select.next':'f3',
+                'dialog.select.page_up':'alt+u','dialog.select.page_down':'alt+d',
+                'dialog.select.home':'alt+h','dialog.select.end':'alt+e',
+                'dialog.select.submit':'f4','dialog.mcp.toggle':'f6,<leader>t'}
 
 def control(home, action):
     if action not in ('fail', 'recover'):

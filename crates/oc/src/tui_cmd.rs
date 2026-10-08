@@ -1641,6 +1641,9 @@ async fn restore_views(
     home: Option<TuiState>,
     prefer_home_when_space: bool,
 ) -> Result<TuiState, StartupFailure> {
+    // Parked view restoration carries large owned states across awaits. Heap
+    // pin this bounded future instead of multiplying inline caller poll frames.
+    Box::pin(async move {
     let mut views = Vec::with_capacity(ids.len());
     let mut unavailable = Vec::new();
     for id in ids {
@@ -1694,6 +1697,8 @@ async fn restore_views(
         state.push_note("saved tabs partially unavailable; review saved tabs");
     }
     Ok(state)
+    })
+    .await
 }
 
 /// Load the complete Location-scoped route before the first frame. Parked

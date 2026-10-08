@@ -586,6 +586,8 @@ pub struct TuiChrome {
     pub diffs: DiffSettings,
     /// Effective conversation bindings from the admitted Location configuration.
     pub conversation_shortcuts: ConversationShortcuts,
+    /// Effective Select/MCP modal bindings, independent of root editor shortcuts.
+    pub dialog_shortcuts: DialogShortcuts,
     /// Admitted leader.timeout (preferred over legacy leader_timeout), in milliseconds.
     pub leader_timeout_ms: Option<u64>,
     /// Admitted command.palette.show binding; None keeps the native default.
@@ -1156,6 +1158,34 @@ impl Default for ConversationShortcuts {
             leader: "ctrl+x".into(),
             undo: "ctrl+x u".into(),
             redo: "ctrl+x r".into(),
+        }
+    }
+}
+
+/// The existing Select command set; empty bindings disable a command.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DialogShortcuts {
+    pub previous: String,
+    pub next: String,
+    pub page_up: String,
+    pub page_down: String,
+    pub home: String,
+    pub end: String,
+    pub submit: String,
+    pub mcp_toggle: String,
+}
+
+impl Default for DialogShortcuts {
+    fn default() -> Self {
+        Self {
+            previous: "up,ctrl+p".into(),
+            next: "down,ctrl+n".into(),
+            page_up: "pageup".into(),
+            page_down: "pagedown".into(),
+            home: "home".into(),
+            end: "end".into(),
+            submit: "return".into(),
+            mcp_toggle: "space".into(),
         }
     }
 }

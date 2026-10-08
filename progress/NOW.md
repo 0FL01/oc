@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T07:04:30+00:00
+State updated: 2026-10-08T10:28:16+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,43 +12,43 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 — dedicated MCP read-only ErrorDetails
+# T44 — Select MCP footer focus and effective bindings
 
 ## Result
-Failed MCP Enter opens a dedicated medium safe-owner detail, not Select rows or
-Search. Captured binding/opaque ID gates current label/diagnostic and actions;
-replacement/recovery/masking clears stale detail/copy feedback. Shared row geometry
-owns scroll and Back/Copy/Investigate hits. Back preserves originating filter and
-composer caret; explicit i replaces bounded unsent diagnostic draft without model/
-tool/control effects. Keyboard and mouse copy reach synchronous actual transport
-before outcomes; copied feedback is transport success, not desktop clipboard proof.
-Receipt: evidence/tui/mcp-error-details.md. Whole T44 remains ACTIVE/NOT_PASS.
+Existing Select owns typed MCP footer focus/paint/hits. Tab/Shift+Tab cycle,
+focused submit controls the current opaque server/binding, hover/movement clears
+action focus without stealing Search caret. Shared geometry handles narrow stack;
+press/release revalidation rejects drag/resize/filter/snapshot/modified release.
+Eight effective admitted dialog bindings drive dispatch/hints; disabled/remapped
+defaults and root shortcuts cannot leak. Sessions-owned Rename/Delete remain.
+Page overshoot uses source boundary wrap; startup restore future is heap-pinned
+at its existing owner boundary without stack/thread/task growth.
+Receipt: evidence/tui/mcp-select-footer.md. Whole T44 remains ACTIVE/NOT_PASS.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1743/0/11 across46 complete results,
-locked/ordinary debug, release/help and actual startup/discovery PASS. Owner detail
-and binary key-copy success/failure tests; existing MCP41/held lifecycle/privacy
-guards remain. Repo Python47/0, Node/source/docs/journal checks PASS. Final mixed012
-18 paired stages: readonly/no cursor, real OSC52 keyboard/mouse, Back exact Unicode
-draft/caret, explicit unsent investigation;0 model/tool effects;36 full comparisons
-DIFFERENT. Ordinary02527 stages+native resource views:4 EQUAL/50 DIFFERENT+4 native
-only;6 requests/4 effects/3 MCP calls/Shell17 bytes and RAW/artifacts unchanged through
-restart. Temporal028 six states≥3 cycles/no phantom/no replay;144 actual opaque PNGs
-audited,69 matched pairs/138 strict comparisons ALL DIFFERENT.
+Current fmt/strict locked workspace Clippy,1745/0/11 across46 results, locked/
+ordinary debug, release/help and actual startup/discovery PASS. Two Select owner
+scenarios plus existing config/Sessions/MessageActions/MCP lifecycle guards.
+Repo Python47/0, Node/Python syntax/source/docs/journal checks PASS. Final default005
+27paired stages54 strict comparisons DIFFERENT; remap00426 stages52 DIFFERENT.
+80/120/160 focus/caret/navigation/hints, exact control initialize counts1/0/1→2/1/2,
+zero model/tool effects, disabled starts only explicitly, Unicode draft restored.
+Ordinary0274 EQUAL/50 DIFFERENT+4native-only retains6requests4effects3MCP/Shell17bytes
+and RAW/artifacts through restart. Temporal030 six states≥3cycles/zero phantom,
+144opaque PNGs audited,67 matched pairs134 strict comparisons ALL DIFFERENT.
 
 ## Risks
-Native safe DTO differs from reference raw exception/context. Source-required native
-Connected bold differs from running original. Repeated original Home investigation
-after clear can close without reinjecting draft; observed false reference field and
-full frame retained, never accepted in native. Short actual body navigation is not
-overflow proof; long owner regression separately covers bounds. OSC52 cannot prove
-system clipboard acceptance. No whole VIS40/VIS31/R6/V09 PASS; AUTH06 deferred,
-original24/24/Go13/24 unchanged. Unrelated .opencode/ and immutable captures untouched.
+Whole styled-cell/PNG parity remains NOT_PASS. Source-required native Connected
+bold, safe DTO and genuine version differences are unmasked. Earlier page/probe/
+stack/modal-owned-action failures and pre-modifier captures remain factual history;
+final source proof is default005/remap004/ordinary027/temporal030 only. No tests or
+resource/security thresholds weakened. AUTH06 deferred/original24/24/Go13/24
+unchanged; .opencode and immutable captures untouched.
 
 ## Next
-Commit/push reviewed code/evidence, then continue Select footer action focus/hits,
-effective remaps and every remaining frozen R1–R6/VIS01–VIS45. Final current-source
-R6/V09 only after full closure; no task finish or acceptance reset on this slice.
+Commit/push reviewed code/evidence, then shared durable prompt-history and ordinary
+prompt click-caret VIS12, followed by every remaining frozen R1–R6/VIS01–VIS45.
+Final R6/V09 only after complete closure; no task finish or acceptance reset here.
 
 
 Ready (до 5): нет

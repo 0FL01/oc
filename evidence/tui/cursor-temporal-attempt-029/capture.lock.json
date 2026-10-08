@@ -1,0 +1,3781 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-08T09:33:54.378Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "4adbf48597917e40345f462497d13af91768e400b025c09db64d18eb92d07254",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "0b6175bf2d2a995bfe726c30e8c7e7445619aa17e4c3fe3a6a4c2752d1f000d6",
+    "tool_preview.mjs": "5af181c2daa061d89ddc013c5971a51498574c339d295cd585c752e158ca6171",
+    "tool_preview_fixture.py": "85f85b9ec1e06c42ba41b64d9c3072ec3c49e66faa4ccc38b020bcf54d680a2e",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "cursor_temporal.mjs": "7ced13b43e94b6d457641504ddef880d9d0c94282fe931a7a2f284cfe5b53488",
+    "cursor_frontend.js": "f543e7b0aafba38c0a0d15749aa0a71cf2274ec437f0dd46c84673c8bb548c90"
+  },
+  "fixture_sha256": "9fe458eb8a60f74e54c2daae7eaf5fd4708313aa4c111cb1f0758a96c105d454",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "38946412c528dfb75f49f381380a1711a0534f77",
+    "tree": "6b596adc3f4cab9c56dd54b871fc1ac5369db707",
+    "dirty_diff_sha256": "10babb0ca6a12289ef4152442ee90a5d6a96f82b95135d22d6342ae7e9235d07",
+    "source_manifest_sha256": "668ca4f853089bc55f52e459d210ce838483021d26c1198c26e472601fdd4b85",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "9bca5dbbf1652c25fad33745b93b2a1d6bf74508bcaf94f2cfdde34d7e679163",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-completed",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-visible-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-visible-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover-phase-hidden-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-06",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-hidden-06",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-06",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle-phase-visible-06",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-idle",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-hidden-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-search-hover",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-00",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-00",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-01",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-01",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-02",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-02",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-03",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-03",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-04",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-04",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-hidden-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-05",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored-phase-visible-05",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-composer-restored",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-idle-phase-hidden-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-05",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-05",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-06",
+      "mode": "grid",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    },
+    {
+      "scenario": "cursor-search-hover-phase-visible-06",
+      "mode": "png",
+      "status": "UNMATCHED_TEMPORAL_SAMPLE",
+      "reason": "Independent actual raster transitions produced unequal sample counts; not parity PASS"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "2a86c479d662b619bd252a4e50335e608f092038d298f5aeeaf5b77f245aaf94",
+      "png_sha256": "6f2a882f3b984391538266a5af8705d290a29df10488a9e19f33928f785a2159",
+      "render_sha256": "7af4accd8627b5f7390d4a3314a14e5e48d1aa12d1fc84c806976ec52494353c",
+      "path": "upstream/tool-preview-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "80456b4b009b48c13a28674c220022b8cca95bd4c6fa445d9b15dedd3ba2ad0f",
+      "png_sha256": "46853c825ce36032e8132174ed8651e3cb32014cdf61b354bbd74838c3099123",
+      "render_sha256": "b168ca3b5102db8a33f6e5472729576efc2f6cac268bd6b9b338e9d0748a11b3",
+      "path": "upstream/tool-preview-completed"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "0547560ef7a3e86a5ab660b1d07a0b1f2dd19b4b193a7d50e11c9aaebe2a8454",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "14a618df83a67394ff5ca7bf21f0f0f5a8a9e603b0daade6a1cde9bf39b73608",
+      "path": "upstream/cursor-idle-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c45cd6ec8f8475799818dd556cda34f5ef46c3291269f00885a9bb30660d9f13",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "af381ba3634431e0050295ec3a9152af74d32585926aebc7edb894540ad0f927",
+      "path": "upstream/cursor-idle-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "647b5e158d8feac63a934d114a8fc4dde5daad365b6ab735eae830d3c909c55c",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "09e42ee5a36fb3a9e1537a322b66bfce3dd00d38ab938aff96b4cb182868b348",
+      "path": "upstream/cursor-idle-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c66dd89fab92f88faebadad54d3d1e75bf0ab5b88275df41e1653d3f308f2460",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "ef85b20c1d556b0477c1eda6d12623548fe5821f348d9dbe74661759b7125568",
+      "path": "upstream/cursor-idle-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "43ae1434ec7d81d77063d2a332f67622f7d3815795206b8f1b9407ad019ec824",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "97db1da754fe5b47f14bcbba03964310716271fc98a94cfbbcbe5a5f8715d9ee",
+      "path": "upstream/cursor-idle-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bbd8a5067e0278e10642aa28c6790ee64a0ffe0d630f3ee0f5412f2d44852fb5",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "087b4d749b264c3ffe4e823300e75611aa7d91a9c1e941034fdf763e24d185e8",
+      "path": "upstream/cursor-idle-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "93801c35149b478c0c03da2f39ae652dcf40f9940c691730f30d0abc75e5189b",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "bc322105956c8919c3df2d386e7fbca9fd7bb1661af4740aef7facc20c39227f",
+      "path": "upstream/cursor-idle-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6c175d719440327f2135d0a5d068a0d85311124ae0f4fe4bbb02d3100880302d",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "8b89514d60b99fda4b1d0a28298c5534f32a122a6419062aa2d17c6640e23fa0",
+      "path": "upstream/cursor-idle-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "250059dd63ef1a59bd57c8489fd1bab6486c5beb14c0c9cf2cff6703c9b01bd1",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "47529cf0c0049dcd7b5fba64e641f07627faf494bfe50c042ce27cec8613d664",
+      "path": "upstream/cursor-idle-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "03af8a33faf9ddf0ca57c0a307424b65f6151db11552d8e100018b93a8eb763d",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "2933161b18ad83ea2f9c0a08a83d982bd985de5c35ba2a4e96d8a19ebc769770",
+      "path": "upstream/cursor-idle-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e6f56eb07146b5ba6218df36a963d00d054621f04ff79908e3d14426be9cb036",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "6f02582b91cf1b6643a00e05f39f1da182fc7bef6fe61eb5495ab6d77b3da4ff",
+      "path": "upstream/cursor-idle-phase-visible-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle-phase-visible-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "8ae0ef6b61c12ce11b8332197c46a376310fe8f8053ea4c9c1ed8e550fbf5c27",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "093fa5d50597a7d715aed85ea1c1f34068323a3b5e40a9975f5df576f01481d9",
+      "path": "upstream/cursor-idle-phase-visible-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "dd15be805c2e41aca77c331abb81f5acfe31ea040591a1336d9d39baf2cc26b6",
+      "png_sha256": "cd7f76cb570f3a66f07b17f0cb78a312a9a42779b6f2007a4f8cd6c796b24ee9",
+      "render_sha256": "7b4515faf5e12fc88afe86c9127d6e5c5d713e29da37b5cd590f71a54629e54f",
+      "path": "upstream/cursor-idle"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "872f844deb4d17e613cb316ac8c61ecc148f87a3684e31143ade7c5e5f543193",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "91a7e99418a0887f0bc898224b02b99022fb6d8187ef5d4bc1da4a7297cdd8f6",
+      "path": "upstream/cursor-hover-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "a8739718240f528decf56fe04d16c725185bd2ea289cdffb586c7c0a2f8b6b90",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "e4bdd91baa107a48a0cb382af63c779cd4017ed067788223c0a7e4c7d223a09d",
+      "path": "upstream/cursor-hover-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "3de461fde155f03fc32ebc2dfc54e8510bc29a55ba012ef60dc1d2c09ee85d2a",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "bbe59825097f3614018cdca46e9686c47716574af112366f4eb7d6fd4deac3ce",
+      "path": "upstream/cursor-hover-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "aad76835f55a999d95f2b982553b49dbca300dd1a85f2fef121622217c7584da",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "51485d4a7ae003be6261269451c983a0e12d4a3fa936612bd3bdcb261685e8fd",
+      "path": "upstream/cursor-hover-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e37f1e07300a65c98245ae4c9ba17a5f24a3614f4ab59260f3261fe5b734c861",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "21f0559e1824289e26b91417b3422c3a63350167499e85a93a7e2037319f80fa",
+      "path": "upstream/cursor-hover-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "977ff0750ea7c5dc970863bbb928b474e21ee2930e297e2d4ca0866f69962909",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "161aecc7016ccb13e9ca8c23210f1db3035a99dc915dab31e4047a96eb64ac68",
+      "path": "upstream/cursor-hover-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "8704fd6e8235cf72e6934d447a3b7c78a8d840a773efaa85eee38fd1e888d450",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "7a9381499c326f79bd71ec060b78dc4727d3f09f21e98bcce01f2f1168e863d4",
+      "path": "upstream/cursor-hover-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "9114949212ad45d6c952938ac9ea6c45a9c8477e043dc85911bbe97f13189bcb",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "627f09a5c8190c12ce24193311c3e80f14ca3cd26c97c86bd398e4257f23aa5e",
+      "path": "upstream/cursor-hover-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7ec4a286764c8d373cd6969cc3073418bceb82e6b3e2805c0c4aabde13b072ca",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "647768d9ad05c25e201777d2e733b5a79c5993e373af02e3c7288d4ed709afdc",
+      "path": "upstream/cursor-hover-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "5b2184d9b6722854de22f0d6e05676240d78e34002afa68f23b27ff7b81f8c85",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "bf9582b447f76819a95a09cbad3841a7037121d60622ae98abf5bf67ca947d9a",
+      "path": "upstream/cursor-hover-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "831285f864adb1e4b467cecc0d9d0f42a995a787e11814a39e09175e572ea32e",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "1876b541dce7a60873caf7e870b1f33da2c0adb79e07dbfa721aa7b40dc0fa7f",
+      "path": "upstream/cursor-hover-phase-visible-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "45e9764333e1a1dc4beca5ec646179a83acf9bba226ef36c5897a32bba363c84",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "521bb15ca106ae6865403782441ea206fa39d271b103d9123d1a80cec9249455",
+      "path": "upstream/cursor-hover-phase-hidden-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ba4df39678ad3bebd055cbc03f059e2ac4c768e1875fa0a4ed9f388db119bc4c",
+      "png_sha256": "7a60bdf78c2096506a86c76673d837a0732ae8612f992a4092741c8287e4b4f7",
+      "render_sha256": "d4907d60b70c24192fe4f5392d058f24aa9b37ed127c097c51ed94bdf751cd6b",
+      "path": "upstream/cursor-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "fbb162f284fa11f8fcb531d177ba0d951da0994e12bd37b116ffecffaa5211a9",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "eab817c710f16d744d2ccf1a66b35dd6eca755d32bf5a14d96413894f0680451",
+      "path": "upstream/cursor-restored-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bea37cfae2f90674ca77b6509493e6ef423959a0644d938a060dc2e080449ed4",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "6437121a5a56a7bef56b73d385a1f88060238ee5174300b9a0c7f2a61690f6ec",
+      "path": "upstream/cursor-restored-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f2b680fda992a2c6bc83187ea5590735cb19a8c05ba723da18a99ae482187541",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "0668f1385e4c80c887cacaea6a3d6c92e9db71b4227a3fe74eef1252a9489c29",
+      "path": "upstream/cursor-restored-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f70ac4da2ba66ceafb660104cb4b9bd297814e2347afa7ce732fd18a8e350837",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "a9bdf2393d9a61592ae2dd00bb769c02620e63013a2d133d88ccb11e12ef90d3",
+      "path": "upstream/cursor-restored-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "28402cb376caf2e3d0105809230588522c116becae677a31f11ff5adbf02326c",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "6f4d0586247a102442d6b323a10c2182b7a9ebed8131a036b85b5564185ac6b2",
+      "path": "upstream/cursor-restored-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "3d18f4e1a3a75ea809dc72f9571347788c1292d45b084c7b900c7a5a7ec8a472",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "54a6f617639bd582c9f620f0797a7cd97aa7b0e45471a61435acff233c342b69",
+      "path": "upstream/cursor-restored-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d16aae031c69f5fd4364b387b86316d39f0262f46fe650b9ca12976895516b1e",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "9393134ebe9ea7b047ff01a1f3484993b93d814d203223d4017eec03615aad0e",
+      "path": "upstream/cursor-restored-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b08655cc3b141c8dc723a4de9b57d3d8ed8561ad18e4a96636217521891befe7",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "772dc186d663a45fce0e94c2676d700b7545dde6ca42bd8d8927e6ee94d1e341",
+      "path": "upstream/cursor-restored-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "eb5003cf3e94fa5d2298f01253dc14af6755765bf8be3df986038a0c9909e66d",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "f11ec887f163453e6c5958ee942f1d519b69055aa26872c55a7f5b8b895261bc",
+      "path": "upstream/cursor-restored-phase-hidden-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "346775e1178490f6ec2a888dcc33986364001c070fcb2b1cb9dd352b4120f395",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "e806202c09261fd3ace31397914635206b20c7a02ec55062ad73ebe704af9183",
+      "path": "upstream/cursor-restored-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-hidden-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d3197b28d1b515e4353ff6d8d1b6279af5410de71394534d744af7e2e5aeb58b",
+      "png_sha256": "53ca59d123f4f7bced304b3f7ef7c27abd7a0b542cc3f0ac7330073c9d0563fc",
+      "render_sha256": "80bcc5d00ea5732f1ab889e23e5b43b2a6c862e13beaf3d46ce297584903bca8",
+      "path": "upstream/cursor-restored-phase-hidden-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "fc295893055bf0b410b6dfc40ccc17ba6960113f243caf16df5d01a6d6ebf421",
+      "png_sha256": "5262e9ee104f70e283da8d53fede8c66a6b27cb4507058a552699ea7da50cd87",
+      "render_sha256": "02423e40f90b3590945edd2c1b5c5029280800d4e6eaed4ce1198ce96660365a",
+      "path": "upstream/cursor-restored-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c366f8c607e956e6ee30f07a71b73eaf92febee33e9e176f3d89e06b7b4f4127",
+      "png_sha256": "6baa729981d705b882f70fa5f4b4132a7e2a552d3e2c8063307a141ea4b50ed0",
+      "render_sha256": "b176d699042fec8f26f72a63d4c283c04de240337b2b10b80b270472f5732380",
+      "path": "upstream/cursor-restored"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "9f3f5050ae74030a208c6de7bcec937fe0888ece63d1918cc575e5ae9004f3e0",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "a32d907d9a375916f7d051e56649a0517867df4db1d980f7f352b868b76d07a8",
+      "path": "upstream/cursor-search-idle-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e2556723a120d91ef94271de1a8cde954019fb073595670e69ac0ec629c2b279",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "9d802e15e7a4d6e25652510ea28081cc70fcfcb2496d6c09bd1bc40d221c8b49",
+      "path": "upstream/cursor-search-idle-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6abe1f789e58db4f5f2a3717b8bad8893b908bc32146af715b4dc0573e90bb12",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "f76e973a2357eb311d08e076002be96cfb3242a0fc1d519349161d991077a576",
+      "path": "upstream/cursor-search-idle-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b15c6f974c1ccf5d1cfaffb9e1f5808ea2255564a4a6d53e6add8a6639b73645",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "cb861fdf8c96c0ed973588e31e61af445b3db74cb5840a55f1ed20fd3d679414",
+      "path": "upstream/cursor-search-idle-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "9491bd2adc70fd3216f78a9c95852ce6f9fe45e367330cdd68b03c9ad5c2a051",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "1d655aee4ff9ebd873b6f3e4bc42a9721e3d211c8d6a7c795f2a208536e97211",
+      "path": "upstream/cursor-search-idle-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ced75115d8d641a4e31e4631b3b9910ab70ed3ace7160f312cfebc738df31bfc",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "30b4d3c761ef09c05077abd03070e6e57486e907d27e2711a7645079caab265e",
+      "path": "upstream/cursor-search-idle-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "eb156466679818dc182365f9108ca499b685312d5ba0e412b81d41ddf0518474",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "131c6ee65456c67df918ac9925442ab1d54160a67cd120368da07063aafdac09",
+      "path": "upstream/cursor-search-idle-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f32d48388190d363943e7d2aeb636a0a829192f7a47cf7b5eac00b7a2f5c56ae",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "880533a41e72bdeda5e8e86da6e909d502f93da3baff23228e795e91e7f76b0b",
+      "path": "upstream/cursor-search-idle-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ddc9c4f0a516a0df4ff127cee19040297f1753bcaf0f34aa704128d9dfd878ff",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "1935bd3faf27969ff71c92342b867f59b5170095490f3c07125ec50ee4c3e400",
+      "path": "upstream/cursor-search-idle-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "db328328aebad7ccab5a23573ad32693008f46a79f2f89fab699b6a214155cea",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "94e18ab2c5a0746d4ad0d99d8ff1681edea0b6472bfb297855a02f38b3eaa113",
+      "path": "upstream/cursor-search-idle-phase-visible-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6bc8d8ea239c3aac2482db9ccd33ada5d1806385ec5759ec3322ecc9f4fadde2",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "06105fca978054469ed1e04c9b6163c5ef20874f0ffc5a713c19241eec7e6c02",
+      "path": "upstream/cursor-search-idle-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle-phase-visible-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b7dd38675f821d978e301e183af401ef609e34e32239f7881367b80eb5a2951f",
+      "png_sha256": "966c602f13fedf4b7aa735c6393a62e8c16ab24cea713d6225d576b5cf6a60e6",
+      "render_sha256": "b7eb28624cc2fdf8018708ad04ef985a34e831af2f5f1c7e54f9cfbbfd97b8c3",
+      "path": "upstream/cursor-search-idle-phase-visible-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "62a546f7edbb21910d9bc306c6cd3c93dbe625277a039a4eacc4807fd24db440",
+      "png_sha256": "bae7be11b135ac7762db0e20b1359dafe387ac162579cdc1949631fa4b50f472",
+      "render_sha256": "3836efea2858e5ad5ddcd3b680d68e2859b7525021a71ab33209ebe08350d405",
+      "path": "upstream/cursor-search-idle"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "1f04f306b9eea70780af39a3eaad8d7bf3b82f34ead65d81ae7e3d2bc9332a22",
+      "png_sha256": "21cf2d0d3bd6ade1f1d0946382cfd64e7ee7ac736a5ca00cb2866848d08424bc",
+      "render_sha256": "bf9ece2f1e97c114d2f13691eca60490897649aab40e0611eb9428ce4b15f541",
+      "path": "upstream/cursor-search-hover-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "2d382348d72736f4065478292ca06c5a14026afc70702cf422caab0b148737ab",
+      "png_sha256": "2f6c731a4f5d9a610f188cf690240e9041fc28b59d3e8b51b6630b44f36c59b7",
+      "render_sha256": "4e21d7ee074c52947fb1a8bb0b731d1f1ae3e41486e688db63501b7a2eccc665",
+      "path": "upstream/cursor-search-hover-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7a3f51951eb7729f5599ea92ca073106835919fffd96fc50e1ffdbcf71c32691",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "776e4ffa46f3414379c3011a12c19d6e3b113ce1d5ab13c887991239dc62f160",
+      "path": "upstream/cursor-search-hover-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "70daf3f3b38600ec116dc1d910edd10236582663b926b55e896dcc2f5c528ff0",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "b27ed627103f358d7e9736aebd63163d52726f3da832d95a32f1b0b8ae524475",
+      "path": "upstream/cursor-search-hover-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "159dc3733e54f36dabdc5e44760c563a5c802827174dc890ae64018487c1f0c0",
+      "png_sha256": "2f6c731a4f5d9a610f188cf690240e9041fc28b59d3e8b51b6630b44f36c59b7",
+      "render_sha256": "eca8c08bb8af44f258891698ada8793ec79c610e1baff165eba4d443ec776e5c",
+      "path": "upstream/cursor-search-hover-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6b84361a1750ed9fce6acbf90b32240b179cf58f1f2ad19f058330fcb394dd93",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "b55320155bc871a8ee0e794287723bcf086b8608c91c9072d3f932a781bccede",
+      "path": "upstream/cursor-search-hover-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "800fc1103f34228f5b858ee69aa8d65218b2461fe0b77e5894f9e1166d654457",
+      "png_sha256": "2f6c731a4f5d9a610f188cf690240e9041fc28b59d3e8b51b6630b44f36c59b7",
+      "render_sha256": "f7756d4624653ea00b1edb61c68d1e79f9677c50c428eeb6825bf7d9bb748af1",
+      "path": "upstream/cursor-search-hover-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "58ea32a9a701948f41e34cd5b5957d9d67d74a144117cc0d9b25e51cd6a42091",
+      "png_sha256": "2f6c731a4f5d9a610f188cf690240e9041fc28b59d3e8b51b6630b44f36c59b7",
+      "render_sha256": "4cb3e5126b6728d4492303a12618522a0e67b66a3253766987649a09b7bbc592",
+      "path": "upstream/cursor-search-hover-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "82a2ad21fe6d50754f6cdc34a04e72f4c4d83c72419396e91e54f705e8d028ed",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "9be66bf95a32c44a3ffedcc24dd425978de729ddbf8efd67994061ec713a184b",
+      "path": "upstream/cursor-search-hover-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "50827402b10e5a5bc1ecb7b355c39f4c2f0b8d3063f4d7cdd31b32fc20d91a8f",
+      "png_sha256": "2f6c731a4f5d9a610f188cf690240e9041fc28b59d3e8b51b6630b44f36c59b7",
+      "render_sha256": "0d3d481a60feb5d41c76d3683aa05d530b353fecb40633989fb2e8646bbfa1c6",
+      "path": "upstream/cursor-search-hover-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bca7984982812eef79a22ca8133293f689d6d49a7af3a0b40c8f3f0d397f5a56",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "a68427385d83b752a0189293be12d5140d7c0b4ac8b929755495d85b550a070f",
+      "path": "upstream/cursor-search-hover-phase-hidden-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover-phase-hidden-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "253fd988ad95a832299eaa9a4d6613ea93e9c177371c9caa9b8f9fb86462b34f",
+      "png_sha256": "573485c13224e0a8fd159e00e5995757f36a26b33552ad77941446c5e955674a",
+      "render_sha256": "b5edd2039dbd0e01da055bc76d84b6b46074b2de5bb75cf0f73440af0224a7d0",
+      "path": "upstream/cursor-search-hover-phase-hidden-06"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-search-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "a7cd639398566012632271222f531d2392d8c87ddaae3aeafd6ca2bc86a21eb2",
+      "png_sha256": "e2e7d1f4c3c9539b2924f7d9e5f6fe4a26eecc852640c581194fa63779843586",
+      "render_sha256": "6383a995bc57f76f8e7b66209dc05c7cf2d80276a6bd7e3e21e3f91af769b53a",
+      "path": "upstream/cursor-search-hover"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "3de5ca1e4f3a880aac361d67897a0f253faf07cf4b424de2ebc668c5a580f087",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "6496d0c4ea3888951f2e93f7b47abdadf62490611d20c4250e49583b779b06f5",
+      "path": "upstream/cursor-composer-restored-phase-hidden-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "a8808bb0e5904a2e77e875dc33a8961336869752e589648c8c5ff3aba658db1b",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "0c3341179e2ede745e20c4125bf842cfd07c7626a39478de7ef9084fe94ce7ca",
+      "path": "upstream/cursor-composer-restored-phase-visible-00"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7adc37b05b974e1e94e3d1bb3993de6efaa21c9a7c3c5d51737fc3b16509b43b",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "50925155e8c28ef66b5fac349525eec6fef8ad6ec2ccc969b92d7aa36a980cb2",
+      "path": "upstream/cursor-composer-restored-phase-hidden-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6c364d29b987753249155eebfd9dc48ce6931691fc3a6d8ebaf510019f5bb6bf",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "e546f9e454d7b70da6ad76f08ba0e0f8c9d987a06d6d142158c1530f9c6a6e7f",
+      "path": "upstream/cursor-composer-restored-phase-visible-01"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f4131effc96305c680f8cb7698d5e269aaf269f044d5a388d8cd610cf6fe918d",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "4f9ac4ea28f61f06dde21f0e0a8e950392ff796379a96d97bd21c75bc1bae34f",
+      "path": "upstream/cursor-composer-restored-phase-visible-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "18002d74e02b1a5875be853e6da356f799cde441549a62f16146dd549c1154b1",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "e5ff9c05ae46faf3494eab202a6370c044d7fffd58dc558521a25395798b990e",
+      "path": "upstream/cursor-composer-restored-phase-hidden-02"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "a27f764875564a5efaa4eeefe7410b7feb27828ef9710d318242bfcafa1b6619",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "9a5b62b8a8ed8a654866f6d62d3606d9c6fc2338f6a2de8d669477b2ec9c16a5",
+      "path": "upstream/cursor-composer-restored-phase-visible-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "60030dfc56f3d25cd48c5710328257e4ebdb5adf12a7419e7808ee1f3f8248c0",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "f2e64dec4e9068c9511dc37fdc62abda44e50ec133ccb59a3210a6a613b5bbf6",
+      "path": "upstream/cursor-composer-restored-phase-hidden-03"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b0a397b88b014c7ff55f72e8c3c3c4f68cf26e4a0b17103d7ecc567af8c46bb8",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "1bc305635bb70ce699a857494935f1ec8935d1b6118c4364255ba8c37e3c4164",
+      "path": "upstream/cursor-composer-restored-phase-hidden-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "0e46dbd0fc968c9885d9f02613528abd61486a45cd6080cd81533e2b1f5186c0",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "ab4f14ecce2acba6f4cccaadbbe4de4088a6e7e6908d84a5f3c703ab67da2132",
+      "path": "upstream/cursor-composer-restored-phase-visible-04"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "38a0938a8d3280306e528830681ec09bb704afd3182868e7bb4b75ad28931074",
+      "png_sha256": "77be10a408291bf987ed807c7ed0875250d6856096d42f09cc984328ec8b8ddc",
+      "render_sha256": "8eb4cf198a2f2cef32c72c6e4d4d5b2dbe7ed42b8701aac245dcbb0ec459204f",
+      "path": "upstream/cursor-composer-restored-phase-hidden-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "2e73fc06e95156396ae7950e44df00c19100da25fcc5e8f10dfee09783ae27cf",
+      "png_sha256": "157ebb377bd4da32225a0b28a94e26575a3a431e5fc08365c7af72c244736855",
+      "render_sha256": "22a5130f33591358fe6dcca0eb698af030b305496922b119a5816726ba9dca08",
+      "path": "upstream/cursor-composer-restored-phase-visible-05"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "cursor-composer-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "20d63d54301187489c53921019b035331112c696a61ce8a3d29e2577b96dd1d4",
+      "png_sha256": "8838ff4062d880d83b2a37f689d92a86180705c263df04372fc96f9b7e20e9d9",
+      "render_sha256": "9bd70ab96675ec3397807058c85c7c3d7fd120e77a80412a6377f1a257801f38",
+      "path": "upstream/cursor-composer-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "2d5b2f50e80a7526450a631c3b3abe9c1e78f76ac83d19ae1e67a3a36e820d46",
+      "png_sha256": "53c116afd76bb99369220288c57b7a355efec5120630b626273289f197333dda",
+      "render_sha256": "13b820bd18789fa5db13fc3ad5ea022d226b7b9e86452fd410dc4752bf9c151c",
+      "path": "oc/tool-preview-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "07243dbf70e33165e1958a3c94beadb0f4181c29a7af1105032289930dfec65e",
+      "png_sha256": "c3351059b3fde7caac44caaf0ef178c473eb92d454e95346267f73ee0282cc68",
+      "render_sha256": "ec74bc7e86fc2f587d5a00459981a99c4c2a4acfdabebcd3d0392973db3fd0a2",
+      "path": "oc/tool-preview-completed"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "77b7aecb15888fc9f96499888a0412163776dc20ce5c88904e18e0c96e52fb92",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "feffc5f328aa424195975b505c74e48af28221c8588ace3c72914f56ebd130e4",
+      "path": "oc/cursor-idle-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c60b795eb58a4538b0cebab17d578b357631af88c82486e0792292488763c185",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "fccec1aafe00fa37a96edd8a2212b73a69b494a57bacf3762f2495d72791beb9",
+      "path": "oc/cursor-idle-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "4d625d4d882eeca3e2f4b9be20c37a315922ab03d17831713092aff19a73affb",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "b222977ba8b68bd4592c4227915af4f390a187b8aaa80b6c679f0a806f48b928",
+      "path": "oc/cursor-idle-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e81f1e77664148998b115cfd104f1dc7f470bee376973f9c69074616cc06b84f",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "b812ef77620626f50aa4c7932bf728fe0f21a9015c4738ce81861728b88da6cc",
+      "path": "oc/cursor-idle-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "fdd95ae9b83b55e2ba732689045816123e405f8d5af1bcf14d660f63195e1d6c",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "00496953ef7ba0924744021384b311c676600649141d58c6a18c19bd1345b551",
+      "path": "oc/cursor-idle-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ae130ece9bd3b600f5ad0a8a8fc98b883c28bba424bbb9383120a9d796ac9515",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "e4428028a18310051e4aa440d72f3ec2886e784ff40bca4b3bbc5eeeb6c7cd67",
+      "path": "oc/cursor-idle-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d7a2da952d71a9c04c26721140b8bba2ac8ea85ba6f20726bbf620d2a29c4c14",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "880e9fd7f7639815b8bc4777e33b6e677b280396efec681afd935b1136d7b6dd",
+      "path": "oc/cursor-idle-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e7c3c1718ab4781cb79a67f435aeaaa619c43e209916f8ac947ac464a5dcb177",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "c3f23f7e474bfb51399db140ac7217a602b142f4e4b1e6e43a9a62502ac1f969",
+      "path": "oc/cursor-idle-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b7cdf522962008833c9305fd69c066738c2f7dd877063842d0693d4a0d3f1432",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "7383ff78f74365fb6500517a1a1a15404816bcc3290e32bbee437a2e80b6d5e7",
+      "path": "oc/cursor-idle-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ee04ae28247a202b220ffb0a77bcfc8baf49388b6041d73cc4c3b17dbce17320",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "e236ee4278ccdde8abe372cda52bc224b21c90f67672f49357aedfceb9ff1421",
+      "path": "oc/cursor-idle-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "45a66c1454f55fb0f005315618f3e26236a36182b5f3f79d2fd75e2f89d679f9",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "c69ec4c9a366f0b3c9d647872f0c4bb0f8a1142004f5d760a023762e72bd922e",
+      "path": "oc/cursor-idle-phase-visible-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "4ae3771cb7b5fe2b73de8c8fff2786475786db624c7ba022d90812f6a983f002",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "a2f6ba023b37cb5ac8456f9ef906ce59eb0d4a78882043729fbf381b9ad09f37",
+      "path": "oc/cursor-idle-phase-hidden-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "74c73cef1c5c460b1fea3381e8136a557c0f0fb1e99b7ed93de66e65d2e87f36",
+      "png_sha256": "5dd5bb001d6416b1a5bde02bcdca164f35da7e53d65b0d3270613a5e27a77989",
+      "render_sha256": "6492eeaaf1c954872fdbb24708dbe1c0630ea5c98ebe39469ba1b21af7d5b693",
+      "path": "oc/cursor-idle"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ed852c56654e973deaffc987d0ffbea0a1446718e03bd6e34eb597f60e883ab9",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "cc3f6fe45ef42c2f7b18da78e487e3d1275a674fc67722505d01a0387356221a",
+      "path": "oc/cursor-hover-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7fca576a0fc25102eaef07bd0d9d450adea4e6fc39db2f7d5d61f8d094cccb78",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "6bfc887e19eb28a3fd382fa04a5344825d07f70293becbfb83ceb3dc3a67b132",
+      "path": "oc/cursor-hover-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bae8e0627ca614937b88498ebcea65f5218a2c5a7279ef0843c07b46a0051266",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "1d82414fbbc84d90050b4f714d354de19034f0c0523b4a0cdadbd5b84d587e13",
+      "path": "oc/cursor-hover-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c260561a564d8e5958eed08a99cf1fbd84b3551ac1e88663aa109de33d476968",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "b7cb8513fb415b162f4736223a430a874fca2ffe897fc4fd27020b47dcecec3a",
+      "path": "oc/cursor-hover-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6f4cfd7aa04b20e8c8d4ae775f4633eec8d4e584a30e56652459d1ee8fe210d4",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "ba364995fef05dbad5d4d1306b41196246e698a7cace29fbd2c339ffa3cd9914",
+      "path": "oc/cursor-hover-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "4f741072b57e87f1395d0144891914bc718260ac3b55dc131a4975cbe322d430",
+      "png_sha256": "d8403e47240545583f0e5f2cabe734b2f89288d9d3d75d06aeb6080feeb4d9b1",
+      "render_sha256": "5b16113d522714735a12e1cfbaf3d3759681396f5c9d88521d52692484412e60",
+      "path": "oc/cursor-hover-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c33cab9b88975d703eb74882f23067517a0c241b748a762dc10d435e0d67b131",
+      "png_sha256": "79711bc3589fa13916aac4ed6c02f89d3a913e90259fcbc9b0d3e872df092ffb",
+      "render_sha256": "fc4545859ccba21b5dd7f09e940036973c9419ef2db95f95deca94f6cd9a09c7",
+      "path": "oc/cursor-hover-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bd41405671610088ba71089e99fc1cf5f56883b2e26bf7697c3bf4892d21e1f6",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "e026d1d60ed5fcd95d3471f3a116f704f1043483e57c1ff773c597de982c6d35",
+      "path": "oc/cursor-hover-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "3ea39a9b1495b85e7e784454faf1eecc091614fad321a3058f202afe3bfbe2f2",
+      "png_sha256": "56ee5034add2133e8ae36b9cd73cc703e6dd9d4a0babc39a6216d4bcaeca3843",
+      "render_sha256": "6355ce41892c4dd7e834e871795b3e47300489b7b8df0cd224b80fdadd2da66e",
+      "path": "oc/cursor-hover-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d3dc1f13f0cd2e6af8fa211b27ce8b1c0a51ebbae52d8550feeec6d006658f7c",
+      "png_sha256": "013e00316279cf156cfd24855858f055a9e92be40519c00a5a6934c989dcbfd4",
+      "render_sha256": "4debb48e71e3957ff42ea50dd7688e142240e6ebc9cf241256d829e4b416d2a9",
+      "path": "oc/cursor-hover-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "b5ba67a6f8babec16ccb577a55369f3327fbb0ba9662d9135f986d65d03b2210",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "839591ed74dad12406e3754057cae1269f161be139c0d45ca137f86369842320",
+      "path": "oc/cursor-hover-phase-hidden-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "26cb866c2e3c35ae347fd2fe079777f23d6e575ed6858a6fa89c1ba7018a0b62",
+      "png_sha256": "79711bc3589fa13916aac4ed6c02f89d3a913e90259fcbc9b0d3e872df092ffb",
+      "render_sha256": "81bd747e8c00b47553e987f270b16e51943fd0ed77732fbbe674364346e0b2f9",
+      "path": "oc/cursor-hover-phase-visible-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e735e2b9e75434bd0142dfbdddc80da588e1f69a8678b8749b9fda5923d32c73",
+      "png_sha256": "a2f37bf044832612ef2f30310101b7188764281421329c85e1239b0c3080b999",
+      "render_sha256": "a8f50593740162acca81b8409547db6dee77d2ceb9b1a4e70782e419e4680094",
+      "path": "oc/cursor-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "18dce0c85d31ae8dcb05be05a2ad591ec84736c391cbf788ae89862e265ceba1",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "e4f2a628317526f3b293fb7be155624f07926ae7a79d4d7856bf6dce52dc2678",
+      "path": "oc/cursor-restored-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d4e1271162136d6a1ba2155889d9a5df1fa1656f1e391a981788b48b1208ab8b",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "6e56db56156afeaadfaf456d24c9d058a0ac459a929a2b866b755c7046315dc1",
+      "path": "oc/cursor-restored-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ae29cec81d0f80b78db109524687254f682a4f4dca446fc42f39be38b145ef14",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "9aa9df0442cbce4747c75507de0d357a19162640bdcd7a5740ec9140211586a6",
+      "path": "oc/cursor-restored-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "1a91580aec72e52c4d5b6380691963b6e386e75a75e77823a3af9a3b835cfacc",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "f40376b533e485a6a3400e9d6a7558d0d9460f5a22d19f37d0e41806cc326a67",
+      "path": "oc/cursor-restored-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c8401ed2a71038a35b680e3b12b3d39bf6c7d75f4d4d8c9e23de2f6a16078b26",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "90ec35bae774f9708cf7e054c9184d2ebfcb13f37d0b0f6c4ec009a61ac9a5e3",
+      "path": "oc/cursor-restored-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6d8ff6097092b45491b692e09613f79cc93ac0374c6adb46687bec4c99a4e0da",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "fe8c9a5ef54ee9c29e9cfa9c811f7492c1943997a9dea6d3f4df8f17d9709d7f",
+      "path": "oc/cursor-restored-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "32bc72b3862d14786c1bfe70878ef16646699ad27ae56e0756e1a430e2b579ef",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "46bcb1629773bf790a787e143df4683f0d4e1eaf52f18fe71b7dd604793d6b83",
+      "path": "oc/cursor-restored-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "25293467e8fbb5fab11fa1f34dca44397ad38b390fbe0b452847676d5eb356ce",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "9fc3552356f1008f23d5ed6f637a9413606a66311e8c09e82d149715282f589d",
+      "path": "oc/cursor-restored-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "74ad0f94ac135c3b9faa8f5328bb40c30b7debba2e3248760301ce134d0d96c9",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "ff222783f454f15b5317185c689d027d9a0eb024afa718f44024338d09319101",
+      "path": "oc/cursor-restored-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "01def429286966030568e2019cc1669d9942af1b3cc4dec9a3da172418b26858",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "8b874581b3a5a0a28c75da5238b7057dcad193d794e1a9a38ef881eab43dbba4",
+      "path": "oc/cursor-restored-phase-hidden-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "91f04c42d8272e8994135c83d63855c61de309687af1236cbdf9c9d6b3f6cb75",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "74c4fda63b113f63fa0e9d718c84089c80b499753a8fafddc2d6bd8e5f090f76",
+      "path": "oc/cursor-restored-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored-phase-hidden-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f85d3765b71724637c7a9b0bcd9ad3742880d2cd4167555cde4978c0ded12901",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "45136d2336d8c30b6f94751481f730cf631e6b8967e31f0ca9f766b807fad543",
+      "path": "oc/cursor-restored-phase-hidden-06"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "168a4d06ad8129260e48d6ed3cdae18e64d072a3e6e29510cb5052bf1eb7a146",
+      "png_sha256": "4fe31cfba39e8cf8ebf0435ae8d27c074e36ea6cb4fafecdca335738417eb214",
+      "render_sha256": "79a0d0a0190be333062022a2519f9a76b00168c2dbf10f6967618a4c6c15e49b",
+      "path": "oc/cursor-restored"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "d24f8398e14b3664804dc9417be6e8469d9545c43cf1b56104b50938a42d85c1",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "f0322779fcd5ca8449ce95e0dbdfc11e8a1282e2709b4acd50583603b9a5cf94",
+      "path": "oc/cursor-search-idle-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "c27ee418f461ec9d7ebca2e90786d8e9228b86c46805beb0910235e5c27a05e9",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "2189726a0f91d46a2a0a60dc01f31f141116bb250aed389dee9672fe879ed754",
+      "path": "oc/cursor-search-idle-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "cfd456181dc686ec4e9b88de1a13ca2edec8512a7ec85e849d4565c3b5a9aea7",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "86affa0d7113f94bc253ea3a6b1101fd9ad41e979c70f296365e64305b7e7747",
+      "path": "oc/cursor-search-idle-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "aaa407278d7dd34e697e0925f542443ddfeee6cc6fc7bcf94c3fa16ca9b1fb00",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "da8dad89df09cd838fad6f8adecc9013f7ef5131b1e6398cda04e77a4d0437c9",
+      "path": "oc/cursor-search-idle-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "4fbe978ad13c88680d4eccc0e152eb7579881025104f417eadeaed6a41e3d700",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "a05c5479f3e791a5ce7ccbbe4ccb6186618fe974362eafdcd1622f374cd82183",
+      "path": "oc/cursor-search-idle-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "23ece9a0367ce26167fd6edd69b76c46d6bfa28d148571bcfe5e74269ed4c786",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "3b1b91ca4e0846f56da7125993d00c8bd8b9f0619a4fedd04ecac76e9f1b2ca9",
+      "path": "oc/cursor-search-idle-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "414b0c5949bd2e1c11d56e483f6990b2f81b27633ea2960820183201073699f8",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "65dfd63976d1e58587f40a8d9ea998e881603ed9b8913c152ee611560df231c5",
+      "path": "oc/cursor-search-idle-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "3c674c0c7279b3ec84ca2d648f6ab5d00dd1677e88edfd55fbcb5b12b7ce6d41",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "4835376064ddf48a00cc62ae743086f2d4e2f6c18f6327c16af4e2ff2798f072",
+      "path": "oc/cursor-search-idle-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7e6e7fcdd01736e6a024bf028b210a8a70761b281f7f4875c0b357c11e538b1e",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "19eaf93df7713c690ff3c18e9c749765fdb15d54d88397ef4f5dcdb13f596f9b",
+      "path": "oc/cursor-search-idle-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "98cb0bcfcdb45337a3f341a03d151e44e47e43579e6c82a09591f4178fdd6c53",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "47caccc845f98c5baea31e95dc99f7a542fc31e7df025b995db352561f9a71d8",
+      "path": "oc/cursor-search-idle-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "37d63fb3ef885505a181361649a46fa4a74efa514ce90b6fd12f26c1ab8fa06e",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "df6b0e5fdcdfd0bf1fc172f7b356801284340c91d1950366eb8cc33fbb732e99",
+      "path": "oc/cursor-search-idle-phase-visible-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle-phase-visible-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "9fd5e36457f3631cca8985826d5acfc564d7838603a92e8eed1c87136f85275f",
+      "png_sha256": "a77f3421398292179082ab9d54b91b66213104c0fe9834fe2b5b6201776a8536",
+      "render_sha256": "7ec2bcf865faa75414ce55cf0b5cb95dbec3f6d3d49d26f7f113ddeb10d0a0ac",
+      "path": "oc/cursor-search-idle-phase-visible-06"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-idle",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "be7f2a9d8a5c0ef6a37867e7371de352d25d9987e32e5ec2b484d0f33d223a45",
+      "png_sha256": "11e60982b22dc9f96f6ec6fd49093c98b7d7f95bf335264e3849edb9b279df68",
+      "render_sha256": "34396519670a99347cc3abdce9281cdce7beaa744c13f4c581a056f960b508c8",
+      "path": "oc/cursor-search-idle"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "fa7f3df82e80e5fe6a06b565dbac8df1f22fedefc8ea52230f6dcc5b2bc07f6a",
+      "png_sha256": "8485ac958e65a32868c7efbe865fa7473c022df3f5ba86a4cde2237aca7371f9",
+      "render_sha256": "e3ed54304ebcd917d67de29576aa0f84f64b3fa31acfd9642c015c65eb0c7821",
+      "path": "oc/cursor-search-hover-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "e77ab5805e8158bfef396774cd0e6832c0ba1f8ace7b3b2fe83ad82f6371bc70",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "685ff4474e562f60499165282780e05d5a5f598ce19d0fae413ba5ad11d59c7d",
+      "path": "oc/cursor-search-hover-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7940be9545c75e6000940754a87d5146ff9d02b3a8eeb38f9e831caf9a6052cf",
+      "png_sha256": "905adfcdbe4df206864b683c128c16a2469c1ce22cf3bbc3e3c4f8e8ec92ad19",
+      "render_sha256": "7646cffaece17774e3063c6f07aa1e1e109ecec29d0bf1d4b4ab8558d530c827",
+      "path": "oc/cursor-search-hover-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "6efd8221b0bfac18021bf97630641f475ef9363071f667fe9275a785b47f7008",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "1bb4870cab8e4a71f8442ff729452411c9599e1eb2ba86e4af49c84b009c2f84",
+      "path": "oc/cursor-search-hover-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "dd2970a3eecf725828d1d59eedd297117c5808e343e7b789c23824190d7a0e67",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "815ebfdd4b9acfa6767bfdb74c92ac19fed543569f92e299d07c749fc7342579",
+      "path": "oc/cursor-search-hover-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "9ae99704a44af7e71ab46f433b4639c5a5ca38de36321eb686ad77af6a82c4e8",
+      "png_sha256": "905adfcdbe4df206864b683c128c16a2469c1ce22cf3bbc3e3c4f8e8ec92ad19",
+      "render_sha256": "5aa5a83f4d7a27f4ff1bb44119a3251df0b7b6f7abdc2472c65edeb79cc598b1",
+      "path": "oc/cursor-search-hover-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "bb0a2d69588c76e338fc2d1dee362c9d65677a63fc29c4b2bef3dbf12c752480",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "c8e056335c4d665d1aacef059a29be2fd8e2ac50a8fe56977cf2413584eb1562",
+      "path": "oc/cursor-search-hover-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f82825a23ae83c411c1e509d61b8ddf0de33d15b790959cbc6039983d91f5393",
+      "png_sha256": "905adfcdbe4df206864b683c128c16a2469c1ce22cf3bbc3e3c4f8e8ec92ad19",
+      "render_sha256": "a44cef41c8c2f5ca8cac7c3c0e1d1b688a36960382eb424c3469f52080a9fe16",
+      "path": "oc/cursor-search-hover-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "402fc73b255504179481cb207b3ce39e4dd8ec03c8f43e649ce6e4c0be4b4a0e",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "f778ef324fe766d5ef48289d01ca817b1ce7751d796efe0c98016367d41d4a17",
+      "path": "oc/cursor-search-hover-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "864d6185528da5b4b0001548416acbd8eab599f9af3ce8e055a34ef3c7b4a8e5",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "e1631cb9c857ebff03b9d504c21e7d8b880ad9e4899177ac95a9246bd62350df",
+      "path": "oc/cursor-search-hover-phase-visible-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f6bb8e82481fec78a1c1d82dc51351f3713ac11f47cd2242b34afb2505dd4dd9",
+      "png_sha256": "905adfcdbe4df206864b683c128c16a2469c1ce22cf3bbc3e3c4f8e8ec92ad19",
+      "render_sha256": "be796b55fa6366f614bec33e9efb371860aad7caab4f6ca2474826c84b19f232",
+      "path": "oc/cursor-search-hover-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover-phase-visible-06",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f1acb01d2dc6485aa2a245e99c8ebc6f08680297f568c467ec883c3b05986bef",
+      "png_sha256": "b2685eba6ac2f3331b9bda533ff5ab6b2b8d08c60130a22fa678f65dd1b2284a",
+      "render_sha256": "3a5804293f6a16cf5c2a0f154e728f6665fb3cc5c96e0df5993613b585d671ee",
+      "path": "oc/cursor-search-hover-phase-visible-06"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-search-hover",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f2ec35575e9d00b0b1c119fb4931cba95d0bfd52dbecbda4a17c629cd1aafc2e",
+      "png_sha256": "40b58bf32895999a3d83be334eebb9d9995e9784067403b5d0333b0fe3ca7d9a",
+      "render_sha256": "d5ae236d42c6503cb1ee32adc8b719ef5531e0ca5b50a8ca170dfc31e6aea91b",
+      "path": "oc/cursor-search-hover"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "39d530ba8313186820085e06f6b9bd81707358782ba342c937d7cef9fb518cf8",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "20a297b0f1eb30bc78284f37af90c344e942140c88634e10f0195ef66fa1341f",
+      "path": "oc/cursor-composer-restored-phase-hidden-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-00",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "88a5387074c60e9df8298834deee5596e520fe2e08aff80c1197d75ab8eb527a",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "33ef715ce85e1fef1e10046d8d53448bc63d75ed86a56cca7fa6e6fcb7e3b612",
+      "path": "oc/cursor-composer-restored-phase-visible-00"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "7b4873afacbe8b85045aacfe286407d430680329645b2e760232d5ce2abb1b50",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "a8ad840e236fec7f1a0465c8de9da34e2bd40fb140b1f5def043100753a84f81",
+      "path": "oc/cursor-composer-restored-phase-hidden-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-01",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "575ff42c1ffdba24c369614da43aa42796e014af76fb2b495979b4774f40b835",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "307a41180a2b45cb5522827b0a6cc643e5e7a016254837d5c4feaef965513a79",
+      "path": "oc/cursor-composer-restored-phase-visible-01"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "862d03dae0ded1a3e0eb673a1f9ffcd2a4360771cffad3e8ca97b56c5093b63e",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "0d1dd39e2318fc0e75c72437e4b75d9ad64fc1ccab1d9e4ad9a1dc4009fcea18",
+      "path": "oc/cursor-composer-restored-phase-hidden-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "ccdeff03b79b5ea5126279fe96141568d31c8b0c36224619ae436a39bf981b02",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "785d2b02c2b28f88ead998a0092813a98be6bf485b80b5992385883cc92b1705",
+      "path": "oc/cursor-composer-restored-phase-hidden-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-02",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "95b91976e526c392bbb363978e068fef650736a44348b5d2a4cfff2a8dc0a47b",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "ea83968ace159c18ef7236a0da76dae7c54638fe48d479040ef33d35793da1f0",
+      "path": "oc/cursor-composer-restored-phase-visible-02"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "62238ae9d40080e4b604feb5b944e24e1cc83021c880686670cb03bd924c6320",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "db68e2a680594ccbf247f26d98df6ce3edf0bfd038e30bd5c67ae107f92e75a8",
+      "path": "oc/cursor-composer-restored-phase-hidden-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-03",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "5daadc1f065bea17350d46816abf405cec55c66f0cbb4a2722fb9bd8aa242961",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "c27a8eab3e94b4c86bc8807654dba32de177b5c0127fac120d41b74ef1c76759",
+      "path": "oc/cursor-composer-restored-phase-visible-03"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-04",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "053187702d5eddb4df7575f9987e1be158e7bcb9f0e096fb087523951ad9d59e",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "b08a0ecbf2c7fbff33f623d19d9f9d2764213ab1ae94c90a75ff5f259e72b77b",
+      "path": "oc/cursor-composer-restored-phase-visible-04"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-hidden-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "2a04860e3e98909e45be4c9f48c0963958a732ccc2f178f1496feb6c3a4d3cb5",
+      "png_sha256": "37d231a552c609f32e6a312fd1a7dca046e4038a84cd1a54bc2e17f9034df2e5",
+      "render_sha256": "0a75e2fe0a506dd26845dc4638ebf460ba6f4ae55cac3b967f35e3871aabed81",
+      "path": "oc/cursor-composer-restored-phase-hidden-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored-phase-visible-05",
+      "status": "CAPTURED_TEMPORAL_SEQUENCE",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "f5ed72d156f4a9beb7a35e1d011dfb2f24ab6b6305cfe846a3cb5ded806c6e5a",
+      "png_sha256": "f8b59b6b1717c9f400d36cab671fa0218b38c5228778e7609e99a311f1cca40a",
+      "render_sha256": "8877191cfeeddbadfad5323ee8b7a5db7c415df3bade36123436c474d4261bdd",
+      "path": "oc/cursor-composer-restored-phase-visible-05"
+    },
+    {
+      "origin": "oc",
+      "scenario": "cursor-composer-restored",
+      "status": "CAPTURED_CURSOR_DIAGNOSTIC",
+      "environment_id": "cdcaea7cb7a9f2c45ba646e58b9661c298825636047905bda7915cd371a9dd9d",
+      "cells_sha256": "eab264e4144cff22468eae012498ff85c85e0a86db89e0826831d0985fe3802f",
+      "png_sha256": "a2f37bf044832612ef2f30310101b7188764281421329c85e1239b0c3080b999",
+      "render_sha256": "b9bc7c83d1481c356a6c3a30af81c07afe24785ee3cce9e4f6c5a85178b93cbb",
+      "path": "oc/cursor-composer-restored"
+    }
+  ],
+  "cursor_renderer": {
+    "name": "@xterm/addon-webgl",
+    "version": "0.19.0",
+    "bundle_sha256": "b85f8d4b3e9756bebb757e3fe47134d70f03ea3d6b187624426d2e2b65dec06c",
+    "package_lock_sha256": "36993eb1fab63c766b44aa384ee3dd150b1355c309d0346ae051f6171b5e7ed7"
+  },
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": true,
+    "cursor_temporal": "blink",
+    "cursor_renderer": "webgl",
+    "cursor_case": "expanded",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=true"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "DIAGNOSTIC_CURSOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_11adcd95a001Jt3sjHLzZiiuW8": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_11adcd90a001NyxoMwYuiuEkWs": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "cursor_temporal": {
+        "origin": "upstream",
+        "mode": "blink",
+        "card_case": "expanded",
+        "geometry": {
+          "columns": 120,
+          "rows": 40
+        },
+        "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+        "states": [
+          {
+            "state": "idle",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 322,
+            "commands": 0,
+            "cycles": 3,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1177.2000000476837,
+              1191.9000000953674,
+              1196.5
+            ],
+            "max_sample_gap_ms": 73.59999990463257,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "hover",
+            "moves": 277,
+            "temporal_full_frames": 12,
+            "samples": 186,
+            "commands": 1656,
+            "cycles": 3,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1225.3999998569489,
+              1201.2000000476837,
+              1214.2000000476837
+            ],
+            "max_sample_gap_ms": 95.10000014305115,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "restored",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 322,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1192.1000001430511,
+              1229.8999998569489,
+              1158,
+              1238.2000000476837
+            ],
+            "max_sample_gap_ms": 81.19999980926514,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-idle",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 319,
+            "commands": 0,
+            "cycles": 3,
+            "phantom_command_states": 0,
+            "draft_visible": false,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1219.7999999523163,
+              1173.0999999046326,
+              1218.5
+            ],
+            "max_sample_gap_ms": 68.5,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-hover",
+            "moves": 275,
+            "temporal_full_frames": 12,
+            "samples": 322,
+            "commands": 25,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": false,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1204.1000001430511,
+              1199,
+              1175.1999998092651,
+              1230.7000000476837
+            ],
+            "max_sample_gap_ms": 66.5,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "composer-restored",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 325,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1192.6999998092651,
+              1210.5,
+              1185.7000000476837,
+              1206
+            ],
+            "max_sample_gap_ms": 60.40000009536743,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          }
+        ],
+        "no_tool_replay": true
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "cursor_completed",
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "artifacts": {
+          "data/opencode/tool-output/tool_11adcd95a001Jt3sjHLzZiiuW8": {
+            "bytes": 5414,
+            "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+          },
+          "data/opencode/tool-output/tool_11adcd90a001NyxoMwYuiuEkWs": {
+            "bytes": 5292,
+            "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "DIAGNOSTIC_CURSOR_ONLY",
+      "stages": [
+        {
+          "stage": "home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "completed",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 4,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+        "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+        "Compact native viewing/capture status has no promised donor pixel equivalent."
+      ],
+      "before": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "completed",
+        "observations": [
+          {
+            "tables": [
+              "blobs",
+              "child_jobs",
+              "compression_blocks",
+              "compression_identity",
+              "compression_members",
+              "conversation_contexts",
+              "conversation_exclusions",
+              "conversation_objects",
+              "conversation_points",
+              "conversation_redo",
+              "conversation_revision",
+              "conversation_state",
+              "conversation_tracked",
+              "conversation_versions",
+              "credential_accounts",
+              "dcp_accounting",
+              "dcp_coverage",
+              "dcp_run_identity",
+              "dcp_run_views",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "events",
+              "messages",
+              "patch_effects",
+              "permission_grants",
+              "prefs",
+              "prune_marks",
+              "schema_migrations",
+              "session_checkpoint",
+              "session_compactions",
+              "session_moves",
+              "session_usage_anchor",
+              "sessions",
+              "shell_jobs",
+              "sqlite_sequence",
+              "terminal_selection",
+              "terminals",
+              "tool_operations",
+              "tool_output_resources",
+              "turn_acceptances",
+              "turn_raw_segments",
+              "turns"
+            ],
+            "data": {
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_0",
+                  "call_occurrence": 0,
+                  "original_input_index": 1
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_1",
+                  "call_occurrence": 0,
+                  "original_input_index": 3
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "shell",
+                  "state": "completed",
+                  "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+                  "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_2",
+                  "call_occurrence": 0,
+                  "original_input_index": 5
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r4-c0-call_vis16_3",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "failed",
+                  "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "error: mcp tool reported failure",
+                  "provider_call_id": "call_vis16_3",
+                  "call_occurrence": 0,
+                  "original_input_index": 7
+                }
+              ],
+              "tool_output_resources": [
+                {
+                  "id": "tool_1791452143-1743306-0",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-0.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-0\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 5350987,
+                  "extent": 5769,
+                  "state": "Complete",
+                  "completed": 1791452143
+                },
+                {
+                  "id": "tool_1791452143-1743306-1",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-1.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-1\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 5350988,
+                  "extent": 5891,
+                  "state": "Complete",
+                  "completed": 1791452143
+                },
+                {
+                  "id": "tool_1791452143-1743306-2",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-2.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-2\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                  "dev": 65027,
+                  "ino": 5350989,
+                  "extent": 1615,
+                  "state": "Complete",
+                  "completed": 1791452144
+                }
+              ],
+              "presentation": [
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "presentation": {
+                    "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                    "body_bytes": 5769,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5769,
+                      "retained_bytes": 5769,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "presentation": {
+                    "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                    "body_bytes": 5891,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5891,
+                      "retained_bytes": 5891,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "presentation": {
+                    "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                    "body_bytes": 1606,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 1615,
+                      "retained_bytes": 1615,
+                      "admitted_lines": 84,
+                      "retained_lines": 84
+                    },
+                    "shell": {
+                      "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                      "stderr": "",
+                      "stdout_limited": true,
+                      "stderr_limited": false,
+                      "exit": 0,
+                      "signal": null,
+                      "timed_out": false,
+                      "cancelled": false
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r4-c0-call_vis16_3",
+                  "presentation": {
+                    "body": "error: mcp tool reported failure",
+                    "body_bytes": 32,
+                    "body_limited": false,
+                    "generated_guidance": false,
+                    "producer_limited": null
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "artifacts": {
+          "data/oc/tool-output/tool_1791452143-1743306-1.txt": {
+            "bytes": 5891,
+            "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+          },
+          "data/oc/tool-output/tool_1791452143-1743306-0.txt": {
+            "bytes": 5769,
+            "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+          },
+          "data/oc/tool-output/tool_1791452143-1743306-2.txt": {
+            "bytes": 1615,
+            "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      },
+      "owner_facts": {
+        "bounded": true,
+        "separate_body_guidance": true,
+        "presentation_count": 4,
+        "artifacts": 3
+      },
+      "cursor_temporal": {
+        "origin": "oc",
+        "mode": "blink",
+        "card_case": "expanded",
+        "geometry": {
+          "columns": 120,
+          "rows": 40
+        },
+        "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+        "states": [
+          {
+            "state": "idle",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 307,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1246.5,
+              1144.2999999523163,
+              1188,
+              1222.0999999046326
+            ],
+            "max_sample_gap_ms": 112.20000004768372,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "hover",
+            "moves": 275,
+            "temporal_full_frames": 12,
+            "samples": 129,
+            "commands": 1853,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1202.7999999523163,
+              1157.5,
+              1270.0999999046326,
+              1197.1000001430511
+            ],
+            "max_sample_gap_ms": 137.79999995231628,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "restored",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 318,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1186.7999999523163,
+              1182,
+              1204.0999999046326,
+              1197.6000001430511
+            ],
+            "max_sample_gap_ms": 84.5,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-idle",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 306,
+            "commands": 0,
+            "cycles": 3,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1166.0999999046326,
+              1229,
+              1188.2999999523163
+            ],
+            "max_sample_gap_ms": 217.29999995231628,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "search-hover",
+            "moves": 275,
+            "temporal_full_frames": 12,
+            "samples": 130,
+            "commands": 1117,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1163.5,
+              1183.8000001907349,
+              1232.5,
+              1163.5
+            ],
+            "max_sample_gap_ms": 114.10000014305115,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          },
+          {
+            "state": "composer-restored",
+            "moves": 0,
+            "temporal_full_frames": 12,
+            "samples": 309,
+            "commands": 0,
+            "cycles": 4,
+            "phantom_command_states": 0,
+            "draft_visible": true,
+            "final_caret_preserved": true,
+            "cycle_periods_ms": [
+              1227.3000001907349,
+              1155,
+              1193.5,
+              1239.5
+            ],
+            "max_sample_gap_ms": 112.40000009536743,
+            "raster_blink_observed": true,
+            "adequate_raster_sampling": true,
+            "cadence_preserved": true
+          }
+        ],
+        "no_tool_replay": true
+      },
+      "after": {
+        "kind": "tool_preview_snapshot",
+        "request_id": "cursor_completed",
+        "observations": [
+          {
+            "tables": [
+              "blobs",
+              "child_jobs",
+              "compression_blocks",
+              "compression_identity",
+              "compression_members",
+              "conversation_contexts",
+              "conversation_exclusions",
+              "conversation_objects",
+              "conversation_points",
+              "conversation_redo",
+              "conversation_revision",
+              "conversation_state",
+              "conversation_tracked",
+              "conversation_versions",
+              "credential_accounts",
+              "dcp_accounting",
+              "dcp_coverage",
+              "dcp_run_identity",
+              "dcp_run_views",
+              "dcp_tool_projection",
+              "dcp_tool_projection_v2",
+              "events",
+              "messages",
+              "patch_effects",
+              "permission_grants",
+              "prefs",
+              "prune_marks",
+              "schema_migrations",
+              "session_checkpoint",
+              "session_compactions",
+              "session_moves",
+              "session_usage_anchor",
+              "sessions",
+              "shell_jobs",
+              "sqlite_sequence",
+              "terminal_selection",
+              "terminals",
+              "tool_operations",
+              "tool_output_resources",
+              "turn_acceptances",
+              "turn_raw_segments",
+              "turns"
+            ],
+            "data": {
+              "tool_operations": [
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":1,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5769 bytes/125 lines; capture Complete 5769 bytes/125 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_0",
+                  "call_occurrence": 0,
+                  "original_input_index": 1
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "completed",
+                  "input": "{\"index\":2,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n\n[tool output: head preview; UTF-8 clipped when needed; admitted 5891 bytes/125 lines; capture Complete 5891 bytes/125 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_1",
+                  "call_occurrence": 0,
+                  "original_input_index": 3
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "shell",
+                  "state": "completed",
+                  "input": "{\"command\":\"printf 'VIS-SHELL-LINE-%03d\\\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\\\n[output preview truncated; full result retained]\\\\n[truncated]\\\\n'; printf 'VIS-SHELL-EFFECT\\\\n' >> tool-preview-oc.effects\"}",
+                  "output": "exit 0\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[tool output: tail preview; UTF-8 clipped when needed; admitted 1615 bytes/84 lines; capture Complete 1615 bytes/84 lines; source source-a61c979f/opencode.json generation 1; read(path=\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt\", offset=1, limit=2000) or grep exact path; data only]",
+                  "provider_call_id": "call_vis16_2",
+                  "call_occurrence": 0,
+                  "original_input_index": 5
+                },
+                {
+                  "id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r4-c0-call_vis16_3",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "turn_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0",
+                  "name": "vis16__output",
+                  "state": "failed",
+                  "input": "{\"index\":4,\"query\":\"native needle\",\"nested\":{\"value\":\"available parameter\"}}",
+                  "output": "error: mcp tool reported failure",
+                  "provider_call_id": "call_vis16_3",
+                  "call_occurrence": 0,
+                  "original_input_index": 7
+                }
+              ],
+              "tool_output_resources": [
+                {
+                  "id": "tool_1791452143-1743306-0",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-0.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-0\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt\",\"bytes\":5769,\"lines\":125,\"admitted_bytes\":5769,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 5350987,
+                  "extent": 5769,
+                  "state": "Complete",
+                  "completed": 1791452143
+                },
+                {
+                  "id": "tool_1791452143-1743306-1",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-1.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-1\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt\",\"bytes\":5891,\"lines\":125,\"admitted_bytes\":5891,\"admitted_lines\":125,\"state\":\"Complete\"}",
+                  "dev": 65027,
+                  "ino": 5350988,
+                  "extent": 5891,
+                  "state": "Complete",
+                  "completed": 1791452143
+                },
+                {
+                  "id": "tool_1791452143-1743306-2",
+                  "operation_id": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "session_id": "s-tui-18dc843b97313b45-1a99ca-0",
+                  "name": "tool_1791452143-1743306-2.txt",
+                  "descriptor": "{\"id\":\"tool_1791452143-1743306-2\",\"operation\":\"ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2\",\"session\":\"s-tui-18dc843b97313b45-1a99ca-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/project\",\"generation\":1,\"source\":\"source-a61c979f/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt\",\"bytes\":1615,\"lines\":84,\"admitted_bytes\":1615,\"admitted_lines\":84,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":1606,\"stdout_lines\":83,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                  "dev": 65027,
+                  "ino": 5350989,
+                  "extent": 1615,
+                  "state": "Complete",
+                  "completed": 1791452144
+                }
+              ],
+              "presentation": [
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r1-c0-call_vis16_0",
+                  "presentation": {
+                    "body": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-00[redacted] actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words\n",
+                    "body_bytes": 5769,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-0.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5769,
+                      "retained_bytes": 5769,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r2-c0-call_vis16_1",
+                  "presentation": {
+                    "body": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-00[redacted] actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words\n",
+                    "body_bytes": 5891,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-1.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 5891,
+                      "retained_bytes": 5891,
+                      "admitted_lines": 125,
+                      "retained_lines": 125
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r3-c0-call_vis16_2",
+                  "presentation": {
+                    "body": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                    "body_bytes": 1606,
+                    "body_limited": true,
+                    "generated_guidance": true,
+                    "producer_limited": null,
+                    "capture": {
+                      "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/cursor-temporal-attempt-029/oc/home/data/oc/tool-output/tool_1791452143-1743306-2.txt",
+                      "state": "Complete",
+                      "admitted_bytes": 1615,
+                      "retained_bytes": 1615,
+                      "admitted_lines": 84,
+                      "retained_lines": 84
+                    },
+                    "shell": {
+                      "stdout": "VIS-SHELL-LINE-035\nVIS-SHELL-LINE-036\nVIS-SHELL-LINE-037\nVIS-SHELL-LINE-038\nVIS-SHELL-LINE-039\nVIS-SHELL-LINE-040\nVIS-SHELL-LINE-041\nVIS-SHELL-LINE-042\nVIS-SHELL-LINE-043\nVIS-SHELL-LINE-044\nVIS-SHELL-LINE-045\nVIS-SHELL-LINE-046\nVIS-SHELL-LINE-047\nVIS-SHELL-LINE-048\nVIS-SHELL-LINE-049\nVIS-SHELL-LINE-050\nVIS-SHELL-LINE-051\nVIS-SHELL-LINE-052\nVIS-SHELL-LINE-053\nVIS-SHELL-LINE-054\nVIS-SHELL-LINE-055\nVIS-SHELL-LINE-056\nVIS-SHELL-LINE-057\nVIS-SHELL-LINE-058\nVIS-SHELL-LINE-059\nVIS-SHELL-LINE-060\nVIS-SHELL-LINE-061\nVIS-SHELL-LINE-062\nVIS-SHELL-LINE-063\nVIS-SHELL-LINE-064\nVIS-SHELL-LINE-065\nVIS-SHELL-LINE-066\nVIS-SHELL-LINE-067\nVIS-SHELL-LINE-068\nVIS-SHELL-LINE-069\nVIS-SHELL-LINE-070\nVIS-SHELL-LINE-071\nVIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+                      "stderr": "",
+                      "stdout_limited": true,
+                      "stderr_limited": false,
+                      "exit": 0,
+                      "signal": null,
+                      "timed_out": false,
+                      "cancelled": false
+                    }
+                  }
+                },
+                {
+                  "operation": "ts-tui-18dc843b97313b45-1a99ca-0-1791452143270-1743306-0-r4-c0-call_vis16_3",
+                  "presentation": {
+                    "body": "error: mcp tool reported failure",
+                    "body_bytes": 32,
+                    "body_limited": false,
+                    "generated_guidance": false,
+                    "producer_limited": null
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "artifacts": {
+          "data/oc/tool-output/tool_1791452143-1743306-1.txt": {
+            "bytes": 5891,
+            "sha256": "f5dd893b7e3f962aea5a0da22f83c9cd8cbf2f18ee3c197d3d1e985f06dafdc1"
+          },
+          "data/oc/tool-output/tool_1791452143-1743306-0.txt": {
+            "bytes": 5769,
+            "sha256": "8d125d263ba5297ec4443f3173803921c80b684642f1648c1ec652c7a3d0ebff"
+          },
+          "data/oc/tool-output/tool_1791452143-1743306-2.txt": {
+            "bytes": 1615,
+            "sha256": "f3993e341b1e62501e5f9186285c543207dbc7ee353bfed88ca3e9effd5e1067"
+          }
+        },
+        "shell_effect": {
+          "bytes": 17,
+          "lines": 1,
+          "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+        },
+        "mcp_lifecycle": [
+          {
+            "method": "initialize",
+            "phase": "healthy"
+          }
+        ],
+        "mcp_calls": [
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 1,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 2,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          },
+          {
+            "method": "tools/call",
+            "arguments": {
+              "index": 4,
+              "query": "native needle",
+              "nested": {
+                "value": "available parameter"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_CURSOR_TEMPORAL_ONLY",
+    "mode": "blink",
+    "renderer": "webgl",
+    "synchronized_output": "supported",
+    "card_case": "expanded",
+    "observation": "Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting",
+    "unresolved": [
+      "Temporal frames are timestamped observations, not settled-frame claims",
+      "Behavior qualification is separate from unmasked whole-grid/PNG parity",
+      "DOM hover blink suppression is not qualified as PASS"
+    ]
+  },
+  "finished": "2026-10-08T09:37:48.465Z",
+  "exit_code": 1
+}
