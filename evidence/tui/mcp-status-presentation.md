@@ -30,8 +30,10 @@ remain independent mandatory work.
 
 ## Current-source association
 
-Code/evidence delivery is recorded after the reviewed commit/push. Final mixed005,
-ordinary022 and temporal025 share:
+Code/evidence `2a42652006857ac244d1cd32a7dc83a01c722ff2` is PUSHED by ordinary
+fast-forward to verified `origin/agent/oc-rust-port`; checkpoint0091 remains
+immutable. No whole-task finish accompanies delivery. Final mixed005, ordinary022
+and temporal025 share:
 
 - Captured base `aff2d8f97702fb00b3c6d20b00f1d73e593bf879`;
   tree `5b772271a04fb01168c88d141816f83ff32a84f3`.
@@ -57,7 +59,7 @@ The probe preserves Unicode draft `preserve MCP Ω界`, opens the actual Home MC
 item by SGR mouse input, selects all three rows at120×40,80×24 and160×48, then
 closes at120×40. Eleven full paired stages retain cells, PNG, VT and cursor.
 Both sides report `PASS_BEHAVIOR_ONLY`, semantic tones true, exact composer cursor/
-draft restoration, zero provider requests/tool effects/MCP calls/Shell counters,
+draft restoration, zero provider requests/tool effects/MCP tool calls/Shell counters,
 and actual healthy/failed initialize receipts. Native intrinsic Connected bold is
 true; original is false. Default dark unselected green/red/muted and selected
 action foreground/background are asserted from actual styled cells, not text.
@@ -139,7 +141,8 @@ The first chain exposed the obsolete actual-binary expectation `Disconnecting`;
 only that expectation was changed to the frozen common pending label `Connecting`.
 All held lease/counter/config/secret/restart assertions remain. Targeted lifecycle
 1/0, typed TUI matrix1/0, Node syntax, Python repository47/0 and source checks PASS.
-Documentation/progress checks accompany delivery. No test/threshold is disabled.
+Documentation/progress structure and source diff checks PASS with delivery.
+No test/threshold is disabled.
 
 Captured padded `.txt` and raw `.vt` remain immutable data: only their exact final
 capture paths are excluded from Git whitespace checking, never visual comparison.

@@ -6,6 +6,8 @@ tones and intrinsic Connected bold in the current list. Selected action fg/bg
 remain unchanged; pending disconnect uses frozen Connecting label. Details and
 unrelated Select footers are not inferred from prose. No new owner/store/poll/API.
 Receipt: evidence/tui/mcp-status-presentation.md. Whole T44 remains ACTIVE.
+Code/evidence2a42652006857ac244d1cd32a7dc83a01c722ff2 PUSHED by ordinary
+fast-forward to verified origin/agent/oc-rust-port; generated0091 stays immutable.
 
 ## Checks
 Current fmt/strict locked workspace Clippy,1734/0/11 across46 completed results,
@@ -28,7 +30,7 @@ No whole VIS40/VIS31/R6/V09 PASS. AUTH06 deferred/original24/24/Go13/24 unchange
 Unrelated .opencode/ and all immutable earlier captures untouched; no paid calls.
 
 ## Next
-Commit/push reviewed code/evidence, then implement configured MCP label protection
+Implement configured MCP label protection
 at the existing owner publication/admission seams (MCP08), preserving opaque action
 IDs and pre-publication secret safety, and every remaining frozen R1–R6/VIS01–VIS45.
 Final current-source R6/V09 only after full closure; no task finish on this slice.
