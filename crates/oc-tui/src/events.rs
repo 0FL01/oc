@@ -73,6 +73,8 @@ pub enum KeyAction {
     /// Effective history binding, distinct from physical default arrow fallback.
     PromptHistoryPrevious,
     PromptHistoryNext,
+    /// Higher-priority history may decline the same effective live-job chord.
+    PromptHistoryNextOrShells,
     /// Cancel active turn.
     Cancel,
     /// Scroll viewport.

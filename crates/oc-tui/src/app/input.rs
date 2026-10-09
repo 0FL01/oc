@@ -649,6 +649,52 @@ impl TuiState {
         {
             return Some(action);
         }
+        if self.panel == TuiPanel::None
+            && !self.shells.open
+            && !self.children.open
+            && !self.terminals.open
+            && matches!(event.code, KeyCode::Up | KeyCode::Down)
+            && (self.slash_options().is_some() || self.mention_request().is_some())
+        {
+            // The focused autocomplete owns navigation before session actions.
+            return crate::events::map_key(event);
+        }
+        if self.panel == TuiPanel::None
+            && !self.terminals.open
+            && !self.terminal_focused()
+            && !self.prompt_shell_mode()
+            && self.running_shell_count() > 0
+            && event.kind == KeyEventKind::Press
+            && let Some(raw) = crate::events::binding(event)
+        {
+            let raw = crate::events::dialog_binding(&raw);
+            let candidate = self
+                .leader
+                .filter(|_| {
+                    self.leader_deadline()
+                        .is_some_and(|until| until > Instant::now())
+                })
+                .map_or_else(|| raw.clone(), |_| format!("{} {raw}", self.leader_key));
+            if (self.shells.open || self.children.open)
+                && matches!(event.code, KeyCode::Up | KeyCode::Down)
+            {
+                return crate::events::map_key(event);
+            }
+            if self.live_shell_binding().split(',').any(|key| {
+                self.live_shell_shortcut_available(key)
+                    && crate::events::dialog_binding(key) == candidate
+            }) {
+                self.leader = None;
+                return Some(KeyAction::Shells);
+            }
+            if self.live_shell_binding().split(',').any(|key| {
+                self.live_shell_shortcut_available(key)
+                    && crate::events::dialog_binding(key).starts_with(&format!("{candidate} "))
+            }) {
+                self.leader_key = candidate;
+                return Some(KeyAction::Leader);
+            }
+        }
         if !self.select_key_owner()
             && let Some(action) = self.conversation_key(event)
         {
@@ -703,6 +749,39 @@ impl TuiState {
             && self.mention_request().is_none()
     }
 
+    /// A live-status action must not make an existing advertised command inert.
+    /// The same effective command projection owns keyboard priority and hints.
+    pub(crate) fn live_shell_shortcut_available(&self, key: &str) -> bool {
+        let key = crate::events::dialog_binding(key);
+        let conflicts = |binding: &str, allow_exact: bool| {
+            let binding = crate::events::dialog_binding(binding);
+            // Equal or token-prefix chords shadow one another. Sibling
+            // sequences may still share their existing leader.
+            !(binding.is_empty() || allow_exact && binding == key)
+                && binding.split(' ').zip(key.split(' ')).all(|(a, b)| a == b)
+        };
+        !key.is_empty()
+            && !crate::commands::REGISTRY.iter().any(|command| {
+                self.command_shortcuts(command)
+                    .iter()
+                    .any(|binding| conflicts(binding, false))
+            })
+            && !self
+                .chrome
+                .prompt_history_shortcuts
+                .previous
+                .split(',')
+                .any(|binding| conflicts(binding, false))
+            // Only the exact history-next chord has an explicit decline
+            // fallback. Its prefixes must remain owned by prompt history.
+            && !self
+                .chrome
+                .prompt_history_shortcuts
+                .next
+                .split(',')
+                .any(|binding| conflicts(binding, true))
+    }
+
     fn prompt_history_key(&mut self, event: crossterm::event::KeyEvent) -> Option<KeyAction> {
         if event.kind == crossterm::event::KeyEventKind::Release {
             return None;
@@ -734,6 +813,18 @@ impl TuiState {
                 .any(|key| !key.is_empty() && crate::events::dialog_binding(key) == candidate)
                 .then(|| action.clone())
         }) {
+            let action = if action == KeyAction::PromptHistoryNext
+                && event.kind == crossterm::event::KeyEventKind::Press
+                && !self.prompt_shell_mode()
+                && self.running_shell_count() > 0
+                && self.live_shell_binding().split(',').any(|key| {
+                    self.live_shell_shortcut_available(key)
+                        && crate::events::dialog_binding(key) == candidate
+                }) {
+                KeyAction::PromptHistoryNextOrShells
+            } else {
+                action
+            };
             self.leader = None;
             return Some(action);
         }
@@ -1429,6 +1520,12 @@ impl TuiState {
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
         if self.panel != TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+        {
+            self.cancel_shell_footer_pointer();
+        }
+        if self.panel != TuiPanel::None
             || matches!(
                 event.kind,
                 MouseEventKind::Down(_) | MouseEventKind::Drag(_)
@@ -1482,6 +1579,12 @@ impl TuiState {
             && !crate::shell::tab_region(self, area).contains((event.column, event.row).into())
         {
             return KeyOutcome::default();
+        }
+        if self.panel == TuiPanel::None
+            && let Some(outcome) = self.shell_footer_mouse(event, area)
+        {
+            self.last_mouse = Some((event.column, event.row, area));
+            return outcome;
         }
         if self.panel == TuiPanel::None && self.children.open {
             return self.children.mouse(event);
@@ -2400,6 +2503,7 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.cancel_shell_footer_pointer();
         let terminal_command = match action {
             KeyAction::TerminalFocusLeft => Some(CommandAction::FocusSessionPane),
             KeyAction::TerminalFocusRight => Some(CommandAction::FocusTerminalPane),
@@ -2829,17 +2933,21 @@ impl TuiState {
                 }
                 self.scroll_transcript(true)
             }
-            KeyAction::Down | KeyAction::PromptHistoryNext => {
+            KeyAction::Down
+            | KeyAction::PromptHistoryNext
+            | KeyAction::PromptHistoryNextOrShells => {
                 if self.prompt_vertical(true, false) {
                     return KeyOutcome::default();
                 }
-                let enabled = action == KeyAction::PromptHistoryNext
-                    || self
-                        .chrome
-                        .prompt_history_shortcuts
-                        .next
-                        .split(',')
-                        .any(|key| crate::events::dialog_binding(key) == "down");
+                let enabled = matches!(
+                    action,
+                    KeyAction::PromptHistoryNext | KeyAction::PromptHistoryNextOrShells
+                ) || self
+                    .chrome
+                    .prompt_history_shortcuts
+                    .next
+                    .split(',')
+                    .any(|key| crate::events::dialog_binding(key) == "down");
                 if enabled {
                     match self.recall_history(false).await {
                         Ok(true) => return KeyOutcome::default(),
@@ -2851,6 +2959,10 @@ impl TuiState {
                         }
                         Ok(false) => {}
                     }
+                }
+                if action == KeyAction::PromptHistoryNextOrShells && self.running_shell_count() > 0
+                {
+                    return self.shells.key(KeyAction::Shells);
                 }
                 self.scroll_transcript(false)
             }

@@ -20,6 +20,345 @@ fn job(id: &str, source: &str) -> ShellJob {
 }
 
 #[tokio::test]
+async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_target() {
+    use ratatui::{Terminal, backend::TestBackend};
+    let (app, guard) = CoreApp::spawn(MockProvider::echo());
+    app.create_session(SessionId("parent".into()))
+        .await
+        .unwrap();
+    let mut state = TuiState::new(app.clone(), SessionId("parent".into()));
+    state.chrome.location = Some("/shell-in-path/not-a-footer-target".into());
+    state.apply_shell_jobs(vec![
+        job("child", "child"),
+        job("first", "parent"),
+        job("second", "parent"),
+    ]);
+    assert_eq!(state.running_shell_count(), 2);
+    assert!(!state.shells_open());
+    for (width, height) in [(80, 24), (120, 40)] {
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        let (area, [hit, _]) = state.shells.footer_hit.get().unwrap();
+        let text: String = (hit.x..hit.right())
+            .map(|x| terminal.backend().buffer()[(x, hit.y)].symbol())
+            .collect();
+        assert_eq!(text, "↓ 2 shells");
+        let mouse = |kind, column, row| MouseEvent {
+            kind,
+            column,
+            row,
+            modifiers: crossterm::event::KeyModifiers::NONE,
+        };
+        // Bare release and a drag from another cell are not activations.
+        assert!(
+            state
+                .handle_mouse(
+                    mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+                    area
+                )
+                .intent
+                .is_none()
+        );
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), 2, hit.y),
+            area,
+        );
+        assert!(
+            state
+                .handle_mouse(
+                    mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+                    area
+                )
+                .intent
+                .is_none()
+        );
+        state.handle_mouse(mouse(MouseEventKind::Moved, hit.x + 2, hit.y), area);
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert_eq!(
+            terminal.backend().buffer()[(hit.x + 2, hit.y)].fg,
+            crate::theme::Theme::dark().text()
+        );
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        let opened = state.handle_mouse(
+            mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        assert_eq!(opened.intent, Some(PanelIntent::LoadShells));
+        assert!(state.shells_open());
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert!(state.shells.footer_hit.get().is_none());
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        state.handle_mouse(
+            mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        assert!(
+            state.shells_open(),
+            "the covered footer cannot close its composer"
+        );
+        state.handle_key(KeyAction::Cancel).await;
+        state.handle_key(KeyAction::Children).await;
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert!(state.shells.footer_hit.get().is_none());
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        state.handle_mouse(
+            mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        assert!(state.children.open && !state.shells_open());
+        state.handle_key(KeyAction::Cancel).await;
+        state.push_note(&"A long toast covers the footer surface. ".repeat(100));
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        let toast = crate::shell::toast_rect(&state, area).unwrap();
+        assert!(toast.contains((hit.x, hit.y).into()));
+        assert!(state.shells.footer_hit.get().is_none());
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        state.handle_mouse(
+            mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        assert!(
+            !state.shells_open(),
+            "toast-covered cells never activate Shell"
+        );
+        state.chrome.command_palette_shortcut = Some(String::new());
+        state.chrome.child_first_shortcut = Some("ctrl+alt+shift+f12 ctrl+alt+shift+f11".into());
+        state.push_note(&format!("{} ", "a".repeat(26)).repeat(100));
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        let toast = crate::shell::toast_rect(&state, area).unwrap();
+        let (_, fragments) = state.shells.footer_hit.get().unwrap();
+        let visible = fragments.iter().find(|rect| !rect.is_empty()).unwrap();
+        assert!(!toast.contains((visible.x, visible.y).into()));
+        state.handle_mouse(
+            mouse(
+                MouseEventKind::Down(MouseButton::Left),
+                visible.x,
+                visible.y,
+            ),
+            area,
+        );
+        assert_eq!(
+            state
+                .handle_mouse(
+                    mouse(MouseEventKind::Up(MouseButton::Left), visible.x, visible.y),
+                    area,
+                )
+                .intent,
+            Some(PanelIntent::LoadShells),
+            "a visible fragment beside the toast remains actionable"
+        );
+        state.handle_key(KeyAction::Cancel).await;
+        for kind in [
+            MouseEventKind::Down(MouseButton::Left),
+            MouseEventKind::Up(MouseButton::Left),
+        ] {
+            state.handle_mouse(mouse(kind, toast.right() - 4, toast.y + 1), area);
+        }
+        assert!(state.note().is_none());
+        state.chrome.command_palette_shortcut = None;
+        state.chrome.child_first_shortcut = None;
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        state.handle_mouse(
+            mouse(MouseEventKind::Down(MouseButton::Left), hit.x, hit.y),
+            area,
+        );
+        state.resize_mouse_position(area);
+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+        assert!(
+            state
+                .handle_mouse(
+                    mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
+                    area
+                )
+                .intent
+                .is_none()
+        );
+    }
+    let mut narrow = Terminal::new(TestBackend::new(8, 24)).unwrap();
+    narrow.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let (area, [hit, _]) = state.shells.footer_hit.get().unwrap();
+    assert!(hit.width > 0 && hit.width < "↓ 2 shells".chars().count() as u16);
+    let mouse = |kind| MouseEvent {
+        kind,
+        column: hit.x,
+        row: hit.y,
+        modifiers: crossterm::event::KeyModifiers::NONE,
+    };
+    state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
+    assert_eq!(
+        state
+            .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area)
+            .intent,
+        Some(PanelIntent::LoadShells),
+        "the actually painted clipped target is still actionable"
+    );
+    state.handle_key(KeyAction::Cancel).await;
+    state.apply_shell_jobs(vec![job("child", "child")]);
+    assert_eq!(state.running_shell_count(), 0);
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    assert!(state.shells.footer_hit.get().is_none());
+    let mut home = TuiState::new_home(app.clone());
+    home.apply_shell_jobs(vec![job("first", "parent")]);
+    assert_eq!(home.running_shell_count(), 0);
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
+async fn live_shell_shortcut_yields_to_prompt_history_and_respects_effective_remaps_and_modal_focus()
+ {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    let (app, guard) = CoreApp::spawn(MockProvider::echo());
+    app.create_session(SessionId("parent".into()))
+        .await
+        .unwrap();
+    app.prompt_history(Some("accepted older prompt".into()))
+        .await
+        .unwrap();
+    let mut state = TuiState::new(app.clone(), SessionId("parent".into()));
+    state.apply_shell_jobs(vec![job("first", "parent")]);
+    state.restore_prompt("unfinished draft".into());
+    state.handle_key(KeyAction::Home).await;
+    state.handle_key(KeyAction::Up).await;
+    assert_eq!(state.input(), "accepted older prompt");
+    let down = KeyEvent::new(KeyCode::Down, KeyModifiers::NONE);
+    let action = state.terminal_key(down).unwrap();
+    assert_eq!(action, KeyAction::PromptHistoryNextOrShells);
+    assert!(state.handle_key(action).await.intent.is_none());
+    assert_eq!(
+        state.input(),
+        "accepted older prompt",
+        "the raw caret boundary still wins first"
+    );
+    let action = state.terminal_key(down).unwrap();
+    assert!(state.handle_key(action).await.intent.is_none());
+    assert_eq!(state.input(), "unfinished draft");
+    assert!(!state.shells_open());
+    let action = state.terminal_key(down).unwrap();
+    assert_eq!(
+        state.handle_key(action).await.intent,
+        Some(PanelIntent::LoadShells)
+    );
+    state.handle_key(KeyAction::Cancel).await;
+    let mut repeated = down;
+    repeated.kind = crossterm::event::KeyEventKind::Repeat;
+    let action = state.terminal_key(repeated).unwrap();
+    assert_eq!(action, KeyAction::PromptHistoryNext);
+    assert!(state.handle_key(action).await.intent.is_none());
+    assert!(
+        !state.shells_open(),
+        "a held history key does not toggle the live panel"
+    );
+    state.chrome.child_first_shortcut = Some("f2,ctrl+x s".into());
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE))
+        .unwrap();
+    assert_eq!(action, KeyAction::Shells);
+    state.handle_key(action).await;
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE))
+        .unwrap();
+    state.handle_key(action).await;
+    assert!(
+        !state.shells_open(),
+        "the advertised custom action also closes its panel"
+    );
+    let prefix = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL))
+        .unwrap();
+    state.handle_key(prefix).await;
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE)),
+        Some(KeyAction::Shells)
+    );
+    state.chrome.child_first_shortcut = Some(String::new());
+    assert_eq!(state.terminal_key(down), Some(KeyAction::PromptHistoryNext));
+    state.chrome.child_first_shortcut = Some("ctrl+p,f2".into());
+    assert!(!state.live_shell_shortcut_available("ctrl+p"));
+    assert!(!state.live_shell_shortcut_available("ctrl+x"));
+    assert!(!state.live_shell_shortcut_available("ctrl+p s"));
+    assert!(state.live_shell_shortcut_available("ctrl+x s"));
+    assert!(state.live_shell_shortcut_available("f2"));
+    state.chrome.child_first_shortcut = Some("up,f2".into());
+    assert!(!state.live_shell_shortcut_available("up"));
+    assert!(state.live_shell_shortcut_available("f2"));
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let (_, [hit, _]) = state.shells.footer_hit.get().unwrap();
+    let hint: String = (hit.x..hit.right())
+        .map(|x| terminal.backend().buffer()[(x, hit.y)].symbol())
+        .collect();
+    assert_eq!(
+        hint, "f2 1 shell",
+        "the displayed alias is genuinely usable"
+    );
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)),
+        Some(KeyAction::PromptHistoryPrevious)
+    );
+    state.chrome.prompt_history_shortcuts.next = "down f3".into();
+    assert!(!state.live_shell_shortcut_available("down"));
+    assert!(!state.live_shell_shortcut_available("down f3 f4"));
+    assert!(state.live_shell_shortcut_available("down f2"));
+    state.chrome.prompt_history_shortcuts.next = "down".into();
+    state.chrome.child_first_shortcut = Some("ctrl+x,ctrl+p s,f2".into());
+    let prefix = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert_eq!(prefix, KeyAction::Leader);
+    state.handle_key(prefix).await;
+    let model = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('m'), KeyModifiers::NONE))
+        .unwrap();
+    assert_eq!(model, KeyAction::SequenceKey("m".into(), Some('m')));
+    state.handle_key(model).await;
+    assert_eq!(state.panel(), &crate::app::TuiPanel::Model);
+    state.handle_key(KeyAction::Cancel).await;
+    assert_eq!(
+        state.terminal_key(KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL)),
+        Some(KeyAction::Commands)
+    );
+    state.chrome.child_first_shortcut = None;
+    state.restore_prompt("/".into());
+    let options = state.slash_options().unwrap().len();
+    assert!(options > 1);
+    let before = state.slash_selected(options);
+    assert_eq!(state.terminal_key(down), Some(KeyAction::Down));
+    assert!(state.handle_key(KeyAction::Down).await.intent.is_none());
+    assert_ne!(state.slash_selected(options), before);
+    assert!(!state.shells_open());
+    state.chrome.location = Some("/original".into());
+    state.restore_prompt("@".into());
+    assert!(state.mention_request().is_some());
+    assert_eq!(state.terminal_key(down), Some(KeyAction::Down));
+    assert!(state.handle_key(KeyAction::Down).await.intent.is_none());
+    assert!(!state.shells_open());
+    state.restore_prompt("unfinished draft".into());
+    state.chrome.child_first_shortcut = Some("ctrl+p,f2".into());
+    state.handle_key(KeyAction::Commands).await;
+    assert_ne!(
+        state.terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE)),
+        Some(KeyAction::Shells)
+    );
+    assert!(!state.shells_open());
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn tool13_open_viewer_and_kill_keep_original_child_identity_after_list_removal() {
     let (app, guard) = CoreApp::spawn(MockProvider::echo());
     app.create_session(SessionId("parent".into()))
@@ -62,13 +401,19 @@ async fn tool13_same_id_location_adoption_keeps_only_original_shell_capture() {
         .unwrap();
     let mut original = TuiState::new(app.clone(), SessionId("parent".into()));
     let child = job("selected", "child");
-    original.apply_shell_jobs(vec![child.clone()]);
+    original.apply_shell_jobs(vec![child.clone(), job("old-live", "parent")]);
     original.handle_key(KeyAction::Shells).await;
     original.handle_key(KeyAction::Enter).await;
     original.restore_prompt("old-location editor".into());
     let mut moved = TuiState::new(app.clone(), SessionId("parent".into()));
     moved.chrome.location = Some("/destination".into());
+    moved.apply_shell_jobs(Vec::new());
     moved.inherit_shell_view(&mut original);
+    assert_eq!(
+        moved.running_shell_count(),
+        0,
+        "a freshly loaded inventory wins over the inherited viewer's stale list"
+    );
     let key = moved.terminal_key(crossterm::event::KeyEvent::new(
         crossterm::event::KeyCode::Char('b'),
         crossterm::event::KeyModifiers::CONTROL,

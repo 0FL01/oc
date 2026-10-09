@@ -307,6 +307,7 @@ pub(crate) struct ConversationKeybinds {
     timeout: Option<u64>,
     legacy_timeout: Option<u64>,
     palette: String,
+    child_first: String,
     terminal: [String; 5],
     dialog: oc_core::queries::DialogShortcuts,
     prompt_history: [String; 2],
@@ -323,6 +324,7 @@ impl Default for ConversationKeybinds {
             timeout: None,
             legacy_timeout: None,
             palette: "ctrl+p".into(),
+            child_first: "down".into(),
             terminal: [
                 "<leader>left",
                 "<leader>right",
@@ -391,6 +393,10 @@ impl ConversationKeybinds {
                 &mut self.fullscreen,
             ),
             (&["app_exit", "app.exit"][..], &mut self.exit),
+            (
+                &["session_child_first", "session.child.first"][..],
+                &mut self.child_first,
+            ),
         ] {
             for name in names {
                 if let Some(value) = bindings.get(*name) {
@@ -480,6 +486,7 @@ impl ConversationKeybinds {
             timeout: None,
             legacy_timeout: None,
             palette: String::new(),
+            child_first: String::new(),
             terminal: Default::default(),
             dialog: Default::default(),
             prompt_history: Default::default(),
@@ -497,6 +504,15 @@ impl ConversationKeybinds {
         Self {
             leader: self.leader.clone(),
             undo: self.palette.clone(),
+            ..Self::default()
+        }
+        .resolve()
+        .undo
+    }
+    pub(crate) fn child_first_shortcut(&self) -> String {
+        Self {
+            leader: self.leader.clone(),
+            undo: self.child_first.clone(),
             ..Self::default()
         }
         .resolve()
@@ -2280,7 +2296,8 @@ mod tests {
                 "dialog.select.next": "ctrl+j", "dialog.select.submit": "f3",
                 "dialog.mcp.toggle": "<leader>t,f2",
                 "history_previous": "alt+p", "history_next": "alt+n",
-                "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j"
+                "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j",
+                "session_child_first": "alt+s", "session.child.first": "<leader>s,f2"
             }}))
             .unwrap();
         bindings
@@ -2290,6 +2307,13 @@ mod tests {
             }}))
             .unwrap();
         assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
+        assert_eq!(bindings.child_first_shortcut(), "ctrl+b s,ctrl+g s,f2");
+        let mut disabled = super::ConversationKeybinds::default();
+        assert_eq!(disabled.child_first_shortcut(), "down");
+        disabled
+            .merge(&serde_json::json!({"keybinds":{"session.child.first": false}}))
+            .unwrap();
+        assert_eq!(disabled.child_first_shortcut(), "");
         let dialogs = bindings.dialog_shortcuts();
         assert_eq!(dialogs.previous, "");
         assert_eq!(dialogs.next, "ctrl+j");

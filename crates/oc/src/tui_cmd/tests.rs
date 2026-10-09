@@ -50,6 +50,14 @@ async fn empty_mcp_status(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>) {
     empty_mcp_status_at(inbox, "/fixture").await;
 }
 
+async fn empty_shell_inventory(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>, expected: &str) {
+    let Some(InboxMsg::ShellJobs { session, ack }) = inbox.recv().await else {
+        panic!("initial source-owned shell inventory")
+    };
+    assert_eq!(session.0, expected);
+    ack.send(Ok(Vec::new())).unwrap();
+}
+
 async fn empty_mcp_status_at(inbox: &mut tokio::sync::mpsc::Receiver<InboxMsg>, location: &str) {
     let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
         panic!("current owned resource status")

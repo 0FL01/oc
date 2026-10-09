@@ -1,6 +1,7 @@
 //! Disposable lower composer over the existing application's shell facts.
 use crate::app::{KeyOutcome, PanelIntent, TuiState};
 use crate::events::KeyAction;
+use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
 use oc_core::queries::{ShellJob, ToolOutputPage};
 use ratatui::{
     Frame,
@@ -19,10 +20,13 @@ fn safe(text: &str) -> String {
 pub(crate) struct ShellView {
     pub(super) open: bool,
     rows: Vec<ShellJob>,
+    inventory_loaded: bool,
     selected: Option<String>,
     // A viewer holds the original source identity, never a running-list index.
     viewer: Option<ShellJob>,
     output: Option<ToolOutputPage>,
+    pub(crate) footer_hit: std::cell::Cell<Option<(Rect, [Rect; 2])>>,
+    footer_down: bool,
 }
 
 impl ShellView {
@@ -94,6 +98,7 @@ impl TuiState {
 
     /// Reconcile bounded current running rows without retargeting an open viewer.
     pub fn apply_shell_jobs(&mut self, rows: Vec<ShellJob>) {
+        self.shells.inventory_loaded = true;
         self.shells.rows = rows;
         if !self
             .shells
@@ -102,6 +107,63 @@ impl TuiState {
             .any(|r| Some(&r.shell_id) == self.shells.selected.as_ref())
         {
             self.shells.selected = self.shells.rows.first().map(|r| r.shell_id.clone());
+        }
+    }
+
+    /// Footer facts are source-session scoped, unlike the family inventory panel.
+    pub(crate) fn running_shell_count(&self) -> usize {
+        self.shells
+            .rows
+            .iter()
+            .filter(|job| self.attached_session() == Some(&job.session))
+            .count()
+    }
+
+    pub(crate) fn live_shell_binding(&self) -> &str {
+        self.chrome
+            .child_first_shortcut
+            .as_deref()
+            .unwrap_or("down")
+    }
+
+    pub(crate) fn cancel_shell_footer_pointer(&mut self) {
+        self.shells.footer_down = false;
+    }
+
+    pub(crate) fn shell_footer_mouse(
+        &mut self,
+        event: MouseEvent,
+        area: Rect,
+    ) -> Option<KeyOutcome> {
+        let hit = self.running_shell_count() > 0
+            && self
+                .shells
+                .footer_hit
+                .get()
+                .is_some_and(|(painted, rects)| {
+                    painted == area
+                        && rects
+                            .iter()
+                            .any(|rect| rect.contains((event.column, event.row).into()))
+                });
+        match event.kind {
+            MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                self.shells.footer_down = hit;
+                hit.then(KeyOutcome::default)
+            }
+            MouseEventKind::Up(MouseButton::Left) if event.modifiers.is_empty() => {
+                let accepted = std::mem::take(&mut self.shells.footer_down) && hit;
+                accepted.then(|| {
+                    self.children.open = false;
+                    self.close_terminal_composer();
+                    self.shells.key(KeyAction::Shells)
+                })
+            }
+            MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_) => {
+                self.shells.footer_down = false;
+                None
+            }
+            _ => None,
         }
     }
 
@@ -125,7 +187,16 @@ impl TuiState {
         if self.attached_session().is_some()
             && self.attached_session() == previous.attached_session()
         {
+            let current = self
+                .shells
+                .inventory_loaded
+                .then(|| std::mem::take(&mut self.shells.rows));
             self.shells = std::mem::take(&mut previous.shells);
+            self.shells.footer_hit.set(None);
+            self.shells.footer_down = false;
+            if let Some(rows) = current {
+                self.apply_shell_jobs(rows);
+            }
         }
     }
 }

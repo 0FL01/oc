@@ -1445,6 +1445,7 @@ async fn load_stages(
     tui_chrome.permission_shortcuts = conversation_keybinds.permission_shortcuts();
     tui_chrome.leader_timeout_ms = conversation_keybinds.leader_timeout_ms();
     tui_chrome.command_palette_shortcut = Some(conversation_keybinds.command_palette_shortcut());
+    tui_chrome.child_first_shortcut = Some(conversation_keybinds.child_first_shortcut());
     tui_chrome.terminal_shortcuts = conversation_keybinds.terminal_shortcuts();
     tui_chrome.dialog_shortcuts = conversation_keybinds.dialog_shortcuts();
     tui_chrome.prompt_history_shortcuts = conversation_keybinds.prompt_history_shortcuts();

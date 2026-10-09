@@ -1,6 +1,85 @@
 use super::*;
 
 #[tokio::test]
+async fn shell_changed_updates_closed_owner_footer_and_parked_view_without_cross_session_requests()
+{
+    use oc_core::queries::ShellJob;
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let a = SessionId("footer-a".into());
+    let b = SessionId("footer-b".into());
+    let mut state = TuiState::new(app.clone(), a.clone());
+    state.restore_prompt("draft a".into());
+    let mut parked = TuiState::new(app.clone(), b.clone());
+    parked.restore_prompt("draft b".into());
+    let mut deck = LoopState {
+        tabs: vec![None, Some(parked)],
+        active_tab: Some(0),
+        ..Default::default()
+    };
+    let painted = |view: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(80, 24)).unwrap();
+        terminal.draw(|f| oc_tui::shell::render(f, view)).unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>()
+    };
+    for (source, live) in [(b.clone(), true), (a.clone(), true), (a.clone(), false)] {
+        let wanted = source.clone();
+        let owner = tokio::spawn(async move {
+            let InboxMsg::ShellJobs { session, ack } = inbox.recv().await.unwrap() else {
+                panic!("one source-owned inventory query")
+            };
+            assert_eq!(session, wanted);
+            ack.send(Ok(if live {
+                vec![ShellJob {
+                    session,
+                    shell_id: "existing-live-operation".into(),
+                    location: "/fixture".into(),
+                    generation: 1,
+                    turn: String::new(),
+                    model: "fixture/model".into(),
+                    provider: "fixture".into(),
+                    command: "actual command".into(),
+                    pid: Some(123),
+                    background: false,
+                }]
+            } else {
+                Vec::new()
+            }))
+            .unwrap();
+            inbox
+        });
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut deck,
+            &a,
+            CoreEvent::ShellChanged {
+                session: source.clone(),
+            },
+        )
+        .await
+        .unwrap();
+        inbox = owner.await.unwrap();
+        assert!(
+            inbox.try_recv().is_err(),
+            "no unrelated inventory, provider or history query"
+        );
+        assert_eq!(state.input(), "draft a");
+        assert_eq!(deck.tabs[1].as_ref().unwrap().input(), "draft b");
+        assert!(!state.shells_open());
+        assert!(!deck.tabs[1].as_ref().unwrap().shells_open());
+        assert!(painted(deck.tabs[1].as_ref().unwrap()).contains("↓ 1 shell"));
+        assert_eq!(painted(&state).contains("↓ 1 shell"), source == a && live);
+    }
+}
+
+#[tokio::test]
 async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_without_raw_toast() {
     use oc_core::{
         queries::{HistoryMessage, HistoryPage, ShellNotice, UserShellResult},
@@ -1560,6 +1639,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
         ack.send(Ok(b_session_catalog)).unwrap();
         empty_compactions(&mut inbox).await;
         empty_mcp_status_at(&mut inbox, "/B").await;
+        empty_shell_inventory(&mut inbox, "b-root").await;
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("save B route")
         };

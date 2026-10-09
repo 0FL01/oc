@@ -638,6 +638,8 @@ pub struct TuiChrome {
     pub leader_timeout_ms: Option<u64>,
     /// Admitted command.palette.show binding; None keeps the native default.
     pub command_palette_shortcut: Option<String>,
+    /// Effective live-job footer action; None keeps the pinned Down default.
+    pub child_first_shortcut: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

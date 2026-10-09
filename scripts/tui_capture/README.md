@@ -1039,13 +1039,23 @@ effect and checking exactly one/two typed command/output blocks after explicit
 Enter, without RAW admission/notices or a generated successful-exit line. Use
 `--build-oc true` for current-source association; receipt
 `evidence/tui/user-shell-presentation.md`. This is behavior qualification, not
-whole pixel/T44 PASS. Current tab-title/padding pairs00280×24/003120×40 retain12
+whole pixel/T44 PASS. Historical tab-title/padding pairs00280×24/003120×40 retain12
 stages each: completed, recalled-normal and second-completed are exact full grid
 AND PNG matches (6 EQUAL/18 DIFFERENT comparisons per geometry). Tab-only
 `New session` survives title-less refresh/restart; real durable titles win.
 Running/composer/Home differences remain unmasked. Receipt:
 `evidence/tui/user-shell-tab-title.md`. Normal tool and temporal regressions remain
 independent; this does not mark the whole Shell episode or T44 pixel PASS.
+
+Current live-footer pairs00680×24/007120×40 add the real `↓ 1 shell` inventory
+indicator, retire it after completion, and retain12 stages each. Running,
+completed, recalled-normal and second-completed match full grids AND PNGs/cursor
+(8 EQUAL/16 DIFFERENT comparisons per geometry). The finite genuine process hold
+is six seconds for the first command and three later, leaving time for the actual
+running screenshot and read-only pre-effect witness; it is not a product timer.
+Zero output during this hold does not qualify live streamed stdout. Receipt:
+`evidence/tui/user-shell-live-footer.md`; remaining Home/mode/input/restart and
+combined lower-composer differences stay open and unmasked.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

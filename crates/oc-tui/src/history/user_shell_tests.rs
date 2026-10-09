@@ -77,6 +77,15 @@ fn direct_user_shell_is_a_single_typed_block_without_assistant_graph_or_user_act
         "model Shell frame styling is unchanged"
     );
     let painted = crate::messages::transcript(&rows, theme, 120, 120, |_| theme.text());
+    let mut running = card.clone();
+    running.state = "started".into();
+    let command = crate::tools::tool_block(&running, theme, 120);
+    assert_eq!(command[1].spans()[3].content(), " ");
+    assert_eq!(
+        command[1].spans()[3].style().fg,
+        None,
+        "spinner layout gap inherits the standalone block"
+    );
     let text = painted
         .iter()
         .map(crate::styled::Line::plain_text)

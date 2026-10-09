@@ -162,10 +162,17 @@ impl ScriptDriver {
                     }
                 }
                 Ok(Ok(CoreEvent::ChildNotice(_))) => {}
-                Ok(Ok(CoreEvent::ShellChanged { .. } | CoreEvent::TerminalChanged { .. })) => {
-                    if state.shells_open()
-                        && let Some(session) = state.attached_session().cloned()
-                    {
+                Ok(Ok(
+                    event @ (CoreEvent::ShellChanged { .. } | CoreEvent::TerminalChanged { .. }),
+                )) => {
+                    let inventory_visible = match &event {
+                        CoreEvent::ShellChanged { session } => {
+                            state.attached_session() == Some(session) || state.shells_open()
+                        }
+                        CoreEvent::TerminalChanged { .. } => state.shells_open(),
+                        _ => unreachable!("shell/terminal event"),
+                    };
+                    if inventory_visible && let Some(session) = state.attached_session().cloned() {
                         if let Ok(rows) = state.app.shell_jobs(session).await {
                             state.apply_shell_jobs(rows);
                         }

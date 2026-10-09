@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-08T23:55:27+00:00
+State updated: 2026-10-09T01:43:47+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,36 +12,34 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 fresh tab title / Shell padding — qualified slice
+# T44 live Shell footer — qualified slice
 
 ## Result
-Fresh Home-promotion `New session` is bounded tab-only metadata in the existing
-Location/CAS deck, never a durable/generated session title. Explicit titles win;
-legacy/ordinary roots stay unchanged. Standalone Shell padding inherits terminal
-foreground; model-tool styling unchanged. Receipt: evidence/tui/user-shell-tab-title.md.
-Reviewed source/tests and exact final captures are ready for ordinary own-branch
-delivery; Git is authoritative for actual commit/push status.
+Actual running56/92-cell gaps closed at80/120: running and three completed-stage
+pairs match full styled cells/PNG/cursor. Existing scoped inventory/events supply
+the live footer, effective shortcuts and genuinely painted pointer controls.
+Receipt: evidence/tui/user-shell-live-footer.md. Reviewed source/tests/final frames
+are ready for ordinary own-branch delivery; Git determines actual commit/push.
 
 ## Checks
-Current fmt/strict workspace Clippy,1772/0/11 workspace tests, debug/ordinary/release/
-help and actual release startup19/GET-only discovery8 PASS. Python47/Node-Python
-syntax/source/docs/progress and unchanged resource gates PASS. Built00280x24/
-003120x40: completed/recalled-normal/second-completed full grids+PNGs+cursor exact;
-each6 EQUAL18 DIFFERENT,2effects/0Responses-title-MCP/NULL model turns/no replay.
-Normal27 stages and default temporal six owners/144opaque PNG audit qualify behavior,
-not global parity. All four locks share reviewed source/debug ELF association.
+Current fmt/strict workspace Clippy,1775/0/11 tests, debug/ordinary/release/help,
+release startup19/GET-only discovery8, Python47/Node-Python/source/docs/progress/
+resource gates PASS. Built00680×24/007120×40 each8 EQUAL16 DIFFERENT, two explicit
+effects/zero Responses-title-MCP/NULL model turns/pre-effect history/no replay.
+Normal27-stage regression and default six-owner/144opaque PNG audit qualify
+behavior, not global parity. Four final locks share source/debug ELF association.
 
 ## Risks
-Whole frozen R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Running/composer/Home/restarthome
-differences unmasked; no claim of live streamed stdout from the zero-output hold.
-Frozen full parts/mode/Mini exclusion and native recall difference retained.
+Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Separate native Shell/Children panels
+do not qualify the OC2 combined composer. Zero-output genuine six-second first
+fixture hold does not prove live stdout. Full parts/mode/Mini exclusion retained.
 No env/.opencode/GOAL/acceptance/Cargo.lock/auth changes, RAW/effects immutable.
-Historical diagnostic title001 and earlier captures preserved, not staged.
+Diagnostic001–005 preserved, not staged; all remaining frame differences unmasked.
 
 ## Next
-Close actual running Shell status/footer and its one foreground cell using existing
-ShellChanged/inventory/presentation owners, with new independent actual frames;
-then every other frozen outcome and final current-source R6/V09. Do not finish T44.
+Close stable fresh Shell-mode/input footer and placeholder differences through
+the existing prompt owner, then real partial standalone output/combined VIS39 and
+every other frozen outcome. Finish only after all mandatory final current R6/V09.
 
 
 Ready (до 5): T58

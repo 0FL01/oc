@@ -216,6 +216,7 @@ pub fn render_background(frame: &mut Frame<'_>) {
 /// devtools bar, then the toast overlay.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     state.clear_prompt_paint();
+    state.shells.footer_hit.set(None);
     let theme = Theme::dark();
     let area = frame.area();
     render_background(frame);
@@ -1973,10 +1974,74 @@ fn render_footer(
     if area.height == 0 || area.width == 0 {
         return;
     }
-    frame.render_widget(
-        Paragraph::new(footer_line(state, theme, area.width, terminal_width)),
-        area,
-    );
+    let (mut line, live) = footer_projection(state, theme, area.width, terminal_width);
+    if let Some(live) = live
+        .filter(|_| !state.shells.open && !state.children.open && !state.terminals.open)
+        .map(|range| range.start..range.end.min(area.width as usize))
+        .filter(|range| !range.is_empty())
+    {
+        let hit = Rect::new(area.x + live.start as u16, area.y, live.len() as u16, 1);
+        let mut visible = [hit, Rect::default()];
+        if let Some(toast) = toast_rect(state, frame.area())
+            && !toast.intersection(hit).is_empty()
+        {
+            // A toast is painted later and may split this one-row target.
+            // Retain only the (at most two) genuinely visible fragments.
+            visible[0].width = toast.x.saturating_sub(hit.x).min(hit.width);
+            let right = hit.x.max(toast.right());
+            visible[1] = Rect::new(right, hit.y, hit.right().saturating_sub(right), 1);
+        }
+        if visible.iter().any(|rect| !rect.is_empty()) {
+            state.shells.footer_hit.set(Some((frame.area(), visible)));
+        }
+        if state.mouse_position().is_some_and(|(x, y, painted)| {
+            painted == frame.area() && visible.iter().any(|rect| rect.contains((x, y).into()))
+        }) {
+            let mut x = 0;
+            for span in &mut line.spans {
+                if x >= live.start && x < live.end {
+                    span.style = span.style.fg(theme.text());
+                }
+                x += span.width();
+            }
+        }
+    }
+    frame.render_widget(Paragraph::new(line), area);
+}
+
+fn live_shell_shortcut(state: &TuiState) -> Option<String> {
+    let key = state
+        .live_shell_binding()
+        .split(',')
+        .find(|key| state.live_shell_shortcut_available(key))
+        .unwrap_or_default()
+        .trim();
+    (!key.is_empty()).then(|| match key {
+        "down" => "↓".into(),
+        "up" => "↑".into(),
+        "left" => "←".into(),
+        "right" => "→".into(),
+        _ => key.into(),
+    })
+}
+
+fn live_shell_spans(state: &TuiState, theme: &Theme) -> Option<Vec<Span<'static>>> {
+    let count = state.running_shell_count();
+    if count == 0 {
+        return None;
+    }
+    let mut spans = Vec::new();
+    if let Some(key) = live_shell_shortcut(state) {
+        spans.push(Span::styled(
+            format!("{key} "),
+            Style::default().fg(theme.text()),
+        ));
+    }
+    spans.push(Span::styled(
+        format!("{count} shell{}", if count == 1 { "" } else { "s" }),
+        Style::default().fg(theme.text_muted()),
+    ));
+    Some(spans)
 }
 
 /// Keep the shrinkable left footer slot within its cell budget without
@@ -2010,14 +2075,29 @@ fn clip_footer_spans(spans: Vec<Span<'static>>, width: usize) -> Vec<Span<'stati
     clipped
 }
 
+#[cfg(test)]
 fn footer_line(
     state: &TuiState,
     theme: &Theme,
     layout_width: u16,
     terminal_width: u16,
 ) -> Line<'static> {
+    footer_projection(state, theme, layout_width, terminal_width).0
+}
+
+fn footer_projection(
+    state: &TuiState,
+    theme: &Theme,
+    layout_width: u16,
+    terminal_width: u16,
+) -> (Line<'static>, Option<std::ops::Range<usize>>) {
     let muted = Style::default().fg(theme.text_muted());
-    let mut hints = Vec::new();
+    let live = live_shell_spans(state, theme);
+    let has_live = live.is_some();
+    let mut live_width = live
+        .as_ref()
+        .map(|spans| spans.iter().map(Span::width).sum::<usize>());
+    let mut hints = live.unwrap_or_default();
     let commands_binding = state
         .chrome
         .command_palette_shortcut
@@ -2042,6 +2122,9 @@ fn footer_line(
         let available = terminal_width.saturating_sub(8) as usize;
         let available = available.saturating_sub(28.min(available / 2));
         if text_width(&usage) <= available {
+            if has_live {
+                hints.push(Span::styled(" · ", muted));
+            }
             hints.push(Span::styled(usage.clone(), muted));
         }
         commands_visible =
@@ -2049,7 +2132,7 @@ fn footer_line(
                 <= available;
     } else {
         commands_visible = layout::shows_prompt_hints(terminal_width);
-        if commands_visible {
+        if commands_visible && !has_live {
             hints.push(Span::styled(
                 format!("{} ", AGENTS_HINT.0),
                 Style::default().fg(theme.text()),
@@ -2145,6 +2228,7 @@ fn footer_line(
             service_hints.remove(0); // the owned separator from preceding hints
         }
         hints = Line::from(service_hints);
+        live_width = None;
         left_width = (layout_width as usize).saturating_sub(hints.width() + 2);
     }
     if state.status() == &TuiStatus::Streaming {
@@ -2156,7 +2240,7 @@ fn footer_line(
     // The hints breakpoint reads the terminal width, the alignment the row
     // width (`feature-plugins/prompt/footer.tsx:53`).
     if !hints_visible {
-        return line;
+        return (line, None);
     }
     let gap = layout_width
         .saturating_sub(line.width() as u16)
@@ -2164,8 +2248,9 @@ fn footer_line(
     if gap > 0 {
         line.spans.push(Span::raw(" ".repeat(gap as usize)));
     }
+    let live = live_width.map(|width| line.width()..line.width() + width);
     line.spans.extend(hints.spans);
-    line
+    (line, live)
 }
 
 /// Height-1 devtools bar (`component/devtools-bar.tsx:232-445`), background

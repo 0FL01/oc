@@ -1527,6 +1527,9 @@ async fn poll_and_sync(app: &CoreApp, state: &mut TuiState, deck: &mut LoopState
     deck.sync_tabs(state);
     if fresh {
         deck.save(app, state).await;
+        if let Err(error) = refresh_shells(app, state).await {
+            state.push_note(&error);
+        }
     }
 }
 
@@ -1890,6 +1893,9 @@ async fn load_tab(app: &CoreApp, id: SessionId) -> Result<TuiState, CoreError> {
     state.apply_compaction_history(app.compaction_history(state.session().clone()).await?);
     state.apply_catalog(catalog);
     state.apply_mcp_snapshot(app.mcp_status().await?);
+    if let Ok(rows) = app.shell_jobs(state.session().clone()).await {
+        state.apply_shell_jobs(rows);
+    }
     refresh_dcp_summaries(app, &mut state).await;
     Ok(state)
 }
@@ -3409,15 +3415,15 @@ async fn handle_worker_event(
         }
         return Ok(());
     }
-    if matches!(&event, CoreEvent::ShellChanged { .. }) {
-        if state.shells_open() {
+    if let CoreEvent::ShellChanged { session: owner } = &event {
+        if state.attached_session() == Some(owner) || state.shells_open() {
             refresh_shells(app, state).await?;
         }
         for parked in _loop_state
             .tabs
             .iter_mut()
             .flatten()
-            .filter(|view| view.shells_open())
+            .filter(|view| view.attached_session() == Some(owner) || view.shells_open())
         {
             refresh_shells(app, parked).await?;
         }

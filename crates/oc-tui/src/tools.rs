@@ -737,8 +737,8 @@ pub(crate) fn shell_block_expanded(
     } else {
         (width as usize).saturating_sub(3).max(1)
     };
-    for raw in input.split('\n') {
-        for line in styled::wrap_line_limited(
+    for (raw_index, raw) in input.split('\n').enumerate() {
+        for (wrapped_index, line) in styled::wrap_line_limited(
             &Line::styled(
                 raw,
                 ratatui::style::Style::default()
@@ -747,8 +747,38 @@ pub(crate) fn shell_block_expanded(
             ),
             inner,
             usize::MAX,
-        ) {
-            out.push(frame.row(line.spans()));
+        )
+        .into_iter()
+        .enumerate()
+        {
+            if shell.direct_user
+                && running
+                && raw_index == 0
+                && wrapped_index == 0
+                && let Some(command) = line.plain_text().strip_prefix(&format!("{SPINNER} "))
+            {
+                // Spinner and command are separate children; their layout gap
+                // inherits the block foreground, not the command's text color.
+                out.push(
+                    frame.row(&[
+                        Span::styled(
+                            SPINNER,
+                            ratatui::style::Style::default()
+                                .fg(theme.text())
+                                .bg(frame.bg),
+                        ),
+                        Span::styled(" ", frame.padding),
+                        Span::styled(
+                            command,
+                            ratatui::style::Style::default()
+                                .fg(theme.text())
+                                .bg(frame.bg),
+                        ),
+                    ]),
+                );
+            } else {
+                out.push(frame.row(line.spans()));
+            }
         }
     }
 

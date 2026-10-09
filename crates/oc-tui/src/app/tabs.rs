@@ -746,6 +746,8 @@ impl TuiState {
     /// Resize invalidates press targets, not a still-visible source marquee.
     /// Re-hit-test the same physical pointer against the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
+        self.cancel_shell_footer_pointer();
+        self.shells.footer_hit.set(None);
         self.painted_prompt.borrow_mut().take();
         self.clear_transcript_selection();
         self.toast_down = false;

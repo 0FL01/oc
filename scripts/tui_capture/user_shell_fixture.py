@@ -26,11 +26,13 @@ if origin == 'oc':
         assert history == [command] and turn is None and state == 'started' and turns == 0
         assert json.loads(args)['command'] == command
         fact.update(operation=operation,session=session,turn=turn,state=state,model_turns=turns,history_exact=True)
-with pathlib.Path('user-shell-' + origin + '-boundary.jsonl').open('a') as log:
+boundary = pathlib.Path('user-shell-' + origin + '-boundary.jsonl')
+first = not boundary.exists()
+with boundary.open('a') as log:
     log.write(json.dumps(fact) + '\\n')
 # Bounded genuine supervisor-running phase for the actual UI capture. No effect
 # occurs until after the admission/history witness and this finite hold.
-time.sleep(3)
+time.sleep(6 if first else 3)
 with pathlib.Path('tool-preview-' + origin + '.effects').open('a') as effect:
     effect.write('VIS-USER-SHELL-EFFECT\\n')
 print('VIS-USER-SHELL-DONE', flush=True)

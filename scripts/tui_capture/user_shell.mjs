@@ -26,7 +26,7 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   const before=await snapshot('user_shell_before_enter');
   if(requests().length||before.shell_effect!==null||before.user_shell_boundary.length||before.mcp_calls.length)throw Error('Shell mode/edit launched an effect');
   send('\r','user_shell_explicit_submit');
-  const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
+   const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
   if(running.text.includes('native admission; data only'))throw Error('Running User Shell is still an ordinary user notice');
   const during=await snapshot('user_shell_running_before_effect');
   if(requests().length||during.shell_effect!==null||during.mcp_calls.length)throw Error('Held running Shell had an early effect');
@@ -34,7 +34,8 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
     const data=during.observations.map(o=>o.data).find(d=>d.prompt_input_history);
     if(data?.model_turns!==0||data?.tool_operations.length!==1||data?.tool_operations[0].turn_id!==null||data?.tool_operations[0].state!=='started')throw Error('Running Shell does not have its genuine NULL-turn intent');
   }
-  const completed=await shot('user-shell-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+   const completed=await shot('user-shell-completed',f=>f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('interrupt'));
+   if(completed.text.includes('↓ 1 shell'))throw Error('Completed Shell retained a stale live inventory indicator');
   const structured=(f,count)=>{
     const rows=f.cells.map(glyphs);
     if(!rows[0].includes('New session')||rows[0].includes('Untitled session'))throw Error('Fresh Shell lost its tab-only New session fallback');

@@ -421,6 +421,14 @@ async fn key_consumed_home_receipt_is_saved_once_by_poll_before_exit() {
                         .unwrap();
                     }
                     InboxMsg::Shutdown => break,
+                    InboxMsg::ShellJobs {
+                        session: owner,
+                        ack,
+                    } => {
+                        assert!(accepted && saves == 1);
+                        assert_eq!(owner, session);
+                        ack.send(Ok(Vec::new())).unwrap();
+                    }
                     _ => panic!("no replay or unexpected owner work"),
                 }
             }
@@ -588,6 +596,7 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
                 ack.send(Ok(catalog())).unwrap();
                 empty_compactions(&mut inbox).await;
                 empty_mcp_status(&mut inbox).await;
+                empty_shell_inventory(&mut inbox, id).await;
             }
         }
         let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
@@ -670,6 +679,7 @@ async fn existing_legacy_explicit_id_remains_readable_but_never_saved() {
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
         empty_mcp_status(&mut inbox).await;
+        empty_shell_inventory(&mut inbox, &expected.0).await;
         assert!(inbox.try_recv().is_err(), "legacy ID was created or saved");
     });
     let (state, deck) = restore_initial(&app, Some(id)).await.unwrap();
@@ -714,6 +724,7 @@ async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
         empty_mcp_status(&mut inbox).await;
+        empty_shell_inventory(&mut inbox, "good").await;
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("fallback Home")
         };
@@ -1111,6 +1122,7 @@ async fn quit_pending_fork_saves_accepted_identity_even_when_refresh_fails() {
                 ack.send(Ok(catalog())).unwrap();
                 empty_compactions(&mut inbox).await;
                 empty_mcp_status(&mut inbox).await;
+                empty_shell_inventory(&mut inbox, &expected.0).await;
             }
             let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
                 panic!("restart Home")
@@ -2014,6 +2026,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
             empty_mcp_status(&mut inbox).await;
+            empty_shell_inventory(&mut inbox, id).await;
         }
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("Home selection")
@@ -2108,6 +2121,7 @@ async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
             empty_mcp_status(&mut inbox).await;
+            empty_shell_inventory(&mut inbox, &format!("tab-{i}")).await;
         }
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("Home selection")
@@ -2160,6 +2174,7 @@ async fn bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route() {
             ack.send(Ok(catalog())).unwrap();
             empty_compactions(&mut inbox).await;
             empty_mcp_status(&mut inbox).await;
+            empty_shell_inventory(&mut inbox, &format!("tab-{i}")).await;
         }
         assert!(
             inbox.try_recv().is_err(),
@@ -2205,6 +2220,7 @@ async fn explicit_restore_adopts_successful_revision_for_next_save() {
         ack.send(Ok(catalog())).unwrap();
         empty_compactions(&mut inbox).await;
         empty_mcp_status(&mut inbox).await;
+        empty_shell_inventory(&mut inbox, "one").await;
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("explicit session saves")
         };
