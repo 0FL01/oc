@@ -1,0 +1,392 @@
+{
+  "origin": "upstream",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "model-shell-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-foreground",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 2,
+      "calls": 1,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-background",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-background-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-background-collapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-background-output",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 22,
+        "y": 28,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-final-output",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 27,
+        "y": 28,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    },
+    {
+      "stage": "model-shell-second",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 119,
+        "y": 39,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+  ],
+  "composer": {
+    "status": "OBSERVED_COMPOSER",
+    "origin": "upstream",
+    "started": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "first_ready-1791568191420",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "composer": {
+        "effects": {
+          "started": {
+            "lines": [
+              "first"
+            ],
+            "bytes": 6,
+            "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+          },
+          "completed": {
+            "lines": [],
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "terminal": {
+            "lines": [],
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "ready": {
+          "first": true,
+          "second": false
+        },
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "read_only_sqlite": true
+      },
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "converted": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "model_shell_converted",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "composer": {
+        "effects": {
+          "started": {
+            "lines": [
+              "first",
+              "second"
+            ],
+            "bytes": 13,
+            "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+          },
+          "completed": {
+            "lines": [],
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "terminal": {
+            "lines": [],
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "ready": {
+          "first": true,
+          "second": true
+        },
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "read_only_sqlite": true
+      },
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "final": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "model_shell_final",
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "composer": {
+        "effects": {
+          "started": {
+            "lines": [
+              "first",
+              "second"
+            ],
+            "bytes": 13,
+            "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+          },
+          "completed": {
+            "lines": [
+              "first"
+            ],
+            "bytes": 6,
+            "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+          },
+          "terminal": {
+            "lines": [],
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "ready": {
+          "first": true,
+          "second": true
+        },
+        "observations": [
+          {
+            "tables": [
+              "account",
+              "account_state",
+              "control_account",
+              "credential",
+              "event",
+              "event_sequence",
+              "instruction_blob",
+              "instruction_entry",
+              "instruction_state",
+              "kv",
+              "migration",
+              "permission",
+              "project",
+              "project_directory",
+              "session_inbox",
+              "session_message",
+              "session_pending",
+              "session_v2",
+              "workspace",
+              "worktree"
+            ],
+            "data": {}
+          }
+        ],
+        "read_only_sqlite": true
+      },
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "owner_facts": null,
+    "actual_tool_calls": 2,
+    "actual_requests": 4,
+    "shell_starts": 2,
+    "shell_completions": 1,
+    "owner_snapshot_read_only": true,
+    "no_effect_replay": true
+  }
+}

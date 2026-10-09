@@ -437,6 +437,7 @@ mod tests {
             chips: vec![],
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card_from_row(&operation(Some(fixture_run("s", "op"))))),
         };

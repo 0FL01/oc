@@ -117,6 +117,210 @@ fn child_notice_is_not_an_undo_prompt_and_redo_keeps_the_exact_delivery() {
 }
 
 #[test]
+fn model_shell_notice_is_bounded_exact_data_and_redo_preserves_its_raw_delivery() {
+    use crate::shell::jobs::{Outcome, Provenance};
+    use oc_core::session::MessageId;
+    for explicit in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let db = Db::open(root.path()).unwrap();
+        let first = db
+            .create_bound_session_and_accept_turn_with_reminder(
+                "s",
+                "/project",
+                "one",
+                "one",
+                "one",
+                None,
+                &model("fixture"),
+                None,
+                None,
+            )
+            .unwrap()
+            .user_message;
+        db.commit_turn("one", "completed", None, Some("answer one"))
+            .unwrap();
+        let second = turn(&db, "two", "two", "fixture");
+        let command = format!("printf Ω界\n{}", "Ω界".repeat(2048));
+        db.record_tool_intent(
+            "model-op",
+            "s",
+            Some("two"),
+            "shell",
+            &serde_json::json!({"command":command}).to_string(),
+        )
+        .unwrap();
+        let provenance = Provenance {
+            version: 1,
+            session: "s".into(),
+            turn: "two".into(),
+            operation: "model-op".into(),
+            location: "/project".into(),
+            generation: 7,
+            output_limits: Default::default(),
+            output_source: "defaults".into(),
+            agent: None,
+            agent_digest: None,
+            model: "fixture".into(),
+            provider: "fixture".into(),
+            command,
+            cwd: "/project".into(),
+            selected_shell: "/bin/sh".into(),
+        };
+        db.admit_shell_job_mode(&provenance, false).unwrap();
+        let mut outcome = Outcome::unknown("literal cancelled failed successful process prose");
+        outcome.state = "completed".into();
+        outcome.exit = Some(0);
+        outcome.stdout = "[stderr] data, not metadata".into();
+        db.finish_shell_job("model-op", &outcome).unwrap();
+        let notice = db.deliver_shell_notices().unwrap().remove(0);
+        assert!(!notice.user_requested);
+        let id = MessageId(notice.message_id.clone());
+        let projection = db.model_shell_notice("s", &id).unwrap().unwrap();
+        assert_eq!(projection.operation, "model-op");
+        assert_eq!(
+            projection.state, "completed",
+            "state never comes from process prose"
+        );
+        assert!(projection.command.len() <= 2048 && projection.command.ends_with('…'));
+        assert!(projection.command.starts_with("printf Ω界"));
+        assert!(db.user_shell_result("s", &id).unwrap().is_none());
+        db.create_session("foreign").unwrap();
+        assert!(db.model_shell_notice("foreign", &id).unwrap().is_none());
+        let spoof = MessageId(db.append_message("foreign", "user", &notice.text).unwrap());
+        assert!(db.model_shell_notice("foreign", &spoof).unwrap().is_none());
+        let raw = db.read_history_full("s").unwrap();
+        for version in [serde_json::json!(true), serde_json::json!(1.0)] {
+            let mut malformed = serde_json::to_value(&provenance).unwrap();
+            malformed["version"] = version;
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE shell_jobs SET provenance=?1 WHERE operation_id='model-op'",
+                    [serde_json::to_string(&malformed).unwrap()],
+                )
+                .unwrap();
+            assert!(
+                db.model_shell_notice("s", &id).unwrap().is_none(),
+                "SQLite coercion must not qualify a non-integer schema version"
+            );
+        }
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE shell_jobs SET provenance=?1 WHERE operation_id='model-op'",
+                [serde_json::to_string(&provenance).unwrap()],
+            )
+            .unwrap();
+        for version in [serde_json::json!(true), serde_json::json!(1.0)] {
+            let mut malformed = serde_json::to_value(&outcome).unwrap();
+            malformed["version"] = version;
+            db.conn
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE shell_jobs SET outcome=?1 WHERE operation_id='model-op'",
+                    [serde_json::to_string(&malformed).unwrap()],
+                )
+                .unwrap();
+            assert!(db.model_shell_notice("s", &id).unwrap().is_none());
+        }
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE shell_jobs SET outcome=?1 WHERE operation_id='model-op'",
+                [serde_json::to_string(&outcome).unwrap()],
+            )
+            .unwrap();
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE shell_jobs SET provenance='{' WHERE operation_id='model-op'",
+                [],
+            )
+            .unwrap();
+        assert!(db.model_shell_notice("s", &id).unwrap().is_none());
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE shell_jobs SET provenance=?1 WHERE operation_id='model-op'",
+                [serde_json::to_string(&provenance).unwrap()],
+            )
+            .unwrap();
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "DELETE FROM events WHERE session_id='s' AND kind='shell_notice'",
+                [],
+            )
+            .unwrap();
+        assert!(
+            db.model_shell_notice("s", &id).unwrap().is_none(),
+            "positive delivery event is required"
+        );
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO events(session_id,kind,payload) VALUES('s','shell_notice',?1)",
+                [&notice.delivery_id],
+            )
+            .unwrap();
+        assert_eq!(
+            db.model_shell_notice("s", &id).unwrap(),
+            Some(projection.clone())
+        );
+        let undone = db
+            .change_conversation(
+                "s",
+                if explicit {
+                    ConversationAction::Revert {
+                        message: MessageId(first),
+                    }
+                } else {
+                    ConversationAction::Undo
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            undone.draft.as_deref(),
+            Some(if explicit { "one" } else { "two" })
+        );
+        assert_eq!(
+            undone.reverted.as_ref().unwrap().user_messages,
+            if explicit { 2 } else { 1 }
+        );
+        if !explicit {
+            assert_eq!(undone.reverted.unwrap().message.0, second);
+        }
+        assert!(undone.can_redo);
+        assert!(db.model_shell_notice("s", &id).unwrap().is_none());
+        assert_eq!(db.read_history_full("s").unwrap(), raw);
+        drop(db);
+        let db = Db::open(root.path()).unwrap();
+        let redo = db
+            .change_conversation("s", ConversationAction::Redo)
+            .unwrap();
+        assert!(!redo.can_redo && redo.reverted.is_none());
+        assert_eq!(db.conversation_history_full("s").unwrap(), raw);
+        assert_eq!(db.model_shell_notice("s", &id).unwrap(), Some(projection));
+        assert!(db.deliver_shell_notices().unwrap().is_empty());
+        let copied = MessageId(db.append_message("s", "user", &notice.text).unwrap());
+        assert!(db.model_shell_notice("s", &copied).unwrap().is_none());
+        assert!(
+            db.change_conversation("s", ConversationAction::Undo)
+                .is_err(),
+            "ordinary unlinked legacy user messages still refuse unsupported Undo"
+        );
+    }
+}
+
+#[test]
 fn direct_user_shell_is_not_an_undo_prompt_and_whole_tail_redo_preserves_raw_and_job() {
     for explicit in [false, true] {
         let root = tempfile::tempdir().unwrap();

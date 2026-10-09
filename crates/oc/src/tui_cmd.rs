@@ -3596,9 +3596,37 @@ async fn handle_worker_event(
                         state.refresh_completed_page(&page);
                     }
                 }
-            } else if state.is_busy() {
-                state.push_note(&notice.text);
             } else {
+                let exact = app
+                    .history_message(
+                        notice.session.clone(),
+                        oc_core::session::MessageId(notice.message_id),
+                    )
+                    .await
+                    .map_err(|error| error.to_string())?;
+                if !exact.rows.iter().any(|row| {
+                    row.shell_notice
+                        .as_ref()
+                        .is_some_and(|metadata| metadata.operation == notice.shell_id)
+                }) {
+                    return Ok(());
+                }
+                if state.has_model_shell_card(&notice.shell_id)
+                    && let Ok(snapshot) = app
+                        .shell_snapshot(notice.session.clone(), notice.shell_id.clone())
+                        .await
+                {
+                    state.apply_model_shell_snapshot(&snapshot);
+                }
+                if state.is_busy() {
+                    let recent = app
+                        .history_page(notice.session, None, None, HISTORY_PAGE_LIMIT)
+                        .await
+                        .map_err(|error| error.to_string())?;
+                    state.refresh_child_notice_page(&recent);
+                    state.refresh_child_notice_page(&exact);
+                    return Ok(());
+                }
                 let page = if let Some(selected) = state.linked_child().cloned() {
                     app.read_child(selected.parent.clone(), selected).await
                 } else {

@@ -230,9 +230,33 @@ async fn tool13_conversion_retains_pid_admission_capture_and_final_view_after_re
     );
     assert_eq!(before.len(), 1);
     assert!(!before[0].background);
+    let preview = before[0].output.as_ref().expect("owned model preview");
+    assert!(preview.is_valid());
+    assert!(preview.retained_bytes() <= 4096);
+    assert!(preview.shell.as_ref().unwrap().stdout.contains("live-fg"));
+    assert!(
+        preview
+            .shell
+            .as_ref()
+            .unwrap()
+            .stderr
+            .contains("live-stderr")
+    );
+    assert!(preview.shell.as_ref().unwrap().exit.is_none());
+    assert!(!preview.shell.as_ref().unwrap().background);
     assert_eq!(before[0].pid, Some(pid));
     assert_eq!(converted[0].pid, Some(pid));
     assert!(converted[0].background);
+    assert!(
+        converted[0]
+            .output
+            .as_ref()
+            .unwrap()
+            .shell
+            .as_ref()
+            .unwrap()
+            .background
+    );
     assert_eq!(live.job.generation, 17);
     assert_eq!(live.job.model, "gpt-fixture-issuing-request");
     assert_eq!(live.state, "running");
@@ -244,6 +268,17 @@ async fn tool13_conversion_retains_pid_admission_capture_and_final_view_after_re
     assert!(after.is_empty() && !late);
     assert_eq!(final_view.job.pid, Some(pid));
     assert_eq!(final_view.state, "completed");
+    let frozen = held.db.shell_job_outcome("source", "fg").unwrap();
+    assert!(
+        frozen
+            .output_presentation
+            .as_ref()
+            .unwrap()
+            .shell
+            .as_ref()
+            .unwrap()
+            .background
+    );
     assert!(final_view.text.contains("final-fg"));
     assert!(final_view.stdout_cursor > live.stdout_cursor);
     assert!(!Path::new(&format!("/proc/{pid}")).exists());
@@ -361,9 +396,9 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
         .unwrap();
     let jobs = Jobs::new(&db);
     let shell = Shell::new(&project).unwrap();
-    let argv = vec!["/bin/sh".into(), "-c".into(), "printf '\\033[31mlive-held-output\\033[0m'; touch entered; while [ ! -f release ]; do sleep .01; done; printf final-flush".into()];
+    let argv = vec!["/bin/sh".into(), "-c".into(), "printf '\\033[31mlive-held-output\\033[0m'; touch entered; while [ ! -f release ]; do sleep .01; done; printf final-flush; printf stderr-final >&2".into()];
     let pinned = shell.pin_cwd(&argv, ".").unwrap();
-    jobs.launch(
+    jobs.launch_mode(
         shell,
         BTreeMap::new(),
         argv,
@@ -388,6 +423,8 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
             selected_shell: "/bin/sh".into(),
         },
         jobs.reserve().unwrap(),
+        true,
+        Vec::new(),
     )
     .await
     .unwrap();
@@ -415,17 +452,52 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
         tokio::time::sleep(Duration::from_millis(5)).await;
     }
     let final_snapshot = jobs.snapshot("source", "operation").unwrap();
+    let frozen = db.shell_job_outcome("source", "operation").unwrap();
     jobs.shutdown().await.unwrap();
     assert!(
         live.is_some_and(|(text, _, _)| text.contains("live-held-output")),
         "actual held supervisor output must be readable before terminal"
+    );
+    let presentation = frozen.output_presentation.as_ref().unwrap();
+    assert!(
+        presentation.body.contains("final-flush") && presentation.body.contains("stderr-final")
+    );
+    assert!(
+        !presentation.body.contains("\n[stderr]\n"),
+        "UI display is process data, not generated transport labels"
+    );
+    assert_eq!(
+        presentation
+            .shell
+            .as_ref()
+            .unwrap()
+            .process_state
+            .as_deref(),
+        Some("completed")
+    );
+    assert!(!presentation.shell.as_ref().unwrap().background);
+    assert!(
+        frozen.tool_result().1.contains("\n[stderr]\n"),
+        "model-facing result envelope is unchanged"
     );
     assert_eq!(running.state, "running");
     assert_eq!(running.display, "live-held-output");
     assert!(!running.display_omitted);
     assert_eq!((running.exit, running.signal), (None, None));
     assert_eq!(final_snapshot.state, "completed");
-    assert_eq!(final_snapshot.display, "live-held-outputfinal-flush");
+    // Stdout and stderr are independently drained; preserve observed publication
+    // order, not an invented total order for two OS file descriptors.
+    assert_eq!(final_snapshot.display, presentation.body);
+    assert!(final_snapshot.display.starts_with("live-held-output"));
+    assert_eq!(
+        final_snapshot.display.len(),
+        "live-held-outputfinal-flushstderr-final".len()
+    );
+    assert_eq!(
+        presentation.shell.as_ref().unwrap().stdout,
+        "live-held-outputfinal-flush"
+    );
+    assert_eq!(presentation.shell.as_ref().unwrap().stderr, "stderr-final");
     assert_eq!(final_snapshot.exit, Some(0));
     assert!(!final_snapshot.display_omitted);
 }

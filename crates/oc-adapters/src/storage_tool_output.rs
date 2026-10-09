@@ -79,18 +79,29 @@ impl Db {
         session: &str,
         operation: &str,
     ) -> Result<Option<Box<oc_core::tool_output::Presentation>>, StorageError> {
-        let raw: Option<Option<String>> = conn.query_row(
-            "SELECT payload FROM events WHERE session_id=?1 AND kind='tool_output_presentation' AND json_extract(CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN CASE WHEN json_valid(payload) THEN payload ELSE '{}' END ELSE '{}' END,'$.operation')=?2 ORDER BY seq DESC LIMIT 1",
+        // A converted foreground await can publish its logical handle after the
+        // process has exited. Prefer the frozen supervisor facts, not publication
+        // order, without rewriting the tool result or its provider/RAW graph.
+        let frozen: Option<String> = conn.query_row(
+            "WITH owned AS (SELECT j.session_id,j.operation_id,o.turn_id,CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END result,CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END provenance FROM shell_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id WHERE j.session_id=?1 AND j.operation_id=?2 AND j.phase='terminal' AND o.name IN ('shell','bash') AND o.turn_id IS NOT NULL) SELECT json_extract(result,'$.output_presentation') FROM owned WHERE json_extract(result,'$.version')=1 AND json_type(result,'$.version')='integer' AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown') AND json_extract(provenance,'$.version')=1 AND json_type(provenance,'$.version')='integer' AND json_extract(provenance,'$.session')=session_id AND json_extract(provenance,'$.operation')=operation_id AND json_extract(provenance,'$.turn')=turn_id AND json_type(result,'$.output_presentation')='object' AND length(CAST(json_extract(result,'$.output_presentation') AS BLOB))<=?3",
             params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
             |row| row.get(0),
         ).optional()?;
-        let presentation = raw.flatten().and_then(|raw| {
-            let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
-            serde_json::from_value::<oc_core::tool_output::Presentation>(
-                value["presentation"].clone(),
-            )
-            .ok()
-        });
+        let mut presentation = frozen.and_then(|raw| serde_json::from_str(&raw).ok());
+        if presentation.is_none() {
+            let raw: Option<Option<String>> = conn.query_row(
+                "WITH facts AS (SELECT seq,CASE WHEN length(CAST(payload AS BLOB))<=?3 THEN CASE WHEN json_valid(payload) THEN payload ELSE '{}' END ELSE '{}' END payload FROM events WHERE session_id=?1 AND kind='tool_output_presentation') SELECT payload FROM facts WHERE json_extract(payload,'$.operation')=?2 ORDER BY CASE WHEN json_extract(payload,'$.presentation.shell.process_state') IN ('completed','failed','cancelled','timed_out','unknown') THEN 1 ELSE 0 END DESC,seq DESC LIMIT 1",
+            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
+            |row| row.get(0),
+        ).optional()?;
+            presentation = raw.flatten().and_then(|raw| {
+                let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+                serde_json::from_value::<oc_core::tool_output::Presentation>(
+                    value["presentation"].clone(),
+                )
+                .ok()
+            });
+        }
         let Some(mut presentation) =
             presentation.filter(oc_core::tool_output::Presentation::is_valid)
         else {

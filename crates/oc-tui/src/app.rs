@@ -411,6 +411,7 @@ impl LivePart {
                 meta: None,
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             },
             LivePart::Reasoning { text, duration_ms } => HistoryRow {
                 message_id: None,
@@ -431,6 +432,7 @@ impl LivePart {
                 meta: None,
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             },
             LivePart::Tool { card, .. } => HistoryRow {
                 message_id: None,
@@ -444,6 +446,7 @@ impl LivePart {
                 meta: None,
                 tool: Some((**card).clone()),
                 child_notice: None,
+                shell_notice: None,
             },
         }
     }

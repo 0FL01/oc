@@ -40,6 +40,12 @@ pub struct Capture {
 /// Stream previews remain bounded; these facts do not promise full recovery.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Shell {
+    /// Actual foreground-await conversion, not the originally requested mode.
+    #[serde(default)]
+    pub background: bool,
+    /// Frozen supervisor state. None while running or for legacy stream facts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_state: Option<String>,
     pub stdout: String,
     pub stderr: String,
     pub stdout_limited: bool,
@@ -73,10 +79,11 @@ impl Presentation {
             + self.capture.as_ref().map_or(0, |capture| {
                 capture.reference.as_ref().map_or(0, String::len)
             })
-            + self
-                .shell
-                .as_ref()
-                .map_or(0, |shell| shell.stdout.len() + shell.stderr.len())
+            + self.shell.as_ref().map_or(0, |shell| {
+                shell.stdout.len()
+                    + shell.stderr.len()
+                    + shell.process_state.as_ref().map_or(0, String::len)
+            })
     }
 
     /// Retain the already admitted/redacted body at the existing preview limit.
@@ -106,9 +113,14 @@ impl Presentation {
                     && capture.retained_bytes <= capture.admitted_bytes
                     && capture.retained_lines <= capture.admitted_lines
             })
-            && self
-                .shell
-                .as_ref()
-                .is_none_or(|shell| shell.stdout.len() + shell.stderr.len() <= PREVIEW_BYTES)
+            && self.shell.as_ref().is_none_or(|shell| {
+                shell.stdout.len() + shell.stderr.len() <= PREVIEW_BYTES
+                    && shell.process_state.as_deref().is_none_or(|state| {
+                        matches!(
+                            state,
+                            "completed" | "failed" | "cancelled" | "timed_out" | "unknown"
+                        )
+                    })
+            })
     }
 }

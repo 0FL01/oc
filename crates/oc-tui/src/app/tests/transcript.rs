@@ -579,6 +579,7 @@ async fn exploration_mouse_hits_only_visible_header_text_without_drag_or_modal_l
             chips: vec![],
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card),
         });
@@ -1638,6 +1639,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         chips: vec![],
         reasoning: None,
         child_notice: None,
+        shell_notice: None,
         meta: None,
         tool: Some(card),
     });
@@ -1747,6 +1749,7 @@ async fn expandable_shell_hover_repeated_toggle_and_selection_respect_painted_su
         chips: vec![],
         reasoning: None,
         child_notice: None,
+        shell_notice: None,
         meta: None,
         tool: Some(card),
     });
@@ -1808,6 +1811,7 @@ async fn exploration_toggle_anchors_long_result_and_attach_page_discards_expansi
             chips: vec![],
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card),
         });

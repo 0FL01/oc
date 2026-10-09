@@ -33,6 +33,7 @@ fn message(state: ChildState) -> HistoryMessage {
         model_switch: None,
         user_shell: None,
         child: Some(ChildHistory::Notice(Box::new(job(state)))),
+        shell_notice: None,
     }
 }
 fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
@@ -150,6 +151,67 @@ fn child_notice_and_task_are_typed_bounded_projection_with_matching_indexed_cell
         before,
         "disjoint exact notice cannot jump unseen history"
     );
+}
+
+#[test]
+fn model_shell_notice_is_plain_typed_data_without_a_child_link_or_user_action() {
+    let theme = crate::theme::Theme::dark();
+    for (state, label, color) in [
+        ("completed", "↳ Shell finished", theme.info()),
+        ("failed", "! Shell failed", theme.error()),
+        ("cancelled", "! Shell cancelled", theme.warning()),
+        ("timed_out", "! Shell timed out", theme.warning()),
+        ("unknown", "! Shell unknown", theme.info()),
+    ] {
+        let mut source = message(ChildState::Completed);
+        source.child = None;
+        source.shell_notice = Some(oc_core::queries::ShellHistoryNotice {
+            operation: "model-op".into(),
+            state: state.into(),
+            command: "printf\n  Ω界\t\x1b[31m literal cancelled".into(),
+        });
+        let saved = source.clone();
+        let rows = rows_from_page(&source);
+        assert_eq!(source, saved);
+        assert_eq!(rows[0].role, "shell_notice");
+        assert!(
+            rows[0].child_notice.is_none() && rows[0].tool.is_none() && rows[0].text.is_empty()
+        );
+        for width in [43, 80, 120, 160] {
+            let painted = crate::messages::transcript(&rows, theme, width, width, |_| theme.text());
+            assert_eq!(painted.len(), 1);
+            assert!(painted[0].plain_text().contains(label));
+            assert!(!painted[0].plain_text().chars().any(char::is_control));
+            assert_eq!(painted[0].spans()[1].style().fg, Some(color));
+            assert_eq!(painted[0].spans()[2].style().fg, Some(theme.text_muted()));
+            let cache = std::cell::RefCell::new(crate::messages::MarkdownCache::default());
+            let (indexed, total, targets) = crate::messages::visible_transcript_user_targets(
+                &rows,
+                theme,
+                (width, width),
+                (24, 0, None),
+                |_| theme.text(),
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(total, 2);
+            assert!(targets.iter().all(Option::is_none));
+            assert_eq!(
+                indexed.last().unwrap().plain_text(),
+                painted[0].plain_text()
+            );
+        }
+        let mut window = HistoryWindow::default();
+        window.reset(&page(vec![source.clone()]));
+        assert!(window.retained_bytes() >= source.shell_notice.as_ref().unwrap().command.len());
+        assert!(!window.refresh_owner_notices(&page(vec![source.clone()])));
+        source.shell_notice = None;
+        assert_eq!(
+            rows_from_page(&source)[0].role,
+            "user",
+            "RAW wording is not classification"
+        );
+    }
 }
 
 #[tokio::test]

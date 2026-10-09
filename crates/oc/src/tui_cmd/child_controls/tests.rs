@@ -114,6 +114,42 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
     assert_eq!(deck.child_parent.as_ref().unwrap().input(), "root draft α");
     let exact = job.clone();
     let worker = tokio::spawn(async move {
+        let Some(InboxMsg::History {
+            session,
+            message,
+            limit,
+            ack,
+            ..
+        }) = inbox.recv().await
+        else {
+            panic!("exact child-source notice qualification before family refresh");
+        };
+        assert_eq!(session, exact.child);
+        assert_eq!(
+            message,
+            Some(oc_core::session::MessageId("leaf-committed".into()))
+        );
+        assert_eq!(limit, 1);
+        ack.send(Ok(HistoryPage {
+            rows: vec![oc_core::queries::HistoryMessage {
+                id: oc_core::session::MessageId("leaf-committed".into()),
+                seq: 3,
+                role: oc_core::session::Role::User,
+                text: "late captured-source RAW result".into(),
+                turn: None,
+                model_switch: None,
+                user_shell: None,
+                child: None,
+                shell_notice: Some(oc_core::queries::ShellHistoryNotice {
+                    operation: "original-leaf".into(),
+                    state: "completed".into(),
+                    command: "captured original command".into(),
+                }),
+            }],
+            total: 3,
+            ..Default::default()
+        }))
+        .unwrap();
         let Some(InboxMsg::ReadChild {
             session,
             selected,

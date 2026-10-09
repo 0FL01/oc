@@ -132,6 +132,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         // bounded owner facts without another query or a parallel store.
         tool: Some(card.clone()),
         child_notice: None,
+        shell_notice: None,
     }
 }
 
@@ -151,6 +152,7 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
         meta: Some(meta),
         tool: None,
         child_notice: None,
+        shell_notice: None,
     }
 }
 
@@ -236,12 +238,56 @@ impl TuiState {
     }
 
     /// The existing inventory can arrive before a receipt/history attachment.
-    /// Its projection changes only known inputs, not the executing model parts.
+    pub fn has_model_shell_card(&self, operation: &str) -> bool {
+        self.window.rows().iter().any(|row| {
+            row.tool
+                .as_ref()
+                .is_some_and(|card| card.is_model_shell(operation))
+        }) || self.live_parts.iter().any(
+            |part| matches!(part, LivePart::Tool { card, .. } if card.is_model_shell(operation)),
+        )
+    }
+
+    /// One terminal owner receipt flushes an already-known model card. It does
+    /// not attach provider parts or retarget the captured operation.
+    pub fn apply_model_shell_snapshot(&mut self, snapshot: &oc_core::queries::ShellSnapshot) {
+        if self.session.as_ref() != Some(&snapshot.job.session) {
+            return;
+        }
+        let mut changed = self.window.finish_model_shell_preview(snapshot);
+        for part in &mut self.live_parts {
+            if let LivePart::Tool { card, .. } = part
+                && self
+                    .active_turn
+                    .as_ref()
+                    .is_some_and(|turn| turn.0 == snapshot.job.turn)
+            {
+                changed |= card.finish_model_shell_preview(snapshot);
+            }
+        }
+        if changed {
+            self.enforce_parts();
+        }
+    }
+
+    /// The existing inventory can arrive before a receipt/history attachment.
+    /// Update only existing user inputs and operation-associated model cards;
+    /// neither path creates another executing model part.
     pub(crate) fn refresh_running_user_shell_output(&mut self) {
-        if let Some(session) = &self.session
-            && self.shells.refresh_transcript(session, &mut self.window)
-        {
-            self.invalidate_transcript();
+        if let Some(session) = &self.session {
+            let mut changed = self.shells.refresh_transcript(session, &mut self.window);
+            for part in &mut self.live_parts {
+                if let LivePart::Tool { card, .. } = part {
+                    changed |= self.shells.refresh_live_card(
+                        session,
+                        self.active_turn.as_ref().map(|turn| turn.0.as_str()),
+                        card,
+                    );
+                }
+            }
+            if changed {
+                self.enforce_parts();
+            }
         }
     }
 
@@ -1319,6 +1365,7 @@ impl TuiState {
                 meta: None,
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             });
         }
         let mut group_first = None;
@@ -1355,6 +1402,7 @@ impl TuiState {
                 meta: None,
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             });
         }
         self.interleave_compactions(&mut rows);

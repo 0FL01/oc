@@ -1,0 +1,2020 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:46619/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"tool_output\": {\"max_lines\": 1000, \"max_bytes\": 65536}, \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"subagent\", \"resource\": \"helper\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"python3 composer-probe.py first\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"python3 composer-probe.py second\", \"effect\": \"allow\"}], \"mcp\": {\"servers\": {}}, \"agents\": {\"helper\": {\"mode\": \"subagent\", \"description\": \"VIS39 fixture worker\", \"system\": \"Execute only the fixture-owned tool calls.\", \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"subagent\", \"resource\": \"helper\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"python3 composer-probe.py first\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"python3 composer-probe.py second\", \"effect\": \"allow\"}]}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-home",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-home",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568336743",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568336820",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568336896",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568336972",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "user_texts": [
+      "VIS39_ROOT_MODEL_SHELL_TASK"
+    ],
+    "registered_tools": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title"
+  },
+  {
+    "kind": "provider",
+    "operation": "parent",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "user_texts": [
+      "VIS39_ROOT_MODEL_SHELL_TASK"
+    ],
+    "registered_tools": [
+      "shell",
+      "subagent"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "python3 composer-probe.py first"
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "parent"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337049",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337124",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337200",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337276",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337355",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": false,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_ready-1791568337430",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-foreground",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-foreground",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568344751",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "provider",
+    "operation": "parent",
+    "valid": true,
+    "index": 1,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis39_shell_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Command moved to the background (shell ID: sh_121cb58f3001tcK37q5RvhXJA8).\nOutput is streaming to: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/data/opencode/shell/60b56986d1bb6ba3dac4530f0b6cff9e55bb5518/sh_121cb58f3001tcK37q5RvhXJA8.out"
+          },
+          {
+            "type": "input_text",
+            "text": "You will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes."
+          }
+        ]
+      }
+    ],
+    "user_texts": [
+      "VIS39_ROOT_MODEL_SHELL_TASK"
+    ],
+    "registered_tools": [
+      "shell",
+      "subagent"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "name": "shell",
+    "arguments": {
+      "command": "python3 composer-probe.py second"
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "parent"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568344829",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568344904",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568344979",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568345054",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": false
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "second_ready-1791568345135",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": true
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-background",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-background",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-background-expanded",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-background-expanded",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-background-collapsed",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-background-collapsed",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "model_shell_converted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": true
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-background-output",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-background-output",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "tool_preview_control_ack",
+    "request_id": "release-first",
+    "released": "first"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_released-1791568388232",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": true
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "first_released-1791568388309",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": true
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-final-output",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-final-output",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_pause_ack",
+    "request_id": "model-shell-second",
+    "paused": true,
+    "generation": 0
+  },
+  {
+    "kind": "scanner_resume_ack",
+    "request_id": "model-shell-second",
+    "paused": false,
+    "generation": 0
+  },
+  {
+    "kind": "provider",
+    "operation": "parent",
+    "valid": true,
+    "index": 2,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis39_shell_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Command moved to the background (shell ID: sh_121cb58f3001tcK37q5RvhXJA8).\nOutput is streaming to: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/model-shell-025/upstream/home/data/opencode/shell/60b56986d1bb6ba3dac4530f0b6cff9e55bb5518/sh_121cb58f3001tcK37q5RvhXJA8.out"
+          },
+          {
+            "type": "input_text",
+            "text": "You will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis39_shell_1",
+        "output": "{\"error\":{\"type\":\"unknown\",\"message\":\"Shell.NotFoundError\"},\"content\":[]}"
+      }
+    ],
+    "user_texts": [
+      "VIS39_ROOT_MODEL_SHELL_TASK",
+      "User requested that active blocking work be moved to the background.\n\nBackgrounded work:\n- shell: python3 composer-probe.py first\n\nThe backgrounded work is still unfinished. Move on to other work if you can. If there is nothing else useful to do, finish your response. Do not wait, sleep, poll, or report the backgrounded work as complete until a later completion notification is added to the conversation.",
+      "<shell id=\"sh_121cb58f3001tcK37q5RvhXJA8\" state=\"completed\" command=\"python3 composer-probe.py first\">\nVIS39-LIVE-first\nVIS39-ROW-000\nVIS39-ROW-001\nVIS39-ROW-002\nVIS39-ROW-003\nVIS39-ROW-004\nVIS39-ROW-005\nVIS39-ROW-006\nVIS39-ROW-007\nVIS39-ROW-008\nVIS39-ROW-009\nVIS39-ROW-010\nVIS39-ROW-011\nVIS39-ROW-012\nVIS39-ROW-013\nVIS39-ROW-014\nVIS39-ROW-015\nVIS39-ROW-016\nVIS39-ROW-017\nVIS39-ROW-018\nVIS39-ROW-019\nVIS39-ROW-020\nVIS39-ROW-021\nVIS39-ROW-022\nVIS39-ROW-023\nVIS39-ROW-024\nVIS39-ROW-025\nVIS39-ROW-026\nVIS39-ROW-027\nVIS39-ROW-028\nVIS39-ROW-029\nVIS39-ROW-030\nVIS39-ROW-031\nVIS39-ROW-032\nVIS39-ROW-033\nVIS39-ROW-034\nVIS39-ROW-035\nVIS39-ROW-036\nVIS39-ROW-037\nVIS39-ROW-038\nVIS39-ROW-039\nVIS39-ROW-040\nVIS39-ROW-041\nVIS39-ROW-042\nVIS39-ROW-043\nVIS39-ROW-044\nVIS39-ROW-045\nVIS39-ROW-046\nVIS39-ROW-047\nVIS39-ROW-048\nVIS39-ROW-049\nVIS39-ROW-050\nVIS39-ROW-051\nVIS39-ROW-052\nVIS39-ROW-053\nVIS39-ROW-054\nVIS39-ROW-055\nVIS39-ROW-056\nVIS39-ROW-057\nVIS39-ROW-058\nVIS39-ROW-059\nVIS39-ROW-060\nVIS39-ROW-061\nVIS39-ROW-062\nVIS39-ROW-063\nVIS39-ROW-064\nVIS39-ROW-065\nVIS39-ROW-066\nVIS39-ROW-067\nVIS39-ROW-068\nVIS39-ROW-069\nVIS39-ROW-070\nVIS39-ROW-071\nVIS39-ROW-072\nVIS39-ROW-073\nVIS39-ROW-074\nVIS39-ROW-075\nVIS39-ROW-076\nVIS39-ROW-077\nVIS39-ROW-078\nVIS39-ROW-079\n\u001b[31mVIS39-STDERR-first\u001b[0m\nVIS39-FINAL-FLUSH-first\n\n\nCommand exited with code 0.\n</shell>"
+    ],
+    "registered_tools": [
+      "shell",
+      "subagent"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "parent"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "model_shell_final",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "composer": {
+      "effects": {
+        "started": {
+          "lines": [
+            "first",
+            "second"
+          ],
+          "bytes": 13,
+          "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+        },
+        "completed": {
+          "lines": [
+            "first"
+          ],
+          "bytes": 6,
+          "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+        },
+        "terminal": {
+          "lines": [],
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "ready": {
+        "first": true,
+        "second": true
+      },
+      "observations": [
+        {
+          "tables": [
+            "account",
+            "account_state",
+            "control_account",
+            "credential",
+            "event",
+            "event_sequence",
+            "instruction_blob",
+            "instruction_entry",
+            "instruction_state",
+            "kv",
+            "migration",
+            "permission",
+            "project",
+            "project_directory",
+            "session_inbox",
+            "session_message",
+            "session_pending",
+            "session_v2",
+            "workspace",
+            "worktree"
+          ],
+          "data": {}
+        }
+      ],
+      "read_only_sqlite": true
+    },
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

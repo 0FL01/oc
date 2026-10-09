@@ -90,6 +90,8 @@ fn shell_status_is_owned_and_projection_does_not_synthesize_truncation() {
     let stdout = "exit 0\n[truncated]\n[timeout]\n[cancelled]\n[stderr]\n";
     let mut presentation = Presentation::new("available body", 20_000, true);
     presentation.shell = Some(Shell {
+        background: false,
+        process_state: None,
         stdout: stdout.into(),
         stderr: "real stderr\n".into(),
         stdout_limited: true,
@@ -256,6 +258,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         chips: Vec::new(),
         reasoning: None,
         child_notice: None,
+        shell_notice: None,
         meta: None,
         tool: Some(card),
     }];

@@ -620,6 +620,7 @@ pub(crate) mod tests {
                 chips: Vec::new(),
                 reasoning: None,
                 child_notice: None,
+                shell_notice: None,
                 meta: None,
                 tool: Some(card.clone()),
             }];
@@ -753,6 +754,7 @@ pub(crate) mod tests {
                 chips: Vec::new(),
                 reasoning: None,
                 child_notice: None,
+                shell_notice: None,
                 meta: None,
                 tool: Some(card),
             }];
@@ -819,6 +821,7 @@ pub(crate) mod tests {
                 chips: Vec::new(),
                 reasoning: None,
                 child_notice: None,
+                shell_notice: None,
                 meta: None,
                 tool: Some(card),
             }];
@@ -948,6 +951,7 @@ pub(crate) mod tests {
             chips: Vec::new(),
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card),
         }];
@@ -1055,6 +1059,7 @@ pub(crate) mod tests {
             chips: Vec::new(),
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card),
         };

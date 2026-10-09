@@ -80,5 +80,26 @@ try {
   assert.equal(JSON.stringify(geometry).includes('geometry-secret-sentinel'),false);
   assert.equal(JSON.stringify(geometry).includes('X'),false);
   assert.equal(JSON.stringify(geometry).includes('http://'),false);
-  console.log('PASS: resize geometry, bounded DOM tail-row paint, CSS layers, viewport/DPR and PNG clip dimensions');
+  // A requested clip alone is silently trimmed to the browser viewport. The
+  // ordinary expanded card must retain every row beyond that viewport as well.
+  for (const rows of [80,120]) {
+    await page.evaluate(rows => term.resize(120,rows),rows);
+    await page.evaluate(data => writeTerminal(data),Buffer.from(
+      `\x1b[${rows};120HX\x1b[1;1H`).toString('base64'));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const before=await page.evaluate(() => readCaptureGeometry());
+    const frame=await page.evaluate(() => readTerminal());
+    const rect=await page.locator('.xterm-screen').boundingBox();
+    const clip={x:rect.x,y:rect.y,width:Math.ceil(rect.width),height:Math.ceil(rect.height)};
+    assert.ok(clip.height>1100);
+    const viewportOnly=await page.screenshot({clip});
+    assert.equal(viewportOnly.readUInt32BE(20),1100);
+    const full=await page.screenshot({clip,fullPage:true});
+    assert.equal(full.readUInt32BE(16),clip.width);
+    assert.equal(full.readUInt32BE(20),clip.height);
+    assert.deepEqual(await page.evaluate(() => readCaptureGeometry()),before);
+    assert.deepEqual(await page.evaluate(() => readTerminal()),frame);
+    assert.equal(frame.cells.at(-1).at(-1).symbol,'X');
+  }
+  console.log('PASS: resize geometry, bounded DOM tail-row paint, CSS layers, viewport/DPR and complete tall PNG clips without grid/layout changes');
 } finally { await browser.close(); }

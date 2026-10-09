@@ -1,6 +1,194 @@
 use super::*;
 
 #[tokio::test]
+async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live_parts() {
+    use oc_core::{
+        queries::{
+            HistoryMessage, HistoryPage, ShellHistoryNotice, ShellJob, ShellNotice, ShellSnapshot,
+        },
+        session::{MessageId, Role},
+    };
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = SessionId("model-shell-source".into());
+    let current = WorkerTurnId("model-shell-turn".into());
+    let mut state = TuiState::new(app.clone(), session.clone());
+    state.begin_linked_turn(current.clone());
+    state.apply_delta(&current, "same assistant part");
+    state.apply_tool_started(
+        &current,
+        "actual-model-operation",
+        "shell",
+        r#"{"command":"captured original command"}"#,
+    );
+    state.restore_prompt("unfinished draft".into());
+    let source = session.clone();
+    let owner = tokio::spawn(async move {
+        let InboxMsg::History {
+            session,
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("exact data-notice qualification before any capture lookup");
+        };
+        assert_eq!(session, source);
+        assert_eq!(message, Some(MessageId("actual-message".into())));
+        assert_eq!(limit, 1);
+        let row = HistoryMessage {
+            id: MessageId("actual-message".into()),
+            seq: 9,
+            role: Role::User,
+            text: "technical RAW envelope must not become a toast".into(),
+            turn: None,
+            model_switch: None,
+            user_shell: None,
+            child: None,
+            shell_notice: Some(ShellHistoryNotice {
+                operation: "actual-model-operation".into(),
+                state: "completed".into(),
+                command: "captured original command".into(),
+            }),
+        };
+        ack.send(Ok(HistoryPage {
+            rows: vec![row.clone()],
+            total: 1,
+            ..Default::default()
+        }))
+        .unwrap();
+        let InboxMsg::ShellSnapshot {
+            session,
+            shell_id,
+            ack,
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("one original capture query after qualification")
+        };
+        assert_eq!(session, source);
+        assert_eq!(shell_id, "actual-model-operation");
+        ack.send(Ok(ShellSnapshot {
+            job: ShellJob {
+                session,
+                shell_id,
+                location: "/original-owned-location".into(),
+                generation: 17,
+                turn: "model-shell-turn".into(),
+                model: "fixture/model".into(),
+                provider: "fixture".into(),
+                command: "captured original command".into(),
+                pid: None,
+                background: true,
+                output: None,
+            },
+            state: "completed".into(),
+            stdout_cursor: 20,
+            stderr_cursor: 0,
+            truncated: false,
+            text: "legacy envelope must not replace process output".into(),
+            display: "actual frozen final flush\n".into(),
+            display_omitted: false,
+            exit: Some(0),
+            signal: None,
+        }))
+        .unwrap();
+        let InboxMsg::History {
+            session,
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("bounded current-turn correlation, not a second model graph");
+        };
+        assert_eq!(session, source);
+        assert!(message.is_none());
+        assert_eq!(limit, HISTORY_PAGE_LIMIT);
+        ack.send(Ok(HistoryPage {
+            rows: vec![row],
+            total: 1,
+            ..Default::default()
+        }))
+        .unwrap();
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ShellNotice(ShellNotice {
+            session: session.clone(),
+            shell_id: "actual-model-operation".into(),
+            delivery_id: "actual-delivery".into(),
+            message_id: "actual-message".into(),
+            user_requested: false,
+            state: "completed".into(),
+            text: "existing model notification".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let mut inbox = owner.await.unwrap();
+    let rows = state.transcript_rows();
+    assert_eq!(
+        rows.len(),
+        3,
+        "one data notice and the same two model parts"
+    );
+    assert_eq!(rows[0].role, "shell_notice");
+    assert_eq!(rows[1].text, "same assistant part");
+    let card = rows[2].tool.as_ref().unwrap();
+    assert_eq!(card.state, "started", "logical graph state is immutable");
+    assert_eq!(card.op, "actual-model-operation");
+    assert!(card.output_preview.contains("actual frozen final flush"));
+    assert!(!card.output_preview.contains("legacy envelope"));
+    assert_eq!(state.active_turn(), Some(&current));
+    assert_eq!(state.input(), "unfinished draft");
+    assert!(state.note().is_none());
+    assert!(inbox.try_recv().is_err());
+    // A hidden/unassociated notice gets only an exact current-branch lookup,
+    // never a fabricated capture association or a technical RAW toast.
+    let hidden = tokio::spawn(async move {
+        let InboxMsg::History {
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("even a known card cannot read capture for an unqualified notice");
+        };
+        assert_eq!(message, Some(MessageId("unrelated-message".into())));
+        assert_eq!(limit, 1);
+        ack.send(Ok(HistoryPage::default())).unwrap();
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ShellNotice(ShellNotice {
+            session: session.clone(),
+            shell_id: "actual-model-operation".into(),
+            delivery_id: "unrelated-delivery".into(),
+            message_id: "unrelated-message".into(),
+            user_requested: false,
+            state: "completed".into(),
+            text: "unrelated model notification".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let mut inbox = hidden.await.unwrap();
+    assert_eq!(state.transcript_rows(), rows);
+    assert!(state.note().is_none());
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_parts() {
     use oc_core::{
         queries::{
@@ -47,6 +235,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
         model_switch: None,
         user_shell: None,
         child: Some(ChildHistory::Notice(Box::new(job.clone()))),
+        shell_notice: None,
     };
     let owner = tokio::spawn(async move {
         let InboxMsg::History {
@@ -98,6 +287,7 @@ async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_par
                     model_switch: None,
                     user_shell: None,
                     child: None,
+                    shell_notice: None,
                 },
                 notice,
             ],
@@ -242,6 +432,8 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     state.restore_prompt("unfinished newer draft".into());
     let mut output = Presentation::new("user process output", 19, false);
     output.shell = Some(Shell {
+        background: false,
+        process_state: None,
         stdout: "user process output".into(),
         stderr: String::new(),
         stdout_limited: false,
@@ -277,6 +469,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
                 turn: None,
                 model_switch: None,
                 child: None,
+                shell_notice: None,
                 user_shell: Some(UserShellResult {
                     input: false,
                     superseded_input: false,
@@ -361,6 +554,21 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
         "branch-hidden native result does not become RAW prose"
     );
     assert_eq!(state.input(), "unfinished newer draft");
+    let model_owner = tokio::spawn(async move {
+        let InboxMsg::History {
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("exact model-notice identity, not RAW prose");
+        };
+        assert_eq!(message, Some(MessageId("model-result".into())));
+        assert_eq!(limit, 1);
+        ack.send(Ok(HistoryPage::default())).unwrap();
+        inbox
+    });
     handle_worker_event(
         &app,
         &mut state,
@@ -378,13 +586,14 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
     )
     .await
     .unwrap();
+    let mut inbox = model_owner.await.unwrap();
     assert!(
-        state.note().is_some(),
-        "model background notice retains its existing path"
+        state.note().is_none(),
+        "unassociated model data never becomes RAW prose"
     );
     assert!(
         inbox.try_recv().is_err(),
-        "model notice does not query native projection"
+        "no capture or extra model request for an unassociated notice"
     );
 }
 
@@ -719,6 +928,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
                 turn: None,
                 model_switch: None,
                 child: None,
+                shell_notice: None,
                 user_shell: None,
             }],
             ..Default::default()
@@ -1843,6 +2053,7 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
         }],
         total: 1,
@@ -2223,6 +2434,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         turn: None,
         model_switch: None,
         child: None,
+        shell_notice: None,
         user_shell: None,
     };
     let mut state = TuiState::new(app.clone(), SessionId("kept".into()));

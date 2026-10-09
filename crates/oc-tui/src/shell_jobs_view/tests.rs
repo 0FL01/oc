@@ -21,6 +21,235 @@ fn job(id: &str, source: &str) -> ShellJob {
 }
 
 #[tokio::test]
+async fn model_shell_live_capture_preserves_tool_graph_and_actual_background_conversion() {
+    use oc_core::{
+        core_app::WorkerTurnId,
+        tool_output::{Presentation, Shell},
+    };
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("source".into()));
+    state.restore_prompt("untouched draft".into());
+    let turn = WorkerTurnId("issuing-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_delta(&turn, "working once");
+    let body = "stdout literal [stderr]\nstderr literal [stdout]\n";
+    let mut output = Presentation::new(body, body.len() as u64, false);
+    output.shell = Some(Shell {
+        background: false,
+        process_state: None,
+        stdout: "stdout literal [stderr]\n".into(),
+        stderr: "stderr literal [stdout]\n".into(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: None,
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let mut live = job("model-op", "source");
+    live.output = Some(Box::new(output));
+    state.apply_shell_jobs(vec![live.clone()]);
+    assert_eq!(
+        state.transcript_rows().len(),
+        1,
+        "inventory cannot create a graph part"
+    );
+    let input = r#"{"command":"captured original command"}"#;
+    state.apply_tool_started(&turn, "model-op", "shell", input);
+    let rows = state.transcript_rows();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].text, "working once");
+    let card = rows[1].tool.as_ref().unwrap();
+    assert_eq!(card.state, "started");
+    let crate::tools::ToolRender::Shell(shell) = &card.render else {
+        panic!("shell")
+    };
+    assert!(shell.live_running && !shell.background && !shell.direct_user);
+    assert_eq!(shell.command, "captured original command");
+    let theme = crate::theme::Theme::dark();
+    let foreground = crate::tools::shell_block_expanded(shell, card, theme, 120, false)
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        foreground.contains("stdout literal [stderr]")
+            && foreground.contains("stderr literal [stdout]")
+    );
+    assert!(!foreground.contains("Background") && !foreground.contains("Command exited"));
+    for (source, operation, issuing_turn) in [
+        ("foreign", "model-op", "issuing-turn"),
+        ("source", "other-op", "issuing-turn"),
+        ("source", "model-op", "other-turn"),
+        ("source", "model-op", ""),
+    ] {
+        let mut foreign = live.clone();
+        foreign.session.0 = source.into();
+        foreign.shell_id = operation.into();
+        foreign.turn = issuing_turn.into();
+        foreign.output.as_mut().unwrap().body = "foreign text".into();
+        state.apply_shell_jobs(vec![foreign]);
+        assert!(
+            !state
+                .transcript_lines(120, 120)
+                .iter()
+                .any(|line| line.plain_text().contains("foreign text"))
+        );
+        state.apply_shell_jobs(vec![live.clone()]);
+    }
+    live.background = true;
+    live.output
+        .as_mut()
+        .unwrap()
+        .shell
+        .as_mut()
+        .unwrap()
+        .background = true;
+    state.apply_shell_jobs(vec![live.clone()]);
+    state.apply_tool_finished(
+        &turn,
+        "model-op",
+        "shell",
+        "completed",
+        "foreground await returned",
+        25,
+        false,
+    );
+    let rows = state.transcript_rows();
+    assert_eq!(
+        rows.len(),
+        2,
+        "logical completion keeps the same model part"
+    );
+    let card = rows[1].tool.as_ref().unwrap();
+    assert_eq!(card.state, "completed");
+    let crate::tools::ToolRender::Shell(shell) = &card.render else {
+        panic!("shell")
+    };
+    let collapsed = crate::tools::shell_block_expanded(shell, card, theme, 120, false);
+    let text = collapsed
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("Background") && !text.contains("stdout literal"));
+    let badge = collapsed
+        .iter()
+        .flat_map(|line| line.spans())
+        .find(|span| span.content().contains("Background"))
+        .unwrap();
+    assert_eq!(
+        badge.style().bg,
+        Some(theme.decrease(theme.color("background.raised.base").unwrap()))
+    );
+    let expanded = crate::tools::shell_block_expanded(shell, card, theme, 120, true)
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        expanded.contains("stdout literal [stderr]")
+            && expanded.contains("stderr literal [stdout]")
+    );
+    assert!(crate::tools::shell_expandable(card, 120));
+    state.apply_finished(&turn, "working once", 10);
+    state.apply_shell_jobs(vec![live.clone()]);
+    let final_snapshot = oc_core::queries::ShellSnapshot {
+        job: live.clone(),
+        state: "completed".into(),
+        stdout_cursor: 20,
+        stderr_cursor: 0,
+        truncated: false,
+        text: "legacy text is not parsed".into(),
+        display: "actual final flush\n".into(),
+        display_omitted: false,
+        exit: Some(0),
+        signal: None,
+    };
+    state.apply_model_shell_snapshot(&final_snapshot);
+    let settled = state.transcript_rows();
+    let card = settled.iter().find_map(|row| row.tool.as_ref()).unwrap();
+    assert_eq!(card.state, "completed");
+    assert!(card.output_preview.contains("actual final flush"));
+    state.apply_shell_jobs(vec![live.clone()]);
+    assert_eq!(
+        state.transcript_rows(),
+        settled,
+        "late running inventory cannot revive known terminal facts"
+    );
+    let mut cold = oc_core::tool_output::Presentation::new("cold final output", 17, false);
+    cold.shell = Some(Shell {
+        background: true,
+        process_state: Some("failed".into()),
+        stdout: "cold final output".into(),
+        stderr: String::new(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: Some(7),
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    state.attach_page(&oc_core::queries::HistoryPage {
+        rows: vec![oc_core::queries::HistoryMessage {
+            id: oc_core::session::MessageId("cold-model-message".into()),
+            seq: 4,
+            role: oc_core::session::Role::Assistant,
+            text: String::new(),
+            turn: Some(oc_core::queries::HistoryTurn {
+                id: turn.0.clone(),
+                status: "completed".into(),
+                parts: vec![oc_core::queries::TranscriptPart::Tool(
+                    oc_core::queries::ToolOpView {
+                        op: "model-op".into(),
+                        name: "shell".into(),
+                        state: "completed".into(),
+                        input: Some(input.into()),
+                        output: Some("immutable logical handle".into()),
+                        output_bytes: 24,
+                        output_presentation: Some(Box::new(cold)),
+                        question: None,
+                        dcp_topic: None,
+                        dcp: None,
+                        patch_effects: None,
+                        rowid: 1,
+                        output_truncated: false,
+                    },
+                )],
+                ..Default::default()
+            }),
+            model_switch: None,
+            user_shell: None,
+            child: None,
+            shell_notice: None,
+        }],
+        total: 1,
+        ..Default::default()
+    });
+    let reopened = state.transcript_rows();
+    state.apply_shell_jobs(vec![live]);
+    assert_eq!(state.transcript_rows(), reopened);
+    let card = reopened.iter().find_map(|row| row.tool.as_ref()).unwrap();
+    let crate::tools::ToolRender::Shell(shell) = &card.render else {
+        panic!("cold shell")
+    };
+    assert_eq!(shell.process_state.as_deref(), Some("failed"));
+    assert!(shell.background && !shell.live_running);
+    let text = crate::tools::shell_block_expanded(shell, card, theme, 120, true)
+        .iter()
+        .map(crate::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("cold final output") && text.contains("code 7"));
+    assert!(!text.contains("immutable logical handle"));
+    assert_eq!(state.input(), "untouched draft");
+    assert!(
+        inbox.try_recv().is_err(),
+        "display updates do not execute or query another owner"
+    );
+}
+
+#[tokio::test]
 async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachment_races() {
     use oc_core::{
         queries::{HistoryMessage, HistoryPage, UserShellResult},
@@ -37,6 +266,8 @@ async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachm
         false,
     );
     output.shell = Some(Shell {
+        background: false,
+        process_state: None,
         stdout: "stdout literal [stderr]\n".into(),
         stderr: "stderr literal [stdout]\n".into(),
         stdout_limited: false,
@@ -64,6 +295,7 @@ async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachm
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: Some(UserShellResult {
                 input: true,
                 superseded_input: false,

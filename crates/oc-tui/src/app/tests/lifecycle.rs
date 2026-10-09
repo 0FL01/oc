@@ -1,6 +1,234 @@
 use super::*;
 
 #[tokio::test]
+async fn model_shell_snapshot_requires_the_current_turn_for_retained_live_parts() {
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = sid("orphaned-live-model");
+    let mut state = TuiState::new(app, session.clone());
+    let turn = WorkerTurnId("original-model-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.apply_tool_started(
+        &turn,
+        "known-operation",
+        "shell",
+        r#"{"command":"original command"}"#,
+    );
+    state.restore_prompt("unchanged draft 界".into());
+    // A retired worker is not authority to update any still-retained live part.
+    state.active_turn = None;
+    let before = state.transcript_rows();
+    state.apply_model_shell_snapshot(&oc_core::queries::ShellSnapshot {
+        job: oc_core::queries::ShellJob {
+            session,
+            shell_id: "known-operation".into(),
+            location: "/original".into(),
+            generation: 7,
+            turn: turn.0,
+            model: "fixture/model".into(),
+            provider: "fixture".into(),
+            command: "original command".into(),
+            pid: None,
+            background: true,
+            output: None,
+        },
+        state: "completed".into(),
+        stdout_cursor: 10,
+        stderr_cursor: 0,
+        truncated: false,
+        text: "legacy envelope".into(),
+        display: "must not replace an orphaned live part".into(),
+        display_omitted: false,
+        exit: Some(7),
+        signal: None,
+    });
+    assert_eq!(state.transcript_rows(), before);
+    assert_eq!(state.input(), "unchanged draft 界");
+    assert!(state.active_turn().is_none());
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn scripted_notice_after_submit_refusal_refreshes_idle_tail_without_raw_prose() {
+    use oc_core::{
+        core_app::{CoreEvent, InboxMsg},
+        queries::{
+            ChildHistory, ChildJob, ChildNotice, ChildState, HistoryMessage, ShellHistoryNotice,
+            ShellNotice, UserShellResult,
+        },
+        session::{MessageId, Role},
+    };
+    for kind in 0..3 {
+        let (app, mut inbox, events) = CoreApp::channel(8);
+        let session = sid("script-notice");
+        let mut state = TuiState::new(app.clone(), session.clone());
+        let old = HistoryMessage {
+            id: MessageId("older-message".into()),
+            seq: 1,
+            role: Role::Assistant,
+            text: "older history".into(),
+            turn: None,
+            model_switch: None,
+            child: None,
+            shell_notice: None,
+            user_shell: None,
+        };
+        state.attach_page(&HistoryPage {
+            rows: vec![old.clone()],
+            total: 1,
+            ..Default::default()
+        });
+        state.restore_prompt("draft retained after refusal".into());
+        state.handle_key(KeyAction::Enter).await;
+        let InboxMsg::Submit { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("real pending submission");
+        };
+        let mut driver = ScriptDriver::attach(&app);
+        ack.send(Err(CoreError::Application("refused".into())))
+            .unwrap();
+        let mut row = HistoryMessage {
+            id: MessageId("actual-notice".into()),
+            seq: 3,
+            role: Role::User,
+            text: "technical RAW envelope must never become a toast".into(),
+            turn: None,
+            model_switch: None,
+            child: None,
+            shell_notice: None,
+            user_shell: None,
+        };
+        let event = if kind == 1 {
+            let job = ChildJob {
+                parent: session.clone(),
+                child: sid("child"),
+                operation: "child-operation".into(),
+                generation: 7,
+                location: "/original".into(),
+                agent: "helper".into(),
+                model: "fixture/model".into(),
+                description: "captured task".into(),
+                delivery_id: "actual-delivery".into(),
+                state: ChildState::Completed,
+                background: true,
+                turn: Some("child-turn".into()),
+                result: None,
+                message_id: Some(row.id.0.clone()),
+            };
+            row.child = Some(ChildHistory::Notice(Box::new(job.clone())));
+            CoreEvent::ChildNotice(ChildNotice {
+                job,
+                text: row.text.clone(),
+            })
+        } else {
+            if kind == 0 {
+                row.shell_notice = Some(ShellHistoryNotice {
+                    operation: "actual-operation".into(),
+                    state: "completed".into(),
+                    command: "printf output".into(),
+                });
+            } else {
+                row.user_shell = Some(UserShellResult {
+                    input: false,
+                    superseded_input: false,
+                    operation: "actual-operation".into(),
+                    command: "printf output".into(),
+                    command_limited: false,
+                    state: "completed".into(),
+                    output: Box::new(oc_core::tool_output::Presentation::new(
+                        "process output",
+                        14,
+                        false,
+                    )),
+                    diagnostic: None,
+                });
+            }
+            CoreEvent::ShellNotice(ShellNotice {
+                session: session.clone(),
+                shell_id: "actual-operation".into(),
+                delivery_id: "actual-delivery".into(),
+                message_id: row.id.0.clone(),
+                user_requested: kind == 2,
+                state: "completed".into(),
+                text: row.text.clone(),
+            })
+        };
+        events.send(event).unwrap();
+        let owner = tokio::spawn(async move {
+            let InboxMsg::History {
+                session: requested,
+                message,
+                limit,
+                ack,
+                ..
+            } = inbox.recv().await.unwrap()
+            else {
+                panic!("exact notice lookup");
+            };
+            assert_eq!(requested, session);
+            assert_eq!(message, Some(row.id.clone()));
+            assert_eq!(limit, 1);
+            ack.send(Ok(HistoryPage {
+                rows: vec![row.clone()],
+                total: 2,
+                ..Default::default()
+            }))
+            .unwrap();
+            let InboxMsg::History {
+                session: requested,
+                message,
+                limit,
+                ack,
+                ..
+            } = inbox.recv().await.unwrap()
+            else {
+                panic!("idle completed tail, not a disjoint selective append");
+            };
+            assert_eq!(requested, session);
+            assert!(message.is_none());
+            assert_eq!(limit, 100);
+            ack.send(Ok(HistoryPage {
+                rows: vec![old, row],
+                total: 2,
+                ..Default::default()
+            }))
+            .unwrap();
+            inbox
+        });
+        assert_eq!(
+            driver
+                .pump_until_idle(&mut state, Duration::from_secs(1))
+                .await,
+            PumpOutcome::Idle
+        );
+        let mut inbox = owner.await.unwrap();
+        assert_eq!(state.input(), "draft retained after refusal");
+        let text = state
+            .transcript_lines(120, 120)
+            .iter()
+            .map(crate::styled::Line::plain_text)
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(text.contains("older history"));
+        assert!(
+            text.contains(if kind == 0 {
+                "↳ Shell finished"
+            } else if kind == 1 {
+                "↳ Helper finished"
+            } else {
+                "$ printf output"
+            }),
+            "{text}"
+        );
+        assert!(!text.contains("technical RAW"));
+        assert!(
+            !state
+                .note()
+                .is_some_and(|note| note.contains("technical RAW"))
+        );
+        assert!(inbox.try_recv().is_err(), "no effect/provider/query replay");
+    }
+}
+
+#[tokio::test]
 async fn vis28_scanner_clock_rolls_over_and_resets_for_each_running_transition() {
     let mut state = fresh_state("scanner-clock").await;
     let at = Instant::now();

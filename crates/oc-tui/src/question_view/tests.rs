@@ -170,6 +170,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
                 text: String::new(),
                 model_switch: None,
                 child: None,
+                shell_notice: None,
                 user_shell: None,
                 turn: Some(HistoryTurn {
                     id: format!("turn-{seq}"),

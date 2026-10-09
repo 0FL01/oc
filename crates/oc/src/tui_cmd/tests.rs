@@ -84,6 +84,7 @@ fn tps_page() -> oc_core::queries::HistoryPage {
             text: "cached body".into(),
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
             turn: Some(oc_core::queries::HistoryTurn {
                 id: "measured-turn".into(),

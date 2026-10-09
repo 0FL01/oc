@@ -214,6 +214,7 @@ fn sampled_view_metrics_include_parked_routes_and_preserve_peaks() {
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
         }],
         total: 1,
@@ -1479,6 +1480,7 @@ async fn message_copy_keyboard_drains_transport_and_preserves_dialog_on_failure(
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
         };
         state.attach_page(&HistoryPage {

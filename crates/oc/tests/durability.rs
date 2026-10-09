@@ -276,10 +276,42 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
     );
     let mut recovered = intent.clone();
     recovered.state = "unknown".into();
+    let rows = db.list_tool_ops(SESSION).expect("recovered operation");
+    // Recovery now supplies bounded display provenance, never an execution
+    // result. Pin the unknown/no-output shape before comparing every original
+    // identity/input/output field below.
+    let presentation = rows[0]
+        .output_presentation
+        .as_ref()
+        .expect("truthful recovered Shell presentation");
+    let capture = presentation.capture.clone().expect("interrupted capture");
     assert_eq!(
-        db.list_tool_ops(SESSION).expect("recovered operation"),
+        capture.state,
+        oc_core::tool_output::CaptureState::Interrupted
+    );
+    assert_eq!((capture.admitted_bytes, capture.retained_bytes), (0, 0));
+    assert_eq!((capture.admitted_lines, capture.retained_lines), (0, 0));
+    let mut expected = oc_core::tool_output::Presentation::new("", 0, false);
+    expected.capture = Some(capture);
+    expected.shell = Some(oc_core::tool_output::Shell {
+        stdout: String::new(),
+        stderr: String::new(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: None,
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+        background: false,
+        process_state: Some("unknown".into()),
+    });
+    assert!(presentation.is_valid());
+    assert_eq!(presentation.as_ref(), &expected);
+    recovered.output_presentation = rows[0].output_presentation.clone();
+    assert_eq!(
+        rows,
         vec![recovered.clone()],
-        "only state changes; identity/input retained, no new operation or outcome"
+        "unknown display facts only; identity/input retained, no new operation or execution outcome"
     );
     assert_eq!(
         db.turn_result(turn).expect("recovered turn"),

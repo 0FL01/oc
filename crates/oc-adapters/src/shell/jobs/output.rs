@@ -419,6 +419,8 @@ impl Capture {
             false,
         );
         presentation.shell = Some(oc_core::tool_output::Shell {
+            background: false,
+            process_state: None,
             stdout_limited: stream.stdout.bytes > stdout.len() as u64,
             stderr_limited: stream.stderr.bytes > stderr.len() as u64,
             stdout,

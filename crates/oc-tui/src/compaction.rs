@@ -85,6 +85,7 @@ pub(crate) fn row(snapshot: &CompactionSnapshot, frame: usize, animations: bool)
         meta: None,
         tool: None,
         child_notice: None,
+        shell_notice: None,
     }
 }
 
@@ -523,6 +524,7 @@ mod tests {
                     turn: None,
                     model_switch: None,
                     child: None,
+                    shell_notice: None,
                     user_shell: None,
                 },
                 HistoryMessage {
@@ -532,6 +534,7 @@ mod tests {
                     text: "final".into(),
                     model_switch: None,
                     child: None,
+                    shell_notice: None,
                     user_shell: None,
                     turn: Some(HistoryTurn {
                         id: "turn".into(),
@@ -565,6 +568,7 @@ mod tests {
                     turn: None,
                     model_switch: None,
                     child: None,
+                    shell_notice: None,
                     user_shell: None,
                 },
             ],

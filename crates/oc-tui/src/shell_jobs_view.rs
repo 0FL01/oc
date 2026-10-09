@@ -36,7 +36,17 @@ impl ShellView {
         session: &oc_core::domain::SessionId,
         window: &mut crate::history::HistoryWindow,
     ) -> bool {
-        window.refresh_running_user_shell_output(session, &self.rows)
+        let user = window.refresh_running_user_shell_output(session, &self.rows);
+        window.refresh_running_model_shell_output(session, &self.rows) | user
+    }
+
+    pub(crate) fn refresh_live_card(
+        &self,
+        session: &SessionId,
+        turn: Option<&str>,
+        card: &mut crate::history::ToolCard,
+    ) -> bool {
+        card.refresh_model_shell_output(session, turn, &self.rows)
     }
 
     fn selected(&self) -> Option<&ShellJob> {

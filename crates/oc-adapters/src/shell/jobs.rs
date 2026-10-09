@@ -304,6 +304,8 @@ impl Outcome {
             .as_ref()
             .map(|resource| resource.presentation_capture());
         presentation.shell = Some(oc_core::tool_output::Shell {
+            background: false,
+            process_state: Some(self.state.clone()),
             stdout_limited: self.stdout_truncated || stdout.len() < self.stdout.len(),
             stderr_limited: self.stderr_truncated || stderr.len() < self.stderr.len(),
             stdout,
@@ -442,34 +444,6 @@ impl Jobs {
 
     pub(crate) fn reserve(&self) -> Option<tokio::sync::OwnedSemaphorePermit> {
         self.slots.clone().try_acquire_owned().ok()
-    }
-
-    #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) async fn launch(
-        self: &Arc<Self>,
-        shell: Shell,
-        env: BTreeMap<String, String>,
-        argv: Vec<String>,
-        cwd: String,
-        timeout: Duration,
-        approved: Arc<PinnedCwd>,
-        provenance: Provenance,
-        slot: tokio::sync::OwnedSemaphorePermit,
-    ) -> Result<String, StorageError> {
-        self.launch_mode(
-            shell,
-            env,
-            argv,
-            cwd,
-            timeout,
-            approved,
-            provenance,
-            slot,
-            false,
-            Vec::new(),
-        )
-        .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -653,19 +627,18 @@ impl Jobs {
                 .display();
             outcome.display_recent = Some(display);
             outcome.display_omitted = omitted;
-            if p.turn.is_empty() {
-                // The supervisor has moved drain buffers into Outcome. Keep its
-                // frozen typed stream/exit facts; only the ordered display body
-                // comes from the safe publication projection retained by Capture.
-                let ordered = owned_capture.presentation();
-                let presentation = outcome
-                    .output_presentation
-                    .as_mut()
-                    .expect("prepared output");
-                presentation.body = ordered.body;
-                presentation.body_bytes = ordered.body_bytes;
-                presentation.body_limited = ordered.body_limited;
-            }
+            // The supervisor has moved drain buffers into Outcome. Keep its
+            // frozen typed stream/exit facts; every owned process's display body
+            // comes from the safe ordered publication retained by Capture, not
+            // the model-facing envelope or generated stream separators.
+            let ordered = owned_capture.presentation();
+            let presentation = outcome
+                .output_presentation
+                .as_mut()
+                .expect("prepared output");
+            presentation.body = ordered.body;
+            presentation.body_bytes = ordered.body_bytes;
+            presentation.body_limited = ordered.body_limited;
             // Producer loss is separate from a storage failure or leader exit.
             // Even a short interrupted prefix must advertise its capture state.
             let incomplete = resource
@@ -703,6 +676,12 @@ impl Jobs {
                 }
             }
             let mut control = owned_control.lock().expect("shell control");
+            if let Some(presentation) = &mut outcome.output_presentation
+                && let Some(facts) = &mut presentation.shell
+            {
+                facts.background = control.background;
+                facts.process_state = Some(outcome.state.clone());
+            }
             // Freeze known process effects/exit first. A failure recording the
             // separate logging event must not replace them with invented unknown.
             let result = db.finish_shell_job(&operation, &outcome).and_then(|()| {
@@ -767,6 +746,10 @@ impl Jobs {
                 continue;
             }
             if let Some(p) = &job.provenance {
+                let mut output = job.capture.presentation();
+                if let Some(facts) = &mut output.shell {
+                    facts.background = control.background;
+                }
                 rows.push(oc_core::queries::ShellJob {
                     session: oc_core::domain::SessionId(p.session.clone()),
                     shell_id: id.clone(),
@@ -778,7 +761,7 @@ impl Jobs {
                     command: p.command.clone(),
                     pid: control.pid,
                     background: control.background,
-                    output: p.turn.is_empty().then(|| job.capture.presentation()),
+                    output: Some(output),
                 });
             }
         }

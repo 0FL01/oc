@@ -333,6 +333,7 @@ mod tests {
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
             seq,
             role,

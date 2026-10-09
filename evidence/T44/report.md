@@ -435,3 +435,19 @@ For the **concurrent title** source slice, serialized workspace fmt, locked test
 The historical first VIS10 foundation slice mapped painted user-message lines and hover shading. [`message-hover-20260926-01`](../tui/message-hover-20260926-01/report.md) observed the same normal-to-hover transition, with full frames DIFFERENT by two elapsed digits. At that checkpoint there was no menu or durable ID. The resumed implementation now carries durable owner IDs and real actions; see [current functional evidence](conversation-only-report.md). The earlier capture remains immutable and is not promoted to parity PASS.
 
 Hover-slice full serialized regression gate **PASS**: workspace fmt, locked tests, all-target Clippy `-D warnings`, locked build, xterm frontend check, JS/Python syntax, docs/progress and diff checks; output `/home/opencode/.local/share/opencode/tool-output/tool_0dc5c25c1001nUr2e8fxEv7nai`. Earlier attempts exposed one transient PTY cursor wait (targeted rerun passed) and an MCP fixture counting a concurrent title as an unsafe main retry. The fixture now counts structured main requests separately at all assertions in the affected scenarios; main/tool retry prohibitions remain asserted. No test was skipped or expectation changed for an actual retry.
+
+## Model Shell capture and plain notices (2026-10-09 — qualified slice)
+
+[Factual receipt](../tui/model-shell.md) records exact live/frozen model-Shell
+output/background/status, positive current-branch plain-notice projection and
+unchanged RAW/tool graph/provenance/caps. Current full workspace gate is1797/0/11;
+strict Clippy/builds/help, release startup19/GET8/TERM01 and original resource guards
+PASS. Final Root023–02580/120/160 each qualify eight actual stages per side;
+child009–011 each twenty; ordinary006 retains27 paired stages plus native details;
+default/WebGL temporal002 and matched002 qualify actual caret behavior, not blink.
+The independent complete-raster audit verifies384 opaque uncropped captures and
+1152 seals/current527-entry source manifests. Direct comparisons remain378
+DIFFERENT/4 EQUAL, with four separate native-only entries. Historical cropped
+PNGs are not promoted. Whole R1–R6/VIS01–45/VIS39/T44 remains ACTIVE/NOT_PASS;
+continue Subagent/background/profile/Root/human-prefix/grammar/assets and every
+remaining frozen outcome before final current-source R6/V09.

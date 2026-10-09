@@ -235,6 +235,16 @@ pub struct HistoryMessage {
     /// Child task/notice display facts linked to this exact durable message.
     /// Neither the accepted RAW prompt nor provider history is changed.
     pub child: Option<ChildHistory>,
+    /// Exact delivered model-Shell notice; data, not a user prompt or tool part.
+    pub shell_notice: Option<ShellHistoryNotice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellHistoryNotice {
+    pub operation: String,
+    pub state: String,
+    /// Bounded captured command, never parsed from the technical RAW notice.
+    pub command: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1639,8 +1649,8 @@ pub struct ShellJob {
     pub pid: Option<i32>,
     /// Whether the original foreground await has been converted/released.
     pub background: bool,
-    /// Bounded admitted/redacted live output for a direct-user command. Model
-    /// jobs and stored identity-only snapshots leave this unset. No exit is
+    /// Bounded admitted/redacted live output from the existing capture. Stored
+    /// identity-only snapshots leave this unset. No exit is
     /// implied, and this preview is not a second capture or signal capability.
     pub output: Option<Box<crate::tool_output::Presentation>>,
 }

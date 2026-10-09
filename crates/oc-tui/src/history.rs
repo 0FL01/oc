@@ -55,6 +55,8 @@ pub struct HistoryRow {
     pub tool: Option<ToolCard>,
     /// Exact delivered child notice; not a user block or assistant tool part.
     pub child_notice: Option<Box<oc_core::queries::ChildJob>>,
+    /// Exact background Shell data notice; intentionally not a navigation link.
+    pub shell_notice: Option<oc_core::queries::ShellHistoryNotice>,
 }
 
 /// Which end of the deque is dropped when a cap is exceeded.
@@ -227,6 +229,9 @@ impl HistoryWindow {
                         .map_or(0, String::len)
                     + row.tool.as_ref().map_or(0, ToolCard::retained_bytes)
                     + row.child_notice.as_deref().map_or(0, child_notice_bytes)
+                    + row.shell_notice.as_ref().map_or(0, |notice| {
+                        notice.operation.len() + notice.state.len() + notice.command.len()
+                    })
             })
             .sum()
     }
@@ -269,6 +274,7 @@ impl HistoryWindow {
             meta: None,
             tool: None,
             child_notice: None,
+            shell_notice: None,
         });
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
@@ -319,6 +325,7 @@ impl HistoryWindow {
             meta: None,
             tool: Some(card),
             child_notice: None,
+            shell_notice: None,
         });
     }
 
@@ -335,6 +342,7 @@ impl HistoryWindow {
             message.role == Role::User
                 && message.user_shell.is_none()
                 && message.child.is_none()
+                && message.shell_notice.is_none()
                 && message.turn.as_ref().is_some_and(|owner| owner.id == turn)
         }) else {
             return;
@@ -371,6 +379,7 @@ impl HistoryWindow {
         for message in &page.rows {
             let shell = message.user_shell.as_ref();
             if shell.is_none()
+                && message.shell_notice.is_none()
                 && !matches!(
                     message.child,
                     Some(oc_core::queries::ChildHistory::Notice(_))
@@ -429,6 +438,7 @@ impl HistoryWindow {
                         tail_seq.is_some_and(|seq| between.seq > seq)
                             && between.seq < message.seq
                             && between.user_shell.is_none()
+                            && between.shell_notice.is_none()
                             && !matches!(
                                 between.child,
                                 Some(oc_core::queries::ChildHistory::Notice(_))
@@ -524,6 +534,51 @@ impl HistoryWindow {
         changed
     }
 
+    /// Existing model tool parts may observe their exact owned process without
+    /// adding graph rows or borrowing another session's job.
+    pub(crate) fn refresh_running_model_shell_output(
+        &mut self,
+        session: &oc_core::domain::SessionId,
+        jobs: &[oc_core::queries::ShellJob],
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if row.role == "tool"
+                && let Some(card) = &mut row.tool
+            {
+                changed |= card.refresh_model_shell_output(session, None, jobs);
+            }
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
+    pub(crate) fn finish_model_shell_preview(
+        &mut self,
+        snapshot: &oc_core::queries::ShellSnapshot,
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if row.role == "tool"
+                && let Some(card) = &mut row.tool
+            {
+                changed |= card.finish_model_shell_preview(snapshot);
+            }
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
     fn insert_durable(&mut self, row: HistoryRow) {
         let index = self
             .rows
@@ -576,6 +631,7 @@ impl HistoryWindow {
                     meta: None,
                     tool: None,
                     child_notice: None,
+                    shell_notice: None,
                 },
             );
             if self.enforce(Evict::Oldest) {
@@ -640,6 +696,7 @@ fn row_from_page(
         meta: None,
         tool: None,
         child_notice: None,
+        shell_notice: None,
     }
 }
 
@@ -678,6 +735,13 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
     let message_id = std::sync::Arc::new(row.id.clone());
+    if let Some(notice) = &row.shell_notice {
+        let mut result = row_from_page(row, &message_id);
+        result.role = "shell_notice".into();
+        result.text.clear();
+        result.shell_notice = Some(notice.clone());
+        return vec![result];
+    }
     if let Some(oc_core::queries::ChildHistory::Notice(job)) = &row.child {
         let mut result = row_from_page(row, &message_id);
         result.role = "child_notice".into();
@@ -728,6 +792,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         meta: None,
         tool: None,
         child_notice: None,
+        shell_notice: None,
     };
     let first = turn
         .spans
@@ -867,6 +932,9 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
     let render = crate::tools::ShellRender {
         command: shell.command.clone(),
         direct_user: true,
+        live_running: false,
+        process_state: None,
+        background: false,
         command_limited: shell.command_limited,
         diagnostic: shell.diagnostic.clone(),
         exit: facts.and_then(|facts| facts.exit.map(i64::from)),
@@ -939,6 +1007,119 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    pub(crate) fn is_model_shell(&self, operation: &str) -> bool {
+        self.op == operation
+            && matches!(&self.render, ToolRender::Shell(shell) if !shell.direct_user)
+    }
+
+    pub(crate) fn finish_model_shell_preview(
+        &mut self,
+        snapshot: &oc_core::queries::ShellSnapshot,
+    ) -> bool {
+        if !self.is_model_shell(&snapshot.job.shell_id)
+            || snapshot.job.turn.is_empty()
+            || !matches!(
+                snapshot.state.as_str(),
+                "completed" | "failed" | "cancelled" | "timed_out" | "unknown"
+            )
+            || snapshot.display.len() > 65536
+        {
+            return false;
+        }
+        let ToolRender::Shell(shell) = &mut self.render else {
+            return false;
+        };
+        shell.live_running = false;
+        shell.process_state = Some(snapshot.state.clone());
+        shell.background = snapshot.job.background;
+        shell.exit = snapshot.exit.map(i64::from);
+        shell.signal = snapshot.signal.is_some();
+        shell.cancelled = snapshot.state == "cancelled";
+        shell.timed_out = snapshot.state == "timed_out";
+        let start = snapshot.display.ceil_char_boundary(
+            snapshot
+                .display
+                .len()
+                .saturating_sub(oc_core::tool_output::PREVIEW_BYTES),
+        );
+        let mut output = oc_core::tool_output::Presentation::new(
+            &snapshot.display[start..],
+            snapshot.display.len() as u64,
+            false,
+        );
+        output.body_limited |= snapshot.display_omitted;
+        self.output_preview = output.body.clone();
+        self.output_bytes = output.body_bytes.min(i64::MAX as u64) as i64;
+        self.output_truncated = output.body_limited;
+        self.output_presentation = Some(Box::new(output));
+        true
+    }
+
+    pub(crate) fn refresh_model_shell_output(
+        &mut self,
+        session: &oc_core::domain::SessionId,
+        turn: Option<&str>,
+        jobs: &[oc_core::queries::ShellJob],
+    ) -> bool {
+        let ToolRender::Shell(shell) = &mut self.render else {
+            return false;
+        };
+        if shell.direct_user {
+            return false;
+        }
+        if shell.process_state.is_some()
+            || shell.exit.is_some()
+            || shell.signal
+            || shell.timed_out
+            || shell.cancelled
+        {
+            return std::mem::replace(&mut shell.live_running, false);
+        }
+        let job = jobs.iter().find(|job| {
+            &job.session == session
+                && job.shell_id == self.op
+                && !job.turn.is_empty()
+                && turn.is_none_or(|turn| turn == job.turn)
+                && (matches!(self.state.as_str(), "started" | "running")
+                    || self.state == "completed" && job.background)
+        });
+        let Some((job, output)) = job.and_then(|job| {
+            job.output
+                .as_ref()
+                .filter(|output| {
+                    output.is_valid()
+                        && output.shell.as_ref().is_some_and(|facts| {
+                            facts.background == job.background
+                                && facts.process_state.is_none()
+                                && facts.exit.is_none()
+                                && facts.signal.is_none()
+                                && !facts.timed_out
+                                && !facts.cancelled
+                        })
+                })
+                .map(|output| (job, output))
+        }) else {
+            return std::mem::replace(&mut shell.live_running, false);
+        };
+        if shell.live_running
+            && shell.background == job.background
+            && self.output_presentation.as_ref() == Some(output)
+        {
+            return false;
+        }
+        shell.live_running = true;
+        shell.background = job.background;
+        shell.exit = None;
+        shell.signal = false;
+        shell.timed_out = false;
+        shell.cancelled = false;
+        self.output_preview = output.body.clone();
+        self.output_bytes = output.body_bytes.min(i64::MAX as u64) as i64;
+        self.output_truncated = output.body_limited;
+        self.output_presentation = Some(output.clone());
+        true
+    }
+
     /// Projection loss is independent of producer/capture loss. No text matching
     /// or cold output loading is needed to report the current viewing limit.
     pub(crate) fn preview_limited(&self) -> bool {
@@ -1082,6 +1263,8 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
             .as_ref()
             .and_then(|presentation| presentation.shell.as_ref())
     {
+        shell.background = facts.background;
+        shell.process_state = facts.process_state.clone();
         shell.stdout = facts.stdout.lines().map(str::to_owned).collect();
         shell.stderr = facts.stderr.lines().map(str::to_owned).collect();
         shell.exit = facts.exit.map(i64::from);
@@ -1202,6 +1385,7 @@ mod tests {
             turn: None,
             model_switch: None,
             child: None,
+            shell_notice: None,
             user_shell: None,
             seq,
             role,

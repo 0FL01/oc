@@ -1,6 +1,220 @@
 use super::*;
 
 #[test]
+fn model_shell_frozen_presentation_survives_logical_result_order_reopen_and_fork() {
+    use crate::shell::jobs::{Outcome, Provenance};
+    use oc_core::queries::TranscriptPart;
+    use oc_core::tool_output::{Presentation, Shell};
+    for terminal_first in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        db.create_bound_session("source", "/p").unwrap();
+        let user = db
+            .accept_turn(
+                "turn",
+                "source",
+                "unchanged task",
+                "unchanged task",
+                &oc_core::queries::ModelRef {
+                    provider: "fixture".into(),
+                    id: "fixture-model".into(),
+                    variant: None,
+                },
+            )
+            .unwrap()
+            .user_message;
+        let input = r#"{"command":"printf original"}"#;
+        db.record_turn_tool_intent("op", "source", "turn", "shell", input, "{}")
+            .unwrap();
+        let provenance = Provenance {
+            version: 1,
+            session: "source".into(),
+            turn: "turn".into(),
+            operation: "op".into(),
+            location: "/p".into(),
+            generation: 9,
+            output_limits: Default::default(),
+            output_source: "fixture".into(),
+            agent: None,
+            agent_digest: None,
+            model: "fixture-model".into(),
+            provider: "fixture".into(),
+            command: "printf original".into(),
+            cwd: "/p".into(),
+            selected_shell: "/bin/sh".into(),
+        };
+        db.admit_shell_job_mode(&provenance, false).unwrap();
+        let body = "literal [stderr]\nfinal frozen flush\n";
+        let mut presentation = Presentation::new(body, body.len() as u64, false);
+        presentation.shell = Some(Shell {
+            background: true,
+            process_state: Some("completed".into()),
+            stdout: body.into(),
+            stderr: String::new(),
+            stdout_limited: false,
+            stderr_limited: false,
+            exit: Some(0),
+            signal: None,
+            timed_out: false,
+            cancelled: false,
+        });
+        let mut outcome = Outcome::unknown("fixture frozen result");
+        outcome.state = "completed".into();
+        outcome.exit = Some(0);
+        outcome.output_presentation = Some(Box::new(presentation.clone()));
+        let handle = r#"{"status":"running","shellID":"op"}"#;
+        let mut log = crate::tools::TurnLog::new("turn", "fixture-model", "fixture");
+        log.user_message = Some(user);
+        log.input = vec![
+            crate::provider::InputItem::message(crate::provider::InputRole::User, "unchanged task"),
+            crate::provider::InputItem::ProviderOutput(
+                serde_json::json!({"type":"function_call","id":"item-op","call_id":"call-op","name":"shell","arguments":input}),
+            ),
+            crate::provider::InputItem::FunctionCallOutput {
+                call_id: "call-op".into(),
+                output: handle.into(),
+            },
+        ];
+        log.display_parts = vec![serde_json::json!({"tool":"op"})];
+        let log = log.to_json().to_string();
+        if terminal_first {
+            db.finish_shell_job("op", &outcome).unwrap();
+        }
+        db.tool_outcome_with_log_and_effects(
+            "op",
+            "completed",
+            handle,
+            "turn",
+            &log,
+            None,
+            Some(&Presentation::new(handle, handle.len() as u64, false)),
+        )
+        .unwrap();
+        if !terminal_first {
+            db.finish_shell_job("op", &outcome).unwrap();
+        }
+        let projected = db.turn_presentation("source", "turn").unwrap().unwrap();
+        let TranscriptPart::Tool(tool) = &projected.parts[0] else {
+            panic!("recorded tool")
+        };
+        assert_eq!(tool.state, "completed", "logical tool state is unchanged");
+        assert_eq!(tool.input.as_deref(), Some(input));
+        assert_eq!(
+            tool.output.as_deref(),
+            Some(handle),
+            "RAW tool handle is unchanged"
+        );
+        assert_eq!(tool.output_presentation.as_deref(), Some(&presentation));
+        db.commit_turn(
+            "turn",
+            "completed",
+            Some(&log),
+            Some("finished logical await"),
+        )
+        .unwrap();
+        let projected = db.turn_presentation("source", "turn").unwrap().unwrap();
+        let raw = db.turn_result("turn").unwrap();
+        let mut late = outcome.clone();
+        late.output_presentation.as_mut().unwrap().body = "must not replace frozen facts".into();
+        db.finish_shell_job("op", &late).unwrap();
+        assert_eq!(
+            db.turn_presentation("source", "turn").unwrap().unwrap(),
+            projected
+        );
+        // Fork copies display facts, not authority to the original process/file.
+        let boundary = db.append_message("source", "user", "next").unwrap();
+        let after_boundary = db.turn_presentation("source", "turn").unwrap().unwrap();
+        assert_eq!(after_boundary.parts, projected.parts);
+        assert_eq!(after_boundary.part_states, projected.part_states);
+        assert_eq!(after_boundary.status, projected.status);
+        let projected = after_boundary; // Serving revision includes the new user row.
+        let fork = db
+            .fork_session("source", &boundary, "/p", "fixture", "{}")
+            .unwrap();
+        assert_eq!(
+            db.list_tool_ops(&fork.session.0).unwrap()[0]
+                .output_presentation
+                .as_deref(),
+            Some(&presentation)
+        );
+        drop(db);
+        let db = Db::open(dir.path()).unwrap();
+        assert_eq!(db.turn_result("turn").unwrap(), raw);
+        assert_eq!(
+            db.turn_presentation("source", "turn").unwrap().unwrap(),
+            projected
+        );
+        assert_eq!(
+            db.list_tool_ops(&fork.session.0).unwrap()[0]
+                .output_presentation
+                .as_deref(),
+            Some(&presentation)
+        );
+        // Recovery is unknown, never a logical-handle claim of successful exit.
+        let mut pending = provenance;
+        pending.operation = "interrupted".into();
+        db.record_tool_intent("interrupted", "source", Some("turn"), "shell", input)
+            .unwrap();
+        db.admit_shell_job_mode(&pending, false).unwrap();
+        db.recover_shell_jobs().unwrap();
+        let recovered = db
+            .list_tool_ops("source")
+            .unwrap()
+            .into_iter()
+            .find(|tool| tool.op == "interrupted")
+            .unwrap();
+        let facts = recovered
+            .output_presentation
+            .as_ref()
+            .unwrap()
+            .shell
+            .as_ref()
+            .unwrap();
+        assert_eq!(facts.process_state.as_deref(), Some("unknown"));
+        assert!(facts.exit.is_none() && facts.background);
+        assert_eq!(db.turn_result("turn").unwrap(), raw);
+        let conn = db.conn.lock().unwrap();
+        for version in [serde_json::json!(true), serde_json::json!(1.0)] {
+            let mut invalid = serde_json::to_value(&outcome).unwrap();
+            invalid["version"] = version;
+            let mut invalid_presentation = presentation.clone();
+            invalid_presentation.body = "malformed owner must not win".into();
+            invalid_presentation.body_bytes = invalid_presentation.body.len() as u64;
+            assert!(invalid_presentation.is_valid());
+            invalid["output_presentation"] = serde_json::to_value(invalid_presentation).unwrap();
+            conn.execute(
+                "UPDATE shell_jobs SET outcome=?1 WHERE operation_id='op'",
+                [serde_json::to_string(&invalid).unwrap()],
+            )
+            .unwrap();
+            assert_eq!(
+                Db::tool_presentation_in(&conn, "source", "op")
+                    .unwrap()
+                    .as_deref(),
+                Some(&presentation),
+                "invalid owner falls back to the genuine frozen presentation event"
+            );
+        }
+        conn.execute(
+            "UPDATE shell_jobs SET outcome='broken' WHERE operation_id='op'",
+            [],
+        )
+        .unwrap();
+        assert_eq!(
+            Db::tool_presentation_in(&conn, "source", "op")
+                .unwrap()
+                .as_deref(),
+            Some(&presentation)
+        );
+        assert!(
+            Db::tool_presentation_in(&conn, "foreign", "op")
+                .unwrap()
+                .is_none()
+        );
+    }
+}
+
+#[test]
 fn tool21_actual_oversized_question_has_one_cold_payload_and_restart_presentation() {
     use crate::tools::output::{Context, Limits};
     let dir = tempfile::tempdir().unwrap();

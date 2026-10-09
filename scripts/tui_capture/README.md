@@ -805,7 +805,12 @@ used. Four ordinary tool effects are two consecutive large MCP results, real
 requests are validated. The authorized Shell also appends one fixed line to its
 per-side isolated project counter; read-only snapshots require exactly one effect
 and unchanged bytes/hash through view changes/restart, independently of provider
-call counts. Both sides use 12 lines/1024 bytes output preparation.
+call counts. Both sides use 12 lines/1024 bytes model-facing output preparation.
+Native separately freezes the actual owned Shell capture's bounded 2048-byte
+display body, without changing that model result. Its read-only audit requires
+four operations and exactly five presentation events: one per MCP operation and
+two identical completed foreground Shell presentations for the same operation
+(logical result and terminal capture). This is not a fifth call or execution.
 Payload includes literal `[Part preview truncated]`,
 `[output preview truncated; full result retained]` and `[truncated]`: their
 presence is required where the retained body is expanded, not globally forbidden.
@@ -843,12 +848,20 @@ The full unmasked DOM, refreshed diagnostic and WebGL results are retained in
 
 The actual default collapse, hover, two MCP expand/recollapse sequences, failure
 detail, Shell expand/resize/recollapse, `/new`/history reopen and clean same-root
-restart produce fourteen further paired full styled-grid/PNG/VT/cursor stages. Hover and
-clicks retain the real draft/caret at 120×80 before returning to 120×40. Ordinary
+restart produce fourteen further paired full styled-grid/PNG/VT/cursor stages. MCP
+hover/expansion retains the real draft/caret at 120×80. The paired Shell expansion
+uses 120×120 so all eighty short retained native lines plus chrome are visible,
+then returns to 120×40. The exact draft, caret x/shape and bottom-pinned y translation
+are checked through these real resizes; no overflow is cropped or masked. Ordinary
 expansion must not reveal the discarded distant-end marker, display generated
 model guidance as body, execute a tool again or change recorded operation facts.
 The read-only audit checks bounded native presentation events and identical tool
 records, capture descriptors/artifact hashes and MCP call records through replay.
+The complete document-coordinate terminal clip is captured with Playwright
+`fullPage:true`; PNG width/height must equal that clip, including tall frames
+beyond the 1100-pixel browser viewport. This does not resize the browser/terminal,
+force a buffer refresh or normalize layout. The existing geometry check verifies
+80/120-row clips and unchanged full styled grid/geometry before and after capture.
 
 Two additional **native-only** full frames exercise the existing `/cards` detail
 owner at 120×20: visible typed preview/capture/reference facts, then an explicit
@@ -1122,7 +1135,7 @@ not whole VIS39/T44: model-Shell live cards, child task wrapper/background notic
 root captions/Add/badges, syntax assets and remaining frozen outcomes stay open.
 Ordinary model-tool and default temporal regressions have separate immutable runs.
 
-The current typed-child qualification is `child-history-002`80×24,`003`120×40 and
+The historical typed-child qualification is `child-history-002`80×24,`003`120×40 and
 `004`160×48, built from the same source. Each side executes twenty stages: the
 original eighteen plus paired completion-caption click into the same completed
 child and Escape back to the preserved parent draft. Native exact task/notice
@@ -1137,6 +1150,52 @@ remain visible and mandatory, not waived. Current receipt:
 resource gates. Separate ordinary27-stage and default144-opaque temporal audits
 qualify behavior only. Diagnostic`child-history-001` predates the description-color
 fix and is not current qualification. No changed probe budget or production timer.
+
+### VIS39 Root model-Shell live capture and actual background conversion
+
+Add `--model-shell true` to the combined-composer command above, with a fresh
+immutable output directory at80×24,120×40 or160×48. This exclusive branch uses two
+ordinary structured Root `shell` calls and no delegation or terminal creation.
+The first command prints eighty rows and actual partial stdout/stderr, then holds
+at the same finite180-second owned release gate. A fixture-only0.2-second separation
+between stdout and stderr publications makes both visible in the bounded collapsed
+tail without assuming cross-pipe drain order. The second command is a compact held
+process. No tool rows, jobs, sessions or renderer state are seeded.
+
+Eight full paired stages are required: Home, live foreground output, actual
+background with the second process running, first-card expanded and recollapsed,
+captured running output, frozen final output, and selected second Shell. That last
+still is before its actual Ctrl+D cancellation; the final read-only witness checks
+the resulting cancellation and completed Root response independently.
+
+Native opens the actual source Shell output viewer and invokes its captured Ctrl+B
+control; original invokes its focused Root prompt's `session.background` action.
+Original lower-composer entry is the actual painted live-status click. Expanding
+and recollapsing uses each side's painted first command header. To expose the real
+expanded output and badge, original uses PageUp/PageDown while native uses actual
+three-tick SGR wheel bursts. This avoids one expensive styled-grid IPC roundtrip
+per tick at160×48 without raising the unchanged120-second Shell deadline. These
+are disclosed input-scope differences, not byte-identical
+keymap qualification. The finite128-step viewport observer requires real text
+movement after each input; final shots still use unchanged stable predicates,
+owned process-group pause/drain ACK, full post-ACK signatures and finally-resume.
+
+Each side must execute exactly two function calls, four HTTP requests, two Shell
+starts and one completion. Native read-only owner evidence requires one Root/no
+child, the original source session/operation/Location/generation/turn and process
+identity before/after conversion, an actual conversion event, bounded live facts,
+frozen Background/completed/exit0/final-flush metadata and exact second-job cancel.
+Typed model-Shell notices are plain delivered data, not a clickable child link,
+technical RAW toast, new user action or model part. RAW/provider graph and recorded
+command arguments stay unchanged; original RAW is not decoded.
+
+This is behavior qualification only. Full styled-cell/PNG/cursor comparisons
+retain every difference, including Root Add/underlays, hints and preview status.
+Child/Subagent captions/profile colors, animation cadence, grammar/assets and all
+remaining frozen VIS39/T44 outcomes still require their own qualification. Run the
+ordinary27-stage and default WebGL six-owner/144-opaque temporal regressions
+separately. Every capture includes a fresh locked build and source manifest;
+preserve failed attempts and never overwrite or promote them to pixel PASS.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

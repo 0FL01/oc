@@ -149,15 +149,55 @@ impl ScriptDriver {
                             if let Ok(page) = state
                                 .app
                                 .history_message(
-                                    notice.session,
+                                    notice.session.clone(),
                                     oc_core::session::MessageId(notice.message_id),
                                 )
                                 .await
+                                && page.rows.iter().any(|row| row.user_shell.is_some())
                             {
+                                if !state.is_busy()
+                                    && let Ok(recent) = state
+                                        .app
+                                        .history_page(notice.session, None, None, 100)
+                                        .await
+                                {
+                                    state.refresh_completed_page(&recent);
+                                }
                                 state.refresh_user_shell_page(&page);
                             }
-                        } else {
-                            state.push_note(&notice.text);
+                        } else if let Ok(exact) = state
+                            .app
+                            .history_message(
+                                notice.session.clone(),
+                                oc_core::session::MessageId(notice.message_id),
+                            )
+                            .await
+                            && exact.rows.iter().any(|row| {
+                                row.shell_notice
+                                    .as_ref()
+                                    .is_some_and(|metadata| metadata.operation == notice.shell_id)
+                            })
+                        {
+                            if state.has_model_shell_card(&notice.shell_id)
+                                && let Ok(snapshot) = state
+                                    .app
+                                    .shell_snapshot(notice.session.clone(), notice.shell_id.clone())
+                                    .await
+                            {
+                                state.apply_model_shell_snapshot(&snapshot);
+                            }
+                            if let Ok(recent) = state
+                                .app
+                                .history_page(notice.session, None, None, 100)
+                                .await
+                            {
+                                if state.is_busy() {
+                                    state.refresh_child_notice_page(&recent);
+                                } else {
+                                    state.refresh_completed_page(&recent);
+                                }
+                            }
+                            state.refresh_child_notice_page(&exact);
                         }
                     }
                 }
@@ -172,16 +212,18 @@ impl ScriptDriver {
                             )
                             .await
                     {
-                        if state.is_busy()
-                            && page.rows.iter().any(|row| {
-                                matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_)))
-                            })
-                            && let Ok(recent) = state
-                                .app
-                                .history_page(notice.job.parent, None, None, 100)
-                                .await
+                        if page.rows.iter().any(|row| {
+                            matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_)))
+                        }) && let Ok(recent) = state
+                            .app
+                            .history_page(notice.job.parent, None, None, 100)
+                            .await
                         {
-                            state.refresh_child_notice_page(&recent);
+                            if state.is_busy() {
+                                state.refresh_child_notice_page(&recent);
+                            } else {
+                                state.refresh_completed_page(&recent);
+                            }
                         }
                         state.refresh_child_notice_page(&page);
                     }
@@ -1328,6 +1370,7 @@ impl TuiState {
                 meta: Some(meta),
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             });
             self.prune_reasoning();
             return;
@@ -1370,6 +1413,7 @@ impl TuiState {
                 meta: Some(meta),
                 tool: None,
                 child_notice: None,
+                shell_notice: None,
             });
             self.prune_reasoning();
             return;
@@ -1547,6 +1591,7 @@ impl TuiState {
             };
             self.enforce_parts();
             self.sync_compaction_clock();
+            self.refresh_running_user_shell_output();
             return;
         }
         self.live_parts.push(LivePart::Tool {
@@ -1555,6 +1600,7 @@ impl TuiState {
         });
         self.enforce_parts();
         self.sync_compaction_clock();
+        self.refresh_running_user_shell_output();
     }
 
     /// Apply disposable provider snapshots. Raw fragments never enter the
@@ -2004,6 +2050,7 @@ impl TuiState {
             **card = finished;
             self.enforce_parts();
             self.sync_compaction_clock();
+            self.refresh_running_user_shell_output();
             return;
         }
         // The intent event was not observed (e.g. a late subscription): the
@@ -2018,6 +2065,7 @@ impl TuiState {
         });
         self.enforce_parts();
         self.sync_compaction_clock();
+        self.refresh_running_user_shell_output();
     }
 
     /// Evict oldest live parts while the count or byte cap is exceeded; the

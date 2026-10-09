@@ -98,6 +98,11 @@ pub struct ShellRender {
     pub output_ends_with_newline: bool,
     /// Standalone user command, not the model-facing Shell result renderer.
     pub direct_user: bool,
+    /// Current owned process still runs, independently of a returned tool part.
+    pub live_running: bool,
+    pub process_state: Option<String>,
+    /// Actual captured conversion; persists with terminal presentation facts.
+    pub background: bool,
     pub command_limited: bool,
     pub diagnostic: Option<String>,
 }
@@ -187,6 +192,7 @@ impl ToolRender {
                 s.command.len()
                     + optional(&s.cwd)
                     + optional(&s.diagnostic)
+                    + optional(&s.process_state)
                     + s.stdout
                         .iter()
                         .chain(&s.stderr)
@@ -695,7 +701,7 @@ pub(crate) fn shell_block_expanded(
         frame.padding = ratatui::style::Style::default().bg(frame.bg);
     }
     let mut out = vec![frame.row(&[])];
-    let running = is_running(&card.state);
+    let running = is_running(&card.state) && shell.process_state.is_none() || shell.live_running;
     let mut header = vec![Span::styled(
         if running {
             format!("{SPINNER} ")
@@ -786,9 +792,9 @@ pub(crate) fn shell_block_expanded(
     let error = ratatui::style::Style::default()
         .fg(theme.error())
         .bg(frame.bg);
-    // Model-owned streaming cards retain their existing header-only path.
-    // Standalone jobs have actual admitted output while still running.
-    if !running || shell.direct_user {
+    // Only an owner-associated preview may add live output. A converted process
+    // keeps the original completed tool part, and hides output until expanded.
+    if (!running || shell.direct_user || shell.live_running) && (!shell.background || expanded) {
         let mut output = shell_output(shell, card);
         if !expanded {
             let max_lines = TOOL_OUTPUT_LINES.saturating_sub(command_lines + 1).max(1);
@@ -817,6 +823,17 @@ pub(crate) fn shell_block_expanded(
             }
         }
     }
+    if shell.background && !shell.direct_user {
+        out.push(frame.row(&[]));
+        out.push(
+            frame.row(&[Span::styled(
+                " Background ",
+                ratatui::style::Style::default()
+                    .fg(theme.text_muted())
+                    .bg(theme.decrease(frame.bg)),
+            )]),
+        );
+    }
     out.push(frame.row(&[]));
     out
 }
@@ -827,7 +844,10 @@ pub(crate) fn shell_block_expanded(
 /// metadata, without a generated notice or empty-output placeholder. Recorded
 /// stdout (including any status prose) remains untouched.
 fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
-    if shell.direct_user
+    if (shell.direct_user
+        || shell.live_running
+        || shell.background
+        || shell.process_state.is_some())
         && let Some(output) = card.output_presentation.as_ref().filter(|p| p.is_valid())
     {
         // Body is the capture owner's safe publication-order preview, not an
@@ -854,8 +874,13 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
 }
 
 fn append_shell_status(shell: &ShellRender, card: &ToolCard, output: &mut Vec<(String, bool)>) {
-    let status = if card.state == "unknown" {
+    let status = if card.state == "unknown" || shell.process_state.as_deref() == Some("unknown") {
         Some("Outcome unknown (operation was interrupted)".to_string())
+    } else if shell.process_state.as_deref() == Some("failed")
+        && shell.exit.is_none()
+        && !shell.signal
+    {
+        Some("Command failed".to_string())
     } else if card.state == "cancelled" || shell.cancelled {
         Some(COMMAND_CANCELLED.to_string())
     } else if shell.timed_out {
@@ -968,6 +993,9 @@ pub(crate) fn shell_expandable(card: &ToolCard, width: u16) -> bool {
     let ToolRender::Shell(shell) = &card.render else {
         return false;
     };
+    if shell.live_running || shell.background {
+        return true;
+    }
     let input = format!(
         "{}{}{}",
         if is_running(&card.state) { "" } else { "$ " },
@@ -1566,6 +1594,7 @@ mod tests {
             chips: Vec::<Chip>::new(),
             reasoning: None,
             child_notice: None,
+            shell_notice: None,
             meta: None,
             tool: Some(card.clone()),
         }
@@ -2063,6 +2092,8 @@ mod tests {
 
         let mut presentation = oc_core::tool_output::Presentation::new("", 0, false);
         presentation.shell = Some(oc_core::tool_output::Shell {
+            background: false,
+            process_state: None,
             stdout: String::new(),
             stderr: String::new(),
             stdout_limited: false,

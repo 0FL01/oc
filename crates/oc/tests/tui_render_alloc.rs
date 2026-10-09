@@ -200,6 +200,7 @@ fn page(older: usize) -> HistoryPage {
                 turn,
                 model_switch: None,
                 child: None,
+                shell_notice: None,
                 user_shell: None,
             }
         })

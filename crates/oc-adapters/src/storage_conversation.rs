@@ -479,6 +479,7 @@ impl Db {
             let message = row?;
             if Self::user_shell_link_in(conn, session, &message)?.is_none()
                 && Self::child_notice_in(conn, session, &message)?.is_none()
+                && Self::model_shell_notice_in(conn, session, &message)?.is_none()
             {
                 return Ok(Some(message));
             }
@@ -603,6 +604,7 @@ impl Db {
             let id = row?;
             if Self::user_shell_link_in(conn, session, &id)?.is_none()
                 && Self::child_notice_in(conn, session, &id)?.is_none()
+                && Self::model_shell_notice_in(conn, session, &id)?.is_none()
             {
                 count = count.saturating_add(1);
                 message.get_or_insert(id);

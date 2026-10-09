@@ -8,6 +8,8 @@ use std::cell::RefCell;
 fn message(state: &str, exit: Option<i32>, stdout: &str) -> HistoryMessage {
     let mut output = Presentation::new(stdout, stdout.len() as u64, false);
     output.shell = Some(Shell {
+        background: false,
+        process_state: None,
         stdout: stdout.into(),
         stderr: String::new(),
         stdout_limited: false,
@@ -25,6 +27,7 @@ fn message(state: &str, exit: Option<i32>, stdout: &str) -> HistoryMessage {
         turn: None,
         model_switch: None,
         child: None,
+        shell_notice: None,
         user_shell: Some(UserShellResult {
             input: false,
             superseded_input: false,
@@ -221,6 +224,7 @@ fn direct_user_shell_separate_pages_and_live_refresh_retire_only_matching_input(
         turn: None,
         model_switch: None,
         child: None,
+        shell_notice: None,
         user_shell: None,
     };
     let mut window = HistoryWindow::new();

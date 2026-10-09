@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-09T10:19:50+00:00
+State updated: 2026-10-09T18:29:28+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,36 +12,37 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 typed child history — qualified slice
+# T44 model Shell capture — qualified slice
 
 ## Result
-Exact original task and delivered child-notice facts now drive display, busy
-selective refresh and captured completion-link navigation. Technical RAW remains
-immutable; ordinary task/notice projection creates no model graph or new owner.
-Undo/Revert/Redo ignores only qualified notices as prompts and preserves delivery.
-Receipt: evidence/tui/child-history.md. Reviewed code/tests/current artifacts are
-ready for ordinary own-branch delivery; Git determines actual commit/push status.
+Existing captures now project actual model-Shell live/frozen output, background and
+terminal state without changing recorded input, logical tool state, RAW/provider
+graph or provenance. Exact positively owned typed Shell notices replace technical
+RAW toast/User display; branch-hidden/untyped notices cannot query captures.
+Recovery remains unknown/interrupted, no successful-exit invention or replay.
+Receipt: evidence/tui/model-shell.md. Git determines actual commit/push status.
 
 ## Checks
-Current fmt/strict locked workspace Clippy,1790/0/11 no-fail-fast tests, debug/
-ordinary/release/help, release startup19/GET discovery8/TERM01, Python47, actual
-DOM/WebGL observer, syntax/docs/progress and original resource guards PASS.
-Built00280×24/003120×40/004160×48 each qualify20 stages on both sides,40 strict
-DIFFERENT valid comparisons. Real notice click reopens the same completed child
-and restores the parent draft without work replay. Ordinary27-stage regression
-and default six-owner/144opaque temporal audit qualify behavior, not full pixels.
+Current1797/0/11 full no-fail-fast workspace, strict Clippy/fmt, debug/ordinary/
+release/help, release startup19/GET8/TERM01, original pacing/archive guards and
+Python47/DOM-WebGL/geometry/docs/progress checks PASS. Final built Root023–025
+80/120/160 each eight actual stages/side; child009–011 each twenty. Ordinary006
+and default/WebGL temporal002/matched002 qualify effects/caret without replay.
+Complete audit verifies384 opaque full PNGs/1152 seals/current527-entry manifests;
+378 strict comparisons DIFFERENT,4 EQUAL,4 separate native-only entries.
 
 ## Risks
-Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Model-Shell cards, Subagent/
-background captions, child host/profile-color presentation, root Add/underlays,
-grammar/assets and all remaining frozen outcomes still require qualification.
-Full original frames retain independent continuation/timing differences; no mask,
-fake version, original RAW decode or parity waiver. No env/user configuration/
-GOAL/acceptance/Cargo.lock/RAW changes or new timer/store/executor/paid calls.
+Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Remaining Subagent/background/
+profile/Root/human-prefix/grammar/assets and all frozen outcomes are mandatory.
+Full frames retain declared input-scope, tail/guidance/underlay/timing/color
+differences. No mask, comparator waiver, original RAW decode, fake version,
+env/user config/GOAL/acceptance/Cargo.lock edit, new store/poll or paid calls.
+Earlier cropped/history campaigns remain immutable diagnostics, not current proof.
 
 ## Next
-Project model-Shell live facts and remaining child/tool caption presentation from
-existing owners, then every frozen outcome and final current-source R6/V09.
+Project captured typed Subagent/background/model/profile and Root captions, then
+human host prefix/grammar/assets and every remaining frozen outcome. Requalify
+actual current-source paired frames/effects and final R6/V09 before task finish.
 
 
 Ready (до 5): T58

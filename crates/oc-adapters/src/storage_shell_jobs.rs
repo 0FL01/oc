@@ -280,12 +280,10 @@ impl Db {
                 "UPDATE tool_operations SET state=?2,output=?3 WHERE id=?1 AND turn_id IS NULL",
                 params![operation, outcome.state, &text[..kept]],
             )?;
-            Self::record_tool_presentation_in(
-                &tx,
-                operation,
-                outcome.output_presentation.as_deref(),
-            )?;
         }
+        // Display facts survive reopening/forking, independently of the logical
+        // tool result returned when a foreground await was converted.
+        Self::record_tool_presentation_in(&tx, operation, outcome.output_presentation.as_deref())?;
         tx.execute("INSERT INTO events(session_id,kind,payload) SELECT session_id,'shell_terminal',?1 FROM shell_jobs WHERE operation_id=?1",[operation])?;
         tx.commit()?;
         Ok(())
@@ -294,16 +292,20 @@ impl Db {
     pub(crate) fn recover_shell_jobs(&self) -> Result<(), StorageError> {
         let pending = {
             let conn = self.conn.lock().expect("db mutex");
-            let mut stmt = conn.prepare("SELECT operation_id,process FROM shell_jobs WHERE phase!='terminal' ORDER BY rowid LIMIT 9")?;
+            let mut stmt = conn.prepare("SELECT operation_id,session_id,process FROM shell_jobs WHERE phase!='terminal' ORDER BY rowid LIMIT 9")?;
             stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                ))
             })?
             .collect::<Result<Vec<_>, _>>()?
         };
         if pending.len() > crate::shell::jobs::ACTIVE_JOB_CAP {
             return Err(StorageError::OperationNotFound);
         }
-        for (operation, process) in pending {
+        for (operation, session, process) in pending {
             let diagnostic = match process {
                 Some(raw) => {
                     let identity: ProcessIdentity =
@@ -322,6 +324,11 @@ impl Db {
                     .map(|reader| reader.resource.clone());
                 outcome.capture_facts = resource.shell;
             }
+            let mut presentation = outcome.user_presentation();
+            if let Some(facts) = &mut presentation.shell {
+                facts.background = self.shell_job_identity(&session, &operation)?.background;
+            }
+            outcome.output_presentation = Some(presentation);
             self.finish_shell_job(&operation, &outcome)?;
         }
         Ok(())
@@ -414,6 +421,76 @@ impl Db {
         }
         tx.commit()?;
         Ok(notices)
+    }
+
+    /// Exact model notice identity shared by display and conversation selection.
+    /// Read bounded structured fields, not the RAW envelope or captured output.
+    pub(super) fn model_shell_notice_in(
+        conn: &Connection,
+        session: &str,
+        message: &str,
+    ) -> Result<Option<oc_core::queries::ShellHistoryNotice>, StorageError> {
+        let row: Option<(String, String, Vec<u8>, i64)> = conn.query_row(
+            "WITH owned AS (
+               SELECT j.operation_id,j.session_id,j.delivery_id,o.turn_id,
+                CASE WHEN json_valid(j.provenance) THEN j.provenance ELSE '{}' END AS p,
+                CASE WHEN json_valid(j.outcome) THEN j.outcome ELSE '{}' END AS result
+               FROM shell_jobs j JOIN messages m ON m.id=j.message_id AND m.session_id=j.session_id
+               JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.session_id
+               WHERE j.session_id=?1 AND m.id=?2 AND m.role='user' AND j.phase='terminal'
+                AND o.name IN ('shell','bash') AND o.turn_id IS NOT NULL
+                AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id
+                 AND e.kind='shell_notice' AND e.payload=j.delivery_id))
+             SELECT operation_id,json_extract(result,'$.state'),
+              substr(CAST(json_extract(p,'$.command') AS BLOB),1,2048),
+              length(CAST(json_extract(p,'$.command') AS BLOB)) FROM owned
+             WHERE json_extract(p,'$.version')=1 AND json_extract(result,'$.version')=1
+               AND json_type(p,'$.version')='integer' AND json_type(result,'$.version')='integer'
+              AND json_extract(p,'$.session')=session_id AND json_extract(p,'$.operation')=operation_id
+              AND json_extract(p,'$.turn')=turn_id AND length(turn_id)>0
+              AND json_type(p,'$.command')='text' AND length(CAST(operation_id AS BLOB))<=4096
+              AND json_extract(result,'$.state') IN ('completed','failed','cancelled','timed_out','unknown')",
+            params![session, message],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        ).optional()?;
+        Ok(row.map(|(operation, state, bytes, original_bytes)| {
+            let mut end =
+                std::str::from_utf8(&bytes).map_or_else(|error| error.valid_up_to(), str::len);
+            let limited = original_bytes > end as i64;
+            if limited {
+                end = std::str::from_utf8(&bytes[..end])
+                    .expect("validated prefix")
+                    .floor_char_boundary(2048 - '…'.len_utf8());
+            }
+            let mut command = std::str::from_utf8(&bytes[..end])
+                .expect("validated prefix")
+                .to_owned();
+            if limited {
+                command.push('…');
+            }
+            oc_core::queries::ShellHistoryNotice {
+                operation,
+                state,
+                command,
+            }
+        }))
+    }
+
+    pub(crate) fn model_shell_notice(
+        &self,
+        session: &str,
+        message: &oc_core::session::MessageId,
+    ) -> Result<Option<oc_core::queries::ShellHistoryNotice>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let visible: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+            params![session, message.0],
+            |row| row.get(0),
+        )?;
+        if !visible {
+            return Ok(None);
+        }
+        Self::model_shell_notice_in(&conn, session, &message.0)
     }
 
     /// Exact native input/result association, shared with conversation target

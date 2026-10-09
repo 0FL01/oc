@@ -93,12 +93,24 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
      const before=await snapshot('completed');result.before=before;
      if(before.mcp_calls.length!==3)throw Error('Real MCP did not execute exactly three times');
      if(before.shell_effect?.lines!==1||before.shell_effect?.bytes!==17)throw Error('Real Shell did not produce exactly one bounded effect');
-    if(origin==='oc') {
-      const data=before.observations.flatMap(o=>o.data.presentation||[]);
-      if(data.length!==4||data.some(p=>Buffer.byteLength(p.presentation.body)>2048))throw Error('Missing/unbounded structured body');
-      if(data.filter(p=>p.presentation.generated_guidance).length<3||data.some(p=>p.presentation.body.includes('[tool output:')))throw Error('Body/guidance not separated');
-      if(done.text.includes('[tool output:')||done.text.includes('parts omitted from bounded history preview'))throw Error('Generated guidance/notice in dialogue');
-      result.owner_facts={bounded:true,separate_body_guidance:true,presentation_count:data.length,artifacts:Object.keys(before.artifacts).length};
+     if(origin==='oc') {
+       const data=before.observations.flatMap(o=>o.data.presentation||[]);
+       // The four actual operations retain five presentation records: Shell's
+       // frozen process facts and its logical tool result share one operation.
+       const operations=new Map();
+       for(const record of data) {
+         const records=operations.get(record.operation)||[];
+         records.push(record.presentation);operations.set(record.operation,records);
+       }
+       const shell=[...operations.values()].filter(records=>records.length===2);
+       if(data.length!==5||operations.size!==4||shell.length!==1||
+          [...operations.values()].filter(records=>records.length===1).length!==3||
+          data.some(p=>Buffer.byteLength(p.presentation.body)>2048))throw Error('Missing/unbounded structured body or extra operation');
+       if(shell[0].some(p=>p.shell?.process_state!=='completed'||p.shell.background!==false||p.shell.exit!==0)||
+          JSON.stringify(shell[0][0])!==JSON.stringify(shell[0][1]))throw Error('Frozen/logical foreground Shell facts differ');
+       if(data.filter(p=>p.presentation.generated_guidance).length<3||data.some(p=>p.presentation.body.includes('[tool output:')))throw Error('Body/guidance not separated');
+       if(done.text.includes('[tool output:')||done.text.includes('parts omitted from bounded history preview'))throw Error('Generated guidance/notice in dialogue');
+       result.owner_facts={bounded:true,separate_body_guidance:true,presentation_count:data.length,operation_count:operations.size,frozen_foreground_shell:true,artifacts:Object.keys(before.artifacts).length};
     }
     // An expanded first card exceeds the base viewport. Use the same tall
     // profile on both binaries rather than asserting offscreen text is absent.
@@ -133,13 +145,18 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     await shot('error-recollapsed',f=>target(f,4).length===1&&!f.text.includes(errorText));
     const shellTarget=f=>visibleMatches(f,'$ printf').filter(p=>p.y>0);
     const shellClick=async()=>{const hits=shellTarget(await frame());if(hits.length!==1)throw Error('Shell header not unique');const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_shell_click');};
-    await shellClick();
-    await resize(80);
-    await shot('shell-expanded',f=>f.rows===80&&f.text.includes('VIS-SHELL-LINE-080')&&!/\(\d+ earlier lines\)/.test(f.text));
-    await shellClick();await resize(40);
-    // Geometry changed deliberately; the same draft stays at the resized prompt.
-    draftCaret=null;
-    await shot('shell-recollapsed',f=>f.rows===40&&/\(\d+ earlier lines\)/.test(f.text));
+     await shellClick();
+     // The bounded ordered Shell preview retains all eighty short fixture rows;
+     // its command/chrome exceed the earlier eighty-row separate-stream view.
+     // Use the same actual tall viewport on both sides, without hiding overflow.
+     await resize(120);
+     draftCaret={...draftCaret,y:draftCaret.y+40};
+     await shot('shell-expanded',f=>f.rows===120&&f.text.includes('VIS-SHELL-LINE-080')&&!/\(\d+ earlier lines\)/.test(f.text));
+     await shellClick();await resize(40);
+     // The bottom-pinned caret must translate exactly with the actual geometry.
+     draftCaret={...draftCaret,y:draftCaret.y-80};
+     await shot('shell-recollapsed',f=>f.rows===40&&/\(\d+ earlier lines\)/.test(f.text));
+     draftCaret=null;
     send('\x03','tool_preview_clear_draft');await waitFor(f=>!f.text.includes('preserved draft'),'draft cleared',6000);
     if(origin==='oc') {
       await resize(20);await waitFor(f=>f.rows===20,'short resource-details viewport',6000);

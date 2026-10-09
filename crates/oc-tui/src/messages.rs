@@ -926,6 +926,7 @@ fn render_row(
     let lines = match row.role.as_str() {
         "shell_input_delivered" => Vec::new(),
         "child_notice" => child_notice_block(row, index, theme, width),
+        "shell_notice" => shell_notice_block(row, index, theme, width),
         "compaction" | "compaction_failed" | "compaction_queued" => {
             crate::compaction::block(row, theme, width)
         }
@@ -2929,6 +2930,43 @@ fn reasoning_content(reasoning: &ReasoningBlock) -> Cow<'_, str> {
 /// graphemes that fit the painted row, preserving span styles and cell widths.
 fn clipped_reasoning_header(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Line {
     clipped_line(sanitize_line(reasoning_line(reasoning, theme)), width)
+}
+
+fn shell_notice_block(row: &HistoryRow, index: usize, theme: &Theme, width: u16) -> Vec<Line> {
+    let Some(notice) = &row.shell_notice else {
+        return Vec::new();
+    };
+    let (heading, color) = match notice.state.as_str() {
+        "completed" => ("↳ Shell finished", theme.info()),
+        "failed" => ("! Shell failed", theme.error()),
+        "cancelled" => ("! Shell cancelled", theme.warning()),
+        "timed_out" => ("! Shell timed out", theme.warning()),
+        "unknown" => ("! Shell unknown", theme.info()),
+        _ => return Vec::new(),
+    };
+    let mut command = String::with_capacity(notice.command.len());
+    for word in notice.command.split_whitespace() {
+        if !command.is_empty() {
+            command.push(' ');
+        }
+        command.push_str(word);
+    }
+    let line = clipped_line(
+        sanitize_line(Line::new(vec![
+            Span::plain(" ".repeat(MESSAGE_PADDING)),
+            Span::styled(heading, Style::default().fg(color)),
+            Span::styled(
+                format!(" · {command}"),
+                Style::default().fg(theme.text_muted()),
+            ),
+        ])),
+        width,
+    );
+    if index > 0 {
+        vec![Line::plain(""), line]
+    } else {
+        vec![line]
+    }
 }
 
 fn child_notice_block(row: &HistoryRow, index: usize, theme: &Theme, width: u16) -> Vec<Line> {

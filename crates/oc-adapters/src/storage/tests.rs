@@ -452,6 +452,8 @@ fn v02_bounded_projection_exposes_loss_and_legacy_availability() {
     let mut presentation = oc_core::tool_output::Presentation::new(&body, 64 * 1024, true);
     let stream = "s".repeat((oc_core::tool_output::PREVIEW_BYTES - 128) / 2);
     presentation.shell = Some(oc_core::tool_output::Shell {
+        background: false,
+        process_state: None,
         stdout: stream.clone(),
         stderr: stream,
         stdout_limited: true,

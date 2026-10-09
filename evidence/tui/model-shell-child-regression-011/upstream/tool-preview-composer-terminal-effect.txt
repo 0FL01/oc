@@ -1,0 +1,48 @@
+   VIS39 parent                  +                                                                                                                              
+                                                                                 $ printf '\033[31mVIS39-TERMINAL\033[0m\n'; printf 'terminal\n' >> composer-up 
+  ┃                                                                              stream-terminal.effects                                                        
+  ┃  VIS39_ROOT_TASK                                                             VIS39-TERMINAL                                                                 
+  ┃                                                                              $                                                                              
+                                                                                                                                                                
+     ✓ Helper Subagent — Inspect child shell  Background                                                                                                        
+                                                                                                                                                                
+     VIS39-PARENT-DONE                                                                                                                                          
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 13.0s                                                                                                                       
+                                                                                                                                                                
+     VIS39-PARENT-DONE                                                                                                                                          
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 13.0s                                                                                                                       
+                                                                                                                                                                
+     ↳ Helper finished · Inspect child shell                                                                                                                    
+                                                                                                                                                                
+     VIS39-PARENT-DONE                                                                                                                                          
+                                                                                                                                                                
+     Build · MiMo-V2.6-Flash Free · 29ms                                                                                                                        
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+  ┃                                                                                                                                                             
+  ┃  VIS39 parent unsent draft                                                                                                                                  
+  ┃                                                                                                                                                             
+  ┃  Build · MiMo-V2.6-Flash Free OpenCode Zen                                                                                                                  
+  ╹▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀                                                                                  
+  /…/runs/model-shell-child-regression-011/project  1.3K (1%)  ctrl+p commands                                                                                  
+                                                                                                                                                                
