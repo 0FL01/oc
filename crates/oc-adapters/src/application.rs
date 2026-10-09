@@ -3366,9 +3366,13 @@ async fn query(
                             let user_shell = db
                                 .user_shell_result(&session.0, &id)
                                 .map_err(|error| query_storage_error(db, error))?;
+                            let child = db
+                                .child_history(&session.0, &id)
+                                .map_err(|error| query_storage_error(db, error))?;
                             Ok(HistoryMessage {
                                 id,
                                 user_shell,
+                                child,
                                 turn: if model_switch.is_some() {
                                     None
                                 } else {
@@ -3989,8 +3993,12 @@ async fn query(
                 let rows = rows
                     .into_iter()
                     .map(|row| {
+                        let child_history = db
+                            .child_history(child, &row.id)
+                            .map_err(|error| query_storage_error(db, error))?;
                         Ok(HistoryMessage {
                             id: row.id,
+                            child: child_history,
                             seq: row.seq,
                             role: if row.role == "user" {
                                 Role::User

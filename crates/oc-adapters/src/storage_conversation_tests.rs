@@ -9,6 +9,114 @@ fn model(id: &str) -> oc_core::queries::ModelRef {
 }
 
 #[test]
+fn child_notice_is_not_an_undo_prompt_and_redo_keeps_the_exact_delivery() {
+    use oc_core::{
+        domain::SessionId,
+        queries::{ChildJob, ChildState},
+        session::MessageId,
+    };
+    for explicit in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        let db = Db::open(root.path()).unwrap();
+        let first = db
+            .create_bound_session_and_accept_turn_with_reminder(
+                "s",
+                "/project",
+                "one",
+                "one",
+                "one",
+                None,
+                &model("fixture"),
+                None,
+                None,
+            )
+            .unwrap()
+            .user_message;
+        db.commit_turn("one", "completed", None, Some("answer one"))
+            .unwrap();
+        let second = turn(&db, "two", "two", "fixture");
+        db.create_child_session(
+            "s",
+            "child",
+            Some("helper"),
+            Some("fixture/child"),
+            Some("work"),
+        )
+        .unwrap();
+        db.record_tool_intent(
+            "launch",
+            "s",
+            Some("two"),
+            "subagent",
+            "{\"agent\":\"helper\",\"prompt\":\"work\"}",
+        )
+        .unwrap();
+        db.admit_child_job(&ChildJob {
+            parent: SessionId("s".into()),
+            child: SessionId("child".into()),
+            operation: "launch".into(),
+            generation: 1,
+            location: "/project".into(),
+            agent: "helper".into(),
+            model: "fixture/child".into(),
+            description: "work".into(),
+            delivery_id: "child-delivery:launch".into(),
+            state: ChildState::Admitted,
+            background: true,
+            turn: None,
+            result: None,
+            message_id: None,
+        })
+        .unwrap();
+        db.finish_child_job("launch", ChildState::Completed, "finished data")
+            .unwrap();
+        let notice = db.deliver_child_notices().unwrap().remove(0);
+        let notice_id = MessageId(notice.job.message_id.unwrap());
+        let raw = db.read_history_full("s").unwrap();
+        let projection = db.child_history("s", &notice_id).unwrap().unwrap();
+        let undone = db
+            .change_conversation(
+                "s",
+                if explicit {
+                    ConversationAction::Revert {
+                        message: MessageId(first),
+                    }
+                } else {
+                    ConversationAction::Undo
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            undone.draft.as_deref(),
+            Some(if explicit { "one" } else { "two" })
+        );
+        assert_eq!(
+            undone.reverted.as_ref().unwrap().user_messages,
+            if explicit { 2 } else { 1 }
+        );
+        if !explicit {
+            assert_eq!(undone.reverted.unwrap().message.0, second);
+        }
+        assert!(undone.can_redo);
+        assert_eq!(
+            db.child_history("s", &notice_id).unwrap(),
+            None,
+            "current-branch projection excludes reverted delivery"
+        );
+        assert_eq!(db.read_history_full("s").unwrap(), raw);
+        drop(db);
+        let db = Db::open(root.path()).unwrap();
+        let restored = db
+            .change_conversation("s", ConversationAction::Redo)
+            .unwrap();
+        assert!(restored.reverted.is_none() && !restored.can_redo);
+        assert_eq!(db.conversation_history_full("s").unwrap(), raw);
+        assert_eq!(db.child_history("s", &notice_id).unwrap(), Some(projection));
+        assert!(db.deliver_child_notices().unwrap().is_empty());
+    }
+}
+
+#[test]
 fn direct_user_shell_is_not_an_undo_prompt_and_whole_tail_redo_preserves_raw_and_job() {
     for explicit in [false, true] {
         let root = tempfile::tempdir().unwrap();

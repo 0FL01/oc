@@ -63,6 +63,7 @@ async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachm
             text: "unchanged RAW admission".into(),
             turn: None,
             model_switch: None,
+            child: None,
             user_shell: Some(UserShellResult {
                 input: true,
                 superseded_input: false,

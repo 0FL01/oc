@@ -47,6 +47,7 @@ fn user(text: &str, chips: Vec<Chip>) -> HistoryRow {
         agent_color_index: None,
         chips,
         reasoning: None,
+        child_notice: None,
         meta: None,
         tool: None,
     }
@@ -150,6 +151,7 @@ fn assistant(text: &str) -> HistoryRow {
         agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
+        child_notice: None,
         meta: None,
         tool: None,
     }
@@ -974,6 +976,7 @@ fn exploration_tool(name: &str, state: &str, truncated: bool) -> HistoryRow {
         agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
+        child_notice: None,
         meta: None,
         tool: Some(card),
     }

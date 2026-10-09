@@ -1,6 +1,146 @@
 use super::*;
 
 #[tokio::test]
+async fn typed_child_notice_during_parent_stream_keeps_exact_prompt_and_live_parts() {
+    use oc_core::{
+        queries::{
+            ChildHistory, ChildJob, ChildNotice, ChildState, HistoryMessage, HistoryPage,
+            HistoryTurn, TranscriptPart,
+        },
+        session::{MessageId, Role},
+    };
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let session = SessionId("busy-child-notice".into());
+    let current = WorkerTurnId("current-parent-turn".into());
+    let mut state = TuiState::new(app.clone(), session.clone());
+    state.restore_prompt("ordinary accepted prompt".into());
+    state.handle_key(KeyAction::Enter).await;
+    let InboxMsg::Submit { ack, .. } = inbox.recv().await.unwrap() else {
+        panic!("actual submit");
+    };
+    ack.send(Ok(current.clone())).unwrap();
+    state.poll_submission();
+    state.apply_delta(&current, "live assistant only once");
+    state.restore_prompt("new unfinished draft".into());
+    let job = ChildJob {
+        parent: session.clone(),
+        child: SessionId("actual-child".into()),
+        operation: "child-operation".into(),
+        generation: 7,
+        location: "/original".into(),
+        agent: "helper".into(),
+        model: "fixture/child".into(),
+        description: "owned task".into(),
+        delivery_id: "delivery".into(),
+        state: ChildState::Completed,
+        background: true,
+        turn: Some("child-turn".into()),
+        result: None,
+        message_id: Some("actual-notice".into()),
+    };
+    let notice = HistoryMessage {
+        id: MessageId("actual-notice".into()),
+        seq: 9,
+        role: Role::User,
+        text: "RAW technical child JSON is not UI prose".into(),
+        turn: None,
+        model_switch: None,
+        user_shell: None,
+        child: Some(ChildHistory::Notice(Box::new(job.clone()))),
+    };
+    let owner = tokio::spawn(async move {
+        let InboxMsg::History {
+            session,
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("exact notice");
+        };
+        assert_eq!(session.0, "busy-child-notice");
+        assert_eq!(message, Some(notice.id.clone()));
+        assert_eq!(limit, 1);
+        ack.send(Ok(HistoryPage {
+            rows: vec![notice.clone()],
+            total: 120,
+            has_newer: true,
+            ..Default::default()
+        }))
+        .unwrap();
+        let InboxMsg::History {
+            message,
+            limit,
+            ack,
+            ..
+        } = inbox.recv().await.unwrap()
+        else {
+            panic!("bounded identity correlation");
+        };
+        assert!(message.is_none());
+        assert_eq!(limit, HISTORY_PAGE_LIMIT);
+        ack.send(Ok(HistoryPage {
+            rows: vec![
+                HistoryMessage {
+                    id: MessageId("accepted-prompt".into()),
+                    seq: 8,
+                    role: Role::User,
+                    text: "ordinary accepted prompt".into(),
+                    turn: Some(HistoryTurn {
+                        id: "current-parent-turn".into(),
+                        status: "executing".into(),
+                        parts: vec![TranscriptPart::Text(
+                            "must not duplicate executing projection".into(),
+                        )],
+                        ..Default::default()
+                    }),
+                    model_switch: None,
+                    user_shell: None,
+                    child: None,
+                },
+                notice,
+            ],
+            total: 120,
+            ..Default::default()
+        }))
+        .unwrap();
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut LoopState::default(),
+        &session,
+        CoreEvent::ChildNotice(ChildNotice {
+            job,
+            text: "RAW technical child JSON is not UI prose".into(),
+        }),
+    )
+    .await
+    .unwrap();
+    let mut inbox = owner.await.unwrap();
+    let text = state
+        .transcript_lines(120, 120)
+        .iter()
+        .map(oc_tui::styled::Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("↳ Helper finished · owned task"));
+    assert!(!text.contains("RAW technical") && !text.contains("must not duplicate"));
+    assert_eq!(text.matches("live assistant only once").count(), 1);
+    assert_eq!(
+        state.history().rows()[0].message_id.as_deref(),
+        Some(&MessageId("accepted-prompt".into()))
+    );
+    assert_eq!(state.history().rows()[1].role, "child_notice");
+    assert_eq!(state.active_turn(), Some(&current));
+    assert_eq!(state.input(), "new unfinished draft");
+    assert!(state.note().is_none());
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
 async fn shell_changed_updates_closed_owner_footer_and_parked_view_without_cross_session_requests()
 {
     use oc_core::queries::ShellJob;
@@ -136,6 +276,7 @@ async fn direct_user_shell_notice_updates_typed_block_during_live_model_turn_wit
                 text: "RAW technical notice must not become a toast".into(),
                 turn: None,
                 model_switch: None,
+                child: None,
                 user_shell: Some(UserShellResult {
                     input: false,
                     superseded_input: false,
@@ -577,6 +718,7 @@ async fn copy_message_queries_exact_owner_row_instead_of_window_preview() {
                 text,
                 turn: None,
                 model_switch: None,
+                child: None,
                 user_shell: None,
             }],
             ..Default::default()
@@ -1700,6 +1842,7 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
             text: "first viewport marker".into(),
             turn: None,
             model_switch: None,
+            child: None,
             user_shell: None,
         }],
         total: 1,
@@ -2079,6 +2222,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         text: format!("row {seq}"),
         turn: None,
         model_switch: None,
+        child: None,
         user_shell: None,
     };
     let mut state = TuiState::new(app.clone(), SessionId("kept".into()));

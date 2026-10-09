@@ -3536,7 +3536,31 @@ async fn handle_worker_event(
     }
     match event {
         CoreEvent::ChildNotice(notice) => {
-            if !state.is_busy() {
+            let Some(message) = notice.job.message_id else {
+                return Ok(());
+            };
+            let exact = app
+                .history_message(
+                    notice.job.parent.clone(),
+                    oc_core::session::MessageId(message),
+                )
+                .await
+                .map_err(|error| error.to_string())?;
+            if !exact
+                .rows
+                .iter()
+                .any(|row| matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_))))
+            {
+                return Ok(());
+            }
+            if state.is_busy() {
+                let recent = app
+                    .history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
+                    .await
+                    .map_err(|error| error.to_string())?;
+                state.refresh_child_notice_page(&recent);
+                state.refresh_child_notice_page(&exact);
+            } else {
                 let page = if let Some(selected) = state.linked_child().cloned() {
                     app.read_child(selected.parent.clone(), selected).await
                 } else {

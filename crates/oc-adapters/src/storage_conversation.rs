@@ -459,7 +459,7 @@ impl Db {
         Ok(())
     }
 
-    /// Native Shell input/results are untrusted conversation data, not prompts
+    /// Native Shell input/results and child notices are data, not prompts
     /// with saved LLM context. Legacy ordinary user rows still refuse unsupported
     /// Undo rather than silently skipping to an older accepted turn.
     fn last_conversation_user_in(
@@ -477,7 +477,9 @@ impl Db {
             row.get::<_, String>(0)
         })? {
             let message = row?;
-            if Self::user_shell_link_in(conn, session, &message)?.is_none() {
+            if Self::user_shell_link_in(conn, session, &message)?.is_none()
+                && Self::child_notice_in(conn, session, &message)?.is_none()
+            {
                 return Ok(Some(message));
             }
         }
@@ -599,7 +601,9 @@ impl Db {
         let mut count = 0u64;
         for row in query.query_map(params![session, boundary], |row| row.get::<_, String>(0))? {
             let id = row?;
-            if Self::user_shell_link_in(conn, session, &id)?.is_none() {
+            if Self::user_shell_link_in(conn, session, &id)?.is_none()
+                && Self::child_notice_in(conn, session, &id)?.is_none()
+            {
                 count = count.saturating_add(1);
                 message.get_or_insert(id);
             }

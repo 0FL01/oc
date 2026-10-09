@@ -1559,6 +1559,15 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if !matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
+            || self.panel != TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+            || self.composer_open()
+            || self.shell_viewer().is_some()
+        {
+            self.child_notice_down = None;
+        }
         if self.panel == TuiPanel::None
             && self.approvals.active().is_none()
             && self.questions.active().is_none()
@@ -1812,6 +1821,9 @@ impl TuiState {
                 }
             }
             self.handle_transcript_selection(event, area);
+            if let Some(outcome) = self.child_notice_mouse(event, area) {
+                return outcome;
+            }
             if matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
                 && self.transcript_overpainted(area, event.column, event.row)
             {
@@ -2554,6 +2566,7 @@ impl TuiState {
     /// whether to display a note, apply an intent, or treat the input as
     /// consumed.
     pub async fn handle_key(&mut self, action: KeyAction) -> KeyOutcome {
+        self.child_notice_down = None;
         self.cancel_shell_footer_pointer();
         let terminal_command = match action {
             KeyAction::TerminalFocusLeft => Some(CommandAction::FocusSessionPane),

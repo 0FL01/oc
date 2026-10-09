@@ -1098,7 +1098,7 @@ node scripts/tui_capture/capture.mjs \
   --output /home/opencode/ai/oc/evidence/tui/COMPOSER-NEW-IMMUTABLE-ATTEMPT
 ```
 
-Use a bounded600-second external runner budget per geometry. Final00880/009120/
+Use a bounded600-second external runner budget per geometry. Historical00880/009120/
 010160 each qualify eighteen actual stages on both sides, including linked child,
 shared tabs, running output/scroll/follow/final flush, captured second-job kill,
 parent draft return and real PTY input/effect/hide/show. Each retains36 DIFFERENT
@@ -1116,11 +1116,27 @@ pending-wrap checks on actual DOM/WebGL renderers; raw logical diagnostics remai
 available and the strict comparator is unchanged. No masks/crops/tolerance,
 version substitution, forced frontend refresh or source goldens are used.
 
-Receipt: `evidence/tui/combined-composer.md`, current1784/0/11 workspace tests plus
+Receipt: `evidence/tui/combined-composer.md`, historical1784/0/11 workspace tests plus
 real release/startup/PTY/resource gates. The shared consumer qualifies behavior,
 not whole VIS39/T44: model-Shell live cards, child task wrapper/background notice,
 root captions/Add/badges, syntax assets and remaining frozen outcomes stay open.
 Ordinary model-tool and default temporal regressions have separate immutable runs.
+
+The current typed-child qualification is `child-history-002`80×24,`003`120×40 and
+`004`160×48, built from the same source. Each side executes twenty stages: the
+original eighteen plus paired completion-caption click into the same completed
+child and Escape back to the preserved parent draft. Native exact task/notice
+projection removes technical host/quoted-pack and background JSON display without
+rewriting RAW or provider graph. Captured owner validation, three real function
+calls, two Shell starts/one completion/one PTY effect and no replay remain; native
+six HTTP requests, original eight. Each geometry retains all40 strict DIFFERENT
+full-grid/PNG comparisons. Original human child prefix, profile colors, model-Shell
+cards/background captions, root Add/underlays, assets and other frozen outcomes
+remain visible and mandatory, not waived. Current receipt:
+`evidence/tui/child-history.md`,1790/0/11 workspace tests plus current release/PTY/
+resource gates. Separate ordinary27-stage and default144-opaque temporal audits
+qualify behavior only. Diagnostic`child-history-001` predates the description-color
+fix and is not current qualification. No changed probe budget or production timer.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

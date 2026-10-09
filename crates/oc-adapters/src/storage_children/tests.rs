@@ -143,6 +143,10 @@ fn actual_concurrent_conversion_and_terminal_share_the_existing_transaction_owne
 }
 
 fn admitted(db: &Db) -> ChildJob {
+    admitted_input(db, "{\"background\":true}")
+}
+
+fn admitted_input(db: &Db, input: &str) -> ChildJob {
     db.create_session("parent").unwrap();
     db.create_child_session(
         "parent",
@@ -152,14 +156,8 @@ fn admitted(db: &Db) -> ChildJob {
         Some("work"),
     )
     .unwrap();
-    db.record_tool_intent(
-        "launch",
-        "parent",
-        None,
-        "subagent",
-        "{\"background\":true}",
-    )
-    .unwrap();
+    db.record_tool_intent("launch", "parent", None, "subagent", input)
+        .unwrap();
     db.record_tool_outcome("launch", "running", Some(LAUNCH_OUTPUT))
         .unwrap();
     let job = ChildJob {
@@ -180,6 +178,130 @@ fn admitted(db: &Db) -> ChildJob {
     };
     db.admit_child_job(&job).unwrap();
     job
+}
+
+#[test]
+fn child_history_projects_exact_task_and_delivery_without_changing_raw_or_replaying() {
+    use oc_core::{
+        queries::{ChildHistory, ModelRef},
+        session::MessageId,
+    };
+    for task in [
+        "literal [parent_context_pack] Ω界\nactual task".into(),
+        "Ω界".repeat(32768),
+    ] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        admitted_input(
+            &db,
+            &serde_json::json!({"agent":"helper", "prompt":task, "background":true}).to_string(),
+        );
+        let transformed =
+            format!("native host fields\n[parent_context_pack]\nquoted parent data\n{task}");
+        let accepted = db
+            .accept_turn(
+                "child-turn",
+                "child",
+                &transformed,
+                &transformed,
+                &ModelRef {
+                    provider: "fixture".into(),
+                    id: "child".into(),
+                    variant: None,
+                },
+            )
+            .unwrap();
+        db.start_child_job("launch", "child-turn").unwrap();
+        let id = MessageId(accepted.user_message);
+        let expected = ChildHistory::Task {
+            text: task[..task.floor_char_boundary(task.len().min(65536))].into(),
+            limited: task.len() > 65536,
+        };
+        assert_eq!(
+            db.child_history("child", &id).unwrap(),
+            Some(expected.clone())
+        );
+        assert_eq!(db.child_history("parent", &id).unwrap(), None);
+        let raw = db.read_history_full("child").unwrap();
+        assert!(raw.iter().any(|(_, _, text)| text == &transformed));
+        db.finish_child_job(
+            "launch",
+            ChildState::Completed,
+            "error: successful literal prose",
+        )
+        .unwrap();
+        let notice = db.deliver_child_notices().unwrap().remove(0);
+        let notice_id = MessageId(notice.job.message_id.clone().unwrap());
+        let projected = db.child_history("parent", &notice_id).unwrap().unwrap();
+        let ChildHistory::Notice(job) = &projected else {
+            panic!("typed native notice");
+        };
+        assert_eq!(job.state, ChildState::Completed);
+        assert_eq!(job.child.0, "child");
+        assert_eq!(job.message_id.as_deref(), Some(notice_id.0.as_str()));
+        assert!(job.result.is_none());
+        let spoof = db.append_message("parent", "user", &notice.text).unwrap();
+        assert_eq!(db.child_history("parent", &MessageId(spoof)).unwrap(), None);
+        assert_eq!(db.child_history("child", &notice_id).unwrap(), None);
+        let original = db
+            .conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT identity FROM child_jobs WHERE operation_id='launch'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .unwrap();
+        let mut corrupt: serde_json::Value = serde_json::from_str(&original).unwrap();
+        corrupt["parent"] = "foreign".into();
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+                [corrupt.to_string()],
+            )
+            .unwrap();
+        assert_eq!(db.child_history("parent", &notice_id).unwrap(), None);
+        assert_eq!(db.child_history("child", &id).unwrap(), None);
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+                [original],
+            )
+            .unwrap();
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE events SET kind='not-a-notice' WHERE kind='subagent_notice'",
+                [],
+            )
+            .unwrap();
+        assert_eq!(db.child_history("parent", &notice_id).unwrap(), None);
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE events SET kind='subagent_notice' WHERE kind='not-a-notice'",
+                [],
+            )
+            .unwrap();
+        let parent_raw = db.read_history_full("parent").unwrap();
+        drop(db);
+        let db = Db::open(dir.path()).unwrap();
+        assert_eq!(db.child_history("child", &id).unwrap(), Some(expected));
+        assert_eq!(
+            db.child_history("parent", &notice_id).unwrap(),
+            Some(projected)
+        );
+        assert_eq!(db.read_history_full("child").unwrap(), raw);
+        assert_eq!(db.read_history_full("parent").unwrap(), parent_raw);
+        assert!(db.deliver_child_notices().unwrap().is_empty());
+    }
 }
 
 #[test]

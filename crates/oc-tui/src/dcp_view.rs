@@ -436,6 +436,7 @@ mod tests {
             agent_color_index: Some(1),
             chips: vec![],
             reasoning: None,
+            child_notice: None,
             meta: None,
             tool: Some(card_from_row(&operation(Some(fixture_run("s", "op"))))),
         };

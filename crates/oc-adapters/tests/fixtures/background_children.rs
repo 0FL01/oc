@@ -187,6 +187,30 @@ async fn core_child_terminal_reason_and_final_span_reopen_without_retry_replay()
         .read_child(parent.clone(), terminal.clone())
         .await
         .unwrap();
+    let task = page
+        .rows
+        .iter()
+        .find(|row| row.role == oc_core::session::Role::User)
+        .unwrap();
+    assert!(
+        matches!(&task.child, Some(oc_core::queries::ChildHistory::Task { text, limited: false }) if text == "OWN_CHILD_TASK")
+    );
+    assert_ne!(
+        task.text, "OWN_CHILD_TASK",
+        "accepted RAW retains its native host fields"
+    );
+    let notice = app
+        .history_message(
+            parent.clone(),
+            oc_core::session::MessageId(terminal.message_id.clone().unwrap()),
+        )
+        .await
+        .unwrap();
+    assert!(
+        matches!(&notice.rows[0].child, Some(oc_core::queries::ChildHistory::Notice(job))
+        if job.operation == terminal.operation && job.child == terminal.child
+            && job.state == ChildState::Error && job.result.is_none())
+    );
     let turn = page.rows.iter().find_map(|row| row.turn.as_ref()).unwrap();
     assert_eq!(turn.status, "failed");
     // The bounded metadata window combines the settled RAW read step with the

@@ -84,6 +84,7 @@ pub(crate) fn row(snapshot: &CompactionSnapshot, frame: usize, animations: bool)
         reasoning: None,
         meta: None,
         tool: None,
+        child_notice: None,
     }
 }
 
@@ -521,6 +522,7 @@ mod tests {
                     text: "question".into(),
                     turn: None,
                     model_switch: None,
+                    child: None,
                     user_shell: None,
                 },
                 HistoryMessage {
@@ -529,6 +531,7 @@ mod tests {
                     role: Role::Assistant,
                     text: "final".into(),
                     model_switch: None,
+                    child: None,
                     user_shell: None,
                     turn: Some(HistoryTurn {
                         id: "turn".into(),
@@ -561,6 +564,7 @@ mod tests {
                     text: "continue".into(),
                     turn: None,
                     model_switch: None,
+                    child: None,
                     user_shell: None,
                 },
             ],

@@ -925,6 +925,7 @@ fn render_row(
     let (index, footer_after) = identity;
     let lines = match row.role.as_str() {
         "shell_input_delivered" => Vec::new(),
+        "child_notice" => child_notice_block(row, index, theme, width),
         "compaction" | "compaction_failed" | "compaction_queued" => {
             crate::compaction::block(row, theme, width)
         }
@@ -1814,7 +1815,7 @@ pub(crate) fn exploration_header_at_with_range(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Exploration(op, range) => Some((op, range)),
-        TranscriptHit::Reasoning(_) => None,
+        TranscriptHit::Reasoning(_) | TranscriptHit::ChildNotice(_, _) => None,
     })
 }
 
@@ -1843,8 +1844,48 @@ pub(crate) fn reasoning_header_at(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Reasoning(id) => Some(id),
-        TranscriptHit::Exploration(_, _) => None,
+        TranscriptHit::Exploration(_, _) | TranscriptHit::ChildNotice(_, _) => None,
     })
+}
+
+pub(crate) fn child_notice_at_with_range(
+    rows: &[HistoryRow],
+    theme: &Theme,
+    widths: (u16, u16),
+    viewport: (usize, usize, Option<usize>),
+    agent_color: impl Fn(Option<&str>) -> Color,
+    cache: &RefCell<MarkdownCache>,
+    hit: (&impl Fn(&str) -> bool, (usize, usize)),
+) -> Option<(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>)> {
+    visible_transcript_indexed(
+        rows,
+        theme,
+        widths,
+        viewport,
+        &agent_color,
+        cache,
+        ExplorationOptions {
+            expanded: hit.0,
+            point: Some(hit.1),
+            retries: 2,
+        },
+    )
+    .2
+    .and_then(|hit| match hit {
+        TranscriptHit::ChildNotice(job, range) => Some((job, range)),
+        _ => None,
+    })
+}
+
+pub(crate) fn hover_child_notice(
+    line: &Line,
+    theme: &Theme,
+    job: &oc_core::queries::ChildJob,
+) -> Line {
+    let width = UnicodeWidthStr::width(line.plain_text().as_str()).min(u16::MAX as usize) as u16;
+    child_notice_line(job, theme, width, true)
+        .unwrap_or_else(|| line.clone())
+        .with_style(line.style())
 }
 
 #[cfg(test)]
@@ -1982,6 +2023,7 @@ struct ExplorationOptions<'a> {
 enum TranscriptHit {
     Exploration(String, std::ops::Range<usize>),
     Reasoning(ReasoningIdentity),
+    ChildNotice(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>),
 }
 
 fn visible_transcript_indexed(
@@ -2171,6 +2213,37 @@ fn visible_transcript_indexed(
                             ..(position + margin + extent).min(end).saturating_sub(start),
                     ));
                 }
+            }
+            add_visible_lines(
+                lines,
+                Some(width),
+                (start, end),
+                &mut position,
+                &mut visible,
+            );
+        } else if row.role == "child_notice" {
+            let lines = render_row(
+                row,
+                (index, false),
+                theme,
+                width,
+                terminal_width,
+                &agent_color,
+                Some(cache),
+            );
+            let header = position + usize::from(index > 0);
+            if let Some((x, y)) = options.point
+                && let Some(job) = &row.child_notice
+                && header == start + y
+                && header < end
+                && let Some(line) = lines.last()
+                && x >= MESSAGE_PADDING
+                && x < UnicodeWidthStr::width(line.plain_text().trim_end())
+            {
+                hit = Some(TranscriptHit::ChildNotice(
+                    job.clone(),
+                    header - start..header - start + 1,
+                ));
             }
             add_visible_lines(
                 lines,
@@ -2856,6 +2929,65 @@ fn reasoning_content(reasoning: &ReasoningBlock) -> Cow<'_, str> {
 /// graphemes that fit the painted row, preserving span styles and cell widths.
 fn clipped_reasoning_header(reasoning: &ReasoningBlock, theme: &Theme, width: u16) -> Line {
     clipped_line(sanitize_line(reasoning_line(reasoning, theme)), width)
+}
+
+fn child_notice_block(row: &HistoryRow, index: usize, theme: &Theme, width: u16) -> Vec<Line> {
+    let Some(line) = row
+        .child_notice
+        .as_deref()
+        .and_then(|job| child_notice_line(job, theme, width, false))
+    else {
+        return Vec::new();
+    };
+    if index > 0 {
+        vec![Line::plain(""), line]
+    } else {
+        vec![line]
+    }
+}
+
+fn child_notice_line(
+    job: &oc_core::queries::ChildJob,
+    theme: &Theme,
+    width: u16,
+    hover: bool,
+) -> Option<Line> {
+    let actor = Locale::titlecase(if job.agent.is_empty() {
+        "Subagent"
+    } else {
+        &job.agent
+    });
+    let (label, color) = match job.state {
+        oc_core::queries::ChildState::Completed => (format!("↳ {actor} finished"), theme.info()),
+        oc_core::queries::ChildState::Error => (format!("! {actor} failed"), theme.error()),
+        oc_core::queries::ChildState::Cancelled => {
+            (format!("! {actor} cancelled"), theme.warning())
+        }
+        oc_core::queries::ChildState::Unknown => (format!("! {actor} unknown"), theme.info()),
+        oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running => {
+            return None;
+        }
+    };
+    let color = if hover
+        && !matches!(
+            job.state,
+            oc_core::queries::ChildState::Error | oc_core::queries::ChildState::Cancelled
+        ) {
+        theme.text()
+    } else {
+        color
+    };
+    Some(clipped_line(
+        sanitize_line(Line::new(vec![
+            Span::plain("   "),
+            Span::styled(label, Style::default().fg(color)),
+            Span::styled(
+                format!(" · {}", job.description),
+                Style::default().fg(theme.text_muted()),
+            ),
+        ])),
+        width,
+    ))
 }
 
 fn clipped_line(header: Line, width: u16) -> Line {

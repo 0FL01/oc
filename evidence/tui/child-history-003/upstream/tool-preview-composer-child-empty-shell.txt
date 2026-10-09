@@ -1,0 +1,40 @@
+   VIS39 parent                  +                                                                                      
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ python3 composer-probe.py first                                                                                  
+  ┃                                                                                                                     
+  ┃  (78 earlier lines)                                                                                                 
+  ┃  VIS39-ROW-077                                                                                                      
+  ┃  VIS39-ROW-078                                                                                                      
+  ┃  VIS39-ROW-079                                                                                                      
+  ┃  VIS39-STDERR-first                                                                                                 
+  ┃  VIS39-FINAL-FLUSH-first                                                                                            
+  ┃                                                                                                                     
+  ┃  Command exited with code 0.                                                                                        
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ python3 composer-probe.py second                                                                                 
+  ┃                                                                                                                     
+  ┃   Background                                                                                                        
+  ┃                                                                                                                     
+  ┃  Shell.NotFoundError                                                                                                
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS39-CHILD-DONE                                                                                                   
+                                                                                                                        
+     Helper · MiMo-V2.6-Flash Free · 56.6s                                                                              
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  Subagents  Shell  Terminals                                                                                 esc    
+  ┃                                                                                                                     
+  ┃  No shell commands                                                                                                  
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃                                                                                                                     
+  ┃  tabs ←/→                                                                                                           
+  ┃                                                                                                                     
+                                                                                                                        

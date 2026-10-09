@@ -1,12 +1,117 @@
 //! Child generation/terminal/delivery facts in the existing journal owner.
 use super::*;
-use oc_core::queries::{ChildJob, ChildNotice, ChildState};
+use oc_core::queries::{ChildHistory, ChildJob, ChildNotice, ChildState};
 
 #[cfg(test)]
 #[path = "storage_children/tests.rs"]
 mod tests;
 
 impl Db {
+    /// UI-only classification by journal identities, never by message prose.
+    pub(crate) fn child_history(
+        &self,
+        session: &str,
+        message: &oc_core::session::MessageId,
+    ) -> Result<Option<ChildHistory>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        if !conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM conversation_messages WHERE session_id=?1 AND id=?2)",
+            params![session, message.0],
+            |row| row.get::<_, bool>(0),
+        )? {
+            return Ok(None);
+        }
+        if let Some(job) = Self::child_notice_in(&conn, session, &message.0)? {
+            return Ok(Some(ChildHistory::Notice(Box::new(job))));
+        }
+        // Read the original structured tool argument of this exact acceptance,
+        // not delimiters inside its transformed native host/context-pack text.
+        let task = conn.query_row(
+            "SELECT substr(CAST(json_extract(o.input,'$.prompt') AS BLOB),1,65536),length(CAST(json_extract(o.input,'$.prompt') AS BLOB))
+             FROM conversation_messages m JOIN turn_acceptances a ON a.user_message=m.id AND a.session_id=m.session_id
+             JOIN child_jobs j ON j.child_turn=a.turn_id AND j.child_id=a.session_id
+             JOIN turns t ON t.id=a.turn_id AND t.session_id=j.child_id
+             JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+             WHERE m.session_id=?1 AND m.id=?2 AND m.role='user'
+             AND CASE WHEN json_valid(o.input) AND json_valid(j.identity) THEN
+                json_type(o.input,'$.prompt')='text'
+                AND json_extract(j.identity,'$.operation')=j.operation_id
+                AND json_extract(j.identity,'$.parent')=j.parent_id
+                AND json_extract(j.identity,'$.child')=j.child_id
+                AND json_extract(j.identity,'$.delivery_id')=j.delivery_id
+                AND json_extract(j.identity,'$.agent')=json_extract(o.input,'$.agent')
+             ELSE 0 END",
+            params![session,message.0],
+            |row| Ok((row.get::<_,Vec<u8>>(0)?,row.get::<_,i64>(1)?)),
+        ).optional()?;
+        Ok(task.map(|(text, bytes)| {
+            let end = std::str::from_utf8(&text).map_or_else(|error| error.valid_up_to(), str::len);
+            ChildHistory::Task {
+                text: String::from_utf8_lossy(&text[..end]).into_owned(),
+                limited: bytes > end as i64,
+            }
+        }))
+    }
+
+    /// Exact delivery identity, including hidden RAW rows for Revert counting.
+    /// Display callers independently require the current conversation view.
+    pub(super) fn child_notice_in(
+        conn: &Connection,
+        session: &str,
+        message: &str,
+    ) -> Result<Option<ChildJob>, StorageError> {
+        let notice = conn.query_row(
+            "SELECT j.identity,j.state,j.parent_id,j.child_id,j.operation_id,j.delivery_id,j.child_turn
+             FROM messages m JOIN child_jobs j ON j.message_id=m.id AND j.parent_id=m.session_id
+             JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+             WHERE m.session_id=?1 AND m.id=?2 AND m.role='user' AND j.state NOT IN ('admitted','running')
+             AND length(CAST(j.identity AS BLOB))<=?3
+             AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_notice' AND e.payload=j.delivery_id)",
+             params![session,message,oc_core::tool_output::RECORD_BYTES as i64],
+            |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,String>(3)?,row.get::<_,String>(4)?,row.get::<_,String>(5)?,row.get::<_,Option<String>>(6)?)),
+        ).optional()?;
+        if let Some((raw, state, parent, child, operation, delivery, turn)) = notice {
+            let Ok(mut job) = Self::decode_child_job(raw, state, None, Some(message.to_owned()))
+            else {
+                return Ok(None);
+            };
+            if job.parent.0 != parent
+                || job.child.0 != child
+                || job.operation != operation
+                || job.delivery_id != delivery
+                || [
+                    &job.parent.0,
+                    &job.child.0,
+                    &job.operation,
+                    &job.delivery_id,
+                    &job.location,
+                    &job.agent,
+                    &job.model,
+                ]
+                .iter()
+                .any(|field| field.len() > 4096)
+                || turn.as_ref().is_some_and(|turn| turn.len() > 4096)
+            {
+                return Ok(None);
+            }
+            // The exact delivery event proves conversion even for foreground
+            // launch identities. Result prose is not needed by this UI link.
+            job.background = true;
+            job.turn = turn;
+            if job.description.len() > TOOL_OP_PREVIEW_BYTES {
+                let end = job
+                    .description
+                    .floor_char_boundary(TOOL_OP_PREVIEW_BYTES - '…'.len_utf8());
+                job.description.truncate(end);
+                job.description.push('…');
+            }
+            return Ok(Some(job));
+        }
+        Ok(None)
+    }
+
     pub(crate) fn child_launch_fingerprint(&self, operation: &str) -> Result<String, StorageError> {
         let conn = self.conn.lock().expect("db mutex");
         let facts = conn.query_row("SELECT id,session_id,turn_id,input,provider_call_id,call_occurrence,original_input_index FROM tool_operations WHERE id=?1 AND name='subagent'",[operation],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,Option<String>>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?,r.get::<_,Option<i64>>(5)?,r.get::<_,Option<i64>>(6)?)))?;

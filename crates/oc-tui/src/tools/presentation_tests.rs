@@ -255,6 +255,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         agent_color_index: None,
         chips: Vec::new(),
         reasoning: None,
+        child_notice: None,
         meta: None,
         tool: Some(card),
     }];

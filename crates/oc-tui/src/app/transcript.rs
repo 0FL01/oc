@@ -2,6 +2,13 @@
 
 use super::*;
 
+pub(super) struct ChildNoticePress {
+    job: Box<oc_core::queries::ChildJob>,
+    frame: Rect,
+    generation: u64,
+    point: (u16, u16),
+}
+
 /// One bounded render row for a tool card.
 pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
     // `apply_patch` shows a bounded diff (touched files with +/- counts and
@@ -124,6 +131,7 @@ pub(super) fn card_row(card: &ToolCard) -> HistoryRow {
         // The list text may ellipsize; the existing detail viewer still needs
         // bounded owner facts without another query or a parallel store.
         tool: Some(card.clone()),
+        child_notice: None,
     }
 }
 
@@ -142,6 +150,7 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
         reasoning: None,
         meta: Some(meta),
         tool: None,
+        child_notice: None,
     }
 }
 
@@ -213,6 +222,17 @@ impl TuiState {
             self.invalidate_transcript();
         }
         self.refresh_running_user_shell_output();
+    }
+
+    /// A child completion may arrive while another parent request streams.
+    /// Keep that request's parts/draft and the window's paging boundaries.
+    pub fn refresh_child_notice_page(&mut self, page: &HistoryPage) {
+        if let Some(turn) = &self.active_turn {
+            self.window.correlate_live_prompt(page, &turn.0);
+        }
+        if self.window.refresh_owner_notices(page) {
+            self.invalidate_transcript();
+        }
     }
 
     /// The existing inventory can arrive before a receipt/history attachment.
@@ -467,6 +487,11 @@ impl TuiState {
             self.exploration_hit_with_range(frame, x, y)
                 .map(|(_, range)| range)
         });
+        let hover_child = frame.and_then(|frame| {
+            let (x, y, owner) = self.last_mouse?;
+            (owner == frame).then_some(())?;
+            self.child_notice_hit(frame, x, y)
+        });
         let selected = self.selection.as_ref().filter(|selected| {
             selected.painted.area == area
                 && selected.painted.total == total
@@ -490,6 +515,12 @@ impl TuiState {
                     &hovered
                 } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
+                    &hovered
+                } else if let Some((job, _)) = hover_child
+                    .as_ref()
+                    .filter(|(_, range)| range.contains(&row))
+                {
+                    hovered = crate::messages::hover_child_notice(line, theme, job);
                     &hovered
                 } else if hover_tool
                     .as_ref()
@@ -668,6 +699,7 @@ impl TuiState {
     }
 
     pub(crate) fn clear_transcript_selection(&mut self) {
+        self.child_notice_down = None;
         self.reverted_down = None;
         self.message_down = None;
         self.paint_generation
@@ -1099,6 +1131,105 @@ impl TuiState {
             })
     }
 
+    fn child_notice_hit(
+        &self,
+        frame: Rect,
+        x: u16,
+        y: u16,
+    ) -> Option<(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>)> {
+        if !self
+            .window
+            .rows()
+            .iter()
+            .any(|row| row.child_notice.is_some())
+            || self.panel != TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+            || self.composer_open()
+            || self.shell_viewer().is_some()
+            || self.transcript_overpainted(frame, x, y)
+        {
+            return None;
+        }
+        let rect = crate::shell::transcript_area(self, frame);
+        if !rect.contains((x, y).into()) {
+            return None;
+        }
+        let (visible, total, scroll) =
+            self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        if !self
+            .painted_transcript
+            .borrow()
+            .as_ref()
+            .is_some_and(|painted| {
+                painted.area == rect
+                    && painted.total == total
+                    && painted.scroll == scroll
+                    && painted.rows == visible
+            })
+        {
+            return None;
+        }
+        let rows = self.transcript_rows();
+        let live =
+            (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
+        crate::messages::child_notice_at_with_range(
+            &rows,
+            Theme::dark(),
+            (rect.width, frame.width),
+            (rect.height as usize, scroll, live),
+            |agent| self.agent_color(agent),
+            &self.markdown_cache,
+            (
+                &|op| self.exploration_expanded.contains(op),
+                ((x - rect.x) as usize, (y - rect.y) as usize),
+            ),
+        )
+        .filter(|(job, _)| self.attached_session() == Some(&job.parent))
+    }
+
+    pub(super) fn child_notice_mouse(
+        &mut self,
+        event: MouseEvent,
+        frame: Rect,
+    ) -> Option<KeyOutcome> {
+        match event.kind {
+            MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
+                self.child_notice_down =
+                    self.child_notice_hit(frame, event.column, event.row)
+                        .map(|(job, _)| ChildNoticePress {
+                            job,
+                            frame,
+                            generation: self.paint_generation.get(),
+                            point: (event.column, event.row),
+                        });
+            }
+            MouseEventKind::Up(MouseButton::Left) => {
+                let pressed = self.child_notice_down.take()?;
+                if !event.modifiers.is_empty()
+                    || pressed.frame != frame
+                    || pressed.point != (event.column, event.row)
+                    || pressed.generation != self.paint_generation.get()
+                    || self.click.is_some_and(|click| click.count != 1)
+                    || !matches!(self.selection_text(), Ok(None))
+                {
+                    return None;
+                }
+                let (job, _) = self.child_notice_hit(frame, event.column, event.row)?;
+                if job != pressed.job {
+                    return None;
+                }
+                self.clear_transcript_selection();
+                return Some(KeyOutcome {
+                    intent: Some(PanelIntent::OpenChild { selected: *job }),
+                    ..KeyOutcome::default()
+                });
+            }
+            _ => {}
+        }
+        None
+    }
+
     pub(super) fn prune_reasoning(&mut self) {
         let retained: BTreeSet<_> = self
             .transcript_rows()
@@ -1187,6 +1318,7 @@ impl TuiState {
                 }),
                 meta: None,
                 tool: None,
+                child_notice: None,
             });
         }
         let mut group_first = None;
@@ -1222,6 +1354,7 @@ impl TuiState {
                 reasoning: None,
                 meta: None,
                 tool: None,
+                child_notice: None,
             });
         }
         self.interleave_compactions(&mut rows);

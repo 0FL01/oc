@@ -161,7 +161,31 @@ impl ScriptDriver {
                         }
                     }
                 }
-                Ok(Ok(CoreEvent::ChildNotice(_))) => {}
+                Ok(Ok(CoreEvent::ChildNotice(notice))) => {
+                    if state.attached_session() == Some(&notice.job.parent)
+                        && let Some(message) = notice.job.message_id
+                        && let Ok(page) = state
+                            .app
+                            .history_message(
+                                notice.job.parent.clone(),
+                                oc_core::session::MessageId(message),
+                            )
+                            .await
+                    {
+                        if state.is_busy()
+                            && page.rows.iter().any(|row| {
+                                matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_)))
+                            })
+                            && let Ok(recent) = state
+                                .app
+                                .history_page(notice.job.parent, None, None, 100)
+                                .await
+                        {
+                            state.refresh_child_notice_page(&recent);
+                        }
+                        state.refresh_child_notice_page(&page);
+                    }
+                }
                 Ok(Ok(
                     event @ (CoreEvent::ShellChanged { .. } | CoreEvent::TerminalChanged { .. }),
                 )) => {
@@ -1303,6 +1327,7 @@ impl TuiState {
                 reasoning,
                 meta: Some(meta),
                 tool: None,
+                child_notice: None,
             });
             self.prune_reasoning();
             return;
@@ -1344,6 +1369,7 @@ impl TuiState {
                 reasoning,
                 meta: Some(meta),
                 tool: None,
+                child_notice: None,
             });
             self.prune_reasoning();
             return;

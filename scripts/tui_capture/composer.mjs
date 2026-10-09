@@ -75,7 +75,11 @@ export async function probeComposer({origin,send,shot,waitFor,frame,logs,snapsho
   // requires this source session's running command (the parent has none).
   await shot('composer-child-subagents',f=>activeTab(f,'Subagents')&&f.text.includes('Inspect child shell')
     &&(f.text.includes('VIS39_CHILD_TASK')||f.text.includes('VIS39-ROW-079')));
-  if(origin==='oc'&&!(await frame()).text.split('\n')[0].includes('VIS39 parent'))throw Error('Linked child replaced the retained root-deck title');
+  if(origin==='oc') {
+    const childFrame=await frame();
+    if(!childFrame.text.split('\n')[0].includes('VIS39 parent'))throw Error('Linked child replaced the retained root-deck title');
+    if(childFrame.text.includes('[parent_context_pack]'))throw Error('Child display leaked the native task envelope');
+  }
   send('\x1b[C','composer_child_shell_tab');
   await shot('composer-child-shell',f=>activeTab(f,'Shell')&&f.text.includes('python3 composer-probe.py first'));
   send('\r','composer_child_output');
@@ -102,7 +106,14 @@ export async function probeComposer({origin,send,shot,waitFor,frame,logs,snapsho
   }
   await shot('composer-child-empty-shell',f=>f.text.includes('No shell commands'));
   send('\x1b','composer_return_parent');
-  await shot('composer-parent-restored',f=>f.text.includes('VIS39 parent unsent draft'));
+  await shot('composer-parent-restored',f=>f.text.includes('VIS39 parent unsent draft')&&f.text.includes('↳ Helper finished'));
+  const noticeFrame=await frame(),noticeY=noticeFrame.cells.findIndex(row=>glyphs(row).includes('↳ Helper finished'));
+  const noticeX=noticeY<0?-1:glyphs(noticeFrame.cells[noticeY]).indexOf('↳ Helper finished');
+  if(noticeX<0)throw Error('Typed completion link is absent from the actual parent viewport');
+  send(`\x1b[<0;${noticeX+1};${noticeY+1}M\x1b[<0;${noticeX+1};${noticeY+1}m`,'composer_notice_open_original_child');
+  await shot('composer-notice-child',f=>activeTab(f,'Subagents')&&f.text.includes('VIS39-CHILD-DONE'));
+  send('\x1b','composer_notice_return_parent');
+  await shot('composer-notice-parent-restored',f=>f.text.includes('VIS39 parent unsent draft')&&f.text.includes('↳ Helper finished'));
   // The actual terminal selector has no initial row. Enter must not create.
   send('\x18\x1b[B','composer_terminal_selector');
   await shot('composer-terminals-empty',f=>f.text.includes('Terminals')&&f.text.includes('+ New terminal'));
@@ -135,7 +146,8 @@ export async function probeComposer({origin,send,shot,waitFor,frame,logs,snapsho
     if(terminals.length!==1||terminals[0].session_id!==finished.root.id||terminals[0].live!==1||selected.length!==1||selected[0].session_id!==finished.root.id||selected[0].terminal_id!==terminals[0].id)throw Error('Terminal hide/show changed the captured root terminal identity or live selection');
     ownerFacts={root:finished.root.id,child:finished.child.id,child_operation:finished.job.operation_id,
       same_process_conversion:true,child_shell_source_fenced:true,final_flush_completed:true,
-      second_shell_cancelled:true,undefined_terminal_enter_noop:true,same_terminal_hide_show:true};
+      second_shell_cancelled:true,undefined_terminal_enter_noop:true,same_terminal_hide_show:true,
+      typed_child_notice_link:true};
   }
   return {status:'OBSERVED_COMPOSER',started,converted,second,undefinedEnter,terminal,final,owner_facts:ownerFacts,
     origin,actual_tool_calls:3,actual_requests:requestCount(),shell_starts:2,shell_completions:1,

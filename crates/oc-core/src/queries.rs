@@ -232,6 +232,17 @@ pub struct HistoryMessage {
     /// Direct-user Shell input/result, projected by its exact durable
     /// message/operation association. Never an assistant tool call or turn.
     pub user_shell: Option<UserShellResult>,
+    /// Child task/notice display facts linked to this exact durable message.
+    /// Neither the accepted RAW prompt nor provider history is changed.
+    pub child: Option<ChildHistory>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChildHistory {
+    /// Original structured subagent task, without native host/quoted context.
+    Task { text: String, limited: bool },
+    /// Delivered terminal background notice with its captured navigation fence.
+    Notice(Box<ChildJob>),
 }
 
 /// Bounded display facts from a supervised direct-user command. RAW notice text

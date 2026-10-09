@@ -199,6 +199,7 @@ fn page(older: usize) -> HistoryPage {
                 text,
                 turn,
                 model_switch: None,
+                child: None,
                 user_shell: None,
             }
         })

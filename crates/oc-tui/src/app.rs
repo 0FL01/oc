@@ -410,6 +410,7 @@ impl LivePart {
                 reasoning: None,
                 meta: None,
                 tool: None,
+                child_notice: None,
             },
             LivePart::Reasoning { text, duration_ms } => HistoryRow {
                 message_id: None,
@@ -429,6 +430,7 @@ impl LivePart {
                 }),
                 meta: None,
                 tool: None,
+                child_notice: None,
             },
             LivePart::Tool { card, .. } => HistoryRow {
                 message_id: None,
@@ -441,6 +443,7 @@ impl LivePart {
                 reasoning: None,
                 meta: None,
                 tool: Some((**card).clone()),
+                child_notice: None,
             },
         }
     }
@@ -627,6 +630,7 @@ pub struct TuiState {
     /// Only operation IDs whose exploration headers were explicitly opened.
     exploration_expanded: BTreeSet<String>,
     exploration_down: Option<(String, u16, u16)>,
+    child_notice_down: Option<transcript::ChildNoticePress>,
     reasoning_expanded: BTreeSet<crate::messages::ReasoningIdentity>,
     reasoning_down: Option<(
         crate::messages::ReasoningIdentity,
@@ -859,6 +863,7 @@ impl TuiState {
             can_add_tab: false,
             exploration_expanded: BTreeSet::new(),
             exploration_down: None,
+            child_notice_down: None,
             reasoning_expanded: BTreeSet::new(),
             reasoning_down: None,
             reasoning_pointer_down: false,

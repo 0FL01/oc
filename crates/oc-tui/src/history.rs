@@ -53,6 +53,8 @@ pub struct HistoryRow {
     /// Tool card attached to a `tool` row (live turns and cards panel rows
     /// stay plain text; the transcript renders the card).
     pub tool: Option<ToolCard>,
+    /// Exact delivered child notice; not a user block or assistant tool part.
+    pub child_notice: Option<Box<oc_core::queries::ChildJob>>,
 }
 
 /// Which end of the deque is dropped when a cap is exceeded.
@@ -224,6 +226,7 @@ impl HistoryWindow {
                         .and_then(|m| m.model.as_ref())
                         .map_or(0, String::len)
                     + row.tool.as_ref().map_or(0, ToolCard::retained_bytes)
+                    + row.child_notice.as_deref().map_or(0, child_notice_bytes)
             })
             .sum()
     }
@@ -265,6 +268,7 @@ impl HistoryWindow {
             reasoning: None,
             meta: None,
             tool: None,
+            child_notice: None,
         });
         self.has_newer = false;
         if self.enforce(Evict::Oldest) {
@@ -314,12 +318,48 @@ impl HistoryWindow {
             reasoning: None,
             meta: None,
             tool: Some(card),
+            child_notice: None,
         });
     }
 
     /// Selective native Shell update while the live assistant owns its parts.
     /// Do not attach a second projection of an executing model turn.
     pub(crate) fn refresh_user_shell(&mut self, page: &HistoryPage) -> bool {
+        self.refresh_owner_notices(page)
+    }
+
+    /// Correlate the current acknowledged prompt, without projecting any of its
+    /// executing assistant parts. Only its durable paging identity changes.
+    pub(crate) fn correlate_live_prompt(&mut self, page: &HistoryPage, turn: &str) {
+        let Some(message) = page.rows.iter().find(|message| {
+            message.role == Role::User
+                && message.user_shell.is_none()
+                && message.child.is_none()
+                && message.turn.as_ref().is_some_and(|owner| owner.id == turn)
+        }) else {
+            return;
+        };
+        if self
+            .rows
+            .iter()
+            .any(|row| row.message_id.as_deref() == Some(&message.id))
+        {
+            return;
+        }
+        if let Some(row) = self
+            .rows
+            .iter_mut()
+            .rev()
+            .find(|row| row.role == "user" && row.message_id.is_none())
+        {
+            row.message_id = Some(std::sync::Arc::new(message.id.clone()));
+            row.seq = message.seq;
+            self.revision = self.revision.wrapping_add(1);
+        }
+    }
+
+    /// Selective typed data rows, never an executing model turn projection.
+    pub(crate) fn refresh_owner_notices(&mut self, page: &HistoryPage) -> bool {
         let mut changed = false;
         let tail = self.rows.iter().rev().find(|row| row.message_id.is_some());
         let tail_seq = tail.map(|row| row.seq);
@@ -329,13 +369,19 @@ impl HistoryWindow {
                 .any(|message| row.message_id.as_deref() == Some(&message.id))
         });
         for message in &page.rows {
-            let Some(shell) = &message.user_shell else {
+            let shell = message.user_shell.as_ref();
+            if shell.is_none()
+                && !matches!(
+                    message.child,
+                    Some(oc_core::queries::ChildHistory::Notice(_))
+                )
+            {
                 continue;
-            };
+            }
             // The result may be outside a detached window. Its exact operation
             // still retires a retained input, without inventing a durable row or
             // losing the input's paging identity.
-            if !shell.input {
+            if let Some(shell) = shell.filter(|shell| !shell.input) {
                 for row in &mut self.rows {
                     if row.role == "shell_input"
                         && row
@@ -353,13 +399,15 @@ impl HistoryWindow {
             let replacement = rows_from_page(message).remove(0);
             let index = self.rows.iter().position(|row| {
                 row.message_id.as_deref() == Some(&message.id)
-                    || shell.input
-                        && row.message_id.is_none()
-                        && row.role == "shell_input"
-                        && row
-                            .tool
-                            .as_ref()
-                            .is_some_and(|card| card.op == shell.operation)
+                    || shell.is_some_and(|shell| {
+                        shell.input
+                            && row.message_id.is_none()
+                            && row.role == "shell_input"
+                            && row
+                                .tool
+                                .as_ref()
+                                .is_some_and(|card| card.op == shell.operation)
+                    })
             });
             if let Some(index) = index {
                 if self.rows[index] != replacement {
@@ -381,6 +429,10 @@ impl HistoryWindow {
                         tail_seq.is_some_and(|seq| between.seq > seq)
                             && between.seq < message.seq
                             && between.user_shell.is_none()
+                            && !matches!(
+                                between.child,
+                                Some(oc_core::queries::ChildHistory::Notice(_))
+                            )
                             && !self
                                 .rows
                                 .iter()
@@ -523,6 +575,7 @@ impl HistoryWindow {
                     reasoning: None,
                     meta: None,
                     tool: None,
+                    child_notice: None,
                 },
             );
             if self.enforce(Evict::Oldest) {
@@ -566,15 +619,27 @@ fn row_from_page(
             }
         },
         text: row
-            .model_switch
+            .child
             .as_ref()
-            .map_or_else(|| row.text.clone(), model_switch_text),
+            .and_then(|child| match child {
+                oc_core::queries::ChildHistory::Task { text, limited } => Some(format!(
+                    "{text}{}",
+                    if *limited { "\n[Task preview]" } else { "" }
+                )),
+                _ => None,
+            })
+            .unwrap_or_else(|| {
+                row.model_switch
+                    .as_ref()
+                    .map_or_else(|| row.text.clone(), model_switch_text)
+            }),
         agent: row.turn.as_ref().and_then(|turn| turn.agent.clone()),
         agent_color_index: row.turn.as_ref().and_then(|turn| turn.agent_color_index),
         chips: Vec::new(),
         reasoning: None,
         meta: None,
         tool: None,
+        child_notice: None,
     }
 }
 
@@ -613,6 +678,13 @@ pub(crate) fn model_switch_text(notice: &oc_core::queries::ModelSwitchNotice) ->
 fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     use oc_core::queries::TranscriptPart;
     let message_id = std::sync::Arc::new(row.id.clone());
+    if let Some(oc_core::queries::ChildHistory::Notice(job)) = &row.child {
+        let mut result = row_from_page(row, &message_id);
+        result.role = "child_notice".into();
+        result.text.clear();
+        result.child_notice = Some(job.clone());
+        return vec![result];
+    }
     if let Some(shell) = &row.user_shell {
         let mut result = row_from_page(row, &message_id);
         result.text.clear();
@@ -655,6 +727,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         reasoning: None,
         meta: None,
         tool: None,
+        child_notice: None,
     };
     let first = turn
         .spans
@@ -768,6 +841,25 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
     });
     rows.push(footer);
     rows
+}
+
+fn child_notice_bytes(job: &oc_core::queries::ChildJob) -> usize {
+    [
+        &job.parent.0,
+        &job.child.0,
+        &job.operation,
+        &job.location,
+        &job.agent,
+        &job.model,
+        &job.description,
+        &job.delivery_id,
+    ]
+    .iter()
+    .map(|field| field.len())
+    .sum::<usize>()
+        + job.turn.as_ref().map_or(0, String::len)
+        + job.result.as_ref().map_or(0, String::len)
+        + job.message_id.as_ref().map_or(0, String::len)
 }
 
 fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
@@ -1092,6 +1184,10 @@ fn preview(value: Option<&str>) -> String {
 mod user_shell_tests;
 
 #[cfg(test)]
+#[path = "history/child_tests.rs"]
+mod child_tests;
+
+#[cfg(test)]
 mod tests {
     use super::{
         CARD_FILES, CARD_PREVIEW, HistoryWindow, WINDOW_BYTES, WINDOW_ROWS, card_from_row,
@@ -1105,6 +1201,7 @@ mod tests {
             id: oc_core::session::MessageId(format!("fixture-{seq}")),
             turn: None,
             model_switch: None,
+            child: None,
             user_shell: None,
             seq,
             role,
