@@ -176,20 +176,15 @@ impl ScriptDriver {
                         if let Ok(rows) = state.app.shell_jobs(session).await {
                             state.apply_shell_jobs(rows);
                         }
-                        if let Some(job) = state.shell_viewer().cloned()
-                            && let Ok(snapshot) = state
+                        if let Some(job) = state.shell_viewer().cloned() {
+                            match state
                                 .app
                                 .shell_snapshot(job.session.clone(), job.shell_id.clone())
                                 .await
-                        {
-                            state.apply_shell_output(
-                                &snapshot.job,
-                                oc_core::queries::ToolOutputPage {
-                                    total_bytes: snapshot.text.len() as i64,
-                                    text: snapshot.text,
-                                    next_offset: None,
-                                },
-                            );
+                            {
+                                Ok(snapshot) => state.apply_shell_snapshot(snapshot),
+                                Err(_) => state.apply_shell_read_failure(&job),
+                            }
                         }
                     }
                 }

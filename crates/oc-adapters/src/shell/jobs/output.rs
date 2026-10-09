@@ -9,6 +9,7 @@ pub(super) const RECENT_CAP: usize = 65536;
 
 struct TextStream {
     utf8: Vec<u8>,
+    ansi: anstyle_parse::Parser,
     redactor: StreamRedactor,
     bytes: u64,
     newlines: u64,
@@ -22,6 +23,7 @@ impl TextStream {
     fn new(secrets: Vec<String>) -> Self {
         Self {
             utf8: Vec::with_capacity(4),
+            ansi: Default::default(),
             redactor: StreamRedactor::new(secrets),
             bytes: 0,
             newlines: 0,
@@ -69,8 +71,41 @@ impl TextStream {
             }
         }
         self.utf8.drain(..at);
-        normalized.retain(|c| !c.is_control() || matches!(c, '\n' | '\r' | '\t'));
-        let admitted = self.redactor.push(&normalized, end);
+        // Keep parser state across drain reads; CSI/OSC/DCS payload is never
+        // plain text or a terminal capability. `core` fixes OSC retention at 1KiB.
+        struct Plain(String);
+        impl anstyle_parse::Perform for Plain {
+            fn print(&mut self, c: char) {
+                if !c.is_control() {
+                    self.0.push(c);
+                }
+            }
+            fn execute(&mut self, byte: u8) {
+                if matches!(byte, b'\n' | b'\r' | b'\t') {
+                    self.0.push(byte as char);
+                }
+            }
+        }
+        let mut plain = Plain(String::new());
+        for c in normalized.chars() {
+            // This parser's state machine uses the 7-bit escape spelling. UTF-8
+            // encoded C1 introducers denote the same control, not visible text.
+            let spelling: Option<&[u8]> = match c {
+                '\u{90}' => Some(b"\x1bP"),
+                '\u{98}' => Some(b"\x1bX"),
+                '\u{9b}' => Some(b"\x1b["),
+                '\u{9c}' => Some(b"\x1b\\"),
+                '\u{9d}' => Some(b"\x1b]"),
+                '\u{9e}' => Some(b"\x1b^"),
+                '\u{9f}' => Some(b"\x1b_"),
+                _ => None,
+            };
+            let mut utf8 = [0; 4];
+            for &byte in spelling.unwrap_or_else(|| c.encode_utf8(&mut utf8).as_bytes()) {
+                self.ansi.advance(&mut plain, byte);
+            }
+        }
+        let admitted = self.redactor.push(&plain.0, end);
         if carried && !admitted.is_empty() {
             self.carry_releases = self.carry_releases.saturating_add(1);
         }
@@ -95,9 +130,9 @@ pub(super) struct StreamCapture {
     stderr: TextStream,
     last: Option<Stream>,
     tail: String,
-    // Tiny display projection in safe publication order, without transport
-    // stream labels. The full capture and separate stream windows remain owned
-    // here; no consumer must reconstruct output by parsing those labels.
+    // Recent plain-text display in safe publication order, without transport
+    // labels. Transcript previews borrow only their existing 2KiB suffix; an open
+    // output dialog may consume this bounded 64KiB window from the same owner.
     display_tail: String,
     observed: u64,
     lost: bool,
@@ -181,11 +216,9 @@ impl StreamCapture {
         let admitted = input.admit(bytes, end);
         if !admitted.is_empty() {
             self.display_tail.push_str(&admitted);
-            let drop = self.display_tail.ceil_char_boundary(
-                self.display_tail
-                    .len()
-                    .saturating_sub(oc_core::tool_output::PREVIEW_BYTES),
-            );
+            let drop = self
+                .display_tail
+                .ceil_char_boundary(self.display_tail.len().saturating_sub(RECENT_CAP));
             self.display_tail.drain(..drop);
             let mut framed = String::new();
             if self.last != Some(stream) {
@@ -242,6 +275,13 @@ impl StreamCapture {
             stdout_carry_releases: self.stdout.carry_releases,
             stderr_carry_releases: self.stderr.carry_releases,
         }
+    }
+    pub(super) fn display(&self) -> (String, bool) {
+        let bytes = self.stdout.bytes.saturating_add(self.stderr.bytes);
+        (
+            self.display_tail.clone(),
+            bytes > self.display_tail.len() as u64,
+        )
     }
     pub(super) fn finish(
         &mut self,
@@ -374,7 +414,7 @@ impl Capture {
             cap,
         );
         let mut presentation = oc_core::tool_output::Presentation::new(
-            &stream.display_tail,
+            &recent(&stream.display_tail, oc_core::tool_output::PREVIEW_BYTES),
             stream.stdout.bytes.saturating_add(stream.stderr.bytes),
             false,
         );

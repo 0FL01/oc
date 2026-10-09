@@ -568,6 +568,7 @@ pub struct TuiState {
     pub(crate) shells: crate::shell_jobs_view::ShellView,
     pub(crate) children: crate::child_view::ChildView,
     pub(crate) terminals: crate::terminal_view::TerminalView,
+    pub(crate) composer: crate::composer::Composer,
     pub chrome: oc_core::queries::TuiChrome,
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
@@ -917,6 +918,7 @@ impl TuiState {
             interrupt_armed_until: None,
             pending: None,
             user_shell: Default::default(),
+            composer: Default::default(),
             compress_turn: None,
             request_id: 0,
             generation: 0,

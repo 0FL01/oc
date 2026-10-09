@@ -15,10 +15,8 @@ use ratatui::{
     Frame,
     layout::Rect,
     style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Paragraph},
 };
-use std::cell::Cell;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TerminalIntent {
@@ -34,7 +32,6 @@ pub enum TerminalIntent {
 
 #[derive(Default)]
 pub(crate) struct TerminalView {
-    pub(super) open: bool,
     loaded: Option<SessionId>,
     rows: Vec<TerminalEntry>,
     visible: Option<TerminalRef>,
@@ -43,9 +40,7 @@ pub(crate) struct TerminalView {
     focused: bool,
     ready: bool,
     gap: bool,
-    painted: Cell<Option<Rect>>,
     release_guard: Option<MouseButton>,
-    row_down: Option<usize>,
 }
 
 fn safe(text: &str) -> String {
@@ -54,7 +49,7 @@ fn safe(text: &str) -> String {
 
 impl TuiState {
     pub fn terminals_open(&self) -> bool {
-        self.terminals.open
+        self.composer.active == Some(crate::composer::Tab::Terminals)
     }
     pub fn terminal_visible(&self) -> Option<&TerminalRef> {
         self.terminals.visible.as_ref()
@@ -63,7 +58,9 @@ impl TuiState {
         self.terminals.focused
             && self.terminals.visible.is_some()
             && *self.panel() == crate::app::TuiPanel::None
-            && !self.terminals.open
+            && self.approvals.active().is_none()
+            && self.questions.active().is_none()
+            && self.shell_viewer().is_none()
     }
     pub fn terminal_snapshot(&self) -> Option<&TerminalSnapshot> {
         self.terminals.snapshot.as_ref()
@@ -95,7 +92,7 @@ impl TuiState {
             self.terminals.gap = false;
         }
         self.terminals.visible = inventory.selected;
-        if self.terminals.open && self.terminals.cursor.is_none() {
+        if self.terminals_open() && self.terminals.cursor.is_none() {
             self.terminals.cursor = self
                 .terminals
                 .rows
@@ -133,6 +130,12 @@ impl TuiState {
             .snapshot
             .as_ref()
             .is_none_or(|s| s.revision != replay.screen.revision);
+        if replay.reset.is_some() && !self.terminals.gap {
+            self.push_transient_note(
+                "Terminal output gap · showing current screen",
+                crate::app::NoteVariant::Warning,
+            );
+        }
         self.terminals.gap |= replay.reset.is_some();
         self.terminals.ready = replay.screen.ready;
         self.terminals.snapshot = Some(*replay.screen);
@@ -143,14 +146,16 @@ impl TuiState {
         self.clear_transcript_selection();
     }
     pub fn close_terminal_composer(&mut self) {
-        self.terminals.open = false;
-        self.terminals.row_down = None;
+        if self.terminals_open() {
+            self.close_composer();
+        }
     }
     pub fn inherit_terminal_view(&mut self, previous: &mut Self) {
         if self.attached_session().is_some()
             && self.attached_session() == previous.attached_session()
         {
             self.terminals = std::mem::take(&mut previous.terminals);
+            self.inherit_composer_tab(previous, crate::composer::Tab::Terminals);
         }
     }
     pub fn terminal_failure(&mut self, composer: bool) {
@@ -182,23 +187,16 @@ impl TuiState {
         use crate::commands::CommandAction;
         match action {
             CommandAction::SelectTerminal => {
-                self.shells.open = false;
-                self.children.open = false;
                 self.close_panel();
-                self.terminals.open = true;
-                self.terminals.focused = false;
-                self.terminals.cursor = self
-                    .terminals
-                    .rows
-                    .iter()
-                    .position(|r| Some(&r.target) == self.terminals.visible.as_ref());
-                self.terminal_intent(TerminalIntent::Refresh, false)
+                self.open_composer(crate::composer::Tab::Terminals)
             }
             CommandAction::FocusSessionPane => {
                 self.focus_terminal(false);
                 KeyOutcome::default()
             }
             CommandAction::FocusTerminalPane => {
+                // Focus is not the composer's close action: on a child, closing
+                // would navigate to its parent and retarget subsequent PTY input.
                 self.focus_terminal(true);
                 KeyOutcome::default()
             }
@@ -239,6 +237,57 @@ impl TuiState {
         self.close_terminal_composer();
         self.terminal_intent(action, true)
     }
+    pub(crate) fn enter_terminal_composer(&mut self) -> KeyOutcome {
+        self.terminals.cursor = self
+            .terminals
+            .rows
+            .iter()
+            .position(|row| Some(&row.target) == self.terminals.visible.as_ref());
+        self.terminal_intent(TerminalIntent::Refresh, false)
+    }
+    pub(crate) fn select_terminal_composer_row(&mut self, target: Option<&TerminalRef>) -> bool {
+        let index = match target {
+            Some(target) => self
+                .terminals
+                .rows
+                .iter()
+                .position(|row| &row.target == target),
+            None => Some(self.terminals.rows.len()),
+        };
+        self.terminals.cursor = index;
+        index.is_some()
+    }
+    pub(crate) fn terminal_composer_rows(
+        &self,
+        theme: &Theme,
+        width: u16,
+    ) -> Vec<crate::composer::Row> {
+        let selected = self.terminals.cursor.unwrap_or(0);
+        let start = selected
+            .saturating_sub(2)
+            .min((self.terminals.rows.len() + 1).saturating_sub(5));
+        (start..=self.terminals.rows.len())
+            .take(5)
+            .map(|index| {
+                let row = self.terminals.rows.get(index);
+                let text = row.map_or("+ New terminal", |row| {
+                    row.foreground
+                        .as_deref()
+                        .filter(|text| !text.is_empty())
+                        .unwrap_or(&row.title)
+                });
+                crate::composer::Row::new(
+                    crate::composer::Item::Terminal(row.map(|row| row.target.clone())),
+                    text,
+                    self.terminals.cursor == Some(index),
+                    row.is_some_and(|row| Some(&row.target) == self.terminal_visible()),
+                    "",
+                    theme,
+                    width,
+                )
+            })
+            .collect()
+    }
     pub(crate) fn terminal_composer_key(&mut self, key: KeyAction) -> KeyOutcome {
         match key {
             KeyAction::Up | KeyAction::Char('k') | KeyAction::Down | KeyAction::Char('j') => {
@@ -267,14 +316,6 @@ impl TuiState {
                 self.close_terminal_composer();
                 self.terminal_intent(TerminalIntent::CloseComposer, true)
             }
-            KeyAction::DeleteOrQuit => self
-                .terminals
-                .cursor
-                .and_then(|i| self.terminals.rows.get(i))
-                .map(|r| r.target.clone())
-                .map_or_else(KeyOutcome::default, |target| {
-                    self.terminal_intent(TerminalIntent::Remove(target), false)
-                }),
             _ => KeyOutcome::default(),
         }
     }
@@ -348,6 +389,13 @@ impl TuiState {
     /// Focus transfer consumes both halves of the first click, even over approval
     /// controls. Transcript wheels deliberately do not change pane focus.
     pub fn terminal_mouse(&mut self, event: MouseEvent, frame: Rect) -> Option<KeyOutcome> {
+        if *self.panel() != crate::app::TuiPanel::None
+            || self.approvals.active().is_some()
+            || self.questions.active().is_some()
+        {
+            self.terminals.release_guard = None;
+            return None;
+        }
         if let MouseEventKind::Up(button) = event.kind
             && self.terminals.release_guard == Some(button)
         {
@@ -386,39 +434,12 @@ impl TuiState {
             self.terminals.release_guard = Some(button);
             return Some(KeyOutcome::default());
         }
-        if self.terminals.open {
-            let row = self
-                .terminals
-                .painted
-                .get()
-                .filter(|r| r.contains((event.column, event.row).into()))
-                .and_then(|r| event.row.checked_sub(r.y + 1))
-                .map(usize::from)
-                .filter(|i| *i <= self.terminals.rows.len());
-            match event.kind {
-                MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
-                    self.terminals.row_down = row;
-                    self.terminals.cursor = row;
-                }
-                MouseEventKind::Up(MouseButton::Left) if event.modifiers.is_empty() => {
-                    if row.is_some() && self.terminals.row_down.take() == row {
-                        self.terminals.cursor = row;
-                        return Some(self.activate_terminal_row());
-                    }
-                }
-                MouseEventKind::Drag(_) | MouseEventKind::Down(_) | MouseEventKind::Up(_) => {
-                    self.terminals.row_down = None
-                }
-                _ => {}
-            }
-            return Some(KeyOutcome::default());
-        }
         None
     }
     pub fn terminal_size_for_frame(&self, frame: Rect) -> TerminalSize {
         let (_, pane) = regions(self, frame);
         TerminalSize {
-            rows: pane.height.saturating_sub(2).clamp(1, TERMINAL_MAX_ROWS),
+            rows: pane.height.clamp(1, TERMINAL_MAX_ROWS),
             cols: pane.width.saturating_sub(2).clamp(1, TERMINAL_MAX_COLS),
         }
     }
@@ -451,78 +472,10 @@ pub(crate) fn regions(state: &TuiState, frame: Rect) -> (Rect, Rect) {
 pub fn pane_hit(state: &TuiState, frame: Rect, x: u16, y: u16) -> bool {
     regions(state, frame).1.contains((x, y).into())
 }
-pub(crate) fn height(state: &TuiState) -> u16 {
-    if state.terminals.open {
-        state.terminals.rows.len() as u16 + 3
-    } else {
-        0
-    }
-}
-
-pub(crate) fn render_composer(frame: &mut Frame<'_>, state: &TuiState, main: Rect, theme: &Theme) {
-    state.terminals.painted.set(None);
-    let h = height(state).min(main.height);
-    if h == 0 || state.approvals.active().is_some() || state.questions.active().is_some() {
-        return;
-    }
-    let area = Rect::new(
-        main.x + 1,
-        main.bottom().saturating_sub(h),
-        main.width.saturating_sub(2),
-        h,
-    );
-    state.terminals.painted.set(Some(area));
-    let mut lines = Vec::new();
-    for index in 0..=state.terminals.rows.len() {
-        let row = state.terminals.rows.get(index);
-        let title = row.map_or_else(
-            || "+ New terminal".into(),
-            |r| {
-                safe(
-                    r.foreground
-                        .as_deref()
-                        .filter(|s| !s.is_empty())
-                        .unwrap_or(&r.title),
-                )
-            },
-        );
-        let current = row.is_some_and(|r| Some(&r.target) == state.terminal_visible());
-        let selected = state.terminals.cursor == Some(index);
-        lines.push(Line::from(Span::styled(
-            format!(
-                "{} {}{}",
-                if selected { "›" } else { " " },
-                title,
-                if current { " · visible" } else { "" }
-            ),
-            Style::default()
-                .fg(if selected {
-                    theme.text()
-                } else {
-                    theme.text_muted()
-                })
-                .bg(if selected {
-                    theme.background_panel()
-                } else {
-                    theme.background()
-                }),
-        )));
-    }
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Terminals · ↑/k ↓/j · enter open · ctrl+d remove · esc hide"),
-        ),
-        area,
-    );
-}
-
 fn terminal_color(color: TerminalColor, background: bool, theme: &Theme) -> Color {
     let bg = theme
-        .color("background.base")
-        .unwrap_or_else(|| theme.background());
+        .color("background.raised.base")
+        .unwrap_or_else(|| theme.background_panel());
     match color {
         TerminalColor::Default => {
             if background {
@@ -534,7 +487,7 @@ fn terminal_color(color: TerminalColor, background: bool, theme: &Theme) -> Colo
         TerminalColor::Rgb(r, g, b) => Color::Rgb(r, g, b),
         TerminalColor::Indexed(index) if index < 16 => {
             let paths = [
-                "background.base",
+                "background.raised.base",
                 "text.feedback.error.base",
                 "text.feedback.success.base",
                 "text.feedback.warning.base",
@@ -572,21 +525,15 @@ pub(crate) fn render_pane(frame: &mut Frame<'_>, state: &TuiState, area: Rect, t
     if area.width == 0 || area.height == 0 {
         return;
     }
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(if state.terminals.gap {
-            "Terminal · output gap → current screen"
-        } else {
-            "Terminal"
-        })
-        .border_style(Style::default().fg(if state.terminal_focused() {
-            theme.border_active()
-        } else {
-            theme.text_muted()
-        }));
-    let inner = block.inner(area);
+    // TerminalPane uses the entire right-hand height, one cell of horizontal
+    // inset and the raised terminal palette. No title/border consumes PTY rows.
+    let inner = area.inner(ratatui::layout::Margin::new(1, 0));
     frame.render_widget(
-        block.style(Style::default().fg(theme.text()).bg(theme.background())),
+        Block::default().style(
+            Style::default()
+                .fg(theme.text())
+                .bg(theme.background_panel()),
+        ),
         area,
     );
     let Some(screen) = state.terminals.snapshot.as_ref() else {

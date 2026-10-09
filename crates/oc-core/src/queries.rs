@@ -586,6 +586,8 @@ pub struct TuiChrome {
     /// Worker admission epoch, independent of a linked child's model generation.
     pub terminal_generation: u64,
     pub terminal_shortcuts: TerminalShortcuts,
+    /// Effective row controls for the shared lower composer, not root commands.
+    pub composer_shortcuts: ComposerShortcuts,
     /// Actual configuration generation used to authorize captured selections.
     pub selection_generation: u64,
     /// Independent, effective DCP transcript display controls.
@@ -1237,6 +1239,39 @@ pub struct DialogShortcuts {
     pub mcp_toggle: String,
 }
 
+/// The pinned composer's existing row commands. Empty bindings disable a row
+/// command; common tab/close keys remain scoped to the visible composer.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComposerShortcuts {
+    pub bindings: [String; 11],
+}
+impl ComposerShortcuts {
+    pub const NAMES: [&'static str; 11] = [
+        "composer.subagent.up",
+        "composer.subagent.down",
+        "composer.subagent.select",
+        "composer.subagent.interrupt",
+        "composer.shell.up",
+        "composer.shell.down",
+        "composer.shell.select",
+        "composer.shell.kill",
+        "composer.terminal.up",
+        "composer.terminal.down",
+        "composer.terminal.select",
+    ];
+}
+impl Default for ComposerShortcuts {
+    fn default() -> Self {
+        Self {
+            bindings: [
+                "up", "down", "return", "ctrl+d", "up", "down", "return", "ctrl+d", "up,k",
+                "down,j", "return",
+            ]
+            .map(str::to_owned),
+        }
+    }
+}
+
 impl Default for DialogShortcuts {
     fn default() -> Self {
         Self {
@@ -1614,4 +1649,11 @@ pub struct ShellSnapshot {
     pub truncated: bool,
     /// Recent text, bounded independently of stream retention.
     pub text: String,
+    /// Recent admitted plain output, at most 64KiB, without generated stream or
+    /// status labels. Source identity and read authority remain in the job owner.
+    pub display: String,
+    pub display_omitted: bool,
+    /// Known terminal facts; absent while running or after unknown recovery.
+    pub exit: Option<i32>,
+    pub signal: Option<i32>,
 }

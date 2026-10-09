@@ -1,0 +1,117 @@
+[
+  {
+    "at_ms": 1791529788137,
+    "kind": "composer_parent_submit",
+    "base64": "G1syMDB+VklTMzlfUk9PVF9UQVNLG1syMDF+DQ=="
+  },
+  {
+    "at_ms": 1791529788559,
+    "kind": "composer_parent_subagents",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1791529792186,
+    "kind": "composer_foreground_child_to_background",
+    "base64": "Ag=="
+  },
+  {
+    "at_ms": 1791529795322,
+    "kind": "composer_parent_close",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791529798523,
+    "kind": "composer_parent_draft",
+    "base64": "G1syMDB+VklTMzkgcGFyZW50IHVuc2VudCBkcmFmdBtbMjAxfg=="
+  },
+  {
+    "at_ms": 1791529802922,
+    "kind": "composer_parent_subagents",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1791529806267,
+    "kind": "composer_open_live_child",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791529811499,
+    "kind": "composer_child_shell_tab",
+    "base64": "G1tD"
+  },
+  {
+    "at_ms": 1791529815721,
+    "kind": "composer_child_output",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791529819797,
+    "kind": "composer_output_home",
+    "base64": "G1tI"
+  },
+  {
+    "at_ms": 1791529823828,
+    "kind": "composer_output_page_down",
+    "base64": "G1s2fg=="
+  },
+  {
+    "at_ms": 1791529827841,
+    "kind": "composer_output_follow",
+    "base64": "G1tG"
+  },
+  {
+    "at_ms": 1791529837001,
+    "kind": "composer_close_output_not_job",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791529841387,
+    "kind": "composer_kill_exact_child_shell",
+    "base64": "BA=="
+  },
+  {
+    "at_ms": 1791529847805,
+    "kind": "composer_return_parent",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791529851301,
+    "kind": "composer_terminal_selector",
+    "base64": "GBtbQg=="
+  },
+  {
+    "at_ms": 1791529854814,
+    "kind": "composer_terminal_undefined_enter",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791529855168,
+    "kind": "composer_create_selected_terminal",
+    "base64": "G1tCDQ=="
+  },
+  {
+    "at_ms": 1791529858660,
+    "kind": "composer_terminal_focus",
+    "base64": "GBtbQw=="
+  },
+  {
+    "at_ms": 1791529858661,
+    "kind": "composer_terminal_actual_input",
+    "base64": "cHJpbnRmICdcMDMzWzMxbVZJUzM5LVRFUk1JTkFMXDAzM1swbVxuJzsgcHJpbnRmICd0ZXJtaW5hbFxuJyA+PiBjb21wb3Nlci1vYy10ZXJtaW5hbC5lZmZlY3RzDQ=="
+  },
+  {
+    "at_ms": 1791529862591,
+    "kind": "composer_terminal_focus_prompt",
+    "base64": "GBtbRA=="
+  },
+  {
+    "at_ms": 1791529862592,
+    "kind": "composer_terminal_hide",
+    "base64": "GHQ="
+  },
+  {
+    "at_ms": 1791529866081,
+    "kind": "composer_terminal_show_existing",
+    "base64": "GHQ="
+  }
+]

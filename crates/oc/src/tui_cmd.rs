@@ -575,10 +575,8 @@ impl LoopState {
         if let Some(home) = self.home.as_mut() {
             home.set_service_feedback_visible(false);
         }
-        if self.child_parent.is_some() {
-            return;
-        }
-        if let Some(auto) = self.permission_auto {
+        let showing_child = self.child_parent.is_some();
+        if !showing_child && let Some(auto) = self.permission_auto {
             state.auto_accept = if auto {
                 oc_core::queries::AutoAcceptState::Enabled
             } else {
@@ -591,7 +589,7 @@ impl LoopState {
             .enumerate()
             .filter_map(|(index, parked)| {
                 let view = if self.active_tab == Some(index) {
-                    &*state
+                    self.child_parent.as_deref().unwrap_or(state)
                 } else {
                     parked.as_ref()?
                 };
@@ -602,7 +600,7 @@ impl LoopState {
             .collect();
         // Bare Home has no tab. Acceptance attaches it to the first real
         // session; subsequent Home submissions append to the existing deck.
-        if self.active_tab.is_none() && state.attached_session().is_some() {
+        if !showing_child && self.active_tab.is_none() && state.attached_session().is_some() {
             debug_assert!(self.tabs.len() < MAX_TABS);
             state.new_session_tab = true;
             self.active_tab = Some(self.tabs.len());
@@ -615,7 +613,7 @@ impl LoopState {
             .enumerate()
             .map(|(index, parked)| {
                 let view = if self.active_tab == Some(index) {
-                    &*state
+                    self.child_parent.as_deref().unwrap_or(state)
                 } else {
                     parked.as_ref().expect("parked tab")
                 };
@@ -644,8 +642,9 @@ impl LoopState {
             })
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
-        let can_add =
-            (!state.is_busy() || state.approvals.active().is_some()) && self.can_open_session();
+        let can_add = !showing_child
+            && (!state.is_busy() || state.approvals.active().is_some())
+            && self.can_open_session();
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
         // nothing painted has changed, even across the 50ms redraw loop.
@@ -3766,16 +3765,11 @@ async fn refresh_shells(app: &CoreApp, state: &mut TuiState) -> Result<(), Strin
     if let Some(job) = state.shell_viewer().cloned() {
         let snapshot = app
             .shell_snapshot(job.session.clone(), job.shell_id.clone())
-            .await
-            .map_err(|error| error.to_string())?;
-        state.apply_shell_output(
-            &snapshot.job,
-            oc_core::queries::ToolOutputPage {
-                total_bytes: snapshot.text.len() as i64,
-                text: snapshot.text,
-                next_offset: None,
-            },
-        );
+            .await;
+        match snapshot {
+            Ok(snapshot) => state.apply_shell_snapshot(snapshot),
+            Err(_) => state.apply_shell_read_failure(&job),
+        }
     }
     Ok(())
 }

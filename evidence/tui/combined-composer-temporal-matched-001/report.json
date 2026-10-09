@@ -1,0 +1,821 @@
+{
+  "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+  "pixel_parity": "NOT_PASS",
+  "reports": [
+    {
+      "attempt": "combined-composer-temporal-001",
+      "profile": {
+        "frontend": "@xterm/xterm",
+        "frontend_version": "6.0.0",
+        "vt_parser": "xterm.js 6.0.0",
+        "chromium_version": "145.0.7632.6",
+        "playwright_version": "1.58.2",
+        "font_family": "DejaVu Sans Mono",
+        "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+        "fallback_fonts": null,
+        "font_size": 14,
+        "device_scale_factor": 1,
+        "dpi": 96,
+        "padding": 0,
+        "opacity": 1,
+        "ligatures": false,
+        "columns": 80,
+        "rows": 24,
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor",
+        "locale": "C.UTF-8",
+        "cursor_blink": false,
+        "cursor_temporal": "default",
+        "cursor_renderer": "webgl",
+        "cursor_case": "collapsed",
+        "cursor_sync": "supported",
+        "mcp_status": false,
+        "mcp_footer": null,
+        "prompt_caret": false,
+        "prompt_history": null,
+        "user_shell": false,
+        "combined_composer": false,
+        "refresh_before_capture": false,
+        "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+        "settings": {
+          "theme": "opencode",
+          "mode": "dark",
+          "sidebar": "hide",
+          "devtools": false,
+          "tabs": "horizontal",
+          "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+          "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+        }
+      },
+      "sides": {
+        "upstream": {
+          "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+          "cycles": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "commands": [
+            0,
+            12787,
+            0,
+            0,
+            25,
+            0
+          ],
+          "full_temporal_pngs": 72,
+          "full_raster_pixels_checked": 17694720
+        },
+        "oc": {
+          "status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+          "cycles": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "commands": [
+            0,
+            9429,
+            0,
+            0,
+            1372,
+            0
+          ],
+          "full_temporal_pngs": 72,
+          "full_raster_pixels_checked": 17694720
+        }
+      },
+      "comparisons": {
+        "DIFFERENT": 160
+      },
+      "matched_actual_raster_phases": [
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "composer-restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-composer-restored-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-composer-restored-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-hover-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-hover-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-idle-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-idle-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "restored",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-restored-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-restored-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-hover",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-hover-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-hover-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-00.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-00.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-01.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-01.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-02.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-02.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-03.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-03.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-04.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-04.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-05.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-05.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-06.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-06.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-07.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-07.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-08.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-08.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-09.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-09.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-10.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-10.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        },
+        {
+          "state": "search-idle",
+          "actual_raster_visible": true,
+          "upstream": "evidence/tui/combined-composer-temporal-001/upstream/cursor-search-idle-phase-visible-11.render.json",
+          "oc": "evidence/tui/combined-composer-temporal-001/oc/cursor-search-idle-phase-visible-11.render.json",
+          "comparisons": {
+            "grid": "DIFFERENT",
+            "png": "DIFFERENT"
+          }
+        }
+      ]
+    }
+  ]
+}

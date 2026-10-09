@@ -31,7 +31,7 @@ pub(super) async fn refresh(app: &CoreApp, state: &mut TuiState) -> Result<(), S
         let mut rows = app.child_jobs(parent).await.map_err(|e| e.to_string())?;
         if let Some(linked) = state.linked_child().cloned() {
             if let Some(current) = rows.iter().find(|j| j.operation == linked.operation) {
-                state.attach_linked_child(current.clone());
+                state.refresh_linked_child(current.clone());
             }
             if let Some(current) = state.linked_child().cloned()
                 && !matches!(

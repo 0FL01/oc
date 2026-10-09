@@ -11,6 +11,7 @@ pub mod approval_view;
 mod autocomplete;
 mod child_view;
 pub mod commands;
+mod composer;
 pub mod dcp_panel;
 pub mod dcp_view;
 pub mod dialog;

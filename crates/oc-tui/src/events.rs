@@ -90,6 +90,8 @@ pub enum KeyAction {
     /// Open/close the native running-shell composer.
     Shells,
     Children,
+    /// A disabled/remapped row binding is consumed by the shared composer.
+    ComposerNoop,
     TerminalFocusLeft,
     TerminalFocusRight,
     TerminalSelect,

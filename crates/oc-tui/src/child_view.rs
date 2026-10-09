@@ -1,248 +1,208 @@
-//! Disposable bounded child consumer; all controls carry the original owner fence.
+//! Bounded child-family consumer; every control retains its original owner fence.
 use crate::app::{KeyOutcome, PanelIntent, TuiState};
+use crate::composer::{Item, Row, Tab};
 use crate::events::KeyAction;
-use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+use crate::theme::Theme;
+use oc_core::domain::SessionId;
 use oc_core::queries::{ChildJob, ChildState};
-use ratatui::{
-    Frame,
-    layout::Rect,
-    text::Line,
-    widgets::{Block, Borders, Clear, Paragraph},
-};
-use std::cell::Cell;
 
 #[derive(Default)]
 pub(crate) struct ChildView {
-    pub(super) open: bool,
     rows: Vec<ChildJob>,
     selected: Option<String>,
     linked: Option<ChildJob>,
-    filter: String,
-    painted: Cell<Option<Rect>>,
-    pointer_down: Option<String>,
+    inactive: bool,
 }
-
 impl ChildView {
     fn visible(&self) -> impl Iterator<Item = &ChildJob> {
-        self.rows.iter().filter(|j| {
-            format!("{} {} {}", j.description, j.agent, j.child.0)
-                .to_lowercase()
-                .contains(&self.filter.to_lowercase())
-        })
+        self.rows
+            .iter()
+            .filter(|job| (job.state == ChildState::Running) != self.inactive)
     }
     fn selected(&self) -> Option<&ChildJob> {
-        if self.open {
-            self.visible()
-                .find(|j| Some(&j.operation) == self.selected.as_ref())
+        self.visible()
+            .find(|job| Some(&job.operation) == self.selected.as_ref())
+    }
+    pub(super) fn enter(&mut self, session: Option<SessionId>) {
+        self.inactive = false;
+        let selected = self
+            .visible()
+            .find(|job| Some(&job.child) == session.as_ref())
+            .or_else(|| self.visible().next())
+            .map(|job| job.operation.clone());
+        self.selected = selected;
+    }
+    pub(super) fn at_first(&self) -> bool {
+        self.visible()
+            .next()
+            .is_none_or(|job| Some(&job.operation) == self.selected.as_ref())
+    }
+    pub(super) fn selected_running(&self) -> bool {
+        self.selected()
+            .is_some_and(|job| job.state == ChildState::Running)
+    }
+    pub(super) fn select_row(&mut self, id: &str) -> bool {
+        if !self.visible().any(|job| job.operation == id) {
+            return false;
+        }
+        self.selected = Some(id.into());
+        true
+    }
+    pub(super) fn empty_label(&self) -> &'static str {
+        if self.inactive {
+            "No inactive subagents"
         } else {
-            self.linked.as_ref()
+            "No active subagents"
         }
     }
-
+    pub(super) fn filter_hint(&self) -> &'static str {
+        if self.inactive {
+            "show active"
+        } else {
+            "show inactive"
+        }
+    }
     pub(super) fn key(&mut self, key: KeyAction) -> KeyOutcome {
         let mut out = KeyOutcome::default();
         match key {
-            KeyAction::Children => {
-                self.open = !self.open;
-                out.intent = self.open.then_some(PanelIntent::LoadChildren);
+            KeyAction::CtrlA => {
+                self.inactive = !self.inactive;
+                let selected = self.visible().next().map(|job| job.operation.clone());
+                self.selected = selected;
             }
-            KeyAction::Cancel => {
-                if self.open {
-                    self.open = false;
-                } else if self.linked.is_some() {
-                    out.intent = Some(PanelIntent::ReturnParent);
-                }
-            }
-            KeyAction::Up | KeyAction::Down if self.open => {
+            KeyAction::Up | KeyAction::Down => {
                 let rows = self.visible().collect::<Vec<_>>();
                 if !rows.is_empty() {
                     let i = rows
                         .iter()
-                        .position(|j| Some(&j.operation) == self.selected.as_ref())
+                        .position(|job| Some(&job.operation) == self.selected.as_ref())
                         .unwrap_or(0);
                     let next = if key == KeyAction::Up {
-                        (i + rows.len() - 1) % rows.len()
+                        i.saturating_sub(1)
                     } else {
                         (i + 1) % rows.len()
                     };
                     self.selected = Some(rows[next].operation.clone());
                 }
             }
-            KeyAction::Char(c)
-                if self.open && !c.is_control() && self.filter.len() + c.len_utf8() <= 128 =>
-            {
-                self.filter.push(c);
-                let selected = self.visible().next().map(|j| j.operation.clone());
-                self.selected = selected;
-            }
-            KeyAction::Backspace if self.open => {
-                self.filter.pop();
-                let selected = self.visible().next().map(|j| j.operation.clone());
-                self.selected = selected;
-            }
-            KeyAction::Enter if self.open => {
+            KeyAction::Enter => {
                 out.intent = self
                     .selected()
                     .cloned()
-                    .map(|selected| PanelIntent::OpenChild { selected });
+                    .map(|selected| PanelIntent::OpenChild { selected })
             }
             KeyAction::ShellBackground => {
                 out.intent = self
                     .selected()
+                    .or(self.linked.as_ref())
+                    .filter(|job| job.state == ChildState::Running)
                     .cloned()
-                    .map(|selected| PanelIntent::BackgroundChild { selected });
+                    .map(|selected| PanelIntent::BackgroundChild { selected })
             }
-            KeyAction::Interrupt | KeyAction::DeleteOrQuit => {
+            KeyAction::DeleteOrQuit => {
                 out.intent = self
                     .selected()
+                    .filter(|job| job.state == ChildState::Running)
                     .cloned()
-                    .map(|selected| PanelIntent::InterruptChild { selected });
+                    .map(|selected| PanelIntent::InterruptChild { selected })
             }
             _ => {}
         }
         out
     }
-
-    pub(super) fn mouse(&mut self, event: MouseEvent) -> KeyOutcome {
-        let mut out = KeyOutcome::default();
-        let job = self
-            .painted
-            .get()
-            .filter(|r| self.open && r.contains((event.column, event.row).into()))
-            .and_then(|r| event.row.checked_sub(r.y + 2))
-            .and_then(|row| self.visible().nth(row as usize))
-            .cloned();
-        match event.kind {
-            MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
-                self.pointer_down = job.as_ref().map(|j| j.operation.clone());
-                if let Some(job) = job {
-                    self.selected = Some(job.operation);
-                }
-            }
-            MouseEventKind::Up(MouseButton::Left) if event.modifiers.is_empty() => {
-                if let Some(job) = job
-                    && self.pointer_down.take().as_deref() == Some(&job.operation)
-                {
-                    out.intent = Some(PanelIntent::OpenChild { selected: job });
-                }
-            }
-            MouseEventKind::Drag(_) | MouseEventKind::Down(_) | MouseEventKind::Up(_) => {
-                self.pointer_down = None
-            }
-            _ => {}
-        }
-        out
+    pub(super) fn composer_rows(
+        &self,
+        session: Option<&SessionId>,
+        theme: &Theme,
+        width: u16,
+    ) -> Vec<Row> {
+        let selected = self
+            .visible()
+            .position(|job| Some(&job.operation) == self.selected.as_ref())
+            .unwrap_or(0);
+        let start = selected
+            .saturating_sub(2)
+            .min(self.visible().count().saturating_sub(5));
+        self.visible()
+            .skip(start)
+            .take(5)
+            .map(|job| {
+                let agent = job
+                    .agent
+                    .chars()
+                    .enumerate()
+                    .flat_map(|(i, c)| {
+                        if i == 0 {
+                            c.to_uppercase().collect::<Vec<_>>()
+                        } else {
+                            vec![c]
+                        }
+                    })
+                    .collect::<String>();
+                Row::new(
+                    Item::Child(job.operation.clone()),
+                    &format!("{agent}: {}", job.description),
+                    Some(&job.operation) == self.selected.as_ref(),
+                    Some(&job.child) == session,
+                    if job.state == ChildState::Running {
+                        "Running"
+                    } else {
+                        ""
+                    },
+                    theme,
+                    width,
+                )
+            })
+            .collect()
     }
 }
-
 impl TuiState {
     pub fn children_open(&self) -> bool {
-        self.children.open
+        self.composer.active == Some(Tab::Subagents)
     }
     pub fn hide_children(&mut self) {
-        self.children.open = false;
+        if self.children_open() {
+            self.close_composer();
+        }
     }
     pub fn linked_child(&self) -> Option<&ChildJob> {
         self.children.linked.as_ref()
     }
     pub fn apply_child_jobs(&mut self, rows: Vec<ChildJob>) {
         if let Some(linked) = &mut self.children.linked
-            && let Some(current) = rows.iter().find(|j| j.operation == linked.operation)
+            && let Some(current) = rows.iter().find(|job| job.operation == linked.operation)
         {
             *linked = current.clone();
         }
         self.children.rows = rows;
-        if !self
-            .children
-            .rows
-            .iter()
-            .any(|j| Some(&j.operation) == self.children.selected.as_ref())
-        {
-            self.children.selected = self.children.rows.first().map(|j| j.operation.clone());
+        if self.children.selected().is_none() {
+            let selected = self
+                .children
+                .visible()
+                .find(|job| self.attached_session() == Some(&job.child))
+                .or_else(|| self.children.visible().next())
+                .map(|job| job.operation.clone());
+            self.children.selected = selected;
         }
     }
     pub fn attach_linked_child(&mut self, selected: ChildJob) {
         self.chrome.location = Some(selected.location.clone());
         self.chrome.selection_generation = selected.generation;
         self.children.linked = Some(selected);
+        self.composer.active = Some(Tab::Subagents);
+        self.children.enter(self.attached_session().cloned());
     }
-}
-
-pub(crate) fn height(state: &TuiState) -> u16 {
-    if state.children.open
-        && state.approvals.active().is_none()
-        && state.questions.active().is_none()
-    {
-        (state.children.visible().count() as u16 + 3).max(4)
-    } else {
-        0
+    /// A live owner refresh changes facts, not the user's lower tab, filter or
+    /// captured output dialog. Explicit navigation uses attach_linked_child.
+    pub fn refresh_linked_child(&mut self, current: ChildJob) {
+        if self.children.linked.as_ref().is_some_and(|old| {
+            old.operation == current.operation
+                && old.parent == current.parent
+                && old.child == current.child
+                && old.generation == current.generation
+                && old.location == current.location
+        }) {
+            self.children.linked = Some(current);
+        }
     }
-}
-
-fn safe(s: &str) -> String {
-    s.chars()
-        .map(|c| if c.is_control() { ' ' } else { c })
-        .collect()
-}
-
-pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState, main: Rect) {
-    state.children.painted.set(None);
-    if let Some(job) = state.linked_child() {
-        let area = Rect::new(main.x, main.y, main.width, 1);
-        frame.render_widget(
-            Paragraph::new(format!(
-                "Linked child · {} · {:?} · {} · esc parent",
-                safe(&job.description),
-                job.state,
-                if job.background { "BG" } else { "FG" }
-            )),
-            area,
-        );
-    }
-    let h = height(state).min(main.height);
-    if h == 0 {
-        return;
-    }
-    let area = Rect::new(
-        main.x + 1,
-        main.bottom().saturating_sub(h),
-        main.width.saturating_sub(2),
-        h,
-    );
-    state.children.painted.set(Some(area));
-    let mut lines = vec![Line::from(format!("Filter: {}", state.children.filter))];
-    if state.children.visible().next().is_none() {
-        lines.push(Line::from("No child jobs"));
-    }
-    for job in state.children.visible() {
-        let status = match job.state {
-            ChildState::Admitted => "ADMITTED",
-            ChildState::Running => "RUNNING",
-            ChildState::Completed => "COMPLETED",
-            ChildState::Cancelled => "CANCELLED",
-            ChildState::Error => "ERROR",
-            ChildState::Unknown => "UNKNOWN",
-        };
-        lines.push(Line::from(format!(
-            "{} {} {} {} · {}",
-            if Some(&job.operation) == state.children.selected.as_ref() {
-                "›"
-            } else {
-                " "
-            },
-            status,
-            if job.background { "BG" } else { "FG" },
-            safe(&job.description),
-            safe(&job.agent)
-        )));
-    }
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Subagents · enter open · ctrl+b background · ctrl+c interrupt · esc hide"),
-        ),
-        area,
-    );
 }

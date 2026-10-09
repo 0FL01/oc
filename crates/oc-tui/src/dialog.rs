@@ -46,7 +46,7 @@ impl DialogFrame {
         )
     }
 
-    fn paint(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
+    pub(crate) fn paint(frame: &mut Frame<'_>, area: Rect, theme: &Theme) {
         // The pinned OpenTUI overlay paints untinted blank glyphs with its white
         // canvas foreground (#fff), not the xterm frontend's default #eee.
         // Visible glyphs retain dimmed RGB and attributes (paired V04 cells).

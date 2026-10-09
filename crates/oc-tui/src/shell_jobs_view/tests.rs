@@ -204,8 +204,8 @@ async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_ta
             mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
             area,
         );
-        assert_eq!(opened.intent, Some(PanelIntent::LoadShells));
-        assert!(state.shells_open());
+        assert_eq!(opened.intent, Some(PanelIntent::LoadChildren));
+        assert!(state.children_open());
         terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
         assert!(state.shells.footer_hit.get().is_none());
         state.handle_mouse(
@@ -217,7 +217,7 @@ async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_ta
             area,
         );
         assert!(
-            state.shells_open(),
+            state.children_open(),
             "the covered footer cannot close its composer"
         );
         state.handle_key(KeyAction::Cancel).await;
@@ -232,7 +232,7 @@ async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_ta
             mouse(MouseEventKind::Up(MouseButton::Left), hit.x, hit.y),
             area,
         );
-        assert!(state.children.open && !state.shells_open());
+        assert!(state.children_open() && !state.shells_open());
         state.handle_key(KeyAction::Cancel).await;
         state.push_note(&"A long toast covers the footer surface. ".repeat(100));
         terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
@@ -274,7 +274,7 @@ async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_ta
                     area,
                 )
                 .intent,
-            Some(PanelIntent::LoadShells),
+            Some(PanelIntent::LoadChildren),
             "a visible fragment beside the toast remains actionable"
         );
         state.handle_key(KeyAction::Cancel).await;
@@ -319,7 +319,7 @@ async fn live_shell_footer_is_source_scoped_and_owns_only_its_painted_pointer_ta
         state
             .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area)
             .intent,
-        Some(PanelIntent::LoadShells),
+        Some(PanelIntent::LoadChildren),
         "the actually painted clipped target is still actionable"
     );
     state.handle_key(KeyAction::Cancel).await;
@@ -368,7 +368,7 @@ async fn live_shell_shortcut_yields_to_prompt_history_and_respects_effective_rem
     let action = state.terminal_key(down).unwrap();
     assert_eq!(
         state.handle_key(action).await.intent,
-        Some(PanelIntent::LoadShells)
+        Some(PanelIntent::LoadChildren)
     );
     state.handle_key(KeyAction::Cancel).await;
     let mut repeated = down;
@@ -384,7 +384,7 @@ async fn live_shell_shortcut_yields_to_prompt_history_and_respects_effective_rem
     let action = state
         .terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE))
         .unwrap();
-    assert_eq!(action, KeyAction::Shells);
+    assert_eq!(action, KeyAction::Children);
     state.handle_key(action).await;
     let action = state
         .terminal_key(KeyEvent::new(KeyCode::F(2), KeyModifiers::NONE))
@@ -400,7 +400,7 @@ async fn live_shell_shortcut_yields_to_prompt_history_and_respects_effective_rem
     state.handle_key(prefix).await;
     assert_eq!(
         state.terminal_key(KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE)),
-        Some(KeyAction::Shells)
+        Some(KeyAction::Children)
     );
     state.chrome.child_first_shortcut = Some(String::new());
     assert_eq!(state.terminal_key(down), Some(KeyAction::PromptHistoryNext));
@@ -482,7 +482,7 @@ async fn tool13_open_viewer_and_kill_keep_original_child_identity_after_list_rem
     app.create_session(SessionId("parent".into()))
         .await
         .unwrap();
-    let mut state = TuiState::new(app.clone(), SessionId("parent".into()));
+    let mut state = TuiState::new(app.clone(), SessionId("child".into()));
     let child = job("selected", "child");
     state.restore_prompt("draft remains ordinary editor state".into());
     state.apply_shell_jobs(vec![child.clone(), job("sibling", "parent")]);
@@ -517,13 +517,13 @@ async fn tool13_same_id_location_adoption_keeps_only_original_shell_capture() {
     app.create_session(SessionId("parent".into()))
         .await
         .unwrap();
-    let mut original = TuiState::new(app.clone(), SessionId("parent".into()));
+    let mut original = TuiState::new(app.clone(), SessionId("child".into()));
     let child = job("selected", "child");
     original.apply_shell_jobs(vec![child.clone(), job("old-live", "parent")]);
     original.handle_key(KeyAction::Shells).await;
     original.handle_key(KeyAction::Enter).await;
     original.restore_prompt("old-location editor".into());
-    let mut moved = TuiState::new(app.clone(), SessionId("parent".into()));
+    let mut moved = TuiState::new(app.clone(), SessionId("child".into()));
     moved.chrome.location = Some("/destination".into());
     moved.apply_shell_jobs(Vec::new());
     moved.inherit_shell_view(&mut original);

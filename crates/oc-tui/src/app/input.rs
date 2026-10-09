@@ -644,15 +644,37 @@ impl TuiState {
         if self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
+        if self.panel == TuiPanel::None && self.shell_viewer().is_some() {
+            if event.kind == KeyEventKind::Press
+                && event.modifiers == KeyModifiers::CONTROL
+                && event.code == KeyCode::Char('b')
+            {
+                return Some(KeyAction::ShellBackground);
+            }
+            return crate::events::map_key(event).map(|action| match action {
+                KeyAction::Up
+                | KeyAction::Down
+                | KeyAction::PageUp
+                | KeyAction::PageDown
+                | KeyAction::Home
+                | KeyAction::End
+                | KeyAction::Cancel
+                | KeyAction::Interrupt => action,
+                _ => KeyAction::ComposerNoop,
+            });
+        }
+        if self.panel == TuiPanel::None
+            && let Some(action) = self.composer_terminal_key(event)
+        {
+            return Some(action);
+        }
         if self.prompt_history_key_owner()
             && let Some(action) = self.prompt_history_key(event)
         {
             return Some(action);
         }
         if self.panel == TuiPanel::None
-            && !self.shells.open
-            && !self.children.open
-            && !self.terminals.open
+            && !self.composer_open()
             && matches!(event.code, KeyCode::Up | KeyCode::Down)
             && (self.slash_options().is_some() || self.mention_request().is_some())
         {
@@ -660,7 +682,7 @@ impl TuiState {
             return crate::events::map_key(event);
         }
         if self.panel == TuiPanel::None
-            && !self.terminals.open
+            && !self.terminals_open()
             && !self.terminal_focused()
             && !self.prompt_shell_mode()
             && self.running_shell_count() > 0
@@ -675,9 +697,7 @@ impl TuiState {
                         .is_some_and(|until| until > Instant::now())
                 })
                 .map_or_else(|| raw.clone(), |_| format!("{} {raw}", self.leader_key));
-            if (self.shells.open || self.children.open)
-                && matches!(event.code, KeyCode::Up | KeyCode::Down)
-            {
+            if self.composer_open() && matches!(event.code, KeyCode::Up | KeyCode::Down) {
                 return crate::events::map_key(event);
             }
             if self.live_shell_binding().split(',').any(|key| {
@@ -685,7 +705,11 @@ impl TuiState {
                     && crate::events::dialog_binding(key) == candidate
             }) {
                 self.leader = None;
-                return Some(KeyAction::Shells);
+                return Some(if self.composer_open() {
+                    KeyAction::Cancel
+                } else {
+                    KeyAction::Children
+                });
             }
             if self.live_shell_binding().split(',').any(|key| {
                 self.live_shell_shortcut_available(key)
@@ -710,7 +734,9 @@ impl TuiState {
             if event.code == KeyCode::Char('g') {
                 return Some(KeyAction::Children);
             }
-            if (self.shells.open || self.children.open || self.linked_child().is_some())
+            if (self.composer_open()
+                || self.shell_viewer().is_some()
+                || self.linked_child().is_some())
                 && event.code == KeyCode::Char('b')
             {
                 return Some(KeyAction::ShellBackground);
@@ -747,6 +773,22 @@ impl TuiState {
         self.prompt_mouse_editable()
             && self.slash_options().is_none()
             && self.mention_request().is_none()
+    }
+    pub(crate) fn composer_sequence_binding(&self, raw: &str) -> String {
+        if self
+            .leader_deadline()
+            .is_some_and(|until| until > Instant::now())
+        {
+            format!("{} {raw}", self.leader_key)
+        } else {
+            raw.to_owned()
+        }
+    }
+    pub(crate) fn clear_composer_sequence(&mut self) {
+        self.leader = None;
+    }
+    pub(crate) fn start_composer_sequence(&mut self, binding: String) {
+        self.leader_key = binding;
     }
 
     /// A live-status action must not make an existing advertised command inert.
@@ -1141,10 +1183,8 @@ impl TuiState {
         self.panel == TuiPanel::None
             && self.approvals.active().is_none()
             && self.questions.active().is_none()
-            && !self.children.open
+            && !self.composer_open()
             && self.linked_child().is_none()
-            && !self.shells.open
-            && !self.terminals.open
             && !self.terminal_focused()
             && self.status != TuiStatus::Quit
     }
@@ -1519,6 +1559,14 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.panel == TuiPanel::None
+            && self.approvals.active().is_none()
+            && self.questions.active().is_none()
+            && self.shell_viewer().is_some()
+        {
+            self.last_mouse = Some((event.column, event.row, area));
+            return self.shell_output_mouse(event, area);
+        }
         if self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
@@ -1586,8 +1634,11 @@ impl TuiState {
             self.last_mouse = Some((event.column, event.row, area));
             return outcome;
         }
-        if self.panel == TuiPanel::None && self.children.open {
-            return self.children.mouse(event);
+        if self.panel == TuiPanel::None
+            && let Some(outcome) = self.composer_mouse(event, area)
+        {
+            self.last_mouse = Some((event.column, event.row, area));
+            return outcome;
         }
         use crate::dialog::DialogHit;
         if matches!(
@@ -2274,7 +2325,7 @@ impl TuiState {
         if self.status == TuiStatus::Quit {
             return KeyOutcome::default();
         }
-        if self.panel == TuiPanel::None && (self.shells.open || self.terminals.open) {
+        if self.panel == TuiPanel::None && self.composer_open() {
             return KeyOutcome::default();
         }
         if self.panel != TuiPanel::None {
@@ -2512,9 +2563,6 @@ impl TuiState {
             KeyAction::TerminalClose => Some(CommandAction::CloseTerminal),
             _ => None,
         };
-        if let Some(command) = terminal_command {
-            return self.run_command(command);
-        }
         if self.panel == TuiPanel::Accounts {
             if self.approvals.active().is_some() || self.questions.active().is_some() {
                 self.close_panel();
@@ -2534,6 +2582,15 @@ impl TuiState {
                 && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
         {
             return self.questions.key(action);
+        }
+        if self.panel == TuiPanel::None && self.shell_viewer().is_some() {
+            self.leader = None;
+            return self.shells.key(action);
+        }
+        if let Some(command) = terminal_command
+            && self.panel == TuiPanel::None
+        {
+            return self.run_command(command);
         }
         self.poll_submission();
         if self
@@ -2609,30 +2666,33 @@ impl TuiState {
                 _ => return KeyOutcome::default(),
             };
         }
-        if self.panel == TuiPanel::None && action == KeyAction::Shells {
-            self.children.open = false;
-            self.close_terminal_composer();
-        }
-        if self.panel == TuiPanel::None && action == KeyAction::Children {
-            self.shells.open = false;
-            self.close_terminal_composer();
-        }
-        if self.panel == TuiPanel::None && self.terminals.open && action != KeyAction::Leader {
-            return self.terminal_composer_key(action);
-        }
-        if self.panel == TuiPanel::None && (self.shells.open || action == KeyAction::Shells) {
-            return self.shells.key(action);
-        }
-        if self.panel == TuiPanel::None
-            && (self.children.open
-                || action == KeyAction::Children
-                || (self.linked_child().is_some()
-                    && matches!(
-                        action,
-                        KeyAction::Cancel | KeyAction::Interrupt | KeyAction::ShellBackground
-                    )))
-        {
-            return self.children.key(action);
+        if self.panel == TuiPanel::None {
+            if self.shell_viewer().is_some() {
+                return self.shells.key(action);
+            }
+            let tab = match action {
+                KeyAction::Shells => Some(crate::composer::Tab::Shell),
+                KeyAction::Children => Some(crate::composer::Tab::Subagents),
+                _ => None,
+            };
+            if let Some(tab) = tab {
+                return if self.composer.active == Some(tab) {
+                    self.close_composer()
+                } else {
+                    self.open_composer(tab)
+                };
+            }
+            if self.composer_open() && action != KeyAction::Leader {
+                return self.composer_key(action);
+            }
+            if self.linked_child().is_some() {
+                if matches!(action, KeyAction::Cancel | KeyAction::Interrupt) {
+                    return self.close_composer();
+                }
+                if action == KeyAction::ShellBackground {
+                    return self.children.key(action);
+                }
+            }
         }
         if self.panel != TuiPanel::None {
             if action == KeyAction::Leader {
@@ -2962,7 +3022,7 @@ impl TuiState {
                 }
                 if action == KeyAction::PromptHistoryNextOrShells && self.running_shell_count() > 0
                 {
-                    return self.shells.key(KeyAction::Shells);
+                    return self.open_composer(crate::composer::Tab::Subagents);
                 }
                 self.scroll_transcript(false)
             }
@@ -3064,9 +3124,10 @@ impl TuiState {
             }
             KeyAction::Enter => self.handle_enter().await,
             KeyAction::Tab => KeyOutcome::default(),
-            KeyAction::Shells | KeyAction::ShellBackground | KeyAction::Children => {
-                KeyOutcome::default()
-            }
+            KeyAction::Shells
+            | KeyAction::ShellBackground
+            | KeyAction::Children
+            | KeyAction::ComposerNoop => KeyOutcome::default(),
         }
     }
 

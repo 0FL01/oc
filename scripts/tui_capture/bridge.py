@@ -634,7 +634,7 @@ try:
                         if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
                             emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
                         elif command['kind'] == 'tool_preview_control' and spec.get('tool_preview'):
-                            emit({'kind':'tool_preview_control_ack','request_id':command['request_id'], **tool_preview_fixture.control(home, command['action'])})
+                            emit({'kind':'tool_preview_control_ack','request_id':command['request_id'], **tool_preview_fixture.control(home, command['action'], project, spec)})
                         elif command['kind'] == 'services_snapshot' and spec.get('clean_services'):
                             emit({'kind':'services_snapshot','request_id':command['request_id'], 'snapshot':services_fixture.snapshot(home)})
                         elif command['kind'] == 'services_control' and spec.get('clean_services'):
@@ -738,7 +738,7 @@ try:
                         elif command['kind'] == 'release_scanner' and spec.get('scanner'):
                             scanner_release.set()
                             emit({'kind': 'scanner_release_requested'})
-                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services')):
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services') or spec.get('combined_composer')):
                             pause = command['kind'] == 'pause_scanner'
                             try:
                                 if pause and child.poll() is None and not scanner_paused:

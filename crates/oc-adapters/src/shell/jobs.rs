@@ -149,6 +149,10 @@ pub(crate) struct Outcome {
     pub capture_failure: Option<crate::storage::tool_output::CaptureState>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_recent: Option<String>,
+    #[serde(default)]
+    pub display_omitted: bool,
 }
 
 impl Outcome {
@@ -174,6 +178,8 @@ impl Outcome {
             capture_facts: None,
             capture_failure: None,
             output_presentation: None,
+            display_recent: None,
+            display_omitted: false,
         }
     }
 
@@ -209,6 +215,8 @@ impl Outcome {
                 capture_facts: None,
                 capture_failure: None,
                 output_presentation: None,
+                display_recent: None,
+                display_omitted: false,
             },
             Err(error) => {
                 let mut outcome = Self::unknown(&format!("shell supervisor: {error}"));
@@ -638,6 +646,13 @@ impl Jobs {
                 .expect("stream admission")
                 .failure();
             outcome.output_presentation = Some(outcome.prepared_presentation());
+            let (display, omitted) = owned_capture
+                .stream
+                .lock()
+                .expect("stream admission")
+                .display();
+            outcome.display_recent = Some(display);
+            outcome.display_omitted = omitted;
             if p.turn.is_empty() {
                 // The supervisor has moved drain buffers into Outcome. Keep its
                 // frozen typed stream/exit facts; only the ordered display body
@@ -829,13 +844,34 @@ impl Jobs {
         let job = self.db.shell_job_identity(session, id)?;
         let phase = self.db.shell_job_phase(session, id)?;
         let cap = (crate::storage::TOOL_OP_PREVIEW_BYTES - 256) / 2;
-        let (state, stdout, stderr, stdout_cursor, stderr_cursor, truncated) = if phase
-            == "terminal"
-        {
+        let (
+            state,
+            stdout,
+            stderr,
+            stdout_cursor,
+            stderr_cursor,
+            truncated,
+            display,
+            display_omitted,
+            exit,
+            signal,
+        ) = if phase == "terminal" {
             let o = self.db.shell_job_outcome(session, id)?;
             let stdout = recent(o.stdout_recent.as_deref().unwrap_or(&o.stdout), cap);
             let stderr = recent(o.stderr_recent.as_deref().unwrap_or(&o.stderr), cap);
             let preview_truncated = o.stdout.len() > cap || o.stderr.len() > cap;
+            let (display, display_omitted) = if let Some(display) = o
+                .display_recent
+                .as_ref()
+                .filter(|s| s.len() <= output::RECENT_CAP)
+            {
+                (display.clone(), o.display_omitted)
+            } else {
+                // Older prepared model envelopes are not process text. Only
+                // their saved admitted typed/recent preview is a safe fallback.
+                let presentation = o.user_presentation();
+                (presentation.body.clone(), presentation.body_limited)
+            };
             (
                 o.state,
                 stdout,
@@ -843,6 +879,10 @@ impl Jobs {
                 o.stdout_bytes,
                 o.stderr_bytes,
                 o.stdout_truncated || o.stderr_truncated || preview_truncated,
+                display,
+                display_omitted,
+                o.exit,
+                o.signal,
             )
         } else {
             let work = self.work.lock().expect("shell jobs");
@@ -850,6 +890,12 @@ impl Jobs {
                 .get(id)
                 .filter(|w| w.session == session)
                 .ok_or(StorageError::OperationNotFound)?;
+            let (display, display_omitted) = active
+                .capture
+                .stream
+                .lock()
+                .expect("stream admission")
+                .display();
             let out = active.capture.stdout.lock().expect("stdout capture");
             let err = active.capture.stderr.lock().expect("stderr capture");
             (
@@ -859,6 +905,10 @@ impl Jobs {
                 out.total,
                 err.total,
                 out.truncated || err.truncated || out.bytes.len() > cap || err.bytes.len() > cap,
+                display,
+                display_omitted,
+                None,
+                None,
             )
         };
         let mut text = format!(
@@ -883,6 +933,10 @@ impl Jobs {
             stderr_cursor,
             truncated,
             text,
+            display,
+            display_omitted,
+            exit,
+            signal,
         })
     }
 

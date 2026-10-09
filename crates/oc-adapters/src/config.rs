@@ -309,6 +309,7 @@ pub(crate) struct ConversationKeybinds {
     palette: String,
     child_first: String,
     terminal: [String; 5],
+    composer: oc_core::queries::ComposerShortcuts,
     dialog: oc_core::queries::DialogShortcuts,
     prompt_history: [String; 2],
 }
@@ -334,6 +335,7 @@ impl Default for ConversationKeybinds {
             ]
             .map(str::to_owned),
             dialog: Default::default(),
+            composer: Default::default(),
             prompt_history: ["up".into(), "down".into()],
         }
     }
@@ -452,6 +454,21 @@ impl ConversationKeybinds {
                     .into();
             }
         }
+        for (index, name) in oc_core::queries::ComposerShortcuts::NAMES
+            .into_iter()
+            .enumerate()
+        {
+            if let Some(value) = bindings.get(name) {
+                self.composer.bindings[index] = value
+                    .as_str()
+                    .or_else(|| (value.as_bool() == Some(false)).then_some("none"))
+                    .ok_or_else(|| ConfigError::Invalid {
+                        field: format!("keybinds.{name}"),
+                        reason: "must be a string or false".into(),
+                    })?
+                    .into();
+            }
+        }
         for (name, target) in [
             ("dialog.select.prev", &mut self.dialog.previous),
             ("dialog.select.next", &mut self.dialog.next),
@@ -488,6 +505,7 @@ impl ConversationKeybinds {
             palette: String::new(),
             child_first: String::new(),
             terminal: Default::default(),
+            composer: Default::default(),
             dialog: Default::default(),
             prompt_history: Default::default(),
         }
@@ -517,6 +535,19 @@ impl ConversationKeybinds {
         }
         .resolve()
         .undo
+    }
+    pub(crate) fn composer_shortcuts(&self) -> oc_core::queries::ComposerShortcuts {
+        oc_core::queries::ComposerShortcuts {
+            bindings: self.composer.bindings.each_ref().map(|binding| {
+                Self {
+                    leader: self.leader.clone(),
+                    undo: binding.clone(),
+                    ..Self::default()
+                }
+                .resolve()
+                .undo
+            }),
+        }
     }
     pub(crate) fn terminal_shortcuts(&self) -> oc_core::queries::TerminalShortcuts {
         oc_core::queries::TerminalShortcuts {
@@ -2297,7 +2328,8 @@ mod tests {
                 "dialog.mcp.toggle": "<leader>t,f2",
                 "history_previous": "alt+p", "history_next": "alt+n",
                 "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j",
-                "session_child_first": "alt+s", "session.child.first": "<leader>s,f2"
+                "session_child_first": "alt+s", "session.child.first": "<leader>s,f2",
+                "composer.shell.kill": "<leader>k,f3", "composer.terminal.select": false
             }}))
             .unwrap();
         bindings
@@ -2308,6 +2340,10 @@ mod tests {
             .unwrap();
         assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
         assert_eq!(bindings.child_first_shortcut(), "ctrl+b s,ctrl+g s,f2");
+        let composer = bindings.composer_shortcuts();
+        assert_eq!(composer.bindings[7], "ctrl+b k,ctrl+g k,f3");
+        assert_eq!(composer.bindings[10], "");
+        assert_eq!(composer.bindings[8], "up,k");
         let mut disabled = super::ConversationKeybinds::default();
         assert_eq!(disabled.child_first_shortcut(), "down");
         disabled
@@ -2350,6 +2386,11 @@ mod tests {
             assert!(
                 bindings
                     .merge(&serde_json::json!({"keybinds": {"prompt.history.previous": invalid}}))
+                    .is_err()
+            );
+            assert!(
+                bindings
+                    .merge(&serde_json::json!({"keybinds":{"composer.shell.kill": invalid}}))
                     .is_err()
             );
         }

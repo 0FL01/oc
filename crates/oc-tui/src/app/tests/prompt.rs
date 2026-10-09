@@ -164,9 +164,9 @@ async fn vis12_painted_prompt_stops_cover_unicode_wrap_blank_and_clipped_rows() 
     // rectangle must still never edit beneath them or under a modified click.
     type Owner = fn(&mut TuiState, bool);
     let owners: [Owner; 3] = [
-        |s, open| s.children.open = open,
-        |s, open| s.shells.open = open,
-        |s, open| s.terminals.open = open,
+        |s, open| s.composer.active = open.then_some(crate::composer::Tab::Subagents),
+        |s, open| s.composer.active = open.then_some(crate::composer::Tab::Shell),
+        |s, open| s.composer.active = open.then_some(crate::composer::Tab::Terminals),
     ];
     for owner in owners {
         state.restore_prompt("guard RECON".into());

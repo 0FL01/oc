@@ -209,6 +209,38 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
     assert_eq!(facts.stdout_carry_releases, 1);
 }
 
+#[test]
+fn shell_plain_display_strips_split_ansi_and_bounds_osc_before_secret_admission() {
+    // `core` uses an inline 1KiB OSC buffer even when other users enable utf8.
+    assert!((1024..2048).contains(&std::mem::size_of::<anstyle_parse::Parser>()));
+    let capture = Capture::new(Arc::default());
+    capture.ingest(Stream::Stdout, b"\x1b[3", false, true);
+    assert!(capture.presentation().body.is_empty());
+    capture.ingest(Stream::Stdout, b"1mred\x1b[0m\r", false, true);
+    capture.ingest(Stream::Stdout, b"\n\x1b]52;c;", false, true);
+    for _ in 0..128 {
+        capture.ingest(Stream::Stdout, &vec![b'x'; 8192], false, true);
+    }
+    capture.ingest(Stream::Stdout, b"\x1b\\plain\x1bPignored", false, true);
+    capture.ingest(Stream::Stdout, b" DCS payload\x1b\\\n", false, true);
+    capture.ingest(
+        Stream::Stdout,
+        "\u{9b}32mgreen\u{9b}0m\u{9d}52;c;hidden\u{9c}\n".as_bytes(),
+        true,
+        true,
+    );
+    let (display, omitted) = capture.stream.lock().unwrap().display();
+    assert_eq!(display, "red\r\nplain\ngreen\n");
+    assert!(
+        !omitted,
+        "discarded terminal control payload is not missing process text"
+    );
+    let preview = capture.presentation();
+    assert!(preview.is_valid() && !preview.body_limited);
+    assert_eq!(preview.shell.as_ref().unwrap().stdout, display);
+    assert!(preview.shell.as_ref().unwrap().exit.is_none());
+}
+
 fn provenance(project: &Path, operation: &str) -> Provenance {
     Provenance {
         version: 1,

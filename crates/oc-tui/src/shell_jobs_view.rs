@@ -1,30 +1,31 @@
 //! Disposable lower composer over the existing application's shell facts.
 use crate::app::{KeyOutcome, PanelIntent, TuiState};
+use crate::composer::{Item, Row, Tab};
 use crate::events::KeyAction;
+use crate::theme::Theme;
 use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+use oc_core::domain::SessionId;
 use oc_core::queries::{ShellJob, ToolOutputPage};
-use ratatui::{
-    Frame,
-    layout::Rect,
-    text::Line,
-    widgets::{Block, Borders, Clear, Paragraph},
-};
-
-fn safe(text: &str) -> String {
-    text.chars()
-        .map(|c| if c.is_control() { ' ' } else { c })
-        .collect()
-}
+use ratatui::layout::Rect;
+mod output;
+pub(crate) use output::render;
 
 #[derive(Default)]
 pub(crate) struct ShellView {
-    pub(super) open: bool,
     rows: Vec<ShellJob>,
     inventory_loaded: bool,
     selected: Option<String>,
     // A viewer holds the original source identity, never a running-list index.
     viewer: Option<ShellJob>,
     output: Option<ToolOutputPage>,
+    output_state: String,
+    output_exit: Option<i32>,
+    output_omitted: bool,
+    output_error: bool,
+    output_scroll: std::cell::Cell<usize>,
+    output_follow: std::cell::Cell<bool>,
+    output_paint: std::cell::RefCell<Option<output::Paint>>,
+    output_down: Option<bool>,
     pub(crate) footer_hit: std::cell::Cell<Option<(Rect, [Rect; 2])>>,
     footer_down: bool,
 }
@@ -45,19 +46,70 @@ impl ShellView {
                 .find(|row| Some(&row.shell_id) == self.selected.as_ref())
         })
     }
+    pub(super) fn at_first(&self, session: Option<&SessionId>) -> bool {
+        self.rows
+            .iter()
+            .find(|row| Some(&row.session) == session)
+            .is_none_or(|row| Some(&row.shell_id) == self.selected.as_ref())
+    }
+    pub(super) fn has_selected(&self, session: Option<&SessionId>) -> bool {
+        self.selected()
+            .is_some_and(|row| Some(&row.session) == session)
+    }
+    pub(super) fn select_row(&mut self, id: &str, session: Option<SessionId>) -> bool {
+        if !self
+            .rows
+            .iter()
+            .any(|row| row.shell_id == id && Some(&row.session) == session.as_ref())
+        {
+            return false;
+        }
+        self.selected = Some(id.into());
+        true
+    }
+    pub(super) fn composer_rows(
+        &self,
+        session: Option<&SessionId>,
+        theme: &Theme,
+        width: u16,
+    ) -> Vec<Row> {
+        let rows = || self.rows.iter().filter(|row| Some(&row.session) == session);
+        let selected = rows()
+            .position(|row| Some(&row.shell_id) == self.selected.as_ref())
+            .unwrap_or(0);
+        let start = selected
+            .saturating_sub(2)
+            .min(rows().count().saturating_sub(5));
+        rows()
+            .skip(start)
+            .take(5)
+            .map(|row| {
+                Row::new(
+                    Item::Shell(row.shell_id.clone()),
+                    row.command.lines().next().unwrap_or_default(),
+                    Some(&row.shell_id) == self.selected.as_ref(),
+                    false,
+                    "",
+                    theme,
+                    width,
+                )
+            })
+            .collect()
+    }
 
     pub(super) fn key(&mut self, key: KeyAction) -> KeyOutcome {
+        if self.viewer.is_some()
+            && let Some(result) = self.output_key(&key)
+        {
+            return result;
+        }
         let mut result = KeyOutcome::default();
         match key {
-            KeyAction::Shells => {
-                self.open = !self.open;
-                result.intent = self.open.then_some(PanelIntent::LoadShells);
-            }
             KeyAction::Cancel | KeyAction::Interrupt => {
                 if self.viewer.take().is_some() {
                     self.output = None;
-                } else {
-                    self.open = false;
+                    self.output_paint.get_mut().take();
+                    self.output_down = None;
                 }
             }
             KeyAction::Up | KeyAction::Down if self.viewer.is_none() && !self.rows.is_empty() => {
@@ -67,7 +119,7 @@ impl ShellView {
                     .position(|r| Some(&r.shell_id) == self.selected.as_ref())
                     .unwrap_or(0);
                 let next = if key == KeyAction::Up {
-                    (i + self.rows.len() - 1) % self.rows.len()
+                    i.saturating_sub(1)
                 } else {
                     (i + 1) % self.rows.len()
                 };
@@ -75,6 +127,15 @@ impl ShellView {
             }
             KeyAction::Enter if self.viewer.is_none() => {
                 self.viewer = self.selected().cloned();
+                self.output = None;
+                self.output_state = "running".into();
+                self.output_exit = None;
+                self.output_omitted = false;
+                self.output_error = false;
+                self.output_scroll.set(0);
+                self.output_follow.set(true);
+                self.output_down = None;
+                self.output_paint.get_mut().take();
                 result.intent = self.viewer.as_ref().map(|_| PanelIntent::LoadShells);
             }
             KeyAction::DeleteOrQuit | KeyAction::ShellBackground => {
@@ -101,21 +162,27 @@ impl ShellView {
 impl TuiState {
     /// Consumer visibility; approval/question/modal focus remains authoritative.
     pub fn shells_open(&self) -> bool {
-        self.shells.open
+        self.composer.active == Some(Tab::Shell) || self.shells.viewer.is_some()
     }
 
     /// Reconcile bounded current running rows without retargeting an open viewer.
     pub fn apply_shell_jobs(&mut self, rows: Vec<ShellJob>) {
         self.shells.inventory_loaded = true;
-        self.shells.rows = rows;
+        self.shells.rows = rows
+            .into_iter()
+            .filter(|row| self.attached_session() == Some(&row.session))
+            .collect();
         self.refresh_running_user_shell_output();
-        if !self
-            .shells
-            .rows
-            .iter()
-            .any(|r| Some(&r.shell_id) == self.shells.selected.as_ref())
-        {
-            self.shells.selected = self.shells.rows.first().map(|r| r.shell_id.clone());
+        if !self.shells.rows.iter().any(|r| {
+            Some(&r.shell_id) == self.shells.selected.as_ref()
+                && self.attached_session() == Some(&r.session)
+        }) {
+            self.shells.selected = self
+                .shells
+                .rows
+                .iter()
+                .find(|row| self.attached_session() == Some(&row.session))
+                .map(|r| r.shell_id.clone());
         }
     }
 
@@ -162,11 +229,7 @@ impl TuiState {
             }
             MouseEventKind::Up(MouseButton::Left) if event.modifiers.is_empty() => {
                 let accepted = std::mem::take(&mut self.shells.footer_down) && hit;
-                accepted.then(|| {
-                    self.children.open = false;
-                    self.close_terminal_composer();
-                    self.shells.key(KeyAction::Shells)
-                })
+                accepted.then(|| self.open_composer(Tab::Subagents))
             }
             MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_) => {
                 self.shells.footer_down = false;
@@ -185,7 +248,8 @@ impl TuiState {
     pub fn apply_shell_output(&mut self, job: &ShellJob, page: ToolOutputPage) {
         if self.shells.viewer.as_ref().is_some_and(|v| {
             v.shell_id == job.shell_id && v.session == job.session && v.generation == job.generation
-        }) {
+        }) && page.text.len() <= 65536
+        {
             self.shells.output = Some(page);
         }
     }
@@ -201,6 +265,7 @@ impl TuiState {
                 .inventory_loaded
                 .then(|| std::mem::take(&mut self.shells.rows));
             self.shells = std::mem::take(&mut previous.shells);
+            self.inherit_composer_tab(previous, Tab::Shell);
             self.shells.footer_hit.set(None);
             self.shells.footer_down = false;
             if let Some(rows) = current {
@@ -208,82 +273,6 @@ impl TuiState {
             }
         }
     }
-}
-
-pub(crate) fn height(state: &TuiState) -> u16 {
-    if state.shells.open && state.approvals.active().is_none() && state.questions.active().is_none()
-    {
-        if state.shells.viewer.is_some() {
-            12
-        } else {
-            (state.shells.rows.len() as u16 + 4).max(5)
-        }
-    } else {
-        0
-    }
-}
-
-pub(crate) fn render(frame: &mut Frame<'_>, state: &TuiState, main: Rect) {
-    let h = height(state).min(main.height);
-    if h == 0 {
-        return;
-    }
-    let area = Rect::new(
-        main.x + 1,
-        main.bottom().saturating_sub(h),
-        main.width.saturating_sub(2),
-        h,
-    );
-    let mut lines = Vec::new();
-    if let Some(job) = state.shells.viewer.as_ref() {
-        lines.push(Line::from(format!(
-            "{} · {} · generation {}",
-            job.shell_id, job.session.0, job.generation
-        )));
-        lines.push(Line::from(safe(&format!(
-            "{} · {}/{}",
-            job.location, job.provider, job.model
-        ))));
-        lines.extend(
-            state
-                .shells
-                .output
-                .as_ref()
-                .map(|p| {
-                    p.text
-                        .lines()
-                        .map(|s| Line::from(safe(s)))
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_else(|| vec![Line::from("Loading live output…")]),
-        );
-    } else {
-        if state.shells.rows.is_empty() {
-            lines.push(Line::from("No running shells"));
-        }
-        for job in &state.shells.rows {
-            lines.push(Line::from(format!(
-                "{} RUNNING {} PID {} {}",
-                if Some(&job.shell_id) == state.shells.selected.as_ref() {
-                    "›"
-                } else {
-                    " "
-                },
-                if job.background { "BG" } else { "FG" },
-                job.pid.map_or_else(|| "?".into(), |p| p.to_string()),
-                safe(&job.command)
-            )));
-        }
-    }
-    frame.render_widget(Clear, area);
-    frame.render_widget(
-        Paragraph::new(lines).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Shell · enter output · ctrl+b background · ctrl+d kill · esc back"),
-        ),
-        area,
-    );
 }
 
 #[cfg(test)]

@@ -85,15 +85,33 @@ async fn terminal_source_notice_reads_captured_child_and_keeps_parked_parent_dra
         message_id: Some("committed".into()),
     };
     let mut parent = TuiState::new(app.clone(), job.parent.clone());
+    parent.session_title = Some("Actual parent title".into());
     parent.chrome.location = Some("/B".into());
     parent.restore_prompt("root draft α".into());
     let mut child = TuiState::new(app.clone(), job.child.clone());
     child.attach_linked_child(job.clone());
     let mut deck = LoopState {
         child_parent: Some(Box::new(parent)),
+        tabs: vec![None],
+        tab_cards_before: vec![None],
+        active_tab: Some(0),
         read_only: true,
         ..Default::default()
     };
+    child.session_title = Some("Distinct child title".into());
+    let snapshot_before = deck.snapshot(&child);
+    deck.sync_tabs(&mut child);
+    let (shown, active, can_add) = child.tab_presentation();
+    assert_eq!(shown.len(), 1);
+    assert_eq!(shown[0].session, job.parent);
+    assert_eq!(shown[0].title.as_deref(), Some("Actual parent title"));
+    assert_eq!(active, 0);
+    assert!(
+        !can_add,
+        "projection does not widen readonly child controls"
+    );
+    assert_eq!(deck.snapshot(&child), snapshot_before);
+    assert_eq!(deck.child_parent.as_ref().unwrap().input(), "root draft α");
     let exact = job.clone();
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::ReadChild {

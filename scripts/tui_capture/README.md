@@ -1078,6 +1078,50 @@ from transport labels; model tools and RAW remain unchanged. Receipt:
 `evidence/tui/user-shell-live-output.md`. Remaining version/example/Home/restart
 differences stay visible; combined VIS39 and full T44 are not qualified by this.
 
+## VIS39 actual combined Subagents/Shell/Terminals
+
+The exclusive `--tool-preview true --combined-composer true` profile admits
+80×24,120×40 and160×48. It cannot be combined with the other tool-preview probes.
+It executes common structured `subagent`/`shell` calls through the real application,
+with an isolated helper and deny-all/exact-command permission rules. An ordinary
+fixture process emits ANSI/plain output and waits at a finite owned filesystem
+release gate; no sessions, tool rows or UI story are preinserted.
+
+```sh
+CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
+TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
+node scripts/tui_capture/capture.mjs \
+  --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
+  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
+  --tool-preview true --combined-composer true \
+  --output /home/opencode/ai/oc/evidence/tui/COMPOSER-NEW-IMMUTABLE-ATTEMPT
+```
+
+Use a bounded600-second external runner budget per geometry. Final00880/009120/
+010160 each qualify eighteen actual stages on both sides, including linked child,
+shared tabs, running output/scroll/follow/final flush, captured second-job kill,
+parent draft return and real PTY input/effect/hide/show. Each retains36 DIFFERENT
+strict full-grid/PNG comparisons. Native read-only owner witnesses prove identical
+process conversion, source fences, terminal undefined Enter no-op and persisted
+selection; original RAW is not decoded. Both have three function calls, two Shell
+starts/one completion/one PTY effect; native six HTTP requests, original eight.
+
+Only this profile's stable stills use the existing owned process-group pause/drain
+ACK, actual post-ACK frame signature and finally-resume ACK. This does not qualify
+animation cadence or align phases. Real input scopes differ (painted status/base
+scope on original, captured controls on native); no byte-identical-input claim.
+All old observer RGB/attributes/Unicode/DSR browser checks remain, plus physical
+pending-wrap checks on actual DOM/WebGL renderers; raw logical diagnostics remain
+available and the strict comparator is unchanged. No masks/crops/tolerance,
+version substitution, forced frontend refresh or source goldens are used.
+
+Receipt: `evidence/tui/combined-composer.md`, current1784/0/11 workspace tests plus
+real release/startup/PTY/resource gates. The shared consumer qualifies behavior,
+not whole VIS39/T44: model-Shell live cards, child task wrapper/background notice,
+root captions/Add/badges, syntax assets and remaining frozen outcomes stay open.
+Ordinary model-tool and default temporal regressions have separate immutable runs.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-09T03:50:04+00:00
+State updated: 2026-10-09T08:07:13+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,36 +12,37 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 bounded live standalone Shell output — qualified slice
+# T44 shared composer and scoped output/PTY — qualified slice
 
 ## Result
-Existing capture supplies bounded ordered body and typed stdout/stderr through
-ShellJobs/ShellChanged to known standalone cards before terminal completion.
-Receipt/history races, exact source identity, redaction, frozen terminal facts and
-RAW/model graph remain intact. Receipt: evidence/tui/user-shell-live-output.md.
-Reviewed source/tests/final captures are ready for ordinary own-branch delivery;
-Git determines actual commit/push.
+One lower Subagents/Shell/Terminals consumer reuses existing feature inventories
+and captured controls. Original-owner Shell output dialog has bounded plain live
+output, final flush/scroll/follow/status and modal pointer isolation. Real raised
+full-height PTY preserves focus, forms, source identity, replay and hide-only close.
+Receipt: evidence/tui/combined-composer.md. Reviewed source/tests/final artifacts
+are ready for ordinary own-branch delivery; Git determines actual commit/push.
 
 ## Checks
-Current fmt/strict workspace Clippy,1778/0/11 tests, debug/ordinary/release/help,
-release startup19/GET discovery8, Python47/Node-Python/source/docs/progress/resource
-gates PASS. Built00180×24/002120×40 each10 EQUAL14 DIFFERENT; five actual full
-grid/PNG/cursor pairs include genuine partial stdout AND stderr before effect.
-Two explicit effects/zero Responses-title-MCP/NULL model turns/pre-effect history/
-no replay. Normal27-stage regression and default six-owner/144opaque PNG audit
-qualify behavior, not global parity.
+Current fmt/strict locked workspace Clippy,1784/0/11 no-fail-fast tests, debug/
+ordinary/release/help, release startup19/GET discovery8/TERM01, Python47, actual
+DOM/WebGL observer, syntax/docs/progress and original resource guards PASS.
+Built00880×24/009120×40/010160×48 each qualify18 stages on both sides,36 strict
+DIFFERENT valid comparisons. Read-only owner witnesses and actual effects prove
+conversion without replay, source-fenced kill/final flush and same PTY hide/show.
+Normal27-stage regression and default six-owner/144opaque audit qualify behavior.
 
 ## Risks
-Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Existing active capture/tail/window/resource
-bounds unchanged; no new timer/store/registry/executor, secret carry exposure,
-RAW rewrite, env/.opencode/GOAL/acceptance/Cargo.lock/auth changes or paid calls.
-Versions/random examples and all genuine frame differences remain visible.
-Separate panels do not qualify combined VIS39; frozen parts/mode/Mini restoration
-exclusion remains intact.
+Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Real frame differences remain:
+model-Shell partial cards, child task wrapper, technical background notice,
+root captions/Add/badges, grammar assets and every remaining frozen outcome.
+Earlier100ms burst failures have no established cause; final unchanged serial
+guards pass, not a claimed performance fix. Cargo.lock adds only two existing
+dependency edges for the bounded parser; no new package/version or owner.
+No env/user configuration/GOAL/acceptance/RAW rewrite or paid calls.
 
 ## Next
-Integrate the combined Subagents/Shell/Terminals lower composer with existing
-inventory/control owners, then all frozen outcomes and final current R6/V09.
+Project typed background-child notice, ordinary child task and model-Shell live
+facts from existing owners, then every frozen outcome and final current R6/V09.
 
 
 Ready (до 5): T58

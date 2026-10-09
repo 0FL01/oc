@@ -361,7 +361,7 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
         .unwrap();
     let jobs = Jobs::new(&db);
     let shell = Shell::new(&project).unwrap();
-    let argv = vec!["/bin/sh".into(), "-c".into(), "printf live-held-output; touch entered; while [ ! -f release ]; do sleep .01; done; printf final-flush".into()];
+    let argv = vec!["/bin/sh".into(), "-c".into(), "printf '\\033[31mlive-held-output\\033[0m'; touch entered; while [ ! -f release ]; do sleep .01; done; printf final-flush".into()];
     let pinned = shell.pin_cwd(&argv, ".").unwrap();
     jobs.launch(
         shell,
@@ -406,13 +406,28 @@ async fn tool13_held_owned_shell_output_is_readable_before_terminal() {
         tokio::time::sleep(Duration::from_millis(5)).await;
         live = jobs.output("source", "operation", 0, 1024).unwrap();
     }
+    let running = jobs.snapshot("source", "operation").unwrap();
     std::fs::write(project.join("release"), b"").unwrap();
-    jobs.changed().await;
+    let final_deadline = Instant::now() + Duration::from_secs(3);
+    while db.shell_job_phase("source", "operation").unwrap() != "terminal"
+        && Instant::now() < final_deadline
+    {
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let final_snapshot = jobs.snapshot("source", "operation").unwrap();
     jobs.shutdown().await.unwrap();
     assert!(
         live.is_some_and(|(text, _, _)| text.contains("live-held-output")),
         "actual held supervisor output must be readable before terminal"
     );
+    assert_eq!(running.state, "running");
+    assert_eq!(running.display, "live-held-output");
+    assert!(!running.display_omitted);
+    assert_eq!((running.exit, running.signal), (None, None));
+    assert_eq!(final_snapshot.state, "completed");
+    assert_eq!(final_snapshot.display, "live-held-outputfinal-flush");
+    assert_eq!(final_snapshot.exit, Some(0));
+    assert!(!final_snapshot.display_omitted);
 }
 
 #[tokio::test]

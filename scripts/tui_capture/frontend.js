@@ -81,7 +81,8 @@ window.readCaptureGeometry = () => {
     screen_rect: layers['.xterm-screen'].rect,
     measured_cell_width: layers['.xterm-screen'].rect.width / term.cols,
     measured_cell_height: layers['.xterm-screen'].rect.height / term.rows,
-    columns: term.cols, rows: term.rows, layers, canvases, dom_rows: domRows};
+    columns: term.cols, rows: term.rows, layers, canvases, dom_rows: domRows,
+    logical_buffer_cursor: {x:term.buffer.active.cursorX,y:term.buffer.active.cursorY}};
 };
 window.readTerminal = () => {
   const buffer = term.buffer.active;
@@ -103,8 +104,15 @@ window.readTerminal = () => {
       width: c.getWidth(), modifiers: modifiers.filter(([method]) => c[method]()).map(([,name]) => name).sort()};
   }));
   const core = term._core.coreService;
+  // xterm's logical cursor may be one-past-last while wrap is pending. Both
+  // pinned DOM and WebGL renderers paint that cursor at cols-1. Measure their
+  // physical position, retaining the raw logical value in capture geometry.
+  // Do not normalize any other out-of-range state or weaken the comparator.
+  if(!Number.isInteger(buffer.cursorX)||buffer.cursorX<0||buffer.cursorX>term.cols||
+     !Number.isInteger(buffer.cursorY)||buffer.cursorY<0||buffer.cursorY>=term.rows)
+    throw Error('Invalid logical buffer cursor');
   return {columns: term.cols, rows: term.rows, cells,
-    cursor: {x: buffer.cursorX, y: buffer.cursorY, visible: !core.isCursorHidden,
+    cursor: {x: Math.min(buffer.cursorX,term.cols-1), y: buffer.cursorY, visible: !core.isCursorHidden,
       shape: core.decPrivateModes.cursorStyle || term.options.cursorStyle},
     text: cells.map(row => row.map(c => c.symbol).join('')).join('\n')};
 };

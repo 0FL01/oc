@@ -268,6 +268,9 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
                   'models': {name: {'name': 'Local fixture', 'limit': {'context': 32768, 'output': 2048}} for name in ('root', 'child')}}}}
     config_path = root/'project/opencode.json'
     config_path.write_text(json.dumps(config))
+    # Pin the pane profile across local/debug and packaged/release channels;
+    # the optional local devtools row has its own layout tests.
+    (root/'project/cli.json').write_text(json.dumps({'debug': {'devtools': False}}))
     (root/'project/vt.py').write_text(VT)
     view = View(root)
     known = []
@@ -287,7 +290,10 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.send(b'\r')
         first = wait(lambda: entries(root), 'first real PTY')[0][0]
         remember(first)
-        view.see('Terminal')
+        # The pinned pane is borderless: readiness is its real interactive
+        # prompt, not an invented native title consuming a terminal row.
+        wait(lambda: any('$ ' in row[view.cols//2:] for row in view.screen()),
+             'actual borderless PTY prompt')
         assert first['cwd'] == str(root/'project') and first['shell'] == '/bin/bash'
         for entry, live, identity in entries(root):
             assert live == 1 and identity['pid'] == entry['pid']
@@ -350,13 +356,14 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.command('stty size > size')
         wait(lambda: (root/'project/size').read_text() != old_size, '80x24 real child resize')
         compact = tuple(map(int, (root/'project/size').read_text().split()))
+        assert compact == (23, 38), ('full-height 80x24 pane with one-cell horizontal insets', compact)
         old_size = (root/'project/size').read_text()
         view.resize(160, 48)
         time.sleep(.15)
         view.command('stty size > size')
         wait(lambda: (root/'project/size').read_text() != old_size, 'real child resized')
         actual = tuple(map(int, (root/'project/size').read_text().split()))
-        assert 1 <= actual[0] <= 120 and 1 <= actual[1] <= 240
+        assert actual == (47, 78), ('full-height 160x48 pane with one-cell horizontal insets', actual)
         view.leader(b'\x1b[D')
         (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'vertical'}, 'debug': {'devtools': False}}))
         view.command('/reload')
@@ -367,7 +374,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         vertical = tuple(map(int, (root/'project/vertical-size').read_text().split()))
         assert vertical != actual and vertical[1] < actual[1]
         view.leader(b'\x1b[D')
-        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'keybinds': {'leader': 'ctrl+g'}}))
+        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}, 'keybinds': {'leader': 'ctrl+g'}}))
         view.command('/reload')
         time.sleep(.2)
         view.prefix = b'\x07'
@@ -390,7 +397,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.see('RAW_4')
         assert view.child.poll() is None
         view.leader(b'\x1b[D')
-        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}}))
+        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}}))
         view.command('/reload')
         time.sleep(.2)
         view.prefix = b'\x18'
@@ -460,14 +467,27 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         CHILD_RELEASE.set()
         wait(lambda: any(i.get('type') == 'function_call_output' for r in REQUESTS for i in r['input']), 'settled real parent follow-up')
         view.leader(b'\x1b[B')
-        view.send(b'j\x04')
-        def removed():
+        # The Terminals composer has no kill action. The configured close hides
+        # the pane without killing; select the same process again for raw EOF.
+        # Explicit owner Remove/reap is independently exercised by the real
+        # application test, not an invented composer Ctrl+D action.
+        view.send(b'j\r')
+        wait(lambda: selected(root) == first['target']['id'], 'captured first PTY for explicit close')
+        view.leader(b'\x1b[D')
+        view.send(b'\x03')
+        wait(lambda: selected(root) is None, 'configured close clears selection')
+        assert not dead(first['pid']) and entries(root)[0][1] == 1, 'close must not kill'
+        view.leader(b'\x1b[B')
+        view.send(b'j\r')
+        wait(lambda: selected(root) == first['target']['id'], 'same first PTY after close')
+        view.send(b'\x04')
+        def exited():
             # Process reap precedes the owner's durable publication/ack. Require
             # both facts instead of racing the final SQLite transaction.
             view.drain(.01)
             entry, live, _ = entries(root)[0]
-            return dead(first['pid']) and entry['state'] == 'Removed' and live == 0
-        wait(removed, 'actual lower-composer explicit remove/reap/publication')
+            return dead(first['pid']) and entry['state'] == 'Exited' and live == 0
+        wait(exited, 'selected PTY raw EOF/reap/publication')
         view.send(b'\x1b')
         view.quit()
         wait(lambda: all(dead(pid) for pid in known), 'clean shutdown owns both PTYs')

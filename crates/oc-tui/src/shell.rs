@@ -243,12 +243,11 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     render_session(frame, state, theme, main);
     crate::approval_view::render(frame, state, main);
     crate::question_view::render(frame, state, main);
-    crate::shell_jobs_view::render(frame, state, main);
-    crate::child_view::render(frame, state, main);
-    crate::terminal_view::render_composer(frame, state, main, theme);
+    crate::composer::render(frame, state, main, theme);
     crate::terminal_view::render_pane(frame, state, terminal_pane, theme);
     render_devtools(frame, theme, regions.devtools);
     render_toast(frame, state, theme, area);
+    crate::shell_jobs_view::render(frame, state, area);
     crate::dialog::render(frame, state);
 }
 
@@ -356,9 +355,7 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
         return regions;
     }
     let input = prompt_lines(state, area.width);
-    let jobs_height = crate::shell_jobs_view::height(state)
-        .max(crate::child_view::height(state))
-        .max(crate::terminal_view::height(state));
+    let jobs_height = crate::composer::height(state);
     if jobs_height > 0 {
         let mut regions = layout::dynamic_session_regions(area, 0, 0);
         regions.transcript.height = regions.content.height.saturating_sub(jobs_height);
@@ -1013,7 +1010,10 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     }
     let regions = session_regions(state, area, frame.area().height);
     render_transcript(frame, state, regions.transcript, frame.area().width);
-    if state.approvals.active().is_some() || state.questions.active().is_some() {
+    if state.approvals.active().is_some()
+        || state.questions.active().is_some()
+        || state.composer_open()
+    {
         return;
     }
     render_status(frame, state, theme, regions.status);
@@ -1977,7 +1977,7 @@ fn render_footer(
     }
     let (mut line, live) = footer_projection(state, theme, area.width, terminal_width);
     if let Some(live) = live
-        .filter(|_| !state.shells.open && !state.children.open && !state.terminals.open)
+        .filter(|_| !state.composer_open())
         .map(|range| range.start..range.end.min(area.width as usize))
         .filter(|range| !range.is_empty())
     {

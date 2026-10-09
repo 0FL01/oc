@@ -1,9 +1,10 @@
 // VIS16/17 real tool cards and read-only owner facts; not a renderer substitute.
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe,composerProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -20,10 +21,28 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
   const poll=async(predicate,label)=>{const end=Date.now()+6000;while(Date.now()<end){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw Error('Timed out '+label);};
   const snapshot=async stage=>{control({kind:'tool_preview_snapshot',request_id:stage});await poll(()=>logs.some(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage),stage);return logs.find(e=>e.kind==='tool_preview_snapshot'&&e.request_id===stage);};
   const shot=async(stage,predicate,checks={})=>{
-    const f=await waitFor(predicate,stage,15000);
+    let f=await waitFor(predicate,stage,15000);
     if(draftCaret)checks={...checks,draft_preserved:f.text.includes('preserved draft'),
       prompt_caret_preserved:JSON.stringify(f.cursor)===JSON.stringify(draftCaret)};
-    const status=await capture('tool-preview-'+stage,f,'CAPTURED_TOOL_PREVIEW');
+    let signature;
+    let status;
+    try {
+      if(composerProbe) {
+        control({kind:'pause_scanner',request_id:stage});
+        await poll(()=>logs.some(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage),'owned composer pause');
+        if(!logs.find(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage).paused)throw Error('Composer process did not pause');
+        f=await frame();
+        if(!predicate(f))throw Error('Actual composer phase changed before acknowledged pause');
+        const read=f=>createHash('sha256').update(JSON.stringify(f)).digest('hex');
+        signature={read,expected:read(f)};
+      }
+      status=await capture('tool-preview-'+stage,f,'CAPTURED_TOOL_PREVIEW',signature);
+    } finally {
+      if(composerProbe) {
+        control({kind:'resume_scanner',request_id:stage});
+        await poll(()=>logs.some(e=>e.kind==='scanner_resume_ack'&&e.request_id===stage),'owned composer resume');
+      }
+    }
     result.stages.push({stage,status,cursor:f.cursor,requests:requests(),calls:calls(),checks});save();
     if(status!=='CAPTURED_TOOL_PREVIEW'||Object.values(checks).some(v=>v===false))throw Error('Bad capture/check '+stage);
     return f;
@@ -42,6 +61,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(composerProbe) {
+      result.differences=['Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity.'];
+      result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(userShellProbe) {
       result.differences=['Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed.'];
       result.user_shell=await userShellProbe({origin,send,shot,waitFor,frame,logs,snapshot,relaunch});

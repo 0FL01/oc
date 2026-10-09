@@ -113,12 +113,15 @@ async fn term01_composer_undefined_wrap_mouse_and_close_captured_target() {
     state.handle_key(KeyAction::TerminalSelect).await;
     state.handle_key(KeyAction::Char('j')).await;
     assert_eq!(state.terminals.cursor, Some(0));
-    crate::views::render_test(&state, 80, 24);
-    let r = state.terminals.painted.get().unwrap();
+    let rendered = crate::views::render_test(&state, 80, 24);
+    let header = rendered
+        .iter()
+        .position(|line| line.contains("Subagents") && line.contains("Terminals"))
+        .unwrap();
     let click = |kind| MouseEvent {
         kind,
-        column: r.x + 2,
-        row: r.y + 2,
+        column: 5,
+        row: header as u16 + 3,
         modifiers: KeyModifiers::NONE,
     };
     state.handle_mouse(
@@ -180,6 +183,25 @@ async fn term01_raw_priority_controls_leader_and_first_click_restore_draft() {
     assert!(!state.terminal_focused());
     assert_eq!(state.input(), "draft界 alpha");
     assert_eq!(state.prompt_layout(40).1, cursor);
+    state.handle_key(KeyAction::Children).await;
+    assert!(state.children_open());
+    let leader = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL))
+        .unwrap();
+    state.handle_key(leader).await;
+    let focus = state
+        .terminal_key(KeyEvent::new(KeyCode::Right, KeyModifiers::NONE))
+        .unwrap();
+    assert_eq!(focus, KeyAction::TerminalFocusRight);
+    let outcome = state.handle_key(focus).await;
+    assert!(
+        outcome.intent.is_none(),
+        "focus must not navigate or select"
+    );
+    assert!(state.composer_open(), "focus is not composer close");
+    assert!(state.terminal_focused());
+    assert_eq!(state.input(), "draft界 alpha");
+    assert_eq!(state.prompt_layout(40).1, cursor);
     state.focus_terminal(true);
     let frame = Rect::new(0, 0, 80, 24);
     let wheel = MouseEvent {
@@ -224,6 +246,91 @@ async fn term01_raw_priority_controls_leader_and_first_click_restore_draft() {
 }
 
 #[tokio::test]
+async fn term01_permission_and_question_own_keys_and_pointer_over_focused_pty() {
+    use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+    use oc_core::question::{QuestionInput, QuestionRequest};
+    let (mut state, app, guard) = state().await;
+    attach(&mut state, entry("one"));
+    state.focus_terminal(true);
+    state.restore_prompt("protected draft界".into());
+    let enter = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
+    assert!(state.raw_terminal_key(enter).is_some());
+    let binding = ApprovalBinding {
+        session: "source".into(),
+        turn: "turn".into(),
+        call: "call".into(),
+        operation: "operation".into(),
+        input_digest: "digest".into(),
+        location: "/source".into(),
+        generation: 7,
+        agent: None,
+        agent_digest: None,
+    };
+    state.approvals.reconcile(vec![(
+        ApprovalRequest {
+            id: 1,
+            binding: binding.clone(),
+            project: "/source".into(),
+            action: "bash".into(),
+            resources: vec!["echo bounded".into()],
+            save_patterns: vec![],
+            preview: ApprovalPreview::Shell {
+                command: "echo bounded".into(),
+                cwd: "/source".into(),
+            },
+        },
+        false,
+    )]);
+    let pointer = MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: 60,
+        row: 5,
+        modifiers: KeyModifiers::NONE,
+    };
+    assert!(!state.terminal_focused());
+    assert!(state.raw_terminal_key(enter).is_none());
+    assert!(
+        state
+            .terminal_mouse(pointer, Rect::new(0, 0, 80, 24))
+            .is_none()
+    );
+    let action = state.terminal_key(enter).unwrap();
+    let Some(PanelIntent::ReplyApproval(reply)) = state.handle_key(action).await.intent else {
+        panic!("permission owns Enter, never the PTY");
+    };
+    assert_eq!(reply.binding, binding);
+    state.approvals.reconcile(vec![]);
+    assert!(state.terminal_focused());
+    let request = QuestionRequest {
+        id: 2, binding: binding.clone(),
+        input: QuestionInput::parse(&serde_json::json!({"questions":[{
+            "question":"Choose?", "header":"Choice", "options":[{"label":"A","description":"Only option"}]
+        }]})).unwrap(),
+    };
+    state
+        .questions
+        .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+    assert!(!state.terminal_focused());
+    assert!(state.raw_terminal_key(enter).is_none());
+    assert!(
+        state
+            .terminal_mouse(pointer, Rect::new(0, 0, 80, 24))
+            .is_none()
+    );
+    let action = state.terminal_key(enter).unwrap();
+    let Some(PanelIntent::ReplyQuestion(reply)) = state.handle_key(action).await.intent else {
+        panic!("question owns Enter, never the PTY");
+    };
+    assert_eq!(reply.binding, binding);
+    state.questions.reconcile(&[], vec![]);
+    assert!(state.terminal_focused());
+    assert_eq!(state.input(), "protected draft界");
+    assert_eq!(state.terminal_visible(), Some(&entry("one").target));
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn term01_replay_atomic_checkpoint_theme_cells_resize_and_disconnect() {
     let (mut state, app, guard) = state().await;
     attach(&mut state, entry("one"));
@@ -239,21 +346,51 @@ async fn term01_replay_atomic_checkpoint_theme_cells_resize_and_disconnect() {
         screen: Box::new(snapshot)
     }));
     assert!(state.terminals.gap);
+    assert_eq!(
+        state.note(),
+        Some("Terminal output gap · showing current screen")
+    );
+    let gap_deadline = state.next_ui_deadline();
+    let mut continued = state.terminal_snapshot().unwrap().clone();
+    continued.revision = 3;
+    continued.output_cursor = 70001;
+    assert!(state.apply_terminal_replay(TerminalReplay {
+        from: 70000,
+        next: 70001,
+        bytes: vec![],
+        reset: Some(continued.clone()),
+        screen: Box::new(continued),
+    }));
+    assert_eq!(state.next_ui_deadline(), gap_deadline);
     let backend = ratatui::backend::TestBackend::new(80, 24);
     let mut terminal = ratatui::Terminal::new(backend).unwrap();
     terminal
-        .draw(|f| render_pane(f, &state, Rect::new(40, 1, 40, 22), Theme::dark()))
+        .draw(|f| {
+            let pane = regions(&state, f.area()).1;
+            render_pane(f, &state, pane, Theme::dark());
+        })
         .unwrap();
-    assert_eq!(terminal.backend().buffer()[(41, 2)].symbol(), "R");
+    assert_eq!(terminal.backend().buffer()[(41, 1)].symbol(), "R");
     assert_eq!(
-        terminal.backend().buffer()[(41, 2)].fg,
+        terminal.backend().buffer()[(40, 1)].bg,
+        Theme::dark().background_panel()
+    );
+    assert_eq!(
+        terminal.backend().buffer()[(79, 23)].bg,
+        Theme::dark().background_panel()
+    );
+    assert_eq!(
+        terminal.backend().buffer()[(41, 1)].fg,
         terminal_color(TerminalColor::Indexed(1), false, Theme::dark())
     );
     terminal
-        .draw(|f| render_pane(f, &state, Rect::new(40, 1, 40, 22), Theme::light()))
+        .draw(|f| {
+            let pane = regions(&state, f.area()).1;
+            render_pane(f, &state, pane, Theme::light());
+        })
         .unwrap();
     assert_eq!(
-        terminal.backend().buffer()[(41, 2)].fg,
+        terminal.backend().buffer()[(41, 1)].fg,
         terminal_color(TerminalColor::Indexed(1), false, Theme::light())
     );
     assert_ne!(
@@ -262,12 +399,12 @@ async fn term01_replay_atomic_checkpoint_theme_cells_resize_and_disconnect() {
     );
     assert_eq!(
         state.terminal_size_for_frame(Rect::new(0, 0, 80, 24)),
-        TerminalSize { rows: 21, cols: 38 }
+        TerminalSize { rows: 23, cols: 38 }
     );
     state.chrome.devtools = Some(true);
     assert_eq!(
         state.terminal_size_for_frame(Rect::new(0, 0, 80, 24)).rows,
-        20
+        22
     );
     state.chrome.vertical_tabs_width = 20;
     assert!(state.terminal_size_for_frame(Rect::new(0, 0, 120, 40)).cols < 58);
