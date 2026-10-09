@@ -95,6 +95,10 @@ pub(super) struct StreamCapture {
     stderr: TextStream,
     last: Option<Stream>,
     tail: String,
+    // Tiny display projection in safe publication order, without transport
+    // stream labels. The full capture and separate stream windows remain owned
+    // here; no consumer must reconstruct output by parsing those labels.
+    display_tail: String,
     observed: u64,
     lost: bool,
     failure: Option<CaptureState>,
@@ -112,6 +116,7 @@ impl StreamCapture {
             stderr: TextStream::new(Vec::new()),
             last: None,
             tail: String::new(),
+            display_tail: String::new(),
             observed: 0,
             lost: false,
             failure: None,
@@ -175,6 +180,13 @@ impl StreamCapture {
         }
         let admitted = input.admit(bytes, end);
         if !admitted.is_empty() {
+            self.display_tail.push_str(&admitted);
+            let drop = self.display_tail.ceil_char_boundary(
+                self.display_tail
+                    .len()
+                    .saturating_sub(oc_core::tool_output::PREVIEW_BYTES),
+            );
+            self.display_tail.drain(..drop);
             let mut framed = String::new();
             if self.last != Some(stream) {
                 if self.last.is_some() && !self.tail.ends_with('\n') {
@@ -343,4 +355,39 @@ pub(super) fn retain(state: &mut DrainState, text: &str) {
     state.truncated |= drop > 0;
     bytes.drain(..drop);
     state.bytes = bytes.into_bytes();
+}
+
+impl Capture {
+    /// Read only safe, bounded projections under the ingress lock. Never clone
+    /// the 64 KiB stream windows or expose a secret/UTF-8 carry before admission.
+    pub(super) fn presentation(&self) -> Box<oc_core::tool_output::Presentation> {
+        let stream = self.stream.lock().expect("stream admission");
+        let out = self.stdout.lock().expect("stdout capture");
+        let err = self.stderr.lock().expect("stderr capture");
+        let cap = (oc_core::tool_output::PREVIEW_BYTES - 128) / 2;
+        let stdout = recent(
+            std::str::from_utf8(&out.bytes).expect("admitted UTF-8"),
+            cap,
+        );
+        let stderr = recent(
+            std::str::from_utf8(&err.bytes).expect("admitted UTF-8"),
+            cap,
+        );
+        let mut presentation = oc_core::tool_output::Presentation::new(
+            &stream.display_tail,
+            stream.stdout.bytes.saturating_add(stream.stderr.bytes),
+            false,
+        );
+        presentation.shell = Some(oc_core::tool_output::Shell {
+            stdout_limited: stream.stdout.bytes > stdout.len() as u64,
+            stderr_limited: stream.stderr.bytes > stderr.len() as u64,
+            stdout,
+            stderr,
+            exit: None,
+            signal: None,
+            timed_out: false,
+            cancelled: false,
+        });
+        Box::new(presentation)
+    }
 }

@@ -231,6 +231,103 @@ async fn vis12_user_shell_application_admits_history_before_owned_effect_without
 }
 
 #[tokio::test]
+async fn user_shell_live_typed_streams_are_available_before_terminal_effect_and_never_replayed() {
+    let fixture = Fixture::new("allow");
+    let (app, guard) = fixture.spawn().await;
+    let mut events = app.subscribe();
+    let session = SessionId::new("held-user-shell").unwrap();
+    let command = "printf 'LIVE-STDOUT [stderr] Ω界\\n'; printf 'LIVE-STDERR [stdout]\\n' >&2; printf 'fixture-'; printf 'key\\n'; while [ ! -f user-shell.release ]; do sleep .01; done; printf effect > user-shell.effect; printf 'TERMINAL\\n'";
+    let mut receipt = app
+        .request_user_shell(
+            session.clone(),
+            command.into(),
+            UserShellSelection::Fresh(None),
+        )
+        .unwrap();
+    let operation = tokio::time::timeout(Duration::from_secs(5), receipt.wait())
+        .await
+        .unwrap()
+        .unwrap();
+    let observed = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if matches!(events.recv().await.unwrap(), CoreEvent::ShellChanged { session: source } if source == session) {
+                let jobs = app.shell_jobs(session.clone()).await.unwrap();
+                if let Some(job) = jobs.into_iter().find(|job| job.shell_id == operation)
+                    && job.output.as_ref().and_then(|p| p.shell.as_ref()).is_some_and(|s| s.stdout.contains("[redacted]") && s.stderr.contains("LIVE-STDERR"))
+                {
+                    break job;
+                }
+            }
+        }
+    }).await;
+    let before_effect = !fixture.project.join("user-shell.effect").exists();
+    let history = app
+        .history_page(session.clone(), None, None, 10)
+        .await
+        .unwrap();
+    fs::write(fixture.project.join("user-shell.release"), "release").unwrap();
+    let terminal = tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            let page = app
+                .history_page(session.clone(), None, None, 10)
+                .await
+                .unwrap();
+            if page
+                .rows
+                .last()
+                .and_then(|r| r.user_shell.as_ref())
+                .is_some_and(|s| s.state == "completed")
+            {
+                break page;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    fixture.no_provider();
+    let job = observed.unwrap();
+    assert!(before_effect && job.turn.is_empty() && job.session == session);
+    let live = job.output.unwrap();
+    assert!(live.is_valid() && !live.body_limited);
+    let streams = live.shell.as_ref().unwrap();
+    assert_eq!(streams.stdout, "LIVE-STDOUT [stderr] Ω界\n[redacted]\n");
+    assert_eq!(streams.stderr, "LIVE-STDERR [stdout]\n");
+    assert!(
+        streams.exit.is_none()
+            && streams.signal.is_none()
+            && !streams.timed_out
+            && !streams.cancelled
+    );
+    assert!(!live.body.contains("fixture-key") && !live.body.contains("TERMINAL"));
+    assert_eq!(history.rows.len(), 1);
+    assert!(history.rows[0].turn.is_none());
+    assert_eq!(
+        history.rows[0].user_shell.as_ref().unwrap().state,
+        "started"
+    );
+    let result = terminal.rows.last().unwrap().user_shell.as_ref().unwrap();
+    assert_eq!(result.operation, operation);
+    assert_eq!(result.output.shell.as_ref().unwrap().exit, Some(0));
+    assert!(result.output.body.contains("TERMINAL") && !result.output.body.contains("fixture-key"));
+    assert_eq!(
+        fs::read_to_string(fixture.project.join("user-shell.effect")).unwrap(),
+        "effect"
+    );
+    let db = Db::open(&fixture.data).unwrap();
+    assert_eq!(db.list_tool_ops(&session.0).unwrap().len(), 1);
+    assert!(db.deliver_shell_notices().unwrap().is_empty());
+    assert_eq!(
+        db.read_history_page_typed(&session.0, 10, None)
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[tokio::test]
 async fn vis12_user_shell_refusal_cancel_stale_scope_and_history_failure_never_launch() {
     for failure in ["reject", "cancel", "no-consumer", "scope", "history-fault"] {
         let fixture = Fixture::new(if matches!(failure, "scope" | "history-fault") {

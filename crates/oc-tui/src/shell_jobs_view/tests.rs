@@ -16,7 +16,125 @@ fn job(id: &str, source: &str) -> ShellJob {
         command: id.into(),
         pid: Some(123),
         background: false,
+        output: None,
     }
+}
+
+#[tokio::test]
+async fn live_user_shell_output_updates_only_its_known_card_and_survives_attachment_races() {
+    use oc_core::{
+        queries::{HistoryMessage, HistoryPage, UserShellResult},
+        session::{MessageId, Role},
+        tool_output::{Presentation, Shell},
+    };
+    let session = SessionId("parent".into());
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, session.clone());
+    state.restore_prompt("ordinary newer draft".into());
+    let mut output = Presentation::new(
+        "stdout literal [stderr]\nstderr literal [stdout]\n",
+        48,
+        false,
+    );
+    output.shell = Some(Shell {
+        stdout: "stdout literal [stderr]\n".into(),
+        stderr: "stderr literal [stdout]\n".into(),
+        stdout_limited: false,
+        stderr_limited: false,
+        exit: None,
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let mut live = job("actual-user-op", "parent");
+    live.turn.clear();
+    live.output = Some(Box::new(output.clone()));
+    // Inventory can arrive before the durable page or local admission receipt.
+    state.apply_shell_jobs(vec![live.clone()]);
+    assert!(
+        state.transcript_rows().is_empty(),
+        "inventory never invents a history row"
+    );
+    let page = HistoryPage {
+        rows: vec![HistoryMessage {
+            id: MessageId("actual-input".into()),
+            seq: 2,
+            role: Role::User,
+            text: "unchanged RAW admission".into(),
+            turn: None,
+            model_switch: None,
+            user_shell: Some(UserShellResult {
+                input: true,
+                superseded_input: false,
+                operation: live.shell_id.clone(),
+                command: "captured original command".into(),
+                command_limited: false,
+                state: "started".into(),
+                output: Box::new(Presentation::new("", 0, false)),
+                diagnostic: None,
+            }),
+        }],
+        total: 1,
+        ..Default::default()
+    };
+    state.attach_page(&page);
+    let rows = state.transcript_rows();
+    let row = &rows[0];
+    assert_eq!(row.message_id.as_deref(), Some(&page.rows[0].id));
+    assert_eq!(row.tool.as_ref().unwrap().state, "started");
+    assert_eq!(
+        row.tool.as_ref().unwrap().output_presentation.as_deref(),
+        Some(&output)
+    );
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let text = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(|c| c.symbol())
+        .collect::<String>();
+    assert!(text.contains("stdout literal [stderr]") && text.contains("stderr literal [stdout]"));
+    assert!(!text.contains("unchanged RAW") && !text.contains("Command exited"));
+    let baseline = state.transcript_rows();
+    state.apply_shell_jobs(vec![live.clone()]);
+    assert_eq!(
+        state.transcript_rows(),
+        baseline,
+        "equal publication is idempotent"
+    );
+    for (source, id, turn) in [
+        ("child", "actual-user-op", ""),
+        ("parent", "other-op", ""),
+        ("parent", "actual-user-op", "model-turn"),
+    ] {
+        let mut foreign = live.clone();
+        foreign.session.0 = source.into();
+        foreign.shell_id = id.into();
+        foreign.turn = turn.into();
+        foreign.output.as_mut().unwrap().body = "foreign text".into();
+        state.apply_shell_jobs(vec![foreign]);
+        assert_eq!(state.transcript_rows(), baseline);
+    }
+    let mut completed = page.clone();
+    let result = completed.rows[0].user_shell.as_mut().unwrap();
+    result.input = false;
+    result.state = "completed".into();
+    *result.output = Presentation::new("final output", 12, false);
+    state.refresh_user_shell_page(&completed);
+    let settled = state.transcript_rows();
+    state.apply_shell_jobs(vec![live]);
+    assert_eq!(
+        state.transcript_rows(),
+        settled,
+        "late inventory cannot revive a terminal result"
+    );
+    assert_eq!(state.input(), "ordinary newer draft");
+    assert!(
+        inbox.try_recv().is_err(),
+        "the projection does not send another query or command"
+    );
 }
 
 #[tokio::test]

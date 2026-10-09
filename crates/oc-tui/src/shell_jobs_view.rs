@@ -30,6 +30,14 @@ pub(crate) struct ShellView {
 }
 
 impl ShellView {
+    pub(crate) fn refresh_transcript(
+        &self,
+        session: &oc_core::domain::SessionId,
+        window: &mut crate::history::HistoryWindow,
+    ) -> bool {
+        window.refresh_running_user_shell_output(session, &self.rows)
+    }
+
     fn selected(&self) -> Option<&ShellJob> {
         self.viewer.as_ref().or_else(|| {
             self.rows
@@ -100,6 +108,7 @@ impl TuiState {
     pub fn apply_shell_jobs(&mut self, rows: Vec<ShellJob>) {
         self.shells.inventory_loaded = true;
         self.shells.rows = rows;
+        self.refresh_running_user_shell_output();
         if !self
             .shells
             .rows

@@ -1057,7 +1057,7 @@ Zero output during this hold does not qualify live streamed stdout. Receipt:
 `evidence/tui/user-shell-live-footer.md`; remaining Home/mode/input/restart and
 combined lower-composer differences stay open and unmasked.
 
-Current Shell-mode pairs00480×24/005120×40 preserve12 stages and add the
+Historical Shell-mode pairs00480×24/005120×40 preserve12 stages and add the
 mode-specific `esc exit shell mode` footer and bounded Home example. Session
 Shell prompts have no placeholder. Five stage pairs (running, completed,
 recalled-normal, explicitly entered recalled-mode, second-completed) match full
@@ -1066,6 +1066,17 @@ actual-version cells; empty mode also retains independently selected examples.
 Neither real versions nor random selections are forced/masked. Receipt:
 `evidence/tui/user-shell-mode.md`. This does not expand the frozen recalled
 parts/mode/Mini exclusion or qualify live stdout/combined VIS39/full T44 parity.
+
+Current live-output pairs00180×24/002120×40 preserve12 stages and five exact full
+grid/PNG/cursor pairs (10 EQUAL/14 DIFFERENT per geometry), now including real
+partial stdout AND stderr while the owned process is still running before effect.
+The ordinary first command prints stdout, then stderr after0.2s, and holds nine
+seconds/three later for genuine screenshot/read-only-witness margin. Both
+executors, two explicit effects, zero Responses/title/MCP and restart-no-replay
+checks remain real. The capture owner's bounded typed projection is not parsed
+from transport labels; model tools and RAW remain unchanged. Receipt:
+`evidence/tui/user-shell-live-output.md`. Remaining version/example/Home/restart
+differences stay visible; combined VIS39 and full T44 are not qualified by this.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

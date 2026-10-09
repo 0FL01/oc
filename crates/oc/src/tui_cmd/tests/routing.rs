@@ -47,6 +47,7 @@ async fn shell_changed_updates_closed_owner_footer_and_parked_view_without_cross
                     command: "actual command".into(),
                     pid: Some(123),
                     background: false,
+                    output: None,
                 }]
             } else {
                 Vec::new()

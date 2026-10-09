@@ -638,6 +638,19 @@ impl Jobs {
                 .expect("stream admission")
                 .failure();
             outcome.output_presentation = Some(outcome.prepared_presentation());
+            if p.turn.is_empty() {
+                // The supervisor has moved drain buffers into Outcome. Keep its
+                // frozen typed stream/exit facts; only the ordered display body
+                // comes from the safe publication projection retained by Capture.
+                let ordered = owned_capture.presentation();
+                let presentation = outcome
+                    .output_presentation
+                    .as_mut()
+                    .expect("prepared output");
+                presentation.body = ordered.body;
+                presentation.body_bytes = ordered.body_bytes;
+                presentation.body_limited = ordered.body_limited;
+            }
             // Producer loss is separate from a storage failure or leader exit.
             // Even a short interrupted prefix must advertise its capture state.
             let incomplete = resource
@@ -750,6 +763,7 @@ impl Jobs {
                     command: p.command.clone(),
                     pid: control.pid,
                     background: control.background,
+                    output: p.turn.is_empty().then(|| job.capture.presentation()),
                 });
             }
         }

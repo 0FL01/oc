@@ -233,6 +233,7 @@ impl Db {
             command: p.command,
             pid,
             background,
+            output: None,
         })
     }
 

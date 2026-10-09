@@ -201,6 +201,7 @@ impl TuiState {
         self.parent_id = page.parent_id.clone();
         self.session_title = page.title.clone();
         self.window.reset(page);
+        self.refresh_running_user_shell_output();
         self.scroll = 0;
         self.wheel_motion = None;
     }
@@ -209,6 +210,17 @@ impl TuiState {
     /// only their owner-projected records, preserving its live overlay/draft.
     pub fn refresh_user_shell_page(&mut self, page: &HistoryPage) {
         if self.window.refresh_user_shell(page) {
+            self.invalidate_transcript();
+        }
+        self.refresh_running_user_shell_output();
+    }
+
+    /// The existing inventory can arrive before a receipt/history attachment.
+    /// Its projection changes only known inputs, not the executing model parts.
+    pub(crate) fn refresh_running_user_shell_output(&mut self) {
+        if let Some(session) = &self.session
+            && self.shells.refresh_transcript(session, &mut self.window)
+        {
             self.invalidate_transcript();
         }
     }
@@ -241,6 +253,7 @@ impl TuiState {
         self.session_title = page.title.clone();
         self.clear_transcript_selection();
         self.window.refresh_completed(page, self.scroll > 0);
+        self.refresh_running_user_shell_output();
         self.invalidate_transcript();
         self.completion_anchor.get_mut().take();
         let rows = self.transcript_rows();

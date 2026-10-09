@@ -786,11 +786,9 @@ pub(crate) fn shell_block_expanded(
     let error = ratatui::style::Style::default()
         .fg(theme.error())
         .bg(frame.bg);
-    // Running shell cards show the spinner header only: our runtime records
-    // the complete argv before the call appears, so the upstream
-    // `Writing command…` placeholder (`index.tsx:3001-3003`, for a command
-    // still streaming) has nothing to describe here.
-    if !running {
+    // Model-owned streaming cards retain their existing header-only path.
+    // Standalone jobs have actual admitted output while still running.
+    if !running || shell.direct_user {
         let mut output = shell_output(shell, card);
         if !expanded {
             let max_lines = TOOL_OUTPUT_LINES.saturating_sub(command_lines + 1).max(1);
@@ -829,6 +827,19 @@ pub(crate) fn shell_block_expanded(
 /// metadata, without a generated notice or empty-output placeholder. Recorded
 /// stdout (including any status prose) remains untouched.
 fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
+    if shell.direct_user
+        && let Some(output) = card.output_presentation.as_ref().filter(|p| p.is_valid())
+    {
+        // Body is the capture owner's safe publication-order preview, not an
+        // envelope to parse. Both streams are muted in pinned ShellDisplay.
+        let mut rows = output
+            .body
+            .lines()
+            .map(|line| (line.to_owned(), false))
+            .collect::<Vec<_>>();
+        append_shell_status(shell, card, &mut rows);
+        return rows;
+    }
     let mut output = shell
         .stdout
         .iter()
@@ -838,6 +849,11 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
         output.push(("[stderr]".to_string(), false));
         output.extend(shell.stderr.iter().map(|line| (line.clone(), true)));
     }
+    append_shell_status(shell, card, &mut output);
+    output
+}
+
+fn append_shell_status(shell: &ShellRender, card: &ToolCard, output: &mut Vec<(String, bool)>) {
     let status = if card.state == "unknown" {
         Some("Outcome unknown (operation was interrupted)".to_string())
     } else if card.state == "cancelled" || shell.cancelled {
@@ -878,7 +894,6 @@ fn shell_output(shell: &ShellRender, card: &ToolCard) -> Vec<(String, bool)> {
     if let Some(diagnostic) = &shell.diagnostic {
         output.push((diagnostic.clone(), true));
     }
-    output
 }
 
 /// Port of util/collapse-tool-output.ts:51–80 (grapheme/display-cell command limit).

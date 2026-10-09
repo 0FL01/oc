@@ -409,6 +409,69 @@ impl HistoryWindow {
         changed
     }
 
+    /// An inventory observation cannot add a message, revive a terminal result,
+    /// rewrite command identity, or touch a model-owned tool/assistant part.
+    pub(crate) fn refresh_running_user_shell_output(
+        &mut self,
+        session: &oc_core::domain::SessionId,
+        jobs: &[oc_core::queries::ShellJob],
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if row.role != "shell_input" {
+                continue;
+            }
+            let Some(card) = row.tool.as_mut().filter(|card| card.state == "started") else {
+                continue;
+            };
+            let ToolRender::Shell(render) = &card.render else {
+                continue;
+            };
+            if !render.direct_user {
+                continue;
+            }
+            let Some(output) = jobs
+                .iter()
+                .find(|job| {
+                    &job.session == session && job.shell_id == card.op && job.turn.is_empty()
+                })
+                .and_then(|job| job.output.as_ref())
+                .filter(|output| {
+                    output.is_valid()
+                        && output.shell.as_ref().is_some_and(|facts| {
+                            facts.exit.is_none()
+                                && facts.signal.is_none()
+                                && !facts.timed_out
+                                && !facts.cancelled
+                        })
+                })
+            else {
+                continue;
+            };
+            if card.output_presentation.as_ref() == Some(output) {
+                continue;
+            }
+            *card = user_shell_card(&oc_core::queries::UserShellResult {
+                input: true,
+                superseded_input: false,
+                operation: card.op.clone(),
+                command: render.command.clone(),
+                command_limited: render.command_limited,
+                state: "started".into(),
+                output: output.clone(),
+                diagnostic: None,
+            });
+            changed = true;
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+            if self.enforce(Evict::Oldest) {
+                self.has_older = true;
+            }
+        }
+        changed
+    }
+
     fn insert_durable(&mut self, row: HistoryRow) {
         let index = self
             .rows

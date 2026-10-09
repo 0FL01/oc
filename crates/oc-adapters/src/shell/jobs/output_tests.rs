@@ -131,6 +131,14 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
         .begin(&db, &p, vec!["split-secret-value".into()]);
     capture.ingest(Stream::Stdout, b"split-secret-", false, true); // raw1, unpublished
     capture.ingest(Stream::Stderr, b"stderr observed second\n", false, true); // raw2, immediate
+    let preview = capture.presentation();
+    assert!(preview.is_valid());
+    assert_eq!(preview.body, "stderr observed second\n");
+    assert_eq!(preview.shell.as_ref().unwrap().stdout, "");
+    assert!(
+        !preview.body.contains("split-secret"),
+        "unadmitted carry stays private"
+    );
     let active = db.output_for_operation("op").unwrap().unwrap();
     let mut reader = db.open_tool_output("s", &active.path).unwrap();
     assert_eq!(
@@ -138,6 +146,14 @@ fn tool21_review_safe_publication_order_has_original_raw_read_provenance() {
         "[stderr]\nstderr observed second\n"
     );
     capture.ingest(Stream::Stdout, b"value\n", false, true); // raw3, releases raw1 carry
+    let preview = capture.presentation();
+    assert_eq!(preview.body, "stderr observed second\n[redacted]\n");
+    assert_eq!(preview.shell.as_ref().unwrap().stdout, "[redacted]\n");
+    assert_eq!(
+        preview.shell.as_ref().unwrap().stderr,
+        "stderr observed second\n"
+    );
+    assert!(preview.shell.as_ref().unwrap().exit.is_none());
     capture.ingest(Stream::Stdout, &[], true, true);
     capture.ingest(Stream::Stderr, &[], true, true);
     let (_, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);
@@ -288,6 +304,10 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
     assert!(failed && resource.is_none());
     assert!(tail.len() <= output::RECENT_CAP);
     assert!(capture.stdout.lock().unwrap().bytes.len() <= output::RECENT_CAP);
+    let preview = capture.presentation();
+    assert!(preview.is_valid() && preview.body.len() <= oc_core::tool_output::PREVIEW_BYTES);
+    assert!(preview.body_limited && preview.shell.as_ref().unwrap().stdout_limited);
+    assert!(preview.retained_bytes() <= oc_core::tool_output::PREVIEW_BYTES * 2);
     assert_eq!(capture.stdout.lock().unwrap().total, 18 + 300 * 8192);
     fs::remove_dir(db.root().join("tool-output")).unwrap();
     fs::rename(db.root().join("held-output"), db.root().join("tool-output")).unwrap();
@@ -304,6 +324,10 @@ fn tool21_shell_split_secret_utf8_observed_streams_live_lease_and_io_loss() {
         .unwrap()
         .begin(&db, &p, vec!["Z".repeat(65537)]);
     capture.ingest(Stream::Stdout, b"unsafe raw producer text", false, true);
+    assert!(
+        capture.presentation().body.is_empty(),
+        "secret-admission failure never publishes raw text"
+    );
     capture.ingest(Stream::Stdout, &[], true, true);
     capture.ingest(Stream::Stderr, &[], true, true);
     let (tail, resource, failed) = capture.stream.lock().unwrap().finish(&db, &p, false);

@@ -13,7 +13,7 @@ def configure(spec, home, project, config):
     # No alternate executor: the real composer must launch this ordinary file
     # with the original session.shell / native supervised Jobs owner.
     (project / 'user-shell-probe.py').write_text(f'''
-import json, pathlib, sqlite3, time
+import json, pathlib, sqlite3, sys, time
 command = {COMMAND!r}
 origin = {spec['origin']!r}
 fact = {{'origin':origin}}
@@ -30,9 +30,13 @@ boundary = pathlib.Path('user-shell-' + origin + '-boundary.jsonl')
 first = not boundary.exists()
 with boundary.open('a') as log:
     log.write(json.dumps(fact) + '\\n')
-# Bounded genuine supervisor-running phase for the actual UI capture. No effect
-# occurs until after the admission/history witness and this finite hold.
-time.sleep(6 if first else 3)
+# Real partial streams before the held terminal effect, through the same executor.
+if first:
+    print('VIS-USER-SHELL-LIVE-STDOUT', flush=True)
+    time.sleep(.2)
+    print('VIS-USER-SHELL-LIVE-STDERR', file=sys.stderr, flush=True)
+# Finite screenshot/RO-witness margin only, not a production execution guard.
+time.sleep(9 if first else 3)
 with pathlib.Path('tool-preview-' + origin + '.effects').open('a') as effect:
     effect.write('VIS-USER-SHELL-EFFECT\\n')
 print('VIS-USER-SHELL-DONE', flush=True)

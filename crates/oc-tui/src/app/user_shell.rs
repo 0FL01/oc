@@ -179,6 +179,7 @@ impl TuiState {
                 // Receipt identifies the real admitted operation. This echo
                 // never fabricates a model call/result or durable message ID.
                 self.window.push_user_shell(operation, &pending.command);
+                self.refresh_running_user_shell_output();
                 self.invalidate_transcript();
                 self.conversation_available = None;
                 if self.input_revision == pending.revision && !pending.cancelling {

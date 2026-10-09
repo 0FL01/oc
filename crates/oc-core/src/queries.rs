@@ -1593,6 +1593,10 @@ pub struct ShellJob {
     pub pid: Option<i32>,
     /// Whether the original foreground await has been converted/released.
     pub background: bool,
+    /// Bounded admitted/redacted live output for a direct-user command. Model
+    /// jobs and stored identity-only snapshots leave this unset. No exit is
+    /// implied, and this preview is not a second capture or signal capability.
+    pub output: Option<Box<crate::tool_output::Presentation>>,
 }
 
 /// Bounded recent snapshot from actual drains or the frozen terminal capture.

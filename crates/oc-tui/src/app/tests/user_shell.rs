@@ -149,6 +149,7 @@ async fn shell_mode_footer_replaces_normal_hints_and_has_no_hidden_live_status_a
             command: "existing command".into(),
             pid: Some(123),
             background: true,
+            output: None,
         }]);
         state.handle_key(KeyAction::Char('!')).await;
         let example = state.prompt_shell_example();

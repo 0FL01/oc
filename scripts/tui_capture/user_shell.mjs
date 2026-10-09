@@ -28,7 +28,7 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   if(!shellInput.text.includes('esc exit shell mode')||shellInput.text.includes('shift+tab agents')||shellInput.text.includes('ctrl+p commands'))throw Error('Shell input retained normal-mode footer hints');
   if(requests().length||before.shell_effect!==null||before.user_shell_boundary.length||before.mcp_calls.length)throw Error('Shell mode/edit launched an effect');
   send('\r','user_shell_explicit_submit');
-  const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
+   const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&f.text.includes('VIS-USER-SHELL-LIVE-STDOUT')&&f.text.includes('VIS-USER-SHELL-LIVE-STDERR')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
   if(running.text.includes('native admission; data only'))throw Error('Running User Shell is still an ordinary user notice');
   const during=await snapshot('user_shell_running_before_effect');
   if(requests().length||during.shell_effect!==null||during.mcp_calls.length)throw Error('Held running Shell had an early effect');
@@ -77,6 +77,6 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   await shot('user-shell-restarted-recalled',f=>promptHas(f,COMMAND));
   const restarted=await snapshot('user_shell_restarted');verify(restarted,2);
   return {status:'OBSERVED_USER_SHELL',command:COMMAND,before,during,first,recalled,second,restarted,
-    provider_requests:0,explicit_commands:2,effects:2,recalled_shell_mode:recalledShellMode,
+    provider_requests:0,explicit_commands:2,effects:2,live_streams_before_effect:true,recalled_shell_mode:recalledShellMode,
     native_history_before_effect:origin==='oc',new_session_tab_fallback:true,no_restart_replay:true};
 }

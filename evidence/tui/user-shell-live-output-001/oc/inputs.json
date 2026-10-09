@@ -1,0 +1,52 @@
+[
+  {
+    "at_ms": 1791515557206,
+    "kind": "user_shell_enter_mode",
+    "base64": "IQ=="
+  },
+  {
+    "at_ms": 1791515558932,
+    "kind": "user_shell_exit_mode",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791515560668,
+    "kind": "user_shell_reenter_mode",
+    "base64": "IQ=="
+  },
+  {
+    "at_ms": 1791515562259,
+    "kind": "user_shell_exact_command",
+    "base64": "G1syMDB+cHl0aG9uMyB1c2VyLXNoZWxsLXByb2JlLnB5G1syMDF+"
+  },
+  {
+    "at_ms": 1791515564143,
+    "kind": "user_shell_explicit_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791515575610,
+    "kind": "user_shell_recall_only",
+    "base64": "G1tB"
+  },
+  {
+    "at_ms": 1791515578852,
+    "kind": "user_shell_recalled_mode",
+    "base64": "IQ=="
+  },
+  {
+    "at_ms": 1791515580614,
+    "kind": "user_shell_second_explicit_submit",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791515585734,
+    "kind": "user_shell_clean_exit",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791515587511,
+    "kind": "user_shell_restarted_recall",
+    "base64": "G1tB"
+  }
+]
