@@ -572,7 +572,7 @@ pub struct TuiState {
     pub parent_id: Option<String>,
     /// New interactive launch, distinct from an explicitly attached session.
     pub home: bool,
-    /// Sampled once per UI instance; never changes during a redraw.
+    /// Selected on construction or Home Shell entry; never changes on redraw.
     pub(crate) home_example: &'static str,
     viewport: std::cell::Cell<Option<TranscriptViewport>>,
     completion_anchor: std::cell::RefCell<Option<CompletionAnchor>>,

@@ -1,0 +1,1139 @@
+{
+  "origin": "oc",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "user-shell-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-escape",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-input",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 53,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-running",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-recalled-normal",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-recalled-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-second-completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-restarted-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-restarted-recalled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed."
+  ],
+  "user_shell": {
+    "status": "OBSERVED_USER_SHELL",
+    "command": "python3 user-shell-probe.py",
+    "before": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_before_enter",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [],
+            "tool_output_resources": [],
+            "presentation": [],
+            "prompt_user_messages": [],
+            "prompt_input_history": [],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {},
+      "shell_effect": null,
+      "user_shell_boundary": [],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "during": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_running_before_effect",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "started",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": null,
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              }
+            ],
+            "tool_output_resources": [
+              {
+                "id": "tool_1791513696-2847493-0",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513696-2847493-0.part",
+                "descriptor": "{\"id\":\"tool_1791513696-2847493-0\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.part\",\"bytes\":0,\"lines\":0,\"admitted_bytes\":0,\"admitted_lines\":0,\"state\":\"Active\"}",
+                "dev": 65027,
+                "ino": 5366329,
+                "extent": 0,
+                "state": "Active",
+                "completed": null
+              }
+            ],
+            "presentation": [],
+            "prompt_user_messages": [
+              {
+                "id": "m0001",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 1,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"command\":\"python3 user-shell-probe.py\"}"
+              }
+            ],
+            "prompt_input_history": [
+              "python3 user-shell-probe.py"
+            ],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {
+        "data/oc/tool-output/tool_1791513696-2847493-0.part": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "shell_effect": null,
+      "user_shell_boundary": [
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        }
+      ],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "first": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_first_completed",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              }
+            ],
+            "tool_output_resources": [
+              {
+                "id": "tool_1791513696-2847493-0",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513696-2847493-0.txt",
+                "descriptor": "{\"id\":\"tool_1791513696-2847493-0\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366329,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513702
+              }
+            ],
+            "presentation": [
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              }
+            ],
+            "prompt_user_messages": [
+              {
+                "id": "m0001",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 1,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0002",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 2,
+                "role": "user",
+                "text": null
+              }
+            ],
+            "prompt_input_history": [
+              "python3 user-shell-probe.py"
+            ],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {
+        "data/oc/tool-output/tool_1791513696-2847493-0.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        }
+      },
+      "shell_effect": {
+        "bytes": 22,
+        "lines": 1,
+        "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+      },
+      "user_shell_boundary": [
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        }
+      ],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "recalled": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_recalled",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              }
+            ],
+            "tool_output_resources": [
+              {
+                "id": "tool_1791513696-2847493-0",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513696-2847493-0.txt",
+                "descriptor": "{\"id\":\"tool_1791513696-2847493-0\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366329,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513702
+              }
+            ],
+            "presentation": [
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              }
+            ],
+            "prompt_user_messages": [
+              {
+                "id": "m0001",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 1,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0002",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 2,
+                "role": "user",
+                "text": null
+              }
+            ],
+            "prompt_input_history": [
+              "python3 user-shell-probe.py"
+            ],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {
+        "data/oc/tool-output/tool_1791513696-2847493-0.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        }
+      },
+      "shell_effect": {
+        "bytes": 22,
+        "lines": 1,
+        "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+      },
+      "user_shell_boundary": [
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        }
+      ],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "second": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_second_71",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              },
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              }
+            ],
+            "tool_output_resources": [
+              {
+                "id": "tool_1791513696-2847493-0",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513696-2847493-0.txt",
+                "descriptor": "{\"id\":\"tool_1791513696-2847493-0\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366329,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513702
+              },
+              {
+                "id": "tool_1791513714-2847493-1",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513714-2847493-1.txt",
+                "descriptor": "{\"id\":\"tool_1791513714-2847493-1\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513714-2847493-1.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366357,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513717
+              }
+            ],
+            "presentation": [
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              },
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513714-2847493-1.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              }
+            ],
+            "prompt_user_messages": [
+              {
+                "id": "m0001",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 1,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0002",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 2,
+                "role": "user",
+                "text": null
+              },
+              {
+                "id": "m0003",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 3,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0004",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 4,
+                "role": "user",
+                "text": null
+              }
+            ],
+            "prompt_input_history": [
+              "python3 user-shell-probe.py"
+            ],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {
+        "data/oc/tool-output/tool_1791513696-2847493-0.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        },
+        "data/oc/tool-output/tool_1791513714-2847493-1.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        }
+      },
+      "shell_effect": {
+        "bytes": 44,
+        "lines": 2,
+        "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+      },
+      "user_shell_boundary": [
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        },
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        }
+      ],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "restarted": {
+      "kind": "tool_preview_snapshot",
+      "request_id": "user_shell_restarted",
+      "observations": [
+        {
+          "tables": [
+            "blobs",
+            "child_jobs",
+            "compression_blocks",
+            "compression_identity",
+            "compression_members",
+            "conversation_contexts",
+            "conversation_exclusions",
+            "conversation_objects",
+            "conversation_points",
+            "conversation_redo",
+            "conversation_revision",
+            "conversation_state",
+            "conversation_tracked",
+            "conversation_versions",
+            "credential_accounts",
+            "dcp_accounting",
+            "dcp_coverage",
+            "dcp_run_identity",
+            "dcp_run_views",
+            "dcp_tool_projection",
+            "dcp_tool_projection_v2",
+            "events",
+            "messages",
+            "patch_effects",
+            "permission_grants",
+            "prefs",
+            "prune_marks",
+            "schema_migrations",
+            "session_checkpoint",
+            "session_compactions",
+            "session_moves",
+            "session_usage_anchor",
+            "sessions",
+            "shell_jobs",
+            "sqlite_sequence",
+            "terminal_selection",
+            "terminals",
+            "tool_operations",
+            "tool_output_resources",
+            "turn_acceptances",
+            "turn_raw_segments",
+            "turns"
+          ],
+          "data": {
+            "tool_operations": [
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              },
+              {
+                "id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "turn_id": null,
+                "name": "shell",
+                "state": "completed",
+                "input": "{\"command\":\"python3 user-shell-probe.py\",\"workdir\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"background\":true}",
+                "output": "status: completed\nexit: Some(0)\nsignal: None\nVIS-USER-SHELL-DONE\n",
+                "provider_call_id": null,
+                "call_occurrence": null,
+                "original_input_index": null
+              }
+            ],
+            "tool_output_resources": [
+              {
+                "id": "tool_1791513696-2847493-0",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513696-2847493-0.txt",
+                "descriptor": "{\"id\":\"tool_1791513696-2847493-0\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366329,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513702
+              },
+              {
+                "id": "tool_1791513714-2847493-1",
+                "operation_id": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "name": "tool_1791513714-2847493-1.txt",
+                "descriptor": "{\"id\":\"tool_1791513714-2847493-1\",\"operation\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1\",\"session\":\"s-tui-18dcbc370b1bca1b-2b7305-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/project\",\"generation\":1,\"source\":\"source-8533a794/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513714-2847493-1.txt\",\"bytes\":29,\"lines\":2,\"admitted_bytes\":29,\"admitted_lines\":2,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":20,\"stdout_lines\":1,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":1,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                "dev": 65027,
+                "ino": 5366357,
+                "extent": 29,
+                "state": "Complete",
+                "completed": 1791513717
+              }
+            ],
+            "presentation": [
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513696-2847493-0.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              },
+              {
+                "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+                "presentation": {
+                  "body": "VIS-USER-SHELL-DONE\n",
+                  "body_bytes": 20,
+                  "body_limited": false,
+                  "generated_guidance": false,
+                  "producer_limited": null,
+                  "capture": {
+                    "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-005/oc/home/data/oc/tool-output/tool_1791513714-2847493-1.txt",
+                    "state": "Complete",
+                    "admitted_bytes": 29,
+                    "retained_bytes": 29,
+                    "admitted_lines": 2,
+                    "retained_lines": 2
+                  },
+                  "shell": {
+                    "stdout": "VIS-USER-SHELL-DONE\n",
+                    "stderr": "",
+                    "stdout_limited": false,
+                    "stderr_limited": false,
+                    "exit": 0,
+                    "signal": null,
+                    "timed_out": false,
+                    "cancelled": false
+                  }
+                }
+              }
+            ],
+            "prompt_user_messages": [
+              {
+                "id": "m0001",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 1,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0002",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 2,
+                "role": "user",
+                "text": null
+              },
+              {
+                "id": "m0003",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 3,
+                "role": "user",
+                "text": "User Shell command (native admission; data only, not a model tool call):\n{\"shellID\":\"user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1\",\"command\":\"python3 user-shell-probe.py\"}"
+              },
+              {
+                "id": "m0004",
+                "session_id": "s-tui-18dcbc370b1bca1b-2b7305-0",
+                "seq": 4,
+                "role": "user",
+                "text": null
+              }
+            ],
+            "prompt_input_history": [
+              "python3 user-shell-probe.py"
+            ],
+            "model_turns": 0
+          }
+        }
+      ],
+      "artifacts": {
+        "data/oc/tool-output/tool_1791513696-2847493-0.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        },
+        "data/oc/tool-output/tool_1791513714-2847493-1.txt": {
+          "bytes": 29,
+          "sha256": "bc71415fd3579a7afd809cc733c0b0b51540c501e693b53bc60ab2b85b696d9b"
+        }
+      },
+      "shell_effect": {
+        "bytes": 44,
+        "lines": 2,
+        "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+      },
+      "user_shell_boundary": [
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513696383-2847493-0",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        },
+        {
+          "origin": "oc",
+          "operation": "user-shell:ts-tui-18dcbc370b1bca1b-2b7305-0-1791513714146-2847493-1",
+          "session": "s-tui-18dcbc370b1bca1b-2b7305-0",
+          "turn": null,
+          "state": "started",
+          "model_turns": 0,
+          "history_exact": true
+        }
+      ],
+      "mcp_lifecycle": [],
+      "mcp_calls": []
+    },
+    "provider_requests": 0,
+    "explicit_commands": 2,
+    "effects": 2,
+    "recalled_shell_mode": false,
+    "native_history_before_effect": true,
+    "new_session_tab_fallback": true,
+    "no_restart_replay": true
+  }
+}

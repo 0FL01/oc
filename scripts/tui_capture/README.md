@@ -1047,7 +1047,7 @@ Running/composer/Home differences remain unmasked. Receipt:
 `evidence/tui/user-shell-tab-title.md`. Normal tool and temporal regressions remain
 independent; this does not mark the whole Shell episode or T44 pixel PASS.
 
-Current live-footer pairs00680×24/007120×40 add the real `↓ 1 shell` inventory
+Historical live-footer pairs00680×24/007120×40 add the real `↓ 1 shell` inventory
 indicator, retire it after completion, and retain12 stages each. Running,
 completed, recalled-normal and second-completed match full grids AND PNGs/cursor
 (8 EQUAL/16 DIFFERENT comparisons per geometry). The finite genuine process hold
@@ -1056,6 +1056,16 @@ running screenshot and read-only pre-effect witness; it is not a product timer.
 Zero output during this hold does not qualify live streamed stdout. Receipt:
 `evidence/tui/user-shell-live-footer.md`; remaining Home/mode/input/restart and
 combined lower-composer differences stay open and unmasked.
+
+Current Shell-mode pairs00480×24/005120×40 preserve12 stages and add the
+mode-specific `esc exit shell mode` footer and bounded Home example. Session
+Shell prompts have no placeholder. Five stage pairs (running, completed,
+recalled-normal, explicitly entered recalled-mode, second-completed) match full
+grids/PNGs/cursor:10 EQUAL/14 DIFFERENT per geometry. Typed-input frames retain six
+actual-version cells; empty mode also retains independently selected examples.
+Neither real versions nor random selections are forced/masked. Receipt:
+`evidence/tui/user-shell-mode.md`. This does not expand the frozen recalled
+parts/mode/Mini exclusion or qualify live stdout/combined VIS39/full T44 parity.
 
 ## VIS16/VIS31 real caret ordering and temporal blink
 

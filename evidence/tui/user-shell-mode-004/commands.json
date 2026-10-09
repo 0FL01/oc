@@ -1,0 +1,454 @@
+[
+  {
+    "argv": [
+      "/usr/local/bin/node",
+      "/home/opencode/ai/oc/scripts/tui_capture/capture.mjs",
+      "--reference",
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--oc",
+      "/home/opencode/ai/oc/target/debug/oc",
+      "--build-oc",
+      "true",
+      "--geometry",
+      "true",
+      "--sample",
+      "short",
+      "--sidebar",
+      "hide",
+      "--columns",
+      "80",
+      "--rows",
+      "24",
+      "--tool-preview",
+      "true",
+      "--user-shell",
+      "true",
+      "--output",
+      "evidence/tui/user-shell-mode-004"
+    ],
+    "role": "capture runner invocation",
+    "exit_code": 1
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit_code": 0,
+    "stdout": "7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit_code": 0,
+    "stdout": "372651946c52d8e6971bdf31718371a03a755543\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--binary"
+    ],
+    "exit_code": 0,
+    "stdout": "diff --git a/crates/oc-tui/src/app.rs b/crates/oc-tui/src/app.rs\nindex 9c21b73c0..bff78add9 100644\n--- a/crates/oc-tui/src/app.rs\n+++ b/crates/oc-tui/src/app.rs\n@@ -572,7 +572,7 @@ pub struct TuiState {\n     pub parent_id: Option<String>,\n     /// New interactive launch, distinct from an explicitly attached session.\n     pub home: bool,\n-    /// Sampled once per UI instance; never changes during a redraw.\n+    /// Selected on construction or Home Shell entry; never changes on redraw.\n     pub(crate) home_example: &'static str,\n     viewport: std::cell::Cell<Option<TranscriptViewport>>,\n     completion_anchor: std::cell::RefCell<Option<CompletionAnchor>>,\ndiff --git a/crates/oc-tui/src/app/tests/user_shell.rs b/crates/oc-tui/src/app/tests/user_shell.rs\nindex 5dcb08786..26e070be8 100644\n--- a/crates/oc-tui/src/app/tests/user_shell.rs\n+++ b/crates/oc-tui/src/app/tests/user_shell.rs\n@@ -2,6 +2,7 @@ use super::*;\n use oc_core::core_app::{InboxMsg, UserShellSelection};\n use ratatui::{Terminal, backend::TestBackend};\n use std::sync::atomic::Ordering;\n+use unicode_width::UnicodeWidthStr;\n \n #[tokio::test]\n async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves_newer_draft() {\n@@ -37,7 +38,29 @@ async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves\n             .iter()\n             .map(|c| c.symbol())\n             .collect::<String>();\n-        assert!(text.contains(\"Run a command…\") && text.contains(\"Shell\"));\n+        assert!(text.contains(\"Shell\"));\n+        let example = state.prompt_shell_example();\n+        if home {\n+            let example = example.expect(\"Home Shell example\");\n+            let index = [\"ls -la\", \"git status\", \"pwd\"]\n+                .iter()\n+                .position(|candidate| *candidate == example)\n+                .unwrap();\n+            assert_eq!(\n+                state.home_example, HOME_EXAMPLES[index],\n+                \"mode changes share the existing placeholder selection\"\n+            );\n+            assert!(text.contains(&format!(\"Run a command… \\\"{example}\\\"\")));\n+        } else {\n+            assert!(example.is_none());\n+            assert!(!text.contains(\"Run a command…\"));\n+        }\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        assert_eq!(\n+            state.prompt_shell_example(),\n+            example,\n+            \"redraw is not reselection\"\n+        );\n         state.handle_key(KeyAction::Interrupt).await;\n         assert!(!state.prompt_shell_mode());\n         assert_ne!(\n@@ -104,6 +127,135 @@ async fn vis12_user_shell_mode_captures_receipt_without_model_turn_and_preserves\n     }\n }\n \n+#[tokio::test]\n+async fn shell_mode_footer_replaces_normal_hints_and_has_no_hidden_live_status_action() {\n+    use oc_core::queries::ShellJob;\n+    for home in [true, false] {\n+        let (app, mut inbox, _) = CoreApp::channel(4);\n+        let mut state = if home {\n+            TuiState::new_home(app)\n+        } else {\n+            TuiState::new(app, sid(\"existing-shell\"))\n+        };\n+        state.chrome.location = Some(\"/fixture\".into());\n+        state.apply_shell_jobs(vec![ShellJob {\n+            session: sid(\"existing-shell\"),\n+            shell_id: \"real-existing-operation\".into(),\n+            location: \"/fixture\".into(),\n+            generation: 1,\n+            turn: String::new(),\n+            provider: \"fixture\".into(),\n+            model: \"fixture/model\".into(),\n+            command: \"existing command\".into(),\n+            pid: Some(123),\n+            background: true,\n+        }]);\n+        state.handle_key(KeyAction::Char('!')).await;\n+        let example = state.prompt_shell_example();\n+        for width in [43, 44, 80, 120] {\n+            let height = if width == 120 { 40 } else { 24 };\n+            let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();\n+            for command in [\"\", \"printf literal-output\"] {\n+                state.restore_prompt(command.into());\n+                terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+                let buffer = terminal.backend().buffer();\n+                let rows: Vec<String> = (0..height)\n+                    .map(|y| (0..width).map(|x| buffer[(x, y)].symbol()).collect())\n+                    .collect();\n+                let suffix = if width < 44 {\n+                    \"esc shell\"\n+                } else {\n+                    \"esc exit shell mode\"\n+                };\n+                let (y, row) = rows\n+                    .iter()\n+                    .enumerate()\n+                    .find(|(_, row)| row.contains(suffix))\n+                    .unwrap();\n+                let start = row.find(suffix).unwrap() as u16;\n+                let theme = crate::theme::Theme::dark();\n+                assert_eq!(buffer[(start, y as u16)].fg, theme.text());\n+                assert_eq!(buffer[(start + 4, y as u16)].fg, theme.text_muted());\n+                assert!(\n+                    !row.contains(\"agents\")\n+                        && !row.contains(\"commands\")\n+                        && !row.contains(\"1 shell\")\n+                );\n+                assert!(state.shells.footer_hit.get().is_none());\n+                assert_eq!(state.prompt_shell_example(), example);\n+                assert_eq!(\n+                    state.input(),\n+                    command,\n+                    \"placeholder/footer never edits input\"\n+                );\n+                assert_eq!(state.prompt_layout(width as usize).1.1, command.len());\n+                let (metadata_y, metadata) = rows\n+                    .iter()\n+                    .enumerate()\n+                    .find(|(_, row)| row.contains(\"Shell\"))\n+                    .unwrap();\n+                let metadata_x = metadata.find(\"Shell\").unwrap() as u16;\n+                assert!(\n+                    !buffer[(metadata_x, metadata_y as u16)]\n+                        .modifier\n+                        .contains(ratatui::style::Modifier::BOLD)\n+                );\n+                if command.is_empty() && home {\n+                    let placeholder = rows\n+                        .iter()\n+                        .find(|row| row.contains(\"Run a command…\"))\n+                        .unwrap();\n+                    let start = UnicodeWidthStr::width(\n+                        &placeholder[..placeholder.find(\"Run a command…\").unwrap()],\n+                    ) as u16;\n+                    let placeholder_y =\n+                        rows.iter().position(|row| row == placeholder).unwrap() as u16;\n+                    assert_eq!(buffer[(start, placeholder_y)].fg, theme.text_muted());\n+                } else {\n+                    assert!(!rows.iter().any(|row| row.contains(\"Run a command…\")));\n+                }\n+            }\n+        }\n+        state.handle_key(KeyAction::Leader).await;\n+        let mut pending = Terminal::new(TestBackend::new(80, 24)).unwrap();\n+        pending.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        let buffer = pending.backend().buffer();\n+        let shell = buffer\n+            .content\n+            .windows(5)\n+            .position(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == \"Shell\")\n+            .unwrap();\n+        assert_eq!(\n+            buffer.content[shell].fg,\n+            crate::theme::Theme::dark().border()\n+        );\n+        state.handle_key(KeyAction::Cancel).await;\n+        assert!(\n+            !state.leader_pending(),\n+            \"the existing sequence owner consumes its cancellation\"\n+        );\n+        assert!(state.prompt_shell_mode());\n+        state.handle_key(KeyAction::Cancel).await;\n+        assert!(!state.prompt_shell_mode());\n+        assert_eq!(state.input(), \"printf literal-output\");\n+        let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();\n+        terminal.draw(|f| crate::shell::render(f, &state)).unwrap();\n+        let text: String = terminal\n+            .backend()\n+            .buffer()\n+            .content\n+            .iter()\n+            .map(|cell| cell.symbol())\n+            .collect();\n+        assert!(!text.contains(\"exit shell mode\"));\n+        assert!(text.contains(\"ctrl+p commands\"));\n+        assert!(\n+            inbox.try_recv().is_err(),\n+            \"mode/presentation does not query or execute\"\n+        );\n+    }\n+}\n+\n #[tokio::test]\n async fn vis12_user_shell_cancel_refusal_and_overlay_keep_authority_and_editable_command() {\n     let (app, mut inbox, _) = CoreApp::channel(4);\ndiff --git a/crates/oc-tui/src/app/user_shell.rs b/crates/oc-tui/src/app/user_shell.rs\nindex d63d86084..6b57a8037 100644\n--- a/crates/oc-tui/src/app/user_shell.rs\n+++ b/crates/oc-tui/src/app/user_shell.rs\n@@ -2,9 +2,14 @@\n use super::*;\n use oc_core::core_app::{FreshSelection, UserShellReceipt, UserShellSelection};\n \n+// Home supplies these examples; a session prompt has no Shell example list.\n+// Pinned routes/home.tsx:20–23 and component/prompt/index.tsx:965–973.\n+const SHELL_EXAMPLES: [&str; 3] = [\"ls -la\", \"git status\", \"pwd\"];\n+\n #[derive(Default)]\n pub(super) struct UserShellState {\n     mode: bool,\n+    example: usize,\n     pending: Option<PendingUserShell>,\n }\n \n@@ -24,6 +29,10 @@ impl TuiState {\n         self.user_shell.mode\n     }\n \n+    pub(crate) fn prompt_shell_example(&self) -> Option<&'static str> {\n+        self.home.then_some(SHELL_EXAMPLES[self.user_shell.example])\n+    }\n+\n     /// An Ask precedes durable fresh-root creation. The pending receipt still\n     /// owns that exact session; the approval router must not query its history\n     /// or make it an attached/admitted conversation before permission resolves.\n@@ -36,6 +45,14 @@ impl TuiState {\n     }\n \n     pub(super) fn change_prompt_shell_mode(&mut self, mode: bool) {\n+        if mode && !self.user_shell.mode && self.home {\n+            self.user_shell.example = SystemTime::now()\n+                .duration_since(UNIX_EPOCH)\n+                .map_or(0, |now| now.subsec_nanos() as usize % SHELL_EXAMPLES.len());\n+            // OC2 keeps one placeholder index across mode changes, so normal\n+            // Home uses this selection again after Shell mode is dismissed.\n+            self.home_example = HOME_EXAMPLES[self.user_shell.example % HOME_EXAMPLES.len()];\n+        }\n         self.user_shell.mode = mode;\n         self.painted_prompt.replace(None);\n         self.slash_selected = 0;\ndiff --git a/crates/oc-tui/src/shell.rs b/crates/oc-tui/src/shell.rs\nindex a23e99621..7c489beb7 100644\n--- a/crates/oc-tui/src/shell.rs\n+++ b/crates/oc-tui/src/shell.rs\n@@ -1729,14 +1729,13 @@ fn render_prompt(\n                     ..row(1)\n                 },\n             );\n-            if (state.home || state.prompt_shell_mode())\n-                && state.input().is_empty()\n-                && visible > 0\n-                && text_width > 0\n-            {\n+            if state.home && state.input().is_empty() && visible > 0 && text_width > 0 {\n                 // `routes/home.tsx:19-23` + `component/prompt/index.tsx:1583-1595`.\n                 let hint = if state.prompt_shell_mode() {\n-                    \"Run a command…\".into()\n+                    state.prompt_shell_example().map_or_else(\n+                        || \"Run a command…\".into(),\n+                        |example| format!(\"Run a command… \\\"{example}\\\"\"),\n+                    )\n                 } else {\n                     format!(\"Ask anything… \\\"{}\\\"\", state.home_example)\n                 };\n@@ -1831,11 +1830,13 @@ fn metadata_line(\n     if state.prompt_shell_mode() {\n         return Some(Line::from(vec![Span::styled(\n             \"Shell\",\n-            Style::default()\n-                .fg(theme\n+            Style::default().fg(if state.leader_pending() {\n+                theme.border()\n+            } else {\n+                theme\n                     .color(\"text.action.primary.$selected\")\n-                    .unwrap_or(theme.text()))\n-                .add_modifier(Modifier::BOLD),\n+                    .unwrap_or(theme.text())\n+            }),\n         )]));\n     }\n     let agent = layout::shows_agent_metadata(terminal_width)\n@@ -2092,12 +2093,29 @@ fn footer_projection(\n     terminal_width: u16,\n ) -> (Line<'static>, Option<std::ops::Range<usize>>) {\n     let muted = Style::default().fg(theme.text_muted());\n-    let live = live_shell_spans(state, theme);\n+    let shell_mode = state.prompt_shell_mode();\n+    let live = (!shell_mode)\n+        .then(|| live_shell_spans(state, theme))\n+        .flatten();\n     let has_live = live.is_some();\n     let mut live_width = live\n         .as_ref()\n         .map(|spans| spans.iter().map(Span::width).sum::<usize>());\n     let mut hints = live.unwrap_or_default();\n+    if shell_mode {\n+        // PromptFooter's Shell branch replaces normal usage/navigation hints.\n+        hints.extend([\n+            Span::styled(\"esc \", Style::default().fg(theme.text())),\n+            Span::styled(\n+                if terminal_width < 44 {\n+                    \"shell\"\n+                } else {\n+                    \"exit shell mode\"\n+                },\n+                muted,\n+            ),\n+        ]);\n+    }\n     let commands_binding = state\n         .chrome\n         .command_palette_shortcut\n@@ -2108,7 +2126,9 @@ fn footer_projection(\n         .unwrap_or_default()\n         .trim();\n     let commands_visible;\n-    if let Some((tokens, limit)) = state.context_usage() {\n+    if shell_mode {\n+        commands_visible = false;\n+    } else if let Some((tokens, limit)) = state.context_usage() {\n         let percent = limit\n             .map(|l| format!(\" ({}%)\", (tokens as f64 / l as f64 * 100.0).round() as u64))\n             .unwrap_or_default();\ndiff --git a/scripts/tui_capture/user_shell.mjs b/scripts/tui_capture/user_shell.mjs\nindex 23d2427e4..9df0e16f7 100644\n--- a/scripts/tui_capture/user_shell.mjs\n+++ b/scripts/tui_capture/user_shell.mjs\n@@ -24,9 +24,11 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh\n   send(`\\x1b[200~${COMMAND}\\x1b[201~`,'user_shell_exact_command');\n   await shot('user-shell-input',f=>promptHas(f,COMMAND)&&f.text.includes('Shell'));\n   const before=await snapshot('user_shell_before_enter');\n+  const shellInput=await frame();\n+  if(!shellInput.text.includes('esc exit shell mode')||shellInput.text.includes('shift+tab agents')||shellInput.text.includes('ctrl+p commands'))throw Error('Shell input retained normal-mode footer hints');\n   if(requests().length||before.shell_effect!==null||before.user_shell_boundary.length||before.mcp_calls.length)throw Error('Shell mode/edit launched an effect');\n   send('\\r','user_shell_explicit_submit');\n-   const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));\n+  const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));\n   if(running.text.includes('native admission; data only'))throw Error('Running User Shell is still an ordinary user notice');\n   const during=await snapshot('user_shell_running_before_effect');\n   if(requests().length||during.shell_effect!==null||during.mcp_calls.length)throw Error('Held running Shell had an early effect');\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--others",
+      "--exclude-standard",
+      "--",
+      "Cargo.toml",
+      "Cargo.lock",
+      "rust-toolchain.toml",
+      "crates",
+      "scripts/tui_capture"
+    ],
+    "exit_code": 0,
+    "stdout": "Cargo.lock\u0000Cargo.toml\u0000crates/oc-adapters/Cargo.toml\u0000crates/oc-adapters/assets/upstream/PROVENANCE.md\u0000crates/oc-adapters/assets/upstream/v2/review.txt\u0000crates/oc-adapters/src/admitted_fs.rs\u0000crates/oc-adapters/src/application.rs\u0000crates/oc-adapters/src/application/accounts.rs\u0000crates/oc-adapters/src/application/accounts_tests.rs\u0000crates/oc-adapters/src/application/authentication.rs\u0000crates/oc-adapters/src/application/authentication_tests.rs\u0000crates/oc-adapters/src/application/chat_wire_tests.rs\u0000crates/oc-adapters/src/application/command_tests.rs\u0000crates/oc-adapters/src/application/commands.rs\u0000crates/oc-adapters/src/application/configless_tests.rs\u0000crates/oc-adapters/src/application/dcp_controls_tests.rs\u0000crates/oc-adapters/src/application/effective_wire_tests.rs\u0000crates/oc-adapters/src/application/fatal_tests.rs\u0000crates/oc-adapters/src/application/inherited_tests.rs\u0000crates/oc-adapters/src/application/live_switch_tests.rs\u0000crates/oc-adapters/src/application/mcp_lookup.rs\u0000crates/oc-adapters/src/application/mcp_tests.rs\u0000crates/oc-adapters/src/application/mcp_tests/lookups.rs\u0000crates/oc-adapters/src/application/messages_wire_tests.rs\u0000crates/oc-adapters/src/application/plan_tests.rs\u0000crates/oc-adapters/src/application/plugin_tests.rs\u0000crates/oc-adapters/src/application/profile_tests.rs\u0000crates/oc-adapters/src/application/provider_catalog.rs\u0000crates/oc-adapters/src/application/provider_catalog/tests.rs\u0000crates/oc-adapters/src/application/provider_tests.rs\u0000crates/oc-adapters/src/application/provider_view_tests.rs\u0000crates/oc-adapters/src/application/session_move.rs\u0000crates/oc-adapters/src/application/terminal_tests.rs\u0000crates/oc-adapters/src/application/terminals.rs\u0000crates/oc-adapters/src/application/tests.rs\u0000crates/oc-adapters/src/application/user_shell.rs\u0000crates/oc-adapters/src/application/user_shell_tests.rs\u0000crates/oc-adapters/src/application_conversation_tests.rs\u0000crates/oc-adapters/src/application_fork_tests.rs\u0000crates/oc-adapters/src/application_selection.rs\u0000crates/oc-adapters/src/application_tab_deck.rs\u0000crates/oc-adapters/src/approval.rs\u0000crates/oc-adapters/src/approval_tests.rs\u0000crates/oc-adapters/src/attachments.rs\u0000crates/oc-adapters/src/auth.rs\u0000crates/oc-adapters/src/auth/attempts.rs\u0000crates/oc-adapters/src/auth/attempts/tests.rs\u0000crates/oc-adapters/src/auth/callback.html\u0000crates/oc-adapters/src/auth/fixture.rs\u0000crates/oc-adapters/src/auth/openai.rs\u0000crates/oc-adapters/src/auth/openai/binding_tests.rs\u0000crates/oc-adapters/src/auth/openai/tests.rs\u0000crates/oc-adapters/src/cli_permissions.rs\u0000crates/oc-adapters/src/compaction.rs\u0000crates/oc-adapters/src/composition.rs\u0000crates/oc-adapters/src/composition/catalog.rs\u0000crates/oc-adapters/src/composition/catalog/tests.rs\u0000crates/oc-adapters/src/composition/controls_tests.rs\u0000crates/oc-adapters/src/composition/go_catalog.rs\u0000crates/oc-adapters/src/composition/go_catalog/tests.rs\u0000crates/oc-adapters/src/composition/mcp_tests.rs\u0000crates/oc-adapters/src/composition/openai_catalog.rs\u0000crates/oc-adapters/src/composition/openai_catalog/tests.rs\u0000crates/oc-adapters/src/composition/plugin_tests.rs\u0000crates/oc-adapters/src/composition/provider_readiness.rs\u0000crates/oc-adapters/src/composition/provider_views.rs\u0000crates/oc-adapters/src/config.rs\u0000crates/oc-adapters/src/config/diagnostic.rs\u0000crates/oc-adapters/src/config/mcp.rs\u0000crates/oc-adapters/src/config/mcp_tests.rs\u0000crates/oc-adapters/src/config/plugin_tests.rs\u0000crates/oc-adapters/src/config/providers.rs\u0000crates/oc-adapters/src/config/providers_tests.rs\u0000crates/oc-adapters/src/config/request_bindings.rs\u0000crates/oc-adapters/src/config/request_bindings_tests.rs\u0000crates/oc-adapters/src/config/tool_output_tests.rs\u0000crates/oc-adapters/src/dcp.rs\u0000crates/oc-adapters/src/dcp/renewal_tests.rs\u0000crates/oc-adapters/src/dcp_auto.rs\u0000crates/oc-adapters/src/dcp_auto/cadence_tests.rs\u0000crates/oc-adapters/src/dcp_auto/child_tests.rs\u0000crates/oc-adapters/src/dcp_auto/controls_tests.rs\u0000crates/oc-adapters/src/dcp_auto/defaults_tests.rs\u0000crates/oc-adapters/src/defs.rs\u0000crates/oc-adapters/src/defs/builtin_tests.rs\u0000crates/oc-adapters/src/defs/profile_tests.rs\u0000crates/oc-adapters/src/defs/step_tests.rs\u0000crates/oc-adapters/src/discovery.rs\u0000crates/oc-adapters/src/endpoint.rs\u0000crates/oc-adapters/src/endpoint/tests.rs\u0000crates/oc-adapters/src/files.rs\u0000crates/oc-adapters/src/files/external_tests.rs\u0000crates/oc-adapters/src/files/read.rs\u0000crates/oc-adapters/src/files/read/tests.rs\u0000crates/oc-adapters/src/files/search.rs\u0000crates/oc-adapters/src/files/tests.rs\u0000crates/oc-adapters/src/instructions.rs\u0000crates/oc-adapters/src/instructions/tests.rs\u0000crates/oc-adapters/src/lib.rs\u0000crates/oc-adapters/src/mcp_http_lifecycle.rs\u0000crates/oc-adapters/src/mcp_lookup.rs\u0000crates/oc-adapters/src/mcp_remote.rs\u0000crates/oc-adapters/src/mcp_result.rs\u0000crates/oc-adapters/src/mcp_result/media.rs\u0000crates/oc-adapters/src/mcp_result/media/tests.rs\u0000crates/oc-adapters/src/mcp_stdio.rs\u0000crates/oc-adapters/src/models.rs\u0000crates/oc-adapters/src/models/lookup.rs\u0000crates/oc-adapters/src/models/tests.rs\u0000crates/oc-adapters/src/models/tool_tests.rs\u0000crates/oc-adapters/src/models_dev.rs\u0000crates/oc-adapters/src/models_dev/document.rs\u0000crates/oc-adapters/src/models_dev/document/tests.rs\u0000crates/oc-adapters/src/models_dev/openai_tests.rs\u0000crates/oc-adapters/src/models_dev/tests.rs\u0000crates/oc-adapters/src/patch.rs\u0000crates/oc-adapters/src/patch/effects.rs\u0000crates/oc-adapters/src/patch/fs.rs\u0000crates/oc-adapters/src/patch/mutation.rs\u0000crates/oc-adapters/src/patch/mutation/tests.rs\u0000crates/oc-adapters/src/permissions.rs\u0000crates/oc-adapters/src/plan.rs\u0000crates/oc-adapters/src/plan/tests.rs\u0000crates/oc-adapters/src/provider.rs\u0000crates/oc-adapters/src/provider/chat.rs\u0000crates/oc-adapters/src/provider/chat_tests.rs\u0000crates/oc-adapters/src/provider/context.rs\u0000crates/oc-adapters/src/provider/context_tests.rs\u0000crates/oc-adapters/src/provider/failure.rs\u0000crates/oc-adapters/src/provider/go_live_tests.rs\u0000crates/oc-adapters/src/provider/messages.rs\u0000crates/oc-adapters/src/provider/messages_tests.rs\u0000crates/oc-adapters/src/provider/protocol.rs\u0000crates/oc-adapters/src/provider/protocol_tests.rs\u0000crates/oc-adapters/src/provider/settings.rs\u0000crates/oc-adapters/src/provider/settings_tests.rs\u0000crates/oc-adapters/src/provider/tests/openai.rs\u0000crates/oc-adapters/src/provider/tests/reconciliation.rs\u0000crates/oc-adapters/src/provider/tests/typed_failures.rs\u0000crates/oc-adapters/src/provider/timeout_tests.rs\u0000crates/oc-adapters/src/provider/websocket.rs\u0000crates/oc-adapters/src/provider/websocket/tests.rs\u0000crates/oc-adapters/src/runtime.rs\u0000crates/oc-adapters/src/runtime/binding_replay_tests.rs\u0000crates/oc-adapters/src/runtime/builtin_tests.rs\u0000crates/oc-adapters/src/runtime/child_dcp_tests.rs\u0000crates/oc-adapters/src/runtime/children.rs\u0000crates/oc-adapters/src/runtime/children/tests.rs\u0000crates/oc-adapters/src/runtime/compaction_renewal_tests.rs\u0000crates/oc-adapters/src/runtime/context.rs\u0000crates/oc-adapters/src/runtime/controls_tests.rs\u0000crates/oc-adapters/src/runtime/environment.rs\u0000crates/oc-adapters/src/runtime/environment/tests.rs\u0000crates/oc-adapters/src/runtime/file_tool_tests.rs\u0000crates/oc-adapters/src/runtime/instructions.rs\u0000crates/oc-adapters/src/runtime/instructions/tests.rs\u0000crates/oc-adapters/src/runtime/mcp.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/lookups.rs\u0000crates/oc-adapters/src/runtime/mcp/lifecycle/tests.rs\u0000crates/oc-adapters/src/runtime/media_tests.rs\u0000crates/oc-adapters/src/runtime/read_tests.rs\u0000crates/oc-adapters/src/runtime/retry.rs\u0000crates/oc-adapters/src/runtime/retry/tests.rs\u0000crates/oc-adapters/src/runtime/terminals.rs\u0000crates/oc-adapters/src/runtime/tests.rs\u0000crates/oc-adapters/src/runtime/tool_stream.rs\u0000crates/oc-adapters/src/runtime/turn.rs\u0000crates/oc-adapters/src/runtime/turn/commands.rs\u0000crates/oc-adapters/src/runtime/turn/foreground.rs\u0000crates/oc-adapters/src/runtime/user_shell.rs\u0000crates/oc-adapters/src/runtime_compaction.rs\u0000crates/oc-adapters/src/runtime_compaction_tests.rs\u0000crates/oc-adapters/src/shell.rs\u0000crates/oc-adapters/src/shell/jobs.rs\u0000crates/oc-adapters/src/shell/jobs/output.rs\u0000crates/oc-adapters/src/shell/jobs/output_tests.rs\u0000crates/oc-adapters/src/shell/jobs/tests.rs\u0000crates/oc-adapters/src/smoke.rs\u0000crates/oc-adapters/src/storage.rs\u0000crates/oc-adapters/src/storage/prompt_history.rs\u0000crates/oc-adapters/src/storage/prompt_history/tests.rs\u0000crates/oc-adapters/src/storage/session_move_tests.rs\u0000crates/oc-adapters/src/storage/tests.rs\u0000crates/oc-adapters/src/storage_checkpoint_dcp_tests.rs\u0000crates/oc-adapters/src/storage_children.rs\u0000crates/oc-adapters/src/storage_children/tests.rs\u0000crates/oc-adapters/src/storage_compaction.rs\u0000crates/oc-adapters/src/storage_conversation.rs\u0000crates/oc-adapters/src/storage_conversation_tests.rs\u0000crates/oc-adapters/src/storage_credentials.rs\u0000crates/oc-adapters/src/storage_credentials/tests.rs\u0000crates/oc-adapters/src/storage_dcp_lifecycle_fixture.rs\u0000crates/oc-adapters/src/storage_dcp_view.rs\u0000crates/oc-adapters/src/storage_dcp_view_tests.rs\u0000crates/oc-adapters/src/storage_effort.rs\u0000crates/oc-adapters/src/storage_effort/tests.rs\u0000crates/oc-adapters/src/storage_fork.rs\u0000crates/oc-adapters/src/storage_fork_context.rs\u0000crates/oc-adapters/src/storage_fork_dcp_tests.rs\u0000crates/oc-adapters/src/storage_grants.rs\u0000crates/oc-adapters/src/storage_instructions.rs\u0000crates/oc-adapters/src/storage_instructions_tests.rs\u0000crates/oc-adapters/src/storage_session_move.rs\u0000crates/oc-adapters/src/storage_shell_jobs.rs\u0000crates/oc-adapters/src/storage_terminals.rs\u0000crates/oc-adapters/src/storage_tool_output.rs\u0000crates/oc-adapters/src/storage_tool_output/access.rs\u0000crates/oc-adapters/src/storage_tool_output/tests.rs\u0000crates/oc-adapters/src/storage_turn_history.rs\u0000crates/oc-adapters/src/storage_turn_history/tests.rs\u0000crates/oc-adapters/src/terminals.rs\u0000crates/oc-adapters/src/terminals/tests.rs\u0000crates/oc-adapters/src/tools.rs\u0000crates/oc-adapters/src/tools/mcp_log.rs\u0000crates/oc-adapters/src/tools/mcp_log/tests.rs\u0000crates/oc-adapters/src/tools/model_history.rs\u0000crates/oc-adapters/src/tools/model_history_tests.rs\u0000crates/oc-adapters/src/tools/output.rs\u0000crates/oc-adapters/src/tools/output/tests.rs\u0000crates/oc-adapters/src/tools/read.rs\u0000crates/oc-adapters/src/tools/shell_call.rs\u0000crates/oc-adapters/src/tools/tests/file_mutations.rs\u0000crates/oc-adapters/src/tools/tests/search.rs\u0000crates/oc-adapters/src/tools/tests/shell.rs\u0000crates/oc-adapters/src/tools/tests/webfetch.rs\u0000crates/oc-adapters/src/tools/turn_history.rs\u0000crates/oc-adapters/src/trace.rs\u0000crates/oc-adapters/src/tui_workspace.rs\u0000crates/oc-adapters/src/webfetch.rs\u0000crates/oc-adapters/src/webfetch/PROVENANCE.md\u0000crates/oc-adapters/src/webfetch/format_tests.rs\u0000crates/oc-adapters/src/webfetch/render.rs\u0000crates/oc-adapters/tests/blob_audit.rs\u0000crates/oc-adapters/tests/context_bounds.rs\u0000crates/oc-adapters/tests/dcp_atomic.rs\u0000crates/oc-adapters/tests/e2e_live.rs\u0000crates/oc-adapters/tests/e2e_offline.rs\u0000crates/oc-adapters/tests/fixtures/approval_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/background_children.rs\u0000crates/oc-adapters/tests/fixtures/background_lifecycle.rs\u0000crates/oc-adapters/tests/fixtures/child_dcp.rs\u0000crates/oc-adapters/tests/fixtures/command_routing.rs\u0000crates/oc-adapters/tests/fixtures/compaction_normalization.json\u0000crates/oc-adapters/tests/fixtures/foreground_children.rs\u0000crates/oc-adapters/tests/fixtures/question_lifecycle.rs\u0000crates/oc-adapters/tests/mcp_remote.rs\u0000crates/oc-adapters/tests/mcp_remote/config_admission.rs\u0000crates/oc-adapters/tests/mcp_remote/lookups.rs\u0000crates/oc-adapters/tests/mcp_stdio.rs\u0000crates/oc-adapters/tests/mcp_stdio/config_admission.rs\u0000crates/oc-adapters/tests/mcp_stdio/lookups.rs\u0000crates/oc-adapters/tests/patch_audit.rs\u0000crates/oc-adapters/tests/patch_effects.rs\u0000crates/oc-adapters/tests/permissions.rs\u0000crates/oc-adapters/tests/runtime.rs\u0000crates/oc-adapters/tests/runtime/context.rs\u0000crates/oc-adapters/tests/runtime/file_mutations.rs\u0000crates/oc-adapters/tests/runtime/mcp_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/model_session_tools.rs\u0000crates/oc-adapters/tests/runtime/provider_readiness.rs\u0000crates/oc-adapters/tests/runtime/reconciliation.rs\u0000crates/oc-adapters/tests/runtime/session_move.rs\u0000crates/oc-adapters/tests/runtime/tool_lifecycle.rs\u0000crates/oc-adapters/tests/runtime/turns.rs\u0000crates/oc-adapters/tests/session_rename.rs\u0000crates/oc-adapters/tests/shell_watchdog.rs\u0000crates/oc-adapters/tests/soak.rs\u0000crates/oc-adapters/tests/storage_lock.rs\u0000crates/oc-adapters/tests/subagent.rs\u0000crates/oc-adapters/tests/tab_deck.rs\u0000crates/oc-core/Cargo.toml\u0000crates/oc-core/src/application.rs\u0000crates/oc-core/src/approval.rs\u0000crates/oc-core/src/compaction.rs\u0000crates/oc-core/src/context_plan.rs\u0000crates/oc-core/src/core_app.rs\u0000crates/oc-core/src/core_app/diagnostic_tests.rs\u0000crates/oc-core/src/core_app/prompt_history_tests.rs\u0000crates/oc-core/src/dcp_view.rs\u0000crates/oc-core/src/domain.rs\u0000crates/oc-core/src/lib.rs\u0000crates/oc-core/src/patch.rs\u0000crates/oc-core/src/ports.rs\u0000crates/oc-core/src/queries.rs\u0000crates/oc-core/src/queries/accounts.rs\u0000crates/oc-core/src/queries/auth.rs\u0000crates/oc-core/src/queries/mcp_lookup.rs\u0000crates/oc-core/src/queries/terminals.rs\u0000crates/oc-core/src/question.rs\u0000crates/oc-core/src/question/tests.rs\u0000crates/oc-core/src/runtime.rs\u0000crates/oc-core/src/session.rs\u0000crates/oc-core/src/tool_output.rs\u0000crates/oc-core/src/tool_stream.rs\u0000crates/oc-tui/Cargo.toml\u0000crates/oc-tui/assets/fuzzysort-LICENSE\u0000crates/oc-tui/assets/fuzzysort-oracle.json\u0000crates/oc-tui/assets/upstream/PROVENANCE.md\u0000crates/oc-tui/assets/upstream/v2/opencode.json\u0000crates/oc-tui/src/app.rs\u0000crates/oc-tui/src/app/accounts.rs\u0000crates/oc-tui/src/app/accounts_tests.rs\u0000crates/oc-tui/src/app/input.rs\u0000crates/oc-tui/src/app/live.rs\u0000crates/oc-tui/src/app/mcp.rs\u0000crates/oc-tui/src/app/model_selection.rs\u0000crates/oc-tui/src/app/model_selection_tests.rs\u0000crates/oc-tui/src/app/services.rs\u0000crates/oc-tui/src/app/tabs.rs\u0000crates/oc-tui/src/app/tests.rs\u0000crates/oc-tui/src/app/tests/dcp_controls.rs\u0000crates/oc-tui/src/app/tests/input.rs\u0000crates/oc-tui/src/app/tests/lifecycle.rs\u0000crates/oc-tui/src/app/tests/mcp.rs\u0000crates/oc-tui/src/app/tests/model_selection.rs\u0000crates/oc-tui/src/app/tests/prompt.rs\u0000crates/oc-tui/src/app/tests/prompt_history.rs\u0000crates/oc-tui/src/app/tests/retry.rs\u0000crates/oc-tui/src/app/tests/select.rs\u0000crates/oc-tui/src/app/tests/services.rs\u0000crates/oc-tui/src/app/tests/tabs.rs\u0000crates/oc-tui/src/app/tests/tool_output.rs\u0000crates/oc-tui/src/app/tests/transcript.rs\u0000crates/oc-tui/src/app/tests/user_shell.rs\u0000crates/oc-tui/src/app/transcript.rs\u0000crates/oc-tui/src/app/user_shell.rs\u0000crates/oc-tui/src/approval_view.rs\u0000crates/oc-tui/src/autocomplete.rs\u0000crates/oc-tui/src/child_view.rs\u0000crates/oc-tui/src/commands.rs\u0000crates/oc-tui/src/compaction.rs\u0000crates/oc-tui/src/dcp_panel.rs\u0000crates/oc-tui/src/dcp_view.rs\u0000crates/oc-tui/src/dialog.rs\u0000crates/oc-tui/src/editor.rs\u0000crates/oc-tui/src/events.rs\u0000crates/oc-tui/src/fuzzy.rs\u0000crates/oc-tui/src/history.rs\u0000crates/oc-tui/src/history/user_shell_tests.rs\u0000crates/oc-tui/src/layout.rs\u0000crates/oc-tui/src/lib.rs\u0000crates/oc-tui/src/messages.rs\u0000crates/oc-tui/src/messages/tests.rs\u0000crates/oc-tui/src/patch_view.rs\u0000crates/oc-tui/src/picker.rs\u0000crates/oc-tui/src/question_view.rs\u0000crates/oc-tui/src/question_view/tests.rs\u0000crates/oc-tui/src/scanner.rs\u0000crates/oc-tui/src/shell.rs\u0000crates/oc-tui/src/shell/tests.rs\u0000crates/oc-tui/src/shell/tests/home_mcp.rs\u0000crates/oc-tui/src/shell_jobs_view.rs\u0000crates/oc-tui/src/shell_jobs_view/tests.rs\u0000crates/oc-tui/src/smoke.rs\u0000crates/oc-tui/src/styled.rs\u0000crates/oc-tui/src/terminal.rs\u0000crates/oc-tui/src/terminal/tests.rs\u0000crates/oc-tui/src/terminal_view.rs\u0000crates/oc-tui/src/terminal_view/tests.rs\u0000crates/oc-tui/src/theme.rs\u0000crates/oc-tui/src/tools.rs\u0000crates/oc-tui/src/tools/presentation_tests.rs\u0000crates/oc-tui/src/views.rs\u0000crates/oc/Cargo.toml\u0000crates/oc/src/approval_tests.rs\u0000crates/oc/src/auth_cmd.rs\u0000crates/oc/src/auth_cmd/tests.rs\u0000crates/oc/src/bootstrap.rs\u0000crates/oc/src/cli.rs\u0000crates/oc/src/cli/tests.rs\u0000crates/oc/src/clipboard.rs\u0000crates/oc/src/headless.rs\u0000crates/oc/src/main.rs\u0000crates/oc/src/models_cmd.rs\u0000crates/oc/src/models_cmd/tests.rs\u0000crates/oc/src/tui_cmd.rs\u0000crates/oc/src/tui_cmd/auth_controls.rs\u0000crates/oc/src/tui_cmd/auth_controls/tests.rs\u0000crates/oc/src/tui_cmd/child_controls.rs\u0000crates/oc/src/tui_cmd/child_controls/tests.rs\u0000crates/oc/src/tui_cmd/terminal_controls.rs\u0000crates/oc/src/tui_cmd/terminal_controls/tests.rs\u0000crates/oc/src/tui_cmd/tests.rs\u0000crates/oc/src/tui_cmd/tests/lifecycle.rs\u0000crates/oc/src/tui_cmd/tests/routing.rs\u0000crates/oc/tests/application.rs\u0000crates/oc/tests/approval_binary.rs\u0000crates/oc/tests/auth_cli.rs\u0000crates/oc/tests/auth_oauth.rs\u0000crates/oc/tests/auth_tui.rs\u0000crates/oc/tests/configured_workspace.rs\u0000crates/oc/tests/configured_workspace/models_cli.rs\u0000crates/oc/tests/dcp_runtime.rs\u0000crates/oc/tests/dcp_runtime/defaults.rs\u0000crates/oc/tests/durability.rs\u0000crates/oc/tests/golden_binary.rs\u0000crates/oc/tests/live_bounded.rs\u0000crates/oc/tests/live_bounded/envelope.rs\u0000crates/oc/tests/mcp_application.rs\u0000crates/oc/tests/mcp_application/config_admission.rs\u0000crates/oc/tests/mcp_application/lifecycle.rs\u0000crates/oc/tests/mcp_application/lookups.rs\u0000crates/oc/tests/mcp_application/media.rs\u0000crates/oc/tests/memory_bounds.rs\u0000crates/oc/tests/pty.rs\u0000crates/oc/tests/pty_t39.rs\u0000crates/oc/tests/pty_t39/accounts.rs\u0000crates/oc/tests/pty_t39/fatal_diagnostics.rs\u0000crates/oc/tests/pty_t39/inherited_selection.rs\u0000crates/oc/tests/pty_t39/interaction.rs\u0000crates/oc/tests/pty_t39/lifecycle.rs\u0000crates/oc/tests/pty_t39/plugin_admission.rs\u0000crates/oc/tests/pty_t39/prompt_history.rs\u0000crates/oc/tests/pty_t39/provider_readiness.rs\u0000crates/oc/tests/pty_t39/user_shell.rs\u0000crates/oc/tests/pty_t42.rs\u0000crates/oc/tests/recovery_startup.rs\u0000crates/oc/tests/recovery_startup/fatal_diagnostics.rs\u0000crates/oc/tests/recovery_v02.rs\u0000crates/oc/tests/recovery_v03.rs\u0000crates/oc/tests/responses.rs\u0000crates/oc/tests/support/auth_cli.py\u0000crates/oc/tests/support/auth_oauth.py\u0000crates/oc/tests/support/auth_tui.py\u0000crates/oc/tests/support/context_ids.rs\u0000crates/oc/tests/support/discovery_startup.py\u0000crates/oc/tests/support/geometry.py\u0000crates/oc/tests/support/screen.rs\u0000crates/oc/tests/support/startup.py\u0000crates/oc/tests/support/terminal.rs\u0000crates/oc/tests/support/terminals.py\u0000crates/oc/tests/support/title.rs\u0000crates/oc/tests/t49_live_smoke.rs\u0000crates/oc/tests/terminals.rs\u0000crates/oc/tests/tui_render_alloc.rs\u0000rust-toolchain.toml\u0000scripts/tui_capture/README.md\u0000scripts/tui_capture/analyze_apply_patch.mjs\u0000scripts/tui_capture/analyze_compaction_frames.mjs\u0000scripts/tui_capture/analyze_leader_pairs.mjs\u0000scripts/tui_capture/analyze_leader_pending.mjs\u0000scripts/tui_capture/analyze_permission.mjs\u0000scripts/tui_capture/analyze_prompt_paste.mjs\u0000scripts/tui_capture/apply_patch.mjs\u0000scripts/tui_capture/apply_patch_admission.mjs\u0000scripts/tui_capture/apply_patch_fixture.py\u0000scripts/tui_capture/bounded.mjs\u0000scripts/tui_capture/bridge.py\u0000scripts/tui_capture/capture.mjs\u0000scripts/tui_capture/check_capture_geometry.mjs\u0000scripts/tui_capture/check_compaction_evidence.mjs\u0000scripts/tui_capture/check_cursor_temporal.py\u0000scripts/tui_capture/check_frontend.mjs\u0000scripts/tui_capture/check_leader_roles.mjs\u0000scripts/tui_capture/check_permission_evidence.mjs\u0000scripts/tui_capture/check_permission_headless_pair.mjs\u0000scripts/tui_capture/check_region.py\u0000scripts/tui_capture/check_revert_redo_evidence.mjs\u0000scripts/tui_capture/compaction.mjs\u0000scripts/tui_capture/compaction_fixture.py\u0000scripts/tui_capture/cursor_frontend.js\u0000scripts/tui_capture/cursor_temporal.mjs\u0000scripts/tui_capture/dcp_README.md\u0000scripts/tui_capture/dcp_check_reference.mjs\u0000scripts/tui_capture/dcp_display_audit.py\u0000scripts/tui_capture/dcp_display_fixture.py\u0000scripts/tui_capture/dcp_from_native.ts\u0000scripts/tui_capture/dcp_native_bridge.py\u0000scripts/tui_capture/dcp_native_qualify.py\u0000scripts/tui_capture/dcp_oracle.ts\u0000scripts/tui_capture/dcp_pair_audit.mjs\u0000scripts/tui_capture/dcp_reference_bridge.py\u0000scripts/tui_capture/dcp_reference_capture.mjs\u0000scripts/tui_capture/frontend.js\u0000scripts/tui_capture/fuzzy_oracle.mjs\u0000scripts/tui_capture/geometry.mjs\u0000scripts/tui_capture/home_mcp.mjs\u0000scripts/tui_capture/inspect_blanks.py\u0000scripts/tui_capture/leader_pending.mjs\u0000scripts/tui_capture/mcp_footer.mjs\u0000scripts/tui_capture/mcp_status.mjs\u0000scripts/tui_capture/message_actions.mjs\u0000scripts/tui_capture/observe_compaction_timeline.mjs\u0000scripts/tui_capture/permission.mjs\u0000scripts/tui_capture/permission_association.mjs\u0000scripts/tui_capture/permission_fix_cells.mjs\u0000scripts/tui_capture/permission_fixture.py\u0000scripts/tui_capture/permission_headless.py\u0000scripts/tui_capture/permission_mcp.py\u0000scripts/tui_capture/permission_reference_headless.py\u0000scripts/tui_capture/permission_rejection_audit.mjs\u0000scripts/tui_capture/permission_syscall_audit.py\u0000scripts/tui_capture/prompt_caret.mjs\u0000scripts/tui_capture/prompt_caret_fixture.py\u0000scripts/tui_capture/prompt_history.mjs\u0000scripts/tui_capture/prompt_history_fixture.py\u0000scripts/tui_capture/prompt_paste.mjs\u0000scripts/tui_capture/revert_redo.mjs\u0000scripts/tui_capture/run_prompt_paste.mjs\u0000scripts/tui_capture/services.mjs\u0000scripts/tui_capture/services_fixture.py\u0000scripts/tui_capture/sessions.mjs\u0000scripts/tui_capture/summarize_permission.mjs\u0000scripts/tui_capture/summarize_prompt_paste.mjs\u0000scripts/tui_capture/summarize_wheel.mjs\u0000scripts/tui_capture/tabs_audit.py\u0000scripts/tui_capture/tabs_bridge.py\u0000scripts/tui_capture/tabs_capture.mjs\u0000scripts/tui_capture/tabs_check.mjs\u0000scripts/tui_capture/tabs_oracle.ts\u0000scripts/tui_capture/tool_preview.mjs\u0000scripts/tui_capture/tool_preview_fixture.py\u0000scripts/tui_capture/tool_preview_mcp.py\u0000scripts/tui_capture/user_shell.mjs\u0000scripts/tui_capture/user_shell_fixture.py\u0000scripts/tui_capture/variants_audit.py\u0000scripts/tui_capture/variants_bridge.py\u0000scripts/tui_capture/variants_capture.mjs\u0000scripts/tui_capture/wheel.mjs\u0000",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.27s\n"
+  },
+  {
+    "argv": [
+      "fc-match",
+      "-f",
+      "%{family}|%{style}|%{file}|%{fontversion}",
+      "DejaVu Sans Mono"
+    ],
+    "exit_code": 0,
+    "stdout": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/scripts/tui_capture/bridge.py",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/bridge-spec.json"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-home\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"fe7fa88379047b1ad03d593f7d96c7d4a26227fc3b83034db7c58ff09709a437\", \"actual_sha256\": \"43722a17d733c55c04982c6c0a1404b8aae68696fa51ff5d949e1e1dfc19c122\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [21, 13, 77, 22], \"samples\": [{\"x\": 21, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 13, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-home.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"dcce547cdb3e7cb05110255359519fe664e0f50708d5c7609d9108e5bec528f8\", \"actual_sha256\": \"5b28b84318e78b721f569c6308dac04dac437c445a75a2bb2b539f7be71b4936\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 2009, \"changed_fraction_diagnostic_only\": 0.007762271266073195, \"difference_bbox_inclusive\": [176, 210, 655, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-mode.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-mode.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-mode.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-mode\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"dbf5bf21c48babdac33427a9a1c597e15638d26e2ff058493d4ba17c124af033\", \"actual_sha256\": \"84d1238eaec642554d0190420242ba56776e570637287d2d92ff11672b4a2e78\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 17, \"cursor_differs\": false, \"difference_bbox_inclusive\": [22, 13, 77, 22], \"samples\": [{\"x\": 22, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 30, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 31, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 32, \"y\": 13, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 72, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 73, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-mode.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-mode.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-mode.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"194fe1e28edf9a29c98bd3e1f528ba0e0599d0a6616f712f0ecc907559fc4f6c\", \"actual_sha256\": \"6a580f0362f00e5ae34e493c944e52b1318c859bcd55b17957994156f53621d3\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 766, \"changed_fraction_diagnostic_only\": 0.002959631552917903, \"difference_bbox_inclusive\": [186, 210, 655, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-escape.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-escape.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-escape.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-escape\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"bf9a104982f921abb8834d9921c14ec8aaffe98e851c737de27d1c68f3f01ba7\", \"actual_sha256\": \"451b6aa4c04c43b437a08f637b0266d07462d4889abbc2bc3b5bc5a22fb77478\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 45, \"cursor_differs\": false, \"difference_bbox_inclusive\": [21, 13, 77, 22], \"samples\": [{\"x\": 21, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 39, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 40, \"y\": 13, \"different_fields\": [\"symbol\"]}, {\"x\": 41, \"y\": 13, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-escape.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-escape.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-escape.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"dcce547cdb3e7cb05110255359519fe664e0f50708d5c7609d9108e5bec528f8\", \"actual_sha256\": \"5b28b84318e78b721f569c6308dac04dac437c445a75a2bb2b539f7be71b4936\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 2009, \"changed_fraction_diagnostic_only\": 0.007762271266073195, \"difference_bbox_inclusive\": [176, 210, 655, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-input.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-input.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-input.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-input\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"475c8c4a672a3c436c606d3f99e313aa3618989dfbe3179d5db86fab89174e1a\", \"actual_sha256\": \"a0f49a92d5361b84c53df5c9cf473d9273b7c930715725f20bfccc6442f5cfd8\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 6, \"cursor_differs\": false, \"difference_bbox_inclusive\": [72, 22, 77, 22], \"samples\": [{\"x\": 72, \"y\": 22, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 73, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 74, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 75, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 76, \"y\": 22, \"different_fields\": [\"symbol\"]}, {\"x\": 77, \"y\": 22, \"different_fields\": [\"symbol\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-input.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-input.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-input.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"baa41beaffb8c0717de2db64e72c8f553d7d82e322e31caa45f57afb0da74a61\", \"actual_sha256\": \"b1f107c59d52088d817e42e972b0e4088dcc55c9e6a6d7a6c98146c28d707c5d\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 306, \"changed_fraction_diagnostic_only\": 0.0011823071216617211, \"difference_bbox_inclusive\": [607, 355, 655, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-running.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-running.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-running.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-running\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"92290846f1bc056b93a623f3318907771669e13c41c97bd14d42e415dea8847b\", \"actual_sha256\": \"f0b9711178290c5f271ff38036c8c334640f21e8838036c2a01ed9e0a4be0845\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-running.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-running.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-running.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"da6b5e427273109d4474cb0acdc3c922f6ebf61e23b4fe566ceac87410ea097d\", \"actual_sha256\": \"da6b5e427273109d4474cb0acdc3c922f6ebf61e23b4fe566ceac87410ea097d\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-completed.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-completed\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"f0a3135554f0ffcbebbf9bfb71dcd4884c8d83ed285f2f4b9c2c0f28693b4eff\", \"actual_sha256\": \"73babba26ef2b836370f66b400c6f1004ee4d3b029678ebba9d51912e7f78ab9\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-completed.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"ad8ba82b1ec789157eba4667772b86e5a789ad798ed6d717be7b01f796ace584\", \"actual_sha256\": \"ad8ba82b1ec789157eba4667772b86e5a789ad798ed6d717be7b01f796ace584\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-recalled\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"e9d8aa5b5e1fbdb857657f73a60f7158d79642c4c48875afda7dbb6835a1d6e1\", \"actual_sha256\": \"6dc9ae86729d85e8df95d60f08b52807d7961f291c4826840fc37ea8f8efe48e\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 110, \"cursor_differs\": false, \"difference_bbox_inclusive\": [2, 17, 77, 22], \"samples\": [{\"x\": 2, \"y\": 17, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 18, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 19, \"different_fields\": [\"fg\"]}, {\"x\": 2, \"y\": 20, \"different_fields\": [\"fg\"]}, {\"x\": 5, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 6, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 20, \"different_fields\": [\"fg\"]}, {\"x\": 9, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 11, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 13, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 14, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 15, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 16, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 17, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 18, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 19, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 20, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 21, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 22, \"y\": 20, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"88cee851f7794001c3e265a58d9f04aa9bb655dde2bc18ad86e1b0dbd8d733ee\", \"actual_sha256\": \"512f8ffa6ab4bfa932ff66382b3b908425617ec57f456011e88f81c84f343e5b\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 5090, \"changed_fraction_diagnostic_only\": 0.019666481206726014, \"difference_bbox_inclusive\": [19, 272, 655, 367]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled-normal.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled-normal.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled-normal.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-recalled-normal\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"7eef19add29e147e439d249f3939779e75a6c7b500461d4b5c3a787ad642d404\", \"actual_sha256\": \"083a3e107215291ce7fcc36afeee2bf2685b06d383a2532f01a3955fc52b1748\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled-normal.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled-normal.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled-normal.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"512f8ffa6ab4bfa932ff66382b3b908425617ec57f456011e88f81c84f343e5b\", \"actual_sha256\": \"512f8ffa6ab4bfa932ff66382b3b908425617ec57f456011e88f81c84f343e5b\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled-mode.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled-mode.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled-mode.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-recalled-mode\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"b5dfe49e91373d5ea23d42f9a2665fbcfa9bae8a9ab776797e2f98f27052c55a\", \"actual_sha256\": \"7ddf5b0dcff121a32e708d0e10afbc7166957c60da4fa15f30dea80014dbfcdb\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-recalled-mode.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-recalled-mode.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-recalled-mode.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"88cee851f7794001c3e265a58d9f04aa9bb655dde2bc18ad86e1b0dbd8d733ee\", \"actual_sha256\": \"88cee851f7794001c3e265a58d9f04aa9bb655dde2bc18ad86e1b0dbd8d733ee\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-second-completed.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-second-completed.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-second-completed.grid-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"PASS\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-second-completed\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"97b11cb51bea23fd97ef2efcd3d71fcdd9ee6647ce5b412d87ad1c251161cf1c\", \"actual_sha256\": \"c4207f8281f537ad378bfbaa2f21f223e8ee403fc39ff65f78344380857d629a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 0, \"cursor_differs\": false, \"difference_bbox_inclusive\": null, \"samples\": []}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-second-completed.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-second-completed.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-second-completed.png-diff.json"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"kind\": \"png\", \"status\": \"PASS\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"cf8187e68d82514e8451415d067260092c472273fcb47f362d9df6f18cffd35a\", \"actual_sha256\": \"cf8187e68d82514e8451415d067260092c472273fcb47f362d9df6f18cffd35a\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 0, \"changed_fraction_diagnostic_only\": 0.0, \"difference_bbox_inclusive\": null}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-restarted-home.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-restarted-home.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-restarted-home.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-restarted-home\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"7f62ce90c5125d059f7172188d8a2489ad41e5b9baa6c06fc92ab60eebc36e97\", \"actual_sha256\": \"5be13b7fba004468b57822e14ca2367bf1c52e7fc58501a54a6e0a7b511a098a\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 46, \"cursor_differs\": false, \"difference_bbox_inclusive\": [21, 14, 77, 22], \"samples\": [{\"x\": 21, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 22, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 23, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 24, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 25, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 26, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 27, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 28, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 29, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 30, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 31, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 32, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 33, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 34, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 35, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 36, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 37, \"y\": 14, \"different_fields\": [\"symbol\"]}, {\"x\": 38, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 39, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 40, \"y\": 14, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-restarted-home.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-restarted-home.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-restarted-home.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"42881738e2c2fc1158be9d1958d45cbe1f97ae20faf664867f783cf683bf0e45\", \"actual_sha256\": \"19bf62d658a2c958e7801950bf4fff0726c97b586a1eaed249755c175d8dee9a\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 1788, \"changed_fraction_diagnostic_only\": 0.006908382789317507, \"difference_bbox_inclusive\": [176, 226, 655, 364]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "grid",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-restarted-recalled.cells.json",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-restarted-recalled.cells.json",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-restarted-recalled.grid-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"grid\", \"status\": \"FAIL\", \"scope\": \"frame equality only; capture provenance is not attested\", \"scenario\": \"tool-preview-user-shell-restarted-recalled\", \"fixture_sha256\": \"700a252c9a2df8173d6feb323f5cc448dc1dd20bd394c3ed525cd3e02048ebe0\", \"environment_id\": \"22a2a2c6b79552196a16741b6ae4b33f371a7f9afcc775f4f02a881be53e0e06\", \"reference_sha256\": \"45b41d487c03c10243e1c31ed9cc6c1ada381115c7bb667d52d2135d0d5f3fed\", \"actual_sha256\": \"e876d761a2c191a1d05e57dbd82036b803902b59021ff1ad53ebc567d65fd9f4\", \"reference_commit\": \"2670273ff17da96f85c5826ced57aa1b368754fa\", \"actual_commit\": \"7cb9cd1e4fc2055dd30ca5757c606ad351b46f00\", \"cells_checked\": 1920, \"different_cells\": 115, \"cursor_differs\": false, \"difference_bbox_inclusive\": [3, 13, 77, 22], \"samples\": [{\"x\": 3, \"y\": 13, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 14, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 15, \"different_fields\": [\"fg\"]}, {\"x\": 3, \"y\": 16, \"different_fields\": [\"fg\"]}, {\"x\": 6, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 7, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 8, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 9, \"y\": 16, \"different_fields\": [\"fg\"]}, {\"x\": 10, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 12, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 14, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 15, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 16, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 17, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 18, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 19, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 20, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 21, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 22, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}, {\"x\": 23, \"y\": 16, \"different_fields\": [\"symbol\", \"fg\"]}]}\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "/usr/bin/python3",
+      "/home/opencode/ai/oc/tui-recovery/scripts/compare_frames.py",
+      "png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/upstream/tool-preview-user-shell-restarted-recalled.png",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/oc/tool-preview-user-shell-restarted-recalled.png",
+      "--report",
+      "/home/opencode/ai/oc/evidence/tui/user-shell-mode-004/tool-preview-user-shell-restarted-recalled.png-diff.json"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"kind\": \"png\", \"status\": \"FAIL\", \"scope\": \"decoded RGBA equality only; use capture lock for provenance/profile\", \"reference_sha256\": \"f4db31e71d9f367364acedfe820a0bbd46f2f578ea13db79e027623e2aece516\", \"actual_sha256\": \"5c76d53a126da7ea00e4274869ffb6eea9f5a096c227894aa63bcd80c400ab41\", \"width\": 674, \"height\": 384, \"pixels_checked\": 258816, \"different_pixels\": 5350, \"changed_fraction_diagnostic_only\": 0.020671055885262118, \"difference_bbox_inclusive\": [28, 208, 655, 364]}\n",
+    "stderr": ""
+  }
+]

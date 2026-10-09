@@ -2,9 +2,14 @@
 use super::*;
 use oc_core::core_app::{FreshSelection, UserShellReceipt, UserShellSelection};
 
+// Home supplies these examples; a session prompt has no Shell example list.
+// Pinned routes/home.tsx:20–23 and component/prompt/index.tsx:965–973.
+const SHELL_EXAMPLES: [&str; 3] = ["ls -la", "git status", "pwd"];
+
 #[derive(Default)]
 pub(super) struct UserShellState {
     mode: bool,
+    example: usize,
     pending: Option<PendingUserShell>,
 }
 
@@ -24,6 +29,10 @@ impl TuiState {
         self.user_shell.mode
     }
 
+    pub(crate) fn prompt_shell_example(&self) -> Option<&'static str> {
+        self.home.then_some(SHELL_EXAMPLES[self.user_shell.example])
+    }
+
     /// An Ask precedes durable fresh-root creation. The pending receipt still
     /// owns that exact session; the approval router must not query its history
     /// or make it an attached/admitted conversation before permission resolves.
@@ -36,6 +45,14 @@ impl TuiState {
     }
 
     pub(super) fn change_prompt_shell_mode(&mut self, mode: bool) {
+        if mode && !self.user_shell.mode && self.home {
+            self.user_shell.example = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_or(0, |now| now.subsec_nanos() as usize % SHELL_EXAMPLES.len());
+            // OC2 keeps one placeholder index across mode changes, so normal
+            // Home uses this selection again after Shell mode is dismissed.
+            self.home_example = HOME_EXAMPLES[self.user_shell.example % HOME_EXAMPLES.len()];
+        }
         self.user_shell.mode = mode;
         self.painted_prompt.replace(None);
         self.slash_selected = 0;

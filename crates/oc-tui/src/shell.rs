@@ -1729,14 +1729,13 @@ fn render_prompt(
                     ..row(1)
                 },
             );
-            if (state.home || state.prompt_shell_mode())
-                && state.input().is_empty()
-                && visible > 0
-                && text_width > 0
-            {
+            if state.home && state.input().is_empty() && visible > 0 && text_width > 0 {
                 // `routes/home.tsx:19-23` + `component/prompt/index.tsx:1583-1595`.
                 let hint = if state.prompt_shell_mode() {
-                    "Run a command…".into()
+                    state.prompt_shell_example().map_or_else(
+                        || "Run a command…".into(),
+                        |example| format!("Run a command… \"{example}\""),
+                    )
                 } else {
                     format!("Ask anything… \"{}\"", state.home_example)
                 };
@@ -1831,11 +1830,13 @@ fn metadata_line(
     if state.prompt_shell_mode() {
         return Some(Line::from(vec![Span::styled(
             "Shell",
-            Style::default()
-                .fg(theme
+            Style::default().fg(if state.leader_pending() {
+                theme.border()
+            } else {
+                theme
                     .color("text.action.primary.$selected")
-                    .unwrap_or(theme.text()))
-                .add_modifier(Modifier::BOLD),
+                    .unwrap_or(theme.text())
+            }),
         )]));
     }
     let agent = layout::shows_agent_metadata(terminal_width)
@@ -2092,12 +2093,29 @@ fn footer_projection(
     terminal_width: u16,
 ) -> (Line<'static>, Option<std::ops::Range<usize>>) {
     let muted = Style::default().fg(theme.text_muted());
-    let live = live_shell_spans(state, theme);
+    let shell_mode = state.prompt_shell_mode();
+    let live = (!shell_mode)
+        .then(|| live_shell_spans(state, theme))
+        .flatten();
     let has_live = live.is_some();
     let mut live_width = live
         .as_ref()
         .map(|spans| spans.iter().map(Span::width).sum::<usize>());
     let mut hints = live.unwrap_or_default();
+    if shell_mode {
+        // PromptFooter's Shell branch replaces normal usage/navigation hints.
+        hints.extend([
+            Span::styled("esc ", Style::default().fg(theme.text())),
+            Span::styled(
+                if terminal_width < 44 {
+                    "shell"
+                } else {
+                    "exit shell mode"
+                },
+                muted,
+            ),
+        ]);
+    }
     let commands_binding = state
         .chrome
         .command_palette_shortcut
@@ -2108,7 +2126,9 @@ fn footer_projection(
         .unwrap_or_default()
         .trim();
     let commands_visible;
-    if let Some((tokens, limit)) = state.context_usage() {
+    if shell_mode {
+        commands_visible = false;
+    } else if let Some((tokens, limit)) = state.context_usage() {
         let percent = limit
             .map(|l| format!(" ({}%)", (tokens as f64 / l as f64 * 100.0).round() as u64))
             .unwrap_or_default();

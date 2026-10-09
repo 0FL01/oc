@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-09T01:43:47+00:00
+State updated: 2026-10-09T02:53:46+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,34 +12,35 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 live Shell footer — qualified slice
+# T44 fresh Shell-mode presentation — qualified slice
 
 ## Result
-Actual running56/92-cell gaps closed at80/120: running and three completed-stage
-pairs match full styled cells/PNG/cursor. Existing scoped inventory/events supply
-the live footer, effective shortcuts and genuinely painted pointer controls.
-Receipt: evidence/tui/user-shell-live-footer.md. Reviewed source/tests/final frames
-are ready for ordinary own-branch delivery; Git determines actual commit/push.
+Existing prompt owner now selects the pinned bounded Home Shell example and
+shared normal index, without a session placeholder. Shell footer replaces normal
+hints; non-bold/leader tones and hidden status-hit suppression match source.
+Receipt: evidence/tui/user-shell-mode.md. Reviewed source/tests/final captures are
+ready for ordinary own-branch delivery; Git determines actual commit/push.
 
 ## Checks
-Current fmt/strict workspace Clippy,1775/0/11 tests, debug/ordinary/release/help,
-release startup19/GET-only discovery8, Python47/Node-Python/source/docs/progress/
-resource gates PASS. Built00680×24/007120×40 each8 EQUAL16 DIFFERENT, two explicit
-effects/zero Responses-title-MCP/NULL model turns/pre-effect history/no replay.
-Normal27-stage regression and default six-owner/144opaque PNG audit qualify
-behavior, not global parity. Four final locks share source/debug ELF association.
+Current fmt/strict workspace Clippy,1776/0/11 tests, debug/ordinary/release/help,
+release startup19/GET discovery8, Python47/Node-Python/source/docs/progress/resource
+gates PASS. Built00480×24/005120×40 each10 EQUAL14 DIFFERENT; five actual stage pairs
+match full grid/PNG/cursor. Input retains six real-version cells; empty mode also
+retains independently selected examples. Two explicit effects/zero Responses-title-
+MCP/NULL model turns/pre-effect history/no replay. Normal27-stage regression and
+default six-owner/144opaque PNG audit qualify behavior, not global parity.
 
 ## Risks
-Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. Separate native Shell/Children panels
-do not qualify the OC2 combined composer. Zero-output genuine six-second first
-fixture hold does not prove live stdout. Full parts/mode/Mini exclusion retained.
-No env/.opencode/GOAL/acceptance/Cargo.lock/auth changes, RAW/effects immutable.
-Diagnostic001–005 preserved, not staged; all remaining frame differences unmasked.
+Whole R1–R6/VIS01–45/T44 ACTIVE/NOT_PASS. No fake version/random seed, masking,
+RAW rewrite, env/.opencode/GOAL/acceptance/Cargo.lock/auth changes. Diagnostic001–003
+preserved, not staged. Zero-output held process does not prove live stdout;
+separate panels do not qualify the OC2 combined composer. Frozen parts/mode/Mini
+restoration exclusion remains intact.
 
 ## Next
-Close stable fresh Shell-mode/input footer and placeholder differences through
-the existing prompt owner, then real partial standalone output/combined VIS39 and
-every other frozen outcome. Finish only after all mandatory final current R6/V09.
+Connect bounded typed partial stdout/stderr from the existing capture owner through
+ShellChanged to the standalone card, with genuine pre-terminal process evidence.
+Then combined VIS39 and every frozen outcome; finish only after final current R6/V09.
 
 
 Ready (до 5): T58

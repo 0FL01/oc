@@ -24,9 +24,11 @@ export async function probeUserShell({origin,send,shot,waitFor,frame,logs,snapsh
   send(`\x1b[200~${COMMAND}\x1b[201~`,'user_shell_exact_command');
   await shot('user-shell-input',f=>promptHas(f,COMMAND)&&f.text.includes('Shell'));
   const before=await snapshot('user_shell_before_enter');
+  const shellInput=await frame();
+  if(!shellInput.text.includes('esc exit shell mode')||shellInput.text.includes('shift+tab agents')||shellInput.text.includes('ctrl+p commands'))throw Error('Shell input retained normal-mode footer hints');
   if(requests().length||before.shell_effect!==null||before.user_shell_boundary.length||before.mcp_calls.length)throw Error('Shell mode/edit launched an effect');
   send('\r','user_shell_explicit_submit');
-   const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
+  const running=await shot('user-shell-running',f=>f.text.includes(COMMAND)&&f.text.includes('↓ 1 shell')&&!f.text.includes('VIS-USER-SHELL-DONE')&&!f.text.includes('admission pending')&&!promptHas(f,COMMAND));
   if(running.text.includes('native admission; data only'))throw Error('Running User Shell is still an ordinary user notice');
   const during=await snapshot('user_shell_running_before_effect');
   if(requests().length||during.shell_effect!==null||during.mcp_calls.length)throw Error('Held running Shell had an early effect');

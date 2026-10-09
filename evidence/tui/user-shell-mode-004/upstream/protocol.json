@@ -1,0 +1,3173 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:44887/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"tool_output\": {\"max_lines\": 12, \"max_bytes\": 1024}, \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"shell\", \"resource\": \"python3 user-shell-probe.py\", \"effect\": \"allow\"}], \"mcp\": {\"servers\": {}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_before_enter",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "user_shell_boundary": [],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_running_before_effect",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_first_completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_recalled",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_0",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_1",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_2",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_3",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_4",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_5",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_6",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_7",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_8",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_9",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_10",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_11",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_12",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_13",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_14",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_15",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_16",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_17",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_18",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_19",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_20",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_21",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_22",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_23",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_24",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_25",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_26",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_27",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_28",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_29",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_30",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_31",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_32",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_33",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_34",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_35",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_36",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_37",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_38",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_39",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_40",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_41",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_42",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_43",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_44",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_45",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_46",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_47",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_48",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_49",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_50",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_51",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_52",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_53",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_54",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_55",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_56",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_57",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_58",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_59",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_60",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 22,
+      "lines": 1,
+      "sha256": "ce142501a45817a66328787f30473509451c9977bc19d50a7ebca93b84c0562e"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_second_61",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 44,
+      "lines": 2,
+      "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  },
+  {
+    "kind": "relaunch",
+    "generation": 1,
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/user-shell-mode-004/project"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "user_shell_restarted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": {
+      "bytes": 44,
+      "lines": 2,
+      "sha256": "af6b1ac9abe1e01b4e52cfa09341ab329a589ff2777cc0a78335f6c4b05076d6"
+    },
+    "user_shell_boundary": [
+      {
+        "origin": "upstream"
+      },
+      {
+        "origin": "upstream"
+      }
+    ],
+    "mcp_lifecycle": [],
+    "mcp_calls": []
+  },
+  {
+    "kind": "exit",
+    "generation": 1,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]
