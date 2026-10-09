@@ -1,0 +1,699 @@
+[
+  {
+    "kind": "launch",
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/project",
+    "env": {
+      "HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home",
+      "XDG_CONFIG_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/config",
+      "XDG_CACHE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/cache",
+      "XDG_DATA_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data",
+      "XDG_STATE_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/state",
+      "PATH": "/usr/bin:/bin",
+      "SHELL": "/bin/sh",
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "LANG": "C.UTF-8",
+      "LC_ALL": "C.UTF-8",
+      "TZ": "UTC",
+      "OC_TEST_ALLOW_LOOPBACK": "1",
+      "OPENCODE_TEST_HOME": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home",
+      "OPENCODE_DISABLE_AUTOUPDATE": "1",
+      "OPENCODE_DISABLE_MODELS_FETCH": "true",
+      "OPENCODE_DISABLE_FILEWATCHER": "true",
+      "OPENCODE_CONFIG_CONTENT": "{\"model\": \"fixture/fixture-model-1\", \"share\": \"disabled\", \"update\": \"disable\", \"plugins\": [\"-opencode.models.dev\"], \"providers\": {\"fixture\": {\"name\": \"OpenCode Zen\", \"package\": \"@opencode/ai/providers/openai/responses\", \"settings\": {\"baseURL\": \"http://127.0.0.1:39073/v1\", \"apiKey\": \"fixture-not-a-secret\"}, \"models\": {\"fixture-model-1\": {\"name\": \"MiMo-V2.6-Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-2\": {\"name\": \"Muse Spark 1.3 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-3\": {\"name\": \"Ling 3.0 Flash Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-4\": {\"name\": \"Nemotron 3.5 Lightning Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-5\": {\"name\": \"Muse Spark 1.2 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-6\": {\"name\": \"Nemotron 3 Ultra Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-7\": {\"name\": \"MiMo V2.5 Free\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}, \"fixture-model-8\": {\"name\": \"Big Pickle\", \"cost\": {\"input\": 0, \"output\": 0}, \"limit\": {\"context\": 225000, \"output\": 4096}}}}}, \"snapshots\": false, \"compaction\": {\"auto\": false}, \"tool_output\": {\"max_lines\": 12, \"max_bytes\": 1024}, \"permissions\": [{\"action\": \"*\", \"resource\": \"*\", \"effect\": \"deny\"}, {\"action\": \"vis16_output\", \"resource\": \"*\", \"effect\": \"allow\"}, {\"action\": \"shell\", \"resource\": \"*\", \"effect\": \"allow\"}], \"mcp\": {\"servers\": {\"vis16\": {\"type\": \"local\", \"command\": [\"/usr/bin/python3\", \"/home/opencode/ai/oc/scripts/tui_capture/tool_preview_mcp.py\"], \"codemode\": false}}}}",
+      "OPENCODE_CONFIG_PROJECT_DISABLE": "true"
+    },
+    "version": "opencode v2.0.12",
+    "version_exit": 0
+  },
+  {
+    "kind": "tool_preview_control_ack",
+    "request_id": "home-mcp-fail",
+    "phase": "failed"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "home_mcp_failed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {},
+    "shell_effect": null,
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      }
+    ],
+    "mcp_calls": []
+  },
+  {
+    "kind": "tool_preview_control_ack",
+    "request_id": "home-mcp-recover",
+    "phase": "healthy"
+  },
+  {
+    "kind": "resize",
+    "columns": 44,
+    "rows": 24
+  },
+  {
+    "kind": "resize",
+    "columns": 63,
+    "rows": 24
+  },
+  {
+    "kind": "resize",
+    "columns": 64,
+    "rows": 24
+  },
+  {
+    "kind": "resize",
+    "columns": 43,
+    "rows": 24
+  },
+  {
+    "kind": "resize",
+    "columns": 64,
+    "rows": 12
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "kind": "provider",
+    "operation": "title",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "registered_tools": []
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "title"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 0,
+    "actual_results": [],
+    "registered_tools": [
+      "shell",
+      "vis16_output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 0,
+    "name": "vis16_output",
+    "arguments": {
+      "index": 1,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 1,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-001 actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh ..."
+          }
+        ]
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16_output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 1,
+    "name": "vis16_output",
+    "arguments": {
+      "index": 2,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 2,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-001 actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh ..."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-001 actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd ..."
+          }
+        ]
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16_output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 2,
+    "name": "shell",
+    "arguments": {
+      "command": "printf 'VIS-SHELL-LINE-%03d\\n' 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80; printf '[Part preview truncated]\\n[output preview truncated; full result retained]\\n[truncated]\\n'; printf 'VIS-SHELL-EFFECT\\n' >> tool-preview-upstream.effects"
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 3,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-001 actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh ..."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-001 actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd ..."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_2",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[output truncated; full output saved to: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/shell/5d27c08a4643511997b765f70f768b6503a233df/sh_122db55ea001lnvW7SUlhdSYUz.out]"
+          },
+          {
+            "type": "input_text",
+            "text": "Command exited with code 0."
+          }
+        ]
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16_output"
+    ]
+  },
+  {
+    "kind": "fixture_tool_call",
+    "index": 3,
+    "name": "vis16_output",
+    "arguments": {
+      "index": 4,
+      "query": "native needle",
+      "nested": {
+        "value": "available parameter"
+      }
+    }
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "provider",
+    "operation": "tool_preview",
+    "valid": true,
+    "index": 4,
+    "actual_results": [
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_0",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-FIRST-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-FIRST-LINE-001 actual output words\nVIS-MCP-FIRST-LINE-002 actual output words\nVIS-MCP-FIRST-LINE-003 actual output words\nVIS-MCP-FIRST-LINE-004 actual output words\nVIS-MCP-FIRST-LINE-005 actual output words\nVIS-MCP-FIRST-LINE-006 actual output words\nVIS-MCP-FIRST-LINE-007 actual output words\nVIS-MCP-FIRST-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh ..."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_1",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-MCP-SECOND-BEGIN\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\nVIS-MCP-SECOND-LINE-001 actual output words\nVIS-MCP-SECOND-LINE-002 actual output words\nVIS-MCP-SECOND-LINE-003 actual output words\nVIS-MCP-SECOND-LINE-004 actual output words\nVIS-MCP-SECOND-LINE-005 actual output words\nVIS-MCP-SECOND-LINE-006 actual output words\nVIS-MCP-SECOND-LINE-007 actual output words\nVIS-MCP-SECOND-LINE-008 actual output words"
+          },
+          {
+            "type": "input_text",
+            "text": "... 113 lines truncated; full content saved to /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd ..."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_2",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "VIS-SHELL-LINE-072\nVIS-SHELL-LINE-073\nVIS-SHELL-LINE-074\nVIS-SHELL-LINE-075\nVIS-SHELL-LINE-076\nVIS-SHELL-LINE-077\nVIS-SHELL-LINE-078\nVIS-SHELL-LINE-079\nVIS-SHELL-LINE-080\n[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n\n[output truncated; full output saved to: /home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/upstream/home/data/opencode/shell/5d27c08a4643511997b765f70f768b6503a233df/sh_122db55ea001lnvW7SUlhdSYUz.out]"
+          },
+          {
+            "type": "input_text",
+            "text": "Command exited with code 0."
+          }
+        ]
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_vis16_3",
+        "output": "{\"error\":{\"type\":\"tool.execution\",\"message\":\"VIS-MCP-ERROR: genuine producer failure\"},\"content\":[]}"
+      }
+    ],
+    "registered_tools": [
+      "shell",
+      "vis16_output"
+    ]
+  },
+  {
+    "kind": "provider_completed",
+    "operation": "tool_preview"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      }
+    ],
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 80
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 120
+  },
+  {
+    "kind": "resize",
+    "columns": 120,
+    "rows": 40
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "reopened",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      }
+    ],
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 0,
+    "code": 0,
+    "termination": "natural"
+  },
+  {
+    "kind": "relaunch",
+    "generation": 1,
+    "argv": [
+      "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+      "--standalone"
+    ],
+    "cwd": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/subagent-tool-regression-001/project"
+  },
+  {
+    "kind": "tool_preview_snapshot",
+    "request_id": "restarted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      }
+    ],
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "kind": "exit",
+    "generation": 1,
+    "code": 130,
+    "termination": "forced_stop"
+  }
+]

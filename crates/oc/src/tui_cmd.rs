@@ -3553,6 +3553,9 @@ async fn handle_worker_event(
             {
                 return Ok(());
             }
+            if state.has_subagent_cards() {
+                child_controls::refresh(app, state).await?;
+            }
             if state.is_busy() {
                 let recent = app
                     .history_page(notice.job.parent, None, None, HISTORY_PAGE_LIMIT)
@@ -3681,7 +3684,12 @@ async fn handle_worker_event(
             input,
             dcp_topic,
             ..
-        } => state.apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic),
+        } => {
+            state.apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic);
+            if name == "subagent" && state.active_turn() == Some(&turn) {
+                child_controls::refresh(app, state).await?;
+            }
+        }
         CoreEvent::ToolCallFinished {
             turn,
             op,
@@ -3709,6 +3717,9 @@ async fn handle_worker_event(
                 question,
                 output_presentation,
             );
+            if name == "subagent" && state.active_turn() == Some(&turn) {
+                child_controls::refresh(app, state).await?;
+            }
             if name == "compress" && state.active_turn() == Some(&turn) {
                 refresh_dcp(app, state, session).await;
                 refresh_dcp_summaries(app, state).await;

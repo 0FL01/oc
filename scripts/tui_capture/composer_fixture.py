@@ -8,16 +8,25 @@ import threading
 ROOT_TASK = 'VIS39_ROOT_TASK'
 CHILD_TASK = 'VIS39_CHILD_TASK'
 MODEL_TASK = 'VIS39_ROOT_MODEL_SHELL_TASK'
+CONTINUE_TASK = 'VIS39_CONTINUE_ROOT_TASK'
+CONTINUE_CHILD_TASK = 'VIS39_CONTINUE_CHILD_TASK'
+ERROR_TASK = 'VIS39_MISSING_AGENT_TASK'
 COMMANDS = ['python3 composer-probe.py first', 'python3 composer-probe.py second']
 lock = threading.Lock()
 requests = 0
 parent_call_issued = False
+continuation_child = None
+continuation_call_issued = False
+continuation_release = threading.Event()
 
 
 def configure(spec, home, project, config, cli):
     config['mcp'] = {'servers': {}} if spec['origin'] == 'upstream' else {}
     config['tool_output'] = {'max_lines': 1000, 'max_bytes': 65536}
     cli['keybinds'] = {'session.child.first': 'ctrl+g'}
+    if spec.get('subagent_cards'):
+        provider = config['providers' if spec['origin'] == 'upstream' else 'provider']['fixture']
+        provider['models']['fixture-model-1']['name'] = 'Fixture Caption Model'
     if spec['origin'] == 'upstream':
         rules = [{'action': '*', 'resource': '*', 'effect': 'deny'},
                  {'action': 'subagent', 'resource': 'helper', 'effect': 'allow'},
@@ -64,6 +73,20 @@ with (root / ('composer-' + origin + '-completed.effects')).open('a') as f:
 
 
 def control(project, action, spec):
+    global continuation_child
+    if spec.get('subagent_cards') and action == 'capture-continuation':
+        # Capture an actual relational child ID, never original RAW/tool prose.
+        data = snapshot(project.parent / spec['origin'] / 'home', project, spec)
+        rows = [row for observation in data['observations']
+                for row in observation['data'].get('sessions', [])
+                if row.get('parent_id') is not None]
+        if len(rows) != 1:
+            raise AssertionError('Expected one actual admitted continuation child')
+        continuation_child = rows[0]['id']
+        return {'captured_child': continuation_child}
+    if spec.get('subagent_cards') and action == 'release-continuation':
+        continuation_release.set()
+        return {'released': 'continuation'}
     if action not in ('release-first', 'release-second'):
         raise ValueError('Unknown finite composer fixture control')
     phase = action.removeprefix('release-')
@@ -99,6 +122,10 @@ def snapshot(home, project, spec):
                             AND e.kind='shell_background' AND e.payload=j.operation_id) AS converted_background
                           FROM shell_jobs j ORDER BY j.rowid LIMIT 12"""
                     data[table] = [dict(r) for r in conn.execute(query)]
+            if spec.get('subagent_cards') and 'session_v2' in tables:
+                data['sessions'] = [dict(r) for r in conn.execute(
+                    'SELECT id,parent_id,time_created FROM session_v2 '
+                    'WHERE fork_session_id IS NULL ORDER BY time_created,id LIMIT 12')]
             observations.append({'tables': sorted(tables), 'data': data})
     ready = {phase: (project / ('composer-' + spec['origin'] + '-ready-' + phase)).exists()
              for phase in ('first', 'second')}
@@ -107,7 +134,7 @@ def snapshot(home, project, spec):
 
 
 def respond(handler, body, spec, emit):
-    global requests, parent_call_issued
+    global requests, parent_call_issued, continuation_call_issued
     with lock:
         requests += 1
         number = requests
@@ -127,30 +154,76 @@ def respond(handler, body, spec, emit):
             child = parent_call_issued and ROOT_TASK not in texts
     title = not definitions
     root_model = bool(spec.get('model_shell'))
+    cards = bool(spec.get('subagent_cards'))
+    current_marker = next((text for text in reversed(texts)
+                           if text in (ROOT_TASK, CONTINUE_TASK, ERROR_TASK)), None)
+    continuation_parent = cards and current_marker == CONTINUE_TASK
+    # The issued structured continuation also identifies its native context-pack
+    # request; do not parse that task envelope or free assistant text.
+    continuation_worker = cards and continuation_call_issued and child and not continuation_parent
+    missing_agent = cards and current_marker == ERROR_TASK
+    if continuation_parent or missing_agent:
+        child = False
+    elif continuation_worker:
+        child = True
     if root_model:
         # This separate root scenario has no delegation/context-pack inference.
         child = False
     index = sum(i.get('call_id', '').startswith('call_vis39_shell_') for i in results) if child else len(results)
-    valid = handler.path == '/v1/responses' and body.get('stream') is True and number <= 12
+    valid = handler.path == '/v1/responses' and body.get('stream') is True and number <= (18 if cards else 12)
     valid = valid and body.get('model') == 'fixture-model-1'
-    valid = valid and (title or (MODEL_TASK in texts if root_model else child or ROOT_TASK in texts))
-    valid = valid and all(i.get('call_id') in ('call_vis39_parent', 'call_vis39_shell_0', 'call_vis39_shell_1') for i in results)
+    valid = valid and (title or (MODEL_TASK in texts if root_model else child or ROOT_TASK in texts or continuation_parent or missing_agent))
+    valid = valid and all(i.get('call_id') in ('call_vis39_parent', 'call_vis39_shell_0', 'call_vis39_shell_1', *(['call_vis39_continue','call_vis39_missing'] if cards else [])) for i in results)
     name = 'shell' if child or root_model else 'subagent'
     tool = not title and (index < 2 if child or root_model else index == 0)
+    if continuation_worker:
+        tool = False
+    elif continuation_parent or missing_agent:
+        expected = 'call_vis39_continue' if continuation_parent else 'call_vis39_missing'
+        tool = not title and not any(i.get('call_id') == expected for i in results)
     valid = valid and (not tool or name in definitions)
     emit({'kind': 'provider', 'operation': 'title' if title else 'child' if child else 'parent',
-          'valid': valid, 'index': index, 'actual_results': results,
-          'user_texts': texts, 'registered_tools': list(definitions)})
+           'valid': valid, 'index': index, 'actual_results': results,
+           'user_texts': texts, 'registered_tools': list(definitions),
+           **({'controlled_phase':'missing-agent' if missing_agent else 'continuation-parent'
+               if continuation_parent else 'continuation-child' if continuation_worker
+               else 'original-child' if child else 'original-parent'} if cards else {})})
     if not valid:
         handler.send_error(400, 'VIS39 fixture contract rejected')
         return
     text = 'VIS39 parent' if title else 'VIS39-ROOT-SHELL-DONE' if root_model else 'VIS39-CHILD-DONE' if child else 'VIS39-PARENT-DONE'
+    if cards and not title:
+        if continuation_worker:
+            # Hold a real ordinary child request, not the UI or its metadata.
+            if not continuation_release.wait(60):
+                raise AssertionError('Finite continuation response was not released')
+            text = 'VIS39-CONTINUED-CHILD-DONE'
+        elif continuation_parent:
+            text = 'VIS39-CONTINUED-PARENT-DONE'
+        elif missing_agent:
+            text = 'VIS39-MISSING-AGENT-DONE'
     if tool:
         args = {'command': COMMANDS[index]} if child or root_model else {
             'agent': 'helper', 'description': 'Inspect child shell', 'prompt': CHILD_TASK}
+        if cards and not child:
+            if continuation_parent:
+                if continuation_child is None:
+                    raise AssertionError('No actual child was captured for continuation')
+                args = {'agent':'helper','description':'Continue captured child',
+                        'prompt':CONTINUE_CHILD_TASK,'sessionID':continuation_child}
+            elif missing_agent:
+                args = {'agent':'vis39_missing_agent','description':'Reject missing child profile',
+                        'prompt':'Never launch a missing child'}
+            else:
+                args['model'] = 'fixture/fixture-model-1'
+                args['description'] = 'Inspect captured child shell'
         item = {'id': f'fc_vis39_{number}', 'type': 'function_call', 'status': 'completed',
                 'call_id': f'call_vis39_shell_{index}' if child or root_model else 'call_vis39_parent',
-                'name': name, 'arguments': json.dumps(args)}
+                 'name': name, 'arguments': json.dumps(args)}
+        if continuation_parent or missing_agent:
+            item['call_id'] = 'call_vis39_continue' if continuation_parent else 'call_vis39_missing'
+        if continuation_parent:
+            continuation_call_issued = True
         emit({'kind': 'fixture_tool_call', 'name': name, 'arguments': args})
         if not child and not root_model:
             with lock:

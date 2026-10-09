@@ -522,7 +522,7 @@ pub(crate) mod tests {
         }
     }
     fn row(effects: Option<PatchEffects>, state: &str) -> ToolOpView {
-        ToolOpView { output_presentation: None, question: None, rowid: 1, op: "actual".into(), name: "apply_patch".into(), state: state.into(),
+        ToolOpView { child_job: None, output_presentation: None, question: None, rowid: 1, op: "actual".into(), name: "apply_patch".into(), state: state.into(),
             input: Some(r#"{"patchText":"*** Begin Patch\n*** Add File: fake.txt\n+invented\n*** End Patch"}"#.into()),
             output: Some("done add fake.txt (hash_before=-, hash_after=abc)".into()), output_bytes: 52, output_truncated: false, patch_effects: effects, dcp: None, dcp_topic: None }
     }

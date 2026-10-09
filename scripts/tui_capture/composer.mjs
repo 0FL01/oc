@@ -6,6 +6,7 @@ const activeTab=(f,label)=>f.cells.some(row=>{
 });
 export async function probeComposer(args) {
   if(args.modelShell)return probeRootModelShell(args);
+  if(args.subagentCards)return probeSubagentCards(args);
   const {origin,send,shot,waitFor,frame,logs,snapshot,control}=args;
   const openParent=async()=>{
     if(origin==='oc') {send('\x07','composer_parent_subagents');return;}
@@ -154,6 +155,133 @@ export async function probeComposer(args) {
   return {status:'OBSERVED_COMPOSER',started,converted,second,undefinedEnter,terminal,final,owner_facts:ownerFacts,
     origin,actual_tool_calls:3,actual_requests:requestCount(),shell_starts:2,shell_completions:1,
     terminal_effects:1,owner_snapshot_read_only:true,no_effect_replay:true};
+}
+
+async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,control,resize}) {
+  const rows=(s,table)=>s.composer.observations.flatMap(o=>o.data[table]||[]);
+  const caption=f=>f.text.includes('Helper Subagent')&&f.text.includes('Inspect captured child shell')&&f.text.includes('Fixture Caption Model');
+  const observe=async(label,predicate)=>{
+    const deadline=Date.now()+15000;
+    while(Date.now()<deadline){const s=await snapshot(label+'-'+Date.now());if(predicate(s.composer))return s;await new Promise(r=>setTimeout(r,50));}
+    throw Error('Missing actual Subagent owner '+label);
+  };
+  const command=async action=>{
+    const id='subagent-'+action;
+    control({kind:'tool_preview_control',request_id:id,action});
+    const deadline=Date.now()+6000;
+    while(!logs.some(e=>e.kind==='tool_preview_control_ack'&&e.request_id===id)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,25));
+    const ack=logs.find(e=>e.kind==='tool_preview_control_ack'&&e.request_id===id);
+    if(!ack)throw Error('No owned Subagent fixture acknowledgement '+action);
+    return ack;
+  };
+  const headerPoint=f=>{
+    const y=f.cells.findIndex(row=>glyphs(row).includes('Helper Subagent'));
+    const x=y<0?-1:glyphs(f.cells[y]).indexOf('Helper Subagent');
+    if(x<0)throw Error('Actual painted inline Subagent header is absent');
+    return {x:x+1,y:y+1};
+  };
+  const hover=async stage=>{
+    const before=await frame(),p=headerPoint(before);
+    send(`\x1b[<35;${p.x};${p.y}M`,'subagent_card_hover');
+    const after=await shot(stage,f=>caption(f)&&f.text.includes(' Background ')&&f.text.includes('VIS39 parent unsent draft'));
+    const a=before.cells[p.y-1][p.x-1],b=after.cells[p.y-1][p.x-1];
+    if(a.symbol!==b.symbol||a.fg===b.fg)throw Error('Real Subagent hover did not change the painted heading color');
+    if(JSON.stringify(before.cursor)!==JSON.stringify(after.cursor))throw Error('Inline hover changed the actual prompt caret');
+    return {point:p,before:a.fg,after:b.fg};
+  };
+  send('\x1b[200~VIS39_ROOT_TASK\x1b[201~\r','subagent_card_submit');
+  const started=await observe('first-ready',s=>s.ready.first&&s.effects.started.lines.length===1);
+  await shot('subagent-foreground-120',caption);
+  if(origin==='oc') {
+    send('\x07','subagent_card_native_foreground_scope');
+    await waitFor(f=>activeTab(f,'Subagents'),'actual foreground child selector',6000);
+  }
+  send('\x02','subagent_card_actual_background');
+  await waitFor(f=>f.text.includes('VIS39-PARENT-DONE'),'actual parent continuation',15000);
+  if(origin==='oc')send('\x1b','subagent_card_close_selector');
+  await waitFor(f=>!activeTab(f,'Subagents'),'closed foreground selector',6000);
+  send('\x1b[200~VIS39 parent unsent draft\x1b[201~','subagent_card_preserved_draft');
+  await shot('subagent-background-120',f=>caption(f)&&f.text.includes(' Background ')&&f.text.includes('VIS39 parent unsent draft'));
+  const hoverFacts=[];
+  hoverFacts.push(await hover('subagent-hover-120'));
+  for(const [columns,height] of [[80,24],[160,48]]) {
+    send('\x1b[<35;1;1M','subagent_card_leave_header');
+    await resize(height,columns);
+    await shot('subagent-background-'+columns,f=>f.columns===columns&&f.rows===height&&caption(f)&&f.text.includes(' Background ')&&f.text.includes('VIS39 parent unsent draft'));
+    hoverFacts.push(await hover('subagent-hover-'+columns));
+  }
+  const p=headerPoint(await frame());
+  send(`\x1b[<0;${p.x};${p.y}M\x1b[<0;${p.x};${p.y}m`,'subagent_card_open_captured_child');
+  await shot('subagent-card-child',f=>!f.text.includes('VIS39 parent unsent draft')&&(f.text.includes('VIS39_CHILD_TASK')||f.text.includes('VIS39-ROW-079')));
+  send('\x1b','subagent_card_return_parent');
+  await shot('subagent-card-parent',f=>caption(f)&&f.text.includes('VIS39 parent unsent draft'));
+  const converted=await snapshot('subagent_card_converted');
+  if(converted.composer.effects.started.lines.length!==1||converted.composer.effects.completed.lines.length!==0)throw Error('Card navigation replayed/completed the held child');
+  if(origin==='oc'){
+    const a=rows(started,'child_jobs'),b=rows(converted,'child_jobs'),sa=rows(started,'shell_jobs'),sb=rows(converted,'shell_jobs');
+    if(a.length!==1||b.length!==1||a[0].identity!==b[0].identity||a[0].operation_id!==b[0].operation_id||sa.length!==1||sb.length!==1||sa[0].process!==sb[0].process||sa[0].provenance!==sb[0].provenance)throw Error('Inline conversion/navigation retargeted original family/process');
+  }
+  // Finish the same held process, then cancel only its actual second Shell via
+  // the existing selected-source UI. No terminal or additional child is seeded.
+  await command('release-first');
+  await observe('second-ready',s=>s.ready.second&&s.effects.completed.lines.length===1);
+  if(origin==='oc')send('\x07','subagent_card_native_child_selector');
+  else {
+    const f=await frame(),y=f.cells.findIndex(row=>glyphs(row).includes('ctrl+g 1 subagent'));
+    const x=y<0?-1:glyphs(f.cells[y]).indexOf('ctrl+g');
+    if(x<0)throw Error('Actual original live-child action missing');
+    send(`\x1b[<0;${x+1};${y+1}M\x1b[<0;${x+1};${y+1}m`,'subagent_card_reference_child_selector');
+  }
+  await waitFor(f=>activeTab(f,'Subagents'),'actual live child selector',6000);
+  send('\r','subagent_card_enter_original_child');
+  await waitFor(f=>activeTab(f,'Subagents')&&f.text.includes('VIS39-ROW-079'),'captured child source',6000);
+  send('\x1b[C','subagent_card_source_shell_tab');
+  await waitFor(f=>activeTab(f,'Shell')&&f.text.includes('python3 composer-probe.py second'),'selected actual second process',6000);
+  send('\x04','subagent_card_cancel_second_only');
+  await waitFor(f=>f.text.includes('VIS39-CHILD-DONE'),'actual child settled',15000);
+  send('\x1b','subagent_card_settled_parent');
+  await resize(40,120);
+  await shot('subagent-completed',f=>caption(f)&&f.text.includes('VIS39 parent unsent draft')&&f.text.includes('↳ Helper finished'));
+  const settled=await snapshot('subagent_card_settled');
+  const capture=await command('capture-continuation');
+   send('\x03','subagent_card_clear_draft_for_next_user');
+   await waitFor(f=>!f.text.includes('VIS39 parent unsent draft'),'actual parent draft cleared',6000);
+  send('\x1b[200~VIS39_CONTINUE_ROOT_TASK\x1b[201~\r','subagent_card_continue_same_child');
+  await waitFor(f=>f.text.includes('Continue subagent'),'actual continuation tool part',15000);
+  const running=await observe('continuation-running',s=>origin!=='oc'||s.observations.some(o=>(o.data.child_jobs||[]).some(j=>j.state==='running')));
+  await shot('subagent-continuation-running',f=>caption(f)&&f.text.includes('Continue subagent')&&!f.text.includes('VIS39-CONTINUED-PARENT-DONE'));
+  await command('release-continuation');
+  await shot('subagent-continuation-completed',f=>caption(f)&&f.text.includes('Continue subagent')&&f.text.includes('VIS39-CONTINUED-PARENT-DONE'));
+   send('\x1b[200~VIS39_MISSING_AGENT_TASK\x1b[201~\r','subagent_card_missing_agent');
+   // Native's exact deny policy rejects the missing profile before lookup;
+   // pinned original resolves that profile first. Both are real failed parts,
+   // never a reason to loosen the common permissions or fabricate a child.
+   const failure=origin==='oc'?'error: denied subagent':'Unknown agent: vis39_missing_agent';
+   await shot('subagent-error-collapsed',f=>f.text.includes('Reject missing child profile')&&f.text.includes('VIS39-MISSING-AGENT-DONE')&&!f.text.includes(failure));
+  const error=await frame(),ey=error.cells.findIndex(row=>glyphs(row).includes('Reject missing child profile'));
+  if(ey<0)throw Error('Actual failed Subagent header missing');
+  send(`\x1b[<0;7;${ey+1}M\x1b[<0;7;${ey+1}m`,'subagent_card_expand_actual_error');
+   await shot('subagent-error-expanded',f=>f.text.includes('Reject missing child profile')&&f.text.includes(failure));
+  const expanded=await frame(),cy=expanded.cells.findIndex(row=>glyphs(row).includes('Reject missing child profile'));
+  send(`\x1b[<0;7;${cy+1}M\x1b[<0;7;${cy+1}m`,'subagent_card_collapse_actual_error');
+   await shot('subagent-error-recollapsed',f=>f.text.includes('Reject missing child profile')&&!f.text.includes(failure));
+  const final=await snapshot('subagent_card_final');
+  if(final.composer.effects.started.lines.length!==2||final.composer.effects.completed.lines.length!==1||final.composer.effects.terminal.lines.length!==0||logs.some(e=>e.kind==='provider'&&!e.valid)||logs.filter(e=>e.kind==='fixture_tool_call').length!==5)throw Error('Subagent proof replayed/launched an unexpected effect');
+   if(origin==='oc') {
+     const rejected=rows(final,'tool_operations').filter(o=>o.name==='subagent'&&JSON.parse(o.input).agent==='vis39_missing_agent');
+     if(rejected.length!==1||rejected[0].state!=='failed'||rejected[0].output!==failure)throw Error('Missing profile did not remain the actual pre-effect failed operation');
+    const a=rows(settled,'child_jobs'),b=rows(running,'child_jobs'),end=rows(final,'child_jobs');
+    if(a.length!==1||b.length!==2||end.length!==2||end.some(j=>j.child_id!==a[0].child_id)||end[0].identity!==a[0].identity||end[0].operation_id!==a[0].operation_id||end.some(j=>j.state!=='completed')||rows(final,'sessions').length!==2||rows(final,'terminals').length!==0)throw Error('Continuation/error changed the original child family or launched a new owner');
+    const oldOp=rows(settled,'tool_operations').find(o=>o.id===a[0].operation_id),newOp=rows(final,'tool_operations').find(o=>o.id===a[0].operation_id);
+    if(JSON.stringify(oldOp)!==JSON.stringify(newOp))throw Error('New continuation/error rewrote original tool input/output/state');
+    const shells=rows(final,'shell_jobs').map(j=>({...j,outcome:JSON.parse(j.outcome)}));
+    if(shells.length!==2||shells[0].outcome.state!=='completed'||shells[0].outcome.exit!==0||!shells[0].outcome.display_recent.includes('VIS39-FINAL-FLUSH-first')||shells[1].outcome.state!=='cancelled')throw Error('Original child process final flush/cancellation not frozen');
+  }
+  return {status:'OBSERVED_SUBAGENT_CARDS',started,converted,settled,running,final,hover_facts:hoverFacts,
+    actual_continuation_child:capture.captured_child,geometries:[[120,40],[80,24],[160,48]],
+    actual_tool_calls:5,actual_requests:logs.filter(e=>e.kind==='provider').length,
+    same_child_distinct_operation:true,missing_agent_no_owner:true,original_graph_unchanged:true,
+    shell_starts:2,shell_completions:1,terminal_effects:0,no_effect_replay:true};
 }
 
 async function probeRootModelShell({origin,send,shot,waitFor,frame,logs,snapshot,control}) {

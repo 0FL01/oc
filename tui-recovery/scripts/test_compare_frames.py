@@ -4,10 +4,13 @@ from __future__ import annotations
 from contextlib import redirect_stdout
 from copy import deepcopy
 from io import StringIO
+import gzip
+import hashlib
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import compare_frames as cf
 
@@ -141,6 +144,40 @@ class GridTests(unittest.TestCase):
         with redirect_stdout(StringIO()):
             code = cf.main(["grid", str(self.ref), str(self.actual)])
         self.assertEqual(code, 2)
+
+    def test_lossless_gzip_keeps_all_styled_cells_cursor_and_encoded_seals(self):
+        for frame in (self.rd, self.ad):
+            frame["cells"][0][0].update(symbol="界", width=2)
+            frame["cells"][0][1].update(symbol="", width=0)
+            frame["cells"][1][0].update(modifiers=["bold", "italic"])
+        plain = self.compare()
+        ref, actual = self.root / "ref.json.gz", self.root / "actual.json.gz"
+        ref.write_bytes(gzip.compress(self.ref.read_bytes(), mtime=0))
+        actual.write_bytes(gzip.compress(self.actual.read_bytes(), mtime=0))
+        compressed = cf.compare_grid(ref, actual)
+        self.assertEqual(compressed["status"], plain["status"])
+        self.assertEqual(compressed["cells_checked"], 4)
+        self.assertEqual(compressed["reference_sha256"], hashlib.sha256(ref.read_bytes()).hexdigest())
+        self.assertEqual(compressed["actual_sha256"], hashlib.sha256(actual.read_bytes()).hexdigest())
+        self.ad["cells"][1][1]["bg"] = "#ffffff"
+        self.ad["cursor"]["x"] = 1
+        actual.write_bytes(gzip.compress(json.dumps(self.ad).encode(), mtime=0))
+        difference = cf.compare_grid(ref, actual)
+        self.assertEqual(difference["status"], "FAIL")
+        self.assertEqual(difference["different_cells"], 1)
+        self.assertEqual(difference["samples"][0]["different_fields"], ["bg"])
+        self.assertTrue(difference["cursor_differs"])
+
+    def test_gzip_corruption_and_decompressed_size_cannot_be_pass(self):
+        self.write()
+        actual = self.root / "actual.json.gz"
+        actual.write_bytes(gzip.compress(self.actual.read_bytes(), mtime=0)[:-5])
+        with self.assertRaises(cf.Invalid):
+            cf.compare_grid(self.ref, actual)
+        data = gzip.compress(b" " * 2048, mtime=0)
+        with patch.object(cf, "MAX_FILE_BYTES", 512):
+            with self.assertRaisesRegex(cf.Invalid, "oversized decompressed"):
+                cf.decode_grid(data, actual)
 
 
 @unittest.skipIf(Image is None, "Pillow unavailable; PNG utility cases NOT RUN")

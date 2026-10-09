@@ -594,6 +594,9 @@ fn expandable_tool_entry(
         crate::tools::ToolRender::Shell(shell) => {
             crate::tools::shell_block_expanded(shell, card, theme, width, expanded(&card.op))
         }
+        crate::tools::ToolRender::Subagent(subagent) => {
+            crate::tools::subagent_block_expanded(subagent, card, theme, width, expanded(&card.op))
+        }
         crate::tools::ToolRender::Inline(inline @ crate::tools::InlineRender::Generic { .. })
             if !matches!(
                 card.state.as_str(),
@@ -1816,7 +1819,7 @@ pub(crate) fn exploration_header_at_with_range(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Exploration(op, range) => Some((op, range)),
-        TranscriptHit::Reasoning(_) | TranscriptHit::ChildNotice(_, _) => None,
+        TranscriptHit::Reasoning(_) | TranscriptHit::ChildNotice(_, _, _) => None,
     })
 }
 
@@ -1845,11 +1848,11 @@ pub(crate) fn reasoning_header_at(
     .2
     .and_then(|hit| match hit {
         TranscriptHit::Reasoning(id) => Some(id),
-        TranscriptHit::Exploration(_, _) | TranscriptHit::ChildNotice(_, _) => None,
+        TranscriptHit::Exploration(_, _) | TranscriptHit::ChildNotice(_, _, _) => None,
     })
 }
 
-pub(crate) fn child_notice_at_with_range(
+pub(crate) fn captured_child_at_with_range(
     rows: &[HistoryRow],
     theme: &Theme,
     widths: (u16, u16),
@@ -1857,7 +1860,7 @@ pub(crate) fn child_notice_at_with_range(
     agent_color: impl Fn(Option<&str>) -> Color,
     cache: &RefCell<MarkdownCache>,
     hit: (&impl Fn(&str) -> bool, (usize, usize)),
-) -> Option<(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>)> {
+) -> Option<(CapturedChildTarget, std::ops::Range<usize>, bool)> {
     visible_transcript_indexed(
         rows,
         theme,
@@ -1873,7 +1876,7 @@ pub(crate) fn child_notice_at_with_range(
     )
     .2
     .and_then(|hit| match hit {
-        TranscriptHit::ChildNotice(job, range) => Some((job, range)),
+        TranscriptHit::ChildNotice(job, range, tool) => Some((job, range, tool)),
         _ => None,
     })
 }
@@ -1887,6 +1890,27 @@ pub(crate) fn hover_child_notice(
     child_notice_line(job, theme, width, true)
         .unwrap_or_else(|| line.clone())
         .with_style(line.style())
+}
+
+pub(crate) fn hover_subagent_content(line: &Line, theme: &Theme) -> Line {
+    Line::new(
+        line.spans()
+            .iter()
+            .map(|span| {
+                Span::styled(
+                    span.content(),
+                    if span.style().fg == Some(theme.text_muted())
+                        && span.style().bg != Some(theme.decrease(theme.background()))
+                    {
+                        span.style().fg(theme.text())
+                    } else {
+                        span.style()
+                    },
+                )
+            })
+            .collect(),
+    )
+    .with_style(line.style())
 }
 
 #[cfg(test)]
@@ -2021,10 +2045,16 @@ struct ExplorationOptions<'a> {
     retries: u8,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum CapturedChildTarget {
+    Navigate(Box<oc_core::queries::ChildJob>),
+    ErrorDetails(String),
+}
+
 enum TranscriptHit {
     Exploration(String, std::ops::Range<usize>),
     Reasoning(ReasoningIdentity),
-    ChildNotice(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>),
+    ChildNotice(CapturedChildTarget, std::ops::Range<usize>, bool),
 }
 
 fn visible_transcript_indexed(
@@ -2187,6 +2217,35 @@ fn visible_transcript_indexed(
             {
                 let relative = start + y - position;
                 let extent = match &card.render {
+                    crate::tools::ToolRender::Subagent(subagent) => {
+                        let header = crate::tools::subagent_block_expanded(
+                            subagent, card, theme, width, false,
+                        );
+                        let eligible = header.get(relative - margin).is_some_and(|line| {
+                            let text = line.plain_text();
+                            let leading = UnicodeWidthStr::width(text.as_str())
+                                - UnicodeWidthStr::width(text.trim_start());
+                            x >= leading && x < UnicodeWidthStr::width(text.trim_end())
+                        });
+                        if eligible {
+                            let target = if crate::tools::subagent_failed(card) {
+                                Some(CapturedChildTarget::ErrorDetails(card.op.clone()))
+                            } else {
+                                card.child_job.clone().map(CapturedChildTarget::Navigate)
+                            };
+                            if let Some(target) = target {
+                                hit = Some(TranscriptHit::ChildNotice(
+                                    target,
+                                    (position + margin).saturating_sub(start)
+                                        ..(position + margin + header.len())
+                                            .min(end)
+                                            .saturating_sub(start),
+                                    true,
+                                ));
+                            }
+                        }
+                        None
+                    }
                     crate::tools::ToolRender::Shell(_) => {
                         crate::tools::shell_expandable(card, width).then_some(lines.len() - margin)
                     }
@@ -2242,8 +2301,9 @@ fn visible_transcript_indexed(
                 && x < UnicodeWidthStr::width(line.plain_text().trim_end())
             {
                 hit = Some(TranscriptHit::ChildNotice(
-                    job.clone(),
+                    CapturedChildTarget::Navigate(job.clone()),
                     header - start..header - start + 1,
+                    false,
                 ));
             }
             add_visible_lines(

@@ -344,6 +344,7 @@ mod tests {
     fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
         let total = rows.len();
         HistoryPage {
+            child_job: None,
             parent_id: None,
             title: None,
             reverted: None,

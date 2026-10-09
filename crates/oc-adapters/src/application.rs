@@ -3408,6 +3408,7 @@ async fn query(
                     )
                     .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(HistoryPage {
+                    child_job: None,
                     reverted: db
                         .reverted_conversation(&session.0)
                         .map_err(|error| query_storage_error(db, error))?,
@@ -3454,22 +3455,31 @@ async fn query(
                 };
                 let rows = page
                     .into_iter()
-                    .map(|row| ToolOpView {
-                        output_presentation: row.output_presentation,
-                        question: row.question,
-                        dcp_topic: row.dcp_topic,
-                        dcp: row.dcp,
-                        patch_effects: row.patch_effects,
-                        op: row.op,
-                        rowid: row.rowid,
-                        name: row.name,
-                        state: row.state,
-                        input: row.input,
-                        output: row.output,
-                        output_bytes: row.output_bytes,
-                        output_truncated: row.output_truncated,
+                    .map(|row| {
+                        Ok(ToolOpView {
+                            child_job: if row.name == "subagent" {
+                                db.child_tool_job(&session.0, &row.op)
+                                    .map_err(|error| query_storage_error(db, error))?
+                                    .map(Box::new)
+                            } else {
+                                None
+                            },
+                            output_presentation: row.output_presentation,
+                            question: row.question,
+                            dcp_topic: row.dcp_topic,
+                            dcp: row.dcp,
+                            patch_effects: row.patch_effects,
+                            op: row.op,
+                            rowid: row.rowid,
+                            name: row.name,
+                            state: row.state,
+                            input: row.input,
+                            output: row.output,
+                            output_bytes: row.output_bytes,
+                            output_truncated: row.output_truncated,
+                        })
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>, CoreError>>()?;
                 Ok(ToolOpPage {
                     rows,
                     total,
@@ -3936,7 +3946,7 @@ async fn query(
         }
         InboxMsg::ChildJobs { session, ack } => {
             let result = db
-                .child_jobs(&session.0)
+                .child_tool_jobs(&session.0)
                 .map_err(|error| query_storage_error(db, error));
             let _ = ack.send(result);
         }
@@ -3970,11 +3980,10 @@ async fn query(
             ack,
         } => {
             let result = (|| {
-                let valid = db
-                    .child_jobs(&session.0)
+                let job = db
+                    .child_job(&session.0, &selected.operation)
                     .map_err(|e| query_storage_error(db, e))?
-                    .into_iter()
-                    .any(|job| {
+                    .filter(|job| {
                         job.parent == session
                             && job.parent == selected.parent
                             && job.child == selected.child
@@ -3982,11 +3991,9 @@ async fn query(
                             && job.generation == selected.generation
                             && job.location == selected.location
                             && job.delivery_id == selected.delivery_id
-                    });
-                if !valid {
-                    return Err(CoreError::SessionNotFound);
-                }
-                let child = &selected.child.0;
+                    })
+                    .ok_or(CoreError::SessionNotFound)?;
+                let child = &job.child.0;
                 let total = db
                     .history_len(child)
                     .map_err(|e| query_storage_error(db, e))?;
@@ -4022,16 +4029,26 @@ async fn query(
                         })
                     })
                     .collect::<Result<Vec<_>, CoreError>>()?;
+                let reverted = db
+                    .reverted_conversation(child)
+                    .map_err(|e| query_storage_error(db, e))?;
+                let child_job = db
+                    .child_tool_job(&session.0, &job.operation)
+                    .map_err(|e| query_storage_error(db, e))?
+                    .map(Box::new);
+                let title = job.description[..job
+                    .description
+                    .floor_char_boundary(oc_core::tool_output::PREVIEW_BYTES)]
+                    .to_owned();
                 Ok(HistoryPage {
-                    parent_id: Some(selected.parent.0),
-                    title: Some(selected.description),
+                    parent_id: Some(job.parent.0.clone()),
+                    title: Some(title),
+                    child_job,
                     has_older: total > rows.len(),
                     has_newer: false,
                     total,
                     rows,
-                    reverted: db
-                        .reverted_conversation(child)
-                        .map_err(|e| query_storage_error(db, e))?,
+                    reverted,
                 })
             })();
             let _ = ack.send(result);

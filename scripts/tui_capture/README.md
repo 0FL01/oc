@@ -1197,6 +1197,34 @@ ordinary27-stage and default WebGL six-owner/144-opaque temporal regressions
 separately. Every capture includes a fresh locked build and source manifest;
 preserve failed attempts and never overwrite or promote them to pixel PASS.
 
+### VIS39 captured inline Subagent cards
+
+The exclusive `--combined-composer true --subagent-cards true` branch starts at
+120×40 and uses one real episode, not three replays. The existing resize owner
+visits80×24 and160×48 while the same background child/process remains alive.
+It captures fifteen paired states: explicit human-model foreground, background
+and hover at120/80/160, actual painted-card child navigation and parent-draft
+return, terminal child, same-child continuation running/completed, and a real
+missing-agent tool error collapsed/expanded/recollapsed. No terminal is created.
+First delegation explicitly selects `fixture/fixture-model-1`, whose configured
+human name is `Fixture Caption Model`; continuation omits a model override.
+
+Continuation receives the actual child ID from read-only relational `sessions`
+(native) or `session_v2.parent_id` (original), never original RAW/tool output. A
+finite60-second fixture response gate holds that ordinary child request until
+the running continuation is observed. The missing-agent call resolves before
+permission/child creation and must produce an ordinary tool error, not a seeded
+card or user-denial substitute. Exactly five structured calls/two Shell starts/
+one completion/no PTY effect are required, with no replay or extra child. Native
+owner snapshots retain the first operation/input/output/family fence unchanged
+across the distinct continuation and error. Original/native background action
+scopes differ as declared above; all full styled grids/PNGs/cursors remain strict.
+
+This lean episode keeps the unchanged own-artifact quota; it does not waive the
+ordinary27-stage or default WebGL144-opaque temporal regressions, other VIS39
+presentation/assets or final full T44 qualification. Geometry visitation within
+one owner is declared, not separate admitted episodes or global pixel parity.
+
 ## VIS16/VIS31 real caret ordering and temporal blink
 
 The exclusive `--tool-preview true --cursor-temporal blink|steady|default` mode
@@ -1205,6 +1233,26 @@ composer idle, continuous hover, restored composer, command Search idle, continu
 Search hover, and exact composer restoration. It does not run the ordinary mode's
 fourteen reopen/restart stages. A separate ordinary tool-preview run qualifies
 those stages and read-only `/cards` cursor ownership after the terminal change.
+Temporal render metadata version2 references the already recorded complete
+`.cells.json` by basename and SHA256 rather than copying its full frame again.
+The full grid, companion text and opaque raster remain sealed and unchanged;
+the independent auditor verifies that exact reference and still supports all
+immutable version-one receipts. No cells, colors, raster pixels or observations
+are masked or reconstructed, and this does not change acquisition/cadence.
+Still-frame render JSON is compactly encoded with every existing field retained.
+The read-only artifact observer hashes frozen files, not actively renamed `.part`
+captures; their existing live descriptors/counters remain in the SQL snapshot.
+Terminal artifacts and their exact no-replay hash comparisons are unchanged.
+`--compress-cells true` is an opt-in lossless gzip encoding of the complete
+`.cells.json.gz` grid; PNGs stay untouched. The capture profile records the
+encoding, each capture names/seals its actual cell file, and both strict grid
+comparison and the temporal audit decode it with the original bounds/schema.
+No cells/styles/cursor fields are removed; plain historical grids remain valid.
+The same existing equality criteria apply, not a pixel or provenance waiver.
+Native's unchanged exact permission policy refuses the missing-agent fixture
+before lookup (`error: denied subagent`); original first resolves it (`Unknown
+agent: vis39_missing_agent`). The error proof checks these actual failed parts,
+error expand/re-collapse and no new owner, without granting the denied agent.
 
 ```sh
 CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \

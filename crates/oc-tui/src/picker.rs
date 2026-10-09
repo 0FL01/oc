@@ -250,6 +250,11 @@ impl ModelPicker {
     }
 
     /// Human metadata for a browsed id; selection continues to use the exact id.
+    pub(crate) fn model_name(&self, id: &str) -> Option<&str> {
+        self.catalog.models.get(id)?.get("name")?.as_str()
+    }
+
+    /// Human metadata for a browsed id; selection continues to use the exact id.
     pub fn display_label(&self, id: &str) -> String {
         let Some(spec) = self.catalog.models.get(id) else {
             return id.to_string();

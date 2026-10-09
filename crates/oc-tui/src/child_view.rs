@@ -6,6 +6,9 @@ use crate::theme::Theme;
 use oc_core::domain::SessionId;
 use oc_core::queries::{ChildJob, ChildState};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Default)]
 pub(crate) struct ChildView {
     rows: Vec<ChildJob>,
@@ -14,6 +17,24 @@ pub(crate) struct ChildView {
     inactive: bool,
 }
 impl ChildView {
+    pub(crate) fn refresh_transcript(
+        &self,
+        session: &SessionId,
+        window: &mut crate::history::HistoryWindow,
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        window.refresh_subagent_cards(session, &self.rows, picker)
+    }
+
+    pub(crate) fn refresh_live_card(
+        &self,
+        session: &SessionId,
+        card: &mut crate::history::ToolCard,
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        card.refresh_subagent_job(session, &self.rows, picker)
+    }
+
     fn visible(&self) -> impl Iterator<Item = &ChildJob> {
         self.rows
             .iter()
@@ -169,10 +190,10 @@ impl TuiState {
         self.children.linked.as_ref()
     }
     pub fn apply_child_jobs(&mut self, rows: Vec<ChildJob>) {
-        if let Some(linked) = &mut self.children.linked
+        if let Some(linked) = &self.children.linked
             && let Some(current) = rows.iter().find(|job| job.operation == linked.operation)
         {
-            *linked = current.clone();
+            self.refresh_linked_child(current.clone());
         }
         self.children.rows = rows;
         if self.children.selected().is_none() {
@@ -184,7 +205,9 @@ impl TuiState {
                 .map(|job| job.operation.clone());
             self.children.selected = selected;
         }
+        self.refresh_subagent_cards();
     }
+
     pub fn attach_linked_child(&mut self, selected: ChildJob) {
         self.chrome.location = Some(selected.location.clone());
         self.chrome.selection_generation = selected.generation;
@@ -201,6 +224,9 @@ impl TuiState {
                 && old.child == current.child
                 && old.generation == current.generation
                 && old.location == current.location
+                && old.delivery_id == current.delivery_id
+                && (matches!(old.state, ChildState::Admitted | ChildState::Running)
+                    || old.state == current.state)
         }) {
             self.children.linked = Some(current);
         }

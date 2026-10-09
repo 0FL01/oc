@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-09T18:29:28+00:00
+State updated: 2026-10-09T23:17:24+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,37 +12,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 model Shell capture — qualified slice
+# T44 captured inline Subagent — qualified slice
 
 ## Result
-Existing captures now project actual model-Shell live/frozen output, background and
-terminal state without changing recorded input, logical tool state, RAW/provider
-graph or provenance. Exact positively owned typed Shell notices replace technical
-RAW toast/User display; branch-hidden/untyped notices cannot query captures.
-Recovery remains unknown/interrupted, no successful-exit invention or replay.
-Receipt: evidence/tui/model-shell.md. Git determines actual commit/push status.
+Positive original-launch ChildJob cards now render inline explicit-model/
+foreground/background/continuation captions with painted-frame-safe navigation
+and error details. Full runtime/recovery identity remains separate from bounded
+UI metadata. Exact historical ReadChild handles stale/out-of16 captures without
+ghost workers, rebind or replay. RAW/input/logical tool/provider graph unchanged.
+Receipt: evidence/tui/subagent-cards.md; Git determines actual commit/push status.
 
 ## Checks
-Current1797/0/11 full no-fail-fast workspace, strict Clippy/fmt, debug/ordinary/
-release/help, release startup19/GET8/TERM01, original pacing/archive guards and
-Python47/DOM-WebGL/geometry/docs/progress checks PASS. Final built Root023–025
-80/120/160 each eight actual stages/side; child009–011 each twenty. Ordinary006
-and default/WebGL temporal002/matched002 qualify effects/caret without replay.
-Complete audit verifies384 opaque full PNGs/1152 seals/current527-entry manifests;
-378 strict comparisons DIFFERENT,4 EQUAL,4 separate native-only entries.
+Current1807/0/11 full no-fail-fast/strict Clippy/fmt/builds/help, release startup19/
+GET8/TERM01, original resource guards and Python47/comparator25/receipt2/frontend/
+tall-geometry/docs/progress PASS. Actual Subagent00515 states/side visits120/80/160;
+ordinary27 plus native details and default/WebGL temporal qualify effects/caret.
+Read-only audit verifies246 full opaque PNGs/738 seals/776928 cells/current532
+source entries. Direct240 DIFFERENT/4 EQUAL/4 native-only; matched72 pairs allDIFF.
 
 ## Risks
-Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Remaining Subagent/background/
-profile/Root/human-prefix/grammar/assets and all frozen outcomes are mandatory.
-Full frames retain declared input-scope, tail/guidance/underlay/timing/color
-differences. No mask, comparator waiver, original RAW decode, fake version,
-env/user config/GOAL/acceptance/Cargo.lock edit, new store/poll or paid calls.
-Earlier cropped/history campaigns remain immutable diagnostics, not current proof.
+Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Root/profile/human-prefix/
+grammar/assets and every frozen outcome/supplement/finalR6 remain mandatory.
+Input scopes/denied-vs-unknown error/timing/underlay differences are visible,
+not masked or waived. No config/env/GOAL/acceptance/Cargo.lock/paid/authority edit.
+Lossless gzip retains full cells/styles/cursor/strict schema; no historical rewrite.
+Owned evidence1015MiB leaves only about9MiB under unchanged1GiB guard; check before
+writing. No historical/foreign deletion or quota increase.
 
 ## Next
-Project captured typed Subagent/background/model/profile and Root captions, then
-human host prefix/grammar/assets and every remaining frozen outcome. Requalify
-actual current-source paired frames/effects and final R6/V09 before task finish.
+Continue captured profile/Root/human host prefix/grammar/assets presentation and
+all remaining frozen outcomes. Prefer existing owners/light source tests, plan
+bounded full lossless recordings within quota, then final current-source R6/V09.
+Do not finish T44 or promote earlier frames to current-source/full parity PASS.
 
 
 Ready (до 5): T58

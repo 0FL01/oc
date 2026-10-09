@@ -18,6 +18,7 @@ fn operation() -> ToolOpView {
         retained_lines: 2,
     });
     ToolOpView {
+        child_job: None,
         rowid: 1,
         op: "preview-operation".into(),
         name: "mcp_fixture".into(),

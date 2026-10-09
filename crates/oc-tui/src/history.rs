@@ -203,6 +203,30 @@ impl HistoryWindow {
     }
 
     /// Retained row count.
+    pub(crate) fn refresh_subagent_cards(
+        &mut self,
+        session: &oc_core::domain::SessionId,
+        jobs: &[oc_core::queries::ChildJob],
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        let mut changed = false;
+        for row in &mut self.rows {
+            if row.role == "tool"
+                && let Some(card) = &mut row.tool
+            {
+                changed |= card.refresh_subagent_job(session, jobs, picker);
+            }
+        }
+        if changed {
+            self.revision = self.revision.wrapping_add(1);
+        }
+        if changed && self.enforce(Evict::Oldest) {
+            self.has_older = true;
+        }
+        changed
+    }
+
+    /// Retained row count.
     pub fn len(&self) -> usize {
         self.rows.len()
     }
@@ -954,6 +978,7 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
     // TranscriptPart::Tool or provider ToolCallResult.
     ToolCard {
         op: shell.operation.clone(),
+        child_job: None,
         name: "shell".into(),
         state: shell.state.clone(),
         input_preview: preview(Some(&shell.command)),
@@ -974,6 +999,8 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
 /// One tool card: intent + outcome + bounded previews.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCard {
+    /// Original positively owned child-generation fence, never output prose.
+    pub child_job: Option<Box<oc_core::queries::ChildJob>>,
     /// Operation id.
     pub op: String,
     /// Tool name.
@@ -1007,6 +1034,69 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    pub(crate) fn refresh_subagent_job(
+        &mut self,
+        session: &oc_core::domain::SessionId,
+        jobs: &[oc_core::queries::ChildJob],
+        picker: Option<&crate::picker::ModelPicker>,
+    ) -> bool {
+        use oc_core::queries::ChildState;
+        let ToolRender::Subagent(render) = &mut self.render else {
+            return false;
+        };
+        let before = render.clone();
+        let job = jobs.iter().find(|job| {
+            job.parent == *session
+                && job.operation == self.op
+                && job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES
+        });
+        let job = job.filter(|job| {
+            self.child_job.as_ref().is_none_or(|captured| {
+                captured.parent == job.parent
+                    && captured.child == job.child
+                    && captured.operation == job.operation
+                    && captured.generation == job.generation
+                    && captured.location == job.location
+                    && captured.delivery_id == job.delivery_id
+            })
+        });
+        let mut changed = false;
+        if let Some(job) = job {
+            let terminal = self.child_job.as_ref().is_some_and(|job| {
+                !matches!(job.state, ChildState::Admitted | ChildState::Running)
+            });
+            if !terminal || !matches!(job.state, ChildState::Admitted | ChildState::Running) {
+                let mut job = job.clone();
+                job.result = None;
+                let job = Box::new(job);
+                changed = self.child_job.as_ref() != Some(&job);
+                self.child_job = Some(job);
+            }
+        }
+        render.live_running = job.is_some_and(|_| {
+            self.child_job
+                .as_ref()
+                .is_some_and(|job| matches!(job.state, ChildState::Admitted | ChildState::Running))
+        }) || self.child_job.as_ref().is_some_and(|captured| {
+            // Current child status is distinct from immutable original launch
+            // provenance. A genuine continuation may animate a historical row,
+            // but never replaces its original operation/generation or link.
+            jobs.iter().any(|current| {
+                current.parent == *session
+                    && current.parent == captured.parent
+                    && current.child == captured.child
+                    && current.operation != captured.operation
+                    && current.retained_bytes() <= oc_core::tool_output::RECORD_BYTES
+                    && matches!(current.state, ChildState::Admitted | ChildState::Running)
+            })
+        });
+        render.model_label = render
+            .model
+            .as_deref()
+            .and_then(|value| crate::tools::subagent_model_label(value, picker));
+        changed || before != *render
+    }
+
     pub(crate) fn is_model_shell(&self, operation: &str) -> bool {
         self.op == operation
             && matches!(&self.render, ToolRender::Shell(shell) if !shell.direct_user)
@@ -1146,6 +1236,10 @@ impl ToolCard {
     /// Retained payload bytes including parsed card/diff strings.
     pub(crate) fn retained_bytes(&self) -> usize {
         self.op.len()
+            + self
+                .child_job
+                .as_ref()
+                .map_or(0, |job| job.retained_bytes())
             + self.name.len()
             + self.state.len()
             + self.input_preview.len()
@@ -1277,7 +1371,21 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
             facts.stderr.ends_with('\n')
         };
     }
+    if let ToolRender::Subagent(render) = &mut render {
+        render.live_running = row.child_job.as_ref().is_some_and(|job| {
+            job.operation == row.op
+                && matches!(
+                    job.state,
+                    oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
+                )
+        });
+    }
     ToolCard {
+        child_job: row.child_job.clone().filter(|job| {
+            row.name == "subagent"
+                && job.operation == row.op
+                && job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES
+        }),
         op: row.op.clone(),
         name: row.name.clone(),
         state: row.state.clone(),
@@ -1520,6 +1628,7 @@ mod tests {
 
     fn page(rows: Vec<HistoryMessage>, total: usize, older: bool, newer: bool) -> HistoryPage {
         HistoryPage {
+            child_job: None,
             parent_id: None,
             title: None,
             reverted: None,
@@ -1859,6 +1968,7 @@ mod tests {
                 reason("**One**\n\nbody 1"),
                 reason("**Two**\n\nbody 2"),
                 TranscriptPart::Tool(ToolOpView {
+                    child_job: None,
                     output_presentation: None,
                     question: None,
                     rowid: 0,
@@ -2104,6 +2214,7 @@ mod tests {
     fn card_from_row_bounds_previews_and_parses_patch_text_only() {
         let patch = "*** Begin Patch\n*** Add File: added.txt\n+hello\n*** Update File: old.txt\n*** Move to: new.txt\n@@\n-old\n+new\n*** End Patch\n";
         let card = card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 0,
@@ -2127,6 +2238,7 @@ mod tests {
         // Alias keys are never consulted, parse failures invent nothing.
         for alias in ["patch", "text"] {
             let card = card_from_row(&ToolOpView {
+                child_job: None,
                 output_presentation: None,
                 question: None,
                 rowid: 0,
@@ -2144,6 +2256,7 @@ mod tests {
             assert!(card.files.is_empty(), "alias {alias} must be ignored");
         }
         let card = card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 0,
@@ -2164,6 +2277,7 @@ mod tests {
         // Non-apply_patch ops never list files, long fields are bounded.
         let long = "z".repeat(CARD_PREVIEW * 4);
         let card = card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 0,
@@ -2189,6 +2303,7 @@ mod tests {
         }
         let patch = format!("*** Begin Patch\n{files}*** End Patch\n");
         let card = card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 0,
@@ -2211,6 +2326,7 @@ mod tests {
     fn cards_from_rows_maps_every_row() {
         let rows = vec![
             ToolOpView {
+                child_job: None,
                 output_presentation: None,
                 question: None,
                 rowid: 0,
@@ -2226,6 +2342,7 @@ mod tests {
                 dcp_topic: None,
             },
             ToolOpView {
+                child_job: None,
                 output_presentation: None,
                 question: None,
                 rowid: 0,

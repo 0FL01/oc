@@ -191,6 +191,7 @@ fn direct_user_shell_terminal_errors_literal_prose_and_view_limits_remain_truthf
     assert!(text.contains("Input preview"));
     assert!(!text.contains("[truncated]") && !text.contains("full result retained"));
     let page = HistoryPage {
+        child_job: None,
         rows: vec![limited; 240],
         total: 240,
         has_older: false,

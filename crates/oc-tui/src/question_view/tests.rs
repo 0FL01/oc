@@ -156,6 +156,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
     .validate()
     .unwrap();
     let page = HistoryPage {
+        child_job: None,
         parent_id: None,
         title: None,
         reverted: None,
@@ -176,6 +177,7 @@ fn answered_question_metadata_obeys_the_existing_history_byte_budget() {
                     id: format!("turn-{seq}"),
                     status: "completed".into(),
                     parts: vec![TranscriptPart::Tool(ToolOpView {
+                        child_job: None,
                         output_presentation: None,
                         question: Some(result.clone()),
                         op: format!("op-{seq}"),

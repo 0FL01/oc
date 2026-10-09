@@ -839,6 +839,7 @@ async fn vis38_dcp_metadata_freezes_through_commit_replay_controls_and_session_s
         id: turn.0.clone(),
         agent_color_index: Some(2),
         parts: vec![TranscriptPart::Tool(ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 1,
@@ -1008,6 +1009,7 @@ async fn vis35_live_checkpoint_switch_fork_projection_and_reopen_keep_effects() 
     state.status = TuiStatus::Streaming;
     let effects = crate::patch_view::tests::effects();
     let operation = ToolOpView {
+        child_job: None,
         output_presentation: None,
         question: None,
         rowid: 1,

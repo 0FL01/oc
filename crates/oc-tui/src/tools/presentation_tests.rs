@@ -7,6 +7,7 @@ use oc_core::{
 
 fn operation(name: &str, output: &str, presentation: Option<Presentation>) -> ToolOpView {
     ToolOpView {
+        child_job: None,
         output_presentation: presentation.map(Box::new),
         question: None,
         rowid: 1,

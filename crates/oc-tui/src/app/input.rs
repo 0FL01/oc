@@ -1937,34 +1937,9 @@ impl TuiState {
                             .as_deref()
                             == Some(&op)
                     {
-                        let rect = crate::shell::transcript_area(self, area);
-                        let height = rect.height as usize;
-                        let (_, before, displayed) = self.visible_transcript_at_viewport(
-                            rect.width,
-                            area.width,
-                            rect.height,
-                        );
                         // Keep the clicked header at its painted row by anchoring
                         // the first visible row, rather than the bottom offset.
-                        let first = before.saturating_sub(height).saturating_sub(displayed);
-                        let rows = self.transcript_rows();
-                        self.exploration_expanded.retain(|id| {
-                            rows.iter()
-                                .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
-                        });
-                        if !self.exploration_expanded.insert(op.clone()) {
-                            self.exploration_expanded.remove(&op);
-                        }
-                        let (_, after) =
-                            self.visible_transcript(rect.width, area.width, rect.height);
-                        self.scroll = after.saturating_sub(height).saturating_sub(first);
-                        self.observe_transcript_viewport(
-                            rect.width,
-                            area.width,
-                            rect.height,
-                            after,
-                            self.scroll,
-                        );
+                        self.toggle_tool_expansion_at(&op, area);
                     }
                     // The pinned original toggles onMouseUp without a down.
                     // Admit that path only for a currently painted header; a

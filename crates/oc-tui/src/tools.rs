@@ -119,6 +119,12 @@ pub struct PatchRender {
 /// `subagent` card fields parsed from the recorded request and result.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SubagentRender {
+    /// Explicit recorded continuation input, not a returned session id.
+    pub continuation: bool,
+    /// Current existing supervisor inventory; logical completion is independent.
+    pub live_running: bool,
+    /// Human name for the explicit recorded model; unavailable names fall back.
+    pub model_label: Option<String>,
     /// Child agent id.
     pub agent: String,
     /// Short child title.
@@ -218,6 +224,7 @@ impl ToolRender {
                 s.agent.len()
                     + s.description.len()
                     + optional(&s.model)
+                    + optional(&s.model_label)
                     + optional(&s.child_session)
                     + optional(&s.child_state)
                     + optional(&s.error)
@@ -248,7 +255,7 @@ impl ToolRender {
             "shell" | "bash" => ToolRender::Shell(shell_render(name, value.as_ref(), output)),
             "apply_patch" => ToolRender::Patch(patch_render(value.as_ref(), output, state)),
             "edit" | "write" => ToolRender::Patch(Default::default()),
-            "subagent" => ToolRender::Subagent(subagent_render(value.as_ref(), output)),
+            "subagent" => ToolRender::Subagent(subagent_render(value.as_ref(), output, state)),
             "read" => ToolRender::Inline(InlineRender::Read {
                 path: string_arg(value.as_ref(), "path"),
             }),
@@ -434,9 +441,21 @@ fn patch_render(
     PatchRender { files, failed }
 }
 
-fn subagent_render(value: Option<&serde_json::Value>, output: Option<&str>) -> SubagentRender {
+fn subagent_render(
+    value: Option<&serde_json::Value>,
+    output: Option<&str>,
+    state: &str,
+) -> SubagentRender {
     let mut render = SubagentRender {
-        agent: string_arg(value, "agent"),
+        continuation: value
+            .and_then(|value| value.get("sessionID"))
+            .and_then(|value| value.as_str())
+            .is_some_and(|id| !id.is_empty()),
+        agent: value
+            .and_then(|value| value.get("agent").or_else(|| value.get("subagent_type")))
+            .and_then(|value| value.as_str())
+            .unwrap_or("General")
+            .to_owned(),
         description: string_arg(value, "description"),
         model: value
             .and_then(|value| value.get("model"))
@@ -444,47 +463,43 @@ fn subagent_render(value: Option<&serde_json::Value>, output: Option<&str>) -> S
             .map(str::to_string),
         ..SubagentRender::default()
     };
-    let Some(output) = output else {
-        return render;
-    };
-    if let Some(body) = output
-        .strip_prefix("<subagent ")
-        .and_then(|rest| rest.split_once('>'))
-        .and_then(|(attrs, body)| {
-            body.strip_suffix("</subagent>")
-                .map(|body| (attrs.to_string(), body.to_string()))
-        })
-    {
-        let (attrs, body) = body;
-        render.child_session = attr_value(&attrs, "sessionID");
-        render.child_state = attr_value(&attrs, "state");
-        render.result = body
-            .trim_matches('\n')
-            .lines()
-            .map(str::to_string)
-            .collect();
-        return render;
-    }
-    if let Some(reason) = output
-        .strip_prefix("error: subagent failed (sessionID: ")
-        .and_then(|rest| rest.split_once(')'))
-    {
-        render.child_session = Some(reason.0.to_string());
-        render.error = Some(reason.1.trim_start_matches(':').trim().to_string());
-        return render;
-    }
-    if let Some(reason) = output.strip_prefix("error: ") {
-        render.error = Some(reason.to_string());
-    }
+    // Result text remains data, never state, identity or navigation authority.
+    render.model_label = render
+        .model
+        .as_deref()
+        .and_then(|value| subagent_model_label(value, None));
+    render.error = matches!(state, "failed" | "unknown" | "cancelled")
+        .then(|| output.unwrap_or_default().to_owned());
     render
 }
 
-fn attr_value(attrs: &str, key: &str) -> Option<String> {
-    let needle = format!("{key}=\"");
-    let start = attrs.find(&needle)? + needle.len();
-    let rest = &attrs[start..];
-    let end = rest.find('"')?;
-    Some(rest[..end].to_string())
+pub(crate) fn subagent_model_label(
+    value: &str,
+    picker: Option<&crate::picker::ModelPicker>,
+) -> Option<String> {
+    if value.is_empty() {
+        return None;
+    }
+    let (reference, variant) = value
+        .split_once('#')
+        .map_or((value, None), |(reference, variant)| {
+            (reference, Some(variant))
+        });
+    let name = reference
+        .split_once('/')
+        .and_then(|(provider, id)| {
+            picker
+                .filter(|picker| picker.provider() == provider)
+                .and_then(|picker| picker.model_name(id))
+        })
+        .unwrap_or(reference);
+    Some(
+        if let Some(variant) = variant.filter(|variant| !variant.is_empty()) {
+            format!("{name} ({variant})")
+        } else {
+            name.to_owned()
+        },
+    )
 }
 
 /// True while the operation has no terminal state yet. `unknown` is the
@@ -544,6 +559,9 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         return lines;
     }
     if card.state == "permission_pending" {
+        if let ToolRender::Subagent(subagent) = &card.render {
+            return subagent_block(subagent, card, theme, width);
+        }
         if card.name == "apply_patch" {
             let frame = BlockFrame::new(theme, width);
             let path = if card.files.len() == 1 && !card.files_truncated {
@@ -578,6 +596,9 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         ];
     }
     if card.state == "argument_stream" {
+        if let ToolRender::Subagent(subagent) = &card.render {
+            return subagent_block(subagent, card, theme, width);
+        }
         let frame = BlockFrame::new(theme, width);
         let name = if card.name == "apply_patch" {
             "Patch".to_string()
@@ -1160,60 +1181,173 @@ fn subagent_block(
     theme: &Theme,
     width: u16,
 ) -> Vec<Line> {
-    let frame = BlockFrame::new(theme, width);
-    let muted = frame.body_style();
-    let error = ratatui::style::Style::default()
-        .fg(theme.error())
-        .bg(frame.bg);
-    let title = ratatui::style::Style::default()
-        .fg(theme.text())
-        .bg(frame.bg);
-    let mut out = vec![frame.row(&[])];
-    let running = is_running(&card.state);
-    let mut header = Vec::new();
-    if running {
-        // Subagent icons are `↳`/`│`/`✓` (`index.tsx:3173-3205`); the running
-        // card pairs `↳` with the pending `Delegating…`.
-        header.push(Span::styled("↳ ", title));
-        header.push(Span::styled("Delegating…", title));
-    } else {
-        let (icon, style) = if is_error_state(&card.state) {
-            ("✗", error)
+    subagent_block_expanded(subagent, card, theme, width, false)
+}
+
+pub(crate) fn subagent_failed(card: &ToolCard) -> bool {
+    matches!(card.state.as_str(), "failed" | "unknown")
+        && !matches!(&card.render,ToolRender::Subagent(render) if render.live_running)
+}
+
+/// InlineTool/InlineToolRow, including an indivisible base-surface status badge.
+/// Error detail is the bounded recorded error, not a child result transcript.
+pub(crate) fn subagent_block_expanded(
+    subagent: &SubagentRender,
+    card: &ToolCard,
+    theme: &Theme,
+    width: u16,
+    expanded: bool,
+) -> Vec<Line> {
+    use oc_core::queries::ChildState;
+    let known_terminal = card
+        .child_job
+        .as_ref()
+        .is_some_and(|job| !matches!(job.state, ChildState::Admitted | ChildState::Running));
+    let running = subagent.live_running
+        || (!known_terminal && matches!(card.state.as_str(), "started" | "running"));
+    // Native background results retain the recorded `running` operation state
+    // after returning the handle. Positive result bytes distinguish that real
+    // publication from an unfinished foreground await; never parse its prose.
+    let handle_returned =
+        card.state == "completed" || (card.state == "running" && card.output_bytes > 0);
+    let failed = subagent_failed(card);
+    let denied = card.state == "denied";
+    let style = ratatui::style::Style::default().fg(
+        if card.state == "permission_pending" || card.state == "cancelled" {
+            theme.warning()
+        } else if failed {
+            theme.error()
         } else {
-            ("✓", title)
-        };
-        header.push(Span::styled(format!("{icon} "), style));
-        header.push(Span::styled(
+            theme.text_muted()
+        },
+    );
+    let style = if denied {
+        style.add_modifier(ratatui::style::Modifier::CROSSED_OUT)
+    } else {
+        style
+    };
+    let pending = matches!(
+        card.state.as_str(),
+        "argument_stream" | "permission_pending"
+    ) || subagent.description.is_empty();
+    let icon = if pending || running && !subagent.continuation {
+        SPINNER
+    } else if subagent.continuation {
+        "↳"
+    } else if handle_returned {
+        "✓"
+    } else {
+        "│"
+    };
+    let label = if pending {
+        "Delegating…".to_owned()
+    } else {
+        let actor = if subagent.continuation {
+            "Continue subagent".to_owned()
+        } else {
             format!(
-                "{} Subagent — {}",
-                crate::messages::Locale::titlecase(&subagent.agent),
-                subagent.description
-            ),
-            title,
-        ));
-        if let Some(model) = &subagent.model {
-            header.push(Span::styled(format!(" · {model}"), muted));
+                "{} Subagent",
+                crate::messages::Locale::titlecase(&subagent.agent)
+            )
+        };
+        let description = if subagent.description.is_empty() {
+            "Subagent"
+        } else {
+            &subagent.description
+        };
+        let mut label = format!("{actor} — {description}");
+        if let Some(model) = &subagent.model_label {
+            label.push_str(&format!(" · {model}"));
+        }
+        label
+    };
+    let label = label
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect::<String>();
+    let indent = crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH;
+    let label = Line::new(vec![Span::styled(label, style)]);
+    let mut out = if width == 0 || width as usize > indent {
+        let labels = if width == 0 {
+            vec![label]
+        } else {
+            styled::wrap_line(&label, width as usize - indent)
+        };
+        labels
+            .into_iter()
+            .enumerate()
+            .map(|(index, line)| {
+                let mut spans = vec![
+                    Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
+                    if index == 0 {
+                        Span::styled(format!("{icon} "), style)
+                    } else {
+                        Span::plain(" ".repeat(TOOL_ICON_WIDTH))
+                    },
+                ];
+                spans.extend(line.spans().iter().cloned());
+                Line::new(spans)
+            })
+            .collect::<Vec<_>>()
+    } else {
+        styled::wrap_line(
+            &Line::new(vec![Span::styled(
+                format!("{icon} {}", label.plain_text()),
+                style,
+            )]),
+            width as usize,
+        )
+    };
+    // The mode belongs to the captured returned launch and persists after exit;
+    // current child running state above is deliberately a different fact.
+    if handle_returned && card.child_job.as_ref().is_some_and(|job| job.background) {
+        let badge = Span::styled(
+            " Background ",
+            ratatui::style::Style::default()
+                .fg(theme.text_muted())
+                .bg(theme.decrease(theme.background())),
+        );
+        let last = out.last_mut().expect("inline header");
+        if width == 0
+            || last.spans().iter().map(styled::span_width).sum::<usize>()
+                + 1
+                + styled::span_width(&badge)
+                <= width as usize
+        {
+            let mut spans = last.spans().to_vec();
+            spans.push(Span::plain(" "));
+            spans.push(badge);
+            *last = Line::new(spans);
+        } else {
+            out.push(Line::new(vec![
+                Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH)),
+                badge,
+            ]));
         }
     }
-    out.push(frame.row(&header));
-    if let Some(session) = &subagent.child_session {
-        let line = match &subagent.child_state {
-            Some(state) => format!("{session} · {state}"),
-            None => session.clone(),
-        };
-        out.push(frame.row(&[Span::styled(line, muted)]));
+    if failed
+        && expanded
+        && let Some(error) = &subagent.error
+    {
+        let pad = " ".repeat(crate::messages::MESSAGE_PADDING + TOOL_ICON_WIDTH);
+        for text in error.lines() {
+            let text = text
+                .chars()
+                .map(|c| if c.is_control() { ' ' } else { c })
+                .collect::<String>();
+            let line = Line::new(vec![Span::styled(text, style)]);
+            let lines = if width == 0 {
+                vec![line]
+            } else {
+                styled::wrap_line(&line, (width as usize).saturating_sub(indent).max(1))
+            };
+            for line in lines {
+                let mut spans = vec![Span::plain(pad.clone())];
+                spans.extend(line.spans().iter().cloned());
+                out.push(Line::new(spans));
+            }
+        }
     }
-    let omitted = subagent.result.len().saturating_sub(TOOL_OUTPUT_LINES);
-    if omitted > 0 {
-        out.push(frame.row(&[Span::styled(EARLIER_OUTPUT_OMITTED, muted)]));
-    }
-    for line in subagent.result.iter().skip(omitted) {
-        out.push(frame.row(&[Span::styled(line.clone(), muted)]));
-    }
-    if let Some(reason) = &subagent.error {
-        out.push(frame.row(&[Span::styled(format!("error: {reason}"), error)]));
-    }
-    out.push(frame.row(&[]));
     out
 }
 
@@ -1567,6 +1701,7 @@ mod tests {
         output: Option<&str>,
     ) -> ToolCard {
         card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: None,
             question: None,
             rowid: 0,
@@ -2104,6 +2239,7 @@ mod tests {
             cancelled: false,
         });
         let timed_out = card_from_row(&ToolOpView {
+            child_job: None,
             output_presentation: Some(Box::new(presentation)),
             question: None,
             rowid: 1,
@@ -2134,9 +2270,8 @@ mod tests {
         );
     }
 
-    /// Subagent card (`index.tsx:3173-3205`): `<Agent> Subagent — <desc> ·
-    /// <model>` with the child session/state parsed from the recorded
-    /// `<subagent sessionID … state …>` result; pending shows `Delegating…`.
+    /// Subagent InlineTool (`index.tsx:3173-3205`): no result blocks or prose
+    /// identity. Logical pending/completed/error use the exact source captions.
     #[test]
     fn golden_subagent_card() {
         let theme = Theme::dark();
@@ -2155,9 +2290,9 @@ mod tests {
             rows,
             vec![
                 String::new(),
-                "┃".to_string(),
-                "┃  ↳ Delegating…".to_string(),
-                "┃".to_string(),
+                "   ⋯ Explore Subagent — find configs".to_string(),
+                String::new(),
+                String::new(),
             ]
         );
 
@@ -2179,15 +2314,19 @@ mod tests {
             rows,
             vec![
                 String::new(),
-                "┃".to_string(),
-                "┃  ✓ Explore Subagent — find configs · ludka2/x".to_string(),
-                "┃  s-parent-sub-1 · completed".to_string(),
-                "┃  found 3 files".to_string(),
-                "┃".to_string(),
+                "   ✓ Explore Subagent — find configs · ludka2/x".to_string(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
             ]
         );
-        assert_eq!(buffer[(3, 2)].symbol(), "✓");
-        assert_eq!(buffer[(3, 2)].fg, theme.text());
+        assert_eq!(buffer[(3, 1)].symbol(), "✓");
+        assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
+        assert!(
+            completed.child_job.is_none(),
+            "legacy result prose is not authority"
+        );
 
         // A failed child shows the upstream-shaped reason in the error color.
         let failed = make_card(
@@ -2197,10 +2336,18 @@ mod tests {
             Some("error: subagent failed (sessionID: s-parent-sub-2): child crashed"),
         );
         let (rows, buffer) = render(&failed, 60, 5);
-        assert_eq!(rows[2], "┃  ✗ Explore Subagent — find configs");
-        assert_eq!(rows[3], "┃  s-parent-sub-2");
-        assert_eq!(rows[4], "┃  error: child crashed");
-        assert_eq!(buffer[(3, 2)].fg, theme.error());
+        assert_eq!(rows[1], "   │ Explore Subagent — find configs");
+        assert_eq!(rows[2..], ["", "", ""]);
+        assert_eq!(buffer[(3, 1)].fg, theme.error());
+        let ToolRender::Subagent(render) = &failed.render else {
+            panic!("subagent")
+        };
+        let detail = subagent_block_expanded(render, &failed, theme, 60, true);
+        assert!(
+            detail
+                .iter()
+                .any(|line| line.plain_text().contains("child crashed"))
+        );
     }
 
     /// Parsing is honest: unknown tools fall back to the generic renderer and

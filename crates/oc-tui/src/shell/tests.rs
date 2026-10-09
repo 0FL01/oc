@@ -29,6 +29,7 @@ fn msg(seq: i64, role: Role, text: &str) -> HistoryMessage {
 fn page(rows: Vec<HistoryMessage>) -> HistoryPage {
     let total = rows.len();
     HistoryPage {
+        child_job: None,
         parent_id: None,
         title: None,
         reverted: None,

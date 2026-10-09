@@ -60,7 +60,7 @@ export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,ca
     const {snapshots,...trace}=await page.evaluate(()=>finishCursorState());
     const shots=snapshots.length;
     recordTemporal(state,snapshots);
-    fs.writeFileSync(path.join(dir,'cursor-'+state+'.trace.json'),JSON.stringify(trace,null,2)+'\n');
+    fs.writeFileSync(path.join(dir,'cursor-'+state+'.trace.json'),JSON.stringify(trace)+'\n');
     const f=await frame(), phases=trace.samples.map(s=>s.raster.visible),rises=[];
     for(let i=1;i<phases.length;i++)if(!phases[i-1]&&phases[i])rises.push(trace.samples[i].at_ms);
     const periods=rises.slice(1).map((time,i)=>time-rises[i]);

@@ -1,0 +1,112 @@
+[
+  {
+    "at_ms": 1791584637006,
+    "kind": "subagent_card_submit",
+    "base64": "G1syMDB+VklTMzlfUk9PVF9UQVNLG1syMDF+DQ=="
+  },
+  {
+    "at_ms": 1791584640321,
+    "kind": "subagent_card_native_foreground_scope",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1791584642821,
+    "kind": "subagent_card_actual_background",
+    "base64": "Ag=="
+  },
+  {
+    "at_ms": 1791584645616,
+    "kind": "subagent_card_close_selector",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791584648701,
+    "kind": "subagent_card_preserved_draft",
+    "base64": "G1syMDB+VklTMzkgcGFyZW50IHVuc2VudCBkcmFmdBtbMjAxfg=="
+  },
+  {
+    "at_ms": 1791584652808,
+    "kind": "subagent_card_hover",
+    "base64": "G1s8MzU7ODs3TQ=="
+  },
+  {
+    "at_ms": 1791584656798,
+    "kind": "subagent_card_leave_header",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791584659005,
+    "kind": "subagent_card_hover",
+    "base64": "G1s8MzU7ODs3TQ=="
+  },
+  {
+    "at_ms": 1791584661114,
+    "kind": "subagent_card_leave_header",
+    "base64": "G1s8MzU7MTsxTQ=="
+  },
+  {
+    "at_ms": 1791584666631,
+    "kind": "subagent_card_hover",
+    "base64": "G1s8MzU7ODs3TQ=="
+  },
+  {
+    "at_ms": 1791584671660,
+    "kind": "subagent_card_open_captured_child",
+    "base64": "G1s8MDs4OzdNG1s8MDs4Ozdt"
+  },
+  {
+    "at_ms": 1791584676750,
+    "kind": "subagent_card_return_parent",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791584682263,
+    "kind": "subagent_card_native_child_selector",
+    "base64": "Bw=="
+  },
+  {
+    "at_ms": 1791584685779,
+    "kind": "subagent_card_enter_original_child",
+    "base64": "DQ=="
+  },
+  {
+    "at_ms": 1791584689552,
+    "kind": "subagent_card_source_shell_tab",
+    "base64": "G1tD"
+  },
+  {
+    "at_ms": 1791584693397,
+    "kind": "subagent_card_cancel_second_only",
+    "base64": "BA=="
+  },
+  {
+    "at_ms": 1791584697464,
+    "kind": "subagent_card_settled_parent",
+    "base64": "Gw=="
+  },
+  {
+    "at_ms": 1791584700930,
+    "kind": "subagent_card_clear_draft_for_next_user",
+    "base64": "Aw=="
+  },
+  {
+    "at_ms": 1791584703476,
+    "kind": "subagent_card_continue_same_child",
+    "base64": "G1syMDB+VklTMzlfQ09OVElOVUVfUk9PVF9UQVNLG1syMDF+DQ=="
+  },
+  {
+    "at_ms": 1791584712359,
+    "kind": "subagent_card_missing_agent",
+    "base64": "G1syMDB+VklTMzlfTUlTU0lOR19BR0VOVF9UQVNLG1syMDF+DQ=="
+  },
+  {
+    "at_ms": 1791584715988,
+    "kind": "subagent_card_expand_actual_error",
+    "base64": "G1s8MDs3OzI4TRtbPDA7NzsyOG0="
+  },
+  {
+    "at_ms": 1791584719643,
+    "kind": "subagent_card_collapse_actual_error",
+    "base64": "G1s8MDs3OzI4TRtbPDA7NzsyOG0="
+  }
+]

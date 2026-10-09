@@ -451,3 +451,21 @@ DIFFERENT/4 EQUAL, with four separate native-only entries. Historical cropped
 PNGs are not promoted. Whole R1–R6/VIS01–45/VIS39/T44 remains ACTIVE/NOT_PASS;
 continue Subagent/background/profile/Root/human-prefix/grammar/assets and every
 remaining frozen outcome before final current-source R6/V09.
+
+## Captured inline Subagent cards (2026-10-10 — qualified slice)
+
+[Factual receipt](../tui/subagent-cards.md) records positive original-launch
+metadata, separate full execution/recovery identity, exact historical ReadChild,
+inline explicit-model/background/continuation captions and painted-frame-safe
+navigation/error details. Full current workspace1807/0/11, strict Clippy/builds/
+help, release startup19/GET8/TERM01 and original resource guards PASS. Actual
+Subagent005 visits120/80/160 in one15-state episode per side; ordinary regression
+and default/WebGL temporal retain effects/caret without replay. Independent audit
+verifies246 opaque complete PNGs,776928 styled cells,738 seals and current532-entry
+manifests including the unchanged strict comparator semantics/lossless gzip codec.
+Direct results240 DIFFERENT/4 EQUAL plus4 separate native-only entries; matched
+temporal72 pairs/144 comparisons remain DIFFERENT. Native-denied/original-unknown
+missing-profile causes and input-scope/Root/timing/underlay differences remain
+explicit. Owned evidence1015MiB stays below the unchanged1GiB guard without
+historical deletion. Whole R1–R6/VIS01–45/VIS39/T44 remains ACTIVE/NOT_PASS:
+continue every remaining frozen outcome/supplement and final current-source R6/V09.

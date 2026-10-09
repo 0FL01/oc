@@ -3,6 +3,198 @@ use super::*;
 const LAUNCH_OUTPUT: &str = "{\"status\":\"running\",\"sessionID\":\"child\",\"jobGeneration\":\"launch\",\"deliveryID\":\"child-delivery:launch\"}";
 
 #[test]
+fn child_tool_projection_requires_exact_launch_and_keeps_each_continuation_generation() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    let job = admitted(&db);
+    let original = db.list_tool_ops("parent").unwrap();
+    assert_eq!(
+        db.child_tool_job("parent", "launch").unwrap(),
+        Some(job.clone())
+    );
+    assert!(db.child_tool_job("child", "launch").unwrap().is_none());
+    assert!(db.child_tool_job("foreign", "launch").unwrap().is_none());
+    assert!(db.child_tool_job("parent", "copied").unwrap().is_none());
+    let (identity, launch) = {
+        let conn = db.conn.lock().unwrap();
+        (
+            conn.query_row(
+                "SELECT identity FROM child_jobs WHERE operation_id='launch'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+            conn.query_row(
+                "SELECT payload FROM events WHERE kind='subagent_launch'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        )
+    };
+    for field in [
+        "parent",
+        "child",
+        "operation",
+        "delivery_id",
+        "location",
+        "generation",
+    ] {
+        let mut invalid: serde_json::Value = serde_json::from_str(&identity).unwrap();
+        invalid[field] = if field == "generation" {
+            serde_json::json!(8)
+        } else {
+            serde_json::json!("foreign")
+        };
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+                [invalid.to_string()],
+            )
+            .unwrap();
+        assert!(
+            db.child_tool_job("parent", "launch").unwrap().is_none(),
+            "{field}"
+        );
+    }
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            [&identity],
+        )
+        .unwrap();
+    for generation in [
+        serde_json::json!(true),
+        serde_json::json!(7.0),
+        serde_json::json!(8),
+    ] {
+        let mut invalid: serde_json::Value = serde_json::from_str(&launch).unwrap();
+        invalid["generation"] = generation;
+        db.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE events SET payload=?1 WHERE kind='subagent_launch'",
+                [invalid.to_string()],
+            )
+            .unwrap();
+        assert!(db.child_tool_job("parent", "launch").unwrap().is_none());
+    }
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE events SET payload='broken' WHERE kind='subagent_launch'",
+            [],
+        )
+        .unwrap();
+    assert!(db.child_tool_job("parent", "launch").unwrap().is_none());
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE events SET payload=?1 WHERE kind='subagent_launch'",
+            [&launch],
+        )
+        .unwrap();
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE events SET kind='not-launch' WHERE kind='subagent_launch'",
+            [],
+        )
+        .unwrap();
+    assert!(db.child_tool_job("parent", "launch").unwrap().is_none());
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE events SET kind='subagent_launch' WHERE kind='not-launch'",
+            [],
+        )
+        .unwrap();
+    // A large but admitted identity has a bounded display caption, not copied
+    // child output. Oversized identities are honestly unavailable altogether.
+    let mut caption = job.clone();
+    caption.description = "Ω界".repeat(2000);
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            [serde_json::to_string(&caption).unwrap()],
+        )
+        .unwrap();
+    let bounded = db.child_tool_job("parent", "launch").unwrap().unwrap();
+    assert!(bounded.description.len() <= TOOL_OP_PREVIEW_BYTES);
+    assert!(bounded.description.ends_with('…'));
+    assert!(bounded.retained_bytes() <= oc_core::tool_output::RECORD_BYTES);
+    caption.description = "x".repeat(oc_core::tool_output::RECORD_BYTES);
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            [serde_json::to_string(&caption).unwrap()],
+        )
+        .unwrap();
+    assert!(db.child_tool_job("parent", "launch").unwrap().is_none());
+    db.conn
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE child_jobs SET identity=?1 WHERE operation_id='launch'",
+            [&identity],
+        )
+        .unwrap();
+    db.finish_child_job(
+        "launch",
+        ChildState::Completed,
+        "literal cancelled error must not classify state",
+    )
+    .unwrap();
+    let completed = db.child_tool_job("parent", "launch").unwrap().unwrap();
+    assert_eq!(completed.state, ChildState::Completed);
+    assert!(completed.background && completed.result.is_none());
+    let continued = ChildJob {
+        operation: "continue".into(),
+        generation: 8,
+        delivery_id: "child-delivery:continue".into(),
+        ..job
+    };
+    db.record_tool_intent(
+        "continue",
+        "parent",
+        None,
+        "subagent",
+        r#"{"sessionID":"child","description":"again"}"#,
+    )
+    .unwrap();
+    db.admit_child_job(&continued).unwrap();
+    assert_eq!(
+        db.child_tool_job("parent", "continue").unwrap(),
+        Some(continued)
+    );
+    assert_eq!(
+        db.child_tool_job("parent", "launch").unwrap(),
+        Some(completed)
+    );
+    assert_eq!(
+        db.list_tool_ops("parent")
+            .unwrap()
+            .into_iter()
+            .find(|row| row.op == "launch")
+            .unwrap(),
+        original[0]
+    );
+}
+
+#[test]
 fn conversion_terminal_race_has_one_mode_event_one_notice_and_immutable_launch() {
     for convert_first in [false, true] {
         let dir = tempfile::tempdir().unwrap();
@@ -18,6 +210,8 @@ fn conversion_terminal_race_has_one_mode_event_one_notice_and_immutable_launch()
             )
             .unwrap();
         let before = db.list_tool_ops("parent").unwrap();
+        let captured = db.child_tool_job("parent", "launch").unwrap().unwrap();
+        assert!(!captured.background);
         let launch = db
             .conn
             .lock()
@@ -48,6 +242,15 @@ fn conversion_terminal_race_has_one_mode_event_one_notice_and_immutable_launch()
         let current = db.child_jobs("parent").unwrap().remove(0);
         assert_eq!(current.state, ChildState::Completed);
         assert_eq!(current.background, convert_first);
+        let projected = db.child_tool_job("parent", "launch").unwrap().unwrap();
+        assert_eq!(projected.state, ChildState::Completed);
+        assert_eq!(projected.background, convert_first);
+        assert_eq!(projected.parent, captured.parent);
+        assert_eq!(projected.child, captured.child);
+        assert_eq!(projected.operation, captured.operation);
+        assert_eq!(projected.location, captured.location);
+        assert_eq!(projected.generation, captured.generation);
+        assert!(projected.result.is_none());
         assert_eq!(
             current.result.as_deref(),
             Some("error: typed successful prose")
@@ -147,6 +350,10 @@ fn admitted(db: &Db) -> ChildJob {
 }
 
 fn admitted_input(db: &Db, input: &str) -> ChildJob {
+    admitted_description(db, input, "work")
+}
+
+fn admitted_description(db: &Db, input: &str, description: &str) -> ChildJob {
     db.create_session("parent").unwrap();
     db.create_child_session(
         "parent",
@@ -168,7 +375,7 @@ fn admitted_input(db: &Db, input: &str) -> ChildJob {
         location: "/original".into(),
         agent: "helper".into(),
         model: "fixture/child".into(),
-        description: "work".into(),
+        description: description.into(),
         delivery_id: "child-delivery:launch".into(),
         state: ChildState::Admitted,
         background: true,
@@ -178,6 +385,58 @@ fn admitted_input(db: &Db, input: &str) -> ChildJob {
     };
     db.admit_child_job(&job).unwrap();
     job
+}
+
+#[test]
+fn bounded_child_cards_do_not_truncate_execution_or_recovery_identity() {
+    for bytes in [9 * 1024, 40 * 1024] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        let description = "x".repeat(bytes);
+        let input = serde_json::json!({"background":true,"description":description}).to_string();
+        let accepted = admitted_description(&db, &input, &description);
+        assert_eq!(db.child_jobs("parent").unwrap(), vec![accepted.clone()]);
+        assert_eq!(
+            db.child_job("parent", &accepted.operation).unwrap(),
+            Some(accepted.clone())
+        );
+        assert_eq!(
+            db.child_recovery_candidates().unwrap(),
+            vec![accepted.clone()]
+        );
+        let cards = db.child_tool_jobs("parent").unwrap();
+        if bytes < oc_core::tool_output::RECORD_BYTES {
+            assert_eq!(cards.len(), 1);
+            assert!(cards[0].description.len() <= TOOL_OP_PREVIEW_BYTES);
+            assert!(cards[0].description.ends_with('…'));
+        } else {
+            assert!(
+                cards.is_empty(),
+                "oversized display identity is honestly unavailable"
+            );
+        }
+        db.finish_child_job(
+            &accepted.operation,
+            ChildState::Completed,
+            "actual successful result",
+        )
+        .unwrap();
+        let actual = db.child_jobs("parent").unwrap().pop().unwrap();
+        assert_eq!(actual.description, description);
+        assert_eq!(
+            db.child_job("parent", &accepted.operation)
+                .unwrap()
+                .unwrap(),
+            actual
+        );
+        assert_eq!(actual.state, ChildState::Completed);
+        assert_eq!(actual.result.as_deref(), Some("actual successful result"));
+        assert!(db.child_recovery_candidates().unwrap().is_empty());
+        assert_eq!(
+            db.list_tool_ops("parent").unwrap()[0].input.as_deref(),
+            Some(input.as_str())
+        );
+    }
 }
 
 #[test]
@@ -793,11 +1052,30 @@ fn recursive_fork_preserves_launch_and_notice_without_child_authority_or_foreign
     )
     .unwrap();
     let boundary = db.append_message("parent", "user", "boundary").unwrap();
+    let projection = db
+        .turn_presentation("parent", "parent-turn")
+        .unwrap()
+        .unwrap();
+    let oc_core::queries::TranscriptPart::Tool(tool) = &projection.parts[0] else {
+        panic!("real recorded tool")
+    };
+    assert_eq!(
+        tool.child_job.as_deref(),
+        db.child_tool_job("parent", "launch").unwrap().as_ref()
+    );
+    assert_eq!(tool.state, "running");
+    assert_eq!(tool.output.as_deref(), Some(LAUNCH_OUTPUT));
     let raw = db.read_history_full("parent").unwrap();
     let fork = db
         .fork_session("parent", &boundary, "/original", "fixture", "{}")
         .unwrap();
     assert!(db.child_jobs(&fork.session.0).unwrap().is_empty());
+    let copied_operation = db.list_tool_ops(&fork.session.0).unwrap()[0].op.clone();
+    assert!(
+        db.child_tool_job(&fork.session.0, &copied_operation)
+            .unwrap()
+            .is_none()
+    );
     assert_eq!(
         db.list_tool_ops(&fork.session.0).unwrap()[0].state,
         "running"
@@ -823,6 +1101,12 @@ fn recursive_fork_preserves_launch_and_notice_without_child_authority_or_foreign
         )
         .unwrap();
     assert!(db.child_jobs(&nested.session.0).unwrap().is_empty());
+    let copied_operation = db.list_tool_ops(&nested.session.0).unwrap()[0].op.clone();
+    assert!(
+        db.child_tool_job(&nested.session.0, &copied_operation)
+            .unwrap()
+            .is_none()
+    );
     assert_eq!(
         db.list_tool_ops(&nested.session.0).unwrap()[0].state,
         "running"

@@ -102,8 +102,16 @@ def snapshot(home, project, spec):
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
-    artifacts = {str(p.relative_to(home)): {'bytes':p.stat().st_size, 'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
-                 for p in (home / 'data').rglob('tool-output/*') if p.is_file()}
+    artifacts = {}
+    for file in (home / 'data').rglob('tool-output/*'):
+        # Active capture parts are atomically renamed by their real owner. Their
+        # live descriptor remains in the SQL snapshot; only frozen artifacts
+        # belong in the immutable no-replay hash comparison.
+        if file.suffix == '.part' or not file.is_file():
+            continue
+        data = file.read_bytes()
+        artifacts[str(file.relative_to(home))] = {
+            'bytes':len(data), 'sha256':hashlib.sha256(data).hexdigest()}
     effect = project / ('tool-preview-' + spec['origin'] + '.effects')
     effect_bytes = None
     if effect.exists():

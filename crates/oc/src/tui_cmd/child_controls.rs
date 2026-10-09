@@ -1,7 +1,7 @@
 //! Linked read-only navigation over the existing owner; root deck never changes.
 use super::*;
 use oc_core::core_app::WorkerTurnId;
-use oc_core::queries::ChildJob;
+use oc_core::queries::{ChildJob, HistoryPage};
 
 #[cfg(test)]
 mod tests;
@@ -64,11 +64,36 @@ pub(super) async fn refresh(app: &CoreApp, state: &mut TuiState) -> Result<(), S
     Ok(())
 }
 
-async fn view(app: &CoreApp, selected: ChildJob) -> Result<TuiState, String> {
-    let page = app
-        .read_child(selected.parent.clone(), selected.clone())
-        .await
-        .map_err(|e| e.to_string())?;
+fn same_launch(a: &ChildJob, b: &ChildJob) -> bool {
+    a.parent == b.parent
+        && a.child == b.child
+        && a.operation == b.operation
+        && a.generation == b.generation
+        && a.location == b.location
+        && a.delivery_id == b.delivery_id
+}
+
+async fn view(
+    app: &CoreApp,
+    selected: ChildJob,
+    page: Option<&HistoryPage>,
+) -> Result<TuiState, String> {
+    let loaded;
+    let page = if let Some(page) = page {
+        page
+    } else {
+        loaded = app
+            .read_child(selected.parent.clone(), selected.clone())
+            .await
+            .map_err(|e| e.to_string())?;
+        &loaded
+    };
+    let selected = page
+        .child_job
+        .as_deref()
+        .filter(|job| same_launch(job, &selected))
+        .cloned()
+        .unwrap_or(selected);
     let mut catalog = app.catalog().await.map_err(|e| e.to_string())?;
     if let Some((provider, model)) = selected.model.split_once('/') {
         catalog.provider = provider.into();
@@ -82,7 +107,7 @@ async fn view(app: &CoreApp, selected: ChildJob) -> Result<TuiState, String> {
     catalog.chrome.location = Some(selected.location.clone());
     catalog.chrome.selection_generation = selected.generation;
     let mut view = TuiState::new(app.clone(), selected.child.clone());
-    view.attach_page(&page);
+    view.attach_page(page);
     view.apply_catalog(catalog);
     view.attach_linked_child(selected);
     if let Some(job) = view.linked_child()
@@ -118,17 +143,31 @@ pub(super) async fn open(
         .await
         .map_err(|e| e.to_string())?
         .into_iter()
-        .find(|j| j.operation == selected.operation)
-        .ok_or_else(|| "child generation unavailable".to_owned())?;
+        .find(|j| same_launch(j, &selected));
     let page = app
-        .read_child(selected.parent.clone(), selected)
+        .read_child(selected.parent.clone(), selected.clone())
         .await
         .map_err(|e| e.to_string())?;
-    let selected = current;
+    // The exact read owner returns current original-launch facts even when the
+    // old Running capture just terminalized outside the bounded inventory.
+    let selected = page
+        .child_job
+        .as_deref()
+        .filter(|job| same_launch(job, &selected))
+        .cloned()
+        .or(current)
+        .or_else(|| {
+            (!matches!(
+                selected.state,
+                oc_core::queries::ChildState::Admitted | oc_core::queries::ChildState::Running
+            ))
+            .then_some(selected)
+        })
+        .ok_or_else(|| "child generation unavailable".to_owned())?;
     let mut next = if let Some(view) = deck.child_views.remove(&selected.child) {
         view
     } else {
-        view(app, selected.clone()).await?
+        view(app, selected.clone(), Some(&page)).await?
     };
     next.attach_linked_child(selected);
     if let Some(current) = next.linked_child().cloned()
@@ -255,9 +294,9 @@ pub(super) async fn route_event(
                     }
                     if deck.child_views.len() < 16 {
                         deck.child_views
-                            .insert(owner.clone(), view(app, selected.clone()).await?);
+                            .insert(owner.clone(), view(app, selected.clone(), None).await?);
                     }
-                    if state.children_open() {
+                    if state.children_open() || state.has_subagent_cards() {
                         refresh(app, state).await?;
                     }
                     break;
@@ -275,7 +314,17 @@ pub(super) async fn route_event(
         ))
         .await?;
         park(deck, child);
-        if state.children_open() || state.linked_child().is_some() {
+        if state.children_open()
+            || state.linked_child().is_some()
+            || state.has_subagent_cards()
+                && matches!(
+                    event,
+                    CoreEvent::TurnStarted { .. }
+                        | CoreEvent::TurnFinished { .. }
+                        | CoreEvent::TurnFailed { .. }
+                        | CoreEvent::TurnInterrupted { .. }
+                )
+        {
             refresh(app, state).await?;
         }
         return Ok(true);

@@ -541,6 +541,7 @@ mod tests {
                         status: "completed".into(),
                         parts: vec![
                             TranscriptPart::Tool(ToolOpView {
+                                child_job: None,
                                 output_presentation: None,
                                 question: None,
                                 op: "tool".into(),

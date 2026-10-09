@@ -7,6 +7,7 @@ import {createRequire} from 'node:module';
 import {spawn, spawnSync} from 'node:child_process';
 import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
+import {gzipSync} from 'node:zlib';
 import {probeMessageActions} from './message_actions.mjs';
 import {probeBounded} from './bounded.mjs';
 import {probeWheel} from './wheel.mjs';
@@ -38,6 +39,8 @@ const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const cleanServices = args['clean-services'] === 'true';
 const toolPreview = args['tool-preview'] === 'true';
+const compressCells = args['compress-cells'] === 'true';
+if(args['compress-cells']!==undefined&&(!toolPreview||!['true','false'].includes(args['compress-cells'])))throw Error('--compress-cells requires tool-preview and true|false');
 const mcpStatus = args['mcp-status'] === 'true';
 const mcpFooter = args['mcp-footer'];
 const promptCaret=args['prompt-caret']==='true';
@@ -45,6 +48,8 @@ const promptHistory=args['prompt-history'];
 const userShell=args['user-shell']==='true';
 const combinedComposer=args['combined-composer']==='true';
 const modelShell=args['model-shell']==='true';
+const subagentCards=args['subagent-cards']==='true';
+if(args['subagent-cards']!==undefined&&(!combinedComposer||modelShell||!['true','false'].includes(args['subagent-cards'])))throw Error('--subagent-cards requires child combined-composer and true|false');
 if(args['model-shell']!==undefined&&(!combinedComposer||!['true','false'].includes(args['model-shell'])))throw Error('--model-shell requires combined-composer and true|false');
 if(args['combined-composer']!==undefined&&(!toolPreview||!['true','false'].includes(args['combined-composer'])||userShell||promptHistory||promptCaret||mcpStatus||args['cursor-temporal']))throw Error('--combined-composer requires exclusive ordinary tool-preview and true|false');
 if(args['user-shell']!==undefined&&(!toolPreview||!['true','false'].includes(args['user-shell'])||promptHistory||promptCaret||mcpStatus||args['cursor-temporal']))throw Error('--user-shell requires exclusive ordinary tool-preview and true|false');
@@ -64,7 +69,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal||combinedComposer?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','compress-cells','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -343,7 +348,7 @@ const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
-    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
+    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
     ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
     ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
@@ -368,7 +373,8 @@ const diff = execute(['git', 'diff', '--binary']).stdout;
 // restrict discovery to source/tool paths: never inspect authoring .opencode or
 // product credentials. HEAD + tracked diff alone does not attest untracked code.
 const sourcePaths = execute(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard', '--',
-  'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates', 'scripts/tui_capture']);
+  'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates', 'scripts/tui_capture',
+  'tui-recovery/scripts/compare_frames.py', 'tui-recovery/scripts/test_compare_frames.py']);
 if (sourcePaths.status !== 0) throw Error('Source input enumeration failed');
 const sourceManifest = Object.fromEntries([...new Set(sourcePaths.stdout.split('\0').filter(Boolean))].sort()
   .filter(name => fs.existsSync(path.join(repo,name)))
@@ -460,7 +466,7 @@ try {
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
      cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
-        ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
+        ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,cells_encoding:compressCells?'gzip':'json',refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
@@ -496,7 +502,8 @@ try {
                     prompt_history:promptHistory||null,
                      user_shell:userShell,
                       combined_composer:combinedComposer,
-                      model_shell:modelShell,
+                       model_shell:modelShell,
+                       subagent_cards:subagentCards,
                 cursor_temporal:cursorTemporal||null,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
@@ -566,8 +573,8 @@ try {
     };
      const capture = async (scenario, f, status, scannerSignature) => {
       const name = path.join(dir,scenario);
-      if ((scanner && ['.cells.json','.txt','.png','.render.json','.vt'].some(ext=>fs.existsSync(name+ext))) ||
-          fs.existsSync(name+'.cells.json')) throw Error('Refusing to overwrite scenario: '+name);
+      if ((scanner && ['.cells.json','.cells.json.gz','.txt','.png','.render.json','.vt'].some(ext=>fs.existsSync(name+ext))) ||
+          fs.existsSync(name+'.cells.json')||fs.existsSync(name+'.cells.json.gz')) throw Error('Refusing to overwrite scenario: '+name);
       // Repaint the same VT buffer on both sides to distinguish a stale xterm
       // DOM row left behind by resize from a real application cell mismatch.
       // This never changes the buffer, input sequence, or comparator regions.
@@ -599,9 +606,11 @@ try {
        // per-side observations and must not alter the paired environment ID.
        const environment = sha(canonical(profile));
       const {text, ...grid} = f;
-      fs.writeFileSync(name+'.cells.json', JSON.stringify({schema_version:1, origin, scenario,
+      const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
+      const cellsBytes=Buffer.from(JSON.stringify({schema_version:1, origin, scenario,
         fixture_sha256:fixtureSha, environment_id:environment,
         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
+      fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
       fs.writeFileSync(name+'.txt', text+'\n');
        const render = {schema_version:1, origin, scenario, environment_id:environment,
          terminal_refresh_from_buffer:refreshed,
@@ -610,7 +619,7 @@ try {
            paused_grid_stable:sha(JSON.stringify(afterFrame))===sha(JSON.stringify(f))} : {}), before, after,
         layout_changed_during_screenshot:canonical(before)!==canonical(after),
         screenshot: {clip, png_width:png.readUInt32BE(16), png_height:png.readUInt32BE(20)}};
-      fs.writeFileSync(name+'.render.json',JSON.stringify(render,null,2)+'\n');
+       fs.writeFileSync(name+'.render.json',JSON.stringify(render)+'\n');
        if(sha(JSON.stringify(afterFrame)) !== sha(JSON.stringify(f)) ||
            (scannerSignature && scannerSignature.read(afterFrame)!==scannerSignature.expected)) {
           status='UNSTABLE_CAPTURE'; result=1;
@@ -618,7 +627,7 @@ try {
       }
       fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));
       lock.captures.push({origin,scenario,status,environment_id:environment,
-        cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(fs.readFileSync(name+'.png')),
+        cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:sha(fs.readFileSync(name+'.png')),
         render_sha256:sha(fs.readFileSync(name+'.render.json')),
         path:path.relative(output,name)});
       lock.profile=profile; json('capture.lock.json',lock);
@@ -636,14 +645,18 @@ try {
         const phase=snapshot.raster.visible?'visible':'hidden';
         const scenario='cursor-'+state+'-phase-'+phase+'-'+String(phases[phase]++).padStart(2,'0');
         const name=path.join(dir,scenario);
-        if(fs.existsSync(name+'.cells.json'))throw Error('Refusing to overwrite temporal frame');
-        const {png_base64,...observation}=snapshot;
-        const png=Buffer.from(png_base64,'base64'),environment=sha(canonical(profile)),{text,...grid}=observation.frame;
+        if(fs.existsSync(name+'.cells.json')||fs.existsSync(name+'.cells.json.gz'))throw Error('Refusing to overwrite temporal frame');
+        const {png_base64,frame:observedFrame,...observation}=snapshot;
+        const png=Buffer.from(png_base64,'base64'),environment=sha(canonical(profile)),{text,...grid}=observedFrame;
         fs.writeFileSync(name+'.png',png);
-        fs.writeFileSync(name+'.cells.json',JSON.stringify({schema_version:1,origin,scenario,fixture_sha256:fixtureSha,environment_id:environment,producer_commit:origin==='upstream'?lock.sources.upstream_commit:commit,...grid}));
+        const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
+        const cellsBytes=Buffer.from(JSON.stringify({schema_version:1,origin,scenario,fixture_sha256:fixtureSha,environment_id:environment,producer_commit:origin==='upstream'?lock.sources.upstream_commit:commit,...grid}));
+        fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
         fs.writeFileSync(name+'.txt',text+'\n');
-        fs.writeFileSync(name+'.render.json',JSON.stringify({schema_version:1,origin,scenario,environment_id:environment,temporal_unsettled:true,actual_renderer_canvas:true,observation,screenshot:{png_width:png.readUInt32BE(16),png_height:png.readUInt32BE(20)}}));
-        lock.captures.push({origin,scenario,status:'CAPTURED_TEMPORAL_SEQUENCE',environment_id:environment,cells_sha256:sha(fs.readFileSync(name+'.cells.json')),png_sha256:sha(png),render_sha256:sha(fs.readFileSync(name+'.render.json')),path:path.relative(output,name)});
+        // The complete observed grid is already sealed alongside the raster.
+        // Reference those exact bytes instead of retaining a second full copy.
+        fs.writeFileSync(name+'.render.json',JSON.stringify({schema_version:2,origin,scenario,environment_id:environment,temporal_unsettled:true,actual_renderer_canvas:true,observation:{...observation,frame_file:path.basename(cellsFile),frame_sha256:sha(fs.readFileSync(cellsFile))},screenshot:{png_width:png.readUInt32BE(16),png_height:png.readUInt32BE(20)}}));
+        lock.captures.push({origin,scenario,status:'CAPTURED_TEMPORAL_SEQUENCE',environment_id:environment,cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:sha(png),render_sha256:sha(fs.readFileSync(name+'.render.json')),path:path.relative(output,name)});
       }
       json('capture.lock.json',lock);
     };
@@ -691,7 +704,7 @@ try {
                 promptProbe:promptCaret?probePromptCaret:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
-                   composerProbe:combinedComposer?args=>probeComposer({...args,modelShell}):null,
+                    composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards}):null,
                mcpProbe:mcpStatus?args=>(mcpFooter?probeMcpFooter({...args,mode:mcpFooter}):probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')})):null,
               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
@@ -3042,7 +3055,7 @@ try {
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
       if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
-      if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
+      if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
        if(promptCaret)lock.qualification={status:'DIAGNOSTIC_PROMPT_CARET_ONLY',actual_requests:'One explicit edited user prompt plus title; zero tools/MCP/Shell effects',observation:'Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay'};
        if(promptHistory)lock.qualification={status:'DIAGNOSTIC_PROMPT_HISTORY_ONLY',mode:promptHistory,actual_requests:'Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects',observation:'Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor'};
@@ -3051,7 +3064,7 @@ try {
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {
     for (const mode of ['grid','png']) {
-      const ext=mode==='grid'?'cells.json':'png';
+      const ext=mode==='grid'?'cells.json'+(compressCells?'.gz':''):'png';
       const stage=scanner && scenario.startsWith('scanner-') ? scenario.slice('scanner-'.length) : null;
       const paired=stage && lock.scanner?.oc?.checks.stages[stage];
       if(stage && paired?.status==='UNMATCHED_PHASE') {

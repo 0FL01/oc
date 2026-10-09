@@ -172,6 +172,7 @@ fn page(older: usize) -> HistoryPage {
                 parts: vec![
                     TranscriptPart::Text(markdown.clone()),
                     TranscriptPart::Tool(ToolOpView {
+                        child_job: None,
                         output_presentation: None,
                         question: None,
                         op: "render-stress-op".into(),

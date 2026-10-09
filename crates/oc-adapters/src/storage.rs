@@ -3028,7 +3028,8 @@ impl Db {
                     let state: String = r.get(2)?;
                     let question = self.question_presentation_in(&conn, &name, &state, raw.as_deref());
                     let output_presentation=Self::tool_presentation_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?;
-                    Ok(ToolOpView{output_presentation,question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
+                    let child_job=if name=="subagent" { Self::child_tool_job_in(&conn,session,op).map_err(|_|rusqlite::Error::InvalidQuery)?.map(Box::new) } else { None };
+                    Ok(ToolOpView{child_job,output_presentation,question,dcp_topic,dcp,patch_effects:decode_patch_effects(r.get(6)?),op:op.to_string(),rowid:r.get(0)?,name,state,input,output,output_bytes:bytes,output_truncated})
                 }).optional()?;
                 if let Some(mut view) = view {
                     if let Some(question) = &view.question {
@@ -3052,6 +3053,18 @@ impl Db {
                     // never let the independent SQL preview exceed the turn cap.
                     let mut remaining =
                         budget.saturating_sub(view.input.as_ref().map_or(0, String::len));
+                    let child_bytes = view
+                        .child_job
+                        .as_ref()
+                        .map_or(0, |job| job.retained_bytes());
+                    let child_bytes = if child_bytes > remaining {
+                        view.child_job = None;
+                        state.truncated = true;
+                        0
+                    } else {
+                        remaining -= child_bytes;
+                        child_bytes
+                    };
                     let presentation_bytes = view
                         .output_presentation
                         .as_ref()
@@ -3076,7 +3089,8 @@ impl Db {
                     budget = budget.saturating_sub(
                         view.input.as_ref().map_or(0, String::len)
                             + view.output.as_ref().map_or(0, String::len)
-                            + presentation_bytes,
+                            + presentation_bytes
+                            + child_bytes,
                     );
                     turn.parts.push(TranscriptPart::Tool(view));
                 }

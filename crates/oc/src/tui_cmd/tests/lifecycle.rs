@@ -3281,6 +3281,7 @@ async fn cards_cursor_follows_parked_view_and_pages_from_oldest_loaded_row() {
                 rows: ids
                     .into_iter()
                     .map(|rowid| ToolOpView {
+                        child_job: None,
                         output_presentation: None,
                         question: None,
                         op: format!("op-{rowid}"),

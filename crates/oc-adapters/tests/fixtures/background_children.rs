@@ -78,6 +78,212 @@ async fn parent_finished(
 }
 
 #[tokio::test]
+async fn exact_historical_child_read_survives_seventeen_new_generations_without_replay() {
+    use oc_core::{domain::SessionId, queries::ChildState};
+    let parent_steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let child_steps = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let roots = parent_steps.clone();
+    let children = child_steps.clone();
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let captured = requests.clone();
+    let peer = Peer::start(move |request| {
+        if request["max_output_tokens"] == 256
+            && request["tools"].as_array().is_none_or(Vec::is_empty)
+        {
+            return sse_delta("Synthetic title") + &sse_completed();
+        }
+        captured.lock().unwrap().push(request.clone());
+        if request["model"] == "m" {
+            let step = roots.fetch_add(1, Ordering::SeqCst);
+            if step.is_multiple_of(2) {
+                subagent_call(
+                    &format!("historical-{}", step / 2),
+                    serde_json::json!({"agent":"helper","description":format!("generation {}",step/2),"prompt":"OWN_HISTORICAL_CHILD_TASK"}),
+                ) + &sse_completed()
+            } else {
+                sse_delta("Settled parent generation") + &sse_completed()
+            }
+        } else {
+            assert_eq!(request["model"], "agent-model");
+            let step = children.fetch_add(1, Ordering::SeqCst);
+            sse_delta(&format!("actual child result {step}")) + &sse_completed()
+        }
+    });
+    let (_root, app, guard) =
+        app_fixture(&peer, serde_json::json!({"*":"deny","subagent":"allow"})).await;
+    let parent = SessionId("parent".into());
+    let mut events = app.subscribe();
+    let mut oldest = None;
+    for index in 0..17 {
+        let turn = app
+            .submit(parent.clone(), format!("generation {index}"))
+            .await
+            .unwrap();
+        parent_finished(&mut events, &turn).await;
+        let jobs = app.child_jobs(parent.clone()).await.unwrap();
+        if jobs.is_empty() {
+            let operations = app.tool_ops_page(parent.clone(), None, 1).await.unwrap();
+            panic!("real admission must produce an owned job: {operations:?}");
+        }
+        assert!(jobs.iter().all(|job| job.state == ChildState::Completed));
+        if index == 0 {
+            oldest = Some(jobs[0].clone());
+        }
+    }
+    let oldest = oldest.unwrap();
+    let jobs = app.child_jobs(parent.clone()).await.unwrap();
+    assert_eq!(jobs.len(), 16);
+    assert!(jobs.iter().all(|job| job.operation != oldest.operation));
+    let parent_before = app
+        .history_page(parent.clone(), None, None, 100)
+        .await
+        .unwrap();
+    let page = app
+        .read_child(parent.clone(), oldest.clone())
+        .await
+        .unwrap();
+    assert_eq!(page.parent_id.as_deref(), Some("parent"));
+    let mut owner_facts = oldest.clone();
+    owner_facts.result = None;
+    assert_eq!(page.child_job.as_deref(), Some(&owner_facts));
+    let mut stale_running = oldest.clone();
+    stale_running.state = ChildState::Running;
+    stale_running.message_id = None;
+    assert_eq!(
+        app.read_child(parent.clone(), stale_running).await.unwrap(),
+        page,
+        "read owner supplies current original-launch facts, not the old capture's phase"
+    );
+    assert!(
+        page.rows
+            .iter()
+            .any(|row| row.text == "actual child result 0")
+    );
+    for field in ["generation", "location", "delivery", "child", "operation"] {
+        let mut foreign = oldest.clone();
+        match field {
+            "generation" => foreign.generation += 1,
+            "location" => foreign.location.push_str("/foreign"),
+            "delivery" => foreign.delivery_id = "foreign-delivery".into(),
+            "child" => foreign.child = jobs[0].child.clone(),
+            _ => foreign.operation = "foreign-operation".into(),
+        }
+        assert!(
+            app.read_child(parent.clone(), foreign).await.is_err(),
+            "{field} fence"
+        );
+    }
+    assert_eq!(app.read_child(parent.clone(), oldest).await.unwrap(), page);
+    assert_eq!(
+        app.history_page(parent, None, None, 100).await.unwrap(),
+        parent_before,
+        "read-only navigation cannot rewrite RAW, projection or revision"
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(parent_steps.load(Ordering::SeqCst), 34);
+    assert_eq!(child_steps.load(Ordering::SeqCst), 17);
+    assert_eq!(
+        requests.lock().unwrap().len(),
+        51,
+        "reads cannot generate work or replay effects"
+    );
+}
+
+#[tokio::test]
+async fn foreground_child_result_survives_an_identity_too_large_for_ui_projection() {
+    let roots = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let children = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let root_calls = roots.clone();
+    let child_calls = children.clone();
+    let description = "x".repeat(40 * 1024);
+    let recorded_description = description.clone();
+    let peer = Peer::start(move |request| {
+        if request["max_output_tokens"] == 256
+            && request["tools"].as_array().is_none_or(Vec::is_empty)
+        {
+            return sse_delta("Synthetic title") + &sse_completed();
+        }
+        if request["model"] == "m" {
+            let step = root_calls.fetch_add(1, Ordering::SeqCst);
+            if step == 0 {
+                subagent_call(
+                    "large-description",
+                    serde_json::json!({"agent":"helper","description":description,"prompt":"OWN_LARGE_DESCRIPTION_TASK"}),
+                ) + &sse_completed()
+            } else {
+                assert_eq!(step, 1);
+                let results = outputs(&request);
+                assert_eq!(results.len(), 1);
+                assert!(
+                    results[0].1.contains("ACTUAL_SUCCESSFUL_CHILD"),
+                    "actual foreground completion: {results:?}"
+                );
+                assert!(!results[0].1.contains("child state unavailable"));
+                sse_delta("Parent received actual child completion") + &sse_completed()
+            }
+        } else {
+            assert_eq!(request["model"], "agent-model");
+            assert_eq!(child_calls.fetch_add(1, Ordering::SeqCst), 0);
+            sse_delta("ACTUAL_SUCCESSFUL_CHILD") + &sse_completed()
+        }
+    });
+    let (root, app, guard) =
+        app_fixture(&peer, serde_json::json!({"*":"deny","subagent":"allow"})).await;
+    let parent = oc_core::domain::SessionId("parent".into());
+    let mut events = app.subscribe();
+    let turn = app
+        .submit(parent.clone(), "run the accepted task".into())
+        .await
+        .unwrap();
+    parent_finished(&mut events, &turn).await;
+    assert!(app.child_jobs(parent.clone()).await.unwrap().is_empty());
+    let operations = app.tool_ops_page(parent.clone(), None, 1).await.unwrap();
+    assert_eq!(operations.rows.len(), 1);
+    assert_eq!(operations.rows[0].state, "completed");
+    assert!(operations.rows[0].child_job.is_none());
+    let selected = {
+        let conn = rusqlite::Connection::open_with_flags(
+            root.path().join("data/oc.sqlite"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        let (identity, state): (String, String) = conn
+            .query_row(
+                "SELECT identity,state FROM child_jobs WHERE operation_id=?1",
+                [&operations.rows[0].op],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        let mut job: oc_core::queries::ChildJob = serde_json::from_str(&identity).unwrap();
+        job.state = serde_json::from_value(serde_json::Value::String(state)).unwrap();
+        job
+    };
+    let page = app.read_child(parent, selected).await.unwrap();
+    assert!(
+        page.child_job.is_none(),
+        "display budget is not read authorization"
+    );
+    assert!(page.title.as_ref().unwrap().len() <= oc_core::tool_output::PREVIEW_BYTES);
+    assert!(
+        page.rows
+            .iter()
+            .any(|row| row.text == "ACTUAL_SUCCESSFUL_CHILD")
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = oc_adapters::storage::Db::open(&root.path().join("data")).unwrap();
+    let operations = db.list_tool_ops("parent").unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(operations[0].input.as_deref().unwrap()).unwrap()
+            ["description"],
+        recorded_description
+    );
+    assert_eq!(roots.load(Ordering::SeqCst), 2);
+    assert_eq!(children.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
 async fn core_child_terminal_reason_and_final_span_reopen_without_retry_replay() {
     use oc_core::domain::SessionId;
     use oc_core::queries::ChildState;

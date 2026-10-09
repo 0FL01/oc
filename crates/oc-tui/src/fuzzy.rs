@@ -83,10 +83,19 @@ impl Target {
     }
     fn prepare(text: &str, scored: bool) -> Self {
         let stripped = strip_accents(text);
-        let codes: Vec<_> = stripped.to_lowercase().encode_utf16().collect();
-        let mut ascii: [Vec<usize>; 128] = std::array::from_fn(|_| Vec::new());
+        let lower = stripped.to_lowercase();
+        // ASCII bytes already are UTF-16 code units. Avoid the UTF-8/UTF-16
+        // iterator machinery for every byte of a large ordinary model catalog.
+        let codes: Vec<_> = if lower.is_ascii() {
+            lower.bytes().map(u16::from).collect()
+        } else {
+            lower.encode_utf16().collect()
+        };
+        let mut ascii: [Vec<usize>; 128] = [const { Vec::new() }; 128];
         let mut non_ascii = std::collections::BTreeMap::<u16, Vec<usize>>::new();
+        let mut prepared_flags = 0;
         for (i, code) in codes.iter().copied().enumerate() {
+            prepared_flags |= 1u128 << code.min(127);
             if code < 128 {
                 ascii[usize::from(code)].push(i);
             } else {
@@ -101,7 +110,7 @@ impl Target {
             .collect();
         positions.extend(non_ascii);
         Self {
-            flags: flags(&codes),
+            flags: prepared_flags,
             codes,
             next: if scored {
                 beginnings(&stripped)
@@ -534,6 +543,10 @@ pub(crate) fn rank(scores: impl Iterator<Item = (usize, f64)>) -> Vec<usize> {
     results.reverse();
     results
 }
+
+#[cfg(test)]
+#[path = "fuzzy/target_tests.rs"]
+mod target_tests;
 
 #[cfg(test)]
 mod tests {

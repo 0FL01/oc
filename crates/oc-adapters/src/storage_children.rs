@@ -7,6 +7,121 @@ use oc_core::queries::{ChildHistory, ChildJob, ChildNotice, ChildState};
 mod tests;
 
 impl Db {
+    /// Display/read-only card association from the original launch transaction.
+    /// Never recovers a child capability from tool output or copied fork input.
+    pub(super) fn child_tool_job_in(
+        conn: &Connection,
+        session: &str,
+        operation: &str,
+    ) -> Result<Option<ChildJob>, StorageError> {
+        let row = conn.query_row(
+            "SELECT j.identity,j.state,j.parent_id,j.child_id,j.delivery_id,j.child_turn,j.message_id,
+             EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id),
+             (SELECT e.payload FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_launch'
+              AND length(CAST(e.payload AS BLOB))<=?3
+              AND CASE WHEN json_valid(e.payload) THEN json_extract(e.payload,'$.operation')=j.operation_id ELSE 0 END LIMIT 1)
+             FROM child_jobs j JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+             JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+             WHERE j.parent_id=?1 AND j.operation_id=?2 AND length(CAST(j.identity AS BLOB))<=?3",
+            params![session,operation,oc_core::tool_output::RECORD_BYTES as i64],
+            |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,String>(3)?,row.get::<_,String>(4)?,row.get::<_,Option<String>>(5)?,row.get::<_,Option<String>>(6)?,row.get::<_,bool>(7)?,row.get::<_,Option<String>>(8)?)),
+        ).optional()?;
+        let Some((raw, state, parent, child, delivery, turn, message, converted, launch)) = row
+        else {
+            return Ok(None);
+        };
+        let Ok(mut job) = Self::decode_child_job(raw, state, None, message) else {
+            return Ok(None);
+        };
+        let Some(launch) =
+            launch.and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+        else {
+            return Ok(None);
+        };
+        if job.parent.0 != parent
+            || job.child.0 != child
+            || job.operation != operation
+            || job.delivery_id != delivery
+            || launch["operation"].as_str() != Some(operation)
+            || launch["origin_operation"].as_str() != Some(operation)
+            || launch["parentID"].as_str() != Some(parent.as_str())
+            || launch["childID"].as_str() != Some(child.as_str())
+            || launch["deliveryID"].as_str() != Some(delivery.as_str())
+            || launch["location"].as_str() != Some(job.location.as_str())
+            || launch["generation"].as_u64() != Some(job.generation)
+            || [
+                &job.parent.0,
+                &job.child.0,
+                &job.operation,
+                &job.delivery_id,
+                &job.location,
+                &job.agent,
+                &job.model,
+            ]
+            .iter()
+            .any(|field| field.len() > 4096)
+            || turn.as_ref().is_some_and(|turn| turn.len() > 4096)
+            || job.message_id.as_ref().is_some_and(|id| id.len() > 4096)
+        {
+            return Ok(None);
+        }
+        job.background |= converted;
+        job.turn = turn;
+        if job.description.len() > TOOL_OP_PREVIEW_BYTES {
+            let end = job
+                .description
+                .floor_char_boundary(TOOL_OP_PREVIEW_BYTES - '…'.len_utf8());
+            job.description.truncate(end);
+            job.description.push('…');
+        }
+        Ok((job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES).then_some(job))
+    }
+
+    pub(crate) fn child_tool_job(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<Option<ChildJob>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::child_tool_job_in(&conn, session, operation)
+    }
+
+    /// Original owner identity for the existing read-only family fence. UI
+    /// preview limits must not reject a valid accepted child or truncate it.
+    pub(crate) fn child_job(
+        &self,
+        session: &str,
+        operation: &str,
+    ) -> Result<Option<ChildJob>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let row = conn.query_row(
+            "SELECT j.identity,j.state,j.result,j.message_id,j.parent_id,j.child_id,j.delivery_id,j.child_turn,
+             EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.parent_id AND e.kind='subagent_background' AND e.payload=j.operation_id)
+             FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id
+             JOIN tool_operations o ON o.id=j.operation_id AND o.session_id=j.parent_id AND o.name='subagent'
+             WHERE j.parent_id=?1 AND j.operation_id=?2",
+            params![session,operation],
+            |row| Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,Option<String>>(2)?,row.get::<_,Option<String>>(3)?,row.get::<_,String>(4)?,row.get::<_,String>(5)?,row.get::<_,String>(6)?,row.get::<_,Option<String>>(7)?,row.get::<_,bool>(8)?)),
+        ).optional()?;
+        let Some((raw, state, result, message, parent, child, delivery, turn, converted)) = row
+        else {
+            return Ok(None);
+        };
+        let job = Self::decode_child_job(raw, state, result, message)?;
+        if job.parent.0 != parent
+            || job.child.0 != child
+            || job.operation != operation
+            || job.delivery_id != delivery
+        {
+            return Ok(None);
+        }
+        Ok(Some(ChildJob {
+            background: job.background || converted,
+            turn,
+            ..job
+        }))
+    }
+
     /// UI-only classification by journal identities, never by message prose.
     pub(crate) fn child_history(
         &self,
@@ -300,6 +415,8 @@ impl Db {
     }
 
     pub(crate) fn child_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
+        // Execution/recovery consumes the original accepted identity, not a
+        // bounded UI projection. In particular, description is a recovery fence.
         let conn = self.conn.lock().expect("db mutex");
         Self::require_session(&conn, session)?;
         let mut stmt = conn.prepare("SELECT j.identity,j.state,j.result,j.message_id,EXISTS(SELECT 1 FROM events e WHERE e.kind='subagent_background' AND e.session_id=j.parent_id AND e.payload=j.operation_id),j.child_turn FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
@@ -321,6 +438,29 @@ impl Db {
             Ok(job)
         })
         .collect()
+    }
+
+    /// Bounded positive launch projections for the existing frontend inventory.
+    pub(crate) fn child_tool_jobs(&self, session: &str) -> Result<Vec<ChildJob>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        Self::require_session(&conn, session)?;
+        let mut stmt = conn.prepare("SELECT j.operation_id,j.result FROM child_jobs j JOIN sessions c ON c.id=j.child_id AND c.parent_id=j.parent_id WHERE j.parent_id=?1 ORDER BY (j.state IN ('admitted','running')) DESC,j.rowid DESC LIMIT 16")?;
+        let rows = stmt.query_map([session], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+        })?;
+        let mut jobs = Vec::new();
+        for row in rows {
+            let (operation, result) = row?;
+            // Live inventory and cold tool projection use the same positive
+            // original-launch fence; neither copied nor malformed data can link.
+            if let Some(mut job) = Self::child_tool_job_in(&conn, session, &operation)? {
+                job.result = result;
+                if job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES {
+                    jobs.push(job);
+                }
+            }
+        }
+        Ok(jobs)
     }
 
     pub(crate) fn recover_child_jobs(&self) -> Result<(), StorageError> {

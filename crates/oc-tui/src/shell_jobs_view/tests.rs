@@ -201,6 +201,7 @@ async fn model_shell_live_capture_preserves_tool_graph_and_actual_background_con
                 status: "completed".into(),
                 parts: vec![oc_core::queries::TranscriptPart::Tool(
                     oc_core::queries::ToolOpView {
+                        child_job: None,
                         op: "model-op".into(),
                         name: "shell".into(),
                         state: "completed".into(),

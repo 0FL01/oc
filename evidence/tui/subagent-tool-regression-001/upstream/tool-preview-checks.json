@@ -1,0 +1,584 @@
+{
+  "origin": "upstream",
+  "status": "PASS_BEHAVIOR_ONLY",
+  "stages": [
+    {
+      "stage": "home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-disabled-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-disabled",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-failed-list",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 34,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-failed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-restored",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-44x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 15,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-63x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 15,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-64x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 15,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-43x24",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 13,
+        "y": 16,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-64x12",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 15,
+        "y": 7,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "home-mcp-resized-back",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 36,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "completed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "hover",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-1-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-1-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-2-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "mcp-2-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "error-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "error-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 74,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "shell-expanded",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 114,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "shell-recollapsed",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 20,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {
+        "draft_preserved": true,
+        "prompt_caret_preserved": true
+      }
+    },
+    {
+      "stage": "switched",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 22,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "reopened",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    },
+    {
+      "stage": "restarted",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 6,
+      "calls": 4,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native operation body/streams stay at existing 2048-byte bounds; expansion never opens cold output.",
+    "Typed native guidance is separate from body; donor tool-output guidance may be displayed as recorded body.",
+    "Compact native viewing/capture status has no promised donor pixel equivalent."
+  ],
+  "home_mcp": {
+    "status": "PASS_BEHAVIOR_ONLY",
+    "provider_requests": 0,
+    "real_failed_initialize": true,
+    "draft_and_caret_restored": true,
+    "disclosed_reference_difference": "At64x12 pinned footer spaces overpaint underlying prompt-footer text; full frame remains unmasked."
+  },
+  "before": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "completed",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      }
+    ],
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  },
+  "after": {
+    "kind": "tool_preview_snapshot",
+    "request_id": "restarted",
+    "observations": [
+      {
+        "tables": [
+          "account",
+          "account_state",
+          "control_account",
+          "credential",
+          "event",
+          "event_sequence",
+          "instruction_blob",
+          "instruction_entry",
+          "instruction_state",
+          "kv",
+          "migration",
+          "permission",
+          "project",
+          "project_directory",
+          "session_inbox",
+          "session_message",
+          "session_pending",
+          "session_v2",
+          "workspace",
+          "worktree"
+        ],
+        "data": {}
+      }
+    ],
+    "artifacts": {
+      "data/opencode/tool-output/tool_122db5528001Piunp0HSGNSDjh": {
+        "bytes": 5292,
+        "sha256": "25d7f8989061d4cbae9736e0129ee37a3974155eb08a8f235f664d3e0e8f19f6"
+      },
+      "data/opencode/tool-output/tool_122db5575001G29PjAER4Ss6fd": {
+        "bytes": 5414,
+        "sha256": "6fb71e60b2e20b00cd26a5e154f2ae1f69ac316c1cb97227ea9a6288b7a90a0b"
+      }
+    },
+    "shell_effect": {
+      "bytes": 17,
+      "lines": 1,
+      "sha256": "47edf10378e097ac44039a3a72ade18bddf51e5bb63abaf3c1b57b5391206436"
+    },
+    "mcp_lifecycle": [
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "failed"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      },
+      {
+        "method": "initialize",
+        "phase": "healthy"
+      }
+    ],
+    "mcp_calls": [
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 1,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 2,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      },
+      {
+        "method": "tools/call",
+        "arguments": {
+          "index": 4,
+          "query": "native needle",
+          "nested": {
+            "value": "available parameter"
+          }
+        }
+      }
+    ]
+  }
+}

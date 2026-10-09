@@ -457,6 +457,9 @@ pub enum TranscriptPart {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct HistoryPage {
     pub reverted: Option<RevertedConversation>,
+    /// Exact current original-launch facts returned only by fenced ReadChild.
+    /// Display/read-only metadata, never a new execution or control capability.
+    pub child_job: Option<Box<ChildJob>>,
     /// Durable hierarchy; child sessions suppress the automatic sidebar.
     pub parent_id: Option<String>,
     /// Existing session metadata; None honestly denotes an untitled session.
@@ -1523,6 +1526,9 @@ pub struct DcpSnapshot {
 /// One tool operation as recorded durably.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolOpView {
+    /// Exact owned Subagent generation for display/read-only navigation. None
+    /// for legacy/forked operations without their own positive launch identity.
+    pub child_job: Option<Box<ChildJob>>,
     /// Prepared safe body/capture facts; None is honest legacy/unknown provenance.
     pub output_presentation: Option<Box<crate::tool_output::Presentation>>,
     /// Bounded, terminal question presentation. Never restores an active form.
@@ -1613,6 +1619,23 @@ pub struct ChildJob {
     pub turn: Option<String>,
     pub result: Option<String>,
     pub message_id: Option<String>,
+}
+
+impl ChildJob {
+    /// Retained payload bytes, including all captured identity strings.
+    pub fn retained_bytes(&self) -> usize {
+        self.parent.0.len()
+            + self.child.0.len()
+            + self.operation.len()
+            + self.location.len()
+            + self.agent.len()
+            + self.model.len()
+            + self.description.len()
+            + self.delivery_id.len()
+            + self.turn.as_ref().map_or(0, String::len)
+            + self.result.as_ref().map_or(0, String::len)
+            + self.message_id.as_ref().map_or(0, String::len)
+    }
 }
 
 fn child_background_default() -> bool {

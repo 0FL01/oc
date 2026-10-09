@@ -42,6 +42,7 @@ pub(super) fn page(
     newer: bool,
 ) -> HistoryPage {
     HistoryPage {
+        child_job: None,
         parent_id: None,
         title: None,
         reverted: None,

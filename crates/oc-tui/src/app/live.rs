@@ -67,6 +67,19 @@ impl ScriptDriver {
             }
             let event = tokio::time::timeout(timeout, self.rx.recv()).await;
             state.poll_submission();
+            if let Ok(Ok(
+                CoreEvent::TurnStarted { session, .. }
+                | CoreEvent::TurnFinished { session, .. }
+                | CoreEvent::TurnFailed { session, .. }
+                | CoreEvent::TurnInterrupted { session, .. },
+            )) = &event
+                && state.attached_session() != Some(session)
+                && state.has_subagent_cards()
+                && let Some(parent) = state.attached_session().cloned()
+                && let Ok(jobs) = state.app.child_jobs(parent).await
+            {
+                state.apply_child_jobs(jobs);
+            }
             match event {
                 Ok(Ok(CoreEvent::SessionModelSelected { session, commit })) => {
                     state.apply_session_model_selected(&session, &commit)
@@ -214,6 +227,13 @@ impl ScriptDriver {
                     {
                         if page.rows.iter().any(|row| {
                             matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_)))
+                        }) && state.has_subagent_cards()
+                            && let Ok(jobs) = state.app.child_jobs(notice.job.parent.clone()).await
+                        {
+                            state.apply_child_jobs(jobs);
+                        }
+                        if page.rows.iter().any(|row| {
+                            matches!(row.child, Some(oc_core::queries::ChildHistory::Notice(_)))
                         }) && let Ok(recent) = state
                             .app
                             .history_page(notice.job.parent, None, None, 100)
@@ -304,6 +324,13 @@ impl ScriptDriver {
                 })) => {
                     state
                         .apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic);
+                    if name == "subagent"
+                        && state.active_turn() == Some(&turn)
+                        && let Some(parent) = state.attached_session().cloned()
+                        && let Ok(jobs) = state.app.child_jobs(parent).await
+                    {
+                        state.apply_child_jobs(jobs);
+                    }
                 }
                 Ok(Ok(CoreEvent::ToolCallFinished {
                     turn,
@@ -332,6 +359,13 @@ impl ScriptDriver {
                         question,
                         output_presentation,
                     );
+                    if name == "subagent"
+                        && state.active_turn() == Some(&turn)
+                        && let Some(parent) = state.attached_session().cloned()
+                        && let Ok(jobs) = state.app.child_jobs(parent).await
+                    {
+                        state.apply_child_jobs(jobs);
+                    }
                 }
                 Ok(Ok(CoreEvent::TurnUsage {
                     turn,
@@ -564,6 +598,7 @@ impl TuiState {
             _ => self.picker = Some(ModelPicker::new(catalog)),
         }
         self.catalog_loaded = true;
+        self.refresh_subagent_cards();
         self.sync_modal_cursor();
     }
 
@@ -661,6 +696,7 @@ impl TuiState {
             .unwrap_or(usize::MAX);
         self.catalog_loaded = true;
         self.sync_modal_cursor();
+        self.refresh_subagent_cards();
     }
 
     /// Apply the session list snapshot.
@@ -1563,6 +1599,7 @@ impl TuiState {
         self.freeze_reasoning();
         self.freeze_text();
         let mut card = card_from_row(&ToolOpView {
+            child_job: None,
             question: None,
             rowid: 0,
             op: op.to_string(),
@@ -1630,7 +1667,7 @@ impl TuiState {
         for request in &eligible {
             let present = self.live_parts.iter().any(|part| matches!(part, LivePart::Tool { card, .. } if card.op == request.binding.operation || card.op.splitn(3, ':').nth(2).and_then(|json| serde_json::from_str::<[String; 2]>(json).ok()).is_some_and(|ids| ids[1] == request.binding.call)));
             if !present && self.live_parts.iter().filter(|p| matches!(p, LivePart::Tool { card, .. } if matches!(card.state.as_str(), "argument_stream" | "permission_pending"))).count() < oc_core::tool_stream::PENDING_TOOL_MAX {
-                let card = card_from_row(&ToolOpView { question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, output_presentation: None, patch_effects: None, dcp: None, dcp_topic: None });
+                let card = card_from_row(&ToolOpView { child_job: None, question: None, rowid: 0, op: request.binding.operation.clone(), name: request.action.clone(), state: "argument_stream".into(), input: None, output: None, output_bytes: 0, output_truncated: false, output_presentation: None, patch_effects: None, dcp: None, dcp_topic: None });
                 self.live_parts.push(LivePart::Tool { card: Box::new(card), input: String::new() });
             }
         }
@@ -1795,6 +1832,7 @@ impl TuiState {
                     return;
                 }
                 let mut card = card_from_row(&ToolOpView {
+                    child_job: None,
                     question: None,
                     rowid: 0,
                     op: op.clone(),
@@ -2005,6 +2043,7 @@ impl TuiState {
             self.push_transient_note(&notice, NoteVariant::Info);
         }
         let outcome = ToolOpView {
+            child_job: None,
             question,
             rowid: 0,
             op: op.to_string(),
@@ -2028,6 +2067,7 @@ impl TuiState {
             let mut row = outcome;
             row.name = card.name.clone();
             row.input = Some(std::mem::take(input));
+            row.child_job = card.child_job.clone();
             let mut finished = card_from_row(&row);
             if let crate::tools::ToolRender::Dcp(view) = &mut finished.render {
                 view.color_index = self.live_agent_color_index;

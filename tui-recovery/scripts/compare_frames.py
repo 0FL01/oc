@@ -7,13 +7,16 @@ Grid mode is standard-library only. PNG mode requires Pillow. No masks/resizing.
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
+from io import BytesIO
 import json
 import os
 from pathlib import Path
 import re
 import sys
 import tempfile
+import zlib
 from typing import Any
 
 MAX_FILE_BYTES = 64 * 1024 * 1024
@@ -116,8 +119,8 @@ def validate_grid(data: Any, origin: str) -> dict[str, Any]:
 def compare_grid(reference: Path, actual: Path) -> dict[str, Any]:
     checked_paths(reference, actual)
     raw_ref, raw_actual = read_bounded(reference), read_bounded(actual)
-    ref = validate_grid(json.loads(raw_ref), "upstream")
-    got = validate_grid(json.loads(raw_actual), "oc")
+    ref = validate_grid(decode_grid(raw_ref, reference), "upstream")
+    got = validate_grid(decode_grid(raw_actual, actual), "oc")
     for key in ("scenario", "fixture_sha256", "environment_id", "columns", "rows"):
         if ref[key] != got[key]:
             raise Invalid(f"Incomparable frames: different {key}")
@@ -143,6 +146,18 @@ def compare_grid(reference: Path, actual: Path) -> dict[str, Any]:
             "cursor_differs": cursor_differs,
             "difference_bbox_inclusive": [left, top, right, bottom] if count else None,
             "samples": samples}
+
+
+def decode_grid(raw: bytes, path: Path) -> Any:
+    if path.suffix == ".gz":
+        try:
+            with gzip.GzipFile(fileobj=BytesIO(raw)) as source:
+                raw = source.read(MAX_FILE_BYTES + 1)
+        except (OSError, EOFError, zlib.error) as error:
+            raise Invalid("Invalid gzip grid") from error
+        if not raw or len(raw) > MAX_FILE_BYTES:
+            raise Invalid("Empty or oversized decompressed grid")
+    return json.loads(raw)
 
 
 def compare_png(reference: Path, actual: Path) -> dict[str, Any]:

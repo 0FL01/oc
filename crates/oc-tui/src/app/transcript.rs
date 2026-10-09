@@ -3,7 +3,7 @@
 use super::*;
 
 pub(super) struct ChildNoticePress {
-    job: Box<oc_core::queries::ChildJob>,
+    target: crate::messages::CapturedChildTarget,
     frame: Rect,
     generation: u64,
     point: (u16, u16),
@@ -157,6 +157,13 @@ pub(super) fn footer_row(agent: Option<String>, meta: AssistantMeta) -> HistoryR
 }
 
 impl TuiState {
+    /// An existing card consumes child inventory even with its composer closed.
+    /// This predicate never creates a model graph part or navigation authority.
+    pub fn has_subagent_cards(&self) -> bool {
+        self.window.rows().iter().filter_map(|row|row.tool.as_ref())
+            .any(|card|matches!(card.render,crate::tools::ToolRender::Subagent(_)))
+            || self.live_parts.iter().any(|part|matches!(part,LivePart::Tool{card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_))))
+    }
     pub(crate) fn set_detail_area(&self, area: ratatui::layout::Rect) {
         self.detail_area.set(area);
     }
@@ -199,6 +206,11 @@ impl TuiState {
 
     /// Newest page becomes the whole window; scroll pins to the newest row.
     pub fn attach_page(&mut self, page: &HistoryPage) {
+        if let Some(job) = page.child_job.as_deref()
+            && self.attached_session() == Some(&job.child)
+        {
+            self.refresh_linked_child(job.clone());
+        }
         self.invalidate_transcript();
         self.remember_compaction_turns(page);
         self.completion_anchor.get_mut().take();
@@ -289,12 +301,40 @@ impl TuiState {
                 self.enforce_parts();
             }
         }
+        self.refresh_subagent_cards();
+    }
+
+    /// Same-session TurnFinished receipt only. Explicit routing/conversation
+    pub(crate) fn refresh_subagent_cards(&mut self) {
+        let Some(session) = self.session.as_ref() else {
+            return;
+        };
+        let mut changed =
+            self.children
+                .refresh_transcript(session, &mut self.window, self.picker.as_ref());
+        if self.active_turn.is_some() {
+            for part in &mut self.live_parts {
+                if let LivePart::Tool { card, .. } = part {
+                    changed |= self
+                        .children
+                        .refresh_live_card(session, card, self.picker.as_ref());
+                }
+            }
+        }
+        if changed {
+            self.enforce_parts();
+        }
     }
 
     /// Same-session TurnFinished receipt only. Explicit routing/conversation
     /// resets use attach_page. Preserve a painted part, not a total-row delta:
     /// durable projection may replace synthetic parts and the paging window.
     pub fn refresh_completed_page(&mut self, page: &HistoryPage) {
+        if let Some(job) = page.child_job.as_deref()
+            && self.attached_session() == Some(&job.child)
+        {
+            self.refresh_linked_child(job.clone());
+        }
         self.remember_compaction_turns(page);
         let view = self.viewport.get().filter(|_| self.scroll > 0);
         let old_rows = self.transcript_rows();
@@ -526,7 +566,7 @@ impl TuiState {
             if !block
                 && !header.trim_start().starts_with("→ Explored")
                 && !header.trim_start().starts_with("⋯ Exploring")
-                && !header.trim_start().starts_with(['✓', '✗', '⋯'])
+                && !header.trim_start().starts_with(['✓', '✗', '⋯', '│', '↳'])
             {
                 return None;
             }
@@ -562,11 +602,20 @@ impl TuiState {
                 } else if hover_row == Some(row) {
                     hovered = crate::messages::hover_collapsed_thought(line, theme);
                     &hovered
-                } else if let Some((job, _)) = hover_child
+                } else if let Some((target, _, tool)) = hover_child
                     .as_ref()
-                    .filter(|(_, range)| range.contains(&row))
+                    .filter(|(_, range, _)| range.contains(&row))
                 {
-                    hovered = crate::messages::hover_child_notice(line, theme, job);
+                    hovered = if *tool {
+                        crate::messages::hover_subagent_content(line, theme)
+                    } else {
+                        match target {
+                            crate::messages::CapturedChildTarget::Navigate(job) => {
+                                crate::messages::hover_child_notice(line, theme, job)
+                            }
+                            crate::messages::CapturedChildTarget::ErrorDetails(_) => line.clone(),
+                        }
+                    };
                     &hovered
                 } else if hover_tool
                     .as_ref()
@@ -1182,12 +1231,21 @@ impl TuiState {
         frame: Rect,
         x: u16,
         y: u16,
-    ) -> Option<(Box<oc_core::queries::ChildJob>, std::ops::Range<usize>)> {
-        if !self
-            .window
-            .rows()
+    ) -> Option<(
+        crate::messages::CapturedChildTarget,
+        std::ops::Range<usize>,
+        bool,
+    )> {
+        if !self.window.rows().iter().any(|row| {
+            row.child_notice.is_some()
+                || row
+                    .tool
+                    .as_ref()
+                    .is_some_and(|card| matches!(card.render,crate::tools::ToolRender::Subagent(_)))
+        }) && !self
+            .live_parts
             .iter()
-            .any(|row| row.child_notice.is_some())
+            .any(|part| matches!(part,LivePart::Tool {card,..} if matches!(card.render,crate::tools::ToolRender::Subagent(_))))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
             || self.questions.active().is_some()
@@ -1219,7 +1277,7 @@ impl TuiState {
         let rows = self.transcript_rows();
         let live =
             (!self.live_text.is_empty() || !self.live_reasoning.is_empty()).then(|| rows.len() - 1);
-        crate::messages::child_notice_at_with_range(
+        crate::messages::captured_child_at_with_range(
             &rows,
             Theme::dark(),
             (rect.width, frame.width),
@@ -1231,7 +1289,12 @@ impl TuiState {
                 ((x - rect.x) as usize, (y - rect.y) as usize),
             ),
         )
-        .filter(|(job, _)| self.attached_session() == Some(&job.parent))
+        .filter(|(target, _, _)| match target {
+            crate::messages::CapturedChildTarget::Navigate(job) => {
+                self.attached_session() == Some(&job.parent)
+            }
+            crate::messages::CapturedChildTarget::ErrorDetails(_) => true,
+        })
     }
 
     pub(super) fn child_notice_mouse(
@@ -1243,8 +1306,8 @@ impl TuiState {
             MouseEventKind::Down(MouseButton::Left) if event.modifiers.is_empty() => {
                 self.child_notice_down =
                     self.child_notice_hit(frame, event.column, event.row)
-                        .map(|(job, _)| ChildNoticePress {
-                            job,
+                        .map(|(target, _, _)| ChildNoticePress {
+                            target,
                             frame,
                             generation: self.paint_generation.get(),
                             point: (event.column, event.row),
@@ -1261,19 +1324,44 @@ impl TuiState {
                 {
                     return None;
                 }
-                let (job, _) = self.child_notice_hit(frame, event.column, event.row)?;
-                if job != pressed.job {
+                let (target, _, _) = self.child_notice_hit(frame, event.column, event.row)?;
+                if target != pressed.target {
                     return None;
                 }
                 self.clear_transcript_selection();
-                return Some(KeyOutcome {
-                    intent: Some(PanelIntent::OpenChild { selected: *job }),
-                    ..KeyOutcome::default()
+                return Some(match target {
+                    crate::messages::CapturedChildTarget::Navigate(job) => KeyOutcome {
+                        intent: Some(PanelIntent::OpenChild { selected: *job }),
+                        ..KeyOutcome::default()
+                    },
+                    crate::messages::CapturedChildTarget::ErrorDetails(operation) => {
+                        self.toggle_tool_expansion_at(&operation, frame);
+                        KeyOutcome::default()
+                    }
                 });
             }
             _ => {}
         }
         None
+    }
+
+    pub(super) fn toggle_tool_expansion_at(&mut self, operation: &str, frame: Rect) {
+        let rect = crate::shell::transcript_area(self, frame);
+        let height = rect.height as usize;
+        let (_, before, displayed) =
+            self.visible_transcript_at_viewport(rect.width, frame.width, rect.height);
+        let first = before.saturating_sub(height).saturating_sub(displayed);
+        let rows = self.transcript_rows();
+        self.exploration_expanded.retain(|id| {
+            rows.iter()
+                .any(|row| row.tool.as_ref().is_some_and(|card| &card.op == id))
+        });
+        if !self.exploration_expanded.insert(operation.to_owned()) {
+            self.exploration_expanded.remove(operation);
+        }
+        let (_, after) = self.visible_transcript(rect.width, frame.width, rect.height);
+        self.scroll = after.saturating_sub(height).saturating_sub(first);
+        self.observe_transcript_viewport(rect.width, frame.width, rect.height, after, self.scroll);
     }
 
     pub(super) fn prune_reasoning(&mut self) {
