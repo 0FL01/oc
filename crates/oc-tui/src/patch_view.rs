@@ -136,6 +136,141 @@ pub(crate) fn render(
         }
     };
     let mut out = Vec::new();
+    if card.name == "write" && card.state == "completed" {
+        let write = card
+            .output_presentation
+            .as_ref()
+            .filter(|presentation| presentation.is_valid())
+            .and_then(|presentation| presentation.write.as_ref());
+        out.push(frame(Vec::new()));
+        let path = write.map(|write| write.path.as_str()).or_else(|| {
+            effects
+                .files
+                .first()
+                .map(|file| file.destination.as_deref().unwrap_or(&file.path))
+        });
+        out.push(frame(vec![
+            Span::styled("# Wrote", muted),
+            Span::styled(" ", padding),
+            Span::styled(path.unwrap_or("[recorded path unavailable]"), muted),
+        ]));
+        out.push(frame(Vec::new()));
+        if let Some(write) = write {
+            let source = write
+                .content
+                .replace("\r\n", "\n")
+                .split('\n')
+                .map(crate::syntax::safe_line)
+                .collect::<Vec<_>>()
+                .join("\n");
+            let filetype = crate::syntax::filetype(&write.path);
+            let (rows, syntax_error) =
+                match crate::syntax::highlight(&source, filetype, theme, base) {
+                    Ok(rows) => (rows, false),
+                    Err(_) => (
+                        source
+                            .split('\n')
+                            .map(|text| Line::styled(text, base))
+                            .collect(),
+                        true,
+                    ),
+                };
+            let rows = rows
+                .iter()
+                .map(crate::syntax::display_line)
+                .collect::<Vec<_>>();
+            // OpenTUI's minimum three cells already include both padding cells;
+            // its digits are based on the target's wrapped virtual line count.
+            let mut gutter_width = rows.len().max(1).ilog10() as usize + 3;
+            if !unbounded {
+                loop {
+                    let mut virtual_rows = 0usize;
+                    for row in &rows {
+                        styled::visit_source_space_line(
+                            row,
+                            width.saturating_sub(3 + gutter_width).max(1),
+                            |_| virtual_rows += 1,
+                        );
+                    }
+                    let measured = virtual_rows.max(1).ilog10() as usize + 3;
+                    if measured == gutter_width {
+                        break;
+                    }
+                    gutter_width = measured;
+                }
+            }
+            let number_width = gutter_width - 1;
+            let mut displayed = 0usize;
+            let mut display_limited = false;
+            for (index, row) in rows.iter().enumerate() {
+                let remaining = 512usize.saturating_sub(displayed);
+                if remaining == 0 {
+                    display_limited = true;
+                    break;
+                }
+                let wraps = if unbounded {
+                    vec![row.clone()]
+                } else {
+                    // Continuations retain the measured gutter without inventing
+                    // source line numbers; the output remains bounded below.
+                    styled::wrap_code_line_limited(
+                        row,
+                        width.saturating_sub(3 + gutter_width).max(1),
+                        remaining + 1,
+                    )
+                };
+                if wraps.len() > remaining {
+                    display_limited = true;
+                }
+                for (wrap_index, row) in wraps.into_iter().take(remaining).enumerate() {
+                    // The original draws only the digits with gutter fg. Its
+                    // left/right padding inherits the terminal foreground.
+                    let mut spans = if wrap_index == 0 {
+                        let number = (index + 1).to_string();
+                        vec![
+                            Span::styled(" ".repeat(number_width - number.len()), padding),
+                            Span::styled(number, muted),
+                            Span::styled(" ", padding),
+                        ]
+                    } else {
+                        vec![Span::styled(" ".repeat(gutter_width), padding)]
+                    };
+                    spans.extend_from_slice(row.spans());
+                    out.push(frame(spans));
+                    displayed += 1;
+                }
+            }
+            if syntax_error {
+                out.push(frame(vec![Span::styled(
+                    "[syntax highlighting preview limited]",
+                    muted,
+                )]));
+            }
+            if write.content_limited || write.path_limited || display_limited {
+                out.push(frame(vec![Span::styled(
+                    "[Write content preview limited]",
+                    muted,
+                )]));
+            }
+        } else {
+            // Never fall back to unredacted requested content or reconstruct a
+            // complete overwrite from partial diff hunks. The actual bounded
+            // effect DTO remains unchanged and its counts stay visible.
+            out.push(frame(vec![Span::styled(
+                "[recorded Write content preview unavailable]",
+                muted,
+            )]));
+            out.push(frame(vec![Span::styled(
+                format!(
+                    "{} confirmed files, +{} -{}",
+                    effects.total_files, effects.additions, effects.deletions
+                ),
+                muted,
+            )]));
+        }
+        out.push(frame(Vec::new()));
+        return out;
+    }
     let failed = card.state != "completed" && card.state != "started";
     if failed {
         out.push(frame(vec![Span::styled(
@@ -593,7 +728,7 @@ pub(crate) mod tests {
             lossy: false,
         }
     }
-    fn row(effects: Option<PatchEffects>, state: &str) -> ToolOpView {
+    pub(super) fn row(effects: Option<PatchEffects>, state: &str) -> ToolOpView {
         ToolOpView { child_job: None, output_presentation: None, question: None, rowid: 1, op: "actual".into(), name: "apply_patch".into(), state: state.into(),
             input: Some(r#"{"patchText":"*** Begin Patch\n*** Add File: fake.txt\n+invented\n*** End Patch"}"#.into()),
             output: Some("done add fake.txt (hash_before=-, hash_after=abc)".into()), output_bytes: 52, output_truncated: false, patch_effects: effects, dcp: None, dcp_topic: None }
@@ -1189,3 +1324,7 @@ pub(crate) mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "patch_view/write_tests.rs"]
+mod write_tests;

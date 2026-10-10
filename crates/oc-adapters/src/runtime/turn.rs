@@ -5062,6 +5062,21 @@ impl<'a> Runtime<'a> {
                     "failed"
                 };
             }
+            if name == "write"
+                && state == "completed"
+                && let Assembled::Call(call) = unit
+                && let Some(content) = call.arguments["content"].as_str()
+                && let Some(file) = patch_effects
+                    .as_ref()
+                    .and_then(|effects| effects.files.first())
+                && let Some(presentation) = output_presentation.as_mut()
+            {
+                preparation.attach_write(
+                    presentation,
+                    file.destination.as_deref().unwrap_or(&file.path),
+                    content,
+                );
+            }
             // Failure here leaves started/unknown; never continue the batch.
             turn_log
                 .input

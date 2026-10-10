@@ -636,6 +636,13 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         ToolRender::Patch(patch) => {
             if let Some(effects) = &card.patch_effects {
                 crate::patch_view::render(effects, card, theme, width)
+            } else if card.name == "write" && card.state == "completed" {
+                crate::patch_view::render(
+                    &oc_core::patch::PatchEffects::default(),
+                    card,
+                    theme,
+                    width,
+                )
             } else {
                 patch_block(patch, card, theme, width)
             }

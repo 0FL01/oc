@@ -1,6 +1,77 @@
 use super::*;
 
 #[test]
+fn write_preview_redacts_complete_content_before_byte_and_row_limits() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_session("s").unwrap();
+    let context = Context {
+        db: &db,
+        operation: "write-op",
+        session: "s",
+        location: "/p",
+        generation: 9,
+        source: "fixture",
+        limits: Limits::default(),
+        secrets: vec!["secret-sentinel-crossing-the-preview-boundary".into()],
+    };
+    for content in [
+        "".to_owned(),
+        "café\n世界\n".into(),
+        format!("{}{}", "x".repeat(2044), context.secrets[0]),
+    ] {
+        let original = content.clone();
+        let mut presentation = oc_core::tool_output::Presentation::new("actual result", 13, false);
+        let original_body = presentation.body.clone();
+        context.attach_write(&mut presentation, "owned.rs", &content);
+        let write = presentation.write.as_ref().unwrap();
+        assert!(presentation.is_valid());
+        assert_eq!(presentation.body, original_body);
+        assert_eq!(content, original);
+        assert!(write.content.len() <= oc_core::tool_output::PREVIEW_BYTES);
+        assert!(!write.content.contains("secret-sentinel"));
+        if content.len() < 2048 {
+            assert_eq!(write.content, content);
+            assert!(!write.content_limited);
+        } else {
+            assert!(write.content_limited);
+            assert!(write.content.ends_with("[red"));
+        }
+        assert!(
+            serde_json::to_vec(&presentation).unwrap().len() <= oc_core::tool_output::RECORD_BYTES
+        );
+    }
+    let mut limited = context.clone();
+    limited.limits = Limits {
+        max_bytes: 2048,
+        max_lines: 2,
+    };
+    let mut presentation = oc_core::tool_output::Presentation::new("done", 4, false);
+    limited.attach_write(&mut presentation, "café\nfile.rs", "first\nsecond\nthird");
+    let write = presentation.write.as_ref().unwrap();
+    assert_eq!(write.path, "café file.rs");
+    assert_eq!(write.content, "first\nsecond");
+    assert!(write.content_limited);
+    assert_eq!(write.content_bytes, 18);
+    assert!(presentation.retained_bytes() >= write.content.len() + write.path.len());
+    let mut invalid = presentation.clone();
+    invalid.write.as_mut().unwrap().path.push('\n');
+    assert!(!invalid.is_valid());
+    invalid = presentation.clone();
+    invalid.write.as_mut().unwrap().content = "x\n".repeat(120);
+    assert!(!invalid.is_valid());
+    let mut legacy: serde_json::Value = serde_json::to_value(&presentation).unwrap();
+    legacy.as_object_mut().unwrap().remove("write");
+    assert!(
+        serde_json::from_value::<oc_core::tool_output::Presentation>(legacy)
+            .unwrap()
+            .write
+            .is_none()
+    );
+    assert!(db.output_for_operation("write-op").unwrap().is_none());
+}
+
+#[test]
 fn tool21_stream_redactor_publishes_benign_live_suffix_and_protects_overlapping_secrets() {
     let mut redactor = StreamRedactor::new(vec![
         "possible-secret".into(),

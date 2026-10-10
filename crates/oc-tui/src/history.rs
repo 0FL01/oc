@@ -1230,6 +1230,10 @@ impl ToolCard {
                 .map_or(self.output_truncated, |presentation| {
                     presentation.body_limited
                         || presentation
+                            .write
+                            .as_ref()
+                            .is_some_and(|write| write.path_limited || write.content_limited)
+                        || presentation
                             .shell
                             .as_ref()
                             .is_some_and(|shell| shell.stdout_limited || shell.stderr_limited)

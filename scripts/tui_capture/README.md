@@ -1841,6 +1841,12 @@ replayed full frames must visibly include every inventory marker, no known-asset
 or highlighting-limit notice, and the current explicit profile's accepted-user
 stripe. Restart/reopen uses the actual process/session picker and checks unchanged
 file bytes and native operation facts, not seeded history or an API-selected view.
+Both completed/replayed views must also show all seven numbered Write request
+lines, including the trailing empty line. Native uses the bounded, redacted
+captured request preview, not a workspace reread or a reconstructed diff image.
+The wide-frame number/source columns are also checked against the actual
+Original gutter, whose minimum width already includes both padding cells.
+Both gutter padding cells retain the terminal foreground; only digits are muted.
 
 The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
 record real initial access times; the first post-render snapshot records access

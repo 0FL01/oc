@@ -56,6 +56,18 @@ pub struct Shell {
     pub cancelled: bool,
 }
 
+/// Safe captured requested postimage of a successful native Write. This is a
+/// display preview, not a read-back, restore image or file access capability.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Write {
+    pub path: String,
+    pub path_limited: bool,
+    pub content: String,
+    /// Full redacted requested-content extent, not bytes written to the file.
+    pub content_bytes: u64,
+    pub content_limited: bool,
+}
+
 /// One prepared result's safe body and independent provenance. The body is an
 /// available preview, not the output-reference notice appended for the model.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -70,6 +82,8 @@ pub struct Presentation {
     pub capture: Option<Capture>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shell: Option<Shell>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub write: Option<Write>,
 }
 
 impl Presentation {
@@ -84,6 +98,10 @@ impl Presentation {
                     + shell.stderr.len()
                     + shell.process_state.as_ref().map_or(0, String::len)
             })
+            + self
+                .write
+                .as_ref()
+                .map_or(0, |write| write.path.len() + write.content.len())
     }
 
     /// Retain the already admitted/redacted body at the existing preview limit.
@@ -97,6 +115,7 @@ impl Presentation {
             producer_limited: None,
             capture: None,
             shell: None,
+            write: None,
         }
     }
 
@@ -121,6 +140,17 @@ impl Presentation {
                             "completed" | "failed" | "cancelled" | "timed_out" | "unknown"
                         )
                     })
+            })
+            && (self.shell.is_none() || self.write.is_none())
+            && self.write.as_ref().is_none_or(|write| {
+                !write.path.is_empty()
+                    && write.path.len() <= crate::patch::EFFECT_LINE_BYTES_CAP
+                    && !write.path.chars().any(char::is_control)
+                    && write.content.len() <= PREVIEW_BYTES
+                    && write.content_bytes >= write.content.len() as u64
+                    && (write.content_limited || write.content_bytes == write.content.len() as u64)
+                    && write.content.bytes().filter(|&b| b == b'\n').count()
+                        < crate::patch::EFFECT_LINES_CAP
             })
     }
 }

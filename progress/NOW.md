@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-10T14:34:45+00:00
+State updated: 2026-10-10T21:24:13+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 shared native syntax / current-profile user border — qualified slice
+# T44 completed Write / refused-reload feedback — qualified slice
 
 ## Result
-All39 native compiled grammar/query/style inputs have pinned provenance/licenses;
-one bounded whole-source owner serves Markdown/indexed fences/actual patch images.
-Current-profile accepted-user render copies retain original identity/slots/RAW/draft.
-Receipt evidence/tui/syntax-qualified.md; whole T44 remains ACTIVE/NOT_PASS.
-Git determines actual code commit/push, not this pre-delivery checkpoint.
+Completed Write uses bounded, fully redacted captured requested content, numbered
+through shared native syntax; legacy/error/limited states remain truthful.
+Recorded RAW/model/effect/identity/permissions/drafts are unchanged. Adjacent UI07
+queued-provider overwrite was traced and fixed through existing facts-before-feedback.
+Receipt evidence/tui/write-qualified.md; whole T44 ACTIVE/NOT_PASS. Git determines
+actual reviewed code commit/push, not this pre-delivery checkpoint.
 
 ## Checks
-Current1816/0/11 all46 no-fail-fast workspace results, strict Clippy/fmt/builds/help,
-release startup19/GET8/TERM01 and original resource guards PASS. Real SDK corpus
-39languages/78cases/156dark-light styles; running Syntax010 actual four states,
-85Original cache inputs/69required consumed, one91B Write and natural reopen/no replay.
-Whole224 full opaque frames/all1406 files survive byte-exact3,631,412-byte archive.
-Direct218 DIFFERENT/4 EQUAL plus4 native-only;72 matched pairs/144 more DIFFERENT.
-Independent source704/ELF/seal/full-raster/effect/comparator/restoration audit PASS.
+Current all46 workspace1819/0/11, strict Clippy/fmt/builds/help, release startup19/
+GET8/TERM01/VIS31/S07/AUD32 original bounds; Python51/docs/progress checks PASS.
+Baseline-red/new-green reload unit,20 unchanged UI07 runs and full55PTY PASS.
+Actual R3 complete39/replay39 WHOLE38400cells/5176320pixels per stage EQUAL;
+seven numbered Write rows/blank gutters match. One91B overwrite/3requests,
+natural exit/painted Sessions reopen/no replay. Whole1406 files/224 full captures
+retained exact3214952B; independent current705/ELF/effect/full comparator audit PASS.
 
 ## Risks
+Direct214 DIFFERENT/8 EQUAL plus4 authorized native-only; matched144 DIFFERENT.
 Full frozen R1–R6/VIS01–45/supplements and final current-source R6/V09 mandatory.
-Whole-frame Write postimage-vs-derived-diff, narrow wrap/live chrome/caret/raster
-and actual elapsed differences remain visible; no global pixel PASS. One own
-untracked failed run is preserved complete in a visible FAILED archive, not erased;
-committed proof/baselines/history/foreign data and unchanged1GiB guard stay intact.
+Narrow Markdown/Zig wrapping and Root Add/live status/caret/raster/real clocks
+remain visible. First/R2 findings and failed Subagent002 bytes/meta stay preserved;
+immutable qualified/historical/foreign data and1GiB cap unchanged. No global PASS.
 
 ## Next
-Fix the measured completed-Write numbered-postimage presentation through existing
-bounded recorded/result owners without inventing full files from partial hunks.
-Continue every remaining frozen outcome/Thoughts/family/forms/DCP/MCP/auth
-supplement, actual current-source paired proof, then full final R6/V09 acceptance.
-Do not reduce the contract, promote local grammar/body equality to whole T44 PASS,
-or end with a plan rather than executing the remaining task.
+Fix actual80×24 Markdown/Zig source-space boundaries/styles (61cells) and live
+Root Add/status chrome (48cells) through current owners, not captured-row patches.
+Continue every remaining frozen Thoughts/family/forms/DCP/MCP/auth supplement and
+current paired qualification, then complete final R6/V09. Do not finish T44 early,
+reduce its contract or stop after administrative delivery.
 
 
 Ready (до 5): T58

@@ -3056,18 +3056,16 @@ fn reload_error(error: CoreError) -> String {
     }
 }
 
-/// Hints were coalesced while the reload slot was held. A refused atomic reload
-/// leaves an owner live; consume its current facts before the explicit
-/// refusal, which must remain louder than any new background-service alert.
+/// A refused atomic reload leaves an owner live. Consume its current provider
+/// and MCP facts before explicit feedback, so a queued same-cause provider hint
+/// cannot replace the operation outcome before it is painted.
 async fn finish_reload_refusal(
     app: &CoreApp,
     state: &mut TuiState,
     deck: &mut LoopState,
     message: String,
 ) {
-    if let Ok(snapshot) = app.mcp_status().await {
-        apply_mcp_to_views(state, deck, snapshot);
-    }
+    refresh_provider_views(app, state, deck).await;
     state.push_transient_note(&message, NoteVariant::Error);
 }
 

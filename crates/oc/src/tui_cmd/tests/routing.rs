@@ -1583,6 +1583,86 @@ async fn pending_owner_reload_allows_resize_and_quit_without_dropping_owner_rece
 }
 
 #[tokio::test]
+async fn refused_reload_consumes_provider_facts_before_feedback_and_late_hint() {
+    use oc_core::queries::{
+        McpBinding, McpSnapshot, ProviderReadiness, ProviderStatus, ServiceAction, ServiceCode,
+        ServiceDiagnostic, ServiceKind, ServiceStage,
+    };
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut current = catalog();
+    current.chrome.location = Some("/fixture".into());
+    let mut state = TuiState::new_home(app.clone());
+    state.apply_catalog(current.clone());
+    state.handle_paste("/reload");
+    let mut deck = LoopState::default();
+    let diagnostic = ServiceDiagnostic {
+        kind: ServiceKind::Provider,
+        service: "fixture-provider".into(),
+        source: "source-fixture/provider".into(),
+        field: vec!["models".into()],
+        stage: ServiceStage::Query,
+        code: ServiceCode::QueryFailed,
+        action: ServiceAction::RetryConnection,
+    };
+    current.chrome.service_diagnostics.push(diagnostic.clone());
+    current.chrome.provider = Some(ProviderReadiness {
+        service: "fixture-provider".into(),
+        model: "opaque-model".into(),
+        status: ProviderStatus::Failed,
+        catalog_status: ProviderStatus::Failed,
+        diagnostic: Some(diagnostic.clone()),
+    });
+    let mcp = McpSnapshot {
+        binding: McpBinding {
+            location: "/fixture".into(),
+            generation: 1,
+            instance: 1,
+        },
+        revision: 1,
+        servers: Vec::new(),
+    };
+    let worker = tokio::spawn(async move {
+        // Support the old MCP-only finisher too: the feedback assertion below
+        // must fail on its ordering, not on a mock query-shape mismatch.
+        match inbox.recv().await.unwrap() {
+            InboxMsg::HomeSelection { ack, .. } => {
+                ack.send(Ok(current.clone())).unwrap();
+                let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
+                    panic!("current MCP facts")
+                };
+                ack.send(Ok(mcp.clone())).unwrap();
+            }
+            InboxMsg::McpStatus { ack } => {
+                ack.send(Ok(mcp.clone())).unwrap();
+            }
+            _ => panic!("current refusal facts"),
+        }
+        let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
+            panic!("late provider hint")
+        };
+        ack.send(Ok(current)).unwrap();
+        let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
+            panic!("late MCP facts")
+        };
+        ack.send(Ok(mcp)).unwrap();
+    });
+    let message = "Configuration reload failed; check native settings";
+    finish_reload_refusal(&app, &mut state, &mut deck, message.into()).await;
+    assert_eq!(state.note(), Some(message));
+    refresh_provider_views(&app, &mut state, &mut deck).await;
+    assert_eq!(
+        state.note(),
+        Some(message),
+        "same current provider facts cannot replace the explicit operation outcome before its paint"
+    );
+    assert_eq!(state.note_variant(), Some(NoteVariant::Error));
+    assert!(state.chrome.service_diagnostics.contains(&diagnostic));
+    assert_eq!(state.input(), "/reload");
+    assert_eq!(state.status(), &TuiStatus::Idle);
+    worker.await.unwrap();
+}
+
+#[tokio::test]
 async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     use oc_core::queries::{
         McpBinding, McpServerSnapshot, McpSnapshot, McpStatus, TerminalCopyMode,
@@ -1653,6 +1733,14 @@ async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
             panic!("active session selection")
         };
         ack.send(Err(CoreError::Shutdown)).unwrap();
+        for _ in 0..2 {
+            let Some(InboxMsg::SessionSelection { ack, .. }) = inbox.recv().await else {
+                panic!("refusal refreshes current active/parked provider facts")
+            };
+            // A failed read must not replace either captured route or its
+            // already-published safety-sensitive settings.
+            ack.send(Err(CoreError::Shutdown)).unwrap();
+        }
         let Some(InboxMsg::McpStatus { ack }) = inbox.recv().await else {
             panic!("refused reload consumes the surviving owner's current facts")
         };

@@ -506,3 +506,26 @@ after archival; no committed proof/baseline/history/foreign data or quota was ch
 Write postimage-vs-derived-diff, narrow wrapping/live chrome/caret/raster/durations
 and every remaining full frozen outcome/supplement/final R6 remain mandatory.
 T44 ACTIVE/NOT_PASS; no task finish or global pixel parity claim.
+
+## Completed Write / refused-reload publication (2026-10-10 — qualified slice)
+
+[Factual receipt](../tui/write-qualified.md) records bounded fully redacted captured
+requested-content metadata, numbered shared-syntax rendering and truthful legacy/
+error/limited behavior without workspace reads, partial-hunk reconstruction, RAW/
+model/effect mutation or new authority. Actual UI07 tracing proved a queued provider
+hint replaced refused-reload Error feedback; existing current provider+MCP facts
+are now consumed before explicit feedback. Baseline-red/new-green deterministic
+test,20 unchanged actual UI07 runs, full55PTY and current all46 workspace1819/0/11,
+strict Clippy/fmt/builds/help/startup19/GET8/TERM01/VIS31/S07/AUD32 original guards PASS.
+Final actual Write R3 complete39/replay39 strictly equal whole Original styled
+grid/cursor/PNG (38400cells/5176320pixels per stage), including all seven numbered
+Write rows/blank gutters. Natural exit/painted Sessions reopen preserves one91B
+overwrite/3requests without replay; current705-source/three real builds/ELF/effects/
+full comparator audit passed. All1406 whole files/224 full captures survive exact
+3214952B archive; first/R2 diagnostics and200/28-cell findings remain preserved.
+One own untracked failed Subagent002 survives byte/meta-faithful visible FAILED
+archival; no historical/qualified/foreign deletion or quota increase. Direct214
+DIFFERENT/8 EQUAL plus4 separate native-only, matched72pairs/144 DIFFERENT remain.
+Narrow Markdown/Zig wrapping, Root Add/live status/caret/raster/real clocks and every
+remaining full frozen outcome/supplement/final current-source R6/V09 are mandatory.
+T44 ACTIVE/NOT_PASS; measured episode equality is not global acceptance.

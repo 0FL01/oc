@@ -11,6 +11,21 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
     const row=f.cells.find(row=>row.map(cell=>cell.symbol).join('').includes(prompt));
     if(!row||row.find(cell=>cell.symbol==='┃')?.fg!=='#12ab34')throw Error('Accepted user stripe did not follow actual current profile');
   };
+  const writeBody=f=> {
+    const rows=f.cells.map(row=>row.map(cell=>cell.symbol).join(''));
+    const header=rows.findIndex(row=>row.includes('# Wrote')&&row.includes('syntax-proof.rs'));
+    const content='/* café\n中文 😀 */\nfn main() {\n    let value = "世界";\n    println!("{}", value);\n}\n';
+    if(header<0||content.split('\n').some((line,index)=>
+      rows[header+2+index]?.indexOf(String(index+1).padStart(2,' ')+' '+line)!==5)) {
+      throw Error('Actual completed Write did not paint its captured numbered postimage, including the trailing blank line');
+    }
+    if(rows.slice(header,header+10).some(row=>row.includes('Write content preview')))throw Error('Small actual Write preview was missing/limited');
+    for(let index=0;index<7;index++) {
+      if([5,7].some(x=>f.cells[header+2+index][x].symbol!==' '||f.cells[header+2+index][x].fg!=='#ffffff')) {
+        throw Error('Actual Write gutter padding did not inherit the terminal foreground');
+      }
+    }
+  };
   await waitFor(f=>f.text.includes('Ask anything'),'syntax Home',15000);
   send('\x1b[200~'+prompt+'\x1b[201~','syntax_submit_draft');send('\r','syntax_submit');
   await shot('syntax-live-partial',f=>f.text.includes('GRAMMAR::rust')&&f.text.includes('/* café')&&!f.text.includes('SYNTAX-INVENTORY-DONE'));
@@ -21,7 +36,7 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
     await new Promise(resolve=>setTimeout(resolve,25));
   }
   await resize(320);
-  const complete=await shot('syntax-complete-inventory',ready);rgb(complete);
+   const complete=await shot('syntax-complete-inventory',ready);rgb(complete);writeBody(complete);
   if(complete.text.includes('syntax highlighting preview limited')||complete.text.includes('syntax highlighting asset unavailable'))throw Error('Known grammar failed/limited in actual TUI');
   const before=await snapshot('syntax-completed');checks.before=before;
   const expected='/* café\n中文 😀 */\nfn main() {\n    let value = "世界";\n    println!("{}", value);\n}\n';
@@ -62,7 +77,7 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
    // unchanged four-identical-frame gate. A fresh process lazily compiles the
    // trusted queries for all 39 visible languages; this is not a paint request.
    await frame();
-   const replay=await shot('syntax-replayed-inventory',ready);rgb(replay);
+    const replay=await shot('syntax-replayed-inventory',ready);rgb(replay);writeBody(replay);
   const after=await snapshot('syntax-restarted');checks.after=after;
   if(JSON.stringify(before.syntax.file)!==JSON.stringify(after.syntax.file)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||logs.filter(e=>e.kind==='fixture_tool_call').length!==1)throw Error('Syntax reopen replayed effect or changed actual operation/RAW');
   checks.requests=logs.filter(item=>item.kind==='provider').length;checks.no_replay=true;return checks;

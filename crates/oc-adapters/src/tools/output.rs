@@ -235,6 +235,61 @@ pub(crate) struct Context<'a> {
 }
 
 impl Context<'_> {
+    /// Attach only at the successful Write publication boundary. Redact the
+    /// complete admitted request before clipping, never a potentially secret
+    /// prefix. No model-result, RAW input, confirmed effects or workspace reads.
+    pub(crate) fn attach_write(
+        &self,
+        presentation: &mut oc_core::tool_output::Presentation,
+        path: &str,
+        content: &str,
+    ) {
+        let mut path = path.to_owned();
+        redact_string(&mut path, &self.secrets);
+        let path: String = path
+            .chars()
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect();
+        let path_end =
+            path.floor_char_boundary(path.len().min(oc_core::patch::EFFECT_LINE_BYTES_CAP));
+        let mut content = content.to_owned();
+        redact_string(&mut content, &self.secrets);
+        let mut end = content.floor_char_boundary(
+            content.len().min(
+                self.limits
+                    .max_bytes
+                    .min(oc_core::tool_output::PREVIEW_BYTES),
+            ),
+        );
+        let rows = self.limits.max_lines.min(oc_core::patch::EFFECT_LINES_CAP);
+        if rows == 0 {
+            end = 0;
+        } else if let Some((at, _)) = content
+            .bytes()
+            .enumerate()
+            .filter(|&(_, b)| b == b'\n')
+            .nth(rows - 1)
+        {
+            end = end.min(at);
+        }
+        presentation.write = Some(oc_core::tool_output::Write {
+            path: path[..path_end].to_owned(),
+            path_limited: path_end < path.len(),
+            content: content[..end].to_owned(),
+            content_bytes: content.len() as u64,
+            content_limited: end < content.len(),
+        });
+        // Optional display facts never widen the existing serialized record cap
+        // or turn a successful effect into a logging failure. An omitted preview
+        // stays honestly unavailable; the original confirmed effects survive.
+        if !presentation.is_valid()
+            || !serde_json::to_vec(presentation)
+                .is_ok_and(|bytes| bytes.len() <= oc_core::tool_output::RECORD_BYTES)
+        {
+            presentation.write = None;
+        }
+    }
+
     pub(crate) fn prepare_shell(
         &self,
         mut text: String,

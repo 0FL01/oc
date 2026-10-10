@@ -123,12 +123,12 @@ def unpack(encoded):
     return files, aliases, raw_sha, raw_bytes
 
 
-def producer_checks(files):
+def producer_checks(files, source_count=704):
     reports = []
     for episode, count in (("inventory", 8), ("ordinary", 56), ("temporal", 160)):
         read = lambda relative: json.loads(files[episode + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
-        require(len(manifest) == 704, "complete current producer source membership")
+        require(len(manifest) == source_count, "complete current producer source membership")
         for name, expected in manifest.items():
             with (REPO / name).open("rb") as stream:
                 require(hashlib.file_digest(stream, "sha256").hexdigest() == expected, "current producer source")
@@ -200,13 +200,22 @@ def encode(files, aliases):
 
 
 def main():
+    global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3"), default="syntax")
     args = parser.parse_args()
+    source_count = 704
+    if args.campaign != "syntax":
+        attempt = {"write": "001", "write-r2": "002", "write-r3": "003"}[args.campaign]
+        ROOTS = {"inventory": TEMP / f"write-current-{attempt}/inventory",
+                 **{name: TEMP / f"write-regressions-{attempt}" / name
+                    for name in ("ordinary", "temporal", "matched")}}
+        source_count = 705
     resource.setrlimit(resource.RLIMIT_AS, (384 * 1024**2, 384 * 1024**2))
     require(os.getuid() != 0, "non-root evidence owner")
-    archive = REPO / "evidence/tui/syntax-proof.tar.xz"
-    receipt = REPO / "evidence/tui/syntax-proof.inventory.json"
+    archive = REPO / f"evidence/tui/{args.campaign}-proof.tar.xz"
+    receipt = REPO / f"evidence/tui/{args.campaign}-proof.inventory.json"
     if args.mode == "audit":
         record = json.loads(receipt.read_bytes())
         encoded = archive.read_bytes()
@@ -214,12 +223,12 @@ def main():
         restored, aliases, raw_sha, raw_bytes = unpack(encoded)
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
-        reports = producer_checks(restored)
+        reports = producer_checks(restored, source_count)
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
-        reports = producer_checks(files)
+        reports = producer_checks(files, source_count)
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)

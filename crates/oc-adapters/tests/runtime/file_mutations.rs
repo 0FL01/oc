@@ -102,6 +102,18 @@ async fn tool20_ask_preview_changed_preimage_cancel_and_durable_effects() {
             if action == "allow" {
                 assert_eq!(rows[0].patch_effects.as_ref().unwrap().total_files, 1);
             }
+            let write_preview = rows[0]
+                .output_presentation
+                .as_ref()
+                .and_then(|presentation| presentation.write.as_ref());
+            if tool == "write" && action == "allow" {
+                let preview = write_preview.unwrap();
+                assert_eq!(preview.content, "after\n");
+                assert_eq!(preview.content_bytes, 6);
+                assert!(!preview.content_limited && !preview.path_limited);
+            } else {
+                assert!(write_preview.is_none());
+            }
         }
     }
 }
@@ -366,6 +378,7 @@ async fn tool12_next_turn_and_reopen_switch_family_keep_historical_calls_verbati
         assert_eq!(old.input, new.input);
         assert_eq!(old.output, new.output);
         assert_eq!(old.patch_effects, new.patch_effects);
+        assert_eq!(old.output_presentation, new.output_presentation);
     }
     assert_eq!(
         std::fs::read(harness._project.path().join("file")).unwrap(),
@@ -395,6 +408,24 @@ async fn tool12_next_turn_and_reopen_switch_family_keep_historical_calls_verbati
         Some(patch.to_string().as_str())
     );
     assert_eq!(current[1].name, "write");
+    let preview = current[1]
+        .output_presentation
+        .as_ref()
+        .unwrap()
+        .write
+        .as_ref()
+        .unwrap();
+    assert_eq!(preview.content, "new\n");
+    assert!(!preview.content_limited);
+    assert!(!preview.content.contains("present-day"));
+    assert!(
+        current[0]
+            .output_presentation
+            .as_ref()
+            .unwrap()
+            .write
+            .is_none()
+    );
     assert_eq!(
         current[1].input.as_deref(),
         Some(write.to_string().as_str())
