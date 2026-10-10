@@ -55,7 +55,16 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
   }
   send('\x1b[200~syntax unsent draft\x1b[201~','syntax_unsent_draft');
   await resize(24,80);
-  await shot('syntax-current-profile-draft',f=>f.text.includes('syntax unsent draft'));
+  const narrow=await shot('syntax-current-profile-draft',f=>f.text.includes('syntax unsent draft'));
+  const narrowRows=narrow.cells.map(row=>row.map(cell=>cell.symbol).join(''));
+  const expectedWrap=[
+    '**strong 中文 😀** and *emphasis* with `literal` and [link](https://',
+    'example.invalid).',
+    'pub fn main() void { const value: u32 = 42; std.debug.print("{d}", .{',
+    'value}); }',
+  ];
+  if(expectedWrap.some(source=>!narrowRows.some(row=>row.includes(source))))throw Error('Actual narrow Markdown/Zig source did not follow pinned word boundaries');
+  checks.narrow_source_wrap=true;
   send('\x03','syntax_clear_draft');await waitFor(f=>!f.text.includes('syntax unsent draft'),'syntax draft cleared',6000);
   send('\x03','syntax_natural_exit');
   const deadline=Date.now()+6000;while(!logs.some(item=>item.kind==='exit'&&item.generation===0)) {if(Date.now()>deadline)throw Error('Syntax process did not exit');await new Promise(resolve=>setTimeout(resolve,25));}

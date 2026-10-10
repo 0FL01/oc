@@ -203,10 +203,15 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3"), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap"), default="syntax")
     args = parser.parse_args()
     source_count = 704
-    if args.campaign != "syntax":
+    if args.campaign == "wrap":
+        ROOTS = {"inventory": TEMP / "wrap-current-001/inventory",
+                 **{name: TEMP / "wrap-regressions-001" / name
+                    for name in ("ordinary", "temporal", "matched")}}
+        source_count = 706
+    elif args.campaign != "syntax":
         attempt = {"write": "001", "write-r2": "002", "write-r3": "003"}[args.campaign]
         ROOTS = {"inventory": TEMP / f"write-current-{attempt}/inventory",
                  **{name: TEMP / f"write-regressions-{attempt}" / name

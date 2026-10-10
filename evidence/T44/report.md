@@ -529,3 +529,25 @@ DIFFERENT/8 EQUAL plus4 separate native-only, matched72pairs/144 DIFFERENT remai
 Narrow Markdown/Zig wrapping, Root Add/live status/caret/raster/real clocks and every
 remaining full frozen outcome/supplement/final current-source R6/V09 are mandatory.
 T44 ACTIVE/NOT_PASS; measured episode equality is not global acceptance.
+
+## Shared source-word wrapping (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/wrap-qualified.md) records actual pinned OpenTUI
+punctuation/whitespace/script boundaries in the common source-space/code/permission
+owner, with styled Unicode and logical indentation preserved. Actual narrow
+Markdown/Zig source rows now agree at absolute positions/styles; the prior61-cell
+wrap mismatch is corrected, without captured-row replacement or authority change.
+Current all46 workspace1821/0/11,507TUI, strict Clippy/fmt/builds/help, release
+startup19/GET8/TERM01/VIS31/S07/AUD32 original thresholds and Python51 checks PASS.
+Fresh actual four-stage inventory/ordinary/default-temporal proof retains one91B
+overwrite/3requests/natural gen0 exit/painted Sessions reopen/no replay,840 equal
+Write cells, all39 SDK bodies/styles and actual frozen cache consumption. Every
+1406 original files/224 full captures survives exact3216980B self-contained archive;
+independent current706-source/three real builds/ELF/full comparator/effect audit PASS.
+Direct218 DIFFERENT/4 EQUAL plus4 native-only, matched72pairs/144 DIFFERENT remain.
+Complete/replay and draft retain genuine Native1.8s/Original2.0s clock differences;
+live Root/status48cells and preexisting32-pixel draft raster edge remain unmasked.
+All prior qualified/failed bytes/reports/checkpoints, foreign data and1GiB cap are
+unchanged. Next safe parked-root event/job/permission routing before actionable
+Root Add, truthful active usage/preview-loss chrome, then every remaining full
+frozen outcome/supplement/final current-source R6/V09. T44 ACTIVE/NOT_PASS.

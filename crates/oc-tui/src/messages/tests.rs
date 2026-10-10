@@ -3631,11 +3631,17 @@ fn v06a_completed_single_long_line_remains_scrollable_past_decode_limit() {
         &cache,
     );
     assert!(total > 300);
+    // OpenTUI can wrap this sentinel at its hyphens. Rejoin the displayed tail,
+    // not the source or a fresh decode: every sentinel character must remain
+    // accessible through the indexed viewport, in order and at its actual end.
+    let tail: String = bottom
+        .iter()
+        .map(|line| line.plain_text().trim().to_owned())
+        .collect();
     assert!(
-        bottom
-            .iter()
-            .any(|l| l.plain_text().contains("END-OF-COMPLETED-LINE")),
-        "completed content after 16 KiB must be accessible"
+        tail.ends_with("END-OF-COMPLETED-LINE"),
+        "completed content after 16 KiB must be accessible: {:?}",
+        bottom.iter().map(Line::plain_text).collect::<Vec<_>>()
     );
 }
 

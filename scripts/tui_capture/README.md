@@ -1847,6 +1847,8 @@ captured request preview, not a workspace reread or a reconstructed diff image.
 The wide-frame number/source columns are also checked against the actual
 Original gutter, whose minimum width already includes both padding cells.
 Both gutter padding cells retain the terminal foreground; only digits are muted.
+The actual80×24 draft view also checks the Markdown inline URL and Zig punctuation
+word boundaries from the unchanged source samples; all cells/styles remain captured.
 
 The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
 record real initial access times; the first post-render snapshot records access

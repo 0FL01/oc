@@ -235,18 +235,18 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, false, false)
 }
 
-/// Preserve a source separator at a word-wrap boundary when it fits on the
-/// preceding row, so its original style is painted without inventing cells.
+/// OpenTUI word boundaries preserve a fitting source separator on the preceding
+/// row, so its original style is painted without inventing cells.
 pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
-    wrap_line_with_space_mode(line, width, limit, true, false)
+    wrap_line_with_space_mode(line, width, limit, true, true)
 }
 
 /// Stream the same source-space rows without retaining a whole long message.
 pub(crate) fn visit_source_space_line(line: &Line, width: usize, emit: impl FnMut(Line)) {
-    visit_wrapped_line(line, width, usize::MAX, true, false, emit);
+    visit_wrapped_line(line, width, usize::MAX, true, true, emit);
 }
 
-/// Plain permission text uses OpenTUI word boundaries (including hyphens),
+/// Plain permission text uses OpenTUI word boundaries,
 /// with a grapheme-safe fallback for a resource longer than the available row.
 pub(crate) fn wrap_permission_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, false, true)
@@ -262,7 +262,7 @@ fn wrap_line_with_space_mode(
     width: usize,
     limit: usize,
     preserve_break_space: bool,
-    hyphen_breaks: bool,
+    opentui_breaks: bool,
 ) -> Vec<Line> {
     let mut out = Vec::new();
     visit_wrapped_line(
@@ -270,7 +270,7 @@ fn wrap_line_with_space_mode(
         width,
         limit,
         preserve_break_space,
-        hyphen_breaks,
+        opentui_breaks,
         |row| {
             out.push(row);
         },
@@ -283,86 +283,227 @@ fn visit_wrapped_line(
     width: usize,
     limit: usize,
     preserve_break_space: bool,
-    hyphen_breaks: bool,
+    opentui_breaks: bool,
     mut emit: impl FnMut(Line),
 ) {
     let max = width.max(1);
     let mut emitted = 0;
     let mut current: Vec<(String, Style)> = Vec::new();
     let mut used = 0usize;
-    // Index just past the last space run in `current`; a wrap can break there.
-    let mut break_at: Option<usize> = None;
+    // Last break and whether its head is logical-leading indentation. That
+    // property belongs to the break, not the subsequently collected word.
+    let mut break_at: Option<(usize, bool)> = None;
     // Only continuation rows drop their leading spaces; the first row keeps
     // the indentation of the source line.
     let mut continuation = false;
-    for span in line.spans() {
-        for glyph in span.content().graphemes(true) {
+    let mut source_has_word = false;
+    let mut previous_class = 0;
+    let mut previous_glyph: Option<&str> = None;
+    let mut glyphs = line
+        .spans()
+        .iter()
+        .flat_map(|span| {
+            span.content()
+                .graphemes(true)
+                .map(move |glyph| (glyph, span.style()))
+        })
+        .peekable();
+    while let Some((glyph, style)) = glyphs.next() {
+        if emitted >= limit {
+            break;
+        }
+        let cells = UnicodeWidthStr::width(glyph);
+        // A grapheme wider than the target cell cannot fit on any row.
+        // Show an overflow glyph without displacing the next grid border.
+        let (glyph, cells) = if cells > max {
+            ("…", 1)
+        } else {
+            (glyph, cells)
+        };
+        let continues_cluster = cells == 0
+            && previous_glyph
+                .is_some_and(|previous| format!("{previous}{glyph}").graphemes(true).count() == 1);
+        previous_glyph = Some(glyph);
+        let whitespace = if opentui_breaks {
+            wrap_whitespace(glyph)
+                && !glyphs.peek().is_some_and(|(next, _)| {
+                    // A styled-span edge is not a grapheme boundary. Keep a
+                    // whitespace base when the next span carries its accent.
+                    UnicodeWidthStr::width(*next) == 0
+                        && !wrap_whitespace(next)
+                        && format!("{glyph}{next}").graphemes(true).count() == 1
+                })
+        } else {
+            glyph == " "
+        };
+        let class = glyph.chars().next().map_or(0, wrap_word_class);
+        if opentui_breaks
+            && matches!((previous_class, class), (1, 2) | (2, 1))
+            && !current.is_empty()
+        {
+            break_at = Some((current.len(), false));
+        }
+        while used + cells > max && !current.is_empty() {
+            // A separator following an exactly fitting word belongs to the
+            // next wrap boundary, not the earlier boundary before that word.
+            // Keep the full row and suppress only the overflowing space.
+            let boundary = if whitespace {
+                break_at = None;
+                if !preserve_break_space && (!opentui_breaks || source_has_word) {
+                    while current.last().is_some_and(|(ch, _)| {
+                        if opentui_breaks {
+                            wrap_whitespace(ch)
+                        } else {
+                            ch == " "
+                        }
+                    }) {
+                        current.pop();
+                    }
+                }
+                None
+            } else {
+                break_at.take()
+            };
+            match boundary {
+                Some((index, leading_indent)) => {
+                    let mut rest = current.split_off(index);
+                    while (!opentui_breaks || source_has_word)
+                        && rest.first().is_some_and(|(ch, _)| {
+                            if opentui_breaks {
+                                wrap_whitespace(ch)
+                            } else {
+                                ch == " "
+                            }
+                        })
+                    {
+                        rest.remove(0);
+                    }
+                    let mut head = std::mem::take(&mut current);
+                    if !preserve_break_space && (!opentui_breaks || !leading_indent) {
+                        while head.last().is_some_and(|(ch, _)| {
+                            if opentui_breaks {
+                                wrap_whitespace(ch)
+                            } else {
+                                ch == " "
+                            }
+                        }) {
+                            head.pop();
+                        }
+                    }
+                    emit(Line::new(coalesce(head)));
+                    emitted += 1;
+                    current = rest;
+                    used = current
+                        .iter()
+                        .map(|(ch, _)| UnicodeWidthStr::width(ch.as_str()))
+                        .sum();
+                }
+                None => {
+                    emit(Line::new(coalesce(std::mem::take(&mut current))));
+                    emitted += 1;
+                    used = 0;
+                }
+            }
+            continuation = true;
             if emitted >= limit {
                 break;
             }
-            let cells = UnicodeWidthStr::width(glyph);
-            // A grapheme wider than the target cell cannot fit on any row.
-            // Show an overflow glyph without displacing the next grid border.
-            let (glyph, cells) = if cells > max {
-                ("…", 1)
-            } else {
-                (glyph, cells)
-            };
-            if used + cells > max && !current.is_empty() {
-                // A separator following an exactly fitting word belongs to the
-                // next wrap boundary, not the earlier boundary before that word.
-                // Keep the full row and suppress only the overflowing space.
-                let boundary = if glyph == " " {
-                    break_at = None;
-                    if !preserve_break_space {
-                        while current.last().is_some_and(|(ch, _)| ch == " ") {
-                            current.pop();
-                        }
-                    }
-                    None
-                } else {
-                    break_at.take()
-                };
-                match boundary {
-                    Some(index) => {
-                        let mut rest = current.split_off(index);
-                        while rest.first().is_some_and(|(ch, _)| ch == " ") {
-                            rest.remove(0);
-                        }
-                        let mut head = std::mem::take(&mut current);
-                        if !preserve_break_space {
-                            while head.last().is_some_and(|(ch, _)| ch == " ") {
-                                head.pop();
-                            }
-                        }
-                        emit(Line::new(coalesce(head)));
-                        emitted += 1;
-                        current = rest;
-                        used = current
-                            .iter()
-                            .map(|(ch, _)| UnicodeWidthStr::width(ch.as_str()))
-                            .sum();
-                    }
-                    None => {
-                        emit(Line::new(coalesce(std::mem::take(&mut current))));
-                        emitted += 1;
-                        used = 0;
-                    }
-                }
-                continuation = true;
-            }
-            if glyph == " " && current.is_empty() && continuation {
-                continue;
-            }
-            current.push((glyph.to_string(), span.style()));
-            used += cells;
-            if glyph == " " || (hyphen_breaks && glyph == "-") {
-                break_at = Some(current.len());
-            }
+        }
+        if emitted >= limit {
+            break;
+        }
+        if whitespace && current.is_empty() && continuation && (!opentui_breaks || source_has_word)
+        {
+            previous_class = class;
+            continue;
+        }
+        let extend_break = continues_cluster && break_at.is_some_and(|(at, _)| at == current.len());
+        let leading_indent = if extend_break {
+            break_at.is_some_and(|(_, leading)| leading)
+        } else {
+            opentui_breaks && whitespace && !source_has_word
+        };
+        current.push((glyph.to_string(), style));
+        used += cells;
+        source_has_word |= !whitespace;
+        // A zero-cell combining suffix in another style span keeps the
+        // grapheme's initial script class; span edges are not word edges.
+        if !continues_cluster {
+            previous_class = class;
+        }
+        if extend_break || whitespace || (opentui_breaks && wrap_break_after(glyph)) {
+            break_at = Some((current.len(), leading_indent));
         }
     }
     if emitted < limit && (!current.is_empty() || emitted == 0) {
         emit(Line::new(coalesce(current)));
+    }
+}
+
+// Pinned OpenTUI 0.5.10 native utf8.zig layout-wrap metadata. Callers have
+// already expanded tabs; these are display graphemes, not source-byte offsets.
+fn wrap_whitespace(glyph: &str) -> bool {
+    // utf8.zig:1716: mixed whitespace/combining clusters are preserved words,
+    // not separators that continuation or trailing-space handling may discard.
+    glyph.chars().all(wrap_whitespace_char)
+}
+
+fn wrap_whitespace_char(ch: char) -> bool {
+    matches!(
+        ch,
+        ' ' | '\t' | '\u{00a0}' | '\u{1680}' | '\u{2000}'
+            ..='\u{200b}' | '\u{202f}' | '\u{205f}' | '\u{3000}'
+    )
+}
+
+fn wrap_break_after(glyph: &str) -> bool {
+    // Preserved-whitespace clusters still supply a break AFTER their bytes.
+    glyph.chars().any(|ch| {
+        wrap_whitespace_char(ch)
+            || matches!(
+                ch,
+                '-' | '/'
+                    | '\\'
+                    | '.'
+                    | ','
+                    | ';'
+                    | ':'
+                    | '!'
+                    | '?'
+                    | '('
+                    | ')'
+                    | '['
+                    | ']'
+                    | '{'
+                    | '}'
+                    | '\u{00ad}'
+                    | '\u{2010}'
+                    | '\u{3001}'
+                    | '\u{3002}'
+                    | '\u{ff01}'
+                    | '\u{ff0c}'
+                    | '\u{ff1a}'
+                    | '\u{ff1f}'
+            )
+    })
+}
+
+fn wrap_word_class(ch: char) -> u8 {
+    if ch.is_ascii_alphanumeric() || ch == '_' {
+        1
+    } else if matches!(ch, '\u{3400}'..='\u{4dbf}' | '\u{4e00}'..='\u{9fff}' |
+        '\u{f900}'..='\u{faff}' | '\u{20000}'..='\u{2a6df}' |
+        '\u{2a700}'..='\u{2b73f}' | '\u{2b740}'..='\u{2b81f}' |
+        '\u{2b820}'..='\u{2ceaf}' | '\u{2ceb0}'..='\u{2ebef}' |
+        '\u{2ebf0}'..='\u{2ee5d}' | '\u{2f800}'..='\u{2fa1f}' |
+        '\u{3040}'..='\u{30ff}' | '\u{31f0}'..='\u{31ff}' |
+        '\u{ff66}'..='\u{ff9d}' | '\u{1100}'..='\u{11ff}' |
+        '\u{3130}'..='\u{318f}' | '\u{a960}'..='\u{a97f}' |
+        '\u{ac00}'..='\u{d7ff}')
+    {
+        2
+    } else {
+        0
     }
 }
 
@@ -386,6 +527,10 @@ fn coalesce(cells: Vec<(String, Style)>) -> Vec<Span> {
     }
     spans
 }
+
+#[cfg(test)]
+#[path = "styled/wrap_tests.rs"]
+mod wrap_tests;
 
 #[cfg(test)]
 mod tests {
