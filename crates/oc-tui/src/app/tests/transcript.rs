@@ -275,7 +275,7 @@ async fn reverted_card_owner_count_render_click_selection_and_reopen() {
 }
 
 #[tokio::test]
-async fn sent_user_messages_keep_the_profile_color_across_profile_switches() {
+async fn sent_user_messages_follow_current_profile_without_rewriting_submission() {
     let mut state = fresh_state("user-message-agent-color").await;
     let mut events = state.app.subscribe();
     let colors = crate::theme::Theme::dark().categorical_agents();
@@ -318,11 +318,28 @@ async fn sent_user_messages_keep_the_profile_color_across_profile_switches() {
             stripe_runs.push(color);
         }
     }
-    assert_eq!(stripe_runs, [colors[1], colors[0]]);
+    assert_eq!(stripe_runs, [colors[0]]);
+    let stored = state.history().rows().to_vec();
+    let draft = "unsubmitted current-profile draft";
+    state.restore_prompt(draft.into());
+    let mut current = snapshot();
+    current.agent_id = Some("y".into());
+    current
+        .chrome
+        .agent_colors
+        .insert("y".into(), "#12ab34".into());
+    state.apply_catalog(current);
+    assert!(
+        user_border_colors(&state)
+            .iter()
+            .all(|color| *color == ratatui::style::Color::Rgb(0x12, 0xab, 0x34))
+    );
+    assert_eq!(state.history().rows(), stored);
+    assert_eq!(state.input(), draft);
 }
 
 #[tokio::test]
-async fn replayed_user_messages_use_their_persisted_turn_color() {
+async fn replayed_user_messages_use_current_profile_in_full_and_indexed_rendering() {
     use oc_core::queries::HistoryTurn;
 
     let mut state = fresh_state("replay-user-agent-color").await;
@@ -341,14 +358,51 @@ async fn replayed_user_messages_use_their_persisted_turn_color() {
     });
     state.attach_page(&page(vec![old, new], 2, false, false));
 
+    let stored = state.history().rows().to_vec();
     let colors = crate::theme::Theme::dark().categorical_agents();
-    let mut stripe_runs = Vec::new();
-    for color in user_border_colors(&state) {
-        if stripe_runs.last() != Some(&color) {
-            stripe_runs.push(color);
+    for (agent, explicit, expected) in [
+        ("x", None, colors[0]),
+        ("y", None, colors[1]),
+        (
+            "y",
+            Some("#12ab34"),
+            ratatui::style::Color::Rgb(0x12, 0xab, 0x34),
+        ),
+        ("y", Some("not-a-color"), colors[1]),
+        ("x", None, colors[0]),
+    ] {
+        let mut catalog = snapshot();
+        catalog.agent_id = Some(agent.into());
+        if let Some(color) = explicit {
+            catalog
+                .chrome
+                .agent_colors
+                .insert(agent.into(), color.into());
         }
+        state.apply_catalog(catalog);
+        for width in [43, 80, 120, 160] {
+            let full = state.transcript_lines(width, width);
+            let (indexed, _) = state.visible_transcript(width, width, 40);
+            for lines in [full, indexed] {
+                let borders: Vec<_> = lines
+                    .iter()
+                    .flat_map(|line| line.spans())
+                    .filter(|span| span.content() == "┃")
+                    .map(|span| span.style().fg)
+                    .collect();
+                assert!(!borders.is_empty());
+                assert!(
+                    borders.iter().all(|color| *color == Some(expected)),
+                    "agent={agent} width={width} {borders:?}"
+                );
+            }
+        }
+        assert_eq!(
+            state.history().rows(),
+            stored,
+            "current presentation cannot rewrite either original turn profile/slot"
+        );
     }
-    assert_eq!(stripe_runs, [colors[1], colors[0]]);
 }
 
 #[tokio::test]

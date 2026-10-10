@@ -7,6 +7,23 @@ fixture. `capture.mjs` routes every PTY byte through the same xterm.js/Chromium
 frontend, saves full styled cells and PNGs, and invokes the recovery comparator.
 `frontend.js` reads xterm's VT buffer; it does not draw an application screen.
 
+### Frozen actual-reference syntax assets
+
+`--syntax-cache true` is an explicit tool-preview fixture option. Before launching
+the unchanged pinned original executable, the bridge preloads only its NEW isolated
+OpenTUI URL cache from `oc-tui/assets/syntax/manifest.json` and the recorded actual
+reference-WASM digests. The five packaged built-ins remain the original package's
+assets; all34 external grammars and each configured URL-query part retain their
+actual URL-basename/hash cache keys and sealed full bytes. No existing user/reference
+cache, descriptor, query pattern, renderer, native grammar or policy is substituted.
+The one documented Swift moving-main/release incompatibility is frozen to the
+official same-release query at its original URL cache key. The bridge records every
+loaded cache file/source URL/SHA; the runner seals the option, manifest and loader.
+This is actual worker input, not a token-based UI oracle. `test_syntax_cache.py`
+checks real DownloadUtils keys, full inventory seals and existing-cache refusal.
+Native production needs only its statically compiled grammars and sealed queries,
+never this development SDK/cache loader or a Node/Bun/WASM host/download.
+
 ## External prerequisites
 
 Use the approved external directory (no `npm install` in this workspace):
@@ -1812,3 +1829,35 @@ momentum parity. `MEASURED` means the campaign completed; frame differences,
 unstable active-animation PNGs, missing samples and anchor failures remain
 visible and do not qualify VIS31/VIS32. History paging requires a separate
 large-history scenario. This command does not invoke Cargo.
+### Full native grammar inventory — running-binary fixture
+
+`--tool-preview true --syntax-cache true --syntax-inventory true` is exclusive
+with MCP/child/prompt/cursor probes. It starts at120×40, streams an actual open
+Rust comment, then uses real120×320 and80×24 resizes. One structured `write`
+overwrites only the fresh owned `syntax-proof.rs`; all other actions remain denied.
+The ordinary assistant response contains one finite sample of every39 registered
+grammar (four-backtick outer fences preserve nested Markdown). Completed and
+replayed full frames must visibly include every inventory marker, no known-asset
+or highlighting-limit notice, and the current explicit profile's accepted-user
+stripe. Restart/reopen uses the actual process/session picker and checks unchanged
+file bytes and native operation facts, not seeded history or an API-selected view.
+
+The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
+record real initial access times; the first post-render snapshot records access
+times before reading/hash verification. Every external grammar/highlight member
+must have been accessed by the actual original worker and remain byte-identical
+to the frozen inputs. Locals remain recorded but unused by OpenTUI; the five
+bundled built-ins remain the real package assets. The official same-release Swift
+query freeze is explicit, not a native-parser substitution. This actual TUI
+episode supplements, not replaces, the39-language/78-source/156-dark-light actual
+worker token/style corpus. Full styled grids, complete opaque PNGs, caret and
+all strict comparisons remain required; no global parity PASS is implied.
+
+Tall-view snapshots transfer the same complete browser-produced JSON as one
+string, then parse it in Node. This avoids Playwright's recursive per-property
+transport without dropping cells, attributes, cursor or text. The DOM/WebGL
+adapter check independently compares both transports on all38,400 cells at
+120×320. Final still-shot timing and five-identical-full-observation gates,
+process-group pause/drain ACK and screenshot/geometry checks remain unchanged.
+Bounded timeout diagnostics record actual read latency, predicates, hashes and
+the last changed cells; they cannot qualify a failed capture.

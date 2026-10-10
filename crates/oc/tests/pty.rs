@@ -545,6 +545,29 @@ impl PtySession {
             }
         }
     }
+
+    /// Resume the deliberately stalled consumer before waiting for exit. The
+    /// child can otherwise block writing its final frame/restore bytes while
+    /// the parent waits for it, with neither side able to make progress.
+    fn wait_exit_and_drain(&mut self, timeout: Duration) -> (std::process::ExitStatus, Vec<u8>) {
+        let start = Instant::now();
+        let mut output = Vec::new();
+        loop {
+            output.extend(self.drain());
+            if let Some(status) = self.child.try_wait().expect("try_wait") {
+                output.extend(self.drain());
+                return (status, output);
+            }
+            if start.elapsed() > timeout {
+                let _ = self.child.kill();
+                panic!(
+                    "child did not exit after resuming consumer; screen: {:?}",
+                    render_screen(&output).rows()
+                );
+            }
+            std::thread::sleep(POLL);
+        }
+    }
 }
 
 impl Drop for PtySession {
@@ -1415,9 +1438,8 @@ fn pty_slow_consumer_stall_then_drain() {
     pty.send(b"hello\r");
     std::thread::sleep(Duration::from_secs(2));
     pty.send(b"\x03"); // Ctrl-C while output sits in the PTY buffer
-    let (status, _) = pty.wait_exit(DEADLINE);
+    let (status, out) = pty.wait_exit_and_drain(DEADLINE);
     assert!(status.success(), "quit despite stalled consumer");
-    let out = pty.drain();
     // The byte stream interleaves screen regions, so multi-part phrases are
     // proven exactly via Db below; here the restore markers must hold.
     assert!(contains(&out, ALT_LEAVE), "alternate screen left");

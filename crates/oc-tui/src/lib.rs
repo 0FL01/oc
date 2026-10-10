@@ -29,6 +29,7 @@ pub mod shell;
 mod shell_jobs_view;
 pub mod smoke;
 pub mod styled;
+mod syntax;
 pub mod terminal;
 pub mod terminal_view;
 pub mod theme;

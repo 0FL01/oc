@@ -486,3 +486,23 @@ comparators recompute. Direct230 DIFFERENT/4 EQUAL,4 separate native-only; match
 frame omission, masking or global pixel PASS. Measured accepted-user categorical
 border divergence, Thoughts/shared grammar/assets and every remaining frozen
 outcome/supplement/final current-source R6/V09 remain mandatory. T44 ACTIVE/NOT_PASS.
+
+## Shared native grammar / current-profile user border (2026-10-10 — qualified slice)
+
+[Factual receipt](../tui/syntax-qualified.md) records all39 statically compiled
+grammars, pinned queries/licenses, actual78-case/156-style worker corpus and shared
+bounded whole-fence/patch context. Accepted-user borders use current admitted profile
+only in render copies; recorded identity/slots/RAW/draft remain unchanged. Current
+full workspace1816/0/11, strict Clippy/fmt/builds/help, release startup19/GET8/TERM01
+and original pacing/archive guards PASS. Actual Syntax010 four stages per side
+qualifies39 visible bodies, actual85-input Original cache/69 consumed required inputs,
+one91-byte Write and natural restart/painted saved-session reopen without replay.
+Complete ordinary/default-temporal regressions retain224 full opaque captures and
+all1406 whole files in3,631,412-byte self-contained lossless archive; independent
+restoration/source704/seal/effect/unchanged-comparator audit PASS. Direct218 DIFFERENT/
+4 EQUAL plus4 separate native-only entries; matched72 pairs/144 additional DIFFERENT.
+One own untracked failed Subagent001 remains byte/meta-preserved and visibly FAILED
+after archival; no committed proof/baseline/history/foreign data or quota was changed.
+Write postimage-vs-derived-diff, narrow wrapping/live chrome/caret/raster/durations
+and every remaining full frozen outcome/supplement/final R6 remain mandatory.
+T44 ACTIVE/NOT_PASS; no task finish or global pixel parity claim.

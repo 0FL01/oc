@@ -1,6 +1,7 @@
 use super::*;
 use crate::history::card_from_row;
 use crate::styled;
+use crate::theme::SyntaxToken;
 use oc_core::queries::ToolOpView;
 use ratatui::buffer::Buffer;
 use ratatui::{
@@ -1447,7 +1448,10 @@ fn golden_assistant_markdown_with_syntax_colors() {
     assert_eq!(buffer[(11, 8)].symbol(), "1");
     assert_eq!(buffer[(11, 8)].fg, theme.syntax(SyntaxToken::Number));
     assert_eq!(buffer[(14, 8)].symbol(), "/");
-    assert_eq!(buffer[(14, 8)].fg, theme.syntax(SyntaxToken::Comment));
+    // The actual pinned Rust query captures both comment and spell. OpenTUI's
+    // real converter lets spell replace foreground, retaining comment italic.
+    assert_eq!(buffer[(14, 8)].fg, theme.text());
+    assert!(buffer[(14, 8)].modifier.contains(Modifier::ITALIC));
     // Blockquote (`markdown.blockQuote`).
     assert_eq!(
         buffer[(3, 10)].fg,
@@ -2667,6 +2671,142 @@ fn v06a_fenced_code_retains_intentional_blank_lines() {
 }
 
 #[test]
+fn indexed_code_keeps_whole_fence_state_and_literal_json() {
+    let theme = Theme::dark();
+    assert_eq!(
+        markdown("```json\n{\"key\":\"value\"}\n```", theme)[0].plain_text(),
+        "{\"key\":\"value\"}"
+    );
+    for source in [
+        "```text\na\n```\u{00a0}\nb\n```",
+        " ```text\n\tx\n ```",
+        "```bad`info\n~~~text\nliteral\n~~~",
+    ] {
+        let pages = index_source(source, 80);
+        assert_eq!(pages.len(), 1);
+        let actual = markdown_at_width_with_spacing(
+            source,
+            theme,
+            80,
+            None,
+            false,
+            Some(PageSyntax {
+                source,
+                page: &pages[0],
+            }),
+        );
+        assert_eq!(
+            actual,
+            markdown(source, theme),
+            "the actual CommonMark body remains authoritative"
+        );
+    }
+    for middle in [
+        String::new(),
+        "// comment-only text\n".repeat(260),
+        format!("// {}", "x".repeat(4600)),
+    ] {
+        let source =
+            format!("before\n\n```RUST\n/*\n\n{middle}\nfn hidden() {{}}\n*/\n```\n\nafter");
+        let expected = markdown(&source, theme)
+            .into_iter()
+            .find(|line| line.plain_text().contains("fn hidden"))
+            .expect("direct code row");
+        let rows = [assistant(&source)];
+        let cache = RefCell::new(MarkdownCache::default());
+        let (visible, _) = visible_transcript(
+            &rows,
+            theme,
+            80,
+            80,
+            (24, 0, None),
+            |_| theme.text(),
+            &cache,
+        );
+        let actual = visible
+            .iter()
+            .find(|line| line.plain_text().contains("fn hidden"))
+            .expect("indexed final code row");
+        let styles = |line: &Line| {
+            line.spans()
+                .iter()
+                .flat_map(|span| {
+                    span.content()
+                        .chars()
+                        .map(move |character| (character, span.style()))
+                })
+                .skip_while(|(character, _)| *character == ' ')
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            styles(actual),
+            styles(&expected),
+            "blank/byte/line page boundaries preserve grammar state"
+        );
+        assert!(
+            actual
+                .spans()
+                .iter()
+                .filter(|span| !span.content().trim().is_empty())
+                .all(|span| span.style().add_modifier.contains(Modifier::ITALIC))
+        );
+        let mut changed = rows.clone();
+        // Both revisions are valid Rust: isolating cache invalidation must not
+        // require unbounded error recovery after removing a comment opener.
+        // Keep byte offsets unchanged, including the visible function's page.
+        changed[0].text = changed[0]
+            .text
+            .replacen("/*", "//", 1)
+            .replacen("*/", "//", 1);
+        let (visible, _) = visible_transcript(
+            &changed,
+            theme,
+            80,
+            80,
+            (24, 0, None),
+            |_| theme.text(),
+            &cache,
+        );
+        let actual = visible
+            .iter()
+            .find(|line| line.plain_text().contains("fn hidden"))
+            .unwrap();
+        assert!(
+            actual.spans().iter().any(|span| span.content() == "fn"
+                && span.style().fg == Some(theme.syntax(SyntaxToken::Function))),
+            "off-screen fence changes invalidate the visible page's syntax; middle={} bytes, actual={actual:?}, limit={}",
+            middle.len(),
+            visible.iter().any(|line| line
+                .plain_text()
+                .contains("syntax highlighting preview limited"))
+        );
+    }
+
+    // Resource-limited input is a distinct truthful outcome: the complete
+    // displayed source survives, without promising tokenization past the cap.
+    let limited = format!("```rust\n// {}\nfn hidden() {{}}\n```", "x".repeat(70_000));
+    let cache = RefCell::new(MarkdownCache::default());
+    let (visible, _) = visible_transcript(
+        &[assistant(&limited)],
+        theme,
+        80,
+        80,
+        (24, 0, None),
+        |_| theme.text(),
+        &cache,
+    );
+    assert!(
+        visible
+            .iter()
+            .any(|line| line.plain_text().contains("fn hidden() {}"))
+    );
+    assert!(visible.iter().any(|line| {
+        line.plain_text()
+            .contains("syntax highlighting preview limited")
+    }));
+}
+
+#[test]
 fn v06a_paginated_fence_keeps_code_styling_on_later_pages() {
     let theme = Theme::dark();
     let source = format!("```rust\n{}\n```", "let count = 1;\n".repeat(300));
@@ -2693,6 +2833,62 @@ fn v06a_paginated_fence_keeps_code_styling_on_later_pages() {
             .and_then(|span| span.style().fg),
         Some(theme.syntax(SyntaxToken::Keyword))
     );
+}
+
+#[test]
+fn code_display_retains_tabs_heading_attributes_and_indexed_blank_rows() {
+    let theme = Theme::dark();
+    for source in [
+        "# Caption\n\n```make\nall:\n\techo café\n```\n\n## End",
+        "## GRAMMAR::markdown\n\n````markdown\n# Title\n\nParagraph *emphasis* and `code`.\n\n```rust\nfn main() {}\n```\n````\n\n## End",
+    ] {
+        let rows = [assistant(source)];
+        for width in [43, 80, 120, 160] {
+            let full = transcript(&rows, theme, width, width, |_| theme.text());
+            let cache = RefCell::new(MarkdownCache::default());
+            let (indexed, _) = visible_transcript(
+                &rows,
+                theme,
+                width,
+                width,
+                (512, 0, Some(0)),
+                |_| theme.text(),
+                &cache,
+            );
+            // The viewport owner has one global leading scroll-margin row,
+            // separate from the per-message rows produced by transcript().
+            assert_eq!(indexed[0].plain_text(), "");
+            assert_eq!(
+                indexed[1..]
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>(),
+                full.iter().map(Line::plain_text).collect::<Vec<_>>(),
+                "page boundaries cannot add code-body blank rows: {source:?}, width={width}"
+            );
+            for caption in ["Caption", "GRAMMAR::markdown", "End"] {
+                if let Some(line) = full.iter().find(|line| line.plain_text().trim() == caption) {
+                    assert!(
+                        line.spans()
+                            .iter()
+                            .filter(|span| !span.content().trim().is_empty())
+                            .all(|span| span.style().add_modifier.contains(Modifier::BOLD))
+                    );
+                }
+            }
+            if source.contains("\techo") {
+                assert!(
+                    full.iter()
+                        .any(|line| line.plain_text() == "     echo café")
+                );
+                assert!(
+                    !full
+                        .iter()
+                        .any(|line| line.plain_text().contains(['\t', '�']))
+                );
+            }
+        }
+    }
 }
 
 #[test]

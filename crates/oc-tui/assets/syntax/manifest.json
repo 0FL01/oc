@@ -1,0 +1,2304 @@
+{
+  "version": 1,
+  "donor": "2670273ff17da96f85c5826ced57aa1b368754fa",
+  "opentui": "f6673a04ccb671b9207da358c57152bfd27c781f",
+  "query_revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+  "query_licenses": [
+    {
+      "repository": "alex-pinkus/tree-sitter-swift",
+      "revision": "7c2f26b5dce12e82ef2bd932a883ef514ae566b8",
+      "source_path": "LICENSE",
+      "file": "license-alex-pinkus-tree-sitter-swift-LICENSE",
+      "sha256": "3533cec129bb4bba015c0d61d86dd7c3b7e82110e4d2ff7837a01eff5bad5ccc"
+    },
+    {
+      "repository": "anomalyco/opentui",
+      "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+      "source_path": "LICENSE",
+      "file": "license-anomalyco-opentui-LICENSE",
+      "sha256": "d9c397a5dc5ac77a2a08fc967ea06a65317a4b5b8de48f6f732ffcb21737e3d2"
+    },
+    {
+      "repository": "anomalyco/tree-sitter-vue",
+      "revision": "3354771c4214919444917a1b44547609ba8b67a8",
+      "source_path": "LICENSE",
+      "file": "license-anomalyco-tree-sitter-vue-LICENSE",
+      "sha256": "91ebb180e4e2e34628c45e405584d0faac6863660b69e8139da96290e58c14dd"
+    },
+    {
+      "repository": "fwcd/tree-sitter-kotlin",
+      "revision": "e1a2d5ad1f61f5740677183cd4125bb071cd2f30",
+      "source_path": "LICENSE",
+      "file": "license-fwcd-tree-sitter-kotlin-LICENSE",
+      "sha256": "948495f61768f7de26bcc61113d8cd95f50bbc15adb678c28c941c6c8fcd5903"
+    },
+    {
+      "repository": "nvim-treesitter/nvim-treesitter",
+      "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+      "source_path": "LICENSE",
+      "file": "license-nvim-treesitter-nvim-treesitter-LICENSE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "repository": "tree-sitter-grammars/tree-sitter-diff",
+      "revision": "2520c3f934b3179bb540d23e0ef45f75304b5fed",
+      "source_path": "LICENSE",
+      "file": "license-tree-sitter-grammars-tree-sitter-diff-LICENSE",
+      "sha256": "bb98faf5a86e9458536a6c745e02b53775d01066f1e51dda4ae220a3c0b050f4"
+    },
+    {
+      "repository": "tree-sitter-grammars/tree-sitter-lua",
+      "revision": "10fe0054734eec83049514ea2e718b2a56acd0c9",
+      "source_path": "LICENSE.md",
+      "file": "license-tree-sitter-grammars-tree-sitter-lua-LICENSE.md",
+      "sha256": "9a32b02e4c917b1ce6b5e79d8ea81e25cefd7f27d89c7235f2afb262c06cf32e"
+    },
+    {
+      "repository": "tree-sitter/tree-sitter-html",
+      "revision": "73a3947324f6efddf9e17c0ea58d454843590cc0",
+      "source_path": "LICENSE",
+      "file": "license-tree-sitter-tree-sitter-html-LICENSE",
+      "sha256": "2e0110e07abef7c2548b26ec9d6969775617ca539a0dc8dbeeb14d6452c711d1"
+    },
+    {
+      "repository": "tree-sitter/tree-sitter-php",
+      "revision": "58d5643086ae60e93a3746cca648363ee97c8761",
+      "source_path": "LICENSE",
+      "file": "license-tree-sitter-tree-sitter-php-LICENSE",
+      "sha256": "664764fabf40c0b318e06324a5a12379092a2df25b8cbf2415f71bc0bb352346"
+    },
+    {
+      "repository": "tree-sitter/tree-sitter-python",
+      "revision": "26855eabccb19c6abf499fbc5b8dc7cc9ab8bc64",
+      "source_path": "LICENSE",
+      "file": "license-tree-sitter-tree-sitter-python-LICENSE",
+      "sha256": "d724405ce238a22c0d35769c5a36b386ad5958192efe8bbb304fb2896254575f"
+    }
+  ],
+  "filetypes": {
+    ".abap": "abap",
+    ".bat": "bat",
+    ".bib": "bibtex",
+    ".bibtex": "bibtex",
+    ".clj": "clojure",
+    ".cljs": "clojure",
+    ".cljc": "clojure",
+    ".edn": "clojure",
+    ".coffee": "coffeescript",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".cxx": "cpp",
+    ".cc": "cpp",
+    ".c++": "cpp",
+    ".cs": "csharp",
+    ".csx": "csharp",
+    ".css": "css",
+    ".d": "d",
+    ".pas": "pascal",
+    ".pascal": "pascal",
+    ".diff": "diff",
+    ".patch": "diff",
+    ".dart": "dart",
+    ".dockerfile": "dockerfile",
+    ".ex": "elixir",
+    ".exs": "elixir",
+    ".erl": "erlang",
+    ".ets": "typescript",
+    ".hrl": "erlang",
+    ".fs": "fsharp",
+    ".fsi": "fsharp",
+    ".fsx": "fsharp",
+    ".fsscript": "fsharp",
+    ".gitcommit": "git-commit",
+    ".gitrebase": "git-rebase",
+    ".go": "go",
+    ".groovy": "groovy",
+    ".gleam": "gleam",
+    ".hbs": "handlebars",
+    ".handlebars": "handlebars",
+    ".hs": "haskell",
+    ".lhs": "haskell",
+    ".html": "html",
+    ".htm": "html",
+    ".ini": "ini",
+    ".java": "java",
+    ".jl": "julia",
+    ".js": "javascript",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
+    ".jsx": "javascriptreact",
+    ".json": "json",
+    ".tex": "latex",
+    ".latex": "latex",
+    ".less": "less",
+    ".lua": "lua",
+    ".makefile": "makefile",
+    "makefile": "makefile",
+    ".md": "markdown",
+    ".markdown": "markdown",
+    ".m": "objective-c",
+    ".mm": "objective-cpp",
+    ".pl": "perl",
+    ".pm": "perl",
+    ".pm6": "perl6",
+    ".php": "php",
+    ".ps1": "powershell",
+    ".psm1": "powershell",
+    ".pug": "jade",
+    ".jade": "jade",
+    ".py": "python",
+    ".r": "r",
+    ".cshtml": "razor",
+    ".razor": "razor",
+    ".rb": "ruby",
+    ".rake": "ruby",
+    ".gemspec": "ruby",
+    ".ru": "ruby",
+    ".erb": "erb",
+    ".html.erb": "erb",
+    ".js.erb": "erb",
+    ".css.erb": "erb",
+    ".json.erb": "erb",
+    ".rs": "rust",
+    ".scss": "scss",
+    ".sass": "sass",
+    ".scala": "scala",
+    ".shader": "shaderlab",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".zsh": "bash",
+    ".ksh": "bash",
+    ".sql": "sql",
+    ".svelte": "svelte",
+    ".swift": "swift",
+    ".ts": "typescript",
+    ".tsx": "typescriptreact",
+    ".mts": "typescript",
+    ".cts": "typescript",
+    ".mtsx": "typescriptreact",
+    ".ctsx": "typescriptreact",
+    ".xml": "xml",
+    ".xsl": "xsl",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".vue": "vue",
+    ".zig": "zig",
+    ".zon": "zig",
+    ".astro": "astro",
+    ".ml": "ocaml",
+    ".mli": "ocaml",
+    ".tf": "terraform",
+    ".tfvars": "terraform-vars",
+    ".hcl": "hcl",
+    ".nix": "nix",
+    ".typ": "typst",
+    ".typc": "typst"
+  },
+  "filetypes_sha256": "d0ae03594bee9b005dccf5799489f47ae944e38b56418327d0e829dc35666df3",
+  "info_resolver": {
+    "extensions": {
+      "astro": "astro",
+      "bash": "bash",
+      "c": "c",
+      "cc": "cpp",
+      "cjs": "javascript",
+      "clj": "clojure",
+      "cljs": "clojure",
+      "cljc": "clojure",
+      "cpp": "cpp",
+      "cxx": "cpp",
+      "cs": "csharp",
+      "cts": "typescript",
+      "ctsx": "typescriptreact",
+      "dart": "dart",
+      "diff": "diff",
+      "edn": "clojure",
+      "go": "go",
+      "gemspec": "ruby",
+      "groovy": "groovy",
+      "h": "c",
+      "handlebars": "handlebars",
+      "hbs": "handlebars",
+      "hpp": "cpp",
+      "hxx": "cpp",
+      "h++": "cpp",
+      "hh": "cpp",
+      "hrl": "erlang",
+      "hs": "haskell",
+      "htm": "html",
+      "html": "html",
+      "ini": "ini",
+      "js": "javascript",
+      "jsx": "javascriptreact",
+      "jl": "julia",
+      "json": "json",
+      "ksh": "bash",
+      "kt": "kotlin",
+      "kts": "kotlin",
+      "latex": "latex",
+      "less": "less",
+      "lua": "lua",
+      "markdown": "markdown",
+      "md": "markdown",
+      "mdown": "markdown",
+      "mkd": "markdown",
+      "mjs": "javascript",
+      "ml": "ocaml",
+      "mli": "ocaml",
+      "mts": "typescript",
+      "mtsx": "typescriptreact",
+      "patch": "diff",
+      "php": "php",
+      "pl": "perl",
+      "pm": "perl",
+      "ps1": "powershell",
+      "psm1": "powershell",
+      "py": "python",
+      "pyi": "python",
+      "r": "r",
+      "rb": "ruby",
+      "rake": "ruby",
+      "rs": "rust",
+      "ru": "ruby",
+      "sass": "sass",
+      "sc": "scala",
+      "scala": "scala",
+      "scss": "scss",
+      "sh": "bash",
+      "sql": "sql",
+      "svelte": "svelte",
+      "swift": "swift",
+      "ts": "typescript",
+      "tsx": "typescriptreact",
+      "tex": "latex",
+      "toml": "toml",
+      "vue": "vue",
+      "vim": "vim",
+      "xml": "xml",
+      "xsl": "xsl",
+      "yaml": "yaml",
+      "yml": "yaml",
+      "zig": "zig",
+      "zon": "zig",
+      "zsh": "bash",
+      "c++": "cpp",
+      "erl": "erlang",
+      "exs": "elixir",
+      "ex": "elixir",
+      "elm": "elm",
+      "fsharp": "fsharp",
+      "fs": "fsharp",
+      "fsx": "fsharp",
+      "fsscript": "fsharp",
+      "fsi": "fsharp",
+      "java": "java",
+      "css": "css"
+    },
+    "basenames": {
+      ".bash_aliases": "bash",
+      ".bash_logout": "bash",
+      ".bash_profile": "bash",
+      ".bashrc": "bash",
+      ".kshrc": "bash",
+      ".profile": "bash",
+      ".vimrc": "vim",
+      ".zlogin": "bash",
+      ".zlogout": "bash",
+      ".zprofile": "bash",
+      ".zshenv": "bash",
+      ".zshrc": "bash",
+      "appfile": "ruby",
+      "berksfile": "ruby",
+      "brewfile": "ruby",
+      "cheffile": "ruby",
+      "containerfile": "dockerfile",
+      "dockerfile": "dockerfile",
+      "fastfile": "ruby",
+      "gemfile": "ruby",
+      "gnumakefile": "make",
+      "gvimrc": "vim",
+      "guardfile": "ruby",
+      "makefile": "make",
+      "podfile": "ruby",
+      "rakefile": "ruby",
+      "thorfile": "ruby",
+      "vagrantfile": "ruby"
+    },
+    "source_sha256": "c021af68b4b4d21bccb6560083b19ac2dbea65d8550302f321c87ddcf6a82d4d"
+  },
+  "grammars": [
+    {
+      "name": "javascript",
+      "aliases": [
+        "javascriptreact"
+      ],
+      "repository": "tree-sitter/tree-sitter-javascript",
+      "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+      "release": "v0.25.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-javascript/releases/download/v0.25.0/tree-sitter-javascript.wasm",
+      "archive": "javascript.tar.gz",
+      "archive_sha256": "c09a07de2a8d7bd94d0b75337b0d9b25a9cce4cf245df1c393df83b25140351c",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_javascript",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "javascript.highlights.scm",
+          "sha256": "c90e849891a3c8698992e10efdeaff7e7a8f98da47f941489566cb9e60f639b5",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/javascript/highlights.scm",
+              "sha256": "c90e849891a3c8698992e10efdeaff7e7a8f98da47f941489566cb9e60f639b5"
+            }
+          ],
+          "parts": []
+        }
+      }
+    },
+    {
+      "name": "typescript",
+      "aliases": [
+        "typescriptreact"
+      ],
+      "repository": "tree-sitter/tree-sitter-typescript",
+      "revision": "f975a621f4e7f532fe322e13c4f79495e0a7b2e7",
+      "release": "v0.23.2",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-typescript/releases/download/v0.23.2/tree-sitter-typescript.wasm",
+      "archive": "typescript.tar.gz",
+      "archive_sha256": "f8c3a7ec1faee305964ef47b358ee0f12573236ceac2252b33dfd51802d731aa",
+      "parser": "typescript/src/parser.c",
+      "scanners": [
+        "typescript/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_typescript",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "typescript.highlights.scm",
+          "sha256": "8e823819058d480c450ca4ef377a05675f6ed6f7c0460a69b972cdbe940c0893",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/typescript/highlights.scm",
+              "sha256": "8e823819058d480c450ca4ef377a05675f6ed6f7c0460a69b972cdbe940c0893"
+            }
+          ],
+          "parts": []
+        }
+      }
+    },
+    {
+      "name": "markdown",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-markdown",
+      "revision": "2dfd57f547f06ca5631a80f601e129d73fc8e9f0",
+      "release": "v0.5.1",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown.wasm",
+      "archive": "markdown.tar.gz",
+      "archive_sha256": "c6790a995c5303750d547f009bc6011010ac94522a4f895c6b6a2da0683f1a81",
+      "parser": "tree-sitter-markdown/src/parser.c",
+      "scanners": [
+        "tree-sitter-markdown/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_markdown",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {
+        "nodeTypes": {
+          "inline": "markdown_inline",
+          "pipe_table_cell": "markdown_inline"
+        },
+        "infoStringMap": {
+          "javascript": "javascript",
+          "js": "javascript",
+          "jsx": "javascriptreact",
+          "javascriptreact": "javascriptreact",
+          "typescript": "typescript",
+          "ts": "typescript",
+          "tsx": "typescriptreact",
+          "typescriptreact": "typescriptreact",
+          "markdown": "markdown",
+          "md": "markdown"
+        }
+      },
+      "queries": {
+        "highlights": {
+          "file": "markdown.highlights.scm",
+          "sha256": "f3b02df1a9213cfecfb6936bce8db2f777edd523fc23ed890695e6cb4552d556",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/markdown/highlights.scm",
+              "sha256": "f3b02df1a9213cfecfb6936bce8db2f777edd523fc23ed890695e6cb4552d556"
+            }
+          ],
+          "parts": []
+        },
+        "injections": {
+          "file": "markdown.injections.scm",
+          "sha256": "a2bf8c052454acbe765970a4ad2706c60cad7b62a762b927e28f60af1a0ef516",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/markdown/injections.scm",
+              "sha256": "a2bf8c052454acbe765970a4ad2706c60cad7b62a762b927e28f60af1a0ef516"
+            }
+          ],
+          "parts": []
+        }
+      }
+    },
+    {
+      "name": "markdown_inline",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-markdown",
+      "revision": "2dfd57f547f06ca5631a80f601e129d73fc8e9f0",
+      "release": "v0.5.1",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown_inline.wasm",
+      "archive": "markdown_inline.tar.gz",
+      "archive_sha256": "07430d2771a4636712a151cb83b0d96b5437ebb83de7b0dd978dbbec3eff7a3e",
+      "parser": "tree-sitter-markdown-inline/src/parser.c",
+      "scanners": [
+        "tree-sitter-markdown-inline/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_markdown_inline",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "markdown_inline.highlights.scm",
+          "sha256": "ca9a109ddd21c5ffdc6b84f00c0a4b2eeb55ae36a0b8eeb9b02348269c5acd22",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/markdown_inline/highlights.scm",
+              "sha256": "ca9a109ddd21c5ffdc6b84f00c0a4b2eeb55ae36a0b8eeb9b02348269c5acd22"
+            }
+          ],
+          "parts": []
+        }
+      }
+    },
+    {
+      "name": "zig",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-zig",
+      "revision": "b670c8df85a1568f498aa5c8cae42f51a90473c0",
+      "release": "v1.1.2",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-zig/releases/download/v1.1.2/tree-sitter-zig.wasm",
+      "archive": "zig.tar.gz",
+      "archive_sha256": "ad5e4cdd0ae61f519e4926858e37db7538ddc2d65de9add51e7aa2d9b3634fc5",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_zig",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "zig.highlights.scm",
+          "sha256": "f2232f0fde717543e4541cec871dd8633cb9bc6b5d1686a56b2d469c1dd9e6b6",
+          "sources": [
+            {
+              "repository": "anomalyco/opentui",
+              "revision": "f6673a04ccb671b9207da358c57152bfd27c781f",
+              "path": "packages/core/src/lib/tree-sitter/assets/zig/highlights.scm",
+              "sha256": "f2232f0fde717543e4541cec871dd8633cb9bc6b5d1686a56b2d469c1dd9e6b6"
+            }
+          ],
+          "parts": []
+        }
+      }
+    },
+    {
+      "name": "python",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-python",
+      "revision": "bffb65a8cfe4e46290331dfef0dbf0ef3679de11",
+      "release": "v0.23.6",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-python/releases/download/v0.23.6/tree-sitter-python.wasm",
+      "archive": "python.tar.gz",
+      "archive_sha256": "d599f60263121568335a3fa0e030efe4873ce98949b4a635a0957bbc0e2f02fb",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_python",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "python.highlights.scm",
+          "sha256": "a6708f209381618e2b398972c8f1ccd892f0c064eab35a2a3f911c3e22e79a7e",
+          "sources": [
+            {
+              "repository": "tree-sitter/tree-sitter-python",
+              "revision": "26855eabccb19c6abf499fbc5b8dc7cc9ab8bc64",
+              "path": "queries/highlights.scm",
+              "sha256": "a6708f209381618e2b398972c8f1ccd892f0c064eab35a2a3f911c3e22e79a7e"
+            }
+          ],
+          "parts": [
+            {
+              "file": "python.highlights.0.scm",
+              "sha256": "a6708f209381618e2b398972c8f1ccd892f0c064eab35a2a3f911c3e22e79a7e",
+              "source_url": "https://github.com/tree-sitter/tree-sitter-python/raw/refs/heads/master/queries/highlights.scm",
+              "cache_url": "https://github.com/tree-sitter/tree-sitter-python/raw/refs/heads/master/queries/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "python.locals.scm",
+          "sha256": "370635358588e6d66e6065dd9fb1e21d864e8eb125abbf4728e573bc06ef4921",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/python/locals.scm",
+              "sha256": "370635358588e6d66e6065dd9fb1e21d864e8eb125abbf4728e573bc06ef4921"
+            }
+          ],
+          "parts": [
+            {
+              "file": "python.locals.0.scm",
+              "sha256": "370635358588e6d66e6065dd9fb1e21d864e8eb125abbf4728e573bc06ef4921",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/python/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/python/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "rust",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-rust",
+      "revision": "18b0515fca567f5a10aee9978c6d2640e878671a",
+      "release": "v0.24.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.24.0/tree-sitter-rust.wasm",
+      "archive": "rust.tar.gz",
+      "archive_sha256": "da9c845eb91c9af41a78023f6a60169ecb2357b94767dd2e24672b388777bd2c",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_rust",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "rust.highlights.scm",
+          "sha256": "c649a4785322ab72af84874b9dc03c7a4f5d9a05de45a85919a60770d7d5457d",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/rust/highlights.scm",
+              "sha256": "c649a4785322ab72af84874b9dc03c7a4f5d9a05de45a85919a60770d7d5457d"
+            }
+          ],
+          "parts": [
+            {
+              "file": "rust.highlights.0.scm",
+              "sha256": "c649a4785322ab72af84874b9dc03c7a4f5d9a05de45a85919a60770d7d5457d",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/rust/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/rust/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "rust.locals.scm",
+          "sha256": "a31540dbd462ba6699a5e494764aee2bbfdaea560915d708f6da4d4df4ad3ec5",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/rust/locals.scm",
+              "sha256": "a31540dbd462ba6699a5e494764aee2bbfdaea560915d708f6da4d4df4ad3ec5"
+            }
+          ],
+          "parts": [
+            {
+              "file": "rust.locals.0.scm",
+              "sha256": "a31540dbd462ba6699a5e494764aee2bbfdaea560915d708f6da4d4df4ad3ec5",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/rust/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/rust/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "go",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-go",
+      "revision": "1547678a9da59885853f5f5cc8a99cc203fa2e2c",
+      "release": "v0.25.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.25.0/tree-sitter-go.wasm",
+      "archive": "go.tar.gz",
+      "archive_sha256": "f9b6dd7be6cd26b4ca0674b43eca22d1ee1b15ec9578a7ea948a2f0e6e16a8c8",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_go",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "go.highlights.scm",
+          "sha256": "c58a7336d4834ebfbb038002c6ab033f792cd1b8d3e7e1682bdaa982bee7f6b1",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/go/highlights.scm",
+              "sha256": "c58a7336d4834ebfbb038002c6ab033f792cd1b8d3e7e1682bdaa982bee7f6b1"
+            }
+          ],
+          "parts": [
+            {
+              "file": "go.highlights.0.scm",
+              "sha256": "c58a7336d4834ebfbb038002c6ab033f792cd1b8d3e7e1682bdaa982bee7f6b1",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/go/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/go/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "go.locals.scm",
+          "sha256": "06e596ade8e1650c453be232c1dab5974f387a554b032b5a28c2a9ea69685d1e",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/go/locals.scm",
+              "sha256": "06e596ade8e1650c453be232c1dab5974f387a554b032b5a28c2a9ea69685d1e"
+            }
+          ],
+          "parts": [
+            {
+              "file": "go.locals.0.scm",
+              "sha256": "06e596ade8e1650c453be232c1dab5974f387a554b032b5a28c2a9ea69685d1e",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/go/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/go/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "cpp",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-cpp",
+      "revision": "f41e1a044c8a84ea9fa8577fdd2eab92ec96de02",
+      "release": "v0.23.4",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-cpp/releases/download/v0.23.4/tree-sitter-cpp.wasm",
+      "archive": "cpp.tar.gz",
+      "archive_sha256": "536a510ee6c3872b33fa0744c5e187c4aa05b1b5dffea24c6fe3b9f36cf4cfc4",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_cpp",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "cpp.highlights.scm",
+          "sha256": "69d1dbed8d49c498e93a75db6afedfb8769fa2fed455a64d588dc347281d642f",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/cpp/highlights.scm",
+              "sha256": "69d1dbed8d49c498e93a75db6afedfb8769fa2fed455a64d588dc347281d642f"
+            }
+          ],
+          "parts": [
+            {
+              "file": "cpp.highlights.0.scm",
+              "sha256": "69d1dbed8d49c498e93a75db6afedfb8769fa2fed455a64d588dc347281d642f",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/cpp/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/cpp/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "cpp.locals.scm",
+          "sha256": "7047179aee75f5e85b0fadd1da4a1856b32d68d6694952738a257ca13a5e4a52",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/cpp/locals.scm",
+              "sha256": "7047179aee75f5e85b0fadd1da4a1856b32d68d6694952738a257ca13a5e4a52"
+            }
+          ],
+          "parts": [
+            {
+              "file": "cpp.locals.0.scm",
+              "sha256": "7047179aee75f5e85b0fadd1da4a1856b32d68d6694952738a257ca13a5e4a52",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/cpp/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/cpp/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "csharp",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-c-sharp",
+      "revision": "362a8a41b265056592a0c3771664a21d23a71392",
+      "release": "v0.23.1",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-c-sharp/releases/download/v0.23.1/tree-sitter-c_sharp.wasm",
+      "archive": "csharp.tar.gz",
+      "archive_sha256": "ace3dc86f089f7e8fa76a6c16982ef4bec26c866b799b15c10fee7353b353daa",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_c_sharp",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "csharp.highlights.scm",
+          "sha256": "4b79059a52926e8cd08a1d80af70ba02acefb86bc8ed82315897fb104ed1a338",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/c_sharp/highlights.scm",
+              "sha256": "4b79059a52926e8cd08a1d80af70ba02acefb86bc8ed82315897fb104ed1a338"
+            }
+          ],
+          "parts": [
+            {
+              "file": "csharp.highlights.0.scm",
+              "sha256": "4b79059a52926e8cd08a1d80af70ba02acefb86bc8ed82315897fb104ed1a338",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c_sharp/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c_sharp/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "csharp.locals.scm",
+          "sha256": "7dccbd815d6033de319708ef27d82350af5acafefeb5f4314e5b8a525cb85e80",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/c_sharp/locals.scm",
+              "sha256": "7dccbd815d6033de319708ef27d82350af5acafefeb5f4314e5b8a525cb85e80"
+            }
+          ],
+          "parts": [
+            {
+              "file": "csharp.locals.0.scm",
+              "sha256": "7dccbd815d6033de319708ef27d82350af5acafefeb5f4314e5b8a525cb85e80",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c_sharp/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c_sharp/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "bash",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-bash",
+      "revision": "56b54c61fb48bce0c63e3dfa2240b5d274384763",
+      "release": "v0.25.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-bash/releases/download/v0.25.0/tree-sitter-bash.wasm",
+      "archive": "bash.tar.gz",
+      "archive_sha256": "b5d815364a1aaaf08352687521fdce3bdffcf637913df40f385c3fece645bc45",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_bash",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "bash.highlights.scm",
+          "sha256": "77860b9f127ca82681e3691bba003e62d1d8dbced05e4fe96041d26fd8944656",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/bash/highlights.scm",
+              "sha256": "77860b9f127ca82681e3691bba003e62d1d8dbced05e4fe96041d26fd8944656"
+            }
+          ],
+          "parts": [
+            {
+              "file": "bash.highlights.0.scm",
+              "sha256": "77860b9f127ca82681e3691bba003e62d1d8dbced05e4fe96041d26fd8944656",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/bash/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/bash/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "c",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-c",
+      "revision": "7fa1be1b694b6e763686793d97da01f36a0e5c12",
+      "release": "v0.24.1",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-c/releases/download/v0.24.1/tree-sitter-c.wasm",
+      "archive": "c.tar.gz",
+      "archive_sha256": "3fd99cfa9f0d42a2bac1a0581f9b156383b6b221109a8a59852f94bd4f054d35",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_c",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "c.highlights.scm",
+          "sha256": "a99c4c0bf9d9b9f7de0124c529a4229fddada96d65bf5fb0c9d487266e15d483",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/c/highlights.scm",
+              "sha256": "a99c4c0bf9d9b9f7de0124c529a4229fddada96d65bf5fb0c9d487266e15d483"
+            }
+          ],
+          "parts": [
+            {
+              "file": "c.highlights.0.scm",
+              "sha256": "a99c4c0bf9d9b9f7de0124c529a4229fddada96d65bf5fb0c9d487266e15d483",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "c.locals.scm",
+          "sha256": "b3ecf04dadb49555af03644686fb68c3ce3ccfd98af33f003371beb5a37652b0",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/c/locals.scm",
+              "sha256": "b3ecf04dadb49555af03644686fb68c3ce3ccfd98af33f003371beb5a37652b0"
+            }
+          ],
+          "parts": [
+            {
+              "file": "c.locals.0.scm",
+              "sha256": "b3ecf04dadb49555af03644686fb68c3ce3ccfd98af33f003371beb5a37652b0",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/c/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "java",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-java",
+      "revision": "94703d5a6bed02b98e438d7cad1136c01a60ba2c",
+      "release": "v0.23.5",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-java/releases/download/v0.23.5/tree-sitter-java.wasm",
+      "archive": "java.tar.gz",
+      "archive_sha256": "e52c57e0ee740797f7ff1f9e4165edb63fa64763cf77d38e87d7fd4804c59c9c",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_java",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "java.highlights.scm",
+          "sha256": "c68c0e7e9ae36d94c9e5ab06556b34c5e8568d1ce1867043d92bbe4b3b4dcf2f",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/java/highlights.scm",
+              "sha256": "c68c0e7e9ae36d94c9e5ab06556b34c5e8568d1ce1867043d92bbe4b3b4dcf2f"
+            }
+          ],
+          "parts": [
+            {
+              "file": "java.highlights.0.scm",
+              "sha256": "c68c0e7e9ae36d94c9e5ab06556b34c5e8568d1ce1867043d92bbe4b3b4dcf2f",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/java/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/java/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "java.locals.scm",
+          "sha256": "8e0d7f8f8c26f42cffcae485ec308aae9ad980a646837759381a2b8ad85df3ca",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/java/locals.scm",
+              "sha256": "8e0d7f8f8c26f42cffcae485ec308aae9ad980a646837759381a2b8ad85df3ca"
+            }
+          ],
+          "parts": [
+            {
+              "file": "java.locals.0.scm",
+              "sha256": "8e0d7f8f8c26f42cffcae485ec308aae9ad980a646837759381a2b8ad85df3ca",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/java/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/java/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "kotlin",
+      "aliases": [],
+      "repository": "fwcd/tree-sitter-kotlin",
+      "revision": "e1a2d5ad1f61f5740677183cd4125bb071cd2f30",
+      "release": "0.3.8",
+      "reference_wasm": "https://github.com/fwcd/tree-sitter-kotlin/releases/download/0.3.8/tree-sitter-kotlin.wasm",
+      "archive": "kotlin.tar.gz",
+      "archive_sha256": "7fa533e66d1ef3b02506997a8050b25daefa015ce154556dd3561c968a2d848a",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_kotlin",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "kotlin.highlights.scm",
+          "sha256": "2d74bb308bc589c2dadd9a599613f750f51470a8974190e09e24ec4786bab987",
+          "sources": [
+            {
+              "repository": "fwcd/tree-sitter-kotlin",
+              "revision": "e1a2d5ad1f61f5740677183cd4125bb071cd2f30",
+              "path": "queries/highlights.scm",
+              "sha256": "2d74bb308bc589c2dadd9a599613f750f51470a8974190e09e24ec4786bab987"
+            }
+          ],
+          "parts": [
+            {
+              "file": "kotlin.highlights.0.scm",
+              "sha256": "2d74bb308bc589c2dadd9a599613f750f51470a8974190e09e24ec4786bab987",
+              "source_url": "https://raw.githubusercontent.com/fwcd/tree-sitter-kotlin/0.3.8/queries/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/fwcd/tree-sitter-kotlin/0.3.8/queries/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "kotlin.locals.scm",
+          "sha256": "c97567b90fc0d306f594d9820bf3e89bd5db19fab4efcae32f31831602c4786e",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/kotlin/locals.scm",
+              "sha256": "c97567b90fc0d306f594d9820bf3e89bd5db19fab4efcae32f31831602c4786e"
+            }
+          ],
+          "parts": [
+            {
+              "file": "kotlin.locals.0.scm",
+              "sha256": "c97567b90fc0d306f594d9820bf3e89bd5db19fab4efcae32f31831602c4786e",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/kotlin/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/kotlin/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ruby",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-ruby",
+      "revision": "71bd32fb7607035768799732addba884a37a6210",
+      "release": "v0.23.1",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-ruby/releases/download/v0.23.1/tree-sitter-ruby.wasm",
+      "archive": "ruby.tar.gz",
+      "archive_sha256": "dc714df4bc3945afd6cc3b43e7502acc401093cf4783ca51205e8ecb209a2aed",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_ruby",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "ruby.highlights.scm",
+          "sha256": "1cc8fc205e4cce4fe9e0d63bb1be903e49ea0f2eda77ae9368898a31ff98bc18",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/ruby/highlights.scm",
+              "sha256": "1cc8fc205e4cce4fe9e0d63bb1be903e49ea0f2eda77ae9368898a31ff98bc18"
+            }
+          ],
+          "parts": [
+            {
+              "file": "ruby.highlights.0.scm",
+              "sha256": "1cc8fc205e4cce4fe9e0d63bb1be903e49ea0f2eda77ae9368898a31ff98bc18",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ruby/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ruby/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "ruby.locals.scm",
+          "sha256": "d507cbb78f380559f314429ae9d2d654cea7abbe3f261c40ae71c3b97ea270e1",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/ruby/locals.scm",
+              "sha256": "d507cbb78f380559f314429ae9d2d654cea7abbe3f261c40ae71c3b97ea270e1"
+            }
+          ],
+          "parts": [
+            {
+              "file": "ruby.locals.0.scm",
+              "sha256": "d507cbb78f380559f314429ae9d2d654cea7abbe3f261c40ae71c3b97ea270e1",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ruby/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ruby/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "php",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-php",
+      "revision": "5b5627faaa290d89eb3d01b9bf47c3bb9e797dea",
+      "release": "v0.24.2",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-php/releases/download/v0.24.2/tree-sitter-php.wasm",
+      "archive": "php.tar.gz",
+      "archive_sha256": "7b3299b30352f7bb34c0d6f7cb0cacbedb158f8e334de014371b2f3cfb8497f3",
+      "parser": "php/src/parser.c",
+      "scanners": [
+        "php/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_php",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "php.highlights.scm",
+          "sha256": "a2a7367659cff3b4be09961c8117d69a9b8703bfc266f8092e089b1760f197e9",
+          "sources": [
+            {
+              "repository": "tree-sitter/tree-sitter-php",
+              "revision": "58d5643086ae60e93a3746cca648363ee97c8761",
+              "path": "queries/highlights.scm",
+              "sha256": "a2a7367659cff3b4be09961c8117d69a9b8703bfc266f8092e089b1760f197e9"
+            }
+          ],
+          "parts": [
+            {
+              "file": "php.highlights.0.scm",
+              "sha256": "a2a7367659cff3b4be09961c8117d69a9b8703bfc266f8092e089b1760f197e9",
+              "source_url": "https://github.com/tree-sitter/tree-sitter-php/raw/refs/heads/master/queries/highlights.scm",
+              "cache_url": "https://github.com/tree-sitter/tree-sitter-php/raw/refs/heads/master/queries/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scala",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-scala",
+      "revision": "2d55e74b0485fe05058ffe5e8155506c9710c767",
+      "release": "v0.24.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-scala/releases/download/v0.24.0/tree-sitter-scala.wasm",
+      "archive": "scala.tar.gz",
+      "archive_sha256": "cb3984d78f488153a79733ef6c3b960b4dcf992fa0c96e4933ec3739838736f1",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_scala",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "scala.highlights.scm",
+          "sha256": "e9e89654a7df214f4c79c28af7bc50bdb5c6cc5abb9690e3e1ce19c35b797991",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/scala/highlights.scm",
+              "sha256": "e9e89654a7df214f4c79c28af7bc50bdb5c6cc5abb9690e3e1ce19c35b797991"
+            }
+          ],
+          "parts": [
+            {
+              "file": "scala.highlights.0.scm",
+              "sha256": "e9e89654a7df214f4c79c28af7bc50bdb5c6cc5abb9690e3e1ce19c35b797991",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/scala/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/scala/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "html",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-html",
+      "revision": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+      "release": "v0.23.2",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-html/releases/download/v0.23.2/tree-sitter-html.wasm",
+      "archive": "html.tar.gz",
+      "archive_sha256": "7889d8421d665664ea1b2ec922e4cb8b558b08c902d7ac1750369e0e4b5f0c83",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_html",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "html.highlights.scm",
+          "sha256": "1ebb3811a8cdc054385b847a3aac6fbf7079faefd5b3dfab5bbad256cd5afdcf",
+          "sources": [
+            {
+              "repository": "tree-sitter/tree-sitter-html",
+              "revision": "73a3947324f6efddf9e17c0ea58d454843590cc0",
+              "path": "queries/highlights.scm",
+              "sha256": "1ebb3811a8cdc054385b847a3aac6fbf7079faefd5b3dfab5bbad256cd5afdcf"
+            }
+          ],
+          "parts": [
+            {
+              "file": "html.highlights.0.scm",
+              "sha256": "1ebb3811a8cdc054385b847a3aac6fbf7079faefd5b3dfab5bbad256cd5afdcf",
+              "source_url": "https://github.com/tree-sitter/tree-sitter-html/raw/refs/heads/master/queries/highlights.scm",
+              "cache_url": "https://github.com/tree-sitter/tree-sitter-html/raw/refs/heads/master/queries/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "vue",
+      "aliases": [],
+      "repository": "anomalyco/tree-sitter-vue",
+      "revision": "3354771c4214919444917a1b44547609ba8b67a8",
+      "release": "v0.1.2",
+      "reference_wasm": "https://github.com/anomalyco/tree-sitter-vue/releases/download/v0.1.2/tree-sitter-vue.wasm",
+      "archive": "vue.tar.gz",
+      "archive_sha256": "e91cabeaf8644e7f913db1a23814c9c9c410aeb03edcf4d3d246b3b1754e0b3f",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_vue",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "vue.highlights.scm",
+          "sha256": "67f65939752455d561059c7e88dbe677d786676304aeb6ea51e3938923f1ff67",
+          "sources": [
+            {
+              "repository": "anomalyco/tree-sitter-vue",
+              "revision": "3354771c4214919444917a1b44547609ba8b67a8",
+              "path": "queries/html_tags/highlights.scm",
+              "sha256": "2b64708e3cea1527adca4841247e28b90229c367722471c1d250e8925d1cc6a4"
+            },
+            {
+              "repository": "anomalyco/tree-sitter-vue",
+              "revision": "3354771c4214919444917a1b44547609ba8b67a8",
+              "path": "queries/vue/highlights.scm",
+              "sha256": "43cae0c256b1236a051e856eb4dec18a157d70a00e9d41304549b858c534cefc"
+            }
+          ],
+          "parts": [
+            {
+              "file": "vue.highlights.0.scm",
+              "sha256": "2b64708e3cea1527adca4841247e28b90229c367722471c1d250e8925d1cc6a4",
+              "source_url": "https://raw.githubusercontent.com/anomalyco/tree-sitter-vue/v0.1.2/queries/html_tags/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/anomalyco/tree-sitter-vue/v0.1.2/queries/html_tags/highlights.scm"
+            },
+            {
+              "file": "vue.highlights.1.scm",
+              "sha256": "43cae0c256b1236a051e856eb4dec18a157d70a00e9d41304549b858c534cefc",
+              "source_url": "https://raw.githubusercontent.com/anomalyco/tree-sitter-vue/v0.1.2/queries/vue/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/anomalyco/tree-sitter-vue/v0.1.2/queries/vue/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "hcl",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-hcl",
+      "revision": "fad991865fee927dd1de5e172fb3f08ac674d914",
+      "release": "v1.2.0",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-hcl/releases/download/v1.2.0/tree-sitter-hcl.wasm",
+      "archive": "hcl.tar.gz",
+      "archive_sha256": "5047083d949eb7e635812c59d328a7a74b0473205cbcbfccb104e1febf0c0b25",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_hcl",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "hcl.highlights.scm",
+          "sha256": "a4e75b096410d0e16da9492e465cda306026ccc7d452699012e3e4d669d88cb6",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/hcl/highlights.scm",
+              "sha256": "a4e75b096410d0e16da9492e465cda306026ccc7d452699012e3e4d669d88cb6"
+            }
+          ],
+          "parts": [
+            {
+              "file": "hcl.highlights.0.scm",
+              "sha256": "a4e75b096410d0e16da9492e465cda306026ccc7d452699012e3e4d669d88cb6",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/hcl/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/hcl/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "json",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-json",
+      "revision": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+      "release": "v0.24.8",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-json/releases/download/v0.24.8/tree-sitter-json.wasm",
+      "archive": "json.tar.gz",
+      "archive_sha256": "f0242a1f3d867a2a6426719b145d34a9480a502921c79623508fe8cc4ecca7a7",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_json",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "json.highlights.scm",
+          "sha256": "6ab09656820f0e8dac860c96dced341221284544c05308ee337727f5db937101",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/json/highlights.scm",
+              "sha256": "6ab09656820f0e8dac860c96dced341221284544c05308ee337727f5db937101"
+            }
+          ],
+          "parts": [
+            {
+              "file": "json.highlights.0.scm",
+              "sha256": "6ab09656820f0e8dac860c96dced341221284544c05308ee337727f5db937101",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/json/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/json/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "yaml",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-yaml",
+      "revision": "7708026449bed86239b1cd5bce6e3c34dbca6415",
+      "release": "v0.7.2",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-yaml/releases/download/v0.7.2/tree-sitter-yaml.wasm",
+      "archive": "yaml.tar.gz",
+      "archive_sha256": "c700e42d5c1959bea7f4e3c6c9b840db8f580011cc5fa1c411e1cab702203214",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_yaml",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "yaml.highlights.scm",
+          "sha256": "13352b80d2ce28c3328ccb2f321e5144c3365ff6055078e00e7cff118d1488b5",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/yaml/highlights.scm",
+              "sha256": "13352b80d2ce28c3328ccb2f321e5144c3365ff6055078e00e7cff118d1488b5"
+            }
+          ],
+          "parts": [
+            {
+              "file": "yaml.highlights.0.scm",
+              "sha256": "13352b80d2ce28c3328ccb2f321e5144c3365ff6055078e00e7cff118d1488b5",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/yaml/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/yaml/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "haskell",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-haskell",
+      "revision": "c30d812bc90827f1a54106a25bc9a6307f5cdcec",
+      "release": "v0.23.1",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-haskell/releases/download/v0.23.1/tree-sitter-haskell.wasm",
+      "archive": "haskell.tar.gz",
+      "archive_sha256": "169ee3a6519c9e8f647dc76c472b82e180ca3574327eabe1e934f44e0a30cd59",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_haskell",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "haskell.highlights.scm",
+          "sha256": "233575930c05febf2cfda861de1e26856c0245c7804fc352e49782bb4a5aeeb7",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/haskell/highlights.scm",
+              "sha256": "233575930c05febf2cfda861de1e26856c0245c7804fc352e49782bb4a5aeeb7"
+            }
+          ],
+          "parts": [
+            {
+              "file": "haskell.highlights.0.scm",
+              "sha256": "233575930c05febf2cfda861de1e26856c0245c7804fc352e49782bb4a5aeeb7",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/haskell/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/haskell/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "css",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-css",
+      "revision": "dda5cfc5722c429eaba1c910ca32c2c0c5bb1a3f",
+      "release": "v0.25.0",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-css/releases/download/v0.25.0/tree-sitter-css.wasm",
+      "archive": "css.tar.gz",
+      "archive_sha256": "40e166c6b651df0b5cae37f1c45b517745568b91bbc06b6b2bec359ab2dfcb50",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_css",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "css.highlights.scm",
+          "sha256": "6641fed120530bfbce5682ab88b2a8d14d99bfcd971ac9f78cd91738b4b0578a",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/css/highlights.scm",
+              "sha256": "6641fed120530bfbce5682ab88b2a8d14d99bfcd971ac9f78cd91738b4b0578a"
+            }
+          ],
+          "parts": [
+            {
+              "file": "css.highlights.0.scm",
+              "sha256": "6641fed120530bfbce5682ab88b2a8d14d99bfcd971ac9f78cd91738b4b0578a",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/css/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/css/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "julia",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-julia",
+      "revision": "a8e1262997d5a45520a06cbe1b86c0737d507054",
+      "release": "v0.23.1",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-julia/releases/download/v0.23.1/tree-sitter-julia.wasm",
+      "archive": "julia.tar.gz",
+      "archive_sha256": "fae6d60900a2646064d32570dd0ec4952549438360fcd7640d2ada6ad70b02cf",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_julia",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "julia.highlights.scm",
+          "sha256": "aed65b7d7ca5b3202a6923e9b9cc502618bcd50fc5095caae51033f31e390b31",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/julia/highlights.scm",
+              "sha256": "aed65b7d7ca5b3202a6923e9b9cc502618bcd50fc5095caae51033f31e390b31"
+            }
+          ],
+          "parts": [
+            {
+              "file": "julia.highlights.0.scm",
+              "sha256": "aed65b7d7ca5b3202a6923e9b9cc502618bcd50fc5095caae51033f31e390b31",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/julia/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/julia/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "lua",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-lua",
+      "revision": "10fe0054734eec83049514ea2e718b2a56acd0c9",
+      "release": "v0.5.0",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-lua/releases/download/v0.5.0/tree-sitter-lua.wasm",
+      "archive": "lua.tar.gz",
+      "archive_sha256": "8c4500804d035663df66bda0a994df932e3e19422a57820ab4d2108520bb775c",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_lua",
+      "licenses": [
+        "LICENSE.md"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "lua.highlights.scm",
+          "sha256": "d2625fb712357f86386878602d18845f9f3e90fee81f02a5ecd87be6512918d1",
+          "sources": [
+            {
+              "repository": "tree-sitter-grammars/tree-sitter-lua",
+              "revision": "10fe0054734eec83049514ea2e718b2a56acd0c9",
+              "path": "queries/highlights.scm",
+              "sha256": "d2625fb712357f86386878602d18845f9f3e90fee81f02a5ecd87be6512918d1"
+            }
+          ],
+          "parts": [
+            {
+              "file": "lua.highlights.0.scm",
+              "sha256": "d2625fb712357f86386878602d18845f9f3e90fee81f02a5ecd87be6512918d1",
+              "source_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-lua/v0.5.0/queries/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-lua/v0.5.0/queries/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "lua.locals.scm",
+          "sha256": "0a72d6880e9d8d6ef7715914d02ece1f08fb148eac715b195191030da8aedd2f",
+          "sources": [
+            {
+              "repository": "tree-sitter-grammars/tree-sitter-lua",
+              "revision": "10fe0054734eec83049514ea2e718b2a56acd0c9",
+              "path": "queries/locals.scm",
+              "sha256": "0a72d6880e9d8d6ef7715914d02ece1f08fb148eac715b195191030da8aedd2f"
+            }
+          ],
+          "parts": [
+            {
+              "file": "lua.locals.0.scm",
+              "sha256": "0a72d6880e9d8d6ef7715914d02ece1f08fb148eac715b195191030da8aedd2f",
+              "source_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-lua/v0.5.0/queries/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-lua/v0.5.0/queries/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ocaml",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-ocaml",
+      "revision": "0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff",
+      "release": "v0.24.2",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-ocaml/releases/download/v0.24.2/tree-sitter-ocaml.wasm",
+      "archive": "ocaml.tar.gz",
+      "archive_sha256": "312b7599769695464ad8c77355fcce73108cd63261d88ecd82ec56c73668aaab",
+      "parser": "grammars/ocaml/src/parser.c",
+      "scanners": [
+        "grammars/ocaml/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_ocaml",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "ocaml.highlights.scm",
+          "sha256": "04bb46b159b760f27b2703eb545018ac7c7d035cbb0a8b4274098eaa653dd03a",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/ocaml/highlights.scm",
+              "sha256": "04bb46b159b760f27b2703eb545018ac7c7d035cbb0a8b4274098eaa653dd03a"
+            }
+          ],
+          "parts": [
+            {
+              "file": "ocaml.highlights.0.scm",
+              "sha256": "04bb46b159b760f27b2703eb545018ac7c7d035cbb0a8b4274098eaa653dd03a",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ocaml/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/ocaml/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "clojure",
+      "aliases": [],
+      "repository": "anomalyco/tree-sitter-clojure",
+      "revision": "6bd708af87f6974eccb9beda89038f9f081a7a60",
+      "release": "v0.0.1",
+      "reference_wasm": "https://github.com/anomalyco/tree-sitter-clojure/releases/download/v0.0.1/tree-sitter-clojure.wasm",
+      "archive": "clojure.tar.gz",
+      "archive_sha256": "7f26e5626a28dba095d476e31d8647ac29b5157331e25ff5c387ba556ccc8e44",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_clojure",
+      "licenses": [
+        "COPYING.txt"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "clojure.highlights.scm",
+          "sha256": "73c7916d54213dcd734de3ad5d890ddea08237074b65120472c86a733c032c76",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/clojure/highlights.scm",
+              "sha256": "73c7916d54213dcd734de3ad5d890ddea08237074b65120472c86a733c032c76"
+            }
+          ],
+          "parts": [
+            {
+              "file": "clojure.highlights.0.scm",
+              "sha256": "73c7916d54213dcd734de3ad5d890ddea08237074b65120472c86a733c032c76",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/clojure/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/clojure/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "swift",
+      "aliases": [],
+      "repository": "alex-pinkus/tree-sitter-swift",
+      "revision": "7c2f26b5dce12e82ef2bd932a883ef514ae566b8",
+      "release": "0.7.1",
+      "reference_wasm": "https://github.com/alex-pinkus/tree-sitter-swift/releases/download/0.7.1/tree-sitter-swift.wasm",
+      "archive": "swift.tar.gz",
+      "archive_sha256": "df60c632fe4a7608f3af43260afb47435dccfa441e85f69026f38decccd90ffb",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_swift",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": {
+        "version": "tree-sitter-cli 0.23.2",
+        "abi": 14
+      },
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "swift.highlights.scm",
+          "sha256": "b0bbeb918904b252e8bd361f4afb4756647232391110a67deecbf7227464aff8",
+          "sources": [
+            {
+              "repository": "alex-pinkus/tree-sitter-swift",
+              "revision": "7c2f26b5dce12e82ef2bd932a883ef514ae566b8",
+              "path": "queries/highlights.scm",
+              "sha256": "b0bbeb918904b252e8bd361f4afb4756647232391110a67deecbf7227464aff8"
+            }
+          ],
+          "parts": [
+            {
+              "file": "swift.highlights.0.scm",
+              "sha256": "b0bbeb918904b252e8bd361f4afb4756647232391110a67deecbf7227464aff8",
+              "source_url": "https://raw.githubusercontent.com/alex-pinkus/tree-sitter-swift/0.7.1/queries/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/alex-pinkus/tree-sitter-swift/main/queries/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "swift.locals.scm",
+          "sha256": "25a2cc839769cdd69791e9db4832fd232844b7e69a86231a34d046c55d883e52",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/swift/locals.scm",
+              "sha256": "25a2cc839769cdd69791e9db4832fd232844b7e69a86231a34d046c55d883e52"
+            }
+          ],
+          "parts": [
+            {
+              "file": "swift.locals.0.scm",
+              "sha256": "25a2cc839769cdd69791e9db4832fd232844b7e69a86231a34d046c55d883e52",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/swift/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/swift/locals.scm"
+            }
+          ]
+        }
+      },
+      "reference_query_freeze": {
+        "original_urls": [
+          "https://raw.githubusercontent.com/alex-pinkus/tree-sitter-swift/main/queries/highlights.scm"
+        ],
+        "reason": "Floating main query is incompatible with the configured release WASM",
+        "reference_revision": "7c2f26b5dce12e82ef2bd932a883ef514ae566b8"
+      }
+    },
+    {
+      "name": "toml",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-toml",
+      "revision": "64b56832c2cffe41758f28e05c756a3a98d16f41",
+      "release": "v0.7.0",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-toml/releases/download/v0.7.0/tree-sitter-toml.wasm",
+      "archive": "toml.tar.gz",
+      "archive_sha256": "69a7d1a0e221e0f2093af43d78fcfc890fd19d1ca8f365d8f2c3d806ecdb0933",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_toml",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "toml.highlights.scm",
+          "sha256": "059618709a4c7e6b287643a68282257e197c5a05cfb9d82b6ac517d32230cb12",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/toml/highlights.scm",
+              "sha256": "059618709a4c7e6b287643a68282257e197c5a05cfb9d82b6ac517d32230cb12"
+            }
+          ],
+          "parts": [
+            {
+              "file": "toml.highlights.0.scm",
+              "sha256": "059618709a4c7e6b287643a68282257e197c5a05cfb9d82b6ac517d32230cb12",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/toml/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/master/queries/toml/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "nix",
+      "aliases": [],
+      "repository": "nix-community/tree-sitter-nix",
+      "revision": "ed711d8499e17398e2c84f2a779f2c2b5ac54264",
+      "release": "master",
+      "reference_wasm": "https://github.com/ast-grep/ast-grep.github.io/raw/40b84530640aa83a0d34a20a2b0623d7b8e5ea97/website/public/parsers/tree-sitter-nix.wasm",
+      "archive": "nix.tar.gz",
+      "archive_sha256": "d442d5939fea17b2b38c96cabba0d769d2ec27383f817e14d17f57275bc0d4a5",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_nix",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "nix.highlights.scm",
+          "sha256": "56fd3a06df812415ea583b363624539d625dd7b2dfbc37522a1653eb07ac9fef",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/nix/highlights.scm",
+              "sha256": "56fd3a06df812415ea583b363624539d625dd7b2dfbc37522a1653eb07ac9fef"
+            }
+          ],
+          "parts": [
+            {
+              "file": "nix.highlights.0.scm",
+              "sha256": "56fd3a06df812415ea583b363624539d625dd7b2dfbc37522a1653eb07ac9fef",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/nix/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/nix/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "nix.locals.scm",
+          "sha256": "7534473cf89cfcc51d590b8fe2b88a9ce94b64ee6c0104f550f0ff6c35e5a900",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/nix/locals.scm",
+              "sha256": "7534473cf89cfcc51d590b8fe2b88a9ce94b64ee6c0104f550f0ff6c35e5a900"
+            }
+          ],
+          "parts": [
+            {
+              "file": "nix.locals.0.scm",
+              "sha256": "7534473cf89cfcc51d590b8fe2b88a9ce94b64ee6c0104f550f0ff6c35e5a900",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/nix/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/nix/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "diff",
+      "aliases": [
+        "udiff",
+        "patch"
+      ],
+      "repository": "tree-sitter-grammars/tree-sitter-diff",
+      "revision": "2520c3f934b3179bb540d23e0ef45f75304b5fed",
+      "release": "v0.1.0",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-diff/releases/download/v0.1.0/tree-sitter-diff.wasm",
+      "archive": "diff.tar.gz",
+      "archive_sha256": "3bbe199cce732a09a4210d35587f47865204b79b1f91f0920fa2684506c09d21",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_diff",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "diff.highlights.scm",
+          "sha256": "fbdaad8c9c009216abe7ba005f613752e068819548d89723b9cda83bed27f8e5",
+          "sources": [
+            {
+              "repository": "tree-sitter-grammars/tree-sitter-diff",
+              "revision": "2520c3f934b3179bb540d23e0ef45f75304b5fed",
+              "path": "queries/highlights.scm",
+              "sha256": "fbdaad8c9c009216abe7ba005f613752e068819548d89723b9cda83bed27f8e5"
+            }
+          ],
+          "parts": [
+            {
+              "file": "diff.highlights.0.scm",
+              "sha256": "fbdaad8c9c009216abe7ba005f613752e068819548d89723b9cda83bed27f8e5",
+              "source_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-diff/2520c3f934b3179bb540d23e0ef45f75304b5fed/queries/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/tree-sitter-grammars/tree-sitter-diff/2520c3f934b3179bb540d23e0ef45f75304b5fed/queries/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "elixir",
+      "aliases": [],
+      "repository": "elixir-lang/tree-sitter-elixir",
+      "revision": "e2d9e6e0e76b0c436fa48a0b8c32a031d0cbdf49",
+      "release": "v0.3.5",
+      "reference_wasm": "https://github.com/elixir-lang/tree-sitter-elixir/releases/download/v0.3.5/tree-sitter-elixir.wasm",
+      "archive": "elixir.tar.gz",
+      "archive_sha256": "80bd79bb4f37be2cdc83193514ad30f48e0174f97b34752c6e063b94e8193746",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_elixir",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "elixir.highlights.scm",
+          "sha256": "a5ba25c44d681d11af4d611a8e229463f91219ced15a3ca240a6c215df1f869a",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/elixir/highlights.scm",
+              "sha256": "a5ba25c44d681d11af4d611a8e229463f91219ced15a3ca240a6c215df1f869a"
+            }
+          ],
+          "parts": [
+            {
+              "file": "elixir.highlights.0.scm",
+              "sha256": "a5ba25c44d681d11af4d611a8e229463f91219ced15a3ca240a6c215df1f869a",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/elixir/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/elixir/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "elixir.locals.scm",
+          "sha256": "e5cf2d79b4872bec580e66be8ec4b5ab559efdbe2d0bcb633786ce8ffeb0e95b",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/elixir/locals.scm",
+              "sha256": "e5cf2d79b4872bec580e66be8ec4b5ab559efdbe2d0bcb633786ce8ffeb0e95b"
+            }
+          ],
+          "parts": [
+            {
+              "file": "elixir.locals.0.scm",
+              "sha256": "e5cf2d79b4872bec580e66be8ec4b5ab559efdbe2d0bcb633786ce8ffeb0e95b",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/elixir/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/elixir/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "fsharp",
+      "aliases": [],
+      "repository": "ionide/tree-sitter-fsharp",
+      "revision": "5247c1197cb290fcaea0e0a793d32829c1396831",
+      "release": "0.3.0",
+      "reference_wasm": "https://github.com/ionide/tree-sitter-fsharp/releases/download/0.3.0/tree-sitter-fsharp.wasm",
+      "archive": "fsharp.tar.gz",
+      "archive_sha256": "3aa4db2d2c94f8e63aabe5a5027e8c4bdb9c59ad1adc0cf925ba5db4fcb4b5e1",
+      "parser": "fsharp/src/parser.c",
+      "scanners": [
+        "fsharp/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_fsharp",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "fsharp.highlights.scm",
+          "sha256": "a7002cfebe89a5aab612c3b9a73bd6b5aa89007c3b261a3582e7d5d4a5b989dc",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/fsharp/highlights.scm",
+              "sha256": "a7002cfebe89a5aab612c3b9a73bd6b5aa89007c3b261a3582e7d5d4a5b989dc"
+            }
+          ],
+          "parts": [
+            {
+              "file": "fsharp.highlights.0.scm",
+              "sha256": "a7002cfebe89a5aab612c3b9a73bd6b5aa89007c3b261a3582e7d5d4a5b989dc",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/fsharp/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/fsharp/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "r",
+      "aliases": [],
+      "repository": "r-lib/tree-sitter-r",
+      "revision": "e9944e9801595ad484f49be492daf0c4c81547ef",
+      "release": "v1.2.0",
+      "reference_wasm": "https://github.com/r-lib/tree-sitter-r/releases/download/v1.2.0/tree-sitter-r.wasm",
+      "archive": "r.tar.gz",
+      "archive_sha256": "8c2125e1dd92d066eebf2ed9a07694c9f4fcf5e63e45399ac404692011213c9c",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_r",
+      "licenses": [
+        "LICENSE",
+        "bindings/r/LICENSE.md",
+        "bindings/r/LICENSE",
+        "bindings/r/LICENSE.note"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "r.highlights.scm",
+          "sha256": "e9bdfbc6f0a1d47ca2d96d2aa85a28c35e71150e22f6a9e70b213ff02fe6433f",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/r/highlights.scm",
+              "sha256": "e9bdfbc6f0a1d47ca2d96d2aa85a28c35e71150e22f6a9e70b213ff02fe6433f"
+            }
+          ],
+          "parts": [
+            {
+              "file": "r.highlights.0.scm",
+              "sha256": "e9bdfbc6f0a1d47ca2d96d2aa85a28c35e71150e22f6a9e70b213ff02fe6433f",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/r/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/r/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "r.locals.scm",
+          "sha256": "f492d0f06b7716a5e6ecd606ef5b09bf7362481ad46e01dfedb4637a5b232e3c",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/r/locals.scm",
+              "sha256": "f492d0f06b7716a5e6ecd606ef5b09bf7362481ad46e01dfedb4637a5b232e3c"
+            }
+          ],
+          "parts": [
+            {
+              "file": "r.locals.0.scm",
+              "sha256": "f492d0f06b7716a5e6ecd606ef5b09bf7362481ad46e01dfedb4637a5b232e3c",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/r/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/r/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "make",
+      "aliases": [
+        "makefile"
+      ],
+      "repository": "tree-sitter-grammars/tree-sitter-make",
+      "revision": "5e9e8f8ff3387b0edcaa90f46ddf3629f4cfeb1d",
+      "release": "v1.1.1",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-make/releases/download/v1.1.1/tree-sitter-make.wasm",
+      "archive": "make.tar.gz",
+      "archive_sha256": "11789f23f9ed9abdedf3938e6f4596045ea89eb44a79efa5ef2fec13a06ca66b",
+      "parser": "src/parser.c",
+      "scanners": [],
+      "symbol": "tree_sitter_make",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "make.highlights.scm",
+          "sha256": "49b859e9da027d79383ca896e60c4c141c9ee344a3dacfed29437a0c87593a47",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/make/highlights.scm",
+              "sha256": "49b859e9da027d79383ca896e60c4c141c9ee344a3dacfed29437a0c87593a47"
+            }
+          ],
+          "parts": [
+            {
+              "file": "make.highlights.0.scm",
+              "sha256": "49b859e9da027d79383ca896e60c4c141c9ee344a3dacfed29437a0c87593a47",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/make/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/make/highlights.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "vim",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-vim",
+      "revision": "3092fcd99eb87bbd0fc434aa03650ba58bd5b43b",
+      "release": "v0.8.1",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-vim/releases/download/v0.8.1/tree-sitter-vim.wasm",
+      "archive": "vim.tar.gz",
+      "archive_sha256": "8f0200d38bb6f3fd3649e9d9325ff0243caa5d3ad3ec0dd3f3ccbe3cf5fb0a77",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_vim",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "vim.highlights.scm",
+          "sha256": "3ccb59deb5ed0d363a91433a2b7baaf25489b449c587a8d6decb40dcf129a16c",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/vim/highlights.scm",
+              "sha256": "3ccb59deb5ed0d363a91433a2b7baaf25489b449c587a8d6decb40dcf129a16c"
+            }
+          ],
+          "parts": [
+            {
+              "file": "vim.highlights.0.scm",
+              "sha256": "3ccb59deb5ed0d363a91433a2b7baaf25489b449c587a8d6decb40dcf129a16c",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/vim/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/vim/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "vim.locals.scm",
+          "sha256": "d0a6fba18d8434bd4820aeb687bb587ec1a6bcf3e2b9e89d96537a7fe26a22db",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/vim/locals.scm",
+              "sha256": "d0a6fba18d8434bd4820aeb687bb587ec1a6bcf3e2b9e89d96537a7fe26a22db"
+            }
+          ],
+          "parts": [
+            {
+              "file": "vim.locals.0.scm",
+              "sha256": "d0a6fba18d8434bd4820aeb687bb587ec1a6bcf3e2b9e89d96537a7fe26a22db",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/vim/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/vim/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "xml",
+      "aliases": [],
+      "repository": "tree-sitter-grammars/tree-sitter-xml",
+      "revision": "4b64dd3a03ec002258d6268d712fd93716d6ab57",
+      "release": "v0.7.0",
+      "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-xml/releases/download/v0.7.0/tree-sitter-xml.wasm",
+      "archive": "xml.tar.gz",
+      "archive_sha256": "e93717cf2548a65eccf2b09c01fdfc1cfc370baea3f34d83ca39e77275395d21",
+      "parser": "xml/src/parser.c",
+      "scanners": [
+        "xml/src/scanner.c"
+      ],
+      "symbol": "tree_sitter_xml",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "xml.highlights.scm",
+          "sha256": "a71142b97d01ef98027414d6598ac23536729daddfa9d979c45808c98c3c97fb",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/xml/highlights.scm",
+              "sha256": "a71142b97d01ef98027414d6598ac23536729daddfa9d979c45808c98c3c97fb"
+            }
+          ],
+          "parts": [
+            {
+              "file": "xml.highlights.0.scm",
+              "sha256": "a71142b97d01ef98027414d6598ac23536729daddfa9d979c45808c98c3c97fb",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/xml/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/xml/highlights.scm"
+            }
+          ]
+        },
+        "locals": {
+          "file": "xml.locals.scm",
+          "sha256": "8c08a6775731ea6ccecfdcc5bdd5c59a8349c00c2b3f9d9f69ceb481712a7305",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/xml/locals.scm",
+              "sha256": "8c08a6775731ea6ccecfdcc5bdd5c59a8349c00c2b3f9d9f69ceb481712a7305"
+            }
+          ],
+          "parts": [
+            {
+              "file": "xml.locals.0.scm",
+              "sha256": "8c08a6775731ea6ccecfdcc5bdd5c59a8349c00c2b3f9d9f69ceb481712a7305",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/xml/locals.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/xml/locals.scm"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "agda",
+      "aliases": [],
+      "repository": "tree-sitter/tree-sitter-agda",
+      "revision": "47802091de0cb8ac2533d67ac37e65692c5902c4",
+      "release": "v1.3.3",
+      "reference_wasm": "https://github.com/tree-sitter/tree-sitter-agda/releases/download/v1.3.3/tree-sitter-agda.wasm",
+      "archive": "agda.tar.gz",
+      "archive_sha256": "b66d14ceca295e9445115f77b57fe268f28668fc366196cc4c24332610cabd34",
+      "parser": "src/parser.c",
+      "scanners": [
+        "src/scanner.c"
+      ],
+      "symbol": "tree_sitter_agda",
+      "licenses": [
+        "LICENSE"
+      ],
+      "generator": null,
+      "injection_mapping": {},
+      "queries": {
+        "highlights": {
+          "file": "agda.highlights.scm",
+          "sha256": "124f3246955696b0a7d33c750be29977efe256faf9702ed292b1c5680736cf6b",
+          "sources": [
+            {
+              "repository": "nvim-treesitter/nvim-treesitter",
+              "revision": "cf12346a3414fa1b06af75c79faebe7f76df080a",
+              "path": "queries/agda/highlights.scm",
+              "sha256": "124f3246955696b0a7d33c750be29977efe256faf9702ed292b1c5680736cf6b"
+            }
+          ],
+          "parts": [
+            {
+              "file": "agda.highlights.0.scm",
+              "sha256": "124f3246955696b0a7d33c750be29977efe256faf9702ed292b1c5680736cf6b",
+              "source_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/agda/highlights.scm",
+              "cache_url": "https://raw.githubusercontent.com/nvim-treesitter/nvim-treesitter/refs/heads/master/queries/agda/highlights.scm"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

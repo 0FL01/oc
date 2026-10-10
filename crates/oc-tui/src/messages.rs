@@ -32,7 +32,7 @@ use unicode_width::UnicodeWidthStr;
 
 use crate::history::HistoryRow;
 use crate::styled::{self, Line, Span};
-use crate::theme::{MarkdownToken, SyntaxToken, Theme, ThemeMode};
+use crate::theme::{MarkdownToken, Theme, ThemeMode};
 
 /// Assistant, reasoning and footer left padding: `paddingLeft={3}`
 /// (`routes/session/message-parts.tsx:51,158`, `routes/session/index.tsx:1940`).
@@ -103,8 +103,23 @@ struct SourcePage {
     continuation: bool,
     last_table_page: bool,
     fence: Option<String>,
+    code_context: Vec<CodeFence>,
+    source_revision: u64,
     list_number: Option<u64>,
     height: usize,
+}
+
+#[derive(Clone)]
+struct CodeFence {
+    block: std::ops::Range<usize>,
+    body: std::ops::Range<usize>,
+    indentation: usize,
+}
+
+#[derive(Clone, Copy)]
+struct PageSyntax<'a> {
+    source: &'a str,
+    page: &'a SourcePage,
 }
 
 #[derive(Clone)]
@@ -220,7 +235,10 @@ impl MarkdownCache {
         {
             return index.pages.clone();
         }
-        let pages = index_source(text, width);
+        let mut pages = index_source(text, width);
+        for page in &mut pages {
+            page.source_revision = revision;
+        }
         self.indexes.retain(|p| {
             if p.part == part {
                 self.index_bytes -= p.bytes;
@@ -269,6 +287,7 @@ impl MarkdownCache {
             .map(|page| {
                 std::mem::size_of::<SourcePage>()
                     + page.fence.as_ref().map_or(0, String::len)
+                    + page.code_context.len() * std::mem::size_of::<CodeFence>()
                     + page
                         .table_widths
                         .as_ref()
@@ -287,7 +306,7 @@ impl MarkdownCache {
         theme: &Theme,
         width: u16,
     ) -> Vec<Line> {
-        self.render_with_widths(part, text, theme, width, None)
+        self.render_with_widths(part, text, theme, width, None, None)
     }
 
     fn render_table_page(
@@ -298,7 +317,18 @@ impl MarkdownCache {
         width: u16,
         columns: &[usize],
     ) -> Vec<Line> {
-        self.render_with_widths(part, text, theme, width, Some(columns))
+        self.render_with_widths(part, text, theme, width, Some(columns), None)
+    }
+
+    fn render_page(
+        &mut self,
+        part: (i64, usize, usize),
+        text: &str,
+        theme: &Theme,
+        width: u16,
+        syntax: PageSyntax<'_>,
+    ) -> Vec<Line> {
+        self.render_with_widths(part, text, theme, width, None, Some(syntax))
     }
 
     fn render_with_widths(
@@ -308,6 +338,7 @@ impl MarkdownCache {
         theme: &Theme,
         width: u16,
         columns: Option<&[usize]>,
+        syntax: Option<PageSyntax<'_>>,
     ) -> Vec<Line> {
         let mut end = text.len().min(LIVE_MARKDOWN_BYTES);
         while !text.is_char_boundary(end) {
@@ -318,6 +349,9 @@ impl MarkdownCache {
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
         text.hash(&mut hasher);
         columns.hash(&mut hasher);
+        syntax
+            .map(|context| context.page.source_revision)
+            .hash(&mut hasher);
         let revision = hasher.finish();
         if let Some(position) = self.blocks.iter().position(|b| {
             b.part == part && b.revision == revision && b.width == width && b.theme == theme.mode()
@@ -336,7 +370,7 @@ impl MarkdownCache {
             self.parses += 1;
             self.parsed_bytes += text.len();
         }
-        let lines = markdown_block_with_widths(text, theme, width, columns);
+        let lines = markdown_block_with_spacing(text, theme, width, columns, false, syntax);
         let bytes: usize = lines
             .iter()
             .flat_map(Line::spans)
@@ -1218,9 +1252,16 @@ fn visit_assistant_indexed(
                             columns,
                         )
                     } else {
-                        cache
-                            .borrow_mut()
-                            .render((row.seq, index, number), &source, theme, width)
+                        cache.borrow_mut().render_page(
+                            (row.seq, index, number),
+                            &source,
+                            theme,
+                            width,
+                            PageSyntax {
+                                source: text,
+                                page: &page,
+                            },
+                        )
                     };
                     if page.table_header.is_some() {
                         if page.continuation {
@@ -1286,11 +1327,16 @@ fn advance_fence(chunk: &str, open: &mut Option<String>, at_line_start: &mut boo
                                             .chars()
                                             .take_while(|c| *c == marker)
                                             .count()
-                                    && text[count..].trim().is_empty() =>
+                                    && text[count..].trim_matches([' ', '\t']).is_empty() =>
                             {
                                 *open = None
                             }
-                            None => *open = Some(text.to_string()),
+                            None if marker != '`' || !text[count..].contains('`') => {
+                                // CommonMark rejects backticks inside a
+                                // backtick-fence info string. A false region
+                                // must never replace a later actual code body.
+                                *open = Some(text.to_string())
+                            }
                             _ => {}
                         }
                     }
@@ -1663,6 +1709,8 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
                                 continuation: !first,
                                 last_table_page: final_page,
                                 fence: None,
+                                code_context: Vec::new(),
+                                source_revision: 0,
                                 list_number: None,
                                 height: (if first { 1 + heights[0] } else { 0 })
                                     + usize::from(!same_row)
@@ -1710,6 +1758,8 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
                     continuation: !first,
                     last_table_page: final_page,
                     fence: None,
+                    code_context: Vec::new(),
+                    source_revision: 0,
                     list_number: None,
                     height: page_height,
                 });
@@ -1762,12 +1812,53 @@ fn index_source(text: &str, width: u16) -> Vec<SourcePage> {
             continuation: false,
             last_table_page: true,
             fence: fence.clone(),
+            code_context: Vec::new(),
+            source_revision: 0,
             list_number: number,
             height,
         });
         advance_fence(chunk, &mut fence, &mut at_line_start);
         next_list_number = begins_list.map(|n| number.unwrap_or(n).saturating_add(items));
         i = j;
+    }
+    // Structural byte ranges into the original fences, not copied ASTs or fake
+    // prefix text. Only a visible page asks the bounded shared syntax owner to
+    // parse the whole fence; an off-screen comment can then style later pages.
+    let mut offset = 0;
+    let mut opened = None;
+    let mut at_start = true;
+    let mut current: Option<CodeFence> = None;
+    let mut regions = Vec::new();
+    for line in text.split_inclusive('\n') {
+        let before = opened.is_some();
+        advance_fence(line, &mut opened, &mut at_start);
+        if !before && opened.is_some() {
+            current = Some(CodeFence {
+                block: offset..text.len(),
+                body: offset + line.len()..text.len(),
+                indentation: line.len() - line.trim_start_matches(' ').len(),
+            });
+        } else if before
+            && opened.is_none()
+            && let Some(mut region) = current.take()
+        {
+            region.block.end = offset + line.len();
+            region.body.end = offset;
+            regions.push(region);
+        }
+        offset += line.len();
+    }
+    regions.extend(current);
+    let mut next = 0;
+    for page in &mut pages {
+        while next < regions.len() && regions[next].block.end <= page.start {
+            next += 1;
+        }
+        page.code_context = regions[next..]
+            .iter()
+            .take_while(|region| region.block.start < page.end)
+            .cloned()
+            .collect();
     }
     pages
 }
@@ -3169,14 +3260,14 @@ fn markdown_block_with_widths(
     width: u16,
     columns: Option<&[usize]>,
 ) -> Vec<Line> {
-    markdown_block_with_spacing(text, theme, width, columns, false)
+    markdown_block_with_spacing(text, theme, width, columns, false, None)
 }
 
 /// CompactionMessage's streaming top-level Markdown renderer has a blank row
 /// after headings (pinned session/index.tsx:2133–2144; paired manual 12 rows18–28).
 /// Keep this mode local to compaction; ordinary message pagination is unchanged.
 pub(crate) fn compaction_markdown_block(text: &str, theme: &Theme, width: u16) -> Vec<Line> {
-    markdown_block_with_spacing(text, theme, width, None, true)
+    markdown_block_with_spacing(text, theme, width, None, true, None)
 }
 
 fn markdown_block_with_spacing(
@@ -3185,6 +3276,7 @@ fn markdown_block_with_spacing(
     width: u16,
     columns: Option<&[usize]>,
     compaction_style: bool,
+    syntax: Option<PageSyntax<'_>>,
 ) -> Vec<Line> {
     let inner = if width == 0 {
         usize::MAX
@@ -3193,7 +3285,9 @@ fn markdown_block_with_spacing(
     };
     let pad = Span::plain(" ".repeat(MESSAGE_PADDING));
     let mut out = Vec::new();
-    for line in markdown_at_width_with_spacing(text, theme, inner, columns, compaction_style) {
+    for line in
+        markdown_at_width_with_spacing(text, theme, inner, columns, compaction_style, syntax)
+    {
         let mut spans = vec![pad.clone()];
         spans.extend(line.spans().iter().cloned());
         out.push(Line::new(spans));
@@ -3352,7 +3446,7 @@ fn markdown_at_width_with_columns(
     width: usize,
     columns: Option<&[usize]>,
 ) -> Vec<Line> {
-    markdown_at_width_with_spacing(text, theme, width, columns, false)
+    markdown_at_width_with_spacing(text, theme, width, columns, false, None)
 }
 
 fn markdown_at_width_with_spacing(
@@ -3361,6 +3455,7 @@ fn markdown_at_width_with_spacing(
     width: usize,
     columns: Option<&[usize]>,
     compaction_style: bool,
+    syntax: Option<PageSyntax<'_>>,
 ) -> Vec<Line> {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
@@ -3368,7 +3463,7 @@ fn markdown_at_width_with_spacing(
     let mut spans = Vec::new();
     let mut stack = Vec::new();
     let mut lists: Vec<Option<u64>> = Vec::new();
-    let mut code: Option<(String, String)> = None;
+    let mut code: Option<(String, String, usize)> = None;
     let mut table: Option<TableDraft> = None;
     let mut previous_end = 0;
     let mut depth = 0usize;
@@ -3421,7 +3516,7 @@ fn markdown_at_width_with_spacing(
                             }
                             CodeBlockKind::Indented => String::new(),
                         };
-                        code = Some((lang, String::new()));
+                        code = Some((lang, String::new(), range.start));
                     }
                     Tag::List(start) => lists.push(*start),
                     Tag::Item => {
@@ -3450,13 +3545,11 @@ fn markdown_at_width_with_spacing(
                     }
                     Tag::Heading { level, .. } => {
                         stack.push(MarkdownToken::Heading);
-                        // Pinned theme/v1.ts:297–346; scoped to the streaming
-                        // compaction renderer rather than unrelated messages.
-                        if compaction_style {
-                            heading_font = Modifier::BOLD;
-                            if *level == pulldown_cmark::HeadingLevel::H1 {
-                                heading_font |= Modifier::UNDERLINED;
-                            }
+                        // The shared donor syntax style applies heading
+                        // attributes to ordinary messages as well as compaction.
+                        heading_font = Modifier::BOLD;
+                        if *level == pulldown_cmark::HeadingLevel::H1 {
+                            heading_font |= Modifier::UNDERLINED;
                         }
                     }
                     Tag::BlockQuote(_) => stack.push(MarkdownToken::BlockQuote),
@@ -3505,20 +3598,40 @@ fn markdown_at_width_with_spacing(
                         }
                     }
                     TagEnd::CodeBlock => {
-                        if let Some((lang, body)) = code.take() {
+                        if let Some((lang, body, start)) = code.take() {
                             // Only the structural closing newline is removed;
                             // blank lines immediately above the fence are data.
                             let body = body.strip_suffix('\n').unwrap_or(&body);
                             if !body.is_empty() {
-                                for line in body.split('\n') {
+                                let body: Vec<_> =
+                                    body.split('\n').map(crate::syntax::safe_line).collect();
+                                let context = syntax.and_then(|context| {
+                                    let prefix = context
+                                        .page
+                                        .fence
+                                        .as_ref()
+                                        .map_or(0, |open| open.len() + 1);
+                                    let anchor = context.page.start + start.saturating_sub(prefix);
+                                    context
+                                        .page
+                                        .code_context
+                                        .iter()
+                                        .find(|region| region.block.contains(&anchor))
+                                        .map(|region| (context, region))
+                                });
+                                let highlighted = context.map_or_else(
+                                    || code_lines(Some(&lang), &body, theme),
+                                    |(context, region)| {
+                                        code_page_lines(&lang, &body, theme, context, region)
+                                    },
+                                );
+                                for highlighted in highlighted {
                                     if out.len() >= MAX_MARKDOWN_ROWS {
                                         truncated = true;
                                         break;
                                     }
-                                    let highlighted =
-                                        code_lines(Some(&lang), &[safe_text(line)], theme);
                                     out.extend(styled::wrap_code_line_limited(
-                                        &highlighted[0],
+                                        &crate::syntax::display_line(&highlighted),
                                         width,
                                         (MAX_MARKDOWN_ROWS + 1).saturating_sub(out.len()),
                                     ));
@@ -3571,7 +3684,7 @@ fn markdown_at_width_with_spacing(
                 }
             }
             Event::Text(value) => {
-                if let Some((_, body)) = &mut code {
+                if let Some((_, body, _)) = &mut code {
                     body.push_str(&value);
                 } else {
                     let token = if table.as_ref().is_some_and(|t| t.header) {
@@ -3624,7 +3737,15 @@ fn markdown_at_width_with_spacing(
             "… [Markdown preview limited]",
             Style::default().fg(theme.text_muted()),
         ));
-    } else if text.ends_with('\n') {
+    } else if text.ends_with('\n')
+        && !syntax.is_some_and(|context| {
+            context.page.code_context.iter().any(|region| {
+                region.body.start < context.page.end && context.page.end < region.body.end
+            })
+        })
+    {
+        // An indexed fence continuation already emits its literal blank rows.
+        // Its artificial Markdown EOF must not add a second trailing blank.
         out.push(Line::plain(""));
     }
     if out.is_empty() {
@@ -3758,194 +3879,102 @@ fn render_table(
     out
 }
 
-fn flush(spans: &mut Vec<Span>, plain: &mut String, style: Style) {
-    if !plain.is_empty() {
-        spans.push(Span::styled(std::mem::take(plain), style));
-    }
-}
-
-/// Language for the hand-rolled code-block highlighter. Upstream highlights
-/// through tree-sitter WASM (`parsers-config.ts`, ~40 languages); this port
-/// supports a small documented subset and renders every other language in
-/// `markdown.codeBlock` color without pretending to know its grammar.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Language {
-    Rust,
-    Python,
-    Shell,
-    Json,
-    Plain,
-}
-
-const RUST_KEYWORDS: &[&str] = &[
-    "as", "async", "await", "box", "break", "const", "continue", "crate", "dyn", "else", "enum",
-    "extern", "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move",
-    "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true",
-    "type", "unsafe", "use", "where", "while",
-];
-const PYTHON_KEYWORDS: &[&str] = &[
-    "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif",
-    "else", "except", "False", "finally", "for", "from", "global", "if", "import", "in", "is",
-    "lambda", "None", "nonlocal", "not", "or", "pass", "raise", "return", "self", "True", "try",
-    "while", "with", "yield",
-];
-const SHELL_KEYWORDS: &[&str] = &[
-    "case", "do", "done", "elif", "else", "esac", "export", "fi", "for", "function", "if", "in",
-    "local", "readonly", "return", "then", "unset", "while",
-];
-const JSON_KEYWORDS: &[&str] = &["false", "null", "true"];
-
-impl Language {
-    fn from_info(info: Option<&str>) -> Self {
-        match info.unwrap_or("").to_ascii_lowercase().as_str() {
-            "rust" | "rs" => Language::Rust,
-            "python" | "py" => Language::Python,
-            "bash" | "sh" | "shell" | "zsh" => Language::Shell,
-            "json" | "jsonc" => Language::Json,
-            _ => Language::Plain,
-        }
-    }
-
-    /// Line-comment prefix, when the language has one.
-    fn comment(self) -> Option<&'static str> {
-        match self {
-            Language::Rust => Some("//"),
-            Language::Python | Language::Shell => Some("#"),
-            Language::Json | Language::Plain => None,
-        }
-    }
-
-    fn keywords(self) -> &'static [&'static str] {
-        match self {
-            Language::Rust => RUST_KEYWORDS,
-            Language::Python => PYTHON_KEYWORDS,
-            Language::Shell => SHELL_KEYWORDS,
-            Language::Json => JSON_KEYWORDS,
-            Language::Plain => &[],
-        }
-    }
-
-    fn single_quoted_strings(self) -> bool {
-        matches!(self, Language::Shell)
-    }
-}
-
-/// Code block: base `markdown.codeBlock` plus the subset syntax tokens
-/// (`packages/theme/src/tui/syntax.ts:10-85`).
+/// Grammar/query tokenization is shared with patch previews; parse the bounded
+/// whole block before row splitting instead of losing multi-line parser state.
 fn code_lines(lang: Option<&str>, body: &[String], theme: &Theme) -> Vec<Line> {
-    let language = Language::from_info(lang);
     let base = Style::default().fg(theme.markdown(MarkdownToken::CodeBlock));
-    body.iter()
-        .map(|line| Line::new(highlight(line, language, theme, base)))
-        .collect()
-}
-
-pub(crate) fn highlight_patch(line: &str, path: &str, theme: &Theme, base: Style) -> Vec<Span> {
-    let extension = path.rsplit('.').next();
-    highlight(line, Language::from_info(extension), theme, base)
-        .into_iter()
-        .map(|span| Span::styled(span.content(), base.patch(span.style())))
-        .collect()
-}
-
-/// Tokenize one code line: comments, strings, numbers, keywords, function
-/// calls and type-like identifiers. Everything else keeps the code-block
-/// color; unknown languages produce one base-styled span.
-fn highlight(line: &str, language: Language, theme: &Theme, base: Style) -> Vec<Span> {
-    if language == Language::Plain {
-        return vec![Span::styled(line, base)];
+    let source = body.join("\n");
+    match crate::syntax::highlight(&source, lang, theme, base) {
+        Ok(lines) => lines,
+        Err(error) => {
+            let mut lines: Vec<_> = body.iter().map(|line| Line::styled(line, base)).collect();
+            lines.push(Line::styled(
+                match error {
+                    crate::syntax::Error::Limit => {
+                        "[syntax highlighting preview limited]".to_owned()
+                    }
+                    crate::syntax::Error::Asset(name) => {
+                        format!("[syntax asset unavailable: {name}]")
+                    }
+                },
+                Style::default().fg(theme.text_muted()),
+            ));
+            lines
+        }
     }
-    let style = |token: SyntaxToken| Style::default().fg(theme.syntax(token));
-    let mut spans: Vec<Span> = Vec::new();
-    let mut plain = String::new();
-    let mut index = 0;
-    let chars: Vec<char> = line.chars().collect();
-    while index < chars.len() {
-        let ch = chars[index];
-        if let Some(prefix) = language.comment()
-            && line[char_offset(line, index)..].starts_with(prefix)
-        {
-            flush(&mut spans, &mut plain, base);
-            spans.push(Span::styled(
-                chars[index..].iter().collect::<String>(),
-                style(SyntaxToken::Comment),
-            ));
-            return spans;
-        }
-        if ch == '"' || (ch == '\'' && language.single_quoted_strings()) {
-            flush(&mut spans, &mut plain, base);
-            let mut end = index + 1;
-            while end < chars.len() && chars[end] != ch {
-                if chars[end] == '\\' {
-                    end += 1;
-                }
-                end += 1;
-            }
-            let end = end.min(chars.len());
-            spans.push(Span::styled(
-                chars[index..end].iter().collect::<String>(),
-                style(SyntaxToken::String),
-            ));
-            index = (end + 1).min(chars.len());
-            continue;
-        }
-        if ch.is_ascii_digit() {
-            flush(&mut spans, &mut plain, base);
-            let mut end = index + 1;
-            while end < chars.len()
-                && (chars[end].is_ascii_alphanumeric() || chars[end] == '.' || chars[end] == '_')
-            {
-                end += 1;
-            }
-            spans.push(Span::styled(
-                chars[index..end].iter().collect::<String>(),
-                style(SyntaxToken::Number),
-            ));
-            index = end;
-            continue;
-        }
-        if ch.is_ascii_alphabetic() || ch == '_' {
-            let mut end = index;
-            while end < chars.len() && (chars[end].is_ascii_alphanumeric() || chars[end] == '_') {
-                end += 1;
-            }
-            let ident: String = chars[index..end].iter().collect();
-            let token = if language.keywords().contains(&ident.as_str()) {
-                Some(SyntaxToken::Keyword)
-            } else if chars.get(end) == Some(&'(') {
-                Some(SyntaxToken::Function)
-            } else if ident.chars().next().is_some_and(char::is_uppercase) {
-                Some(SyntaxToken::Type)
+}
+
+/// Use original fence context while preserving the independently bounded page.
+fn code_page_lines(
+    lang: &str,
+    body: &[String],
+    theme: &Theme,
+    context: PageSyntax<'_>,
+    region: &CodeFence,
+) -> Vec<Line> {
+    let raw = &context.source[region.body.clone()];
+    if raw.len() > 64 * 1024 {
+        return syntax_failure(body, theme, crate::syntax::Error::Limit);
+    }
+    let selected = context.page.start.max(region.body.start)..context.page.end.min(region.body.end);
+    let mut source = String::new();
+    let mut window = 0..0;
+    let mut offset = region.body.start;
+    for line in raw.split_inclusive('\n') {
+        let mut remaining = region.indentation;
+        let mut column = 0;
+        for (at, character) in line.char_indices() {
+            let position = offset + at;
+            if remaining > 0 && matches!(character, ' ' | '\t') {
+                let cells = if character == '\t' { 4 - column % 4 } else { 1 };
+                let consumed = remaining.min(cells);
+                remaining -= consumed;
+                column += cells;
+                // CommonMark consumes indentation in tab-stop columns. A
+                // partially consumed tab contributes its remaining spaces.
+                source.extend(std::iter::repeat_n(' ', cells - consumed));
             } else {
-                None
-            };
-            match token {
-                Some(token) => {
-                    flush(&mut spans, &mut plain, base);
-                    spans.push(Span::styled(ident, style(token)));
+                remaining = 0;
+                if character == '\n' {
+                    source.push('\n');
+                } else if character == '\r' && line[at..].starts_with("\r\n") { /* CommonMark normalizes CRLF. */
+                } else {
+                    source.push(if character.is_control() && character != '\t' {
+                        '�'
+                    } else {
+                        character
+                    });
                 }
-                None => plain.push_str(&ident),
             }
-            index = end;
-            continue;
+            if position < selected.start {
+                window.start = source.len();
+            }
+            if position < selected.end {
+                window.end = source.len();
+            }
         }
-        plain.push(ch);
-        index += 1;
+        offset += line.len();
     }
-    flush(&mut spans, &mut plain, base);
-    spans
+    // CommonMark removes exactly one structural ending newline from code data.
+    if window.end > window.start && source[..window.end].ends_with('\n') {
+        window.end -= 1;
+    }
+    let base = Style::default().fg(theme.markdown(MarkdownToken::CodeBlock));
+    crate::syntax::highlight_window(&source, window, Some(lang), theme, base)
+        .unwrap_or_else(|error| syntax_failure(body, theme, error))
 }
 
-/// Byte offset of the `index`-th character (ASCII fast path for `starts_with`).
-fn char_offset(line: &str, index: usize) -> usize {
-    if line.is_ascii() {
-        index.min(line.len())
-    } else {
-        line.char_indices()
-            .nth(index)
-            .map(|(offset, _)| offset)
-            .unwrap_or(line.len())
-    }
+fn syntax_failure(body: &[String], theme: &Theme, error: crate::syntax::Error) -> Vec<Line> {
+    let base = Style::default().fg(theme.markdown(MarkdownToken::CodeBlock));
+    let mut rows: Vec<_> = body.iter().map(|line| Line::styled(line, base)).collect();
+    rows.push(Line::styled(
+        match error {
+            crate::syntax::Error::Limit => "[syntax highlighting preview limited]".to_owned(),
+            crate::syntax::Error::Asset(name) => format!("[syntax asset unavailable: {name}]"),
+        },
+        Style::default().fg(theme.text_muted()),
+    ));
+    rows
 }
 
 /// Locale helpers (`util/locale.ts:3-5,35-57`), exact upstream formatting.

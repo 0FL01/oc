@@ -8,6 +8,7 @@ import prompt_caret_fixture
 import prompt_history_fixture
 import user_shell_fixture
 import composer_fixture
+import syntax_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -58,6 +59,8 @@ def configure(spec, home, project, config, cli):
         user_shell_fixture.configure(spec, home, project, config)
     if spec.get('combined_composer'):
         composer_fixture.configure(spec, home, project, config, cli)
+    if spec.get('syntax_inventory'):
+        syntax_fixture.configure(spec, home, project, config)
     if spec.get('prompt_history'):
         (project / 'note.txt').write_text('HISTORY_FILE_CURRENT_CANARY')
         if spec['prompt_history'] == 'remap':
@@ -65,6 +68,8 @@ def configure(spec, home, project, config, cli):
                                'prompt.history.next':'f3'}
 
 def control(home, action, project=None, spec=None):
+    if spec and spec.get('syntax_inventory'):
+        return syntax_fixture.control(action)
     if spec and spec.get('combined_composer'):
         return composer_fixture.control(project, action, spec)
     if action not in ('fail', 'recover'):
@@ -123,12 +128,15 @@ def snapshot(home, project, spec):
         'bytes':len(effect_bytes), 'lines':len(effect_bytes.splitlines()),
         'sha256':hashlib.sha256(effect_bytes).hexdigest()}
     return {'observations':observations, 'artifacts':artifacts, 'shell_effect':shell_effect,
+            **({'syntax':syntax_fixture.snapshot(home, project)} if spec.get('syntax_inventory') else {}),
             **({'composer':composer_fixture.snapshot(home, project, spec)} if spec.get('combined_composer') else {}),
             **({'user_shell_boundary':user_shell_fixture.boundary(project, spec)} if spec.get('user_shell') else {}),
             'mcp_lifecycle':[json.loads(line) for line in lifecycle.read_text().splitlines()] if lifecycle.exists() else [],
             'mcp_calls':[json.loads(line) for line in peer.read_text().splitlines()] if peer.exists() else []}
 
 def respond(handler, body, spec, emit):
+    if spec.get('syntax_inventory'):
+        return syntax_fixture.respond(handler, body, spec, emit)
     if spec.get('combined_composer'):
         return composer_fixture.respond(handler, body, spec, emit)
     global requests

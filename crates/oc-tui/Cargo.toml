@@ -22,6 +22,16 @@ unicode-script = "0.5"
 unicode-segmentation = "1.12"
 unicode-width = "0.2"
 pulldown-cmark = { version = "=0.13.0", default-features = false }
+tree-sitter = "=0.25.10"
+tree-sitter-language = "=0.1.7"
+streaming-iterator = "=0.1.9"
+
+[build-dependencies]
+cc = "1.2"
+flate2 = "1.1"
+tar = "0.4"
+serde_json.workspace = true
+sha2.workspace = true
 
 [lints]
 workspace = true

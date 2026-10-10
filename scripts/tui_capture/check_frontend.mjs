@@ -80,6 +80,23 @@ try {
       assert.equal(refused,true);
       console.log(JSON.stringify({renderer,pending_wrap_raw_x:8,actual_painted_x:7,
         physical_cursor_matches:true,all_cells_retained:true,invalid_state_rejected:true}));
+      await write('\x1bc');
+      await page.evaluate(()=>term.resize(120,320));
+      await write('\x1b[38;2;18;52;86;48;2;101;67;33;1;2;3;4;5;7;8;9mA 界\x1b[0mе́\x1b[320;118HZ');
+      const directAt=performance.now();
+      const direct=await page.evaluate(()=>readTerminal());
+      const directMs=performance.now()-directAt;
+      const jsonAt=performance.now();
+      const serialized=JSON.parse(await page.evaluate(()=>JSON.stringify(readTerminal())));
+      const jsonMs=performance.now()-jsonAt;
+      assert.deepEqual(serialized,direct);
+      assert.equal(serialized.cells.flat().length,38_400);
+      assert.equal(serialized.cells[319][117].symbol,'Z');
+      assert.equal(serialized.cells[0][0].modifiers.length,8);
+      assert.equal(serialized.cells[0][2].width,2);
+      assert.equal(serialized.cells[0][3].width,0);
+      console.log(JSON.stringify({renderer,complete_json_transport_equivalent:true,
+        cells:38_400,direct_ms:directMs,json_ms:jsonMs}));
     } finally {await page.close();}
   }
 } finally {await browser.close();}

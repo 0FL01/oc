@@ -24,6 +24,7 @@ import apply_patch_fixture
 import permission_fixture
 import services_fixture
 import tool_preview_fixture
+import syntax_cache
 
 scanner_release = threading.Event()
 wheel_release = threading.Event()
@@ -427,6 +428,8 @@ if spec.get('sessions_interaction'):
     project = root / 'other-project'
 for path in [home, project, *[home / x for x in ('config/opencode', 'cache', 'data', 'state')]]:
     path.mkdir(parents=True, exist_ok=True)
+if spec.get('syntax_cache') and spec['origin'] == 'upstream':
+    emit({'kind': 'frozen_syntax_cache', **syntax_cache.preload(home)})
 if spec.get('sample') == 'tools':
     (project / 'fixture-note.txt').write_text('fixture-content\n')
 if spec.get('revert_redo'):
@@ -738,7 +741,7 @@ try:
                         elif command['kind'] == 'release_scanner' and spec.get('scanner'):
                             scanner_release.set()
                             emit({'kind': 'scanner_release_requested'})
-                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services') or spec.get('combined_composer')):
+                        elif command['kind'] in ('pause_scanner', 'resume_scanner') and (spec.get('scanner') or spec.get('compaction_animation') or spec.get('apply_patch') or spec.get('clean_services') or spec.get('combined_composer') or spec.get('syntax_inventory')):
                             pause = command['kind'] == 'pause_scanner'
                             try:
                                 if pause and child.poll() is None and not scanner_paused:

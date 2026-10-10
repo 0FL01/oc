@@ -4,7 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe,composerProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe,composerProbe,syntaxProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -27,7 +27,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     let signature;
     let status;
     try {
-      if(composerProbe) {
+      if(composerProbe||syntaxProbe) {
         control({kind:'pause_scanner',request_id:stage});
         await poll(()=>logs.some(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage),'owned composer pause');
         if(!logs.find(e=>e.kind==='scanner_pause_ack'&&e.request_id===stage).paused)throw Error('Composer process did not pause');
@@ -38,7 +38,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
       }
       status=await capture('tool-preview-'+stage,f,'CAPTURED_TOOL_PREVIEW',signature);
     } finally {
-      if(composerProbe) {
+      if(composerProbe||syntaxProbe) {
         control({kind:'resume_scanner',request_id:stage});
         await poll(()=>logs.some(e=>e.kind==='scanner_resume_ack'&&e.request_id===stage),'owned composer resume');
       }
@@ -61,6 +61,10 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(syntaxProbe) {
+      result.syntax=await syntaxProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(composerProbe) {
       result.differences=['Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity.'];
       result.composer=await composerProbe({origin,send,shot,waitFor,frame,logs,snapshot,control,resize});
@@ -190,6 +194,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     result.status='PASS_BEHAVIOR_ONLY';
   } catch(error) {
     result.status='FAILED';result.reason=error.message;
+    if(error.wait_failure)result.wait_failure=error.wait_failure;
     const failed=await frame();result.failure_cursor=failed.cursor;
     await capture('tool-preview-failure',failed,'FAILED_STATE');
   }

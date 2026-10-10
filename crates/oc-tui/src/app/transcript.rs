@@ -1516,6 +1516,13 @@ impl TuiState {
         // the history/live state. Indexed footers are generated outside the
         // Markdown body cache, so config changes cannot reuse a stale footer.
         for row in &mut rows {
+            if row.role == "user" {
+                // OC2 UserMessage paints the current session profile, not the
+                // submitted turn's historical slot. Override only this render
+                // copy; message/turn ownership and generation remain recorded.
+                row.agent.clone_from(&self.active_agent);
+                row.agent_color_index = None;
+            }
             if let Some(card) = &mut row.tool {
                 card.diff_settings = self.chrome.diffs;
                 if let crate::tools::ToolRender::Dcp(view) = &mut card.render {

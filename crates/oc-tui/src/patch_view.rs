@@ -27,18 +27,29 @@ pub(crate) fn preview(file: &FileEffect, theme: &Theme, width: u16, split: bool)
         .len();
     let mut out = Vec::new();
     for hunk in &file.hunks {
+        let path = file.destination.as_ref().unwrap_or(&file.path);
+        let (old, old_error) = syntax_image(&hunk.lines, false, path, theme);
+        let (new, new_error) = syntax_image(&hunk.lines, true, path, theme);
         if split && width > 2 * (digits + 4) {
             for (left, right) in pairs(&hunk.lines) {
                 let left = side(
-                    left,
+                    left.map(|index| &hunk.lines[index]),
                     false,
-                    file,
+                    left.map(|index| &old[index]),
                     theme,
                     digits,
                     width.div_ceil(2),
                     DiffWrap::Word,
                 );
-                let right = side(right, true, file, theme, digits, width / 2, DiffWrap::Word);
+                let right = side(
+                    right.map(|index| &hunk.lines[index]),
+                    true,
+                    right.map(|index| &new[index]),
+                    theme,
+                    digits,
+                    width / 2,
+                    DiffWrap::Word,
+                );
                 for i in 0..left.len().max(right.len()) {
                     let mut row = left.get(i).cloned().unwrap_or_else(|| {
                         fit(
@@ -52,12 +63,16 @@ pub(crate) fn preview(file: &FileEffect, theme: &Theme, width: u16, split: bool)
                 }
             }
         } else {
-            for line in &hunk.lines {
+            for (index, line) in hunk.lines.iter().enumerate() {
                 out.extend(
                     side(
                         Some(line),
                         line.kind != PatchLineKind::Removed,
-                        file,
+                        Some(if line.kind == PatchLineKind::Removed {
+                            &old[index]
+                        } else {
+                            &new[index]
+                        }),
                         theme,
                         digits,
                         width,
@@ -67,6 +82,12 @@ pub(crate) fn preview(file: &FileEffect, theme: &Theme, width: u16, split: bool)
                     .map(Line::new),
                 );
             }
+        }
+        if old_error.is_some() || new_error.is_some() {
+            out.push(Line::styled(
+                "[syntax highlighting preview limited]",
+                Style::default().fg(theme.text_muted()),
+            ));
         }
     }
     if out.is_empty() {
@@ -190,6 +211,8 @@ pub(crate) fn render(
                 .to_string()
                 .len();
             for (index, hunk) in file.hunks.iter().enumerate() {
+                let (old_syntax, old_error) = syntax_image(&hunk.lines, false, path, theme);
+                let (new_syntax, new_error) = syntax_image(&hunk.lines, true, path, theme);
                 if index > 0 {
                     out.push(frame(vec![
                         Span::styled(" ", padding),
@@ -210,18 +233,18 @@ pub(crate) fn render(
                     let right_width = inner - left_width;
                     for (left, right) in pairs(&hunk.lines) {
                         let left = side(
-                            left,
+                            left.map(|index| &hunk.lines[index]),
                             false,
-                            file,
+                            left.map(|index| &old_syntax[index]),
                             theme,
                             digits,
                             left_width,
                             card.diff_settings.wrap,
                         );
                         let right = side(
-                            right,
+                            right.map(|index| &hunk.lines[index]),
                             true,
-                            file,
+                            right.map(|index| &new_syntax[index]),
                             theme,
                             digits,
                             right_width,
@@ -247,12 +270,16 @@ pub(crate) fn render(
                         }
                     }
                 } else {
-                    for line in &hunk.lines {
+                    for (index, line) in hunk.lines.iter().enumerate() {
                         let new = line.kind != PatchLineKind::Removed;
                         for mut spans in side(
                             Some(line),
                             new,
-                            file,
+                            Some(if new {
+                                &new_syntax[index]
+                            } else {
+                                &old_syntax[index]
+                            }),
                             theme,
                             digits,
                             inner,
@@ -262,6 +289,12 @@ pub(crate) fn render(
                             out.push(frame(spans));
                         }
                     }
+                }
+                if old_error.is_some() || new_error.is_some() {
+                    out.push(frame(vec![Span::styled(
+                        "[syntax highlighting preview limited]",
+                        muted,
+                    )]));
                 }
                 if hunk.truncated {
                     out.push(frame(vec![Span::styled(
@@ -303,12 +336,12 @@ pub(crate) fn render(
 }
 
 /// Align each removed/added run, preserving both independently numbered sides.
-fn pairs(lines: &[PatchLine]) -> Vec<(Option<&PatchLine>, Option<&PatchLine>)> {
+fn pairs(lines: &[PatchLine]) -> Vec<(Option<usize>, Option<usize>)> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < lines.len() {
         if lines[i].kind == PatchLineKind::Context {
-            out.push((Some(&lines[i]), Some(&lines[i])));
+            out.push((Some(i), Some(i)));
             i += 1;
             continue;
         }
@@ -316,13 +349,11 @@ fn pairs(lines: &[PatchLine]) -> Vec<(Option<&PatchLine>, Option<&PatchLine>)> {
         while i < lines.len() && lines[i].kind != PatchLineKind::Context {
             i += 1;
         }
-        let removed: Vec<_> = lines[start..i]
-            .iter()
-            .filter(|l| l.kind == PatchLineKind::Removed)
+        let removed: Vec<_> = (start..i)
+            .filter(|&index| lines[index].kind == PatchLineKind::Removed)
             .collect();
-        let added: Vec<_> = lines[start..i]
-            .iter()
-            .filter(|l| l.kind == PatchLineKind::Added)
+        let added: Vec<_> = (start..i)
+            .filter(|&index| lines[index].kind == PatchLineKind::Added)
             .collect();
         for n in 0..removed.len().max(added.len()) {
             out.push((removed.get(n).copied(), added.get(n).copied()));
@@ -331,10 +362,56 @@ fn pairs(lines: &[PatchLine]) -> Vec<(Option<&PatchLine>, Option<&PatchLine>)> {
     out
 }
 
+/// Parse each bounded old/new hunk image once. Added text is never used as old
+/// parser context (or vice versa); unavailable file bytes are not fabricated.
+fn syntax_image(
+    lines: &[PatchLine],
+    new: bool,
+    path: &str,
+    theme: &Theme,
+) -> (Vec<Line>, Option<crate::syntax::Error>) {
+    let included: Vec<_> = lines
+        .iter()
+        .enumerate()
+        .filter(|(_, line)| {
+            line.kind == PatchLineKind::Context
+                || line.kind
+                    == if new {
+                        PatchLineKind::Added
+                    } else {
+                        PatchLineKind::Removed
+                    }
+        })
+        .map(|(index, line)| (index, crate::syntax::safe_line(&line.text)))
+        .collect();
+    let source = included
+        .iter()
+        .map(|(_, text)| text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let base = Style::default().fg(theme.text());
+    let (highlighted, error) =
+        match crate::syntax::highlight(&source, crate::syntax::filetype(path), theme, base) {
+            Ok(rows) => (rows, None),
+            Err(error) => (
+                included
+                    .iter()
+                    .map(|(_, text)| Line::styled(text, base))
+                    .collect(),
+                Some(error),
+            ),
+        };
+    let mut rows = vec![Line::plain(""); lines.len()];
+    for ((index, _), highlighted) in included.into_iter().zip(highlighted) {
+        rows[index] = crate::syntax::display_line(&highlighted);
+    }
+    (rows, error)
+}
+
 fn side(
     line: Option<&PatchLine>,
     new: bool,
-    file: &FileEffect,
+    highlighted: Option<&Line>,
     theme: &Theme,
     digits: usize,
     width: usize,
@@ -375,17 +452,12 @@ fn side(
     let number = if new { line.new_line } else { line.old_line };
     let gutter_width = digits + 4;
     let text_width = width.saturating_sub(gutter_width).max(1);
-    let safe_text: String = line
-        .text
-        .chars()
-        .map(|c| if c.is_control() { '�' } else { c })
-        .collect();
-    let mut text = crate::messages::highlight_patch(
-        &safe_text,
-        file.destination.as_ref().unwrap_or(&file.path),
-        theme,
-        base,
-    );
+    let mut text = highlighted.map_or_else(Vec::new, |row| {
+        row.spans()
+            .iter()
+            .map(|span| Span::styled(span.content(), base.patch(span.style())))
+            .collect()
+    });
     if line.truncated {
         text.push(Span::styled("… [truncated]", base));
     }
@@ -590,6 +662,18 @@ pub(crate) mod tests {
             ),
             unified
         );
+        let lines = vec![
+            patch_line(PatchLineKind::Context, Some(1), Some(1), "all:"),
+            patch_line(PatchLineKind::Removed, Some(2), None, "\tfalse"),
+            patch_line(PatchLineKind::Added, None, Some(2), "\techo café"),
+        ];
+        let (old, old_error) = syntax_image(&lines, false, "Makefile", theme);
+        let (new, new_error) = syntax_image(&lines, true, "Makefile", theme);
+        assert!(old_error.is_none() && new_error.is_none());
+        assert_eq!(old[1].plain_text(), "  false");
+        assert_eq!(new[2].plain_text(), "  echo café");
+        assert_eq!(old[2].plain_text(), "");
+        assert_eq!(new[1].plain_text(), "");
     }
 
     #[test]
