@@ -978,6 +978,7 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
     // TranscriptPart::Tool or provider ToolCallResult.
     ToolCard {
         op: shell.operation.clone(),
+        started_at: None,
         child_job: None,
         name: "shell".into(),
         state: shell.state.clone(),
@@ -999,6 +1000,8 @@ fn user_shell_card(shell: &oc_core::queries::UserShellResult) -> ToolCard {
 /// One tool card: intent + outcome + bounded previews.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolCard {
+    /// Observed admission instant of a live call; absent for cold/missed starts.
+    pub started_at: Option<std::time::Instant>,
     /// Original positively owned child-generation fence, never output prose.
     pub child_job: Option<Box<oc_core::queries::ChildJob>>,
     /// Operation id.
@@ -1386,6 +1389,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
                 && job.operation == row.op
                 && job.retained_bytes() <= oc_core::tool_output::RECORD_BYTES
         }),
+        started_at: None,
         op: row.op.clone(),
         name: row.name.clone(),
         state: row.state.clone(),

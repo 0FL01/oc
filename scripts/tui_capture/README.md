@@ -1249,10 +1249,37 @@ encoding, each capture names/seals its actual cell file, and both strict grid
 comparison and the temporal audit decode it with the original bounds/schema.
 No cells/styles/cursor fields are removed; plain historical grids remain valid.
 The same existing equality criteria apply, not a pixel or provenance waiver.
+For later tool-preview episodes, `--compress-frames true` additionally requires
+`--compress-cells true`. It losslessly gzips the **complete** text, VT prefixes,
+render metadata and temporal traces. Recorded basenames and encoded-byte seals
+identify every sidecar; no metadata field or output byte is removed. Every freshly
+observed full PNG still has its own frame path and seal. Only byte-identical PNGs
+inside the same new side/run may share a hardlink after exact byte verification;
+reference/native and historical/foreign artifacts never share this storage owner.
+The temporal auditor supports plain and gzip render sidecars without changing
+its full-grid, opaque-raster, phase/cadence, caret or comparison checks. Synthetic
+`node scripts/tui_capture/check_frame_artifacts.mjs` checks this storage behavior,
+not application or pixel parity. Other historical plain campaigns stay immutable.
 Native's unchanged exact permission policy refuses the missing-agent fixture
 before lookup (`error: denied subagent`); original first resolves it (`Unknown
 agent: vis39_missing_agent`). The error proof checks these actual failed parts,
 error expand/re-collapse and no new owner, without granting the denied agent.
+
+`--combined-composer true --root-handoff true` is an exclusive ordinary local
+fixture episode. It uses the **actual focused Root** `session.background` binding
+remapped to `ctrl+y` on both sides, first for a foreground Subagent and then a
+Root-owned Shell. Three foreground-child hint frames and three returned Root
+footer/draft frames visit real120×40/80×24/160×48 geometry; ten paired stages
+also include home, child background, foreground Shell hint and terminal flush.
+The sentence/key retain muted/base colors and the explicit Build profile color
+is `#12ab34`. The native live receipt clock is not advertised as OC2's persisted
+part timestamp. No composer/viewer action, fake badge, kill, API view injection or
+new runtime timer/poll supplies the conversion. Relational/process facts require
+the same child/source/operation/provenance/PID, unchanged nested child Shell mode,
+actual Root Shell foreground admission/conversion, both final flushes and no
+replay. Three structured calls (one Subagent/two Shell), two starts/completions
+and no PTY effects are required. Full styled-cell/PNG differences remain visible;
+this episode is not whole VIS39/T44 or simultaneous multi-blocker pixel parity.
 
 ```sh
 CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \

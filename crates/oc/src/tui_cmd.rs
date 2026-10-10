@@ -2298,6 +2298,45 @@ async fn apply_intent_with_origin(
             child_controls::open(app, state, loop_state, selected).await?
         }
         PanelIntent::ReturnParent => child_controls::return_parent(state, loop_state),
+        PanelIntent::BackgroundSession {
+            session,
+            turn,
+            work,
+        } => {
+            // The view may have switched before an externally queued intent runs.
+            // Never rebuild targets from its new route or selected list row.
+            if state.attached_session() != Some(&session) || state.active_turn() != Some(&turn) {
+                return Ok(());
+            }
+            for target in work {
+                let result = match target {
+                    oc_tui::app::ForegroundWork::Child(job)
+                        if job.parent == session
+                            && !job.background
+                            && matches!(
+                                job.state,
+                                oc_core::queries::ChildState::Admitted
+                                    | oc_core::queries::ChildState::Running
+                            ) =>
+                    {
+                        app.background_child(job.parent.clone(), *job).await
+                    }
+                    oc_tui::app::ForegroundWork::Shell(job)
+                        if job.session == session && job.turn == turn.0 && !job.background =>
+                    {
+                        app.background_shell(job.session, job.shell_id).await
+                    }
+                    _ => continue,
+                };
+                if let Err(error) = result {
+                    state.push_note(&error.to_string());
+                }
+            }
+            child_controls::refresh(app, state).await?;
+            if let Ok(rows) = app.shell_jobs(session).await {
+                state.apply_shell_jobs(rows);
+            }
+        }
         PanelIntent::BackgroundChild { selected } => {
             if let Err(error) = app
                 .background_child(selected.parent.clone(), selected)

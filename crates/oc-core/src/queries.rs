@@ -666,6 +666,8 @@ pub struct TuiChrome {
     pub command_palette_shortcut: Option<String>,
     /// Effective live-job footer action; None keeps the pinned Down default.
     pub child_first_shortcut: Option<String>,
+    /// Effective foreground-session handoff; None keeps the pinned Ctrl+B default.
+    pub background_shortcut: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

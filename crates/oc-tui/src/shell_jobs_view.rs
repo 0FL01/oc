@@ -31,6 +31,16 @@ pub(crate) struct ShellView {
 }
 
 impl ShellView {
+    pub(crate) fn foreground_job(
+        &self,
+        session: &SessionId,
+        turn: &str,
+        op: &str,
+    ) -> Option<&ShellJob> {
+        self.rows.iter().find(|job| {
+            &job.session == session && job.turn == turn && job.shell_id == op && !job.background
+        })
+    }
     pub(crate) fn refresh_transcript(
         &self,
         session: &oc_core::domain::SessionId,

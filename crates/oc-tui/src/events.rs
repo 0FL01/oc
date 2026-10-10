@@ -99,6 +99,8 @@ pub enum KeyAction {
     TerminalClose,
     /// Convert the selected admitted foreground shell.
     ShellBackground,
+    /// Hand off every captured foreground operation blocking the current request.
+    BackgroundSession,
 }
 
 /// One UI-level event: a mapped key, a bounded paste or a resize hint.

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import check_cursor_temporal as audit
 
@@ -33,8 +34,35 @@ class FrameReferenceTests(unittest.TestCase):
                        "frame_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
         render = {"schema_version": 2, "observation": observation}
         self.assertEqual(audit.verified_frame(self.path, render), (self.grid, path))
+        compressed_render = self.path.with_name(self.path.name + ".gz")
+        compressed_render.write_bytes(gzip.compress(json.dumps(render).encode(), mtime=0))
+        self.assertEqual(audit.verified_frame(compressed_render, audit.read(compressed_render)),
+                         (self.grid, path), "gzip sidecar keeps the same full sibling/seal")
         for changes in ({"frame": self.grid}, {"frame_file": "../" + path.name},
                         {"frame_sha256": "0" * 64}):
             with self.subTest(changes=changes), self.assertRaises(AssertionError):
                 audit.verified_frame(self.path, {"schema_version": 2,
-                                                "observation": observation | changes})
+                                                 "observation": observation | changes})
+
+    def test_gzip_has_encoded_and_decoded_bounds_and_no_unlisted_render_aliases(self):
+        # Small fixture exercises the unchanged production64MiB guard without
+        # producing a large artifact solely to test oversized encoded padding.
+        oversized = self.path.with_name("oversized.render.json.gz")
+        for data in (gzip.compress(b"{}", mtime=0) + b"\0" * 65,
+                     gzip.compress(b" " * 128, mtime=0)):
+            oversized.write_bytes(data)
+            with mock.patch.object(audit, "MAX_FILE_BYTES", 64), self.assertRaises(AssertionError):
+                audit.read(oversized)
+        root = self.path.parent
+        folder = root / "oc"
+        folder.mkdir()
+        scenario = "cursor-idle-phase-visible-00"
+        render = folder / (scenario + ".render.json")
+        render.write_bytes(b"{}")
+        capture = {"origin": "oc", "scenario": scenario, "path": "oc/" + scenario,
+                   "render_sha256": hashlib.sha256(render.read_bytes()).hexdigest()}
+        self.assertEqual(audit.temporal_renders(root, folder, "oc", "idle", [capture]), [render])
+        alias = render.with_name(render.name + ".gz")
+        alias.write_bytes(gzip.compress(render.read_bytes(), mtime=0))
+        with self.assertRaises(AssertionError):
+            audit.temporal_renders(root, folder, "oc", "idle", [capture])

@@ -1,0 +1,43 @@
+{
+  "members": 1342,
+  "logical_bytes": 78685500,
+  "member_inventory_sha256": "8920617e5de1566452dfff2bba7240c73ce06656775a14813ceb727217b032f7",
+  "same_side_png_aliases": 146,
+  "archive_sha256": "8e9a5223943247e03496b1a3dfcf5f0b56f586e2cf74aa0cca8813d6d0a808b6",
+  "archive_bytes": 2477500,
+  "tar_bytes": 73748480,
+  "reports": [
+    {
+      "episode": "ordinary",
+      "captures": 56,
+      "source_manifest_sha256": "7fbd9e670a13821d56bad33f3d9693a7b4b97726e9b16af55ff568093ecb1939",
+      "dimensions": {
+        "(1011, 640)": 28,
+        "(371, 384)": 2,
+        "(531, 384)": 2,
+        "(539, 384)": 2,
+        "(362, 384)": 2,
+        "(539, 192)": 2,
+        "(1011, 1280)": 14,
+        "(1011, 1920)": 2,
+        "(1011, 320)": 2
+      },
+      "comparisons": {
+        "DIFFERENT": 50,
+        "EQUAL": 4,
+        "NATIVE_ONLY_RESOURCE_DETAILS": 4
+      }
+    },
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "source_manifest_sha256": "7fbd9e670a13821d56bad33f3d9693a7b4b97726e9b16af55ff568093ecb1939",
+      "dimensions": {
+        "(640, 384)": 160
+      },
+      "comparisons": {
+        "DIFFERENT": 160
+      }
+    }
+  ]
+}

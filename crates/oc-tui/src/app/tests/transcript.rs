@@ -444,6 +444,7 @@ async fn v06b_session_switch_discards_tool_cards_before_next_owner_load() {
     let mut state = fresh_state("owner-a").await;
     state.app.create_session(sid("owner-b")).await.unwrap();
     let card = crate::history::ToolCard {
+        started_at: None,
         child_job: None,
         output_presentation: None,
         question: None,

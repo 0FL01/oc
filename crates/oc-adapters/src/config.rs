@@ -308,6 +308,7 @@ pub(crate) struct ConversationKeybinds {
     legacy_timeout: Option<u64>,
     palette: String,
     child_first: String,
+    background: String,
     terminal: [String; 5],
     composer: oc_core::queries::ComposerShortcuts,
     dialog: oc_core::queries::DialogShortcuts,
@@ -326,6 +327,7 @@ impl Default for ConversationKeybinds {
             legacy_timeout: None,
             palette: "ctrl+p".into(),
             child_first: "down".into(),
+            background: "ctrl+b".into(),
             terminal: [
                 "<leader>left",
                 "<leader>right",
@@ -398,6 +400,10 @@ impl ConversationKeybinds {
             (
                 &["session_child_first", "session.child.first"][..],
                 &mut self.child_first,
+            ),
+            (
+                &["session_background", "session.background"][..],
+                &mut self.background,
             ),
         ] {
             for name in names {
@@ -504,6 +510,7 @@ impl ConversationKeybinds {
             legacy_timeout: None,
             palette: String::new(),
             child_first: String::new(),
+            background: String::new(),
             terminal: Default::default(),
             composer: Default::default(),
             dialog: Default::default(),
@@ -531,6 +538,15 @@ impl ConversationKeybinds {
         Self {
             leader: self.leader.clone(),
             undo: self.child_first.clone(),
+            ..Self::default()
+        }
+        .resolve()
+        .undo
+    }
+    pub(crate) fn background_shortcut(&self) -> String {
+        Self {
+            leader: self.leader.clone(),
+            undo: self.background.clone(),
             ..Self::default()
         }
         .resolve()
@@ -2329,6 +2345,7 @@ mod tests {
                 "history_previous": "alt+p", "history_next": "alt+n",
                 "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j",
                 "session_child_first": "alt+s", "session.child.first": "<leader>s,f2",
+                "session_background": "alt+b", "session.background": "<leader>b,f5",
                 "composer.shell.kill": "<leader>k,f3", "composer.terminal.select": false
             }}))
             .unwrap();
@@ -2340,16 +2357,19 @@ mod tests {
             .unwrap();
         assert_eq!(bindings.command_palette_shortcut(), "ctrl+b p,ctrl+g p");
         assert_eq!(bindings.child_first_shortcut(), "ctrl+b s,ctrl+g s,f2");
+        assert_eq!(bindings.background_shortcut(), "ctrl+b b,ctrl+g b,f5");
         let composer = bindings.composer_shortcuts();
         assert_eq!(composer.bindings[7], "ctrl+b k,ctrl+g k,f3");
         assert_eq!(composer.bindings[10], "");
         assert_eq!(composer.bindings[8], "up,k");
         let mut disabled = super::ConversationKeybinds::default();
         assert_eq!(disabled.child_first_shortcut(), "down");
+        assert_eq!(disabled.background_shortcut(), "ctrl+b");
         disabled
-            .merge(&serde_json::json!({"keybinds":{"session.child.first": false}}))
+            .merge(&serde_json::json!({"keybinds":{"session.child.first": false,"session.background":false}}))
             .unwrap();
         assert_eq!(disabled.child_first_shortcut(), "");
+        assert_eq!(disabled.background_shortcut(), "");
         let dialogs = bindings.dialog_shortcuts();
         assert_eq!(dialogs.previous, "");
         assert_eq!(dialogs.next, "ctrl+j");

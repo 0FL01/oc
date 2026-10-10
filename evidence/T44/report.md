@@ -469,3 +469,20 @@ missing-profile causes and input-scope/Root/timing/underlay differences remain
 explicit. Owned evidence1015MiB stays below the unchanged1GiB guard without
 historical deletion. Whole R1–R6/VIS01–45/VIS39/T44 remains ACTIVE/NOT_PASS:
 continue every remaining frozen outcome/supplement and final current-source R6/V09.
+
+## Captured Root foreground handoff / assistant footer (2026-10-10 — qualified slice)
+
+[Factual receipt](../tui/root-handoff.md) records all-current-request original
+Shell/Child handoff, finite3s effective-key hint, preserved family/source/PID/draft/
+graph and existing-profile assistant footer RGB/typed failure tone. Current full
+workspace1809/0/11, strict Clippy/builds/help, release startup19/GET8/TERM01 and
+original resource guards PASS. Root003 ten actual paired states visits120/80/160;
+both sides use focused Root remapped Ctrl+Y, with nested child Shell not retargeted.
+Complete new ordinary/default-temporal proof is retained byte-exactly in the
+2,477,500-byte regression archive:1342 members,216 full opaque captures plus Root20;
+all current536-source hashes/seals/schema/geometry and unchanged direct/matched
+comparators recompute. Direct230 DIFFERENT/4 EQUAL,4 separate native-only; matched
+72 pairs/144 additional DIFFERENT. No historical rewrite/deletion/quota increase,
+frame omission, masking or global pixel PASS. Measured accepted-user categorical
+border divergence, Thoughts/shared grammar/assets and every remaining frozen
+outcome/supplement/final current-source R6/V09 remain mandatory. T44 ACTIVE/NOT_PASS.

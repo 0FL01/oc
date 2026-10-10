@@ -251,6 +251,7 @@ fn paint_selection_fixture(state: &mut TuiState, frame: Rect, needle: &str) -> (
 }
 
 mod dcp_controls;
+mod foreground;
 mod input;
 mod lifecycle;
 mod mcp;
@@ -288,4 +289,40 @@ async fn r6_explicit_profile_color_wins_over_categorical_slot() {
         "subagent-only profiles resolve by id as well"
     );
     assert_eq!(state.agent_color(Some("x")), colors[0]);
+    let mut response = msg(1, Role::Assistant, "recorded response");
+    response.turn = Some(oc_core::queries::HistoryTurn {
+        id: "recorded-turn".into(),
+        agent: Some("y".into()),
+        agent_color_index: Some(3),
+        status: "completed".into(),
+        ..Default::default()
+    });
+    state.attach_page(&page(vec![response], 1, false, false));
+    for width in [80, 120, 160] {
+        let full = state.transcript_lines(width, width);
+        let (indexed, _) = state.visible_transcript(width, width, 40);
+        for lines in [full, indexed] {
+            let label = lines
+                .iter()
+                .flat_map(|line| line.spans())
+                .find(|span| span.content() == "Y")
+                .unwrap();
+            assert_eq!(
+                label.style().fg,
+                Some(ratatui::style::Color::Rgb(0x12, 0xab, 0x34)),
+                "explicit admitted profile color wins for every footer path"
+            );
+        }
+    }
+    assert_eq!(
+        state
+            .history()
+            .rows()
+            .iter()
+            .find_map(|row| row.meta.as_ref())
+            .unwrap()
+            .agent_color_index,
+        Some(3),
+        "render override never rewrites recorded metadata"
+    );
 }

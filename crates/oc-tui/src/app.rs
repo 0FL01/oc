@@ -142,6 +142,12 @@ pub enum TuiPanel {
 /// Work the panel asked the binary to apply through the application API.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PanelIntent {
+    /// Captured work only; the binary uses the existing per-operation owners.
+    BackgroundSession {
+        session: SessionId,
+        turn: WorkerTurnId,
+        work: Vec<ForegroundWork>,
+    },
     LoadAuthMethods {
         provider: String,
         revision: u64,
@@ -714,6 +720,7 @@ pub struct TuiState {
     live_span: Option<(WorkerTurnId, String)>,
     live_projection_revision: Option<(WorkerTurnId, u64)>,
     retry_due: Option<Instant>,
+    foreground_hint: Option<foreground::Hint>,
     /// First Esc arms the running turn for five seconds; only a second press
     /// interrupts it (pinned prompt/index.tsx:499–528).
     interrupt_armed_until: Option<Instant>,
@@ -923,6 +930,7 @@ impl TuiState {
             live_span: None,
             live_projection_revision: None,
             retry_due: None,
+            foreground_hint: None,
             interrupt_armed_until: None,
             pending: None,
             user_shell: Default::default(),
@@ -1162,6 +1170,7 @@ impl TuiState {
             self.leader_deadline(),
             self.next_tab_deadline(),
             self.retry_due,
+            self.foreground_hint_deadline(),
         ]
         .into_iter()
         .flatten()
@@ -1185,11 +1194,12 @@ impl TuiState {
         let wheel = self.tick_scroll_animation(now);
         let compaction = self.tick_compaction(now);
         let tabs = self.tick_tabs(now);
+        let foreground = self.sync_foreground_hint(now);
         let leader = self.leader_deadline().is_some_and(|until| now >= until);
         if leader {
             self.leader = None;
         }
-        expired || scanner || wheel || compaction || leader || tabs || retry_due
+        expired || scanner || wheel || compaction || leader || tabs || retry_due || foreground
     }
 
     fn leader_deadline(&self) -> Option<Instant> {
@@ -1438,7 +1448,9 @@ impl TuiState {
 
 mod accounts;
 pub use accounts::AuthRequest;
+mod foreground;
 mod input;
+pub use foreground::ForegroundWork;
 mod live;
 mod mcp;
 mod model_selection;

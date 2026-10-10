@@ -4,6 +4,7 @@ import collections
 import argparse
 import hashlib
 import gzip
+import io
 import json
 from pathlib import Path
 import sys
@@ -12,18 +13,48 @@ import subprocess
 from PIL import Image
 
 
+MAX_FILE_BYTES = 64 * 1024 * 1024
+
+
+def bounded_bytes(path):
+    with path.open("rb") as source:
+        data = source.read(MAX_FILE_BYTES + 1)
+    assert 0 < len(data) <= MAX_FILE_BYTES, path
+    return data
+
+
 def read(path):
+    data = bounded_bytes(path)
     if path.suffix == ".gz":
-        with gzip.open(path, "rb") as source:
-            data = source.read(64 * 1024 * 1024 + 1)
-        assert 0 < len(data) <= 64 * 1024 * 1024, path
-        return json.loads(data)
-    return json.loads(path.read_text())
+        with gzip.GzipFile(fileobj=io.BytesIO(data)) as source:
+            data = source.read(MAX_FILE_BYTES + 1)
+        assert 0 < len(data) <= MAX_FILE_BYTES, path
+    return json.loads(data)
+
+
+def temporal_renders(root, folder, side, state, captures):
+    prefix = "cursor-" + state + "-phase-"
+    expected = []
+    for capture in captures:
+        scenario = capture["scenario"]
+        if capture["origin"] != side or not scenario.startswith(prefix):
+            continue
+        assert capture["path"] == str(Path(side) / scenario), capture
+        name = capture.get("render_file", scenario + ".render.json")
+        assert name in (scenario + ".render.json", scenario + ".render.json.gz"), capture
+        path = root / side / name
+        assert path.resolve().parent == folder.resolve(), path
+        assert hashlib.sha256(bounded_bytes(path)).hexdigest() == capture["render_sha256"], path
+        expected.append(path)
+    actual = [*folder.glob(prefix + "*.render.json"), *folder.glob(prefix + "*.render.json.gz")]
+    assert len(expected) == len(set(expected)) and set(actual) == set(expected), (folder, state)
+    return sorted(expected)
 
 
 def verified_frame(render_path, render):
     observation = render["observation"]
-    cells_path = render_path.with_suffix("").with_suffix(".cells.json")
+    plain_render = render_path.with_suffix("") if render_path.suffix == ".gz" else render_path
+    cells_path = plain_render.with_suffix("").with_suffix(".cells.json")
     version = render["schema_version"]
     assert type(version) is int and version in (1, 2), render_path
     if version == 1:
@@ -33,7 +64,7 @@ def verified_frame(render_path, render):
     assert observation["frame_file"] in (cells_path.name, cells_path.name + ".gz"), render_path
     cells_path = render_path.parent / observation["frame_file"]
     assert cells_path.resolve().parent == render_path.parent.resolve(), render_path
-    assert observation["frame_sha256"] == hashlib.sha256(cells_path.read_bytes()).hexdigest(), render_path
+    assert observation["frame_sha256"] == hashlib.sha256(bounded_bytes(cells_path)).hexdigest(), render_path
     return read(cells_path), cells_path
 
 
@@ -69,14 +100,17 @@ def main():
                 assert state["phantom_command_states"] == 0 and state["final_caret_preserved"], state
                 assert state["cadence_preserved"] and state["adequate_raster_sampling"], state
                 assert state["temporal_full_frames"] >= 10, state
-                for render_path in sorted(folder.glob("cursor-" + state["state"] + "-phase-*.render.json")):
+                renders = temporal_renders(root, folder, side, state["state"], lock["captures"])
+                assert len(renders) == state["temporal_full_frames"], state
+                for render_path in renders:
                     render = read(render_path)
                     assert render["actual_renderer_canvas"] and render["temporal_unsettled"], render_path
                     observation = render["observation"]
                     raster = observation["raster"]
                     phases.setdefault((state["state"], raster["visible"]), {}).setdefault(side, []).append(render_path)
                     grid, _ = verified_frame(render_path, render)
-                    with Image.open(render_path.with_suffix("").with_suffix(".png")) as source:
+                    png_path = (render_path.with_suffix("") if render_path.suffix == ".gz" else render_path).with_suffix("").with_suffix(".png")
+                    with Image.open(png_path) as source:
                         image = source.convert("RGBA")
                         assert image.width % grid["columns"] == 0 and image.height % grid["rows"] == 0
                         x = raster["read_at"]["x"] * (image.width // grid["columns"]) + 1
@@ -98,7 +132,7 @@ def main():
                     for mode in ("grid", "png"):
                         stem = f"{root.name}-{state}-{'visible' if visible else 'hidden'}-{index}-{mode}"
                         output = options.compare_output / (stem + ".json")
-                        inputs = [verified_frame(p, read(p))[1] if mode == "grid" else p.with_suffix("").with_suffix(".png") for p in (left, right)]
+                        inputs = [verified_frame(p, read(p))[1] if mode == "grid" else (p.with_suffix("") if p.suffix == ".gz" else p).with_suffix("").with_suffix(".png") for p in (left, right)]
                         result = subprocess.run([sys.executable, "tui-recovery/scripts/compare_frames.py", mode,
                                                  *map(str, inputs), "--report", str(output)],
                                                 stdout=subprocess.PIPE, text=True, check=False)

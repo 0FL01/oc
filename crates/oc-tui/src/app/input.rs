@@ -720,6 +720,38 @@ impl TuiState {
             }
         }
         if !self.select_key_owner()
+            && self.panel == TuiPanel::None
+            && !self.composer_open()
+            && !self.prompt_shell_mode()
+            && !self.terminal_focused()
+            && self.slash_options().is_none()
+            && self.mention_request().is_none()
+            && self.foreground_available()
+            && event.kind == KeyEventKind::Press
+            && let Some(raw) = crate::events::binding(event)
+        {
+            let raw = crate::events::dialog_binding(&raw);
+            let candidate = if self.leader_pending() {
+                format!("{} {raw}", self.leader_key)
+            } else {
+                raw
+            };
+            if self
+                .background_binding()
+                .split(',')
+                .any(|key| crate::events::dialog_binding(key.trim()) == candidate)
+            {
+                self.leader = None;
+                return Some(KeyAction::BackgroundSession);
+            }
+            if self.background_binding().split(',').any(|key| {
+                crate::events::dialog_binding(key.trim()).starts_with(&format!("{candidate} "))
+            }) {
+                self.leader_key = candidate;
+                return Some(KeyAction::Leader);
+            }
+        }
+        if !self.select_key_owner()
             && let Some(action) = self.conversation_key(event)
         {
             return Some(action);
@@ -2655,6 +2687,9 @@ impl TuiState {
             };
         }
         if self.panel == TuiPanel::None {
+            if action == KeyAction::BackgroundSession {
+                return self.background_session();
+            }
             if self.shell_viewer().is_some() {
                 return self.shells.key(action);
             }
@@ -3114,6 +3149,7 @@ impl TuiState {
             KeyAction::Tab => KeyOutcome::default(),
             KeyAction::Shells
             | KeyAction::ShellBackground
+            | KeyAction::BackgroundSession
             | KeyAction::Children
             | KeyAction::ComposerNoop => KeyOutcome::default(),
         }

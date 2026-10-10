@@ -17,6 +17,23 @@ pub(crate) struct ChildView {
     inactive: bool,
 }
 impl ChildView {
+    pub(crate) fn foreground_job(
+        &self,
+        session: &SessionId,
+        captured: &ChildJob,
+    ) -> Option<&ChildJob> {
+        self.rows.iter().find(|job| {
+            &job.parent == session
+                && job.parent == captured.parent
+                && job.child == captured.child
+                && job.operation == captured.operation
+                && job.generation == captured.generation
+                && job.location == captured.location
+                && job.delivery_id == captured.delivery_id
+                && !job.background
+                && matches!(job.state, ChildState::Admitted | ChildState::Running)
+        })
+    }
     pub(crate) fn refresh_transcript(
         &self,
         session: &SessionId,

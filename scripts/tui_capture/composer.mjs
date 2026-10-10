@@ -5,6 +5,7 @@ const activeTab=(f,label)=>f.cells.some(row=>{
   return text.includes('Subagents')&&text.includes('Terminals')&&x>=0&&row[x]?.modifiers.includes('bold');
 });
 export async function probeComposer(args) {
+  if(args.rootHandoff)return probeRootHandoff(args);
   if(args.modelShell)return probeRootModelShell(args);
   if(args.subagentCards)return probeSubagentCards(args);
   const {origin,send,shot,waitFor,frame,logs,snapshot,control}=args;
@@ -282,6 +283,89 @@ async function probeSubagentCards({origin,send,shot,waitFor,frame,logs,snapshot,
     actual_tool_calls:5,actual_requests:logs.filter(e=>e.kind==='provider').length,
     same_child_distinct_operation:true,missing_agent_no_owner:true,original_graph_unchanged:true,
     shell_starts:2,shell_completions:1,terminal_effects:0,no_effect_replay:true};
+}
+
+async function probeRootHandoff({origin,send,shot,waitFor,frame,logs,snapshot,control,resize}) {
+  const rows=(s,table)=>s.composer.observations.flatMap(o=>o.data[table]||[]);
+  const observe=async(label,predicate)=>{
+    const deadline=Date.now()+15000;
+    while(Date.now()<deadline) {
+      const s=await snapshot(label+'-'+Date.now());
+      if(predicate(s.composer))return s;
+      await new Promise(resolve=>setTimeout(resolve,50));
+    }
+    throw Error('Missing Root handoff owner facts '+label);
+  };
+  const release=async phase=>{
+    const request_id='root-release-'+phase;
+    control({kind:'tool_preview_control',request_id,action:'release-'+phase});
+    const deadline=Date.now()+6000;
+    while(!logs.some(e=>e.kind==='tool_preview_control_ack'&&e.request_id===request_id)&&Date.now()<deadline)
+      await new Promise(resolve=>setTimeout(resolve,25));
+    if(!logs.some(e=>e.kind==='tool_preview_control_ack'&&e.request_id===request_id))throw Error('Missing Root release ACK');
+  };
+  const hint=f=>f.text.includes('Press ctrl+y to move running work to the background');
+  const checkHint=f=>{
+    const y=f.cells.findIndex(row=>glyphs(row).includes('Press ctrl+y to move running work to the background'));
+    const x=y<0?-1:glyphs(f.cells[y]).indexOf('ctrl+y');
+    if(x<0||f.cells[y][x].fg!=='#eeeeee'||f.cells[y][x-1].fg!=='#808080')throw Error('Hint key/sentence did not retain base/muted semantic styles');
+  };
+  const sameProcess=(before,after)=>before.operation_id===after.operation_id&&before.session_id===after.session_id&&before.process===after.process&&before.provenance===after.provenance;
+  await shot('root-handoff-home',f=>f.text.includes('Ask anything'));
+  send('\x1b[200~VIS39_ROOT_HANDOFF_TASK\x1b[201~\r','root_handoff_submit');
+  const initial=await observe('root-child-foreground',s=>s.ready.first&&s.effects.started.lines.length===1);
+  for(const [columns,height] of [[120,40],[80,24],[160,48]]) {
+    await resize(height,columns);
+    const f=await shot('root-child-hint-'+columns,f=>f.columns===columns&&f.rows===height&&hint(f)&&f.text.includes('Inspect child shell'));
+    checkHint(f);
+  }
+  const originalChild=origin==='oc'?rows(initial,'child_jobs')[0]:null;
+  const originalProcess=origin==='oc'?rows(initial,'shell_jobs')[0]:null;
+  if(originalChild&&(originalChild.converted_background!==0||originalProcess.session_id!==originalChild.child_id||originalProcess.converted_background!==0||originalProcess.phase!=='running'))throw Error('First foreground source was not the actual child blocker');
+  await resize(40,120);
+  send('\x19','root_handoff_all_current_child');
+  const second=await observe('root-own-shell-foreground',s=>s.ready.second&&s.effects.started.lines.length===2&&s.effects.completed.lines.length===0);
+  let rootProcess;
+  if(origin==='oc') {
+    const currentChild=rows(second,'child_jobs')[0], shells=rows(second,'shell_jobs');
+    rootProcess=shells.find(job=>job.session_id===currentChild.parent_id);
+    const childProcess=shells.find(job=>job.session_id===currentChild.child_id);
+    if(!rootProcess||!sameProcess(originalProcess,childProcess)||currentChild.identity!==originalChild.identity||currentChild.operation_id!==originalChild.operation_id||currentChild.converted_background!==1||childProcess.converted_background!==0||rootProcess.foreground_admitted!==1||rootProcess.converted_background!==0)throw Error('Root child handoff retargeted a nested Shell or replaced its original family/process');
+  }
+  await shot('root-child-background',f=>f.text.includes('Background')&&f.text.includes('composer-probe.py second'));
+  const shellHint=await shot('root-shell-hint',f=>hint(f)&&f.text.includes('composer-probe.py second')&&f.text.includes('VIS39-ROW-079'));
+  checkHint(shellHint);
+  send('\x19','root_handoff_all_current_shell');
+  await waitFor(f=>f.text.includes('VIS39-ROOT-HANDOFF-DONE')&&!hint(f),'Root continued after actual Shell handoff',15000);
+  const converted=await snapshot('root-handoff-converted');
+  if(origin==='oc') {
+    const current=rows(converted,'shell_jobs').find(job=>job.operation_id===rootProcess.operation_id);
+    if(!sameProcess(rootProcess,current)||current.converted_background!==1||current.phase!=='running')throw Error('Root Shell handoff did not retain the same admitted foreground process');
+  }
+  send('\x1b[200~Root handoff unsent Ω界\x1b[201~','root_handoff_preserved_draft');
+  for(const [columns,height] of [[80,24],[120,40],[160,48]]) {
+    await resize(height,columns);
+    await shot('root-background-footer-'+columns,f=>f.columns===columns&&f.rows===height&&f.text.includes('Root handoff unsent Ω界')&&f.text.includes('VIS39-ROOT-HANDOFF-DONE')&&!hint(f));
+  }
+  await release('first');await release('second');
+  const completed=await observe('root-handoff-frozen',s=>s.effects.completed.lines.length===2);
+  const settled=await observe('root-handoff-child-settled',s=>origin!=='oc'||s.observations.flatMap(o=>o.data.child_jobs||[]).every(job=>job.state==='completed'));
+  await resize(40,120);
+  const final=await shot('root-handoff-final',f=>f.text.includes('Root handoff unsent Ω界')&&f.text.includes('VIS39-ROOT-HANDOFF-DONE')&&!hint(f));
+  const counts=s=>s.composer.effects;
+  if(counts(completed).started.lines.join()!=='first,second'||new Set(counts(completed).completed.lines).size!==2||counts(completed).terminal.lines.length)throw Error('Root handoff replayed or lost real effects');
+  if(origin==='oc') {
+    const shells=rows(settled,'shell_jobs');
+    if(shells.length!==2||shells.some(job=>job.phase!=='terminal'||JSON.parse(job.outcome).state!=='completed'||JSON.parse(job.outcome).exit!==0||!JSON.parse(job.outcome).display_recent.includes('VIS39-FINAL-FLUSH-'))||rows(settled,'terminals').length)throw Error('Root handoff lacked actual final frozen flushes/no-PTY facts');
+    const label=final.cells.find(row=>glyphs(row).includes('Build · Fixture Caption Model'));
+    if(!label||label[glyphs(label).indexOf('Build')].fg!=='#12ab34')throw Error('Root footer ignored the explicit admitted profile color: '+(label?.[glyphs(label).indexOf('Build')]?.fg??'missing footer'));
+  }
+  const calls=logs.filter(e=>e.kind==='fixture_tool_call');
+  if(calls.length!==3||calls.filter(e=>e.name==='subagent').length!==1||calls.filter(e=>e.name==='shell').length!==2||logs.some(e=>e.kind==='provider'&&!e.valid))throw Error('Root handoff changed actual structured calls');
+  return {status:'PASS_BEHAVIOR_ONLY',initial,second,converted,settled,actual_calls:calls.length,
+    actual_requests:logs.filter(e=>e.kind==='provider').length,root_prompt_remapped_key:'ctrl+y',
+    preserved_source_and_process:true,nested_child_shell_not_root_target:true,no_effect_replay:true,
+    scopes:'Both sides use their actual focused Root remapped background binding; no composer/viewer shortcut or API view injection. Native delay uses actual live receipt time, original its stored part start.'};
 }
 
 async function probeRootModelShell({origin,send,shot,waitFor,frame,logs,snapshot,control}) {

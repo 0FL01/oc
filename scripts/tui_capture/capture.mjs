@@ -27,6 +27,7 @@ import {probeComposer} from './composer.mjs';
 import {probeCursorTemporal} from './cursor_temporal.mjs';
 import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
+import {frameArtifacts} from './frame_artifacts.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -41,6 +42,8 @@ const cleanServices = args['clean-services'] === 'true';
 const toolPreview = args['tool-preview'] === 'true';
 const compressCells = args['compress-cells'] === 'true';
 if(args['compress-cells']!==undefined&&(!toolPreview||!['true','false'].includes(args['compress-cells'])))throw Error('--compress-cells requires tool-preview and true|false');
+const compressFrames=args['compress-frames']==='true';
+if(args['compress-frames']!==undefined&&(!toolPreview||!compressCells||!['true','false'].includes(args['compress-frames'])))throw Error('--compress-frames requires compressed tool-preview cells and true|false');
 const mcpStatus = args['mcp-status'] === 'true';
 const mcpFooter = args['mcp-footer'];
 const promptCaret=args['prompt-caret']==='true';
@@ -49,6 +52,8 @@ const userShell=args['user-shell']==='true';
 const combinedComposer=args['combined-composer']==='true';
 const modelShell=args['model-shell']==='true';
 const subagentCards=args['subagent-cards']==='true';
+const rootHandoff=args['root-handoff']==='true';
+if(args['root-handoff']!==undefined&&(!combinedComposer||modelShell||subagentCards||!['true','false'].includes(args['root-handoff'])))throw Error('--root-handoff requires exclusive child combined-composer and true|false');
 if(args['subagent-cards']!==undefined&&(!combinedComposer||modelShell||!['true','false'].includes(args['subagent-cards'])))throw Error('--subagent-cards requires child combined-composer and true|false');
 if(args['model-shell']!==undefined&&(!combinedComposer||!['true','false'].includes(args['model-shell'])))throw Error('--model-shell requires combined-composer and true|false');
 if(args['combined-composer']!==undefined&&(!toolPreview||!['true','false'].includes(args['combined-composer'])||userShell||promptHistory||promptCaret||mcpStatus||args['cursor-temporal']))throw Error('--combined-composer requires exclusive ordinary tool-preview and true|false');
@@ -69,7 +74,7 @@ const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
 const toolPreviewGeometry=cursorTemporal||combinedComposer?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','compress-cells','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -348,7 +353,7 @@ const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
-    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
+    ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(toolPreview ? {tool_preview:true,mcp_status:mcpStatus,mcp_footer:mcpFooter||null,probe:sha(fs.readFileSync(path.join(here,'tool_preview.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'tool_preview_fixture.py'))),mcp:sha(fs.readFileSync(path.join(here,'tool_preview_mcp.py'))),...(mcpStatus?{status_probe:sha(fs.readFileSync(path.join(here,'mcp_status.mjs')))}:{}),...(mcpFooter?{footer_probe:sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')))}:{})} : {}),
     ...(cleanServices ? {clean_services:true,probe_sha256:sha(fs.readFileSync(path.join(here,'services.mjs'))),fixture_protocol_sha256:sha(fs.readFileSync(path.join(here,'services_fixture.py')))} : {}),
     ...(leaderPending ? {leader_pending:true,leader_config:leaderConfig,extra:args['leader-extra']==='true',enter_only:args['leader-enter-only']==='true',paste_navigation:pasteNavigation,paste_suffix_space:pasteSuffixSpace,probe_sha256:sha(fs.readFileSync(path.join(here,'leader_pending.mjs'))),...(pasteNavigation?{navigation_probe_sha256:sha(fs.readFileSync(path.join(here,'prompt_paste.mjs')))}:{})} : {}),
@@ -466,7 +471,7 @@ try {
     font_size: 14, device_scale_factor: 1, dpi: 96, padding: 0, opacity: 1, ligatures: false,
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
      cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
-        ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,cells_encoding:compressCells?'gzip':'json',refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
+        ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,cells_encoding:compressCells?'gzip':'json',frame_sidecars_encoding:compressFrames?'gzip':'plain',same_side_identical_png_links:compressFrames,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
@@ -503,7 +508,8 @@ try {
                      user_shell:userShell,
                       combined_composer:combinedComposer,
                        model_shell:modelShell,
-                       subagent_cards:subagentCards,
+                        subagent_cards:subagentCards,
+                        root_handoff:rootHandoff,
                 cursor_temporal:cursorTemporal||null,
            ...(compaction ? {compaction_animation:compactionAnimation,compaction_tps:compactionTps,animations:compactionAnimation} : {}),
         sessions_resume:!!args['sessions-root'],
@@ -571,9 +577,10 @@ try {
       }
       throw Error('Timed out waiting for '+label);
     };
+     const writeFrame=frameArtifacts(dir,compressFrames);
      const capture = async (scenario, f, status, scannerSignature) => {
       const name = path.join(dir,scenario);
-      if ((scanner && ['.cells.json','.cells.json.gz','.txt','.png','.render.json','.vt'].some(ext=>fs.existsSync(name+ext))) ||
+      if ((scanner && ['.cells.json','.cells.json.gz','.txt','.txt.gz','.png','.render.json','.render.json.gz','.vt','.vt.gz'].some(ext=>fs.existsSync(name+ext))) ||
           fs.existsSync(name+'.cells.json')||fs.existsSync(name+'.cells.json.gz')) throw Error('Refusing to overwrite scenario: '+name);
       // Repaint the same VT buffer on both sides to distinguish a stale xterm
       // DOM row left behind by resize from a real application cell mismatch.
@@ -597,7 +604,7 @@ try {
         // Chromium otherwise silently trims a tall terminal clip to the page
         // viewport. Capture the same full document-coordinate rectangle beyond
         // it, without resizing/repainting the terminal or changing its buffer.
-        const png=await page.screenshot({path:name+'.png', clip, fullPage:true});
+        const png=await page.screenshot({clip, fullPage:true});
         if(png.readUInt32BE(16)!==clip.width||png.readUInt32BE(20)!==clip.height)
           throw Error('Incomplete terminal PNG raster for '+scenario);
        const after=await page.evaluate(() => readCaptureGeometry());
@@ -611,7 +618,8 @@ try {
         fixture_sha256:fixtureSha, environment_id:environment,
         producer_commit: origin==='upstream' ? lock.sources.upstream_commit : commit, ...grid}));
       fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
-      fs.writeFileSync(name+'.txt', text+'\n');
+      const pngSeal=writeFrame(scenario,'.png',png);
+      const textSeal=writeFrame(scenario,'.txt',text+'\n');
        const render = {schema_version:1, origin, scenario, environment_id:environment,
          terminal_refresh_from_buffer:refreshed,
          paint_wait_request_animation_frames:paintWaitFrames,
@@ -619,16 +627,17 @@ try {
            paused_grid_stable:sha(JSON.stringify(afterFrame))===sha(JSON.stringify(f))} : {}), before, after,
         layout_changed_during_screenshot:canonical(before)!==canonical(after),
         screenshot: {clip, png_width:png.readUInt32BE(16), png_height:png.readUInt32BE(20)}};
-       fs.writeFileSync(name+'.render.json',JSON.stringify(render)+'\n');
+        const renderSeal=writeFrame(scenario,'.render.json',JSON.stringify(render)+'\n');
        if(sha(JSON.stringify(afterFrame)) !== sha(JSON.stringify(f)) ||
            (scannerSignature && scannerSignature.read(afterFrame)!==scannerSignature.expected)) {
           status='UNSTABLE_CAPTURE'; result=1;
           lock.attempts.push({origin,scenario,status,reason:'VT grid changed during PNG capture'});
       }
-      fs.writeFileSync(name+'.vt', Buffer.concat(chunks[generation]));
+      const vtSeal=writeFrame(scenario,'.vt',Buffer.concat(chunks[generation]));
       lock.captures.push({origin,scenario,status,environment_id:environment,
-        cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:sha(fs.readFileSync(name+'.png')),
-        render_sha256:sha(fs.readFileSync(name+'.render.json')),
+        cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:pngSeal.sha256,
+        render_file:renderSeal.file,render_sha256:renderSeal.sha256,
+        text_file:textSeal.file,text_sha256:textSeal.sha256,vt_file:vtSeal.file,vt_sha256:vtSeal.sha256,
         path:path.relative(output,name)});
       lock.profile=profile; json('capture.lock.json',lock);
       return status;
@@ -648,15 +657,15 @@ try {
         if(fs.existsSync(name+'.cells.json')||fs.existsSync(name+'.cells.json.gz'))throw Error('Refusing to overwrite temporal frame');
         const {png_base64,frame:observedFrame,...observation}=snapshot;
         const png=Buffer.from(png_base64,'base64'),environment=sha(canonical(profile)),{text,...grid}=observedFrame;
-        fs.writeFileSync(name+'.png',png);
+        const pngSeal=writeFrame(scenario,'.png',png);
         const cellsFile=name+'.cells.json'+(compressCells?'.gz':'');
         const cellsBytes=Buffer.from(JSON.stringify({schema_version:1,origin,scenario,fixture_sha256:fixtureSha,environment_id:environment,producer_commit:origin==='upstream'?lock.sources.upstream_commit:commit,...grid}));
         fs.writeFileSync(cellsFile,compressCells?gzipSync(cellsBytes):cellsBytes);
-        fs.writeFileSync(name+'.txt',text+'\n');
+        const textSeal=writeFrame(scenario,'.txt',text+'\n');
         // The complete observed grid is already sealed alongside the raster.
         // Reference those exact bytes instead of retaining a second full copy.
-        fs.writeFileSync(name+'.render.json',JSON.stringify({schema_version:2,origin,scenario,environment_id:environment,temporal_unsettled:true,actual_renderer_canvas:true,observation:{...observation,frame_file:path.basename(cellsFile),frame_sha256:sha(fs.readFileSync(cellsFile))},screenshot:{png_width:png.readUInt32BE(16),png_height:png.readUInt32BE(20)}}));
-        lock.captures.push({origin,scenario,status:'CAPTURED_TEMPORAL_SEQUENCE',environment_id:environment,cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:sha(png),render_sha256:sha(fs.readFileSync(name+'.render.json')),path:path.relative(output,name)});
+        const renderSeal=writeFrame(scenario,'.render.json',JSON.stringify({schema_version:2,origin,scenario,environment_id:environment,temporal_unsettled:true,actual_renderer_canvas:true,observation:{...observation,frame_file:path.basename(cellsFile),frame_sha256:sha(fs.readFileSync(cellsFile))},screenshot:{png_width:png.readUInt32BE(16),png_height:png.readUInt32BE(20)}}));
+        lock.captures.push({origin,scenario,status:'CAPTURED_TEMPORAL_SEQUENCE',environment_id:environment,cells_file:path.basename(cellsFile),cells_sha256:sha(fs.readFileSync(cellsFile)),png_sha256:pngSeal.sha256,render_file:renderSeal.file,render_sha256:renderSeal.sha256,text_file:textSeal.file,text_sha256:textSeal.sha256,path:path.relative(output,name)});
       }
       json('capture.lock.json',lock);
     };
@@ -704,9 +713,9 @@ try {
                 promptProbe:promptCaret?probePromptCaret:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
-                    composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards}):null,
+                     composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,rootHandoff}):null,
                mcpProbe:mcpStatus?args=>(mcpFooter?probeMcpFooter({...args,mode:mcpFooter}):probeMcpStatus({...args,readVt:()=>Buffer.concat(chunks[generation]).toString('latin1')})):null,
-              cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
+               cursorProbe:cursorTemporal?()=>probeCursorTemporal({origin,dir,page,send,waitFor,frame,capture,recordTemporal,writeFrame,visibleMatches,mode:cursorTemporal,cardCase:cursorCase,geometry:cursorGeometry,resize}):null,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
              resize,
             relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
@@ -3055,7 +3064,7 @@ try {
   };
     if(permission)lock.qualification={status:'DIAGNOSTIC_PERMISSION_ONLY',mode:permissionMode,actual_requests:'Real ordinary function tools and pinned original U19 executor; local fake provider/MCP only',filesystem:'Independent bytes/hash/mtime/modes; SQLite mode=ro',unresolved:['Full grids/PNGs are unmasked and must be compared independently','Typed owner lifecycle evidence is separate from the PTY/SQLite audit','Unit/atomic-failure/security matrices and release binary are not qualified by PTY capture']};
       if(toolPreview)lock.qualification={status:'DIAGNOSTIC_TOOL_PREVIEW_ONLY',actual_requests:'Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only',replay:'Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Native 2048-byte presentation and compact status are disclosed differences','Actual history multi-page traversal and capture fault matrices remain separate gates']};
-      if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
+      if(combinedComposer)lock.qualification={status:'DIAGNOSTIC_COMPOSER_ONLY',actual_requests:rootHandoff?'Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only':modelShell?'Two root model Shell calls, same-process foreground conversion, held final flush and selected second-job kill; local fake Responses only':subagentCards?'Actual inline Subagent foreground/background/model/hover/navigation, same-child continuation and missing-agent error; one episode across three real geometries, local fake Responses only':'One real foreground delegation, child-owned held Shell/final flush/kill and actual terminal input; local fake Responses only',capture:'Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim',unresolved:['Whole-grid/PNG/cursor differences remain unmasked','Other VIS39 and full frozen T44 outcomes require independent qualification']};
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
        if(promptCaret)lock.qualification={status:'DIAGNOSTIC_PROMPT_CARET_ONLY',actual_requests:'One explicit edited user prompt plus title; zero tools/MCP/Shell effects',observation:'Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay'};
        if(promptHistory)lock.qualification={status:'DIAGNOSTIC_PROMPT_HISTORY_ONLY',mode:promptHistory,actual_requests:'Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects',observation:'Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor'};

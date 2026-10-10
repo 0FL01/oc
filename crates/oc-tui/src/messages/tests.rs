@@ -2022,7 +2022,7 @@ fn vis34_archive_paragraph_final_lf_has_one_footer_margin_full_cached_and_indexe
 
 #[test]
 fn v02_footer_uses_pinned_agent_slot_and_exact_status() {
-    for status in ["failed", "cancelled", "incomplete", "unknown"] {
+    for status in ["completed", "failed", "cancelled", "incomplete", "unknown"] {
         let row = HistoryRow {
             meta: Some(AssistantMeta {
                 status: Some(status.into()),
@@ -2033,14 +2033,21 @@ fn v02_footer_uses_pinned_agent_slot_and_exact_status() {
         };
         let (rows, buffer) = render(&[row], 80, 3);
         assert!(
-            rows.iter()
-                .any(|r| r.contains(&format!("Build · {status}"))),
+            rows.iter().any(|row| if status == "completed" {
+                row.trim() == "Build"
+            } else {
+                row.contains(&format!("Build · {status}"))
+            }),
             "{rows:?}"
         );
         assert_eq!(
             buffer[(3, 1)].fg,
-            Theme::dark().categorical_agents()[3],
-            "historical generation slot wins over render helper's current slot zero"
+            if matches!(status, "failed" | "cancelled" | "unknown") {
+                Theme::dark().text_muted()
+            } else {
+                Theme::dark().categorical_agents()[3]
+            },
+            "failure mutes the profile; otherwise its generation slot wins over current slot zero"
         );
     }
 }

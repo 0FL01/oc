@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,capture,recordTemporal,visibleMatches,mode,cardCase,geometry,resize}) {
+export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,capture,recordTemporal,writeFrame,visibleMatches,mode,cardCase,geometry,resize}) {
   const result={origin,mode,card_case:cardCase,geometry,status:'IN_PROGRESS',states:[]};
   const save=()=>fs.writeFileSync(path.join(dir,'cursor-temporal-checks.json'),JSON.stringify(result,null,2)+'\n');
   const draft='preserved draft Ω界';
@@ -60,13 +60,13 @@ export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,ca
     const {snapshots,...trace}=await page.evaluate(()=>finishCursorState());
     const shots=snapshots.length;
     recordTemporal(state,snapshots);
-    fs.writeFileSync(path.join(dir,'cursor-'+state+'.trace.json'),JSON.stringify(trace)+'\n');
+    const traceSeal=writeFrame('cursor-'+state,'.trace.json',JSON.stringify(trace)+'\n');
     const f=await frame(), phases=trace.samples.map(s=>s.raster.visible),rises=[];
     for(let i=1;i<phases.length;i++)if(!phases[i-1]&&phases[i])rises.push(trace.samples[i].at_ms);
     const periods=rises.slice(1).map((time,i)=>time-rises[i]);
     const gaps=trace.samples.slice(1).map((s,i)=>s.at_ms-trace.samples[i].at_ms);
     const phantom=trace.commands.filter(c=>c.cursor.visible&&!c.cursor.synchronized&&(c.cursor.x!==expected.x||c.cursor.y!==expected.y));
-    const item={state,moves,temporal_full_frames:shots,samples:trace.samples.length,commands:trace.commands.length,cycles:periods.length,
+    const item={state,moves,trace_file:traceSeal.file,trace_sha256:traceSeal.sha256,temporal_full_frames:shots,samples:trace.samples.length,commands:trace.commands.length,cycles:periods.length,
       phantom_command_states:phantom.length,draft_visible:f.text.includes(draft),
       final_caret_preserved:JSON.stringify(f.cursor)===JSON.stringify(expected),
       cycle_periods_ms:periods,max_sample_gap_ms:Math.max(0,...gaps),raster_blink_observed:periods.length>=3};

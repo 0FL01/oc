@@ -6,6 +6,7 @@ import sqlite3
 import threading
 
 ROOT_TASK = 'VIS39_ROOT_TASK'
+HANDOFF_TASK = 'VIS39_ROOT_HANDOFF_TASK'
 CHILD_TASK = 'VIS39_CHILD_TASK'
 MODEL_TASK = 'VIS39_ROOT_MODEL_SHELL_TASK'
 CONTINUE_TASK = 'VIS39_CONTINUE_ROOT_TASK'
@@ -24,7 +25,7 @@ def configure(spec, home, project, config, cli):
     config['mcp'] = {'servers': {}} if spec['origin'] == 'upstream' else {}
     config['tool_output'] = {'max_lines': 1000, 'max_bytes': 65536}
     cli['keybinds'] = {'session.child.first': 'ctrl+g'}
-    if spec.get('subagent_cards'):
+    if spec.get('subagent_cards') or spec.get('root_handoff'):
         provider = config['providers' if spec['origin'] == 'upstream' else 'provider']['fixture']
         provider['models']['fixture-model-1']['name'] = 'Fixture Caption Model'
     if spec['origin'] == 'upstream':
@@ -40,8 +41,11 @@ def configure(spec, home, project, config, cli):
                  'bash': {'*': 'deny', **{c: 'allow' for c in COMMANDS}}}
         config['permissions'] = rules
         config['agent'] = {'helper': {'mode': 'subagent', 'description': 'VIS39 fixture worker',
-                                     'prompt': 'Execute only the fixture-owned tool calls.',
-                                     'permissions': rules}}
+                                      'prompt': 'Execute only the fixture-owned tool calls.',
+                                      'permissions': rules}}
+    if spec.get('root_handoff'):
+        cli['keybinds']['session.background'] = 'ctrl+y'
+        config['agents' if spec['origin'] == 'upstream' else 'agent']['build'] = {'color':'#12ab34'}
     program = '''import os, sys, time
 from pathlib import Path
 phase = sys.argv[1]
@@ -51,9 +55,9 @@ origin = ORIGIN
 with (root / ('composer-' + origin + '-started.effects')).open('a') as f:
     f.write(phase + '\\n')
 print('VIS39-LIVE-' + phase, flush=True)
-for n in ((79,) if ROOT_MODEL and phase == 'second' else range(80)):
+for n in ((79,) if ROOT_HANDOFF or ROOT_MODEL and phase == 'second' else range(80)):
     print('VIS39-ROW-%03d' % n, flush=True)
-if ROOT_MODEL:
+if ROOT_MODEL or ROOT_HANDOFF:
     # Separate real pipe publications for the bounded visible-tail assertion;
     # simultaneous stdout/stderr drains do not promise OS-wide ordering.
     time.sleep(.2)
@@ -69,7 +73,8 @@ with (root / ('composer-' + origin + '-completed.effects')).open('a') as f:
     f.write(phase + '\\n')
 '''
     (project / 'composer-probe.py').write_text(program.replace('ORIGIN', repr(spec['origin']))
-                                              .replace('ROOT_MODEL', repr(bool(spec.get('model_shell')))))
+                                              .replace('ROOT_MODEL', repr(bool(spec.get('model_shell'))))
+                                              .replace('ROOT_HANDOFF', repr(bool(spec.get('root_handoff')))))
 
 
 def control(project, action, spec):
@@ -120,9 +125,14 @@ def snapshot(home, project, spec):
                             AND e.kind='shell_foreground' AND e.payload=j.operation_id) AS foreground_admitted,
                           EXISTS(SELECT 1 FROM events e WHERE e.session_id=j.session_id
                             AND e.kind='shell_background' AND e.payload=j.operation_id) AS converted_background
-                          FROM shell_jobs j ORDER BY j.rowid LIMIT 12"""
+                           FROM shell_jobs j ORDER BY j.rowid LIMIT 12"""
+                    elif table == 'child_jobs' and spec.get('root_handoff'):
+                        query = """SELECT j.*, EXISTS(SELECT 1 FROM events e
+                          WHERE e.session_id=j.parent_id AND e.kind='subagent_background'
+                          AND e.payload=j.operation_id) AS converted_background
+                          FROM child_jobs j ORDER BY j.rowid LIMIT 12"""
                     data[table] = [dict(r) for r in conn.execute(query)]
-            if spec.get('subagent_cards') and 'session_v2' in tables:
+            if (spec.get('subagent_cards') or spec.get('root_handoff')) and 'session_v2' in tables:
                 data['sessions'] = [dict(r) for r in conn.execute(
                     'SELECT id,parent_id,time_created FROM session_v2 '
                     'WHERE fork_session_id IS NULL ORDER BY time_created,id LIMIT 12')]
@@ -154,6 +164,7 @@ def respond(handler, body, spec, emit):
             child = parent_call_issued and ROOT_TASK not in texts
     title = not definitions
     root_model = bool(spec.get('model_shell'))
+    handoff = bool(spec.get('root_handoff'))
     cards = bool(spec.get('subagent_cards'))
     current_marker = next((text for text in reversed(texts)
                            if text in (ROOT_TASK, CONTINUE_TASK, ERROR_TASK)), None)
@@ -169,13 +180,18 @@ def respond(handler, body, spec, emit):
     if root_model:
         # This separate root scenario has no delegation/context-pack inference.
         child = False
+    if handoff:
+        child = parent_call_issued and HANDOFF_TASK not in texts
     index = sum(i.get('call_id', '').startswith('call_vis39_shell_') for i in results) if child else len(results)
     valid = handler.path == '/v1/responses' and body.get('stream') is True and number <= (18 if cards else 12)
     valid = valid and body.get('model') == 'fixture-model-1'
-    valid = valid and (title or (MODEL_TASK in texts if root_model else child or ROOT_TASK in texts or continuation_parent or missing_agent))
+    valid = valid and (title or (HANDOFF_TASK in texts or child if handoff else MODEL_TASK in texts if root_model else child or ROOT_TASK in texts or continuation_parent or missing_agent))
     valid = valid and all(i.get('call_id') in ('call_vis39_parent', 'call_vis39_shell_0', 'call_vis39_shell_1', *(['call_vis39_continue','call_vis39_missing'] if cards else [])) for i in results)
     name = 'shell' if child or root_model else 'subagent'
     tool = not title and (index < 2 if child or root_model else index == 0)
+    if handoff:
+        name = 'shell' if child or index == 1 else 'subagent'
+        tool = not title and (index == 0 if child else index < 2)
     if continuation_worker:
         tool = False
     elif continuation_parent or missing_agent:
@@ -192,6 +208,8 @@ def respond(handler, body, spec, emit):
         handler.send_error(400, 'VIS39 fixture contract rejected')
         return
     text = 'VIS39 parent' if title else 'VIS39-ROOT-SHELL-DONE' if root_model else 'VIS39-CHILD-DONE' if child else 'VIS39-PARENT-DONE'
+    if handoff and not title and not child:
+        text = 'VIS39-ROOT-HANDOFF-DONE'
     if cards and not title:
         if continuation_worker:
             # Hold a real ordinary child request, not the UI or its metadata.
@@ -203,7 +221,7 @@ def respond(handler, body, spec, emit):
         elif missing_agent:
             text = 'VIS39-MISSING-AGENT-DONE'
     if tool:
-        args = {'command': COMMANDS[index]} if child or root_model else {
+        args = {'command': COMMANDS[index]} if name == 'shell' else {
             'agent': 'helper', 'description': 'Inspect child shell', 'prompt': CHILD_TASK}
         if cards and not child:
             if continuation_parent:
@@ -218,7 +236,7 @@ def respond(handler, body, spec, emit):
                 args['model'] = 'fixture/fixture-model-1'
                 args['description'] = 'Inspect captured child shell'
         item = {'id': f'fc_vis39_{number}', 'type': 'function_call', 'status': 'completed',
-                'call_id': f'call_vis39_shell_{index}' if child or root_model else 'call_vis39_parent',
+                'call_id': f'call_vis39_shell_{index}' if name == 'shell' else 'call_vis39_parent',
                  'name': name, 'arguments': json.dumps(args)}
         if continuation_parent or missing_agent:
             item['call_id'] = 'call_vis39_continue' if continuation_parent else 'call_vis39_missing'

@@ -3,6 +3,156 @@ use oc_core::core_app::InboxMsg;
 use oc_core::queries::{ChildState, HistoryPage, ShellNotice};
 
 #[tokio::test]
+async fn root_handoff_dispatches_all_original_owners_and_rejects_stale_context() {
+    use oc_core::queries::ShellJob;
+    use oc_tui::app::ForegroundWork;
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let turn = WorkerTurnId("parent-turn".into());
+    let child = ChildJob {
+        parent: SessionId("parent".into()),
+        child: SessionId("captured-child".into()),
+        operation: "child-operation".into(),
+        generation: 17,
+        location: "/original/child".into(),
+        agent: "helper".into(),
+        model: "captured/model".into(),
+        description: "held child".into(),
+        delivery_id: "original-delivery".into(),
+        state: ChildState::Running,
+        background: false,
+        turn: Some("child-turn".into()),
+        result: None,
+        message_id: None,
+    };
+    let shell = ShellJob {
+        session: child.parent.clone(),
+        shell_id: "shell-operation".into(),
+        generation: 23,
+        location: "/original/shell".into(),
+        model: "other/captured-model".into(),
+        provider: "captured-provider".into(),
+        turn: turn.0.clone(),
+        command: "original command".into(),
+        pid: Some(1234),
+        background: false,
+        output: None,
+    };
+    let mut state = TuiState::new(app.clone(), child.parent.clone());
+    state.begin_linked_turn(turn.clone());
+    state.restore_prompt("original unsent root draft".into());
+    state.apply_child_jobs(vec![child.clone()]);
+    state.apply_shell_jobs(vec![shell.clone()]);
+    state.apply_tool_started(
+        &turn,
+        &child.operation,
+        "subagent",
+        r#"{"agent":"helper","description":"held child"}"#,
+    );
+    state.apply_tool_started(
+        &turn,
+        &shell.shell_id,
+        "shell",
+        r#"{"command":"original command"}"#,
+    );
+    let parts = state.transcript_rows();
+    let action = state
+        .terminal_key(crossterm::event::KeyEvent::new(
+            crossterm::event::KeyCode::Char('b'),
+            crossterm::event::KeyModifiers::CONTROL,
+        ))
+        .unwrap();
+    let intent = state.handle_key(action).await.intent.unwrap();
+    let mut deck = LoopState::default();
+    let expected = child.clone();
+    let expected_shell = shell.clone();
+    let worker = tokio::spawn(async move {
+        let Some(InboxMsg::BackgroundChild {
+            session,
+            selected,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("captured child")
+        };
+        assert_eq!(session, expected.parent);
+        assert_eq!(selected, expected);
+        // A terminal race in one owner must not prevent handoff of the others.
+        ack.send(Err(CoreError::Application("already settled".into())))
+            .unwrap();
+        let Some(InboxMsg::BackgroundShell {
+            session,
+            shell_id,
+            ack,
+        }) = inbox.recv().await
+        else {
+            panic!("captured shell")
+        };
+        assert_eq!(session, expected_shell.session);
+        assert_eq!(shell_id, expected_shell.shell_id);
+        ack.send(Ok(())).unwrap();
+        let Some(InboxMsg::ChildJobs { session, ack }) = inbox.recv().await else {
+            panic!("same-session inventory")
+        };
+        assert_eq!(session, expected.parent);
+        ack.send(Ok(vec![])).unwrap();
+        let Some(InboxMsg::ShellJobs { session, ack }) = inbox.recv().await else {
+            panic!("same-session inventory")
+        };
+        assert_eq!(session, expected_shell.session);
+        ack.send(Ok(vec![])).unwrap();
+        inbox
+    });
+    apply_intent(&app, &mut state, &mut deck, intent)
+        .await
+        .unwrap();
+    let mut inbox = worker.await.unwrap();
+    assert_eq!(state.input(), "original unsent root draft");
+    assert_eq!(state.active_turn(), Some(&turn));
+    let after = state.transcript_rows();
+    assert_eq!(after.len(), parts.len(), "no added model/tool part");
+    for (before, after) in parts.iter().zip(&after) {
+        let before = before.tool.as_ref().unwrap();
+        let after = after.tool.as_ref().unwrap();
+        assert_eq!(
+            (
+                &after.op,
+                &after.state,
+                &after.output_preview,
+                after.output_bytes
+            ),
+            (
+                &before.op,
+                &before.state,
+                &before.output_preview,
+                before.output_bytes
+            ),
+            "inventory may update presentation, never the logical graph/result"
+        );
+    }
+    for (session, selected_turn) in [
+        (SessionId("foreign".into()), turn.clone()),
+        (child.parent.clone(), WorkerTurnId("stale".into())),
+    ] {
+        apply_intent(
+            &app,
+            &mut state,
+            &mut deck,
+            PanelIntent::BackgroundSession {
+                session,
+                turn: selected_turn,
+                work: vec![ForegroundWork::Shell(Box::new(shell.clone()))],
+            },
+        )
+        .await
+        .unwrap();
+        assert!(
+            inbox.try_recv().is_err(),
+            "stale queued scope cannot query or execute"
+        );
+    }
+}
+
+#[tokio::test]
 async fn stale_running_child_capture_outside_inventory_reads_current_original_owner() {
     let (app, mut inbox, _) = CoreApp::channel(8);
     let captured = ChildJob {

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-09T23:17:24+00:00
+State updated: 2026-10-10T03:08:25+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,37 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 captured inline Subagent — qualified slice
+# T44 captured Root foreground handoff — qualified slice
 
 ## Result
-Positive original-launch ChildJob cards now render inline explicit-model/
-foreground/background/continuation captions with painted-frame-safe navigation
-and error details. Full runtime/recovery identity remains separate from bounded
-UI metadata. Exact historical ReadChild handles stale/out-of16 captures without
-ghost workers, rebind or replay. RAW/input/logical tool/provider graph unchanged.
-Receipt: evidence/tui/subagent-cards.md; Git determines actual commit/push status.
+Root now hands off all captured current-request foreground Shell/Child work
+through existing scoped owners. One finite3s hint/effective admitted binding,
+existing-profile assistant RGB/typed failed-status colors preserve RAW/tool graph,
+source/turn/family/PID/draft/caret and product caps. Receipt evidence/tui/root-handoff.md.
+Git determines actual commit/push; whole T44 remains ACTIVE/NOT_PASS.
 
 ## Checks
-Current1807/0/11 full no-fail-fast/strict Clippy/fmt/builds/help, release startup19/
-GET8/TERM01, original resource guards and Python47/comparator25/receipt2/frontend/
-tall-geometry/docs/progress PASS. Actual Subagent00515 states/side visits120/80/160;
-ordinary27 plus native details and default/WebGL temporal qualify effects/caret.
-Read-only audit verifies246 full opaque PNGs/738 seals/776928 cells/current532
-source entries. Direct240 DIFFERENT/4 EQUAL/4 native-only; matched72 pairs allDIFF.
+Current1809/0/11 full no-fail-fast/strict Clippy/fmt/builds/help, release startup19/
+GET8/TERM01, original pacing/archive guards and Python/comparator/codec/frontend/
+geometry/docs/progress PASS. Root003 ten actual paired states visits120/80/160,
+actual Root Ctrl+Y converts original Child then Root Shell without nested retarget.
+Complete fresh ordinary/default-temporal regressions fit lossless2,477,500-byte
+archive with1342 full members. Root20+archive216 opaque frames,234 direct comparisons
+(230 DIFFERENT/4 EQUAL),4 native-only;72 matched pairs/144 additional DIFFERENT.
+536-source entry/seal/schema/full-raster/actual-effect/unchanged-comparator audits PASS.
 
 ## Risks
-Whole R1–R6/VIS01–45/VIS39/T44 ACTIVE/NOT_PASS. Root/profile/human-prefix/
-grammar/assets and every frozen outcome/supplement/finalR6 remain mandatory.
-Input scopes/denied-vs-unknown error/timing/underlay differences are visible,
-not masked or waived. No config/env/GOAL/acceptance/Cargo.lock/paid/authority edit.
-Lossless gzip retains full cells/styles/cursor/strict schema; no historical rewrite.
-Owned evidence1015MiB leaves only about9MiB under unchanged1GiB guard; check before
-writing. No historical/foreign deletion or quota increase.
+Whole R1–R6/VIS01–45/VIS39/T44 and supplements/finalR6 mandatory. Measured accepted
+user border remains native#5c9cf5/original#12ab34 despite correct actual prompt/footer
+RGB; fix rendering without changing recorded generation. Thoughts/grammar/assets
+and all remaining outcomes not waived. Retained own evidence approaches unchanged
+1GiB; never delete/rewrite historical/foreign proof, increase quota or omit frames.
 
 ## Next
-Continue captured profile/Root/human host prefix/grammar/assets presentation and
-all remaining frozen outcomes. Prefer existing owners/light source tests, plan
-bounded full lossless recordings within quota, then final current-source R6/V09.
-Do not finish T44 or promote earlier frames to current-source/full parity PASS.
+Fix the measured user-border current-profile presentation; complete shared full
+grammar/assets and every remaining frozen outcome. Plan bounded byte-reversible
+fresh proof within retention before recording; then final current-source R6/V09.
+Source/light tests can continue independently; do not promote this slice to T44 PASS.
 
 
 Ready (до 5): T58

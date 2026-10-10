@@ -1614,6 +1614,7 @@ impl TuiState {
             dcp: None,
             dcp_topic,
         });
+        card.started_at = Some(Instant::now());
         if let crate::tools::ToolRender::Dcp(view) = &mut card.render {
             view.color_index = self.live_agent_color_index;
         }
@@ -1622,6 +1623,9 @@ impl TuiState {
             .iter_mut()
             .find(|part| matches!(part, LivePart::Tool { card, .. } if card.op == op))
         {
+            if let LivePart::Tool { card: previous, .. } = part {
+                card.started_at = previous.started_at.or(card.started_at);
+            }
             *part = LivePart::Tool {
                 card: Box::new(card),
                 input: input.to_string(),
@@ -2069,6 +2073,7 @@ impl TuiState {
             row.input = Some(std::mem::take(input));
             row.child_job = card.child_job.clone();
             let mut finished = card_from_row(&row);
+            finished.started_at = card.started_at;
             if let crate::tools::ToolRender::Dcp(view) = &mut finished.render {
                 view.color_index = self.live_agent_color_index;
             }

@@ -324,6 +324,7 @@ impl TuiState {
         if changed {
             self.enforce_parts();
         }
+        self.sync_foreground_hint(Instant::now());
     }
 
     /// Same-session TurnFinished receipt only. Explicit routing/conversation
@@ -1494,6 +1495,22 @@ impl TuiState {
             });
         }
         self.interleave_compactions(&mut rows);
+        if let Some(key) = self.background_hint_key() {
+            rows.push(HistoryRow {
+                message_id: None,
+                seq: i64::MAX,
+                role: "background_hint".into(),
+                text: key.into(),
+                agent: None,
+                agent_color_index: None,
+                chips: Vec::new(),
+                reasoning: None,
+                meta: None,
+                tool: None,
+                child_notice: None,
+                shell_notice: None,
+            });
+        }
         // Apply current owner configuration to the render copy, including
         // replayed/parked footer metadata. Retain every measured statistic in
         // the history/live state. Indexed footers are generated outside the
@@ -1517,6 +1534,18 @@ impl TuiState {
             }
             if let Some(meta) = &mut row.meta {
                 meta.session_tps = self.chrome.session_tps;
+                // Explicit admitted profile colors override categorical slots,
+                // only in this render copy. Preserve the durable generation slot
+                // as the honest fallback when no valid explicit color exists.
+                if row
+                    .agent
+                    .as_ref()
+                    .and_then(|id| self.chrome.agent_colors.get(id))
+                    .and_then(|hex| crate::theme::Rgba::from_hex(hex))
+                    .is_some()
+                {
+                    meta.agent_color_index = None;
+                }
             }
         }
         rows

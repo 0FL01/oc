@@ -448,13 +448,13 @@ pub(crate) enum ReasoningIdentity {
 /// Assistant footer data, projected from durable turns or live events.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AssistantMeta {
-    /// Model label (`provider/id`; our catalog DTOs carry no display name).
+    /// Human model label and variant recorded with the admitted request.
     pub model: Option<String>,
     /// Turn wall time in milliseconds (`turnDuration`).
     pub duration_ms: Option<u64>,
     /// Input tokens of the last provider round, when reported.
     pub input_tokens: Option<u64>,
-    /// Output tokens summed over the turn's rounds, when reported.
+    /// Inclusive output tokens (including reasoning), summed over provider rounds.
     pub output_tokens: Option<u64>,
     /// Latest provider generation's reported input/output context measurement.
     /// Independent of complete turn usage used for tok/s.
@@ -930,6 +930,30 @@ fn render_row(
         "shell_input_delivered" => Vec::new(),
         "child_notice" => child_notice_block(row, index, theme, width),
         "shell_notice" => shell_notice_block(row, index, theme, width),
+        "background_hint" => {
+            let line = Line::new(vec![
+                Span::styled("Press ", Style::default().fg(theme.text_muted())),
+                Span::styled(row.text.clone(), Style::default().fg(theme.text())),
+                Span::styled(
+                    " to move running work to the background",
+                    Style::default().fg(theme.text_muted()),
+                ),
+            ]);
+            let mut lines = vec![Line::plain("")];
+            let padding = usize::from(width).min(3);
+            lines.extend(
+                crate::styled::wrap_line(&line, usize::from(width).saturating_sub(padding))
+                    .into_iter()
+                    .map(|line| {
+                        Line::new(
+                            std::iter::once(Span::plain(" ".repeat(padding)))
+                                .chain(line.spans().iter().cloned())
+                                .collect(),
+                        )
+                    }),
+            );
+            lines
+        }
         "compaction" | "compaction_failed" | "compaction_queued" => {
             crate::compaction::block(row, theme, width)
         }
@@ -3207,7 +3231,11 @@ fn footer_line(
         spans.push(span);
     };
     if let Some(agent) = agent {
-        let color = if meta.interrupted {
+        let color = if meta.interrupted
+            || matches!(
+                meta.status.as_deref(),
+                Some("failed" | "cancelled" | "unknown")
+            ) {
             theme.text_muted()
         } else {
             meta.agent_color_index
@@ -3256,7 +3284,8 @@ fn footer_line(
 
 /// Upstream `turnTokensPerSecond` (`routes/session/rows.ts:365-386`):
 /// `(output + reasoning) tokens / provider-active seconds`, aggregated before
-/// dividing. `None` when either side is missing (never `0 tok/s`).
+/// dividing. Native Responses already reports that inclusive scalar; do not add
+/// reasoning again. `None` when either side is missing (never `0 tok/s`).
 fn tokens_per_second(meta: &AssistantMeta) -> Option<f64> {
     let output = meta.output_tokens? as f64;
     let streamed_ms = meta.streamed_ms?;

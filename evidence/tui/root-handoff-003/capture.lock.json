@@ -1,0 +1,2559 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-10T01:10:43.523Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "6826334aaef4fac1e6aea01333cc3da24d3837252780e97dc2f90fe3e749e196",
+    "frontend.js": "51e27994422990848249abd3357dafbfe38c68af265bf5bcac60e74fe9a2ee3b",
+    "bridge.py": "31bcdf47f20051bac2186c55dc64bcad6905a35b40c14ae1d2c6bb63a66b9937",
+    "tool_preview.mjs": "1f776235e1f0c14bbb642ebd3bf230b826e469787077ff1a0c1062b564b81bd3",
+    "tool_preview_fixture.py": "4d60c3563fb49f306fe83330483e2957fe86345f48f7957e867961a3f42b4766",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "composer.mjs": "757da559fd4e08e0c867ab7167a8098ed147b4ed9be5d700389d083d0553cf13",
+    "composer_fixture.py": "485af5eb5246f421c1c01750c62579d90e916a06540f06c881717bc6d913b0a7"
+  },
+  "fixture_sha256": "daebd9daf36a22d84be06f8b500e453ff79f198b6cb8deb1ee693d3cd96a2e16",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "793aa1956cd4f47b544f377cf91248e5b8b39a3f",
+    "tree": "f0df55a00ddd64c4b306f92947cbfb7811ed46a5",
+    "dirty_diff_sha256": "3e1aaa080a55bfb7c0c638cf50bac4959deb273f8f54cf1271bee021e8035f7d",
+    "source_manifest_sha256": "7fbd9e670a13821d56bad33f3d9693a7b4b97726e9b16af55ff568093ecb1939",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "444dfdb3dff1a2f64e5cad7489752dfa1a7184b50e290708ec2f6ff7a9aa8184",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-root-handoff-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-120",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-120",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-80",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-80",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-160",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-160",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-background",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-background",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-shell-hint",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-shell-hint",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-80",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-80",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-120",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-120",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-160",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-160",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-final",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-final",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-handoff-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-home.cells.json.gz",
+      "cells_sha256": "2614d52827eeabfdfac63d2b8bb74ce61ebf37cb77405a4b3937f758ec5d8fca",
+      "png_sha256": "4786fa6070f5f65911eb1da570061a7c4a21dd6efa7071e572feacdb2c6b46d5",
+      "render_file": "tool-preview-root-handoff-home.render.json.gz",
+      "render_sha256": "c4129fb1c3e8ff2b58d0cbf93cf7aa4b36c26378d369862fc3a6e5da53386cb5",
+      "text_file": "tool-preview-root-handoff-home.txt.gz",
+      "text_sha256": "be4e4d8495bfc6ce03232583bd38e3cbebd658a88e4208d671f5ad7031a4c549",
+      "vt_file": "tool-preview-root-handoff-home.vt.gz",
+      "vt_sha256": "c74259074715a0e29decfc5d3ff04c9b9ad83404227cf4b8be470713242275dd",
+      "path": "upstream/tool-preview-root-handoff-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-hint-120.cells.json.gz",
+      "cells_sha256": "347717d469e5510fa18f921b637201f2e353964ae0c20af0c69be2ec083c0389",
+      "png_sha256": "8d164660cb1e4be9634a75e6490f2cd0ac91d303d43b197c1971b180d872f3c5",
+      "render_file": "tool-preview-root-child-hint-120.render.json.gz",
+      "render_sha256": "0fbacbc0a4b9de9bc80106bc251750ad0b71dbb8187a1fc118092d1b3f994f65",
+      "text_file": "tool-preview-root-child-hint-120.txt.gz",
+      "text_sha256": "82b3ffd44148a1142795580861ecca8fd0e26dbf0c2d0ce9e62d2bacb17d12ee",
+      "vt_file": "tool-preview-root-child-hint-120.vt.gz",
+      "vt_sha256": "1a66b72ff6716617cbfa9d356f4b01e27fbcf51747ffd79e5b71fbd8b33ea513",
+      "path": "upstream/tool-preview-root-child-hint-120"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-child-hint-80.cells.json.gz",
+      "cells_sha256": "7e8dc8e3b17390bfa3bfdd9663917821d0c330a0e7200652a9d22aaf8ca53c38",
+      "png_sha256": "1169284db4f43bd2ba4f5fe058497b2c5578f6745c6eb8b34a0725b9f5074919",
+      "render_file": "tool-preview-root-child-hint-80.render.json.gz",
+      "render_sha256": "9f8e4959a95156bc92aec4ada516f9d817f183b79ec2f0846a5edd79138e057e",
+      "text_file": "tool-preview-root-child-hint-80.txt.gz",
+      "text_sha256": "02ca0f5fa1f3c9cfc49efb9714cba6098e8e83cde618cb41c389d8badc7f1f7c",
+      "vt_file": "tool-preview-root-child-hint-80.vt.gz",
+      "vt_sha256": "9052e2967fad698a0fdbcb6c032de97f86f259f194cfbb834de8b55b6aced476",
+      "path": "upstream/tool-preview-root-child-hint-80"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-child-hint-160.cells.json.gz",
+      "cells_sha256": "6c37fafdf59ef33df08d21dcb8555254e13e056f013aa0376d2ec92a78182ffc",
+      "png_sha256": "53dc7cd3e24994fb4254fad7f2d38b7433cc399f7a28c7b5798c82f51aa5e0db",
+      "render_file": "tool-preview-root-child-hint-160.render.json.gz",
+      "render_sha256": "be54cb0870c5da11e068329ef8b2f45347edd4ab4903a5d234db939b5da1f193",
+      "text_file": "tool-preview-root-child-hint-160.txt.gz",
+      "text_sha256": "ae51b55aff8d112cef71a379f63157915e1c57353054dc7e30bcdede38e254ff",
+      "vt_file": "tool-preview-root-child-hint-160.vt.gz",
+      "vt_sha256": "6a2fc2c0173a572a52ce970b1a61ef1e1f12419f525105fdc24fc1cd56339c78",
+      "path": "upstream/tool-preview-root-child-hint-160"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-background",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-background.cells.json.gz",
+      "cells_sha256": "46db2e1e292662f4ff350aee1c3466bd0757d367fb4c264201add30730dedfb3",
+      "png_sha256": "e44fc491aac60fcc6294333ff44e71d80270111afd74b7a71148089023475df0",
+      "render_file": "tool-preview-root-child-background.render.json.gz",
+      "render_sha256": "df1f7d7a6aa5e06cd6f4ec146f437e08a5e3365ea6a78d032d3261775106494c",
+      "text_file": "tool-preview-root-child-background.txt.gz",
+      "text_sha256": "0b061e59a3eda28f43a68eb09ba1bdb6c39ad996dd57829fd3a0749cee661332",
+      "vt_file": "tool-preview-root-child-background.vt.gz",
+      "vt_sha256": "1a3bc0d741ea378f035399b08d2fc8fa2a3786f8d85460c6fea64339140b13e2",
+      "path": "upstream/tool-preview-root-child-background"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-shell-hint",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-shell-hint.cells.json.gz",
+      "cells_sha256": "8e9f25d96baf37fb778fc0b24bbfd576b29ee6a145f322d20951b2e9f03b487f",
+      "png_sha256": "e44fc491aac60fcc6294333ff44e71d80270111afd74b7a71148089023475df0",
+      "render_file": "tool-preview-root-shell-hint.render.json.gz",
+      "render_sha256": "10087a3e31ed8dd376b3f0f2cb416ca3dfa13cdd859472878bd62f8289fb0ab8",
+      "text_file": "tool-preview-root-shell-hint.txt.gz",
+      "text_sha256": "0b061e59a3eda28f43a68eb09ba1bdb6c39ad996dd57829fd3a0749cee661332",
+      "vt_file": "tool-preview-root-shell-hint.vt.gz",
+      "vt_sha256": "1a3bc0d741ea378f035399b08d2fc8fa2a3786f8d85460c6fea64339140b13e2",
+      "path": "upstream/tool-preview-root-shell-hint"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-background-footer-80.cells.json.gz",
+      "cells_sha256": "35b17274af84bf06ba2e4210e691548912b928ba2b29b8f6f0c751a05d500d31",
+      "png_sha256": "e1378764019cb854b742e796910e15e99e818a214bed809a20a67b74c7729ad8",
+      "render_file": "tool-preview-root-background-footer-80.render.json.gz",
+      "render_sha256": "295fbb4456c787f6952c00529bfc5a1d70f393f6dcde7fb44ba182e0d93ad487",
+      "text_file": "tool-preview-root-background-footer-80.txt.gz",
+      "text_sha256": "07c8da6cda7a7f7bcacf16e73de30584a55cea9c82fc9025fde27384c173f4d8",
+      "vt_file": "tool-preview-root-background-footer-80.vt.gz",
+      "vt_sha256": "6c1e4a33fc68701424f323dc925c54bc7ba0cc5f3f442242d7084e03c47624e3",
+      "path": "upstream/tool-preview-root-background-footer-80"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-background-footer-120.cells.json.gz",
+      "cells_sha256": "44a3bc54cfce2e5cf671285643addee03a54f6801eba6db8bce50f36f4ba27ef",
+      "png_sha256": "52073c6e54923e11555bbb047a74faad1cafb478aed754f806690a13dccd1e66",
+      "render_file": "tool-preview-root-background-footer-120.render.json.gz",
+      "render_sha256": "e49a030d38e87e5a1c7abf5aa072ca507262977f144763c9ff60b482be58f413",
+      "text_file": "tool-preview-root-background-footer-120.txt.gz",
+      "text_sha256": "0acf5d9c30976eb83aab6c4cba6ea44477c48e5a6138b18038c1c2244e6cdc36",
+      "vt_file": "tool-preview-root-background-footer-120.vt.gz",
+      "vt_sha256": "dcd66166d1dfbc590235537966c31d6ea31babc195e5e9870454c27616f237f0",
+      "path": "upstream/tool-preview-root-background-footer-120"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-background-footer-160.cells.json.gz",
+      "cells_sha256": "dd572e54041a253e41c0b77688487e06116bd4fbc050591a6d9e5c85a0852de7",
+      "png_sha256": "4821a7eddbe4a0cd7138562a089fcb791e86293ae96b8a5c7539e79a7bc8ea25",
+      "render_file": "tool-preview-root-background-footer-160.render.json.gz",
+      "render_sha256": "2504cddb6bdcab1be5cbbec52d27df7ec379a61fdb91164faabe595786f352c5",
+      "text_file": "tool-preview-root-background-footer-160.txt.gz",
+      "text_sha256": "9413dc8d5b670014c9d8d8dfa6adc782e25bdbdaf5084938b5e775f1c812d722",
+      "vt_file": "tool-preview-root-background-footer-160.vt.gz",
+      "vt_sha256": "fac3e38496283436f32b5a0ab415b42818b358466e2aa3656507e223c401a02f",
+      "path": "upstream/tool-preview-root-background-footer-160"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-handoff-final",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-final.cells.json.gz",
+      "cells_sha256": "c66a112b69c6b6a9c1763bf98ee4819bdfafd7e8fd081ee75bdddccc78efa77a",
+      "png_sha256": "2fce97c226063d6f946d505a2a1a1db6d8f0c8c4c57e7f747cc233e4e20632b4",
+      "render_file": "tool-preview-root-handoff-final.render.json.gz",
+      "render_sha256": "c18bf6aa34d7e70fe73303311f53ce6076cad121c9aff607dc607131f322e60a",
+      "text_file": "tool-preview-root-handoff-final.txt.gz",
+      "text_sha256": "f54d63b124fd0d4ba96dfc62a141962d5227e2f0eafe1d0d9d24fa24132d5fcb",
+      "vt_file": "tool-preview-root-handoff-final.vt.gz",
+      "vt_sha256": "14d203c1de08dd20f3205b03417a59ccf08ee3e8e8db6523b6513260cc3c0842",
+      "path": "upstream/tool-preview-root-handoff-final"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-handoff-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-home.cells.json.gz",
+      "cells_sha256": "970df9a83c4b4db5bd4c3eb6157293d671dc949354064f64455f72bb21f0b4b7",
+      "png_sha256": "130136491be004355d7c31a57432b1e0325e83e90a6fb26ef24bd2a78799dc02",
+      "render_file": "tool-preview-root-handoff-home.render.json.gz",
+      "render_sha256": "31b82938065f690c0864c97e2d84107e76a8abe71caf0cc7bca56e3a09d8d2e8",
+      "text_file": "tool-preview-root-handoff-home.txt.gz",
+      "text_sha256": "48ebd9123247ae996a6d0cc329c7943f666ea22d34a03536923aba08c90dd6ce",
+      "vt_file": "tool-preview-root-handoff-home.vt.gz",
+      "vt_sha256": "f6d24014a337eabd2f234f08be7e6234449d145a830653e720d491c467fd6e44",
+      "path": "oc/tool-preview-root-handoff-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-hint-120.cells.json.gz",
+      "cells_sha256": "4217f3451519b9b772c192aee45f4cf67abb9932bd599a2f9bce6bc5866297be",
+      "png_sha256": "d6f6de342859a3a0c8156084a7e107628d880a210ea1d44f6334098bb34e7ab7",
+      "render_file": "tool-preview-root-child-hint-120.render.json.gz",
+      "render_sha256": "57cf1a95f830e43eca5c3bccd1e9d93e7bccc10b6d78b6b0c0bf4c5dbe515e83",
+      "text_file": "tool-preview-root-child-hint-120.txt.gz",
+      "text_sha256": "a82bce2b1e0211be6fdc8b06f82e9764e983ed2bb04afb308f9bb38d90ffa8fa",
+      "vt_file": "tool-preview-root-child-hint-120.vt.gz",
+      "vt_sha256": "54cbd630ad4b00d47bdb48594cbac8c57a2dfee90d0143e5b0f5bff3a82e1890",
+      "path": "oc/tool-preview-root-child-hint-120"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-child-hint-80.cells.json.gz",
+      "cells_sha256": "094687e638dfbd930af6657864ff597b8d8520d6404f7a2c4c48610d5a7f1b26",
+      "png_sha256": "bc27ad949c4b996b5dd31c0fb135406755b695041dea193c8123266595511464",
+      "render_file": "tool-preview-root-child-hint-80.render.json.gz",
+      "render_sha256": "2e29dc0abbf539b6e406e10326514dd6c3bbac0d16da4372fb1edaee6b41a62e",
+      "text_file": "tool-preview-root-child-hint-80.txt.gz",
+      "text_sha256": "43f47d0b5e02331bffc35ab0ae2317aae7b0ca8e81add77f8f91ced66f379ca2",
+      "vt_file": "tool-preview-root-child-hint-80.vt.gz",
+      "vt_sha256": "0f31c4d3581fda68faf4c98f916ad8a46fdc6218dd38515354342db2b638616a",
+      "path": "oc/tool-preview-root-child-hint-80"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-child-hint-160.cells.json.gz",
+      "cells_sha256": "767973b324a789700bc4b77b8667ce786b2c953cefc59af13a4f73c0f2e49868",
+      "png_sha256": "8bec08422f812ed38e76c69b0ad896caa95da9b4871006711c0cf61e75c61962",
+      "render_file": "tool-preview-root-child-hint-160.render.json.gz",
+      "render_sha256": "85805a4171dd9a6cc13228188dd67c259de29e1ae005d7bbba7cba7f13a5f382",
+      "text_file": "tool-preview-root-child-hint-160.txt.gz",
+      "text_sha256": "20fed5f32fc849519c7b365a86e5dd3fca7032715405af69d72f4e1844ee3b49",
+      "vt_file": "tool-preview-root-child-hint-160.vt.gz",
+      "vt_sha256": "b56a58e997470e50c4c600b435e312982d3dc9a408485f28574459789dd80df3",
+      "path": "oc/tool-preview-root-child-hint-160"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-background",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-background.cells.json.gz",
+      "cells_sha256": "f4c2dd7c9320bb357d1e943cd5b2409b1025b0ad61db991fcbe283dfd5212f5a",
+      "png_sha256": "b2020578811ec22cdcbacbdaec52d8453faa070663fac466bc978d46a1b96c0e",
+      "render_file": "tool-preview-root-child-background.render.json.gz",
+      "render_sha256": "7d268e6a684fe6a0fb6348ef665a8669ec4370ef79306f2292b523e1501fdd73",
+      "text_file": "tool-preview-root-child-background.txt.gz",
+      "text_sha256": "03a1779c50512232344668a2b4eec87cc1dd0a3ecb6166f53d3363064bdf436a",
+      "vt_file": "tool-preview-root-child-background.vt.gz",
+      "vt_sha256": "521dd86bfb76400eb1683b675579dbad5c99e95c01b3f3430388c8e37f09875a",
+      "path": "oc/tool-preview-root-child-background"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-shell-hint",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-shell-hint.cells.json.gz",
+      "cells_sha256": "02bcb55acaefbc67f010f66b8f3b57fd670b3d4971a5ce61c1a7651976fed7bc",
+      "png_sha256": "154dd87a1cec9efb200b4096bf9e1983d78bd1006410fab6f7878ddee36381b9",
+      "render_file": "tool-preview-root-shell-hint.render.json.gz",
+      "render_sha256": "90328354970ad8024cf007130d3ec876a53b7b62099f4cd45eaa18badac6a850",
+      "text_file": "tool-preview-root-shell-hint.txt.gz",
+      "text_sha256": "a435dde55f41dde727804a2709c9bcecee8d3f1620fd32a39ac4cbd7c3ca1cd3",
+      "vt_file": "tool-preview-root-shell-hint.vt.gz",
+      "vt_sha256": "a5973d6e441bfcd5d5a84a9b21c93c00a1da982e31afc052761f9af16e6c4dce",
+      "path": "oc/tool-preview-root-shell-hint"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-background-footer-80.cells.json.gz",
+      "cells_sha256": "7d7e9516f53f38ce8e59b52b89a2f2785f585e855f555df7a953e10b81cc25a4",
+      "png_sha256": "323e4d2fa0929c54998d4320dce1c6e543f48c9a8bf032b78574586da552c31e",
+      "render_file": "tool-preview-root-background-footer-80.render.json.gz",
+      "render_sha256": "b6258a5232697a728f6e3aa5c61b2d9a3ecc4c8656ee203b26c4d0718c389344",
+      "text_file": "tool-preview-root-background-footer-80.txt.gz",
+      "text_sha256": "a449646bb89bd52c2abe55520324b47b104fa778ed75e5929a24c68012497a99",
+      "vt_file": "tool-preview-root-background-footer-80.vt.gz",
+      "vt_sha256": "69e49a3bbd2b38a441297bddc8287385e64de3e0c05ace1c9349ac9d8e4ee3b9",
+      "path": "oc/tool-preview-root-background-footer-80"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-background-footer-120.cells.json.gz",
+      "cells_sha256": "26f8a45527c5dd8b2967539cb8b34bf366431d6ee7a2582767a5ca14e25e669d",
+      "png_sha256": "02d4deeba0d2187305448fb60adca74ac478681d1c4008bd8a9786fc5edf7a4c",
+      "render_file": "tool-preview-root-background-footer-120.render.json.gz",
+      "render_sha256": "d81cbc78270fcb107055a7c1a2151fc05dd42ec4e2907c37c19cc947dfafa1a8",
+      "text_file": "tool-preview-root-background-footer-120.txt.gz",
+      "text_sha256": "d9ce19ceb963edd7afc1d54663f99da58cf390041813d6dcb7ce70b7152a01e5",
+      "vt_file": "tool-preview-root-background-footer-120.vt.gz",
+      "vt_sha256": "782d207a32f43ba4766be90a234c9ea54ce7452f0dcbd03842ba051a386e19a0",
+      "path": "oc/tool-preview-root-background-footer-120"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-background-footer-160.cells.json.gz",
+      "cells_sha256": "529fe6d204036c1f7fd655f989614e9f97e14d3ad373ed843e7eafbfead678bf",
+      "png_sha256": "d67d5c365747f913b44352d742baca412236fd7f043e26fe392fc5da35031c09",
+      "render_file": "tool-preview-root-background-footer-160.render.json.gz",
+      "render_sha256": "4f2fe85cbcc8a77e04a2d85d46a403b5d1246ed6f30fe3dcbee1049bddee10f9",
+      "text_file": "tool-preview-root-background-footer-160.txt.gz",
+      "text_sha256": "c99e61b665f2cac5768299c34f938153a65c499be6b53566cc1e7436006139e2",
+      "vt_file": "tool-preview-root-background-footer-160.vt.gz",
+      "vt_sha256": "0deaeca50206aab310c3d43692b90495e115d785cc1501c55c754880a4d1d310",
+      "path": "oc/tool-preview-root-background-footer-160"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-handoff-final",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-final.cells.json.gz",
+      "cells_sha256": "3fec9b44628cfc68e886962025e6fc82ca0ed64dd3cbaeac3dba1eb17ce08859",
+      "png_sha256": "a579acf37153a77624da023ece5762240b0dc03f21fd204943695c4c2e4d79e2",
+      "render_file": "tool-preview-root-handoff-final.render.json.gz",
+      "render_sha256": "fa07fc3a5d8a9657f1f0b4d2cb4ad83b1e830ebeb852c295d5e980ea061adab7",
+      "text_file": "tool-preview-root-handoff-final.txt.gz",
+      "text_sha256": "b8bd31c7ac405d36ace7810f88d28e02de3e3d6041c2deab6a72244574146e2a",
+      "vt_file": "tool-preview-root-handoff-final.vt.gz",
+      "vt_sha256": "6d2e20d86271eb63f6fbb4f4f457c42aa4113a157fc40852ba9d104a673a84d0",
+      "path": "oc/tool-preview-root-handoff-final"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": null,
+    "user_shell": false,
+    "combined_composer": true,
+    "model_shell": false,
+    "subagent_cards": false,
+    "root_handoff": true,
+    "cells_encoding": "gzip",
+    "frame_sidecars_encoding": "gzip",
+    "same_side_identical_png_links": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "root-handoff-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-background",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-shell-hint",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-handoff-final",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 8,
+          "calls": 3,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "composer": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "initial": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-child-foreground-1791594651479",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first"
+                ],
+                "bytes": 6,
+                "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": false
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "parent_id": null,
+                      "time_created": 1791594650926
+                    },
+                    {
+                      "id": "ses_edca3220fffegWY6hPAPlefTTb",
+                      "parent_id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "time_created": 1791594651125
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "second": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-own-shell-foreground-1791594663961",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "parent_id": null,
+                      "time_created": 1791594650926
+                    },
+                    {
+                      "id": "ses_edca3220fffegWY6hPAPlefTTb",
+                      "parent_id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "time_created": 1791594651125
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "converted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-converted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "parent_id": null,
+                      "time_created": 1791594650926
+                    },
+                    {
+                      "id": "ses_edca3220fffegWY6hPAPlefTTb",
+                      "parent_id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "time_created": 1791594651125
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "settled": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-child-settled-1791594682781",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "parent_id": null,
+                      "time_created": 1791594650926
+                    },
+                    {
+                      "id": "ses_edca3220fffegWY6hPAPlefTTb",
+                      "parent_id": "ses_edca322eaffes3pMgUoc2IVacc",
+                      "time_created": 1791594651125
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "actual_calls": 3,
+        "actual_requests": 8,
+        "root_prompt_remapped_key": "ctrl+y",
+        "preserved_source_and_process": true,
+        "nested_child_shell_not_root_target": true,
+        "no_effect_replay": true,
+        "scopes": "Both sides use their actual focused Root remapped background binding; no composer/viewer shortcut or API view injection. Native delay uses actual live receipt time, original its stored part start."
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "root-handoff-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-background",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-shell-hint",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-handoff-final",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "composer": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "initial": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-child-foreground-1791594692762",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "subagent",
+                    "state": "started",
+                    "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                    "output": null,
+                    "provider_call_id": "call_vis39_parent",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                    "name": "shell",
+                    "state": "started",
+                    "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                    "output": null,
+                    "provider_call_id": "call_vis39_shell_0",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791594692-181374-0",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "name": "tool_1791594692-181374-0.part",
+                    "descriptor": "{\"id\":\"tool_1791594692-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.part\",\"bytes\":68,\"lines\":5,\"admitted_bytes\":68,\"admitted_lines\":5,\"state\":\"Active\",\"shell\":{\"stdout_bytes\":31,\"stdout_lines\":2,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":2,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864332,
+                    "extent": 68,
+                    "state": "Active",
+                    "completed": null
+                  }
+                ],
+                "presentation": []
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first"
+                ],
+                "bytes": 6,
+                "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": false
+            },
+            "observations": [
+              {
+                "tables": [
+                  "blobs",
+                  "child_jobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "credential_accounts",
+                  "dcp_accounting",
+                  "dcp_coverage",
+                  "dcp_run_identity",
+                  "dcp_run_views",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "patch_effects",
+                  "permission_grants",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "session_checkpoint",
+                  "session_compactions",
+                  "session_moves",
+                  "session_usage_anchor",
+                  "sessions",
+                  "shell_jobs",
+                  "sqlite_sequence",
+                  "terminal_selection",
+                  "terminals",
+                  "tool_operations",
+                  "tool_output_resources",
+                  "turn_acceptances",
+                  "turn_raw_segments",
+                  "turns"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "created_at": "1791594692",
+                      "parent_id": null,
+                      "agent": null,
+                      "model": null,
+                      "title": "VIS39 parent",
+                      "updated_at": "1791594692.482"
+                    },
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "created_at": "1791594692",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "agent": "helper",
+                      "model": "fixture/fixture-model-1",
+                      "title": "Inspect child shell",
+                      "updated_at": "1791594692.491"
+                    }
+                  ],
+                  "child_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "child_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "identity": "{\"parent\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"child\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"generation\":1,\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"agent\":\"helper\",\"model\":\"fixture/fixture-model-1\",\"description\":\"Inspect child shell\",\"delivery_id\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"state\":\"admitted\",\"background\":false,\"turn\":null,\"result\":null,\"message_id\":null}",
+                      "state": "running",
+                      "child_turn": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "result": null,
+                      "delivery_id": "subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "message_id": null,
+                      "converted_background": 0
+                    }
+                  ],
+                  "shell_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"helper\",\"agent_digest\":\"ea7260246022b528\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py first\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "running",
+                      "process": "{\"pid\":181451,\"start_ticks\":226970270,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": null,
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 0
+                    }
+                  ],
+                  "tool_operations": [
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "subagent",
+                      "state": "started",
+                      "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                      "output": null,
+                      "provider_call_id": "call_vis39_parent",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "name": "shell",
+                      "state": "started",
+                      "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                      "output": null,
+                      "provider_call_id": "call_vis39_shell_0",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    }
+                  ],
+                  "terminals": [],
+                  "terminal_selection": []
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "second": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-own-shell-foreground-1791594705047",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "subagent",
+                    "state": "running",
+                    "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                    "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                    "provider_call_id": "call_vis39_parent",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                    "name": "shell",
+                    "state": "started",
+                    "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                    "output": null,
+                    "provider_call_id": "call_vis39_shell_0",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "shell",
+                    "state": "started",
+                    "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                    "output": null,
+                    "provider_call_id": "call_vis39_shell_1",
+                    "call_occurrence": 0,
+                    "original_input_index": 3
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791594692-181374-0",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "name": "tool_1791594692-181374-0.part",
+                    "descriptor": "{\"id\":\"tool_1791594692-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.part\",\"bytes\":68,\"lines\":5,\"admitted_bytes\":68,\"admitted_lines\":5,\"state\":\"Active\",\"shell\":{\"stdout_bytes\":31,\"stdout_lines\":2,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":2,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864332,
+                    "extent": 68,
+                    "state": "Active",
+                    "completed": null
+                  },
+                  {
+                    "id": "tool_1791594704-181374-1",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "name": "tool_1791594704-181374-1.part",
+                    "descriptor": "{\"id\":\"tool_1791594704-181374-1\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.part\",\"bytes\":41,\"lines\":3,\"admitted_bytes\":41,\"admitted_lines\":3,\"state\":\"Active\",\"shell\":{\"stdout_bytes\":32,\"stdout_lines\":2,\"stderr_bytes\":0,\"stderr_lines\":0,\"observed_chunks\":2,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864348,
+                    "extent": 41,
+                    "state": "Active",
+                    "completed": null
+                  }
+                ],
+                "presentation": []
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "blobs",
+                  "child_jobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "credential_accounts",
+                  "dcp_accounting",
+                  "dcp_coverage",
+                  "dcp_run_identity",
+                  "dcp_run_views",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "patch_effects",
+                  "permission_grants",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "session_checkpoint",
+                  "session_compactions",
+                  "session_moves",
+                  "session_usage_anchor",
+                  "sessions",
+                  "shell_jobs",
+                  "sqlite_sequence",
+                  "terminal_selection",
+                  "terminals",
+                  "tool_operations",
+                  "tool_output_resources",
+                  "turn_acceptances",
+                  "turn_raw_segments",
+                  "turns"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "created_at": "1791594692",
+                      "parent_id": null,
+                      "agent": null,
+                      "model": null,
+                      "title": "VIS39 parent",
+                      "updated_at": "1791594704.804"
+                    },
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "created_at": "1791594692",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "agent": "helper",
+                      "model": "fixture/fixture-model-1",
+                      "title": "Inspect child shell",
+                      "updated_at": "1791594692.491"
+                    }
+                  ],
+                  "child_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "child_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "identity": "{\"parent\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"child\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"generation\":1,\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"agent\":\"helper\",\"model\":\"fixture/fixture-model-1\",\"description\":\"Inspect child shell\",\"delivery_id\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"state\":\"admitted\",\"background\":false,\"turn\":null,\"result\":null,\"message_id\":null}",
+                      "state": "running",
+                      "child_turn": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "result": null,
+                      "delivery_id": "subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "message_id": null,
+                      "converted_background": 1
+                    }
+                  ],
+                  "shell_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"helper\",\"agent_digest\":\"ea7260246022b528\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py first\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "running",
+                      "process": "{\"pid\":181451,\"start_ticks\":226970270,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": null,
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 0
+                    },
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"build\",\"agent_digest\":\"90f05f7c7e3b09f7\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py second\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "running",
+                      "process": "{\"pid\":181647,\"start_ticks\":226971502,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": null,
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 0
+                    }
+                  ],
+                  "tool_operations": [
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "subagent",
+                      "state": "running",
+                      "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                      "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                      "provider_call_id": "call_vis39_parent",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "name": "shell",
+                      "state": "started",
+                      "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                      "output": null,
+                      "provider_call_id": "call_vis39_shell_0",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "shell",
+                      "state": "started",
+                      "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                      "output": null,
+                      "provider_call_id": "call_vis39_shell_1",
+                      "call_occurrence": 0,
+                      "original_input_index": 3
+                    }
+                  ],
+                  "terminals": [],
+                  "terminal_selection": []
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "converted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-converted",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "subagent",
+                    "state": "running",
+                    "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                    "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                    "provider_call_id": "call_vis39_parent",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                    "name": "shell",
+                    "state": "started",
+                    "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                    "output": null,
+                    "provider_call_id": "call_vis39_shell_0",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                    "output": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                    "provider_call_id": "call_vis39_shell_1",
+                    "call_occurrence": 0,
+                    "original_input_index": 3
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791594692-181374-0",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "name": "tool_1791594692-181374-0.part",
+                    "descriptor": "{\"id\":\"tool_1791594692-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.part\",\"bytes\":68,\"lines\":5,\"admitted_bytes\":68,\"admitted_lines\":5,\"state\":\"Active\",\"shell\":{\"stdout_bytes\":31,\"stdout_lines\":2,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":2,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":1,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864332,
+                    "extent": 68,
+                    "state": "Active",
+                    "completed": null
+                  },
+                  {
+                    "id": "tool_1791594704-181374-1",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "name": "tool_1791594704-181374-1.part",
+                    "descriptor": "{\"id\":\"tool_1791594704-181374-1\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.part\",\"bytes\":70,\"lines\":5,\"admitted_bytes\":70,\"admitted_lines\":5,\"state\":\"Active\",\"shell\":{\"stdout_bytes\":32,\"stdout_lines\":2,\"stderr_bytes\":20,\"stderr_lines\":1,\"observed_chunks\":3,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":2,\"stderr_first_read\":3,\"stderr_last_read\":3,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864348,
+                    "extent": 70,
+                    "state": "Active",
+                    "completed": null
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "presentation": {
+                      "body": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                      "body_bytes": 285,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": false,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.part",
+                        "state": "Active",
+                        "admitted_bytes": 70,
+                        "retained_bytes": 70,
+                        "admitted_lines": 5,
+                        "retained_lines": 5
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "blobs",
+                  "child_jobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "credential_accounts",
+                  "dcp_accounting",
+                  "dcp_coverage",
+                  "dcp_run_identity",
+                  "dcp_run_views",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "patch_effects",
+                  "permission_grants",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "session_checkpoint",
+                  "session_compactions",
+                  "session_moves",
+                  "session_usage_anchor",
+                  "sessions",
+                  "shell_jobs",
+                  "sqlite_sequence",
+                  "terminal_selection",
+                  "terminals",
+                  "tool_operations",
+                  "tool_output_resources",
+                  "turn_acceptances",
+                  "turn_raw_segments",
+                  "turns"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "created_at": "1791594692",
+                      "parent_id": null,
+                      "agent": null,
+                      "model": null,
+                      "title": "VIS39 parent",
+                      "updated_at": "1791594710.836"
+                    },
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "created_at": "1791594692",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "agent": "helper",
+                      "model": "fixture/fixture-model-1",
+                      "title": "Inspect child shell",
+                      "updated_at": "1791594692.491"
+                    }
+                  ],
+                  "child_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "child_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "identity": "{\"parent\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"child\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"generation\":1,\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"agent\":\"helper\",\"model\":\"fixture/fixture-model-1\",\"description\":\"Inspect child shell\",\"delivery_id\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"state\":\"admitted\",\"background\":false,\"turn\":null,\"result\":null,\"message_id\":null}",
+                      "state": "running",
+                      "child_turn": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "result": null,
+                      "delivery_id": "subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "message_id": null,
+                      "converted_background": 1
+                    }
+                  ],
+                  "shell_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"helper\",\"agent_digest\":\"ea7260246022b528\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py first\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "running",
+                      "process": "{\"pid\":181451,\"start_ticks\":226970270,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": null,
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 0
+                    },
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"build\",\"agent_digest\":\"90f05f7c7e3b09f7\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py second\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "running",
+                      "process": "{\"pid\":181647,\"start_ticks\":226971502,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": null,
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 1
+                    }
+                  ],
+                  "tool_operations": [
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "subagent",
+                      "state": "running",
+                      "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                      "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                      "provider_call_id": "call_vis39_parent",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "name": "shell",
+                      "state": "started",
+                      "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                      "output": null,
+                      "provider_call_id": "call_vis39_shell_0",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "shell",
+                      "state": "completed",
+                      "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                      "output": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                      "provider_call_id": "call_vis39_shell_1",
+                      "call_occurrence": 0,
+                      "original_input_index": 3
+                    }
+                  ],
+                  "terminals": [],
+                  "terminal_selection": []
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "settled": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-child-settled-1791594724481",
+          "observations": [
+            {
+              "tables": [
+                "blobs",
+                "child_jobs",
+                "compression_blocks",
+                "compression_identity",
+                "compression_members",
+                "conversation_contexts",
+                "conversation_exclusions",
+                "conversation_objects",
+                "conversation_points",
+                "conversation_redo",
+                "conversation_revision",
+                "conversation_state",
+                "conversation_tracked",
+                "conversation_versions",
+                "credential_accounts",
+                "dcp_accounting",
+                "dcp_coverage",
+                "dcp_run_identity",
+                "dcp_run_views",
+                "dcp_tool_projection",
+                "dcp_tool_projection_v2",
+                "events",
+                "messages",
+                "patch_effects",
+                "permission_grants",
+                "prefs",
+                "prune_marks",
+                "schema_migrations",
+                "session_checkpoint",
+                "session_compactions",
+                "session_moves",
+                "session_usage_anchor",
+                "sessions",
+                "shell_jobs",
+                "sqlite_sequence",
+                "terminal_selection",
+                "terminals",
+                "tool_operations",
+                "tool_output_resources",
+                "turn_acceptances",
+                "turn_raw_segments",
+                "turns"
+              ],
+              "data": {
+                "tool_operations": [
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "subagent",
+                    "state": "running",
+                    "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                    "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                    "provider_call_id": "call_vis39_parent",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                    "output": "exit 0\nVIS39-LIVE-first\nVIS39-ROW-079\nVIS39-FINAL-FLUSH-first\n\n[stderr]\nVIS39-STDERR-first\n",
+                    "provider_call_id": "call_vis39_shell_0",
+                    "call_occurrence": 0,
+                    "original_input_index": 1
+                  },
+                  {
+                    "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                    "name": "shell",
+                    "state": "completed",
+                    "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                    "output": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                    "provider_call_id": "call_vis39_shell_1",
+                    "call_occurrence": 0,
+                    "original_input_index": 3
+                  }
+                ],
+                "tool_output_resources": [
+                  {
+                    "id": "tool_1791594692-181374-0",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                    "name": "tool_1791594692-181374-0.txt",
+                    "descriptor": "{\"id\":\"tool_1791594692-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.txt\",\"bytes\":101,\"lines\":7,\"admitted_bytes\":101,\"admitted_lines\":7,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":55,\"stdout_lines\":3,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":3,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":3,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864332,
+                    "extent": 101,
+                    "state": "Complete",
+                    "completed": 1791594724
+                  },
+                  {
+                    "id": "tool_1791594704-181374-1",
+                    "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                    "name": "tool_1791594704-181374-1.txt",
+                    "descriptor": "{\"id\":\"tool_1791594704-181374-1\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.txt\",\"bytes\":104,\"lines\":7,\"admitted_bytes\":104,\"admitted_lines\":7,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":57,\"stdout_lines\":3,\"stderr_bytes\":20,\"stderr_lines\":1,\"observed_chunks\":4,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":4,\"stderr_first_read\":3,\"stderr_last_read\":3,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}}",
+                    "dev": 65027,
+                    "ino": 4864348,
+                    "extent": 104,
+                    "state": "Complete",
+                    "completed": 1791594724
+                  }
+                ],
+                "presentation": [
+                  {
+                    "operation": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "presentation": {
+                      "body": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                      "body_bytes": 285,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": false,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.part",
+                        "state": "Active",
+                        "admitted_bytes": 70,
+                        "retained_bytes": 70,
+                        "admitted_lines": 5,
+                        "retained_lines": 5
+                      }
+                    }
+                  },
+                  {
+                    "operation": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "presentation": {
+                      "body": "VIS39-LIVE-first\nVIS39-ROW-079\nVIS39-STDERR-first\nVIS39-FINAL-FLUSH-first\n",
+                      "body_bytes": 74,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 101,
+                        "retained_bytes": 101,
+                        "admitted_lines": 7,
+                        "retained_lines": 7
+                      },
+                      "shell": {
+                        "background": false,
+                        "process_state": "completed",
+                        "stdout": "VIS39-LIVE-first\nVIS39-ROW-079\nVIS39-FINAL-FLUSH-first\n",
+                        "stderr": "VIS39-STDERR-first\n",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  },
+                  {
+                    "operation": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                    "presentation": {
+                      "body": "VIS39-LIVE-first\nVIS39-ROW-079\nVIS39-STDERR-first\nVIS39-FINAL-FLUSH-first\n",
+                      "body_bytes": 74,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 101,
+                        "retained_bytes": 101,
+                        "admitted_lines": 7,
+                        "retained_lines": 7
+                      },
+                      "shell": {
+                        "background": false,
+                        "process_state": "completed",
+                        "stdout": "VIS39-LIVE-first\nVIS39-ROW-079\nVIS39-FINAL-FLUSH-first\n",
+                        "stderr": "VIS39-STDERR-first\n",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  },
+                  {
+                    "operation": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                    "presentation": {
+                      "body": "VIS39-LIVE-second\nVIS39-ROW-079\nVIS39-STDERR-second\nVIS39-FINAL-FLUSH-second\n",
+                      "body_bytes": 77,
+                      "body_limited": false,
+                      "generated_guidance": false,
+                      "producer_limited": null,
+                      "capture": {
+                        "reference": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.txt",
+                        "state": "Complete",
+                        "admitted_bytes": 104,
+                        "retained_bytes": 104,
+                        "admitted_lines": 7,
+                        "retained_lines": 7
+                      },
+                      "shell": {
+                        "background": true,
+                        "process_state": "completed",
+                        "stdout": "VIS39-LIVE-second\nVIS39-ROW-079\nVIS39-FINAL-FLUSH-second\n",
+                        "stderr": "VIS39-STDERR-second\n",
+                        "stdout_limited": false,
+                        "stderr_limited": false,
+                        "exit": 0,
+                        "signal": null,
+                        "timed_out": false,
+                        "cancelled": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "artifacts": {
+            "data/oc/tool-output/tool_1791594692-181374-0.txt": {
+              "bytes": 101,
+              "sha256": "acaedd3f2ff4877e29a85c4282acc3b7508b6fe1424f172c97355da3a6264b1d"
+            },
+            "data/oc/tool-output/tool_1791594704-181374-1.txt": {
+              "bytes": 104,
+              "sha256": "b7facc43492b4ca5cb2f5ecc247286ca67acba61e3bc6f9b09cf4b7fea91ce24"
+            }
+          },
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "blobs",
+                  "child_jobs",
+                  "compression_blocks",
+                  "compression_identity",
+                  "compression_members",
+                  "conversation_contexts",
+                  "conversation_exclusions",
+                  "conversation_objects",
+                  "conversation_points",
+                  "conversation_redo",
+                  "conversation_revision",
+                  "conversation_state",
+                  "conversation_tracked",
+                  "conversation_versions",
+                  "credential_accounts",
+                  "dcp_accounting",
+                  "dcp_coverage",
+                  "dcp_run_identity",
+                  "dcp_run_views",
+                  "dcp_tool_projection",
+                  "dcp_tool_projection_v2",
+                  "events",
+                  "messages",
+                  "patch_effects",
+                  "permission_grants",
+                  "prefs",
+                  "prune_marks",
+                  "schema_migrations",
+                  "session_checkpoint",
+                  "session_compactions",
+                  "session_moves",
+                  "session_usage_anchor",
+                  "sessions",
+                  "shell_jobs",
+                  "sqlite_sequence",
+                  "terminal_selection",
+                  "terminals",
+                  "tool_operations",
+                  "tool_output_resources",
+                  "turn_acceptances",
+                  "turn_raw_segments",
+                  "turns"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "created_at": "1791594692",
+                      "parent_id": null,
+                      "agent": null,
+                      "model": null,
+                      "title": "VIS39 parent",
+                      "updated_at": "1791594724.422"
+                    },
+                    {
+                      "id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "created_at": "1791594692",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "agent": "helper",
+                      "model": "fixture/fixture-model-1",
+                      "title": "Inspect child shell",
+                      "updated_at": "1791594724.408"
+                    }
+                  ],
+                  "child_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "parent_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "child_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "identity": "{\"parent\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"child\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"generation\":1,\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"agent\":\"helper\",\"model\":\"fixture/fixture-model-1\",\"description\":\"Inspect child shell\",\"delivery_id\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"state\":\"admitted\",\"background\":false,\"turn\":null,\"result\":null,\"message_id\":null}",
+                      "state": "completed",
+                      "child_turn": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "result": "VIS39-CHILD-DONE",
+                      "delivery_id": "subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "message_id": "m0006",
+                      "converted_background": 1
+                    }
+                  ],
+                  "shell_jobs": [
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"helper\",\"agent_digest\":\"ea7260246022b528\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py first\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "terminal",
+                      "process": "{\"pid\":181451,\"start_ticks\":226970270,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": "{\"version\":1,\"state\":\"completed\",\"exit\":0,\"signal\":null,\"stdout\":\"VIS39-LIVE-first\\nVIS39-ROW-079\\nVIS39-FINAL-FLUSH-first\\n\",\"stderr\":\"VIS39-STDERR-first\\n\",\"stdout_truncated\":false,\"stderr_truncated\":false,\"timeout\":false,\"cancelled\":false,\"diagnostic\":null,\"stdout_bytes\":55,\"stderr_bytes\":28,\"output_prepared\":false,\"capture\":{\"id\":\"tool_1791594692-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.txt\",\"bytes\":101,\"lines\":7,\"admitted_bytes\":101,\"admitted_lines\":7,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":55,\"stdout_lines\":3,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":3,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":3,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}},\"capture_facts\":{\"stdout_bytes\":55,\"stdout_lines\":3,\"stderr_bytes\":19,\"stderr_lines\":1,\"observed_chunks\":3,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":3,\"stderr_first_read\":2,\"stderr_last_read\":2,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0},\"output_presentation\":{\"body\":\"VIS39-LIVE-first\\nVIS39-ROW-079\\nVIS39-STDERR-first\\nVIS39-FINAL-FLUSH-first\\n\",\"body_bytes\":74,\"body_limited\":false,\"generated_guidance\":false,\"producer_limited\":null,\"capture\":{\"reference\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594692-181374-0.txt\",\"state\":\"Complete\",\"admitted_bytes\":101,\"retained_bytes\":101,\"admitted_lines\":7,\"retained_lines\":7},\"shell\":{\"background\":false,\"process_state\":\"completed\",\"stdout\":\"VIS39-LIVE-first\\nVIS39-ROW-079\\nVIS39-FINAL-FLUSH-first\\n\",\"stderr\":\"VIS39-STDERR-first\\n\",\"stdout_limited\":false,\"stderr_limited\":false,\"exit\":0,\"signal\":null,\"timed_out\":false,\"cancelled\":false}},\"display_recent\":\"VIS39-LIVE-first\\nVIS39-ROW-079\\nVIS39-STDERR-first\\nVIS39-FINAL-FLUSH-first\\n\",\"display_omitted\":false}",
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "message_id": null,
+                      "foreground_admitted": 1,
+                      "converted_background": 0
+                    },
+                    {
+                      "operation_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "version": 1,
+                      "provenance": "{\"version\":1,\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"turn\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"output_limits\":{\"max_lines\":1000,\"max_bytes\":65536},\"output_source\":\"source-19a57bd6/opencode.json\",\"agent\":\"build\",\"agent_digest\":\"90f05f7c7e3b09f7\",\"model\":\"fixture-model-1\",\"provider\":\"fixture\",\"command\":\"python3 composer-probe.py second\",\"cwd\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"selected_shell\":\"/bin/sh\"}",
+                      "phase": "terminal",
+                      "process": "{\"pid\":181647,\"start_ticks\":226971502,\"boot\":\"b9570160-f543-468b-8a95-fe7f1d1fb77f\",\"uid\":1003,\"owner_root\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc\",\"owner_dev\":65027,\"owner_ino\":4864317}",
+                      "outcome": "{\"version\":1,\"state\":\"completed\",\"exit\":0,\"signal\":null,\"stdout\":\"VIS39-LIVE-second\\nVIS39-ROW-079\\nVIS39-FINAL-FLUSH-second\\n\",\"stderr\":\"VIS39-STDERR-second\\n\",\"stdout_truncated\":false,\"stderr_truncated\":false,\"timeout\":false,\"cancelled\":false,\"diagnostic\":null,\"stdout_bytes\":57,\"stderr_bytes\":29,\"output_prepared\":false,\"capture\":{\"id\":\"tool_1791594704-181374-1\",\"operation\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"session\":\"s-tui-18dd05e15bfbc653-2c47e-0\",\"location\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/project\",\"generation\":1,\"source\":\"source-19a57bd6/opencode.json\",\"path\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.txt\",\"bytes\":104,\"lines\":7,\"admitted_bytes\":104,\"admitted_lines\":7,\"state\":\"Complete\",\"shell\":{\"stdout_bytes\":57,\"stdout_lines\":3,\"stderr_bytes\":20,\"stderr_lines\":1,\"observed_chunks\":4,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":4,\"stderr_first_read\":3,\"stderr_last_read\":3,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0}},\"capture_facts\":{\"stdout_bytes\":57,\"stdout_lines\":3,\"stderr_bytes\":20,\"stderr_lines\":1,\"observed_chunks\":4,\"format\":\"stdout/stderr labels: serialized normalized/redacted publication; carry can defer text past other raw reads; first/last_read are nonempty Capture ingress sequences, not OS emission order\",\"stdout_first_read\":1,\"stdout_last_read\":4,\"stderr_first_read\":3,\"stderr_last_read\":3,\"stdout_carry_releases\":0,\"stderr_carry_releases\":0},\"output_presentation\":{\"body\":\"VIS39-LIVE-second\\nVIS39-ROW-079\\nVIS39-STDERR-second\\nVIS39-FINAL-FLUSH-second\\n\",\"body_bytes\":77,\"body_limited\":false,\"generated_guidance\":false,\"producer_limited\":null,\"capture\":{\"reference\":\"/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/root-handoff-003/oc/home/data/oc/tool-output/tool_1791594704-181374-1.txt\",\"state\":\"Complete\",\"admitted_bytes\":104,\"retained_bytes\":104,\"admitted_lines\":7,\"retained_lines\":7},\"shell\":{\"background\":true,\"process_state\":\"completed\",\"stdout\":\"VIS39-LIVE-second\\nVIS39-ROW-079\\nVIS39-FINAL-FLUSH-second\\n\",\"stderr\":\"VIS39-STDERR-second\\n\",\"stdout_limited\":false,\"stderr_limited\":false,\"exit\":0,\"signal\":null,\"timed_out\":false,\"cancelled\":false}},\"display_recent\":\"VIS39-LIVE-second\\nVIS39-ROW-079\\nVIS39-STDERR-second\\nVIS39-FINAL-FLUSH-second\\n\",\"display_omitted\":false}",
+                      "delivery_id": "shell-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "message_id": "m0004",
+                      "foreground_admitted": 1,
+                      "converted_background": 1
+                    }
+                  ],
+                  "tool_operations": [
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "subagent",
+                      "state": "running",
+                      "input": "{\"agent\":\"helper\",\"description\":\"Inspect child shell\",\"prompt\":\"VIS39_CHILD_TASK\"}",
+                      "output": "{\"sessionID\":\"s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0\",\"status\":\"running\",\"jobGeneration\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"sourceGeneration\":1,\"deliveryID\":\"subagent-notice:ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r1-c0-call_vis39_parent\",\"output\":\"The subagent is working independently in the background. You will be notified automatically when it finishes. DO NOT poll or duplicate this work; continue independent work or end your response.\"}",
+                      "provider_call_id": "call_vis39_parent",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3-r1-c0-call_vis39_shell_0",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-sub-ts-tui-18dd05e15bfbc653-2c47e-0-1791594692359-181374-2-0-1791594692377-181374-3",
+                      "name": "shell",
+                      "state": "completed",
+                      "input": "{\"command\":\"python3 composer-probe.py first\"}",
+                      "output": "exit 0\nVIS39-LIVE-first\nVIS39-ROW-079\nVIS39-FINAL-FLUSH-first\n\n[stderr]\nVIS39-STDERR-first\n",
+                      "provider_call_id": "call_vis39_shell_0",
+                      "call_occurrence": 0,
+                      "original_input_index": 1
+                    },
+                    {
+                      "id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1",
+                      "session_id": "s-tui-18dd05e15bfbc653-2c47e-0",
+                      "turn_id": "ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0",
+                      "name": "shell",
+                      "state": "completed",
+                      "input": "{\"command\":\"python3 composer-probe.py second\"}",
+                      "output": "{\"status\":\"running\",\"shellID\":\"ts-tui-18dd05e15bfbc653-2c47e-0-1791594692240-181374-0-r2-c0-call_vis39_shell_1\",\"truncated\":false,\"output\":\"Background command launched. You will be notified automatically when it completes. DO NOT poll; continue independent work or end your response.\"}",
+                      "provider_call_id": "call_vis39_shell_1",
+                      "call_occurrence": 0,
+                      "original_input_index": 3
+                    }
+                  ],
+                  "terminals": [],
+                  "terminal_selection": []
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "actual_calls": 3,
+        "actual_requests": 6,
+        "root_prompt_remapped_key": "ctrl+y",
+        "preserved_source_and_process": true,
+        "nested_child_shell_not_root_target": true,
+        "no_effect_replay": true,
+        "scopes": "Both sides use their actual focused Root remapped background binding; no composer/viewer shortcut or API view injection. Native delay uses actual live receipt time, original its stored part start."
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_COMPOSER_ONLY",
+    "actual_requests": "Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only",
+    "capture": "Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Other VIS39 and full frozen T44 outcomes require independent qualification"
+    ]
+  },
+  "finished": "2026-10-10T01:12:11.408Z",
+  "exit_code": 1
+}
