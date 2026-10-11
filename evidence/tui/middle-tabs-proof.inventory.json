@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "ceb8acf4f26bcf5b69399b3925aaf0d52f8a00c76cef4a24adb06ea5eff52ca1",
+  "archive_bytes": 2600336,
+  "tar_sha256": "439be045a3151d87c1a80f8055097297d4d62df449e7029f44b903ef07fc407b",
+  "tar_bytes": 91013120,
+  "inventory": {
+    "members": 1124,
+    "logical_bytes": 90934670,
+    "member_inventory_sha256": "7d89a049a94e0f33375ba30757819880698b27d505c588b63dc23ea13eeb7f4c",
+    "same_side_png_aliases": 38
+  },
+  "source_roots": {
+    "current-horizontal": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-002/horizontal",
+    "current-clipped": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-002/clipped",
+    "current-vertical": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-002/vertical",
+    "current-compact": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-002/compact",
+    "historical-horizontal": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-001/horizontal",
+    "historical-clipped": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-001/clipped",
+    "historical-vertical": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-001/vertical",
+    "historical-compact": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-001/compact",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-002",
+    "historical-logs": "/home/opencode/.cache/opencode-tmp/opencode/middle-tabs-current-001"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-horizontal",
+      "captures": 22,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 22
+      }
+    },
+    {
+      "episode": "current-clipped",
+      "captures": 26,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 26
+      }
+    },
+    {
+      "episode": "current-vertical",
+      "captures": 22,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 22
+      }
+    },
+    {
+      "episode": "current-compact",
+      "captures": 26,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 26
+      }
+    },
+    {
+      "episode": "historical-horizontal",
+      "captures": 18,
+      "current_source": false,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 18
+      }
+    },
+    {
+      "episode": "historical-clipped",
+      "captures": 20,
+      "current_source": false,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 20
+      }
+    },
+    {
+      "episode": "historical-vertical",
+      "captures": 18,
+      "current_source": false,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 18
+      }
+    },
+    {
+      "episode": "historical-compact",
+      "captures": 13,
+      "current_source": false,
+      "statuses": {
+        "oc": "FAILED",
+        "upstream": "FAILED"
+      },
+      "comparisons": {
+        "DIFFERENT": 8,
+        "BLOCKED": 10
+      }
+    }
+  ],
+  "retainer_source_sha256": "86d1c60dca3ed9ff9cdc953ec283210fa58c3b74c3098219bb305d72684208ba"
+}

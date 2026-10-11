@@ -1139,6 +1139,177 @@ async fn hovered_close_requires_painted_cell_matching_press_and_no_drag() {
 }
 
 #[tokio::test]
+async fn vis44_middle_down_closes_whole_visible_tab_once_without_activation() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let mut state = fresh_state("vis44-selected").await;
+    let tabs = vec![
+        TabPresentation::new(sid("inactive")),
+        TabPresentation::new(sid("vis44-selected")),
+        TabPresentation::new(sid("last")),
+    ];
+    state.set_tab_strip(tabs.clone(), 1, true);
+    state.handle_paste("preserved Ω界 draft");
+    state.scroll = 3;
+    let cursor = state.editor.cursor;
+    let area = Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    let mouse = |kind, x, y, modifiers| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers,
+    };
+    let down = MouseEventKind::Down(MouseButton::Middle);
+    let plain = KeyModifiers::NONE;
+    let strip = crate::shell::tab_strip(&state, area).unwrap();
+    let inactive = strip.tabs.iter().find(|tab| tab.index == 0).unwrap().rect;
+    assert_eq!(state.hovered_tab(area), None);
+    // No motion, activation or cross is needed, including ordinal/blank fill.
+    for x in [inactive.x, inactive.x + 3, inactive.right() - 1] {
+        assert_eq!(
+            state
+                .handle_mouse(mouse(down, x, inactive.y, plain), area)
+                .intent,
+            Some(PanelIntent::CloseTab { index: 0 })
+        );
+    }
+    assert_eq!(state.tab_presentation().0, tabs);
+    assert_eq!(state.tab_presentation().1, 1);
+    assert_eq!(state.session(), &sid("vis44-selected"));
+    assert_eq!(state.input(), "preserved Ω界 draft");
+    assert_eq!(state.editor.cursor, cursor);
+    assert_eq!(state.scroll, 3);
+    assert!(state.tab_down.is_none() && state.close_hold.is_none());
+
+    // A prior left press cannot act on a survivor after the middle close.
+    state.handle_mouse(
+        mouse(
+            MouseEventKind::Down(MouseButton::Left),
+            inactive.x,
+            0,
+            plain,
+        ),
+        area,
+    );
+    state.handle_mouse(mouse(down, inactive.x, 0, plain), area);
+    assert!(state.tab_down.is_none());
+    state.set_tab_strip(tabs[1..].to_vec(), 0, true);
+    for kind in [
+        MouseEventKind::Up(MouseButton::Middle),
+        MouseEventKind::Drag(MouseButton::Middle),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        assert_eq!(
+            state
+                .handle_mouse(mouse(kind, inactive.x, 0, plain), area)
+                .intent,
+            None
+        );
+    }
+
+    // Glyph visibility does not decide middle-close eligibility, even on the
+    // second row of a vertical tab or a one-row compact rail.
+    for rail in [20, 6] {
+        state.chrome.vertical_tabs_width = rail;
+        state.resize_mouse_position(area);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        assert!(strip.vertical);
+        let tab = strip.tabs[1].rect;
+        assert_eq!(
+            state
+                .handle_mouse(mouse(down, tab.right() - 1, tab.bottom() - 1, plain), area)
+                .intent,
+            Some(PanelIntent::CloseTab { index: 1 })
+        );
+        assert_eq!(
+            state
+                .handle_mouse(mouse(down, tab.right(), tab.y, plain), area)
+                .intent,
+            None
+        );
+    }
+
+    state.chrome.vertical_tabs_width = 0;
+    let clipped = Rect::new(0, 0, 8, 24);
+    let strip = crate::shell::tab_strip(&state, clipped).unwrap();
+    let tab = strip.tabs[0];
+    assert_eq!(
+        state
+            .handle_mouse(mouse(down, tab.rect.x, tab.rect.y, plain), clipped)
+            .intent,
+        Some(PanelIntent::CloseTab { index: tab.index })
+    );
+    for marker in [strip.before_marker, strip.after_marker, strip.add]
+        .into_iter()
+        .flatten()
+    {
+        assert_eq!(
+            state
+                .handle_mouse(mouse(down, marker.x, marker.y, plain), clipped)
+                .intent,
+            None
+        );
+    }
+    assert_eq!(
+        state.handle_mouse(mouse(down, 5, 10, plain), area).intent,
+        None
+    );
+    assert_eq!(
+        state
+            .handle_mouse(mouse(down, 5, 0, KeyModifiers::SHIFT), area)
+            .intent,
+        None
+    );
+
+    state.active_turn = Some(WorkerTurnId("accepted-busy".into()));
+    assert_eq!(
+        state.handle_mouse(mouse(down, 5, 0, plain), area).intent,
+        None
+    );
+    state.active_turn = None;
+    let mut busy = state.tabs.clone();
+    busy[0].busy = true;
+    state.set_tab_strip(busy, 0, true);
+    assert_eq!(
+        state.handle_mouse(mouse(down, 5, 0, plain), area).intent,
+        None
+    );
+    state.run_command(crate::commands::CommandAction::OpenCommands);
+    assert_eq!(
+        state.handle_mouse(mouse(down, 5, 0, plain), area).intent,
+        None
+    );
+    state.close_panel();
+
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut home = TuiState::new_home(app);
+    home.set_tab_strip(vec![tabs[0].clone()], 0, false);
+    let synthetic = crate::shell::tab_strip(&home, area).unwrap().tabs[1].rect;
+    assert_eq!(
+        home.handle_mouse(mouse(down, synthetic.x, synthetic.y, plain), area)
+            .intent,
+        Some(PanelIntent::CloseTab { index: 1 })
+    );
+    home.set_tab_strip(vec![], 0, false);
+    assert_eq!(
+        home.handle_mouse(mouse(down, 0, 0, plain), area).intent,
+        None
+    );
+    assert!(
+        inbox.try_recv().is_err(),
+        "input emits an intent, never a worker close/delete/submit"
+    );
+}
+
+#[tokio::test]
 async fn post_close_hold_is_released_when_a_modal_opens() {
     use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;
@@ -1208,6 +1379,148 @@ async fn post_close_hold_is_released_when_a_modal_opens() {
     state.handle_mouse(wheel, area);
     assert!(state.close_hold.is_none());
     assert_eq!(state.hovered_tab(area), None);
+}
+
+#[tokio::test]
+async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let mut state = fresh_state("rail-selected").await;
+    state.chrome.vertical_tabs_width = 42;
+    state.chrome.location = Some("rail-location".into());
+    state.set_tab_strip(
+        vec![
+            TabPresentation::new(sid("rail-selected")),
+            TabPresentation::new(sid("rail-inactive")),
+        ],
+        0,
+        true,
+    );
+    state.handle_paste("untouched Ω界 draft");
+    state.scroll = 3;
+    let draft = state.input().to_owned();
+    let cursor = state.editor.cursor;
+    let area = Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    let mouse = |kind, x, y| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    assert_eq!(
+        crate::shell::tab_strip(&state, area).unwrap().tabs[0]
+            .rect
+            .width,
+        42
+    );
+    for event in [
+        mouse(MouseEventKind::Down(MouseButton::Left), 41, 10),
+        mouse(MouseEventKind::Drag(MouseButton::Left), 4, 10),
+        mouse(MouseEventKind::Up(MouseButton::Left), 4, 10),
+    ] {
+        assert_eq!(state.handle_mouse(event, area).intent, None);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+    }
+    let strip = crate::shell::tab_strip(&state, area).unwrap();
+    assert!(strip.vertical && strip.compact);
+    assert_eq!(strip.tabs[0].rect.width, 5);
+    assert_eq!(state.input(), draft);
+    assert_eq!(state.editor.cursor, cursor);
+    assert_eq!(state.scroll, 3);
+    assert_eq!(state.tab_presentation().1, 0);
+    assert_eq!(state.session(), &sid("rail-selected"));
+    for event in [
+        mouse(MouseEventKind::Down(MouseButton::Left), 4, 10),
+        mouse(MouseEventKind::Drag(MouseButton::Left), 119, 10),
+        mouse(MouseEventKind::Up(MouseButton::Left), 119, 10),
+    ] {
+        assert_eq!(state.handle_mouse(event, area).intent, None);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+    }
+    let expanded = crate::shell::tab_strip(&state, area).unwrap();
+    assert!(expanded.vertical);
+    assert_eq!(expanded.tabs[0].rect.width, 56);
+    for event in [
+        mouse(MouseEventKind::Down(MouseButton::Left), 55, 10),
+        mouse(MouseEventKind::Drag(MouseButton::Left), 4, 10),
+        mouse(MouseEventKind::Up(MouseButton::Left), 4, 10),
+    ] {
+        assert_eq!(state.handle_mouse(event, area).intent, None);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+    }
+    assert_eq!(
+        state
+            .handle_mouse(
+                mouse(
+                    MouseEventKind::Down(MouseButton::Middle),
+                    2,
+                    strip.tabs[1].rect.y
+                ),
+                area
+            )
+            .intent,
+        Some(PanelIntent::CloseTab { index: 1 })
+    );
+
+    // The existing same-Location deck transfer owns presentation width too;
+    // foreign routes cannot inherit a pointer or a dragged layout preference.
+    let mut next = fresh_state("rail-inactive").await;
+    next.chrome = state.chrome.clone();
+    next.take_tab_clocks_from(&mut state);
+    next.set_tab_strip(state.tabs.clone(), 1, true);
+    assert_eq!(
+        crate::shell::tab_strip(&next, area).unwrap().tabs[0]
+            .rect
+            .width,
+        5
+    );
+    let mut foreign = fresh_state("foreign").await;
+    foreign.chrome = next.chrome.clone();
+    foreign.chrome.location = Some("other-location".into());
+    foreign.take_tab_clocks_from(&mut next);
+    assert_eq!(
+        crate::shell::tab_strip(&foreign, area).unwrap().tabs[0]
+            .rect
+            .width,
+        42
+    );
+
+    // A resize invalidates the captured boundary press. Neither a stale drag
+    // nor a release is a tab activation/close or a new resize gesture.
+    terminal
+        .draw(|frame| crate::shell::render(frame, &foreign))
+        .unwrap();
+    foreign.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 41, 10), area);
+    assert!(foreign.reasoning_pointer_down);
+    let narrow = Rect::new(0, 0, 80, 24);
+    foreign.resize_mouse_position(narrow);
+    for kind in [
+        MouseEventKind::Drag(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        assert_eq!(
+            foreign.handle_mouse(mouse(kind, 9, 10), narrow).intent,
+            None
+        );
+    }
+    assert!(!crate::shell::tab_strip(&foreign, narrow).unwrap().vertical);
+    assert_eq!(
+        crate::shell::tab_strip(&foreign, area).unwrap().tabs[0]
+            .rect
+            .width,
+        42
+    );
 }
 
 #[tokio::test]

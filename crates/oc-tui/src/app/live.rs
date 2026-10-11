@@ -660,6 +660,11 @@ impl TuiState {
             self.clear_mentions();
         }
         self.apply_owner_clipboard_mode(snapshot.chrome.terminal_copy);
+        if self.chrome.vertical_tabs_width != snapshot.chrome.vertical_tabs_width
+            || self.chrome.location != snapshot.chrome.location
+        {
+            self.tab_view.get_mut().reset_rail_width();
+        }
         self.chrome = snapshot.chrome.clone();
         if dialog_changed {
             self.select.clear_action_focus();

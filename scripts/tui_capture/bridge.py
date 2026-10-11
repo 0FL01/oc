@@ -276,8 +276,23 @@ class Provider(BaseHTTPRequestHandler):
                     0 <= turn_number < 3 and expected_prompt in serialized)
             text = 'VIS33 saved tail fixture' if is_title else f'VIS33-ANSWER-{turn_number + 1}: completed.'
             record.update(valid=valid, prompt_present=is_title or expected_prompt in serialized,
-                          fixture_prompt=None if is_title else expected_prompt,
-                          fixture_response=text, request_input=body.get('input'), instructions=body.get('instructions'))
+                           fixture_prompt=None if is_title else expected_prompt,
+                           fixture_response=text, request_input=body.get('input'), instructions=body.get('instructions'))
+        if spec.get('tab_middle_close'):
+            names = ['Alpha', 'Beta', 'Gamma', 'Delta'] if spec['middle_case'] == 'clipped' else ['Alpha', 'Beta', 'Gamma']
+            users = [part.get('text', '') for message in body.get('input', [])
+                     if message.get('role') == 'user'
+                     for part in message.get('content', []) if part.get('type') == 'input_text']
+            valid = (self.path == '/v1/responses' and body.get('stream') is True and
+                     body.get('model') == 'fixture-model-1' and not tool_results and
+                     0 <= turn_number < len(names) and title_round <= len(names) and
+                     transcript_round <= len(names))
+            expected = f'VIS44 seed {names[turn_number]}' if valid else None
+            valid = valid and (is_title or users == [expected])
+            text = (f'VIS44 {names[turn_number]} retained middle-close history' if is_title
+                    else f'VIS44-ANSWER-{names[turn_number]}: completed.') if valid else ''
+            record.update(valid=valid, fixture_prompt=expected, fixture_response=text,
+                          request_input=body.get('input'), tool_result_count=len(tool_results))
         emit(record)
         if not valid:
             self.send_error(400, 'fixture contract rejected')
@@ -291,7 +306,9 @@ class Provider(BaseHTTPRequestHandler):
         else:
             item = {'id': 'msg_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'msg_fixture',
                     'type': 'message', 'role': 'assistant', 'status': 'completed',
-                  'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+                   'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
+        if spec.get('tab_middle_close'):
+            item['id'] = f'msg_middle_{record["operation"]}_{turn_number}'
         if bounded == 'shell' and not is_title and index < 2:
             arguments = {'command': shell_commands[index], 'description': 'Fixture short output' if index == 0 else 'Fixture long output'}
             if 'argv' in schema.get('properties', {}):
@@ -306,6 +323,8 @@ class Provider(BaseHTTPRequestHandler):
         response = {'id': 'resp_fixture_2' if (spec.get('two_turn') or spec.get('models_interaction')) and second else 'resp_fixture', 'object': 'response', 'created_at': 1700000000,
                     'model': body.get('model'), 'status': 'in_progress', 'output': [],
                     'error': None, 'incomplete_details': None}
+        if spec.get('tab_middle_close'):
+            response['id'] = f'resp_middle_{record["operation"]}_{turn_number}'
         events = [
             {'type': 'response.created', 'response': response},
         ]
@@ -420,6 +439,42 @@ class Provider(BaseHTTPRequestHandler):
               'response_text_sha256': hashlib.sha256(text.encode()).hexdigest()})
 
 
+def middle_snapshot():
+    """Bounded read-only observation of this bridge's isolated fixture only."""
+    observations = []
+    for database in (home / 'data').rglob('*'):
+        if database.suffix not in ('.db', '.sqlite', '.sqlite3'):
+            continue
+        with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+            connection.row_factory = sqlite3.Row
+            tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            for table in ('session', 'session_v2', 'sessions', 'session_message', 'message',
+                          'messages', 'turns', 'tool_ops', 'tool_executions', 'tool_operations', 'prefs'):
+                if table not in tables:
+                    continue
+                count = connection.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+                if count > 100:
+                    raise RuntimeError('Middle fixture exceeds bounded row inventory')
+                rows = [dict(r) for r in connection.execute(f'SELECT * FROM {table} ORDER BY rowid LIMIT 100')]
+                for row in rows:
+                    for key, value in row.items():
+                        if isinstance(value, bytes):
+                            row[key] = {'length': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                observations.append({'table': table, 'count': count, 'rows': rows})
+    client = []
+    for file in home.rglob('*'):
+        if file.is_file() and file.suffix == '.json' and ('tui' in str(file) or file.name == 'kv.json'):
+            if file.stat().st_size > 262144:
+                raise RuntimeError('Middle fixture client record exceeds bound')
+            client.append({'path': str(file.relative_to(home)), 'data': json.loads(file.read_text())})
+    snapshot = {'observations': observations, 'client_persistence': client,
+                'project_files': {str(file.relative_to(project)): hashlib.sha256(file.read_bytes()).hexdigest()
+                                  for file in project.rglob('*') if file.is_file()}, 'readonly_sqlite': True}
+    if len(json.dumps(snapshot).encode()) > 262144:
+        raise RuntimeError('Middle fixture snapshot exceeds bound')
+    return snapshot
+
+
 server = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 home = root / spec['origin'] / 'home'
@@ -492,6 +547,8 @@ else:
     cli_config = {
         'session': {'sidebar': spec.get('sidebar', 'auto')},
         'tabs': {'layout': spec.get('tabs', 'horizontal')}}
+if spec.get('tab_middle_close'):
+    cli_config['tabs']['indicators'] = 'numbers'
 if spec.get('devtools') is not None:
     cli_config['debug'] = {'devtools': spec['devtools']}
 if spec.get('apply_patch'):
@@ -636,6 +693,8 @@ try:
                         command = json.loads(line)
                         if command['kind'] == 'tool_preview_snapshot' and spec.get('tool_preview'):
                             emit({'kind':'tool_preview_snapshot','request_id':command['request_id'], **tool_preview_fixture.snapshot(home, project, spec)})
+                        elif command['kind'] == 'middle_snapshot' and spec.get('tab_middle_close'):
+                            emit({'kind': 'middle_snapshot', 'request_id': command['request_id'], **middle_snapshot()})
                         elif command['kind'] == 'tool_preview_control' and spec.get('tool_preview'):
                             emit({'kind':'tool_preview_control_ack','request_id':command['request_id'], **tool_preview_fixture.control(home, command['action'], project, spec)})
                         elif command['kind'] == 'services_snapshot' and spec.get('clean_services'):
@@ -811,7 +870,7 @@ try:
             os.close(master)
             emit({'kind': 'exit', 'generation': generation, 'code': child.returncode,
                   'termination': 'forced_stop' if forced else 'natural'})
-        if forced or not (spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission') or spec.get('tool_preview')):
+        if forced or not (spec.get('tab_middle_close') or spec.get('tab_restart') or spec.get('sessions_interaction') or spec.get('revert_redo') or spec.get('compaction') or spec.get('apply_patch') or spec.get('permission') or spec.get('tool_preview')):
             break
         # The same bridge/server/config/project and XDG roots survive the first exit.
         command = json.loads(sys.stdin.readline())

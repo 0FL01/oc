@@ -256,7 +256,7 @@ fn shell_regions(state: &TuiState, area: Rect) -> layout::ShellRegions {
     let mut regions = layout::configured_shell_regions(
         area,
         state.chrome.devtools_visible(),
-        state.chrome.vertical_tabs_width,
+        state.tab_rail_width(),
     );
     if state.home && state.tab_presentation().0.is_empty() {
         regions.session = Rect {
@@ -283,7 +283,7 @@ pub fn tab_strip(state: &TuiState, area: Rect) -> Option<layout::HorizontalTabSt
     if region.width == 0 || region.height == 0 {
         return None;
     }
-    if layout::vertical_tabs_width(area.width, state.chrome.vertical_tabs_width) > 0 {
+    if layout::vertical_tabs_width(area.width, state.tab_rail_width()) > 0 {
         return Some(layout::vertical_tab_strip(
             region,
             if tabs.is_empty() {

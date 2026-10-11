@@ -2756,6 +2756,127 @@ fn keyboard_close_refuses_busy_turn_without_losing_draft() {
 }
 
 #[test]
+fn vis44_middle_down_closes_inactive_active_and_last_tabs_without_deleting_history() {
+    let fixture = Fixture::new();
+    let project = fixture.project_a();
+    let path = fixture.root.path().join("middle-close-metrics.json");
+    let mut pty = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    let mut roots = Vec::new();
+    for (index, title) in ["VIS44 Alpha", "VIS44 Beta", "VIS44 Gamma"]
+        .into_iter()
+        .enumerate()
+    {
+        if index > 0 {
+            // New/Home parks the preceding root's editor, rather than
+            // submitting or erasing its independent unsent draft.
+            pty.send(b"\x18n");
+            wait_screen_row(&pty, "Ask anything", DEADLINE);
+        }
+        let prompt = format!("middle history {index}");
+        submit(&mut pty, &prompt);
+        fixture.wait_requests(index + 1);
+        wait_screen_row(&pty, &format!("echo: {prompt}"), DEADLINE);
+        wait_screen_row(&pty, "Fixture session title", DEADLINE);
+        wait_idle(&pty);
+        pty.send(format!("/rename {title}\r").as_bytes());
+        wait_screen_row(&pty, title, DEADLINE);
+        let deck: serde_json::Value =
+            serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+        roots.push(deck["active"].as_str().unwrap().to_owned());
+        pty.send(format!("saved draft {index} Ω界").as_bytes());
+        wait_screen_row(&pty, &format!("saved draft {index}"), DEADLINE);
+    }
+    let counts = journal_counts(&fixture);
+    let requests = fixture.requests.lock().unwrap().len();
+    let middle_down = |pty: &mut PtySession, title: &str| {
+        let rows = render_screen(&pty.snapshot()).rows();
+        let start = rows[0].find(title).expect("painted tab title");
+        let column = rows[0][..start].chars().count() + 1;
+        // There is deliberately no motion, activation or cross reveal.
+        pty.send(format!("\x1b[<1;{column};1M").as_bytes());
+        column
+    };
+    let wait_deck = |sessions: serde_json::Value, active: serde_json::Value| {
+        let started = Instant::now();
+        loop {
+            let deck: serde_json::Value =
+                serde_json::from_str(&live_deck_record(&fixture, &project)).unwrap();
+            if deck["sessions"] == sessions && deck["active"] == active {
+                return deck;
+            }
+            assert!(started.elapsed() < DEADLINE, "middle close deck: {deck}");
+            std::thread::sleep(POLL);
+        }
+    };
+
+    let alpha_column = middle_down(&mut pty, "VIS44 Alpha");
+    let after_inactive = wait_deck(
+        serde_json::json!([roots[1], roots[2]]),
+        serde_json::json!(roots[2]),
+    );
+    wait_screen_row(&pty, "saved draft 2", DEADLINE);
+    wait_screen_row(&pty, "echo: middle history 2", DEADLINE);
+    pty.send(
+        format!("\x1b[<1;{alpha_column};1m\x1b[<33;{alpha_column};1M\x1b[<0;{alpha_column};1m")
+            .as_bytes(),
+    );
+    std::thread::sleep(POLL);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&live_deck_record(&fixture, &project)).unwrap(),
+        after_inactive,
+        "middle release/drag cannot close or activate the survivor"
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+
+    let gamma_column = middle_down(&mut pty, "VIS44 Gamma");
+    wait_deck(serde_json::json!([roots[1]]), serde_json::json!(roots[1]));
+    pty.send(format!("\x1b[<1;{gamma_column};1m").as_bytes());
+    wait_screen_row(&pty, "saved draft 1", DEADLINE);
+    wait_screen_row(&pty, "echo: middle history 1", DEADLINE);
+    assert_eq!(journal_counts(&fixture), counts);
+
+    let beta_column = middle_down(&mut pty, "VIS44 Beta");
+    wait_deck(serde_json::json!([]), serde_json::Value::Null);
+    pty.send(format!("\x1b[<1;{beta_column};1m").as_bytes());
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    assert!(
+        pty.child.try_wait().unwrap().is_none(),
+        "last close is not exit"
+    );
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    quit(&mut pty);
+    assert!(metrics(&path)["session"].is_null());
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([]));
+
+    let mut restored = PtySession::spawn(fixture.clone(), &project, &[], Some(&path));
+    wait_screen_row(&restored, "Ask anything", DEADLINE);
+    restored.send(b"/sessions\r");
+    wait_screen_row(&restored, "Sessions", DEADLINE);
+    restored.send(b"VIS44 Alpha\r");
+    wait_screen_row(&restored, "echo: middle history 0", DEADLINE);
+    wait_deck(serde_json::json!([roots[0]]), serde_json::json!(roots[0]));
+    quit(&mut restored);
+    assert_eq!(metrics(&path)["tab_ids"], serde_json::json!([roots[0]]));
+    assert_eq!(journal_counts(&fixture), counts);
+    assert_eq!(fixture.requests.lock().unwrap().len(), requests);
+    let db = oc_adapters::storage::Db::open(&fixture.data_dir()).unwrap();
+    let sessions = db.list_sessions().unwrap();
+    assert_eq!(sessions.len(), 3);
+    for (index, root) in roots.iter().enumerate() {
+        assert!(sessions.contains(root));
+        assert_eq!(
+            db.read_history(root).unwrap(),
+            vec![
+                ("user".into(), format!("middle history {index}")),
+                ("assistant".into(), format!("echo: middle history {index}")),
+            ]
+        );
+    }
+}
+
+#[test]
 fn retained_deck_busy_strip_add_keeps_command_guard_and_failed_location() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(

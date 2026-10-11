@@ -1899,3 +1899,24 @@ adapter check independently compares both transports on all38,400 cells at
 process-group pause/drain ACK and screenshot/geometry checks remain unchanged.
 Bounded timeout diagnostics record actual read latency, predicates, hashes and
 the last changed cells; they cannot qualify a failed capture.
+
+## VIS44 actual middle-button tab close
+
+`--tab-middle-close true --middle-case horizontal|clipped|vertical|compact`
+selects a separate bounded fake-provider episode. Three (four when clipped)
+roots are created through real prompts and automatic titles, each retaining its
+own unsent Unicode draft. Middle Down targets a currently painted tab body,
+without a prior activation, mouse move or close-glyph click. Saved deck IDs,
+immutable history and project-file seals are observed read-only after Down and
+after inert Middle Up/Drag/Left Up. Last close returns Home without quitting;
+Actual compact hover-title overlays remain in the immediate Down frame; a real
+pointer departure separately reveals the same survivor answer and unsent draft.
+natural exit/restart must not resurrect the closed deck, and painted Sessions
+reopen must select the original durable root without a provider/effect replay.
+
+Representative profiles are horizontal120×40, clipped80×24, vertical160×48 and
+compact160×48→80×24. Compact width comes from a real boundary drag on both
+binaries, not seeded native chrome. Native width is process-local presentation,
+not a claim of durable pane preference or full R3 qualification. Native busy,
+read-only, Location and checked-save guards remain mandatory. Whole styled grids,
+cursors, opaque PNGs and unchanged strict comparisons retain all differences.

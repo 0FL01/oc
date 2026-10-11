@@ -1736,7 +1736,15 @@ async fn vis41_real_mouse_activation_preserves_running_and_completed_marquee_dea
         MouseEventKind::Up(crossterm::event::MouseButton::Left),
     ] {
         let outcome = state.handle_mouse(crossterm::event::MouseEvent { kind, ..moved }, area);
-        apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, 0).await;
+        apply_mouse_outcome(
+            &app,
+            &mut state,
+            &mut deck,
+            outcome,
+            area,
+            crossterm::event::MouseEvent { kind, ..moved },
+        )
+        .await;
     }
     assert_eq!(deck.active_tab, Some(1));
     assert_eq!(state.next_ui_deadline(), deadline);
@@ -1754,7 +1762,15 @@ async fn vis41_real_mouse_activation_preserves_running_and_completed_marquee_dea
         MouseEventKind::Up(crossterm::event::MouseButton::Left),
     ] {
         let outcome = state.handle_mouse(crossterm::event::MouseEvent { kind, ..moved }, area);
-        apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, 0).await;
+        apply_mouse_outcome(
+            &app,
+            &mut state,
+            &mut deck,
+            outcome,
+            area,
+            crossterm::event::MouseEvent { kind, ..moved },
+        )
+        .await;
     }
     assert_eq!(
         state.next_ui_deadline(),
@@ -2317,7 +2333,15 @@ async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does
     state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
     let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area);
     assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 1 }));
-    apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, close, 0).await;
+    apply_mouse_outcome(
+        &app,
+        &mut state,
+        &mut deck,
+        outcome,
+        area,
+        mouse(MouseEventKind::Up(MouseButton::Left)),
+    )
+    .await;
     let after = oc_tui::shell::tab_strip(&state, area).unwrap();
     assert!(deck.home.is_none());
     assert_eq!(state.session().0, "kept");
@@ -2362,7 +2386,15 @@ async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does
     state.handle_mouse(point(MouseEventKind::Down(MouseButton::Left)), area);
     let activate = state.handle_mouse(point(MouseEventKind::Up(MouseButton::Left)), area);
     assert_eq!(activate.intent, Some(PanelIntent::ActivateTab { index: 0 }));
-    apply_mouse_outcome(&app, &mut state, &mut deck, activate, area, 3, 0).await;
+    apply_mouse_outcome(
+        &app,
+        &mut state,
+        &mut deck,
+        activate,
+        area,
+        point(MouseEventKind::Up(MouseButton::Left)),
+    )
+    .await;
     let clicked = oc_tui::shell::tab_strip(&state, area).unwrap().tabs[0].rect;
     assert_eq!(
         state.tab_close_cell(area, 0, clicked),
@@ -2375,6 +2407,68 @@ async fn mouse_close_home_holds_survivor_at_the_pointer_but_keyboard_switch_does
     let normal = oc_tui::shell::tab_strip(&state, area).unwrap();
     assert_eq!(normal.tabs[0].rect.width, 32);
     assert_eq!(state.tab_close_cell(area, 0, normal.tabs[0].rect), None);
+
+    // A middle press may hit the same painted cross, but it is not a left
+    // release and must never stretch a survivor into a five-second hold.
+    state.handle_paste("middle survivor Ω界");
+    deck.open_home(&mut state, TuiState::new_home(app.clone()));
+    let strip = oc_tui::shell::tab_strip(&state, area).unwrap();
+    let middle = MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Middle),
+        column: strip.tabs[1].rect.right() - 2,
+        row: strip.tabs[1].rect.y,
+        modifiers: KeyModifiers::NONE,
+    };
+    state.handle_mouse(
+        MouseEvent {
+            kind: MouseEventKind::Moved,
+            ..middle
+        },
+        area,
+    );
+    let outcome = state.handle_mouse(middle, area);
+    assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 1 }));
+    apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, middle).await;
+    assert!(deck.home.is_none());
+    assert_eq!(state.session().0, "kept");
+    assert_eq!(state.input(), "middle survivor Ω界");
+    assert_eq!(
+        oc_tui::shell::tab_strip(&state, area).unwrap().tabs[0]
+            .rect
+            .width,
+        32
+    );
+    let outcome = state.handle_mouse(
+        MouseEvent {
+            kind: MouseEventKind::Up(MouseButton::Middle),
+            ..middle
+        },
+        area,
+    );
+    assert_eq!(outcome.intent, None);
+    assert!(
+        inbox.try_recv().is_err(),
+        "one middle gesture neither resubmits nor deletes history"
+    );
+
+    // The same CloseTab intent still passes the existing owner guard. A
+    // read-only route cannot persist/remove a tab even if its slot was painted.
+    let blocked = MouseEvent {
+        column: 3,
+        ..middle
+    };
+    let outcome = state.handle_mouse(blocked, area);
+    assert_eq!(outcome.intent, Some(PanelIntent::CloseTab { index: 0 }));
+    let before = deck.snapshot(&state);
+    deck.read_only = true;
+    apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, blocked).await;
+    assert_eq!(deck.snapshot(&state), before);
+    assert_eq!(state.input(), "middle survivor Ω界");
+    assert_eq!(state.session().0, "kept");
+    assert!(
+        inbox.try_recv().is_err(),
+        "read-only refusal is pre-query and pre-effect"
+    );
 }
 
 #[tokio::test]
@@ -2405,7 +2499,15 @@ async fn keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold(
         ack.send(Ok(catalog())).unwrap();
         inbox
     });
-    apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, pointer, add.y).await;
+    apply_mouse_outcome(
+        &app,
+        &mut state,
+        &mut deck,
+        outcome,
+        area,
+        mouse(MouseEventKind::Up(MouseButton::Left)),
+    )
+    .await;
     let mut inbox = worker.await.unwrap();
     assert!(state.home);
     assert_eq!(state.mouse_position(), Some((pointer, add.y, area)));

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T15:23:44+00:00
+State updated: 2026-10-11T18:12:32+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,39 +12,39 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 Shell command wrapping and cold hover — qualified slice
+# T44 VIS44 Middle Down — qualified behavioral slice
 
 ## Result
-Collapsed Shell commands retain genuine character-wrap separators and inherited
-box-padding FG. Same-Location accepted Sessions mouse opens re-hit only the real
-pointer/current painted owner; refusal/action/draft/RAW/body/status guards hold.
-Receipt evidence/tui/shell-wrap-qualified.md. Whole frozen T44 ACTIVE/NOT_PASS;
+Real unmodified Middle Down closes the whole eligible visible tab through the
+existing owner, without activation/cross/move. Guards/history/draft/scroll hold;
+Up/Drag/LeftUp are inert and no left cross-close hold leaks. Real rail drag makes
+compact geometry through private process-local deck presentation, not a new store.
+Receipt evidence/tui/middle-tabs-qualified.md. Whole frozen T44 ACTIVE/NOT_PASS;
 Git determines checked delivery, not this checkpoint.
 
 ## Checks
-Current1836/0/11 all46 workspace,112 binary/512 TUI, strict Clippy/fmt/builds/help/
-release9 and original resource gates PASS. Two meaningful new scenarios and
-separator/gutter/picker baseline RED→GREEN preserve old security/body assertions.
-Fresh708-source/three real locked builds/230 full opaque frames/all1442 files
-survive3851204B final proof; independent byte/source/ELF/effect/comparator audit.
-Both absolute120-cell command rows240/240 equal at completion/reopen/restart.
-Failed second observer episode46 frames/all308 bytes retained1728580B; first
-proof/failure findings untouched. Owned FAILED004 all187 files+3dir metadata
-byte-exact archived966116B with visible failure, no quota rise/qualified deletion.
+Current1839/0/11 all46 workspace,514 TUI/112 binary/35 T42, strict Clippy/fmt/builds/
+help/release9 and original resources PASS. Two substantial UI baseline RED→GREEN
+scenarios and actual inactive/active/last/restart/history PTY preserve old guards.
+Four fresh709-source profiles/one real locked build each:96 full opaque PNGs,
+exact persisted IDs/deck/history/drafts and52 seed/title requests; no close effects.
+All1124 files90934670 bytes including69 historical PNGs/11 parent logs retained
+2600336B; independent byte/source/ELF/full-comparator/effect audit PASS. Python55.
+Historical compact BOTH FAILED and10 BLOCKED comparisons remain visible, no replay.
 
 ## Risks
-Direct220 DIFFERENT/8 EQUAL/4 NativeOnly; matched144 DIFFERENT, all cursors equal.
-Real bodies remain distinct: genuine UI1606B83 rows, stream960B49, full model647B15,
-prose257B12, complete cold1615B84. Do not substitute owners or parse marker authority.
-Completed817cells57734pixels/cold804cells57254pixels/expanded8295cells1056802pixels,
-Root Home46cells2076pixels/real clocks/body/footer/layout remain unmasked.
-Default0 phantom/cycle is not current-source blink. ALL frozen/supplements and
-final current-source R6/V09 stay mandatory; all prior RAW/proofs/failures preserved.
+All96 current comparisons DIFFERENT,47/48 cursor pairs equal. Original compact
+tooltip remains real; pointer departure separately reveals retained answer/draft.
+Original persists5-column rail; native restart defaults42:2016 cells244793 pixels,
+cursor10,42 versus47,42. No durable-width/full R3/full VIS44 pixel PASS claim.
+Home/version/clock/footer/rail/hover/layout differences remain unmasked. All previous
+RAW/proofs/failures preserved, unchanged bounds/quota; no final TMP offload.
 
 ## Next
-Fix actual body/tail/footer/card layout through typed owners without invented
-counts/notices or weakened redaction/RAW/permissions/limits. Continue every Home/
-readonly/pacing/scroll/Thoughts/family/forms/DCP/MCP/auth frozen outcome and finalR6.
+Close pane/tab presentation and durable width through existing owners, then every
+body/tail/footer/card/Home/readonly/pacing/scroll/Thoughts/family/forms/DCP/MCP/auth
+frozen outcome/supplement and final current-source R6/V09. Do not narrow acceptance
+or substitute model/process bodies, weaken redaction/permissions or claim T44 done.
 
 
 Ready (до 5): T58

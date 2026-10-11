@@ -708,3 +708,29 @@ clocks and body/footer/layout remain unmasked. Former32 edge pixels remain equal
 Next actual body/tail/footer/card owners and EVERY frozen R1–R6/VIS01–45 outcome/
 supplement, then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS; all prior
 RAW/proofs/failures preserved, no normalization/offload/resource-cap raise.
+
+## VIS44 Middle Down tab close (2026-10-11 — behavioral slice)
+
+[Factual receipt](../tui/middle-tabs-qualified.md) records real plain Middle Down
+on the whole visible eligible tab, existing checked close/history/Location/busy/
+read-only owner, inert Up/Drag/LeftUp and no leaked left cross-close hold.
+Private actual rail dragging supplies compact geometry, process-local only;
+admitted config and RAW/permissions/query/store owners remain unchanged.
+Current1839/0/11 all46/514 TUI/112 binary/35 T42, strict Clippy/fmt/builds/help,
+release9/original resource gates PASS. UI baseline RED→GREEN and actual PTY root
+creation/close/restart/history preserve IDs, drafts and journal/request counts.
+Four current709-source profiles/one real locked build each retain96 full opaque
+PNGs: horizontal22/clipped26/vertical22/compact26. Actual deck/history/project
+observations prove inactive/active/last Down, inert releases, natural exit0,
+no resurrection and painted history reopening of the original ID. Only52 current
+seed/title requests, zero close/reopen provider/tool/project effects.
+All1124 files90934670 logical bytes including all69 historical PNGs/11 parent logs
+retain2600336B; independent complete byte/source/ELF/full-comparator/effect audit
+PASS, Python55. Historical compact BOTH FAILED and10 BLOCKED comparisons remain
+visible; no incomplete episode replay or normalization/quota rise/final TMP offload.
+All96 current strict comparisons DIFFERENT,47/48 cursor pairs equal. Original
+persists compact5 width; native restarts configured42:2016 cells244793 pixels and
+cursor10,42 versus47,42. Real tooltip/hover/rail/history/Home/version/clock/footer
+differences remain. No durable-pane/full R3/full VIS44 pixel/T44 PASS claim.
+Next pane/tab persistence/presentation and EVERY remaining frozen R1–R6/VIS01–45
+outcome/supplement, then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS.

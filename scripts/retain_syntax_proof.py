@@ -54,7 +54,10 @@ def source_files():
     for name, root in ROOTS.items():
         require(root.is_dir() and not root.is_symlink() and root.resolve().is_relative_to(TEMP),
                 "fresh capture root")
-        for path in sorted(root.rglob("*")):
+        # Fixed middle campaign parent logs are additional members; its eight
+        # episode subtrees are already included separately, without duplication.
+        paths = root.glob("*") if name in ("current-logs", "historical-logs") else root.rglob("*")
+        for path in sorted(paths):
             meta = path.lstat()
             require(not path.is_symlink() and meta.st_uid == os.getuid(), "foreign/symlink capture")
             require(stat.S_ISDIR(meta.st_mode) or stat.S_ISREG(meta.st_mode), "nonregular capture")
@@ -136,6 +139,13 @@ def check_source_manifest(lock, manifest, source_count):
             all(isinstance(name, str) and isinstance(value, str) and len(value) == 64 and
                 all(char in "0123456789abcdef" for char in value)
                 for name, value in manifest.items()), "complete producer source membership")
+    for name in manifest:
+        path = PurePosixPath(name)
+        require(not path.is_absolute() and path.as_posix() == name and "\0" not in name and
+                all(part not in ("", ".", "..") for part in name.split("/")) and
+                (name in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml",
+                          "tui-recovery/scripts/compare_frames.py", "tui-recovery/scripts/test_compare_frames.py") or
+                 name.startswith(("crates/", "scripts/tui_capture/"))), "repository-relative source path")
     # Acquisition uses JavaScript localeCompare, not Python/codepoint key order.
     # Reuse that exact dev-tool collation; Node runs jitless with a small heap and
     # inherits the unchanged 384 MiB address-space bound. TAR/XZ stays stdlib-only.
@@ -147,7 +157,23 @@ def check_source_manifest(lock, manifest, source_count):
     ], input=json.dumps(manifest, ensure_ascii=False).encode(), capture_output=True, timeout=10, check=False)
     require(canonical.returncode == 0 and
             canonical.stdout.decode("ascii") == lock["oc"]["source_manifest_sha256"],
-            "producer source manifest seal")
+             "producer source manifest seal")
+
+
+def check_current_source(manifest):
+    # Exactly the acquisition's source enumeration, not an arbitrary same-size list.
+    sources = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--",
+                              "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "crates", "scripts/tui_capture",
+                              "tui-recovery/scripts/compare_frames.py", "tui-recovery/scripts/test_compare_frames.py"],
+                             cwd=REPO, capture_output=True, timeout=10, check=False)
+    require(sources.returncode == 0, "current source enumeration")
+    expected = {name for name in sources.stdout.decode().split("\0") if name and (REPO / name).exists()}
+    require(set(manifest) == expected, "exact current producer source set")
+    for name, expected_sha in manifest.items():
+        path = REPO / name
+        require(path.resolve().is_relative_to(REPO) and path.is_file(), "source remains within repository")
+        with path.open("rb") as stream:
+            require(hashlib.file_digest(stream, "sha256").hexdigest() == expected_sha, "current producer source")
 
 
 def check_caret_readiness(cursor):
@@ -206,6 +232,103 @@ def check_temporal_profile(lock, cursor, side, name):
                 "blink cycles/cadence or explicit preserved reference failure")
         require((state["moves"] > 0 and state["commands"] > 0) if "hover" in state["state"] else
                 state["moves"] == 0, "actual continuous hover/control")
+
+
+def check_middle_facts(checks, profile, side, historical=False):
+    require(checks.get("origin") == side and checks.get("middle_case") == profile,
+            "actual middle profile/owner")
+    failed = historical and profile == "compact"
+    require(checks.get("status") == ("FAILED" if failed else "PASS_BEHAVIOR_ONLY"),
+            "middle outcome scope")
+    if failed:
+        require(any(item.get("stage") == "failure" and isinstance(item.get("reason"), str)
+                    for item in checks["checks"]), "historical compact failure retained")
+        return
+    proofs = [item for item in checks["checks"] if item.get("stage") == "proof"]
+    require(len(proofs) == 1, "complete Middle Down/restart/reopen proof")
+    facts = proofs[0]
+    names = ["Alpha", "Beta", "Gamma"] + (["Delta"] if profile == "clipped" else [])
+    ids = facts.get("root_ids", {})
+    require(isinstance(ids, dict) and set(ids) == set(names) and
+            all(isinstance(value, str) and value for value in ids.values()) and
+            len(set(ids.values())) == len(names) and
+            type(facts.get("requests")) is int and facts["requests"] == 2 * len(names) and
+            type(facts.get("tool_calls")) is int and facts["tool_calls"] == 0 and
+            all(facts.get(key) is True for key in
+                ("history_unchanged", "closed_deck_not_resurrected")) and
+            facts.get("reopened_same_id") == ids["Alpha"], "immutable middle identities/effect facts")
+    if profile == "compact":
+        geometry = [item for item in checks["checks"] if item.get("stage") == "compact-geometry"]
+        require(len(geometry) == 1 and geometry[0].get("actual_drag") is True and
+                type(geometry[0].get("width")) is int and geometry[0]["width"] == 5 and
+                geometry[0].get("restart_persistence_claim") is False,
+                "actual compact drag, not persisted-width claim")
+
+
+def check_middle_build(lock, manifest, commands):
+    invocation = commands[0]
+    argv = invocation["argv"]
+    require(invocation["role"] == "capture runner invocation" and len(argv) >= 2 and
+            argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
+            "actual repository capture runner")
+    pairs = list(zip(argv[2::2], argv[3::2], strict=True))
+    options = dict(pairs)
+    require(len(options) == len(pairs) and options.get("--build-oc") == "true" and
+            options.get("--tab-middle-close") == "true" and
+            options.get("--oc") == lock["oc"]["executable_path"] == str(REPO / "target/debug/oc") and
+            options.get("--reference") == lock["upstream"]["executable_path"] ==
+            str(TEMP / "t44-reference/package/bin/opencode"), "fixed built/pinned executable paths")
+    # This sealed runner's execute() explicitly runs Cargo with cwd=repo. Bind
+    # that owner, invocation, exact build and fixed output rather than accepting
+    # a successful arbitrary Cargo command and an unrelated executable path.
+    require(lock["runner_hashes"]["capture.mjs"] == manifest["scripts/tui_capture/capture.mjs"] and
+            lock["oc"]["build_command"] == ["cargo", "build", "--locked"] and
+            lock["sources"]["upstream_commit"] == "2670273ff17da96f85c5826ced57aa1b368754fa",
+            "sealed build owner and pinned donor")
+    builds = [item for item in commands if item["argv"][0] == "cargo"]
+    require(len(builds) == 1 and builds[0]["argv"] == lock["oc"]["build_command"] and
+            builds[0]["exit_code"] == 0, "one exact recorded repository build")
+
+
+def middle_checks(files):
+    reports = []
+    profiles = {"horizontal": (120, 40, "horizontal", 22, 18),
+                "clipped": (80, 24, "horizontal", 26, 20),
+                "vertical": (160, 48, "vertical", 22, 18),
+                "compact": (160, 48, "vertical", 26, 13)}
+    for episode in ROOTS:
+        if episode in ("current-logs", "historical-logs"):
+            continue
+        period, case = episode.split("-", 1)
+        current = period == "current"
+        columns, rows, tabs, count, old_count = profiles[case]
+        read = lambda relative: json.loads(files[episode + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 709)
+        if current:
+            check_current_source(manifest)
+        check_middle_build(lock, manifest, read("commands.json"))
+        require(len(lock["captures"]) == (count if current else old_count), "whole middle capture scope")
+        # Historical compact stopped at its actual shrunk viewport before relaunch.
+        if not current and case == "compact":
+            columns, rows = 80, 24
+        require(lock["profile"]["columns"] == columns and lock["profile"]["rows"] == rows and
+                lock["profile"]["settings"]["tabs"] == tabs,
+                "real declared middle geometry")
+        statuses = {}
+        for side in ("oc", "upstream"):
+            if current:
+                with Path(lock[side]["executable_path"]).open("rb") as stream:
+                    require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                            "actual middle executable identity")
+            checks = read(side + "/middle-tabs-checks.json")
+            require(checks == lock["tab_middle_close"][side], "actual middle side facts")
+            check_middle_facts(checks, case, side, not current)
+            statuses[side] = checks["status"]
+        reports.append({"episode": episode, "captures": len(lock["captures"]), "current_source": current,
+                        "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
 
 
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
@@ -389,13 +512,19 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if temporal_profile:
+    if args.campaign == "middle-tabs":
+        ROOTS = {period + "-" + case: TEMP / ("middle-tabs-current-" + attempt) / case
+                 for period, attempt in (("current", "002"), ("historical", "001"))
+                 for case in ("horizontal", "clipped", "vertical", "compact")}
+        ROOTS.update({"current-logs": TEMP / "middle-tabs-current-002",
+                      "historical-logs": TEMP / "middle-tabs-current-001"})
+    elif temporal_profile:
         current, matched, *_ = TEMPORAL_PROFILES[temporal_profile]
         ROOTS = {"temporal": TEMP / current}
         if matched:
@@ -447,6 +576,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign == "middle-tabs":
+            return middle_checks(files)
         if args.campaign == "root-diagnostics":
             return diagnostic_checks(files)
         if args.campaign == "shell-wrap-diagnostics":

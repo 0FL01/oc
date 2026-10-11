@@ -3200,7 +3200,20 @@ async fn mouse_picker_open_rehits_only_after_same_location_owner_acceptance() {
                         })
                     );
                 }
-                apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, y).await;
+                apply_mouse_outcome(
+                    &app,
+                    &mut state,
+                    &mut deck,
+                    outcome,
+                    area,
+                    crossterm::event::MouseEvent {
+                        kind,
+                        column: x,
+                        row: y,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                )
+                .await;
             }
             if accepted {
                 assert_eq!(state.attached_session(), Some(&target));

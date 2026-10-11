@@ -1198,7 +1198,7 @@ impl TuiState {
         let shell = crate::layout::configured_shell_regions(
             area,
             self.chrome.devtools_visible(),
-            self.chrome.vertical_tabs_width,
+            self.tab_rail_width(),
         );
         let pad = transcript.x.saturating_sub(shell.session.x);
         let main = Rect::new(

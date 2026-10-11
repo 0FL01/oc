@@ -62,7 +62,7 @@ impl TuiState {
                         let session = crate::layout::configured_shell_regions(
                             Rect::new(0, 0, view.terminal_width, view.height),
                             self.chrome.devtools_visible(),
-                            self.chrome.vertical_tabs_width,
+                            self.tab_rail_width(),
                         )
                         .session;
                         crate::layout::sidebar_auto(session.width)
@@ -1591,6 +1591,9 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
+        if self.rail_resize_mouse(event, area) {
+            return KeyOutcome::default();
+        }
         if !matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
             || self.panel != TuiPanel::None
             || self.approvals.active().is_some()
@@ -1696,6 +1699,19 @@ impl TuiState {
             MouseEventKind::Up(_) => self.reasoning_pointer_down = false,
             _ => {}
         }
+        // Resolve against the current painted strip before releasing an old
+        // cross-close hold. A middle gesture neither activates nor arms a left
+        // release, and the held geometry must not retarget its original press.
+        let middle_tab = (self.panel == TuiPanel::None
+            && matches!(event.kind, MouseEventKind::Down(MouseButton::Middle))
+            && crate::shell::tab_region(self, area).contains((event.column, event.row).into()))
+        .then(|| {
+            event
+                .modifiers
+                .is_empty()
+                .then(|| self.middle_close_hit(area, event.column, event.row))
+                .flatten()
+        });
         self.last_mouse = (self.panel == TuiPanel::None).then_some((event.column, event.row, area));
         if self.close_hold.as_ref().is_some_and(|hold| {
             hold.area != area
@@ -1705,6 +1721,20 @@ impl TuiState {
         }) || matches!(event.kind, MouseEventKind::Down(_))
         {
             self.close_hold = None;
+        }
+        if let Some(index) = middle_tab {
+            self.tab_down = None;
+            self.exploration_down = None;
+            self.reasoning_down = None;
+            self.message_down = None;
+            self.reverted_down = None;
+            self.toast_down = false;
+            self.selection_gesture = false;
+            self.click = None;
+            return KeyOutcome {
+                intent: index.map(|index| PanelIntent::CloseTab { index }),
+                ..KeyOutcome::default()
+            };
         }
         if self.panel == TuiPanel::None {
             let toast = crate::shell::toast_rect(self, area);

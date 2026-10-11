@@ -29,6 +29,7 @@ import {probeLeaderPending} from './leader_pending.mjs';
 import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 import {frameArtifacts} from './frame_artifacts.mjs';
 import {probeSyntax} from './syntax_preview.mjs';
+import {probeMiddleTabs} from './middle_tabs.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -41,6 +42,14 @@ const applyPatch = args['apply-patch'] === 'true';
 const permission = args.permission === 'true';
 const cleanServices = args['clean-services'] === 'true';
 const toolPreview = args['tool-preview'] === 'true';
+const tabMiddleClose = args['tab-middle-close'] === 'true';
+const middleCase = args['middle-case'] || 'horizontal';
+if(args['tab-middle-close']!==undefined&&!['true','false'].includes(args['tab-middle-close']))throw Error('--tab-middle-close must be true|false');
+if(args['middle-case']!==undefined&&!tabMiddleClose)throw Error('--middle-case requires tab-middle-close');
+if(tabMiddleClose) {
+  const geometry={horizontal:[120,40,'horizontal'],clipped:[80,24,'horizontal'],vertical:[160,48,'vertical'],compact:[160,48,'vertical']}[middleCase];
+  if(!geometry||Number(args.columns)!==geometry[0]||Number(args.rows)!==geometry[1]||(args.tabs||'horizontal')!==geometry[2]||args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tab-middle-close','geometry','build-oc'].includes(k)))throw Error('--tab-middle-close requires an exclusive paired horizontal120x40, clipped80x24 or vertical/compact160x48 short profile');
+}
 const syntaxCache=args['syntax-cache']==='true';
 if(args['syntax-cache']!==undefined&&(!toolPreview||!['true','false'].includes(args['syntax-cache'])))throw Error('--syntax-cache requires tool-preview and true|false');
 const compressCells = args['compress-cells'] === 'true';
@@ -402,6 +411,7 @@ if(applyPatch)lock.sources.patch_executor={path:'opencode/packages/core/src/tool
 if(permission){for(const n of ['permission.mjs','permission_fixture.py','permission_mcp.py','apply_patch_fixture.py','apply_patch_admission.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));lock.sources.patch_executor={path:'opencode/packages/core/src/tool/plugin/patch.ts',sha256:sha(fs.readFileSync(path.join(repo,'opencode/packages/core/src/tool/plugin/patch.ts'))),admission_only:'Existing U19 admitted; real permission backend and executor unchanged'};}
 if(cleanServices)for(const n of ['services.mjs','services_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(toolPreview)for(const n of ['tool_preview.mjs','tool_preview_fixture.py','tool_preview_mcp.py','home_mcp.mjs'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(tabMiddleClose)lock.runner_hashes['middle_tabs.mjs']=sha(fs.readFileSync(path.join(here,'middle_tabs.mjs')));
 if(mcpStatus)lock.runner_hashes['mcp_status.mjs']=sha(fs.readFileSync(path.join(here,'mcp_status.mjs')));
 if(mcpFooter)lock.runner_hashes['mcp_footer.mjs']=sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')));
 if(promptCaret)for(const n of ['prompt_caret.mjs','prompt_caret_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
@@ -431,7 +441,7 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // A frozen syntax consumer must be new even when two fresh output trees share
 // a basename. Reusing a home would mix prior operations/cache reads into proof.
-const freshRoot = leaderPending || syntaxCache;
+const freshRoot = leaderPending || syntaxCache || tabMiddleClose;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
@@ -510,7 +520,7 @@ try {
                ...(pasteNavigation?{prompt_paste_expected:expectedPasteDraft(origin,pasteSuffixSpace)}:{}),
               apply_patch:applyPatch,permission,permission_mode:permissionMode,permission_strace_path:permission&&args['permission-strace']==='true'&&origin==='oc'?path.join(dir,'permission.strace'):undefined,patch_view:args['patch-view'],patch_wrap:args['patch-wrap'],
                clean_services:cleanServices,
-                 tool_preview:toolPreview,
+                  tool_preview:toolPreview, tab_middle_close:tabMiddleClose, middle_case:middleCase,
                   mcp_status:mcpStatus,
                    mcp_footer:mcpFooter||null,
                    prompt_caret:promptCaret,
@@ -758,8 +768,17 @@ try {
             relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
           lock.tool_preview ??= {};lock.tool_preview[origin]=checks;
           if(checks.status!=='PASS_BEHAVIOR_ONLY')result=1;
-          json('capture.lock.json',lock);continue;
-        }
+           json('capture.lock.json',lock);continue;
+         }
+         if(tabMiddleClose) {
+           const resize=async(rows,columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
+           const checks=await probeMiddleTabs({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,middleCase,resize,
+             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
+             relaunch:async()=>{await writeQueue;generation=1;chunks[1]=[];await page.evaluate(()=>{term.reset();term.clear();});child.stdin.write(JSON.stringify({kind:'relaunch'})+'\n');}});
+           lock.tab_middle_close ??= {};lock.tab_middle_close[origin]=checks;
+           if(checks.status!=='PASS_BEHAVIOR_ONLY')result=1;
+           json('capture.lock.json',lock);continue;
+         }
        if(applyPatch) {
           const checks=await probeApplyPatch({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
             control:command=>child.stdin.write(JSON.stringify(command)+'\n'),
@@ -3106,7 +3125,8 @@ try {
        if(mcpStatus)lock.qualification={status:mcpFooter?'DIAGNOSTIC_MCP_FOOTER_ONLY':'DIAGNOSTIC_MCP_STATUS_ONLY',actual_requests:'Zero model requests/tools; three actual configured connected/disabled/failed MCP rows',observation:mcpFooter?'Actual footer focus/controls/effective keys with independent initialize counters; full unmasked styled frames':'Full unmasked frames and typed styled-cell observations for all three selections; source intrinsic Connected bold and running-reference differences recorded separately'};
        if(promptCaret)lock.qualification={status:'DIAGNOSTIC_PROMPT_CARET_ONLY',actual_requests:'One explicit edited user prompt plus title; zero tools/MCP/Shell effects',observation:'Real SGR click and typed-byte proof, full unmasked styled-grid/PNG/cursor; current-source durable native user row and reopen/restart without replay'};
        if(promptHistory)lock.qualification={status:'DIAGNOSTIC_PROMPT_HISTORY_ONLY',mode:promptHistory,actual_requests:'Three real accepted normal prompts and one explicitly resubmitted recalled prompt, plus title requests; zero tools/MCP/Shell effects',observation:'Real history navigation across Home/session/restart; native bounded input-list/user rows read-only; full unmasked styled-grid/PNG/cursor'};
-    if(cursorTemporal)lock.qualification={status:'DIAGNOSTIC_CURSOR_TEMPORAL_ONLY',mode:cursorTemporal,renderer:cursorRenderer,synchronized_output:cursorSync,card_case:cursorCase,observation:'Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting',unresolved:['Temporal frames are timestamped observations, not settled-frame claims','Behavior qualification is separate from unmasked whole-grid/PNG parity','DOM hover blink suppression is not qualified as PASS']};
+     if(cursorTemporal)lock.qualification={status:'DIAGNOSTIC_CURSOR_TEMPORAL_ONLY',mode:cursorTemporal,renderer:cursorRenderer,synchronized_output:cursorSync,card_case:cursorCase,observation:'Pinned mature xterm parser plus real DOM CSS/WebGL pixel raster samples and full temporal grid/PNG/cursor brackets; no command rewriting',unresolved:['Temporal frames are timestamped observations, not settled-frame claims','Behavior qualification is separate from unmasked whole-grid/PNG parity','DOM hover blink suppression is not qualified as PASS']};
+     if(tabMiddleClose)lock.qualification={status:'DIAGNOSTIC_MIDDLE_TABS_ONLY',middle_case:middleCase,actual_requests:'Three or four real fresh Roots with completed local fake Responses and title requests; zero tool calls',observation:'Actual Middle Down on painted tab bodies; read-only history/deck/project snapshots; natural exit/restart/history reopening; compact uses real rail drag',unresolved:['Full grids/PNGs/cursors remain unmasked','Native busy/read-only/CAS refusal and owner tests are separate gates','Native manual rail width is process-local, not a durable preference claim','Other frozen T44 outcomes and final R6 remain mandatory']};
      if(leaderPending)lock.qualification={status:'DIAGNOSTIC_PROMPT_PASTE_ONLY',scenario:pasteNavigation?(pasteSuffixSpace?'repeat-paste-real-suffix-space':'repeat-paste-visual-navigation'):args['leader-extra']==='true'?'extra-longdraft':'default-chip',requested_columns:profile.columns,session_tps_override:false,actual_requests:'Real PTY keys and bracketed paste; isolated local Responses fixture; actual user wire retained',unresolved:['Full styled grids, PNGs and cursors remain unmasked; behavior is not VIS07 PASS','This bounded scenario does not qualify every mandatory prompt/paste/resize/Unicode case']};
    for (const scenario of args.geometry === 'true' ? [...new Set(lock.captures.map(c=>c.scenario))]
     .filter(s=>!scanner || !s.includes('-candidate-')) : ['session-wide-completed','commands-over-session','models-over-session', ...(args.variants === 'true' ? ['variants-over-session'] : [])]) {

@@ -464,7 +464,7 @@ pub(crate) fn regions(state: &TuiState, frame: Rect) -> (Rect, Rect) {
         crate::layout::configured_shell_regions(
             frame,
             state.chrome.devtools_visible(),
-            state.chrome.vertical_tabs_width,
+            state.tab_rail_width(),
         )
         .session,
     )

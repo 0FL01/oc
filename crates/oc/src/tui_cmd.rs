@@ -2125,16 +2125,7 @@ async fn handle_event_ticks(
                 for _ in 0..wheel_ticks {
                     let outcome = state.handle_mouse(mouse, area);
                     report_copy_request(state, loop_state);
-                    apply_mouse_outcome(
-                        app,
-                        state,
-                        loop_state,
-                        outcome,
-                        area,
-                        mouse.column,
-                        mouse.row,
-                    )
-                    .await;
+                    apply_mouse_outcome(app, state, loop_state, outcome, area, mouse).await;
                 }
             }
         }
@@ -2169,9 +2160,9 @@ async fn apply_mouse_outcome(
     loop_state: &mut LoopState,
     outcome: KeyOutcome,
     area: ratatui::layout::Rect,
-    x: u16,
-    y: u16,
+    mouse: crossterm::event::MouseEvent,
 ) {
+    let (x, y) = (mouse.column, mouse.row);
     if let Some(note) = outcome.note {
         state.push_note(&note);
     }
@@ -2186,7 +2177,15 @@ async fn apply_mouse_outcome(
     let pointer =
         (state.mouse_position() == Some((x, y, area)) || picker_open).then_some((x, y, area));
     let close = match intent {
-        PanelIntent::CloseTab { index } if pointer.is_some() => state.mouse_close_snapshot(index),
+        PanelIntent::CloseTab { index }
+            if pointer.is_some()
+                && matches!(
+                    mouse.kind,
+                    MouseEventKind::Up(crossterm::event::MouseButton::Left)
+                ) =>
+        {
+            state.mouse_close_snapshot(index)
+        }
         _ => None,
     };
     let activate = matches!(

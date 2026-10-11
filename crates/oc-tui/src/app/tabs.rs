@@ -622,6 +622,8 @@ pub(super) struct TabView {
     area: Option<Rect>,
     vertical: bool,
     compact: bool,
+    rail_width: Option<u16>,
+    rail_drag: Option<Rect>,
     pub(super) hovered: Option<TabIdentity>,
     pub(super) leave: Option<Instant>,
     marquee: Option<TabMarquee>,
@@ -629,6 +631,11 @@ pub(super) struct TabView {
 }
 
 impl TabView {
+    pub(super) fn reset_rail_width(&mut self) {
+        self.rail_width = None;
+        self.rail_drag = None;
+    }
+
     pub(super) fn reset_hover(&mut self) {
         self.hovered = None;
         self.leave = None;
@@ -665,6 +672,93 @@ pub(crate) struct TabCloseHold {
 }
 
 impl TuiState {
+    /// A manual rail width belongs to the visible same-Location deck, not a
+    /// session's data or its admitted configuration. Horizontal config wins.
+    pub(crate) fn tab_rail_width(&self) -> u16 {
+        if self.chrome.vertical_tabs_width == 0 {
+            0
+        } else {
+            self.tab_view
+                .borrow()
+                .rail_width
+                .unwrap_or(self.chrome.vertical_tabs_width)
+        }
+    }
+
+    pub(super) fn rail_resize_mouse(
+        &mut self,
+        event: crossterm::event::MouseEvent,
+        area: Rect,
+    ) -> bool {
+        use crossterm::event::{MouseButton, MouseEventKind};
+        let captured = self.tab_view.borrow().rail_drag;
+        let admitted = self.panel == TuiPanel::None
+            && self.approvals.active().is_none()
+            && self.questions.active().is_none()
+            && !self.composer_open()
+            && self.shell_viewer().is_none()
+            && self.chrome.vertical_tabs_width > 0;
+        if !admitted || captured.is_some_and(|frame| frame != area) {
+            self.tab_view.get_mut().rail_drag = None;
+            return false;
+        }
+        if captured.is_some() {
+            if event.modifiers.is_empty()
+                && matches!(
+                    event.kind,
+                    MouseEventKind::Drag(MouseButton::Left) | MouseEventKind::Up(MouseButton::Left)
+                )
+            {
+                let width = event
+                    .column
+                    .saturating_sub(area.x)
+                    .saturating_add(1)
+                    .min(crate::layout::SESSION_SIDEBAR_MAX_WIDTH)
+                    // The committed width must retain the admitted handle and
+                    // preferred content pane, not disappear at this geometry.
+                    .min(
+                        area.width
+                            .saturating_sub(crate::layout::SESSION_CONTENT_PREFERRED_WIDTH),
+                    )
+                    .max(crate::layout::SESSION_TABS_COMPACT_WIDTH);
+                self.tab_view.get_mut().rail_width = Some(width);
+                self.resize_mouse_position(area);
+                if matches!(event.kind, MouseEventKind::Drag(MouseButton::Left)) {
+                    self.tab_view.get_mut().rail_drag = Some(area);
+                }
+                self.last_mouse = Some((event.column, event.row, area));
+                self.reasoning_pointer_down =
+                    matches!(event.kind, MouseEventKind::Drag(MouseButton::Left));
+                return true;
+            }
+            if matches!(
+                event.kind,
+                MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_)
+            ) {
+                self.tab_view.get_mut().rail_drag = None;
+            }
+        }
+        let rail = crate::shell::tab_region(self, area);
+        let width = crate::layout::vertical_tabs_width(area.width, self.tab_rail_width());
+        if matches!(event.kind, MouseEventKind::Down(MouseButton::Left))
+            && event.modifiers.is_empty()
+            && width > 0
+            && rail.height > 0
+            && event.row >= rail.y
+            && event.row < rail.bottom()
+            && event.column >= rail.right().saturating_sub(1)
+            && event.column <= rail.right()
+        {
+            self.resize_mouse_position(area);
+            self.tab_view.get_mut().rail_drag = Some(area);
+            self.home_mcp_down = None;
+            self.reasoning_pointer_down = true;
+            self.last_mouse = Some((event.column, event.row, area));
+            return true;
+        }
+        false
+    }
+
     /// Real tabs, selected deck index and application-owned add capability.
     /// On Home with retained tabs, the selected synthetic slot is at `tabs.len()`.
     /// An empty slice means the legacy single-session/stripless-Home view.
@@ -732,6 +826,7 @@ impl TuiState {
 
     /// Clear a mouse surface when it is hidden or no longer admitted.
     pub fn clear_mouse_position(&mut self) {
+        self.tab_view.get_mut().rail_drag = None;
         self.painted_prompt.borrow_mut().take();
         self.clear_transcript_selection();
         self.last_mouse = None;
@@ -747,6 +842,7 @@ impl TuiState {
     /// hover resolves current painted identity; only a same-ID tab may retain
     /// its marquee clock across the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
+        self.tab_view.get_mut().rail_drag = None;
         self.cancel_shell_footer_pointer();
         self.shells.footer_hit.set(None);
         self.painted_prompt.borrow_mut().take();
@@ -800,7 +896,7 @@ impl TuiState {
 
     pub(crate) fn tab_add_hovered(&self, area: Rect, add: Rect) -> bool {
         self.panel == TuiPanel::None
-            && (crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width) > 0
+            && (crate::layout::vertical_tabs_width(area.width, self.tab_rail_width()) > 0
                 || add.width == 3)
             && self.last_mouse.is_some_and(|(x, y, pointer_area)| {
                 pointer_area == area && add.contains((x, y).into())
@@ -902,6 +998,22 @@ impl TuiState {
         // The promoted Home slot is already selected; its click is not an
         // application action. Only retained real tabs have activation intents.
         (index < self.tabs.len()).then_some(TabPress::Tab(index))
+    }
+
+    /// Middle Down owns the entire visible slot, independently of whether its
+    /// hover cross fits. The application still revalidates and saves the close.
+    pub(super) fn middle_close_hit(&self, area: Rect, x: u16, y: u16) -> Option<usize> {
+        crate::shell::tab_strip(self, area)?
+            .hit_test(x, y)
+            .filter(|&index| self.tab_close_eligible(index))
+    }
+
+    fn tab_close_eligible(&self, index: usize) -> bool {
+        !self.tabs.is_empty()
+            && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
+            && !self.is_busy()
+            && self.panel == TuiPanel::None
+            && !self.tabs.get(index).is_some_and(|tab| tab.busy)
     }
 
     fn tab_identity(&self, index: usize) -> Option<TabIdentity> {
@@ -1137,7 +1249,7 @@ impl TuiState {
     }
 
     pub fn tab_wheel_hit(&self, area: Rect, x: u16, y: u16) -> bool {
-        crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width) > 0
+        crate::layout::vertical_tabs_width(area.width, self.tab_rail_width()) > 0
             && crate::shell::tab_region(self, area).contains((x, y).into())
     }
 
@@ -1233,16 +1345,11 @@ impl TuiState {
 
     /// Same eligibility and cell for the painted overlay and mouse action.
     pub fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {
-        (!self.tabs.is_empty()
-            && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
+        (self.tab_close_eligible(index)
             && self.hovered_tab(area) == Some(index)
-            && !self.is_busy()
-            && self.panel == TuiPanel::None
-            && !(crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width)
-                > 0
-                && rect.width < crate::layout::SESSION_TABS_COMPACT_BREAKPOINT)
-            && !self.tabs.get(index).is_some_and(|tab| tab.busy))
-        .then(|| crate::layout::tab_close_cell(rect))
-        .flatten()
+            && !(crate::layout::vertical_tabs_width(area.width, self.tab_rail_width()) > 0
+                && rect.width < crate::layout::SESSION_TABS_COMPACT_BREAKPOINT))
+            .then(|| crate::layout::tab_close_cell(rect))
+            .flatten()
     }
 }
