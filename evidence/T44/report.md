@@ -620,3 +620,24 @@ metadata and visible failure in an archive; no committed proof/history/foreign
 rewrite, failure deletion/offload or1GiB cap increase. Next actual Root Home/caret/
 blink/pacing and EVERY remaining frozen R1–R6/VIS01–45/outcome/supplement, then final
 current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global pixel acceptance.
+
+## Actual paste-readiness / logical composer caret (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/caret-qualified.md) distinguishes the old real absolute
+caret difference from equivalent logical input. Pinned Terminal TUI queues paste
+asynchronously; old paste+two Left in one burst could move before insertion.
+Probe now waits for real painted paste/end-caret, then sends the same Left inputs
+and verifies actual positions before/after resize. No native editor/Rust, frame,
+cursor, clock, trace, RAW/config/permissions/bounds or old observation changed.
+Both sides origin5,74/end24,74/Left21,74→resize21,18; search14,9 and exact composer
+restore hold. Six default-mode states,160 full opaque frames/144 caret-raster
+associations, zero phantoms/cycles. Direct160 DIFFERENT/matched144 DIFFERENT,
+Home27 cells/cursor-idle360 cells and card/footer/literal differences stay visible;
+blink unqualified. All992 files/40,917,078 logical bytes retained exact812,072B;
+current707/ONE real locked build/ELF/full comparator/effect/byte restoration audit
+PASS. Six requests/four calls/three MCP+17B Shell/no replay; Python53/targeted6/
+Node/fmt PASS. Unchanged native1830 full gates/release9/original resource guards
+remain current; this is not a fresh ordinary/full Root episode or final R6.
+Every old proof/failure remains byte-stable, no normalization/offload/quota raise.
+Next real Root Home owners/blink/pacing and EVERY frozen outcome/supplement,
+then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global acceptance.

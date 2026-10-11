@@ -143,11 +143,28 @@ def check_source_manifest(lock, manifest, source_count):
             "producer source manifest seal")
 
 
-def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False):
+def check_caret_readiness(cursor):
+    facts = cursor.get("draft_input")
+    require(isinstance(facts, dict) and type(facts.get("left_moves")) is int and
+            facts["left_moves"] == 2, "actual two Left inputs")
+    for origin_name, cursor_name, columns in (("origin", "paste_cursor", 19),
+                                              ("origin", "inside_cursor", 16),
+                                              ("resized_origin", "resized_cursor", 16)):
+        origin, position = facts.get(origin_name), facts.get(cursor_name)
+        require(isinstance(origin, dict) and isinstance(position, dict) and
+                all(type(item.get(key)) is int and item[key] >= 0
+                    for item in (origin, position) for key in ("x", "y")) and
+                position.get("visible") is True and position["y"] == origin["y"] and
+                position["x"] == origin["x"] + columns,
+                "actual painted paste/readiness and logical caret")
+
+
+def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
     reports = []
-    for episode, count in (("inventory", 2 * len(inventory_stages)), ("ordinary", 56), ("temporal", 160)):
+    episodes = (("temporal", 160),) if temporal_only else (("inventory", 2 * len(inventory_stages)), ("ordinary", 56), ("temporal", 160))
+    for episode, count in episodes:
         read = lambda relative: json.loads(files[episode + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
         check_source_manifest(lock, manifest, source_count)
@@ -193,6 +210,8 @@ def producer_checks(files, source_count=704, inventory_stages=None, require_hove
                 require(cursor["status"] == "QUALIFIED_CURSOR_BEHAVIOR_ONLY" and
                         sum(state["temporal_full_frames"] for state in cursor["states"]) == 72,
                         "complete default temporal proof")
+                if temporal_only:
+                    check_caret_readiness(cursor)
         reports.append({"episode": episode, "captures": count,
                         "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
     return reports
@@ -275,11 +294,14 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster"), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret"), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
-    if args.campaign == "root-diagnostics":
+    if args.campaign == "caret":
+        ROOTS = {name: TEMP / "caret-current-001" / name for name in ("temporal", "matched")}
+        source_count = 707
+    elif args.campaign == "root-diagnostics":
         ROOTS = {"diagnostic-before": TEMP / "root-loss-diagnostic-001",
                  "diagnostic-after": TEMP / "root-loss-diagnostic-002",
                  "probe-first": TEMP / "root-current-001/inventory",
@@ -318,13 +340,13 @@ def main():
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
         reports = (diagnostic_checks(restored) if args.campaign == "root-diagnostics" else
-                    producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster"))
+                     producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", args.campaign == "caret"))
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
         reports = (diagnostic_checks(files) if args.campaign == "root-diagnostics" else
-                   producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster"))
+                    producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", args.campaign == "caret"))
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)

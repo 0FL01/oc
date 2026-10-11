@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T07:04:19+00:00
+State updated: 2026-10-11T07:46:38+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,37 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 physical viewport shrink / raster edge — qualified slice
+# T44 actual paste-readiness / caret — qualified slice
 
 ## Result
-Resize-only synchronized clear erases every visible cell without deleting old-width
-terminal tail attributes; Ratatui still fully repaints. Cursor/SGR, zero sizes,
-stable manual clear, writer/concurrency and error/no-replay guards remain intact.
-Receipt evidence/tui/raster-qualified.md; full frozen T44 remains ACTIVE/NOT_PASS.
-Git determines reviewed delivery, not this pre-delivery checkpoint.
+Fixed probe-only ordering: painted async paste readiness precedes the same two
+Left inputs; both real binaries now own the same logical inside-caret.
+Native Rust/editor/render/store/config/permissions/RAW/resource guards unchanged.
+Receipt evidence/tui/caret-qualified.md; full frozen T44 remains ACTIVE/NOT_PASS.
+Git determines checked delivery, not the immutable predelivery capture base.
 
 ## Checks
-Current all46 workspace1830/0/11,111binary/509TUI, strict Clippy/fmt/builds/help,
-release startup19/GET8/TERM01/VIS31/S07/actual AUD32 original guards and Python52 PASS.
-Fresh actual Raster001 seven states per side: former32 edge pixels now zero diff,
-full narrow raster differs only66 clock pixels; actual48 ECH/zero ED at shrink.
-Root/Add/draft/parked completion/natural gen0/reopen/no replay/explicit cancel hold.
-All1442 files/230 full captures retained exact3853300B, current707/three real builds/
-ELF/effects/entire comparator and byte restoration independently audited.
+Both sides actual origin5,74/end24,74/Left21,74→resize21,18; search14,9 and exact
+composer restoration. Six states/160 full captures/144 caret raster associations,
+zero phantoms/cycles. Direct160 DIFFERENT/matched144 DIFFERENT remain unmasked.
+All992 files/40,917,078 logical bytes retained exact812,072-byte proof; current707,
+ONE real locked build/ELF/strict-comparator/effect restoration independently audited.
+Six requests/four calls/three MCP+17B Shell/no replay; Python53/targeted6/Node/fmt.
+Native1830 full gates/release9/original guards remain current unchanged Rust/ELF.
 
 ## Risks
-Direct220 DIFFERENT/8 EQUAL plus4 native-only; matched144 DIFFERENT. Real8.0/8.3s
-and1.6/1.8s clocks, Home28 cells, composer caret(21,18)/(24,18) and blink remain
-unmasked/unqualified. One own untracked FAILED diagnostic retained byte/meta-exact
-in visible FAILED archive; committed proof/baselines/history/foreign data untouched.
-All old bytes/checkpoints and original1GiB/per-file/decode/active bounds preserved.
+Only default/steady owner behavior, not blink or full visual acceptance.
+Home27 cells and cursor-idle360 cells plus card/footer/literal differences remain.
+Old absolute-caret observations and all previous proof/failure bytes untouched;
+no coordinate normalization, invented usage, quota rise, offload or data deletion.
 ALL frozen R1–R6/VIS01–45/supplements and final current-source R6/V09 mandatory.
 
 ## Next
-Trace and fix actual Root Home/composer-caret/blink and pacing with current full
-styled-cell/opaque-PNG/cursor/effect proof, not normalization or an inert control.
-Continue every remaining Thoughts/family/forms/DCP/MCP/auth frozen outcome,
-then final current-source R6/V09. Do not stop after delivery, reduce acceptance,
-rewrite historical claims or finish T44 early.
+Trace real Root Home placeholder/hover/version owners and blink/pacing; preserve
+painted control identity/RAW/current draft/permissions/effects. Continue every
+remaining Thoughts/family/forms/DCP/MCP/auth/card/footer frozen outcome and actual
+current-source full-frame proof, then final R6/V09. Do not stop after delivery,
+promote local caret equality to global PASS or finish T44 early.
 
 
 Ready (до 5): T58

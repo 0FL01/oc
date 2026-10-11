@@ -8,10 +8,31 @@ export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,ca
   const draft='preserved draft Ω界';
   send('\x03','cursor_clear_draft');
   await waitFor(f=>!f.text.includes('preserved draft'),'clear temporal draft',6000);
-  send('\x1b[200~'+draft+'\x1b[201~\x1b[D\x1b[D','cursor_unicode_draft');
-  await waitFor(f=>f.text.includes(draft),'Unicode draft inside caret',15000);
-  await resize(geometry.rows);
-  await waitFor(f=>f.rows===geometry.rows&&f.text.includes(draft),'representative cursor geometry',6000);
+   // Pinned TUI queues paste asynchronously; arrows in that same burst can run
+   // before insertion. Establish actual painted paste/caret readiness first.
+   const draftOrigin=f=> {
+     const matches=visibleMatches(f,'preserved draft ');
+     return f.text.includes(draft)&&matches.length===1?matches[0]:null;
+   };
+   send('\x1b[200~'+draft+'\x1b[201~','cursor_unicode_draft');
+   const pasted=await waitFor(f=> {
+     const p=draftOrigin(f);
+     return p&&f.cursor.visible&&f.cursor.y===p.y&&f.cursor.x===p.x+19;
+   },'actual Unicode paste/caret ready',15000);
+   result.draft_input={origin:draftOrigin(pasted),paste_cursor:pasted.cursor,left_moves:2};save();
+   send('\x1b[D\x1b[D','cursor_move_inside_unicode_draft');
+   const edited=await waitFor(f=> {
+     const p=draftOrigin(f);
+     return p&&f.cursor.visible&&f.cursor.y===p.y&&f.cursor.x===p.x+16;
+   },'two actual grapheme Left moves after paste',6000);
+   result.draft_input.inside_cursor=edited.cursor;save();
+   await resize(geometry.rows);
+   const resized=await waitFor(f=> {
+     const p=draftOrigin(f);
+     return f.rows===geometry.rows&&p&&f.cursor.visible&&f.cursor.y===p.y&&f.cursor.x===p.x+16;
+   },'representative geometry preserves logical caret',6000);
+   result.draft_input.resized_origin=draftOrigin(resized);
+   result.draft_input.resized_cursor=resized.cursor;save();
   const header=f=>visibleMatches(f,(origin==='oc'?'vis16__output':'vis16_output')+' [index=1');
   const cardView=async()=>{
     for(let i=0;i<=16;i++) {

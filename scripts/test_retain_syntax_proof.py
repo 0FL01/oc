@@ -9,6 +9,22 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_caret_readiness_uses_real_painted_origins_without_coordinate_normalization(self):
+        facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,
+                 "paste_cursor": {"x": 24, "y": 74, "visible": True},
+                 "inside_cursor": {"x": 21, "y": 74, "visible": True},
+                 "resized_origin": {"x": 5, "y": 18},
+                 "resized_cursor": {"x": 21, "y": 18, "visible": True}}
+        proof.check_caret_readiness({"draft_input": facts})
+        for field, key, value in (("inside_cursor", "x", 24), ("resized_cursor", "x", 24),
+                                  ("paste_cursor", "visible", False), ("origin", "x", True)):
+            altered = json.loads(json.dumps(facts))
+            altered[field][key] = value
+            with self.subTest(field=field, key=key), self.assertRaises(ValueError):
+                proof.check_caret_readiness({"draft_input": altered})
+        with self.assertRaises(ValueError):
+            proof.check_caret_readiness({})
+
     def test_current_and_historical_producers_require_the_exact_canonical_source_seal(self):
         # JS locale collation puts app.rs before README.md; codepoint sort does not.
         manifest = {"crates/oc-tui/README.md": "b" * 64, "crates/oc-tui/app.rs": "a" * 64}
