@@ -641,3 +641,23 @@ remain current; this is not a fresh ordinary/full Root episode or final R6.
 Every old proof/failure remains byte-stable, no normalization/offload/quota raise.
 Next real Root Home owners/blink/pacing and EVERY frozen outcome/supplement,
 then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global acceptance.
+
+## Actual blink / steady / synchronized fallback (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/blink-qualified.md) preserves four real paired profiles,
+including the first Original collapsed-hover FAILED cadence result. Native all6
+owners qualify at80×24/120×40 blink and160×48 steady, with expanded supported and
+unsupported fallback controls; zero phantoms, exact draft/caret restoration, ≥3
+actual blink cycles against each owner idle, steady0. No Rust/editor/renderer/
+framework/timer/config/RAW/redaction/permission/cursor/comparator change was made.
+All640 full opaque frames/576 temporal caret associations/current707/one real
+locked build per profile/actual effects independently audited. Every3,781 original
+file /263,431,197 logical bytes survives exact5,426,624B four self-contained proofs;
+all prior proof/failure/scratch remains byte-stable, unchanged1GiB/perfile/decoder/
+AS guards. Direct608 DIFFERENT+64 UNMATCHED remain unmasked; qualified211matched
+pairs/422 DIFFERENT; no qualified matcher used for failed first Original baseline.
+Actual6requests/4calls/3MCP+17B Shell per side/profile/no replay/model-UI boundaries
+hold. Python54 PASS; unchanged native1830 full gates/release9/resources current.
+Next typed captured MCP label/body/Shell/footer/Home/readonly/pacing and EVERY
+remaining frozen R1–R6/VIS01–45/outcome/supplement, then final current-source R6/V09.
+Whole T44 ACTIVE/NOT_PASS; temporal qualification is not full pixel acceptance.

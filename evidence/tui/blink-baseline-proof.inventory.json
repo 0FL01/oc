@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "15d882f9d4c86c5fb0769727feb1be4b39414c6ec2fe79e504ac01ba8b52f9d8",
+  "archive_bytes": 1049924,
+  "tar_sha256": "b8537dc772887de1aded34738ac403eded8b5f2c9b7b7de9c75923ef9713e514",
+  "tar_bytes": 35932160,
+  "inventory": {
+    "members": 825,
+    "logical_bytes": 40591097,
+    "member_inventory_sha256": "34c1525c005fce3bbe330660c5903c7e7b1c8c638ffaf20c1dd728be2d88edf0",
+    "same_side_png_aliases": 128
+  },
+  "source_roots": {
+    "temporal": "/home/opencode/.cache/opencode-tmp/opencode/blink-current-001/temporal"
+  },
+  "producer_reports": [
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "comparisons": {
+        "DIFFERENT": 138,
+        "UNMATCHED_TEMPORAL_SAMPLE": 44
+      },
+      "profile": "blink-baseline",
+      "cursor_statuses": {
+        "oc": "QUALIFIED_CURSOR_BEHAVIOR_ONLY",
+        "upstream": "FAILED_CURSOR_QUALIFICATION"
+      }
+    }
+  ],
+  "retainer_source_sha256": "30917470a5170ad234a97e38321602e44e2239fe222c9a010b3a7aebd3e586a8"
+}

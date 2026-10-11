@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import lzma
+import math
 import os
 from pathlib import Path, PurePosixPath
 import resource
@@ -23,6 +24,12 @@ ROOTS = {"inventory": TEMP / "syntax-current-010/inventory",
          **{name: TEMP / "syntax-regressions-001" / name
             for name in ("ordinary", "temporal", "matched")}}
 MAX_FILE, MAX_TOTAL = 16 * 1024**2, 128 * 1024**2
+TEMPORAL_PROFILES = {
+    "blink-baseline": ("blink-current-001/temporal", None, "blink", "collapsed", "supported", 80, 24),
+    "blink-fallback": ("blink-fallback-001/temporal", "blink-fallback-001/matched", "blink", "expanded", "unsupported", 80, 24),
+    "blink-supported": ("blink-controls-001/supported", "blink-controls-001/supported-matched", "blink", "expanded", "supported", 120, 40),
+    "blink-steady": ("blink-controls-001/steady-fallback", "blink-controls-001/steady-fallback-matched", "steady", "expanded", "unsupported", 160, 48),
+}
 
 
 def require(ok, reason):
@@ -159,12 +166,55 @@ def check_caret_readiness(cursor):
                 "actual painted paste/readiness and logical caret")
 
 
-def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False):
+def check_temporal_profile(lock, cursor, side, name):
+    _, _, mode, case, sync, columns, rows = TEMPORAL_PROFILES[name]
+    profile = lock["profile"]
+    require(all(profile.get(key) == value for key, value in
+                (("cursor_temporal", mode), ("cursor_case", case), ("cursor_sync", sync),
+                 ("cursor_renderer", "webgl"), ("columns", columns), ("rows", rows))) and
+            profile.get("cursor_blink") is (mode == "blink"), "actual declared temporal profile")
+    reference_failure = name == "blink-baseline" and side == "upstream"
+    require(cursor["status"] == ("FAILED_CURSOR_QUALIFICATION" if reference_failure else
+                                  "QUALIFIED_CURSOR_BEHAVIOR_ONLY") and
+            cursor["mode"] == mode and cursor["card_case"] == case and
+            cursor["geometry"] == {"columns": columns, "rows": rows}, "temporal outcome scope")
+    states = cursor["states"]
+    require([item["state"] for item in states] ==
+            ["idle", "hover", "restored", "search-idle", "search-hover", "composer-restored"],
+            "all six temporal owners")
+    check_caret_readiness(cursor)
+    for state in states:
+        failed_hover = reference_failure and state["state"] == "hover"
+        require(all(type(state[key]) is int and state[key] >= 0 for key in
+                    ("temporal_full_frames", "samples", "commands", "cycles", "moves", "phantom_command_states")) and
+                state["temporal_full_frames"] == 12 and state["samples"] > 0 and
+                state["phantom_command_states"] == 0 and state["final_caret_preserved"] is True and
+                state["adequate_raster_sampling"] is True, "complete actual temporal observations")
+        periods = state["cycle_periods_ms"]
+        require(isinstance(periods, list) and len(periods) == state["cycles"] and
+                all(type(value) in (int, float) and math.isfinite(value) and value > 0 for value in periods),
+                "actual cycle timestamps")
+        gap = state["max_sample_gap_ms"]
+        idle = states[3] if state["state"].startswith("search-") else states[0]
+        require(type(gap) in (int, float) and math.isfinite(gap) and gap > 0 and
+                (mode != "blink" or gap <= min(idle["cycle_periods_ms"]) / 4),
+                "adequate actual raster sampling")
+        require(state["cadence_preserved"] is (not failed_hover) and
+                state["raster_blink_observed"] is (mode == "blink" and not failed_hover) and
+                ((0 < state["cycles"] < 3) if failed_hover else
+                 (state["cycles"] >= 3 if mode == "blink" else state["cycles"] == 0)),
+                "blink cycles/cadence or explicit preserved reference failure")
+        require((state["moves"] > 0 and state["commands"] > 0) if "hover" in state["state"] else
+                state["moves"] == 0, "actual continuous hover/control")
+
+
+def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
     reports = []
     episodes = (("temporal", 160),) if temporal_only else (("inventory", 2 * len(inventory_stages)), ("ordinary", 56), ("temporal", 160))
     for episode, count in episodes:
+        cursor_statuses = {}
         read = lambda relative: json.loads(files[episode + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
         check_source_manifest(lock, manifest, source_count)
@@ -207,13 +257,21 @@ def producer_checks(files, source_count=704, inventory_stages=None, require_hove
             else:
                 require(checks["status"] == "DIAGNOSTIC_CURSOR_ONLY", "temporal outer scope")
                 cursor = read(side + "/cursor-temporal-checks.json")
-                require(cursor["status"] == "QUALIFIED_CURSOR_BEHAVIOR_ONLY" and
-                        sum(state["temporal_full_frames"] for state in cursor["states"]) == 72,
-                        "complete default temporal proof")
+                if temporal_profile:
+                    check_temporal_profile(lock, cursor, side, temporal_profile)
+                    require(checks["cursor_temporal"]["no_tool_replay"] is True, "no tool replay")
+                    cursor_statuses[side] = cursor["status"]
+                else:
+                    require(cursor["status"] == "QUALIFIED_CURSOR_BEHAVIOR_ONLY" and
+                             sum(state["temporal_full_frames"] for state in cursor["states"]) == 72,
+                             "complete default temporal proof")
                 if temporal_only:
                     check_caret_readiness(cursor)
-        reports.append({"episode": episode, "captures": count,
-                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+        report = {"episode": episode, "captures": count,
+                  "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))}
+        if temporal_profile:
+            report.update(profile=temporal_profile, cursor_statuses=cursor_statuses)
+        reports.append(report)
     return reports
 
 
@@ -294,11 +352,19 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret"), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
-    if args.campaign == "caret":
+    temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
+    temporal_only = args.campaign == "caret" or temporal_profile is not None
+    if temporal_profile:
+        current, matched, *_ = TEMPORAL_PROFILES[temporal_profile]
+        ROOTS = {"temporal": TEMP / current}
+        if matched:
+            ROOTS["matched"] = TEMP / matched
+        source_count = 707
+    elif args.campaign == "caret":
         ROOTS = {name: TEMP / "caret-current-001" / name for name in ("temporal", "matched")}
         source_count = 707
     elif args.campaign == "root-diagnostics":
@@ -340,13 +406,13 @@ def main():
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
         reports = (diagnostic_checks(restored) if args.campaign == "root-diagnostics" else
-                     producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", args.campaign == "caret"))
+                      producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", temporal_only, temporal_profile))
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
         reports = (diagnostic_checks(files) if args.campaign == "root-diagnostics" else
-                    producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", args.campaign == "caret"))
+                     producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster", temporal_only, temporal_profile))
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)

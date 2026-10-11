@@ -9,6 +9,59 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_blink_profile_requires_real_cycles_and_preserves_only_scoped_reference_failure(self):
+        facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,
+                 "paste_cursor": {"x": 24, "y": 74, "visible": True},
+                 "inside_cursor": {"x": 21, "y": 74, "visible": True},
+                 "resized_origin": {"x": 5, "y": 18},
+                 "resized_cursor": {"x": 21, "y": 18, "visible": True}}
+        states = [{"state": name, "moves": 270 if "hover" in name else 0,
+                   "commands": 100 if "hover" in name else 0, "samples": 300,
+                   "cycles": 3, "cycle_periods_ms": [1200, 1201, 1199],
+                   "max_sample_gap_ms": 30.5, "phantom_command_states": 0,
+                   "temporal_full_frames": 12, "final_caret_preserved": True,
+                   "adequate_raster_sampling": True, "cadence_preserved": True,
+                   "raster_blink_observed": True}
+                  for name in ("idle", "hover", "restored", "search-idle", "search-hover", "composer-restored")]
+        lock = {"profile": {"cursor_temporal": "blink", "cursor_case": "expanded",
+                            "cursor_sync": "unsupported", "cursor_renderer": "webgl",
+                            "columns": 80, "rows": 24, "cursor_blink": True}}
+        cursor = {"status": "QUALIFIED_CURSOR_BEHAVIOR_ONLY", "mode": "blink",
+                  "card_case": "expanded", "geometry": {"columns": 80, "rows": 24},
+                  "draft_input": facts, "states": states}
+        proof.check_temporal_profile(lock, cursor, "oc", "blink-fallback")
+        search = json.loads(json.dumps(cursor))
+        for state in search["states"][3:5]:
+            state.update(cycle_periods_ms=[1320, 1320, 1320], max_sample_gap_ms=310)
+        # Search owns a different blink baseline; do not compare it to composer.
+        proof.check_temporal_profile(lock, search, "oc", "blink-fallback")
+        for key, value in (("cycles", 2), ("cycles", True), ("phantom_command_states", 1),
+                           ("max_sample_gap_ms", 400), ("raster_blink_observed", False)):
+            bad = json.loads(json.dumps(cursor))
+            bad["states"][1][key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                proof.check_temporal_profile(lock, bad, "oc", "blink-fallback")
+        baseline_lock = json.loads(json.dumps(lock))
+        baseline_lock["profile"].update(cursor_case="collapsed", cursor_sync="supported")
+        baseline = json.loads(json.dumps(cursor))
+        baseline.update(status="FAILED_CURSOR_QUALIFICATION", card_case="collapsed")
+        baseline["states"][1].update(cycles=1, cycle_periods_ms=[1644],
+                                      cadence_preserved=False, raster_blink_observed=False)
+        proof.check_temporal_profile(baseline_lock, baseline, "upstream", "blink-baseline")
+        with self.assertRaises(ValueError):
+            proof.check_temporal_profile(baseline_lock, baseline, "oc", "blink-baseline")
+        with self.assertRaises(ValueError):
+            proof.check_temporal_profile(lock, baseline, "upstream", "blink-fallback")
+        steady_lock = json.loads(json.dumps(lock))
+        steady_lock["profile"].update(cursor_temporal="steady", cursor_blink=False, columns=160, rows=48)
+        steady = json.loads(json.dumps(cursor))
+        steady.update(mode="steady", geometry={"columns": 160, "rows": 48})
+        for state in steady["states"]:
+            state.update(cycles=0, cycle_periods_ms=[], raster_blink_observed=False)
+        proof.check_temporal_profile(steady_lock, steady, "oc", "blink-steady")
+        with self.assertRaises(ValueError):
+            proof.check_temporal_profile(steady_lock, cursor, "oc", "blink-steady")
+
     def test_caret_readiness_uses_real_painted_origins_without_coordinate_normalization(self):
         facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,
                  "paste_cursor": {"x": 24, "y": 74, "visible": True},
