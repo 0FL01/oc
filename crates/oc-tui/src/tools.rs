@@ -723,11 +723,9 @@ pub(crate) fn shell_block_expanded(
     expanded: bool,
 ) -> Vec<Line> {
     let mut frame = BlockFrame::new(theme, width);
-    if shell.direct_user {
-        // Standalone ShellDisplay's box padding inherits the terminal text
-        // foreground, separately from its muted captured output child.
-        frame.padding = ratatui::style::Style::default().bg(frame.bg);
-    }
+    // ShellDisplay and its BlockTool parent do not give box padding the
+    // captured output child's muted foreground (`index.tsx:2795–2804`).
+    frame.padding = ratatui::style::Style::default().bg(frame.bg);
     let mut out = vec![frame.row(&[])];
     let running = is_running(&card.state) && shell.process_state.is_none() || shell.live_running;
     let mut header = vec![Span::styled(
@@ -772,19 +770,20 @@ pub(crate) fn shell_block_expanded(
         (width as usize).saturating_sub(3).max(1)
     };
     for (raw_index, raw) in input.split('\n').enumerate() {
-        for (wrapped_index, line) in styled::wrap_line_limited(
-            &Line::styled(
-                raw,
-                ratatui::style::Style::default()
-                    .fg(theme.text())
-                    .bg(frame.bg),
-            ),
-            inner,
-            usize::MAX,
-        )
-        .into_iter()
-        .enumerate()
-        {
+        let source = Line::styled(
+            raw,
+            ratatui::style::Style::default()
+                .fg(theme.text())
+                .bg(frame.bg),
+        );
+        let rows = if expanded {
+            styled::wrap_line_limited(&source, inner, usize::MAX)
+        } else {
+            // ShellDisplay's collapsed command uses wrapMode="char", not
+            // word-wrap; do not drop its genuine continuation separator.
+            styled::wrap_char_line_limited(&source, inner, usize::MAX)
+        };
+        for (wrapped_index, line) in rows.into_iter().enumerate() {
             if shell.direct_user
                 && running
                 && raw_index == 0

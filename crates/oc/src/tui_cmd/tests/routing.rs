@@ -3093,6 +3093,139 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
 }
 
 #[tokio::test]
+async fn mouse_picker_open_rehits_only_after_same_location_owner_acceptance() {
+    for retained in [false, true] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let target = SessionId("picker-root".into());
+        let mut state = if retained {
+            TuiState::new(app.clone(), target.clone())
+        } else {
+            TuiState::new_home(app.clone())
+        };
+        state.chrome.location = Some("/a".into());
+        let mut deck = LoopState {
+            location: Some("/a".into()),
+            ..Default::default()
+        };
+        deck.sync_tabs(&mut state);
+        state.handle_paste("/sessions");
+        let mut inputs = Vec::new();
+        tokio::join!(
+            state.handle_key(KeyAction::Enter),
+            accept_prompt_input(&mut inbox, &mut inputs, "/sessions")
+        );
+        state.apply_session_entries(vec![oc_core::queries::SessionListEntry {
+            id: target.clone(),
+            title: "Painted picker root".into(),
+            directory: Some("/a".into()),
+            created_at: "1".into(),
+            updated_at: Some("2".into()),
+            date_group: "Today".into(),
+            running: false,
+            worktree: None,
+        }]);
+        state.restore_prompt("untouched source draft".into());
+        let before = deck.snapshot(&state);
+        let owner = target.clone();
+        let worker = tokio::spawn(async move {
+            for accepted in [false, true] {
+                let Some(InboxMsg::OpenPickerSession {
+                    session,
+                    old_deck,
+                    ack,
+                    ..
+                }) = inbox.recv().await
+                else {
+                    panic!("only the existing picker owner admits the route")
+                };
+                assert_eq!(session, owner);
+                if !accepted {
+                    ack.send(Err(CoreError::Shutdown)).unwrap();
+                    continue;
+                }
+                let mut catalog = catalog();
+                catalog.chrome.location = Some("/a".into());
+                ack.send(Ok(oc_core::queries::SessionPickerOpen {
+                    session: session.clone(),
+                    location: "/a".into(),
+                    catalog,
+                    page: Default::default(),
+                    deck: TabDeckSnapshot {
+                        location: "/a".into(),
+                        sessions: vec![session.clone()],
+                        active: Some(session),
+                        ..Default::default()
+                    },
+                    previous_deck: old_deck,
+                }))
+                .unwrap();
+                empty_compactions(&mut inbox).await;
+            }
+            assert!(inbox.try_recv().is_err(), "hover cannot submit or replay");
+        });
+        let area = ratatui::layout::Rect::new(0, 0, 120, 40);
+        for accepted in [false, true] {
+            let mut terminal =
+                ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+            terminal.draw(|frame| render_frame(frame, &state)).unwrap();
+            let label = "Painted picker root";
+            let position = terminal
+                .backend()
+                .buffer()
+                .content
+                .windows(label.len())
+                .position(|cells| {
+                    cells.iter().map(|cell| cell.symbol()).collect::<String>() == label
+                })
+                .expect("click the actual painted session option");
+            let (x, y) = ((position % 120) as u16, (position / 120) as u16);
+            for kind in [
+                MouseEventKind::Down(crossterm::event::MouseButton::Left),
+                MouseEventKind::Up(crossterm::event::MouseButton::Left),
+            ] {
+                let outcome = state.handle_mouse(
+                    crossterm::event::MouseEvent {
+                        kind,
+                        column: x,
+                        row: y,
+                        modifiers: KeyModifiers::NONE,
+                    },
+                    area,
+                );
+                if matches!(kind, MouseEventKind::Up(_)) {
+                    assert_eq!(
+                        outcome.intent,
+                        Some(PanelIntent::SwitchSession {
+                            id: target.0.clone()
+                        })
+                    );
+                }
+                apply_mouse_outcome(&app, &mut state, &mut deck, outcome, area, x, y).await;
+            }
+            if accepted {
+                assert_eq!(state.attached_session(), Some(&target));
+                assert_eq!(state.mouse_position(), Some((x, y, area)));
+                assert_eq!(*state.panel(), TuiPanel::None);
+                if retained {
+                    assert_eq!(state.input(), "untouched source draft");
+                } else {
+                    assert_eq!(
+                        deck.home.as_ref().unwrap().input(),
+                        "untouched source draft"
+                    );
+                }
+            } else {
+                assert_eq!(deck.snapshot(&state), before);
+                assert_eq!(state.mouse_position(), None);
+                assert_eq!(*state.panel(), TuiPanel::Sessions);
+                assert_eq!(state.input(), "untouched source draft");
+            }
+        }
+        worker.await.unwrap();
+    }
+}
+
+#[tokio::test]
 async fn sessions_retained_views_read_latest_scope_and_only_ctrl_a_writes() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut a = TuiState::new(app.clone(), SessionId("a".into()));

@@ -235,6 +235,41 @@ pub fn wrap_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
     wrap_line_with_space_mode(line, width, limit, false, false)
 }
 
+/// OpenTUI character wrap keeps separators at their actual cell boundary.
+/// Used by collapsed Shell commands, whose continuation may start with space.
+pub(crate) fn wrap_char_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {
+    let max = width.max(1);
+    let mut out = Vec::new();
+    let mut current = Vec::new();
+    let mut used = 0;
+    for span in line.spans() {
+        for glyph in span.content().graphemes(true) {
+            if out.len() >= limit {
+                return out;
+            }
+            let cells = UnicodeWidthStr::width(glyph);
+            let (glyph, cells) = if cells > max {
+                ("…", 1)
+            } else {
+                (glyph, cells)
+            };
+            if used + cells > max && !current.is_empty() {
+                out.push(Line::new(coalesce(std::mem::take(&mut current))));
+                used = 0;
+                if out.len() >= limit {
+                    return out;
+                }
+            }
+            current.push((glyph.to_owned(), span.style()));
+            used += cells;
+        }
+    }
+    if out.len() < limit && (!current.is_empty() || out.is_empty()) {
+        out.push(Line::new(coalesce(current)));
+    }
+    out
+}
+
 /// OpenTUI word boundaries preserve a fitting source separator on the preceding
 /// row, so its original style is painted without inventing cells.
 pub fn wrap_source_space_line_limited(line: &Line, width: usize, limit: usize) -> Vec<Line> {

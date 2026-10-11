@@ -216,6 +216,114 @@ fn shell_status_is_owned_and_projection_does_not_synthesize_truncation() {
 }
 
 #[test]
+fn shell_command_character_wrap_keeps_continuation_space_and_owned_body() {
+    let command = format!(
+        "printf 'VIS-SHELL-LINE-%03d\\n' {}; printf '[Part preview truncated]\\n[output preview truncated; full result retained]\\n[truncated]\\n'",
+        (1..=80)
+            .map(|n| n.to_string())
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    let body = format!(
+        "{}[Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]\n",
+        (1..=80)
+            .map(|n| format!("VIS-SHELL-LINE-{n:03}\n"))
+            .collect::<String>()
+    );
+    let mut facts = Presentation::new(&body, body.len() as u64, false);
+    facts.shell = Some(Shell {
+        background: false,
+        process_state: Some("completed".into()),
+        stdout: "separate bounded stream field".into(),
+        stderr: String::new(),
+        stdout_limited: true,
+        stderr_limited: false,
+        exit: Some(0),
+        signal: None,
+        timed_out: false,
+        cancelled: false,
+    });
+    let mut row = operation("shell", "exit 0\nmodel-only preview", Some(facts));
+    row.input = Some(serde_json::json!({"command":command}).to_string());
+    let before = row.clone();
+    let card = card_from_row(&row);
+    let saved_card = card.clone();
+    let ToolRender::Shell(shell) = &card.render else {
+        panic!("owned shell")
+    };
+    // A 120-column transcript gives this card its actual 116-column block.
+    let rows = shell_block_expanded(shell, &card, Theme::dark(), 116, false);
+    assert!(
+        rows[1].plain_text().trim_end().ends_with(" 30"),
+        "{:?}",
+        rows.iter()
+            .take(3)
+            .map(Line::plain_text)
+            .collect::<Vec<_>>()
+    );
+    assert!(rows[2].plain_text().starts_with("┃   31 32 33"));
+    for command in &rows[1..=2] {
+        assert_eq!(command.spans()[1].content(), "  ");
+        assert_eq!(command.spans()[1].style().fg, None);
+        assert_eq!(
+            command.spans()[1].style().bg,
+            Some(Theme::dark().background_raised())
+        );
+    }
+    let collapsed = rows
+        .iter()
+        .map(Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(collapsed.contains("(77 earlier lines)"));
+    let expanded = shell_block_expanded(shell, &card, Theme::dark(), 116, true)
+        .iter()
+        .map(Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    for marker in [
+        "[Part preview truncated]",
+        "[output preview truncated; full result retained]",
+        "[truncated]",
+    ] {
+        assert_eq!(collapsed.matches(marker).count(), 1);
+        assert_eq!(
+            expanded
+                .lines()
+                .filter(|line| line.trim_end() == format!("┃  {marker}"))
+                .count(),
+            1,
+            "the complete literal body row survives independently of command wrapping"
+        );
+    }
+    assert!(expanded.contains("VIS-SHELL-LINE-001") && expanded.contains("VIS-SHELL-LINE-080"));
+    assert!(!expanded.contains("model-only") && !expanded.contains("separate bounded stream"));
+    assert!(!expanded.contains("Command exited with code 0."));
+    assert_eq!(row, before);
+    assert_eq!(card, saved_card);
+
+    let style = ratatui::style::Style::default().fg(Theme::dark().text());
+    let unicode = Line::styled("a界 b😀 c", style);
+    let wrapped = styled::wrap_char_line_limited(&unicode, 4, 4);
+    assert_eq!(
+        wrapped.iter().map(Line::plain_text).collect::<Vec<_>>(),
+        ["a界 ", "b😀 ", "c"]
+    );
+    assert!(
+        wrapped
+            .iter()
+            .flat_map(Line::spans)
+            .all(|span| span.style() == style)
+    );
+    assert_eq!(styled::wrap_char_line_limited(&unicode, 4, 1), wrapped[..1]);
+    assert!(styled::wrap_char_line_limited(&unicode, 4, 0).is_empty());
+    assert_eq!(
+        styled::wrap_char_line_limited(&Line::plain("界"), 1, 2)[0].plain_text(),
+        "…"
+    );
+}
+
+#[test]
 fn generic_denial_and_capture_state_remain_distinct_from_failures_and_view_loss() {
     use oc_core::tool_output::{Capture, CaptureState};
     let mut row = operation("mcp_fixture", "error: denied by policy", None);

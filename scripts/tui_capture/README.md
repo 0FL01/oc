@@ -835,6 +835,14 @@ live completion, view changes and cold reopen. This is not a fifth call or execu
 Payload includes literal `[Part preview truncated]`,
 `[output preview truncated; full result retained]` and `[truncated]`: their
 presence is required where the retained body is expanded, not globally forbidden.
+The actual120-column collapsed Shell command must end its first row with `30`
+and keep the genuine leading separator before `31 32 33` on its next row, on
+both binaries. This checks character wrapping, without substituting the model
+preview for the separately owned native process body or fabricating notices.
+The actual two command rows also retain inherited white gutter foreground.
+Completion is unhovered; the accepted same-Location Sessions mouse release lands
+inside the current Shell output, so reopen and restart must re-hit that physical
+pointer and paint the hovered surface. No stored operation hover or press is restored.
 
 Before those effects, `home_mcp.mjs` exercises the live Home footer: click to the
 existing `/mcps` modal, real disconnect, failed initialization and retry/recovery,

@@ -2176,7 +2176,15 @@ async fn apply_mouse_outcome(
         state.push_note(&note);
     }
     let Some(intent) = outcome.intent else { return };
-    let pointer = (state.mouse_position() == Some((x, y, area))).then_some((x, y, area));
+    // A matched Sessions-option release owns a real pointer even though the
+    // dialog deliberately blocks underlying transcript hover. Re-hit it only
+    // after the picker owner accepts a same-Location route, never a cached hit.
+    let picker_open = *state.panel() == TuiPanel::Sessions
+        && matches!(intent, PanelIntent::SwitchSession { .. })
+        && area.contains((x, y).into());
+    let picker_location = picker_open.then(|| loop_state.location.clone());
+    let pointer =
+        (state.mouse_position() == Some((x, y, area)) || picker_open).then_some((x, y, area));
     let close = match intent {
         PanelIntent::CloseTab { index } if pointer.is_some() => state.mouse_close_snapshot(index),
         _ => None,
@@ -2190,7 +2198,10 @@ async fn apply_mouse_outcome(
             loop_state.sync_tabs(state);
             if let Some(snapshot) = close {
                 state.restore_mouse_close(snapshot);
-            } else if activate && let Some(pointer) = pointer {
+            } else if (activate
+                || picker_open && picker_location.as_ref() == Some(&loop_state.location))
+                && let Some(pointer) = pointer
+            {
                 state.restore_mouse_hover(pointer);
             }
         }

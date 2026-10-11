@@ -77,9 +77,21 @@ fn direct_user_shell_is_a_single_typed_block_without_assistant_graph_or_user_act
     assert!(
         crate::tools::tool_block(&model_card, theme, 120)
             .iter()
-            .all(|row| row.spans()[1].style().fg == Some(theme.text_muted())),
-        "model Shell frame styling is unchanged"
+            .all(|row| row.spans()[1].style().fg.is_none()),
+        "BlockTool padding also inherits foreground, independently of output text"
     );
+    for card in [card, &model_card] {
+        assert!(
+            crate::tools::tool_block(card, theme, 120)
+                .iter()
+                .any(|row| {
+                    row.spans().iter().any(|span| {
+                        span.content().contains("literal [truncated]")
+                            && span.style().fg == Some(theme.text_muted())
+                    })
+                })
+        );
+    }
     let painted = crate::messages::transcript(&rows, theme, 120, 120, |_| theme.text());
     let mut running = card.clone();
     running.state = "started".into();

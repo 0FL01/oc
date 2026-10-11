@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "f758200abc738063029b7d56db1fb367bf1bdf451c64668101de93b9e769bd52",
+  "archive_bytes": 3882732,
+  "tar_sha256": "0765d0f9d4ccd0a313d8e5d533a4babb554fb4fa7389cf81244ae6dd5ae9646d",
+  "tar_bytes": 95170560,
+  "inventory": {
+    "members": 1442,
+    "logical_bytes": 100098188,
+    "member_inventory_sha256": "7c6cd3274519f25c0114ab9d0f8b2f0c3b22a003c2630822a5cddcd63fab8047",
+    "same_side_png_aliases": 146
+  },
+  "source_roots": {
+    "inventory": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-current-001/inventory",
+    "ordinary": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-regressions-001/ordinary",
+    "temporal": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-regressions-001/temporal",
+    "matched": "/home/opencode/.cache/opencode-tmp/opencode/shell-wrap-regressions-001/matched"
+  },
+  "producer_reports": [
+    {
+      "episode": "inventory",
+      "captures": 14,
+      "comparisons": {
+        "EQUAL": 2,
+        "DIFFERENT": 12
+      }
+    },
+    {
+      "episode": "ordinary",
+      "captures": 56,
+      "comparisons": {
+        "DIFFERENT": 48,
+        "EQUAL": 6,
+        "NATIVE_ONLY_RESOURCE_DETAILS": 4
+      }
+    },
+    {
+      "episode": "temporal",
+      "captures": 160,
+      "comparisons": {
+        "DIFFERENT": 160
+      }
+    }
+  ],
+  "retainer_source_sha256": "c5f85448865a7537cdc0d294380a1d1c6b78e30191a7842ee14f49f422d83f64"
+}

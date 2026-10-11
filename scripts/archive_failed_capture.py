@@ -27,7 +27,7 @@ CAP = 1024**3
 MEMBER = 16 * 1024**2
 TOTAL = 128 * 1024**2
 ENCODED = 16 * 1024**2  # Separate bound for this explicitly selected small diagnostic.
-PREFIXES = ("model-shell", "subagent", "root-", "syntax-", "write-", "wrap-", "hover-", "raster-", "caret-", "blink-", "mcp-label-")
+PREFIXES = ("model-shell", "subagent", "root-", "syntax-", "write-", "wrap-", "hover-", "raster-", "caret-", "blink-", "mcp-label-", "shell-wrap-")
 
 
 def require(ok, reason):
@@ -155,7 +155,7 @@ def durable(path, data):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003"])
+    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003", "subagent-cards-004"])
     parser.add_argument("--archive", action="store_true", help="perform verified archival after preflight")
     args = parser.parse_args()
     resource.setrlimit(resource.RLIMIT_AS, (384 * 1024**2, 384 * 1024**2))

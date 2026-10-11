@@ -53,6 +53,24 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     const hits=target(await frame(),index);if(hits.length!==1)throw Error('Generic header not unique '+index);
     const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_click');
   };
+  const shellCommandStyle=(f,stage,background)=>{
+    if(f.columns!==120)return;
+    const hits=visibleMatches(f,'$ printf');
+    if(hits.length!==1)throw Error('Actual collapsed Shell command not unique');
+    const {x,y}=hits[0];
+    const first=f.cells[y].slice(x).map(cell=>cell.symbol).join('').trimEnd();
+    const continuation=f.cells[y+1].slice(x,x+9).map(cell=>cell.symbol).join('');
+    if(!first.endsWith(' 30')||continuation!==' 31 32 33')throw Error('Collapsed Shell lost actual character-wrap separator');
+    for(const row of f.cells.slice(y,y+2)) {
+      // Box padding inherits terminal foreground, not the theme's separate
+      // command-text foreground. Check the real gutter and whole inner surface.
+      if(row.slice(x-2,x).some(cell=>cell.fg!=='#ffffff')||
+         row.slice(x-2,f.columns-2).some(cell=>cell.bg!==background))
+        throw Error('Actual Shell command/gutter style differs at '+stage);
+    }
+    result.shell_command_wrap??={columns:f.columns,header:{x,y},continuation_separator:true,style_states:[]};
+    result.shell_command_wrap.style_states.push({stage,header:{x,y},background,gutter_foreground:'#ffffff'});save();
+  };
   const reopen=async stage=>{
     await slash('/sessions');
     const f=await waitFor(f=>f.text.includes('Sessions')&&f.text.includes('VIS16 tool preview fixture'),'saved preview session',6000);
@@ -92,7 +110,8 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     await shot('home',f=>f.text.includes('Ask anything')&&f.text.includes('1 MCP /mcps'));
     if(!cursorProbe)result.home_mcp=await probeHomeMcp({send,shot,waitFor,frame,visibleMatches,resize,logs,control,snapshot});
     send('\x1b[200~VIS16 preview: execute the supplied MCP and Shell calls exactly once.\x1b[201~','tool_preview_prompt');send('\r','tool_preview_submit');
-    const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&(cursorProbe||target(f,1).length===1));
+     const done=await shot('completed',f=>f.text.includes('VIS16-DONE:')&&(cursorProbe||target(f,1).length===1));
+      shellCommandStyle(done,'completed','#141414');
     if(requests()!==6||calls()!==4||logs.some(e=>e.kind==='provider'&&!e.valid))throw Error('Unexpected provider/call count or unpaired result');
      const before=await snapshot('completed');result.before=before;
      if(before.mcp_calls.length!==3)throw Error('Real MCP did not execute exactly three times');
@@ -195,13 +214,13 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
       await resize(40);await waitFor(f=>f.rows===40,'restore paired geometry',6000);
     }
     await slash('/new');await shot('switched',f=>f.text.includes('Ask anything'));
-    await reopen('reopened');
+    shellCommandStyle(await reopen('reopened'),'reopened','#1e1e1e');
     const after=await snapshot('reopened');
      if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(after.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(after.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(after.shell_effect))throw Error('View interactions changed effects/captures/RAW');
     send('\x03','tool_preview_exit');await poll(()=>logs.some(e=>e.kind==='exit'&&e.generation===0),'natural exit');
     await relaunch();await waitFor(f=>f.text.includes('Ask anything')||f.text.includes('VIS16-DONE:'),'restart ready',15000);
     // Native restores the deck; donor may return Home. Reopen through the actual list on both sides.
-    await reopen('restarted');
+    shellCommandStyle(await reopen('restarted'),'restarted','#1e1e1e');
     const restarted=await snapshot('restarted');result.after=restarted;
      if(requests()!==6||calls()!==4||JSON.stringify(before.artifacts)!==JSON.stringify(restarted.artifacts)||JSON.stringify(before.mcp_calls)!==JSON.stringify(restarted.mcp_calls)||JSON.stringify(before.observations)!==JSON.stringify(restarted.observations)||JSON.stringify(before.shell_effect)!==JSON.stringify(restarted.shell_effect))throw Error('Restart replayed effects or changed captures/RAW');
     result.status='PASS_BEHAVIOR_ONLY';

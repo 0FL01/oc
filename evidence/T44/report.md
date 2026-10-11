@@ -684,3 +684,27 @@ remain. Current default temporal0 phantom/cycle is not current blink qualificati
 Old proofs/failures/RAW untouched/no offload/quota raise. Next actual Shell/body/
 footer and EVERY remaining frozen R1–R6/VIS01–45/outcome/supplement, then final
 current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global label/pixel acceptance.
+
+## Shell command wrapping and cold hover (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/shell-wrap-qualified.md) records collapsed character wrap,
+inherited Shell padding FG and physical same-Location Sessions-picker hover rehit
+only after owner acceptance. RAW/body/status/executor/permissions/caps stay intact;
+separator/gutter/picker baseline RED→GREEN,112 binary/512 TUI and current1836/0/11
+all46/strict Clippy/fmt/builds/help/release9/original resource gates PASS.
+Both absolute120-cell command rows240/240 equal at completion, reopen and restart;
+this is not whole card/body parity. Fresh708-source/three builds/230 full opaque
+frames/all1442 files100375797 logical bytes retain3851204B; independent full-byte/
+source/ELF/comparator/effect audit PASS. Failed second observer episode46 frames/
+all308 files35237833 bytes retain1728580B, historical associations and FAILED status;
+first proof/findings unchanged. Own FAILED004 all187 files+3dir full metadata retain
+966116B after durable inverse, visible failure/no committed-qualified/foreign loss.
+Native full genuine UI body1606B83 rows differs from stream960B49, full model647B15,
+model prose257B12 and complete cold1615B84; no substituted body/fabricated notices.
+Current direct220 DIFFERENT/8 EQUAL/4 NativeOnly, matched144 DIFFERENT; all cursors
+equal,0 default phantoms/cycles is not current blink. Completed817cells57734pixels/
+cold804cells57254pixels/expanded8295cells1056802pixels/Home46cells2076pixels/real
+clocks and body/footer/layout remain unmasked. Former32 edge pixels remain equal.
+Next actual body/tail/footer/card owners and EVERY frozen R1–R6/VIS01–45 outcome/
+supplement, then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS; all prior
+RAW/proofs/failures preserved, no normalization/offload/resource-cap raise.

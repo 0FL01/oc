@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T11:55:01+00:00
+State updated: 2026-10-11T15:23:44+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,39 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 captured MCP presentation label — qualified slice
+# T44 Shell command wrapping and cold hover — qualified slice
 
 ## Result
-Safe bounded redacted labels derive from exact immutable request MCP entries;
-canonical wire/RAW/provider/tool graph/permissions stay unchanged. Existing
-presentation owner covers arguments/intents/results/cold fork with unknown-body
-truth and full-event32KiB optional-name guard. Receipt evidence/tui/mcp-label-qualified.md.
-Whole frozen T44 remains ACTIVE/NOT_PASS; Git determines checked delivery.
+Collapsed Shell commands retain genuine character-wrap separators and inherited
+box-padding FG. Same-Location accepted Sessions mouse opens re-hit only the real
+pointer/current painted owner; refusal/action/draft/RAW/body/status guards hold.
+Receipt evidence/tui/shell-wrap-qualified.md. Whole frozen T44 ACTIVE/NOT_PASS;
+Git determines checked delivery, not this checkpoint.
 
 ## Checks
-Current1834/0/11 all46 workspace, strict Clippy/fmt/builds/help/release9 and original
-resources PASS. Four new meaningful units/real MCP events/cold DB reopen/fork,
-budget baseline RED→GREEN and safe actual media/control PTY gates hold.
-Fresh708-source/three locked builds/230 full frames/all1442 original files survive
-exact3920112B proof; independent source/ELF/effect/comparator/restoration audit PASS.
-Typed display vis16_output vs immutable wire vis16__output,3 intents+5 genuine
-facts/four actual calls; full840 Write/39 grammar/MDZig/hover/tail/current RGB hold.
+Current1836/0/11 all46 workspace,112 binary/512 TUI, strict Clippy/fmt/builds/help/
+release9 and original resource gates PASS. Two meaningful new scenarios and
+separator/gutter/picker baseline RED→GREEN preserve old security/body assertions.
+Fresh708-source/three real locked builds/230 full opaque frames/all1442 files
+survive3851204B final proof; independent byte/source/ELF/effect/comparator audit.
+Both absolute120-cell command rows240/240 equal at completion/reopen/restart.
+Failed second observer episode46 frames/all308 bytes retained1728580B; first
+proof/failure findings untouched. Owned FAILED004 all187 files+3dir metadata
+byte-exact archived966116B with visible failure, no quota rise/qualified deletion.
 
 ## Risks
-Full direct220 DIFFERENT/8 EQUAL/4 NativeOnly; matched144 DIFFERENT, all cursors equal.
-Failed header y23/y25, completed944 cells/63010 pixels, real clocks, Root Home,
-redacted literal/Shell/footer/body/readonly/pacing differences remain unmasked.
-Current default temporal0 phantoms/cycles does not requalify current-source blink.
-All prior RAW/proofs/failures/scratch remain exact; no cap rise/offload/deletion.
-ALL frozen/supplements and final current-source R6/V09 remain mandatory.
+Direct220 DIFFERENT/8 EQUAL/4 NativeOnly; matched144 DIFFERENT, all cursors equal.
+Real bodies remain distinct: genuine UI1606B83 rows, stream960B49, full model647B15,
+prose257B12, complete cold1615B84. Do not substitute owners or parse marker authority.
+Completed817cells57734pixels/cold804cells57254pixels/expanded8295cells1056802pixels,
+Root Home46cells2076pixels/real clocks/body/footer/layout remain unmasked.
+Default0 phantom/cycle is not current-source blink. ALL frozen/supplements and
+final current-source R6/V09 stay mandatory; all prior RAW/proofs/failures preserved.
 
 ## Next
-Fix the measured Shell command/tail/counts/body/footer through their actual
-captured owners, preserving redaction, known/unknown provenance and limits.
-Continue every remaining Root Home/readonly/pacing/scroll/Thoughts/family/forms/
-DCP/MCP/auth frozen outcome and current full-frame/effect/resource proof, finalR6.
-Do not stop after delivery or promote label style equality to whole task finish.
+Fix actual body/tail/footer/card layout through typed owners without invented
+counts/notices or weakened redaction/RAW/permissions/limits. Continue every Home/
+readonly/pacing/scroll/Thoughts/family/forms/DCP/MCP/auth frozen outcome and finalR6.
 
 
 Ready (до 5): T58

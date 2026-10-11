@@ -208,7 +208,7 @@ def check_temporal_profile(lock, cursor, side, name):
                 state["moves"] == 0, "actual continuous hover/control")
 
 
-def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False):
+def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
     reports = []
@@ -254,6 +254,16 @@ def producer_checks(files, source_count=704, inventory_stages=None, require_hove
                                 "actual retained-root cancellation")
             elif episode == "ordinary":
                 require(checks["status"] == "PASS_BEHAVIOR_ONLY", "ordinary actual effects")
+                if require_shell_wrap:
+                    facts = checks.get("shell_command_wrap", {})
+                    require(facts.get("columns") == 120 and facts.get("continuation_separator") is True,
+                             "actual collapsed Shell character-wrap separator")
+                    if require_shell_style:
+                        states = facts.get("style_states", [])
+                        require([item.get("stage") for item in states] == ["completed", "reopened", "restarted"] and
+                                all(item.get("gutter_foreground") == "#ffffff" and
+                                    item.get("background") == ("#141414" if item["stage"] == "completed" else "#1e1e1e")
+                                    for item in states), "actual live/cold Shell command/gutter styles")
             else:
                 require(checks["status"] == "DIAGNOSTIC_CURSOR_ONLY", "temporal outer scope")
                 cursor = read(side + "/cursor-temporal-checks.json")
@@ -313,6 +323,29 @@ def diagnostic_checks(files):
     return reports
 
 
+def shell_diagnostic_checks(files):
+    reports = []
+    for episode, count in (("inventory", 14), ("ordinary", 32)):
+        read = lambda relative: json.loads(files[episode + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 708)
+        builds = [item for item in read("commands.json") if item["argv"][0] == "cargo"]
+        require(len(lock["captures"]) == count and len(builds) == 1 and
+                builds[0]["argv"][:3] == ["cargo", "build", "--locked"] and builds[0]["exit_code"] == 0,
+                "recorded Shell diagnostic acquisition scope")
+        for side in ("oc", "upstream"):
+            checks = read(side + "/tool-preview-checks.json")
+            require(checks["status"] == ("PASS_BEHAVIOR_ONLY" if episode == "inventory" else "FAILED"),
+                    "Shell diagnostic outcome preserved")
+            if episode == "ordinary":
+                require(checks.get("reason") == "Actual Shell command/gutter style differs at completed",
+                        "failed overbroad foreground assertion visibility")
+        reports.append({"episode": episode, "captures": count, "current_source": False,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"])),
+                        "native_executable_sha256": lock["oc"]["executable_sha256"]})
+    return reports
+
+
 def encode(files, aliases):
     compressor = lzma.LZMACompressor(check=lzma.CHECK_SHA256,
                                     filters=[{"id": lzma.FILTER_LZMA2, "preset": 6 | lzma.PRESET_EXTREME,
@@ -356,7 +389,7 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
@@ -375,16 +408,22 @@ def main():
         ROOTS = {"diagnostic-before": TEMP / "root-loss-diagnostic-001",
                  "diagnostic-after": TEMP / "root-loss-diagnostic-002",
                  "probe-first": TEMP / "root-current-001/inventory",
-                 "probe-second": TEMP / "root-current-002/inventory"}
-    elif args.campaign in ("root", "hover", "raster", "mcp-label"):
+                  "probe-second": TEMP / "root-current-002/inventory"}
+    elif args.campaign == "shell-wrap-diagnostics":
+        ROOTS = {"inventory": TEMP / "shell-wrap-current-002/inventory",
+                 "ordinary": TEMP / "shell-wrap-regressions-002/ordinary"}
+    elif args.campaign in ("root", "hover", "raster", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3"):
         current, regressions = {"root": ("root-current-003", "root-regressions-001"),
                                 "hover": ("hover-current-001", "hover-regressions-001"),
                                 "raster": ("raster-current-001", "raster-regressions-001"),
-                                "mcp-label": ("mcp-label-current-001", "mcp-label-regressions-001")}[args.campaign]
+                                 "mcp-label": ("mcp-label-current-001", "mcp-label-regressions-001"),
+                                 "shell-wrap": ("shell-wrap-current-001", "shell-wrap-regressions-001"),
+                                 "shell-wrap-r2": ("shell-wrap-current-002", "shell-wrap-regressions-002"),
+                                 "shell-wrap-r3": ("shell-wrap-current-003", "shell-wrap-regressions-003")}[args.campaign]
         ROOTS = {"inventory": TEMP / current / "inventory",
                  **{name: TEMP / regressions / name
                     for name in ("ordinary", "temporal", "matched")}}
-        source_count = 708 if args.campaign == "mcp-label" else 707
+        source_count = 708 if args.campaign in ("mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3") else 707
         inventory_stages = ["syntax-live-partial", "syntax-root-parked-home", "syntax-complete-inventory",
                             "syntax-current-profile-draft", "syntax-replayed-inventory",
                             "syntax-root-cancel-pending", "syntax-root-cancelled"]
@@ -403,6 +442,18 @@ def main():
     require(os.getuid() != 0, "non-root evidence owner")
     archive = REPO / f"evidence/tui/{args.campaign}-proof.tar.xz"
     receipt = REPO / f"evidence/tui/{args.campaign}-proof.inventory.json"
+    shell_campaign = args.campaign in ("shell-wrap", "shell-wrap-r2", "shell-wrap-r3")
+    label_campaign = args.campaign == "mcp-label" or shell_campaign
+    tail_campaign = args.campaign == "raster" or label_campaign
+    hover_campaign = args.campaign == "hover" or tail_campaign
+    def checks(files):
+        if args.campaign == "root-diagnostics":
+            return diagnostic_checks(files)
+        if args.campaign == "shell-wrap-diagnostics":
+            return shell_diagnostic_checks(files)
+        return producer_checks(files, source_count, inventory_stages, hover_campaign, tail_campaign,
+                               temporal_only, temporal_profile, label_campaign, shell_campaign,
+                               args.campaign in ("shell-wrap-r2", "shell-wrap-r3"))
     if args.mode == "audit":
         record = json.loads(receipt.read_bytes())
         encoded = archive.read_bytes()
@@ -410,14 +461,12 @@ def main():
         restored, aliases, raw_sha, raw_bytes = unpack(encoded)
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
-        reports = (diagnostic_checks(restored) if args.campaign == "root-diagnostics" else
-                       producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster", "mcp-label"), args.campaign in ("raster", "mcp-label"), temporal_only, temporal_profile, args.campaign == "mcp-label"))
+        reports = checks(restored)
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
-        reports = (diagnostic_checks(files) if args.campaign == "root-diagnostics" else
-                      producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster", "mcp-label"), args.campaign in ("raster", "mcp-label"), temporal_only, temporal_profile, args.campaign == "mcp-label"))
+        reports = checks(files)
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)
