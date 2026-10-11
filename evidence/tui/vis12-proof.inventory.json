@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "8a279fe3e84bbff3ae3977c1f89f5b85e9553c9e2cdd74899962a5bf10674c64",
+  "archive_bytes": 2435860,
+  "tar_sha256": "ddc56dee07626533b54e3d07ba3942c608b2b3345ce0e92f0bb7d72101136f7b",
+  "tar_bytes": 63815680,
+  "inventory": {
+    "members": 988,
+    "logical_bytes": 63666559,
+    "member_inventory_sha256": "fdd2e91ff119bdc150968b2f652bc79026df9408f5e022631498d2d90cacc989",
+    "same_side_png_aliases": 19
+  },
+  "source_roots": {
+    "history": "/home/opencode/.cache/opencode-tmp/opencode/vis12-current-001/history",
+    "remap": "/home/opencode/.cache/opencode-tmp/opencode/vis12-current-001/remap",
+    "caret": "/home/opencode/.cache/opencode-tmp/opencode/vis12-current-001/caret",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis12-current-001"
+  },
+  "producer_reports": [
+    {
+      "episode": "history",
+      "captures": 50,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 50
+      }
+    },
+    {
+      "episode": "remap",
+      "captures": 56,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 56
+      }
+    },
+    {
+      "episode": "caret",
+      "captures": 50,
+      "current_source": true,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 50
+      }
+    }
+  ],
+  "retainer_source_sha256": "5517cdf1a68a73d5a4c6caea9c9e464e601fcb0d339a561d80a2368faaec8f1a"
+}

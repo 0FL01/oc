@@ -9,6 +9,88 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_vis12_build_is_bound_to_each_exact_mode_fixture_and_repository_output(self):
+        for episode in ("history", "remap", "caret"):
+            probe = "prompt_caret" if episode == "caret" else "prompt_history"
+            hashes = {name: "a" * 64 for name in ("capture.mjs", probe + ".mjs", probe + "_fixture.py")}
+            manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
+            native = str(proof.REPO / "target/debug/oc")
+            original = str(proof.TEMP / "t44-reference/package/bin/opencode")
+            lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
+                    "upstream": {"executable_path": original}, "runner_hashes": hashes,
+                    "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"}}
+            argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original,
+                    "--oc", native, "--build-oc", "true", "--geometry", "true", "--sample", "short",
+                    "--sidebar", "hide", "--tool-preview", "true", "--columns", "80" if episode == "history" else "120",
+                    "--rows", "24" if episode == "history" else "40", "--output", str(proof.TEMP / "vis12-current-001" / episode),
+                    "--prompt-caret" if episode == "caret" else "--prompt-history",
+                    "true" if episode == "caret" else "default" if episode == "history" else "remap"]
+            commands = [{"role": "capture runner invocation", "argv": argv},
+                        {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
+            proof.check_vis12_build(lock, manifest, commands, episode)
+            for addition in (["--build-oc", "true"], ["--sessions-interaction", "true"],
+                             ["--output", "/unrelated"], ["--prompt-history", "default"]):
+                invalid = json.loads(json.dumps(commands))
+                invalid[0]["argv"] += addition
+                with self.subTest(episode=episode, addition=addition), self.assertRaises(ValueError):
+                    proof.check_vis12_build(lock, manifest, invalid, episode)
+            for bad in ([{"argv": ["cargo", "build", "--locked"], "exit_code": 1}],
+                        commands[1:] * 2, [{"argv": ["cargo", "build", "--locked", "--release"], "exit_code": 0}]):
+                with self.subTest(episode=episode, builds=bad), self.assertRaises(ValueError):
+                    proof.check_vis12_build(lock, manifest, commands[:1] + bad, episode)
+            invalid = dict(manifest)
+            invalid["scripts/tui_capture/" + probe + ".mjs"] = "b" * 64
+            with self.assertRaises(ValueError):
+                proof.check_vis12_build(lock, invalid, commands, episode)
+
+    def test_vis12_caret_rejects_navigation_generation_effects_and_raw_rewrite(self):
+        names = ("caret-home caret-home-word-clicked caret-home-word-edited caret-wide-second-clicked "
+                 "caret-wide-second-edited caret-combining-clicked caret-combining-edited caret-zwj-start-clicked "
+                 "caret-zwj-start-edited caret-trailing-clicked caret-trailing-edited caret-wrap-gap-clicked "
+                 "caret-wrap-gap-edited caret-blank-line caret-resized-word-clicked caret-resized-word-edited "
+                 "caret-chip-neighbor caret-chip-expanded caret-overlay caret-overlay-restored caret-before-submit "
+                 "caret-submitted caret-session-edited caret-reopened caret-restarted").split()
+        data = {"prompt_user_messages": [{"text": "Проведи RECXON, жду план"}],
+                "tool_operations": [], "tool_output_resources": [], "presentation": []}
+        snapshot = {"kind": "tool_preview_snapshot", "observations": [{"data": data}], "artifacts": {},
+                    "shell_effect": None, "mcp_calls": [], "mcp_lifecycle": []}
+        facts = {"status": "OBSERVED_PROMPT_CARET", "provider_requests": 2, "explicit_user_submissions": 1,
+                 "user_text": "Проведи RECXON, жду план", "native_durable_user_verified": True,
+                 "tool_effects": 0, "reopen_restart_no_replay": True,
+                 **{key: snapshot for key in ("before", "after", "restarted")}}
+        checks = {"origin": "oc", "status": "PASS_BEHAVIOR_ONLY", "prompt_caret": facts,
+                  "stages": [{"stage": name, "status": "CAPTURED_TOOL_PREVIEW", "calls": 0,
+                              "requests": 0 if index < 21 else 2} for index, name in enumerate(names)]}
+        proof.check_vis12_facts(checks, "caret", "oc")
+        for key, value in (("provider_requests", True), ("explicit_user_submissions", 2), ("tool_effects", 1),
+                           ("user_text", "Проведи RECON, жду план"), ("native_durable_user_verified", False),
+                           ("reopen_restart_no_replay", False)):
+            bad = json.loads(json.dumps(checks))
+            bad["prompt_caret"][key] = value
+            with self.subTest(fact=key), self.assertRaises(ValueError):
+                proof.check_vis12_facts(bad, "caret", "oc")
+        for key, value in (("requests", 1), ("calls", True), ("stage", "caret-home-word-edited")):
+            bad = json.loads(json.dumps(checks))
+            bad["stages"][1][key] = value
+            with self.subTest(stage=key), self.assertRaises(ValueError):
+                proof.check_vis12_facts(bad, "caret", "oc")
+        bad = json.loads(json.dumps(checks))
+        bad["prompt_caret"]["restarted"]["observations"][0]["data"]["prompt_user_messages"][0]["text"] += "changed"
+        with self.assertRaises(ValueError):
+            proof.check_vis12_facts(bad, "caret", "oc")
+        bad = json.loads(json.dumps(checks))
+        bad["prompt_caret"]["after"]["mcp_calls"] = [{"replayed": True}]
+        with self.assertRaises(ValueError):
+            proof.check_vis12_facts(bad, "caret", "oc")
+        reference = json.loads(json.dumps(checks))
+        reference["origin"] = "upstream"
+        reference["prompt_caret"]["native_durable_user_verified"] = False
+        for key in ("before", "after", "restarted"):
+            reference["prompt_caret"][key]["observations"] = [{"data": {}}]
+        proof.check_vis12_facts(reference, "caret", "upstream")
+        with self.assertRaises(ValueError):
+            proof.check_vis12_facts(reference, "caret", "oc")
+
     def test_middle_identity_and_historical_failure_are_not_interchangeable(self):
         facts = {"origin": "oc", "middle_case": "compact", "status": "PASS_BEHAVIOR_ONLY",
                  "checks": [{"stage": "compact-geometry", "actual_drag": True, "width": 5,

@@ -407,6 +407,134 @@ def compact_controls_diagnostic_checks(files):
     return reports
 
 
+def check_vis12_build(lock, manifest, commands, episode):
+    invocation = commands[0]
+    argv = invocation["argv"]
+    require(invocation.get("role") == "capture runner invocation" and len(argv) >= 2 and
+            argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
+            "actual VIS12 capture runner")
+    pairs = list(zip(argv[2::2], argv[3::2], strict=True))
+    options = dict(pairs)
+    expected = {"--reference": str(TEMP / "t44-reference/package/bin/opencode"),
+                "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
+                "--sample": "short", "--sidebar": "hide", "--tool-preview": "true",
+                "--columns": "80" if episode == "history" else "120", "--rows": "24" if episode == "history" else "40",
+                "--output": str(TEMP / "vis12-current-001" / episode)}
+    expected["--prompt-caret" if episode == "caret" else "--prompt-history"] = (
+        "true" if episode == "caret" else "default" if episode == "history" else "remap")
+    require(len(options) == len(pairs) and options == expected and
+            lock["oc"]["executable_path"] == options["--oc"] and
+            lock["upstream"]["executable_path"] == options["--reference"], "fixed VIS12 acquisition and paths")
+    probe = "prompt_caret" if episode == "caret" else "prompt_history"
+    require(all(lock["runner_hashes"][name] == manifest["scripts/tui_capture/" + name]
+                for name in ("capture.mjs", probe + ".mjs", probe + "_fixture.py")) and
+            lock["oc"]["build_command"] == ["cargo", "build", "--locked"] and
+            lock["sources"]["upstream_commit"] == "2670273ff17da96f85c5826ced57aa1b368754fa",
+            "sealed VIS12 build/fixture owners and pinned donor")
+    builds = [item for item in commands if item["argv"][0] == "cargo"]
+    require(len(builds) == 1 and builds[0]["argv"] == lock["oc"]["build_command"] and
+            builds[0]["exit_code"] == 0, "one exact recorded VIS12 repository build")
+
+
+def check_vis12_facts(checks, episode, side):
+    caret = episode == "caret"
+    stages = ("caret-home caret-home-word-clicked caret-home-word-edited caret-wide-second-clicked "
+              "caret-wide-second-edited caret-combining-clicked caret-combining-edited caret-zwj-start-clicked "
+              "caret-zwj-start-edited caret-trailing-clicked caret-trailing-edited caret-wrap-gap-clicked "
+              "caret-wrap-gap-edited caret-blank-line caret-resized-word-clicked caret-resized-word-edited "
+              "caret-chip-neighbor caret-chip-expanded caret-overlay caret-overlay-restored caret-before-submit "
+              "caret-submitted caret-session-edited caret-reopened caret-restarted").split() if caret else (
+              "history-home history-input-1 history-accepted-1 history-input-2 history-accepted-2 "
+              "history-input-3 history-accepted-3 history-unfinished history-unfinished-edge history-session-latest "
+              "history-session-older history-next-visual history-next-edge history-next-latest history-forward-boundary "
+              "history-edit-base history-edited-copy history-edited-refuses-older history-new-home history-home-shared "
+              "history-overlay history-overlay-owned history-recalled-accepted history-restarted-shared "
+              "history-slash-accepted").split()
+    if episode == "remap":
+        stages.insert(stages.index("history-unfinished-edge"), "history-remapped-old-up")
+        stages.insert(stages.index("history-recalled-accepted"), "history-remapped-old-down")
+        stages.insert(stages.index("history-slash-accepted"), "history-restarted-leader")
+    require(checks.get("origin") == side and checks.get("status") == "PASS_BEHAVIOR_ONLY" and
+            [item.get("stage") for item in checks["stages"]] == stages, "complete actual VIS12 stages and scope")
+    count = 2 if caret else 6
+    facts = checks["prompt_caret" if caret else "prompt_history"]
+    require(facts.get("status") == ("OBSERVED_PROMPT_CARET" if caret else "OBSERVED_PROMPT_HISTORY") and
+            all(type(facts.get(key)) is int and facts[key] == value for key, value in
+                (("provider_requests", count), ("explicit_user_submissions", 1 if caret else 4), ("tool_effects", 0))),
+            "exact VIS12 explicit submissions and effects")
+    requests = [item.get("requests") for item in checks["stages"]]
+    require(all(item.get("status") == "CAPTURED_TOOL_PREVIEW" and type(item.get("calls")) is int and
+                item["calls"] == 0 for item in checks["stages"]) and
+            all(type(value) is int and 0 <= value <= count for value in requests) and
+            requests == sorted(requests) and requests[0] == 0 and requests[-1] == count,
+            "actual VIS12 request progression without tool calls")
+    if caret:
+        require(all(value == 0 for value in requests[:stages.index("caret-submitted")]) and
+                facts.get("user_text") == "Проведи RECXON, жду план" and
+                facts.get("native_durable_user_verified") is (side == "oc") and
+                facts.get("reopen_restart_no_replay") is True, "click/edit before one exact Enter; no replay")
+        snapshots = [facts[key] for key in ("before", "after", "restarted")]
+    else:
+        require(all(value == 4 for value in requests[stages.index("history-accepted-3"):
+                                                    stages.index("history-recalled-accepted")]) and
+                facts.get("mode") == ("remap" if episode == "remap" else "default") and
+                facts.get("shared_home_session_restart") is True and
+                facts.get("effective_leader_verified") is (episode == "remap") and
+                facts.get("reference_forward_boundary") == "EMPTY_PROMPT" and
+                facts.get("reference_nonempty_draft_refused") is (side == "upstream") and
+                all(facts.get(key) is (side == "oc") for key in
+                    ("native_unfinished_draft_restored", "native_consecutive_dedup_verified", "native_raw_users_verified")),
+                "real history boundaries, configured keys and declared native/reference differences")
+        snapshots = [facts[key] for key in ("accepted", "before_restart", "after_restart", "slash")]
+    require(all(snapshot.get("kind") == "tool_preview_snapshot" and snapshot.get("artifacts") == {} and
+                snapshot.get("shell_effect") is None and snapshot.get("mcp_calls") == [] and
+                snapshot.get("mcp_lifecycle") == [] for snapshot in snapshots), "VIS12 snapshots without effects")
+    require(snapshots[1]["observations"] == snapshots[2]["observations"] and
+            (not caret or snapshots[0]["observations"] == snapshots[1]["observations"]),
+            "accepted data unchanged on reopen/restart")
+    if side == "oc":
+        data = [next(item["data"] for item in snapshot["observations"] if "prompt_user_messages" in item["data"])
+                for snapshot in snapshots]
+        accepted = ["Проведи RECXON, жду план"] if caret else [
+            "HISTORY-FIRST Ω界", "HISTORY-SECOND\nsecond line Ω界", "HISTORY-THIRD @note.txt done"]
+        require([row["text"] for row in data[0]["prompt_user_messages"]] == accepted and
+                all(item.get(key) == [] for item in data for key in
+                    ("tool_operations", "tool_output_resources", "presentation")), "native exact RAW and no tool rows")
+        if not caret:
+            require(all(item["prompt_input_history"] == accepted for item in data[:3]) and
+                    data[3]["prompt_input_history"] == accepted + ["/mcps"] and
+                    [row["text"] for row in data[1]["prompt_user_messages"]] == accepted + [accepted[-1]] and
+                    data[1]["prompt_user_messages"] == data[3]["prompt_user_messages"],
+                    "shared durable dedup, fresh-session acceptance and slash-before-dispatch")
+
+
+def vis12_checks(files):
+    reports = []
+    for episode, columns, rows, count in (("history", 80, 24, 50), ("remap", 120, 40, 56), ("caret", 120, 40, 50)):
+        read = lambda relative: json.loads(files[episode + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 709)
+        check_current_source(manifest)
+        check_vis12_build(lock, manifest, read("commands.json"), episode)
+        require(len(lock["captures"]) == count and len(lock["attempts"]) == count and
+                lock["profile"]["columns"] == columns and lock["profile"]["rows"] == rows and
+                lock["profile"]["prompt_caret"] is (episode == "caret") and
+                lock["profile"]["prompt_history"] == ("remap" if episode == "remap" else "default" if episode == "history" else None),
+                "complete actual VIS12 membership and geometry")
+        statuses = {}
+        for side in ("oc", "upstream"):
+            with Path(lock[side]["executable_path"]).open("rb") as stream:
+                require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                        "actual VIS12 executable identity")
+            checks = read(side + "/tool-preview-checks.json")
+            require(checks == lock["tool_preview"][side], "actual VIS12 side facts")
+            check_vis12_facts(checks, episode, side)
+            statuses[side] = checks["status"]
+        reports.append({"episode": episode, "captures": count, "current_source": True, "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
@@ -588,13 +716,16 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "compact-controls-diagnostics":
+    if args.campaign == "vis12":
+        ROOTS = {name: TEMP / "vis12-current-001" / name for name in ("history", "remap", "caret")}
+        ROOTS["current-logs"] = TEMP / "vis12-current-001"
+    elif args.campaign == "compact-controls-diagnostics":
         ROOTS = {"historical-first": TEMP / "compact-controls-current-001/compact",
                  "historical-second": TEMP / "compact-controls-current-002/compact",
                  "historical-logs": TEMP / "compact-controls-current-001",
@@ -663,6 +794,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign == "vis12":
+            return vis12_checks(files)
         if args.campaign == "compact-controls-diagnostics":
             return compact_controls_diagnostic_checks(files)
         if args.campaign in ("middle-tabs", "rail-width", "compact-layout", "compact-controls-r3"):

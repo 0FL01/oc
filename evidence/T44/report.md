@@ -799,3 +799,26 @@ entire-comparator/SQLite-WAL/history/effect audit PASS. No cleanup/offload/bound
 new store/query/poll, old evidence rewrite or whole R3/VIS44/R6/T44 PASS.
 Next existing VIS12 paired prompt-history and mouse-caret qualification, then EVERY
 remaining frozen outcome/supplement and final current-source R6/V09 before finish.
+
+## Current VIS12 history/caret (2026-10-12 — behavioral qualified slice)
+
+[Factual receipt](../tui/vis12-current-qualified.md): actual default80×24,
+remap120×40 and caret120→80→120 probes, both sides PASS_BEHAVIOR_ONLY. Shared
+durable history/boundaries/edited-copy/Home/restart/accepted slash and real SGR
+mouse-click edit→one Enter preserve owner priority/raw bytes/no replay. Native
+unfinished draft restore differs from Original empty/nonempty refusal; reference
+raw schema is not decoded, actual wire/full frames are separate evidence.
+Actual28 provider requests18 main10 title/24 snapshots, zero extra tool/project/
+MCP/DCP effects. Python57 and closest native actual PTY1/TUI VIS12 six PASS;
+fmt/locked rebuild restores captured ELF; unchanged production1843/0/11 all46 and
+prior builds/strict Clippy/release9/resources remain current until product change.
+Fresh709-source/one actual locked build per episode preserves all156 whole PNGs.
+All156 strict comparisons DIFFERENT:2811 cells165950 pixels,71/78 cursor pairs equal.
+Observed chip-expanded native final60z/cursor mismatch requires owner experiment;
+real clocks/footer/Home/session differences stay unmasked. All988 original files
+63666559 logical bytes/19 direct aliases retained2435860 encoded bytes. Independent
+full-byte inverse/source/ELF/build/entire-comparator/RAW/effect audit PASS; all11430
+old artifact entries/metadata/bytes and original parent logs untouched. Same resource
+bounds/no cleanup/offload/capraise/new store/query/poll/old evidence rewrite.
+No VIS12/R6/T44 pixel PASS or finish. Next concrete chip/editor/layout owner fix,
+EVERY remaining frozen outcome/supplement and final current-source R6/V09.
