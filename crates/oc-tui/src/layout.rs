@@ -393,6 +393,7 @@ pub(crate) fn tab_title_width(
 
 /// Reachable vertical deck geometry using the already admitted rail width:
 /// paddingTop=1, two-row tab slots with gap=1, or compact one-row/gap=1.
+/// Compact controls and scroll-content padding each precede the first tab.
 /// Source scrollbox hides clipped slots rather than drawing horizontal markers.
 pub fn vertical_tab_strip(
     area: Rect,
@@ -402,7 +403,7 @@ pub fn vertical_tab_strip(
 ) -> HorizontalTabStrip {
     let compact = area.width < SESSION_TABS_COMPACT_BREAKPOINT;
     let stride = if compact { 2 } else { 3 };
-    let top = area.y.saturating_add(if compact { 2 } else { 1 });
+    let top = area.y.saturating_add(if compact { 3 } else { 1 });
     let capacity = area.bottom().saturating_sub(top) / stride;
     let visible = usize::from(capacity).min(count);
     let start = previous_start.min(count.saturating_sub(visible));

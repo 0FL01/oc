@@ -97,9 +97,17 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
       await waitFor(f=>visibleMatches(f,'1').filter(p=>p.x<5).length===1,'real compact rail');
       send('\x1b[<0;5;11m','vis44_actual_rail_drag_up');
       await resize(24,80);
-      await shot('compact',f=>f.columns===80&&f.rows===24&&visibleMatches(f,'1').some(p=>p.x<5));
+      const compact=await shot('compact',f=>f.columns===80&&f.rows===24&&visibleMatches(f,'1').some(p=>p.x<5));
       record('compact-geometry',{actual_drag:true,width:5,restart_persistence_claim:railPersistence});
-      if(railPersistence)acceptedRail(await snap('accepted-rail-owner'));
+      if(railPersistence) {
+        const ordinals=names.map((_,index)=>{
+          const hits=visibleMatches(compact,String(index+1)).filter(p=>p.x<5);
+          if(hits.length!==1||hits[0].x!==2||hits[0].y!==3+2*index)throw Error('Actual compact top allocation differs');
+          return hits[0];
+        });
+        record('compact-layout',{width:5,actual_ordinals:ordinals});
+        acceptedRail(await snap('accepted-rail-owner'));
+      }
     }
     // Derive membership from the current painted frame, including clipped strips.
     const current=await frame();
@@ -138,7 +146,7 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
     remaining=[ids.Alpha];const restored=await snap('reopened-original-id');unchanged(restored);acceptedRail(restored);
     if(railPersistence) {
       const ordinal=visibleMatches(reopened,'1').filter(p=>p.x<5);
-      if(ordinal.length!==1)throw Error('Restart did not restore the actual compact rail');
+      if(ordinal.length!==1||ordinal[0].x!==2||ordinal[0].y!==3)throw Error('Restart did not restore the actual compact rail geometry');
       record('durable-rail',{width:5,restored_on_history_reopen:true,preference_scope:origin==='oc'?'Location':'global',native_cas_observed:origin==='oc',actual_ordinal:ordinal[0],cursor:reopened.cursor});
     }
     record('proof',{root_ids:ids,requests:requests().length,tool_calls:0,history_unchanged:true,closed_deck_not_resurrected:true,reopened_same_id:ids.Alpha});

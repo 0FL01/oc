@@ -234,7 +234,8 @@ def check_temporal_profile(lock, cursor, side, name):
                 state["moves"] == 0, "actual continuous hover/control")
 
 
-def check_middle_facts(checks, profile, side, historical=False, persistent=False):
+def check_middle_facts(checks, profile, side, historical=False, persistent=False, aligned=False):
+    require(not aligned or persistent, "current persistent compact alignment scope")
     require(not persistent or (profile == "compact" and not historical), "current compact persistence scope")
     require(checks.get("origin") == side and checks.get("middle_case") == profile,
             "actual middle profile/owner")
@@ -274,6 +275,15 @@ def check_middle_facts(checks, profile, side, historical=False, persistent=False
                 type(restored[0]["actual_ordinal"].get("x")) is int and
                 0 <= restored[0]["actual_ordinal"]["x"] < 5,
                 "actual restored compact rail")
+    if aligned:
+        layouts = [item for item in checks["checks"] if item.get("stage") == "compact-layout"]
+        expected = [{"x": 2, "y": y} for y in (3, 5, 7)]
+        require(len(layouts) == 1 and type(layouts[0].get("width")) is int and
+                layouts[0]["width"] == 5 and layouts[0].get("actual_ordinals") == expected and
+                all(type(point.get(key)) is int for point in layouts[0]["actual_ordinals"] for key in ("x", "y")) and
+                restored[0]["actual_ordinal"] == {"x": 2, "y": 3} and
+                type(restored[0]["actual_ordinal"].get("y")) is int,
+                "actual compact paint/hit top allocation and restored geometry")
 
 
 def check_middle_build(lock, manifest, commands, persistent=False):
@@ -304,7 +314,7 @@ def check_middle_build(lock, manifest, commands, persistent=False):
             builds[0]["exit_code"] == 0, "one exact recorded repository build")
 
 
-def middle_checks(files, persistent=False):
+def middle_checks(files, persistent=False, aligned=False):
     reports = []
     profiles = {"horizontal": (120, 40, "horizontal", 22, 18),
                 "clipped": (80, 24, "horizontal", 26, 20),
@@ -337,7 +347,7 @@ def middle_checks(files, persistent=False):
                             "actual middle executable identity")
             checks = read(side + "/middle-tabs-checks.json")
             require(checks == lock["tab_middle_close"][side], "actual middle side facts")
-            check_middle_facts(checks, case, side, not current, persistent)
+            check_middle_facts(checks, case, side, not current, persistent, aligned)
             statuses[side] = checks["status"]
         reports.append({"episode": episode, "captures": len(lock["captures"]), "current_source": current,
                         "statuses": statuses,
@@ -526,15 +536,15 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "rail-width":
-        ROOTS = {"current-compact": TEMP / "rail-width-current-001/compact",
-                 "current-logs": TEMP / "rail-width-current-001"}
+    if args.campaign in ("rail-width", "compact-layout"):
+        ROOTS = {"current-compact": TEMP / (args.campaign + "-current-001/compact"),
+                 "current-logs": TEMP / (args.campaign + "-current-001")}
     elif args.campaign == "middle-tabs":
         ROOTS = {period + "-" + case: TEMP / ("middle-tabs-current-" + attempt) / case
                  for period, attempt in (("current", "002"), ("historical", "001"))
@@ -593,8 +603,9 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign in ("middle-tabs", "rail-width"):
-            return middle_checks(files, args.campaign == "rail-width")
+        if args.campaign in ("middle-tabs", "rail-width", "compact-layout"):
+            return middle_checks(files, args.campaign in ("rail-width", "compact-layout"),
+                                 args.campaign == "compact-layout")
         if args.campaign == "root-diagnostics":
             return diagnostic_checks(files)
         if args.campaign == "shell-wrap-diagnostics":

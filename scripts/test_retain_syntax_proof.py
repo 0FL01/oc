@@ -77,6 +77,21 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         original_durable["origin"] = "upstream"
         original_durable["checks"][-1].update(preference_scope="global", native_cas_observed=False)
         proof.check_middle_facts(original_durable, "compact", "upstream", persistent=True)
+        aligned = json.loads(json.dumps(durable))
+        aligned["checks"][-1]["actual_ordinal"] = {"x": 2, "y": 3}
+        aligned["checks"].append({"stage": "compact-layout", "width": 5,
+                                  "actual_ordinals": [{"x": 2, "y": y} for y in (3, 5, 7)]})
+        proof.check_middle_facts(aligned, "compact", "oc", persistent=True, aligned=True)
+        for index, value in ((0, {"x": 2, "y": 2}), (1, {"x": True, "y": 5}),
+                             (2, {"x": 2, "y": 6})):
+            bad = json.loads(json.dumps(aligned))
+            bad["checks"][-1]["actual_ordinals"][index] = value
+            with self.subTest(ordinal=index), self.assertRaises(ValueError):
+                proof.check_middle_facts(bad, "compact", "oc", persistent=True, aligned=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(durable, "compact", "oc", persistent=True, aligned=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(aligned, "compact", "oc", aligned=True)
 
     def test_blink_profile_requires_real_cycles_and_preserves_only_scoped_reference_failure(self):
         facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,

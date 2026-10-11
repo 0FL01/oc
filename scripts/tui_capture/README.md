@@ -1906,6 +1906,10 @@ saved after the last tab closes, and restores the five-column rail on restart
 and history reopen. Read-only owner snapshots and a real painted ordinal accompany
 the unchanged full frames. The donor's global layout preference is not represented
 as native Location-global equivalence; old process-local acquisitions remain intact.
+The current persistent compact probe records all three actual painted ordinals
+at x2/y3,5,7 after the real shrink and verifies x2/y3 again on history reopen.
+Shared header allocation moves paint and hit targets together; these observations
+do not qualify the remaining rail styling or whole-frame pixel differences.
 
 ## VIS44 actual middle-button tab close
 

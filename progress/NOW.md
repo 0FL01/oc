@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T20:03:38+00:00
+State updated: 2026-10-11T21:11:37+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,40 +12,37 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 durable rail width — qualified behavioral slice
+# T44 compact shared geometry — qualified slice
 
 ## Result
-Accepted manual width persists through the existing Location-scoped deck CAS;
-legacy optional JSON, bounds and owner/root/adoption/Location/readonly guards hold.
-Drag preview is not committed state; only changed real drag release saves once.
-Bootstrap, last-root Home and same-/foreign-Location owner receipts retain width.
-Receipt evidence/tui/rail-width-qualified.md. Full frozen T44 ACTIVE/NOT_PASS;
-Git determines checked delivery, not this checkpoint.
+Compact shared layout reserves three rows; paint and mouse hits now agree with
+pinned Terminal TUI ordinals2,3/2,5/2,7, including restart/history ordinal2,3.
+Capacity/clipping, noncompact layout, Middle Down, accepted width, draft/caret,
+busy/read-only/Location/CAS guards remain. Full frozen T44 ACTIVE/NOT_PASS.
+Receipt evidence/tui/compact-layout-qualified.md; Git determines delivery.
 
 ## Checks
-Current1841/0/11 all46,514 TUI/113 binary/35 T42,14 application tab-deck tests,
-strict Clippy/fmt/debug locked+ordinary/release/help/release9/original resources PASS.
-Legacy/parser and no-op gesture baseline RED→GREEN; real checked release tests
-conflict/wrong-width ACK/read-only/Location/refusal and draft/caret/scroll invariants.
-Fresh709-source compact profile/one real locked build:26 full opaque PNGs, sameRoot
-history/deck/drafts across20 snapshots,6 seed/title requests per side/no extra effects.
-Native accepted5 after drag/empty-deck restart/history reopen; both carets10,42.
-All174 files14516460 bytes retained490740B, independent full byte/source/ELF/
-comparator/SQLite/effect audit PASS; Python55. All old proofs/failures preserved.
+Current1842/0/11 all46,515 TUI/113 binary/35 T42, strict Clippy/fmt/builds/help,
+release9/original resource gates, Python55 PASS. Meaningful paint/hit/capacity
+baseline RED→GREEN covers80/120/160, nonzero origins, compact/noncompact and gaps.
+Fresh709-source/one real locked build:26 full opaque PNGs, actual persistent5,
+sameRoot/history/deck/DCP across20 snapshots,6 seed/title requests per side,
+no close/reopen extra effects. Both reopened carets10,42;13/13 cursor pairs equal.
+All174 files14444558 bytes retained464452B; independent complete byte/source/
+ELF/comparator/SQLite/effect audit PASS. All older proofs/failures preserved.
 
 ## Risks
-Native Location-scoped preference differs from Original global layout scope.
-Before-first-paint ordering is source/test coverage, not a runtime timing claim.
-All26 comparisons DIFFERENT;13/13 cursor pairs equal. Reopen42 cells2809 pixels,
-ordinal native2,2 versus Original2,3. Tooltip/rail/header/Home/Sessions/version/
-real clock/throughput differences remain unmasked. No full R3/VIS44/T44 PASS;
-same bounds/quota, no cleanup/archival/final TMP offload or historical rewrite.
+Native Location preference is not Original global scope equivalence.
+Before-first-paint is a source contract, not transient runtime timing evidence.
+All26 comparisons DIFFERENT:1041 cells86399 pixels; reopen41 cells2323 pixels.
+Search/header/half-rows/Add/rail/tooltip/Home/Sessions/real clock/throughput remain
+unmasked. No full R3/VIS44/R6/T44 PASS; same quota/bounds/no offload or data loss.
 
 ## Next
-Close actual compact rail/header/ordinal paint and hit-test geometry, then every
-remaining frozen body/tail/footer/card/Home/readonly/pacing/scroll/Thoughts/family/
-forms/DCP/MCP/auth outcome/supplement and final current-source R6/V09. Do not narrow
-acceptance, substitute outputs, weaken permissions/redaction or claim T44 done.
+Implement functional compact rail search and correct shared Add/half-row styling
+through current guarded owners, then EVERY remaining frozen outcome/supplement
+and final current-source R6/V09 before finish. Do not narrow acceptance or weaken
+RAW, permissions/redaction, current identity, resource or concurrency contracts.
 
 
 Ready (до 5): T58

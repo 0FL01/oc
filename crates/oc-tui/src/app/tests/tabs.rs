@@ -1310,6 +1310,110 @@ async fn vis44_middle_down_closes_whole_visible_tab_once_without_activation() {
 }
 
 #[tokio::test]
+async fn compact_rail_header_padding_moves_paint_and_hits_together() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let mut state = fresh_state("compact-selected").await;
+    state.chrome.vertical_tabs_width = 42;
+    state.chrome.tab_indicators = oc_core::queries::TabIndicators::Numbers;
+    state.apply_tab_rail_width(Some(5)).unwrap();
+    state.set_tab_strip(
+        vec![
+            TabPresentation::new(sid("compact-inactive")),
+            TabPresentation::new(sid("compact-selected")),
+            TabPresentation::new(sid("compact-last")),
+        ],
+        1,
+        true,
+    );
+    state.handle_paste("compact untouched Ω界 draft");
+    let draft = state.input().to_owned();
+    let caret = state.editor.cursor;
+    let middle = |x, y| MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Middle),
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    for (columns, rows) in [(80, 24), (120, 40), (160, 48)] {
+        let area = Rect::new(0, 0, columns, rows);
+        state.resize_mouse_position(area);
+        let mut terminal = Terminal::new(TestBackend::new(columns, rows)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let strip = crate::shell::tab_strip(&state, area).unwrap();
+        assert!(strip.compact && strip.vertical);
+        // Pinned terminal: rail padding + controls + scroll-content padding.
+        assert_eq!(strip.tabs[0].rect, Rect::new(0, 3, 5, 1));
+        for tab in &strip.tabs {
+            assert_eq!(
+                terminal.backend().buffer()[(2, tab.rect.y)].symbol(),
+                (tab.index + 1).to_string()
+            );
+            assert_eq!(
+                state.handle_mouse(middle(2, tab.rect.y), area).intent,
+                Some(PanelIntent::CloseTab { index: tab.index })
+            );
+        }
+        for y in [0, 1, 2, 4, 6, 8] {
+            assert_eq!(strip.hit_test(2, y), None);
+            assert_eq!(state.handle_mouse(middle(2, y), area).intent, None);
+        }
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.editor.cursor, caret);
+        assert_eq!(state.tab_presentation().1, 1);
+        assert_eq!(state.tab_rail_preference(), Some(5));
+    }
+
+    // Capacity and Add consume the same header allocation at nonzero origins,
+    // including heights where only a header or a final partial slot would fit.
+    for width in [5, 11, 12, 42] {
+        for height in 0..15 {
+            for count in [0, 1, 3, 16] {
+                for previous in [0, 3, 99] {
+                    for can_add in [false, true] {
+                        let area = Rect::new(7, 9, width, height);
+                        let strip =
+                            crate::layout::vertical_tab_strip(area, count, previous, can_add);
+                        let compact = width < 12;
+                        let header = if compact { 3 } else { 1 };
+                        let stride = if compact { 2 } else { 3 };
+                        let capacity = height.saturating_sub(header) / stride;
+                        assert_eq!(strip.tabs.len(), usize::from(capacity).min(count));
+                        assert_eq!(strip.before + strip.tabs.len() + strip.after, count);
+                        for (position, tab) in strip.tabs.iter().enumerate() {
+                            assert_eq!(tab.rect.y, area.y + header + position as u16 * stride);
+                            assert!(tab.rect.bottom() <= area.bottom());
+                            assert_eq!(strip.hit_test(area.x, tab.rect.y), Some(tab.index));
+                            assert_eq!(strip.hit_test(area.right(), tab.rect.y), None);
+                        }
+                        for y in area.y..area.bottom() {
+                            assert_eq!(
+                                strip.hit_test(area.x, y),
+                                strip
+                                    .tabs
+                                    .iter()
+                                    .find(|tab| tab.rect.contains((area.x, y).into()))
+                                    .map(|tab| tab.index)
+                            );
+                        }
+                        if let Some(add) = strip.add {
+                            assert!(can_add && add.bottom() <= area.bottom());
+                            assert_eq!(strip.hit_test(add.x, add.y), None);
+                            assert!(strip.tabs.iter().all(|tab| tab.rect.bottom() < add.y));
+                        } else if !can_add {
+                            assert!(strip.add.is_none());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[tokio::test]
 async fn post_close_hold_is_released_when_a_modal_opens() {
     use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;

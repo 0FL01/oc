@@ -1593,7 +1593,7 @@ async fn vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachabl
         None,
         "compact Infinity cannot start marquee"
     );
-    assert_eq!(terminal.backend().buffer()[(2, 2)].symbol(), "V");
+    assert_eq!(terminal.backend().buffer()[(2, 3)].symbol(), "V");
     assert!(inbox.try_recv().is_err());
 }
 

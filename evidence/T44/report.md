@@ -758,3 +758,21 @@ No source-seal rewrite, old failed/qualified proof loss, cleanup/archival/offloa
 resource-bound change or new store/query/registry/poll. Full frozen task ACTIVE.
 Next actual compact geometry/paint/hit seam and EVERY remaining R1–R6/VIS01–45
 outcome/supplement, then final current-source R6/V09 before finish.
+
+## Compact shared allocation (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/compact-layout-qualified.md): shared compact top3/stride2
+now aligns paint and current hit targets; clipping/capacity/noncompact/actions and
+draft/caret/CAS/Location/read-only/busy guards hold. Baseline RED→GREEN.
+Current1842/0/11 all46,515 TUI/113 binary/35 T42, builds/help/fmt/strict Clippy,
+release9/original resource guards and Python55 PASS. Fresh709-source/one actual
+locked build retains26 full frames and174 original files14444558 bytes in464452B.
+Independent full-byte/source/ELF/entire-comparator/SQLite/effect audit PASS.
+Both ordinals2,3/2,5/2,7, reopened2,3/caret10,42;13/13 cursor pairs equal.
+Persistent width5/history/sameRoot/DCP/20 owner snapshots hold; only6 seed/title
+requests per side, zero close/reopen extra effects. Native Location scope differs
+from Original global. All26 comparisons DIFFERENT:1041 cells86399 pixels;
+reopen41 cells2323 pixels. Search/half-rows/Add/rail/tooltip/footer/Home/Sessions
+remain unmasked. No full R3/VIS44/R6/T44 PASS, old evidence rewrite, data loss,
+offload or bounds change. Continue functional compact components and EVERY
+remaining frozen outcome/supplement, then final current-source R6/V09.
