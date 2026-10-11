@@ -655,6 +655,7 @@ mod tests;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TabPress {
+    Search(Rect),
     Add,
     Tab(usize),
     Close(usize),
@@ -1021,6 +1022,9 @@ impl TuiState {
 
     pub(super) fn tab_hit(&self, area: Rect, x: u16, y: u16) -> Option<TabPress> {
         let strip = crate::shell::tab_strip(self, area)?;
+        if let Some(search) = strip.search.filter(|rect| rect.contains((x, y).into())) {
+            return Some(TabPress::Search(search));
+        }
         if strip
             .add
             .is_some_and(|rect| (strip.vertical || rect.width == 3) && rect.contains((x, y).into()))

@@ -27,7 +27,7 @@ CAP = 1024**3
 MEMBER = 16 * 1024**2
 TOTAL = 128 * 1024**2
 ENCODED = 16 * 1024**2  # Separate bound for this explicitly selected small diagnostic.
-PREFIXES = ("model-shell", "subagent", "root-", "syntax-", "write-", "wrap-", "hover-", "raster-", "caret-", "blink-", "mcp-label-", "shell-wrap-", "middle-tabs-", "rail-width-", "compact-layout-")
+PREFIXES = ("model-shell", "subagent", "root-", "syntax-", "write-", "wrap-", "hover-", "raster-", "caret-", "blink-", "mcp-label-", "shell-wrap-", "middle-tabs-", "rail-width-", "compact-layout-", "compact-controls-")
 
 
 def require(ok, reason):

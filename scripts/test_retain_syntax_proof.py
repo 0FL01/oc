@@ -92,6 +92,39 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             proof.check_middle_facts(durable, "compact", "oc", persistent=True, aligned=True)
         with self.assertRaises(ValueError):
             proof.check_middle_facts(aligned, "compact", "oc", aligned=True)
+        functional = json.loads(json.dumps(aligned))
+        functional["checks"].append({"stage": "rail-controls", "actual_search": {"x": 2, "y": 1},
+                                      "actual_add": {"x": 2, "y": 9}, "matched_left_click": True,
+                                      "dialog_opened": True, "cancelled": True, "same_root_answer": True,
+                                      "draft_preserved": True, "caret_preserved": True,
+                                      "history_deck_unchanged": True, "no_extra_requests": True})
+        for key, symbol in (("search_hover_row", "⌕"), ("add_hover_row", "+")):
+            functional["checks"][-1][key] = [{"symbol": symbol if x == 2 else " ", "bg": "#1e1e1e"}
+                                           for x in range(5)]
+        functional["checks"][-1]["add_idle_row"] = [{"symbol": "+" if x == 2 else " ", "bg": "#141414"}
+                                                   for x in range(5)]
+        proof.check_middle_facts(functional, "compact", "oc", persistent=True, aligned=True, controls=True)
+        for key, value in (("cancelled", False), ("no_extra_requests", False),
+                           ("actual_search", {"x": True, "y": 1}), ("actual_add", {"x": 5, "y": 9})):
+            bad = json.loads(json.dumps(functional))
+            bad["checks"][-1][key] = value
+            with self.subTest(control=key), self.assertRaises(ValueError):
+                proof.check_middle_facts(bad, "compact", "oc", persistent=True, aligned=True, controls=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(aligned, "compact", "oc", persistent=True, aligned=True, controls=True)
+        bad = json.loads(json.dumps(functional))
+        bad["checks"][-1]["add_hover_row"][0]["bg"] = "#141414"
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(bad, "compact", "oc", persistent=True, aligned=True, controls=True)
+        bad = json.loads(json.dumps(functional))
+        bad["checks"][-1]["add_idle_row"][0]["bg"] = "#1e1e1e"
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(bad, "compact", "oc", persistent=True, aligned=True, controls=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_build(lock, manifest, durable_commands, persistent=True, controls=True)
+        functional_commands = json.loads(json.dumps(durable_commands))
+        functional_commands[0]["argv"] += ["--rail-controls", "true"]
+        proof.check_middle_build(lock, manifest, functional_commands, persistent=True, controls=True)
 
     def test_blink_profile_requires_real_cycles_and_preserves_only_scoped_reference_failure(self):
         facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,

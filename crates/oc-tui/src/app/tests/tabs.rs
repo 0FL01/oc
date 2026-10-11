@@ -1414,6 +1414,221 @@ async fn compact_rail_header_padding_moves_paint_and_hits_together() {
 }
 
 #[tokio::test]
+async fn compact_search_and_half_rows_use_current_targets_and_guarded_sessions() {
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let mut state = fresh_state("rail-selected").await;
+    state.chrome.vertical_tabs_width = 42;
+    state.chrome.tab_indicators = oc_core::queries::TabIndicators::Numbers;
+    state.apply_tab_rail_width(Some(5)).unwrap();
+    state.set_tab_strip(
+        vec![
+            TabPresentation::new(sid("rail-selected")),
+            TabPresentation::new(sid("rail-next")),
+        ],
+        0,
+        true,
+    );
+    state.handle_paste("rail unchanged Ω界 draft");
+    let draft = state.input().to_owned();
+    let caret = state.editor.cursor;
+    let theme = crate::theme::Theme::dark();
+    let base = theme.background_panel();
+    let high = theme.color("background.raised.high").unwrap();
+    let event = |kind, x, y| MouseEvent {
+        kind,
+        column: x,
+        row: y,
+        modifiers: KeyModifiers::NONE,
+    };
+    for (columns, rows) in [(80, 24), (120, 40), (160, 48)] {
+        let area = Rect::new(0, 0, columns, rows);
+        state.resize_mouse_position(area);
+        state.clear_mouse_position();
+        let mut terminal = Terminal::new(TestBackend::new(columns, rows)).unwrap();
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(2, 1)].symbol(), "⌕");
+        assert_eq!(buffer[(2, 1)].fg, theme.action_secondary());
+        for x in 0..5 {
+            assert_eq!(
+                (
+                    buffer[(x, 0)].symbol(),
+                    buffer[(x, 0)].fg,
+                    buffer[(x, 0)].bg
+                ),
+                ("▄", base, base)
+            );
+            assert_eq!(
+                (
+                    buffer[(x, 2)].symbol(),
+                    buffer[(x, 2)].fg,
+                    buffer[(x, 2)].bg
+                ),
+                ("▄", high, base)
+            );
+            assert_eq!(
+                (
+                    buffer[(x, 4)].symbol(),
+                    buffer[(x, 4)].fg,
+                    buffer[(x, 4)].bg
+                ),
+                ("▀", high, base)
+            );
+        }
+        let add = crate::shell::tab_strip(&state, area).unwrap().add.unwrap();
+        for x in add.x..add.right() {
+            assert_eq!(buffer[(x, add.y)].bg, base);
+            if x != 2 {
+                assert_eq!(
+                    buffer[(x, add.y)].fg,
+                    ratatui::style::Color::Rgb(255, 255, 255)
+                );
+            }
+        }
+        assert_eq!(buffer[(2, add.y)].symbol(), "+");
+        assert_eq!(
+            buffer[(2, add.y)].fg,
+            crate::theme::tint(theme.color("text.formfield.base").unwrap(), base, 0.55)
+        );
+        state.handle_mouse(event(MouseEventKind::Moved, 2, add.y), area);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        assert_eq!(buffer[(2, add.y)].fg, theme.text());
+        for x in 0..5 {
+            assert_eq!(buffer[(x, add.y)].bg, high);
+            assert_eq!(
+                (
+                    buffer[(x, add.y - 1)].symbol(),
+                    buffer[(x, add.y - 1)].fg,
+                    buffer[(x, add.y - 1)].bg
+                ),
+                ("▄", high, base),
+            );
+            assert_eq!(
+                (
+                    buffer[(x, add.bottom())].symbol(),
+                    buffer[(x, add.bottom())].fg,
+                    buffer[(x, add.bottom())].bg
+                ),
+                ("▀", high, base),
+            );
+        }
+        state.handle_mouse(event(MouseEventKind::Moved, 2, 5), area);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        for x in 0..5 {
+            let cell = &terminal.backend().buffer()[(x, 4)];
+            assert_eq!((cell.symbol(), cell.fg, cell.bg), ("▄", high, high));
+        }
+        state.handle_mouse(event(MouseEventKind::Moved, 2, 1), area);
+        terminal
+            .draw(|frame| crate::shell::render(frame, &state))
+            .unwrap();
+        for x in 0..5 {
+            let buffer = terminal.backend().buffer();
+            assert_eq!(
+                (
+                    buffer[(x, 0)].symbol(),
+                    buffer[(x, 0)].fg,
+                    buffer[(x, 0)].bg
+                ),
+                ("▄", high, base)
+            );
+            assert_eq!(buffer[(x, 1)].bg, high);
+            assert_eq!(
+                (
+                    buffer[(x, 2)].symbol(),
+                    buffer[(x, 2)].fg,
+                    buffer[(x, 2)].bg
+                ),
+                ("▀", high, high)
+            );
+        }
+        // Header actions require a matching current-geometry plain Left press.
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 2), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+        state.handle_mouse(event(MouseEventKind::Drag(MouseButton::Left), 2, 1), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Right), 6, 2), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None,
+        );
+        let mut modified = event(MouseEventKind::Down(MouseButton::Left), 2, 1);
+        modified.modifiers = KeyModifiers::SHIFT;
+        state.handle_mouse(modified, area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None,
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Middle), 2, 1), area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+        state.resize_mouse_position(area);
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area)
+                .intent,
+            None
+        );
+        state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 1, 1), area);
+        let opened = state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 1, 1), area);
+        assert_eq!(opened.intent, Some(PanelIntent::LoadSessions));
+        assert_eq!(state.panel(), &TuiPanel::Sessions);
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.editor.cursor, caret);
+        assert_eq!(state.tab_rail_preference(), Some(5));
+        state.close_panel();
+        assert_eq!(state.input(), draft);
+        assert_eq!(state.editor.cursor, caret);
+    }
+    let area = Rect::new(0, 0, 160, 48);
+    state.begin_linked_turn(oc_core::core_app::WorkerTurnId("search-busy".into()));
+    state.handle_mouse(event(MouseEventKind::Down(MouseButton::Left), 2, 1), area);
+    let refused = state.handle_mouse(event(MouseEventKind::Up(MouseButton::Left), 2, 1), area);
+    assert_eq!(refused.intent, None);
+    assert!(refused.note.as_deref().unwrap().contains("turn active"));
+    assert_eq!(state.panel(), &TuiPanel::None);
+    assert_eq!(state.input(), draft);
+    assert_eq!(state.editor.cursor, caret);
+}
+
+#[tokio::test]
 async fn post_close_hold_is_released_when_a_modal_opens() {
     use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;

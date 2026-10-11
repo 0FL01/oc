@@ -1910,6 +1910,14 @@ The current persistent compact probe records all three actual painted ordinals
 at x2/y3,5,7 after the real shrink and verifies x2/y3 again on history reopen.
 Shared header allocation moves paint and hit targets together; these observations
 do not qualify the remaining rail styling or whole-frame pixel differences.
+The optional `--rail-controls true` persistent compact profile additionally
+hovers and clicks the actually painted search control, captures Sessions, cancels
+back to the same answer/Unicode draft/caret, then hovers the existing Add without
+activating it. Real re-entry into the surviving plus and pointer departure establish
+Add idle even when compacting destroys Original's old hovered label without mouse-out.
+Five additional complete frames per side and before/after owner
+snapshots retain unchanged history, deck revision and request/effect counts.
+Search and half-row/Add styling are compared as actual unmasked full frames.
 
 ## VIS44 actual middle-button tab close
 

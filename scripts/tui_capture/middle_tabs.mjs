@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 
-export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,middleCase,railPersistence=false}) {
+export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,middleCase,railPersistence=false,railControls=false}) {
   const names=middleCase==='clipped'?['Alpha','Beta','Gamma','Delta']:['Alpha','Beta','Gamma'];
   const title=name=>`VIS44 ${name} retained middle-close history`;
   const draft=name=>`VIS44 draft ${name} Ω界`;
@@ -106,9 +106,47 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
           return hits[0];
         });
         record('compact-layout',{width:5,actual_ordinals:ordinals});
-        acceptedRail(await snap('accepted-rail-owner'));
-      }
-    }
+         acceptedRail(await snap('accepted-rail-owner'));
+       }
+       if(railControls) {
+         const before=await snap('rail-controls-before');unchanged(before);acceptedRail(before);
+         const search=visibleMatches(compact,'⌕').filter(p=>p.x<5);
+         if(search.length!==1||search[0].x!==2||search[0].y!==1)throw Error('Actual compact search target not unique');
+         const point=search[0];
+         const raised=(f,y)=>f.cells[y]?.slice(0,5).length===5&&f.cells[y].slice(0,5).every(c=>c.bg==='#1e1e1e');
+         if(raised(compact,point.y))throw Error('Search hover baseline was not idle');
+         send(`\x1b[<35;${point.x+1};${point.y+1}M`,'rail_search_hover');
+         const searchHovered=await shot('rail-search-hover',f=>f.text.includes(draft(names.at(-1)))&&raised(f,point.y)&&visibleMatches(f,'⌕').some(p=>p.x===point.x&&p.y===point.y));
+         send(`\x1b[<0;${point.x+1};${point.y+1}M\x1b[<0;${point.x+1};${point.y+1}m`,'rail_search_matched_left_click');
+         await shot('rail-search-open',f=>f.text.includes('Sessions')&&f.text.includes(title('Gamma')));
+         send('\x1b','rail_search_cancel');
+         const restored=await shot('rail-search-restored',f=>!f.text.includes('Sessions')&&f.text.includes('VIS44-ANSWER-Gamma')&&f.text.includes(draft('Gamma')));
+         const cursor=restored.cursor;
+         if(cursor.x!==compact.cursor.x||cursor.y!==compact.cursor.y||cursor.visible!==compact.cursor.visible)throw Error('Search cancel changed the actual composer caret');
+          const plus=visibleMatches(restored,'+').filter(p=>p.x<5);
+          if(plus.length!==1)throw Error('Actual vertical Add target not unique');
+          // Compacting destroys Original's hovered noncompact label without an
+          // out event. Re-enter the surviving plus, then leave that live target.
+          send(`\x1b[<35;${plus[0].x+1};${plus[0].y+1}M`,'rail_add_reenter_live_target');
+          await new Promise(r=>setTimeout(r,200));
+          await waitFor(f=>raised(f,plus[0].y),'actual live Add hover before departure');
+          send(`\x1b[<35;${restored.columns-1};${restored.rows-2}M`,'rail_add_leave_before_hover');
+          const addIdle=await shot('rail-add-idle',f=>f.text.includes(draft('Gamma'))&&
+            f.cells[plus[0].y]?.slice(0,5).length===5&&f.cells[plus[0].y].slice(0,5).every(c=>c.bg==='#141414'));
+          send(`\x1b[<35;${plus[0].x+1};${plus[0].y+1}M`,'rail_add_hover_only');
+         const addHovered=await shot('rail-add-hover',f=>f.text.includes(draft('Gamma'))&&raised(f,plus[0].y)&&visibleMatches(f,'+').some(p=>p.x===plus[0].x&&p.y===plus[0].y));
+         const after=await snap('rail-controls-after');unchanged(after);acceptedRail(after);
+         if(origin==='oc') {
+           const prefs=s=>JSON.stringify(s.observations.filter(o=>o.table==='prefs').flatMap(o=>o.rows).filter(r=>r.key.startsWith('tui.selection.tab_deck:')));
+           if(prefs(before)!==prefs(after))throw Error('Search/hover changed the saved deck or revision');
+         }
+         record('rail-controls',{actual_search:point,matched_left_click:true,dialog_opened:true,cancelled:true,
+                  same_root_answer:true,draft_preserved:true,caret_preserved:true,history_deck_unchanged:true,
+                   no_extra_requests:true,actual_add:plus[0],cursor,
+                   search_hover_row:searchHovered.cells[point.y].slice(0,5),
+                   add_idle_row:addIdle.cells[plus[0].y].slice(0,5),add_hover_row:addHovered.cells[plus[0].y].slice(0,5)});
+       }
+     }
     // Derive membership from the current painted frame, including clipped strips.
     const current=await frame();
     const inactive=names.slice(0,-1).find(name=>target(current,name,true)!==null);

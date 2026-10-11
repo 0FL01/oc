@@ -776,3 +776,26 @@ reopen41 cells2323 pixels. Search/half-rows/Add/rail/tooltip/footer/Home/Session
 remain unmasked. No full R3/VIS44/R6/T44 PASS, old evidence rewrite, data loss,
 offload or bounds change. Continue functional compact components and EVERY
 remaining frozen outcome/supplement, then final current-source R6/V09.
+
+## Functional compact controls (2026-10-12 — qualified slice)
+
+[Factual receipt](../tui/compact-controls-qualified.md): real compact Search through
+existing guarded OpenSessions/LoadSessions, static highlighted half-rows and correct
+vertical Add surfaces/glyph tint; current geometry/draft/caret/RAW/Location/CAS guards.
+Baseline RED→GREEN; current1843/0/11 all46,516 TUI/113 binary, fmt/strict Clippy,
+builds/help/release9/original resources and Python55 PASS. Fresh709-source/one real
+locked build retains36 whole frames: both Search hover/click/Sessions/cancel and
+real Add idle→hover preserve same Root/draft/caret/deck/history/DCP; only6 seed/title
+requests per side, zero extra provider/tool/project effects. Actual compact width5
+survives restart/history, Native Location CAS versus Original global scope explicit.
+All15 control styled cells and18/18 cursor pairs equal; whole rail matches Add-idle
+and history reopen. All36 strict comparisons DIFFERENT:1019 cells78557 pixels;
+reopen20 cells733 pixels on attribution. Other actual differences remain unmasked.
+All539 original files43155376 logical bytes retained1434964 encoded bytes; current
+36 plus historical49 opaque PNGs and parent logs complete. Both Original FAILED
+idle predicates preserved; final real surviving-plus reentry/leave clears orphaned
+hover without reference patch or normalization. Independent full-byte/source/ELF/
+entire-comparator/SQLite-WAL/history/effect audit PASS. No cleanup/offload/bounds rise,
+new store/query/poll, old evidence rewrite or whole R3/VIS44/R6/T44 PASS.
+Next existing VIS12 paired prompt-history and mouse-caret qualification, then EVERY
+remaining frozen outcome/supplement and final current-source R6/V09 before finish.

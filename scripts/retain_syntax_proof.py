@@ -234,7 +234,8 @@ def check_temporal_profile(lock, cursor, side, name):
                 state["moves"] == 0, "actual continuous hover/control")
 
 
-def check_middle_facts(checks, profile, side, historical=False, persistent=False, aligned=False):
+def check_middle_facts(checks, profile, side, historical=False, persistent=False, aligned=False, controls=False):
+    require(not controls or aligned, "current aligned functional controls scope")
     require(not aligned or persistent, "current persistent compact alignment scope")
     require(not persistent or (profile == "compact" and not historical), "current compact persistence scope")
     require(checks.get("origin") == side and checks.get("middle_case") == profile,
@@ -284,9 +285,30 @@ def check_middle_facts(checks, profile, side, historical=False, persistent=False
                 restored[0]["actual_ordinal"] == {"x": 2, "y": 3} and
                 type(restored[0]["actual_ordinal"].get("y")) is int,
                 "actual compact paint/hit top allocation and restored geometry")
+    if controls:
+        records = [item for item in checks["checks"] if item.get("stage") == "rail-controls"]
+        require(len(records) == 1, "one actual search/cancel/Add proof")
+        observed = records[0]
+        require(all(observed.get(key) is True for key in
+                    ("matched_left_click", "dialog_opened", "cancelled", "same_root_answer",
+                     "draft_preserved", "caret_preserved", "history_deck_unchanged", "no_extra_requests")) and
+                observed.get("actual_search") == {"x": 2, "y": 1} and
+                all(type(observed["actual_search"].get(key)) is int for key in ("x", "y")) and
+                isinstance(observed.get("actual_add"), dict) and
+                type(observed["actual_add"].get("x")) is int and observed["actual_add"]["x"] == 2 and
+                type(observed["actual_add"].get("y")) is int and 0 <= observed["actual_add"]["y"] < 24,
+                "actual painted controls and unchanged captured owners")
+        require(all(isinstance(observed.get(key), list) and len(observed[key]) == 5 and
+                    all(isinstance(cell, dict) and cell.get("bg") == "#1e1e1e" for cell in observed[key])
+                    for key in ("search_hover_row", "add_hover_row")) and
+                 observed["search_hover_row"][2].get("symbol") == "⌕" and
+                 observed["add_hover_row"][2].get("symbol") == "+", "actual current-profile hover surfaces")
+        require(isinstance(observed.get("add_idle_row"), list) and len(observed["add_idle_row"]) == 5 and
+                all(isinstance(cell, dict) and cell.get("bg") == "#141414" for cell in observed["add_idle_row"]) and
+                observed["add_idle_row"][2].get("symbol") == "+", "actual Add idle-to-hover transition")
 
 
-def check_middle_build(lock, manifest, commands, persistent=False):
+def check_middle_build(lock, manifest, commands, persistent=False, controls=False):
     invocation = commands[0]
     argv = invocation["argv"]
     require(invocation["role"] == "capture runner invocation" and len(argv) >= 2 and
@@ -297,6 +319,8 @@ def check_middle_build(lock, manifest, commands, persistent=False):
     if persistent:
         require(options.get("--rail-persistence") == "true" and options.get("--middle-case") == "compact",
                 "actual durable rail acquisition")
+    if controls:
+        require(persistent and options.get("--rail-controls") == "true", "actual functional rail acquisition")
     require(len(options) == len(pairs) and options.get("--build-oc") == "true" and
             options.get("--tab-middle-close") == "true" and
             options.get("--oc") == lock["oc"]["executable_path"] == str(REPO / "target/debug/oc") and
@@ -314,7 +338,7 @@ def check_middle_build(lock, manifest, commands, persistent=False):
             builds[0]["exit_code"] == 0, "one exact recorded repository build")
 
 
-def middle_checks(files, persistent=False, aligned=False):
+def middle_checks(files, persistent=False, aligned=False, controls=False):
     reports = []
     profiles = {"horizontal": (120, 40, "horizontal", 22, 18),
                 "clipped": (80, 24, "horizontal", 26, 20),
@@ -331,8 +355,8 @@ def middle_checks(files, persistent=False, aligned=False):
         check_source_manifest(lock, manifest, 709)
         if current:
             check_current_source(manifest)
-        check_middle_build(lock, manifest, read("commands.json"), persistent)
-        require(len(lock["captures"]) == (count if current else old_count), "whole middle capture scope")
+        check_middle_build(lock, manifest, read("commands.json"), persistent, controls)
+        require(len(lock["captures"]) == (count + (10 if controls else 0) if current else old_count), "whole middle capture scope")
         # Historical compact stopped at its actual shrunk viewport before relaunch.
         if not current and case == "compact":
             columns, rows = 80, 24
@@ -347,9 +371,37 @@ def middle_checks(files, persistent=False, aligned=False):
                             "actual middle executable identity")
             checks = read(side + "/middle-tabs-checks.json")
             require(checks == lock["tab_middle_close"][side], "actual middle side facts")
-            check_middle_facts(checks, case, side, not current, persistent, aligned)
+            check_middle_facts(checks, case, side, not current, persistent, aligned, controls)
             statuses[side] = checks["status"]
         reports.append({"episode": episode, "captures": len(lock["captures"]), "current_source": current,
+                        "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
+def compact_controls_diagnostic_checks(files):
+    reports = []
+    for episode, count, reason in (("historical-first", 24, "Error: Add hover baseline was not idle\n"),
+                                   ("historical-second", 25, "Error: Timed out waiting for rail-add-idle\n")):
+        read = lambda relative: json.loads(files[episode + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 709)
+        check_middle_build(lock, manifest, read("commands.json"), persistent=True, controls=True)
+        require(len(lock["captures"]) == count, "complete failed controls episode retained")
+        statuses = {}
+        for side in ("oc", "upstream"):
+            facts = read(side + "/middle-tabs-checks.json")
+            require(facts == lock["tab_middle_close"][side], "historical controls facts")
+            if side == "oc":
+                check_middle_facts(facts, "compact", side, persistent=True, aligned=True)
+            else:
+                require(facts.get("origin") == side and facts.get("middle_case") == "compact" and
+                        facts.get("status") == "FAILED" and
+                        any(item.get("stage") == "failure" and isinstance(item.get("reason"), str) and
+                            item["reason"].startswith(reason)
+                            for item in facts["checks"]), "original failed idle predicate remains visible")
+            statuses[side] = facts["status"]
+        reports.append({"episode": episode, "captures": len(lock["captures"]), "current_source": False,
                         "statuses": statuses,
                         "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
     return reports
@@ -536,13 +588,21 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("rail-width", "compact-layout"):
+    if args.campaign == "compact-controls-diagnostics":
+        ROOTS = {"historical-first": TEMP / "compact-controls-current-001/compact",
+                 "historical-second": TEMP / "compact-controls-current-002/compact",
+                 "historical-logs": TEMP / "compact-controls-current-001",
+                 "current-logs": TEMP / "compact-controls-current-002"}
+    elif args.campaign == "compact-controls-r3":
+        ROOTS = {"current-compact": TEMP / "compact-controls-current-003/compact",
+                 "current-logs": TEMP / "compact-controls-current-003"}
+    elif args.campaign in ("rail-width", "compact-layout"):
         ROOTS = {"current-compact": TEMP / (args.campaign + "-current-001/compact"),
                  "current-logs": TEMP / (args.campaign + "-current-001")}
     elif args.campaign == "middle-tabs":
@@ -603,9 +663,12 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign in ("middle-tabs", "rail-width", "compact-layout"):
-            return middle_checks(files, args.campaign in ("rail-width", "compact-layout"),
-                                 args.campaign == "compact-layout")
+        if args.campaign == "compact-controls-diagnostics":
+            return compact_controls_diagnostic_checks(files)
+        if args.campaign in ("middle-tabs", "rail-width", "compact-layout", "compact-controls-r3"):
+            return middle_checks(files, args.campaign in ("rail-width", "compact-layout", "compact-controls-r3"),
+                                 args.campaign in ("compact-layout", "compact-controls-r3"),
+                                 args.campaign == "compact-controls-r3")
         if args.campaign == "root-diagnostics":
             return diagnostic_checks(files)
         if args.campaign == "shell-wrap-diagnostics":

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T21:11:37+00:00
+State updated: 2026-10-11T22:56:13+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,37 +12,39 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 compact shared geometry — qualified slice
+# Compact controls qualified; full T44 remains ACTIVE
 
 ## Result
-Compact shared layout reserves three rows; paint and mouse hits now agree with
-pinned Terminal TUI ordinals2,3/2,5/2,7, including restart/history ordinal2,3.
-Capacity/clipping, noncompact layout, Middle Down, accepted width, draft/caret,
-busy/read-only/Location/CAS guards remain. Full frozen T44 ACTIVE/NOT_PASS.
-Receipt evidence/tui/compact-layout-qualified.md; Git determines delivery.
+- Functional compact Search reuses guarded OpenSessions/LoadSessions; current
+  matched press/release, modifier/drag/resize/busy/read-only ownership holds.
+- Static header/highlight half-rows and vertical Add glyph-only tint/surfaces
+  follow pinned Terminal owners; horizontal and noncompact behavior preserved.
+- Actual Original/native search/Sessions/cancel retains Gamma answer, Unicode
+  draft/caret and owners; real live-plus reentry/leave proves Add idle→hover.
+- All539 original files/current36 plus historical49 whole PNGs retained byte-exact;
+  both earlier Original failures remain visible, not promoted or erased.
 
 ## Checks
-Current1842/0/11 all46,515 TUI/113 binary/35 T42, strict Clippy/fmt/builds/help,
-release9/original resource gates, Python55 PASS. Meaningful paint/hit/capacity
-baseline RED→GREEN covers80/120/160, nonzero origins, compact/noncompact and gaps.
-Fresh709-source/one real locked build:26 full opaque PNGs, actual persistent5,
-sameRoot/history/deck/DCP across20 snapshots,6 seed/title requests per side,
-no close/reopen extra effects. Both reopened carets10,42;13/13 cursor pairs equal.
-All174 files14444558 bytes retained464452B; independent complete byte/source/
-ELF/comparator/SQLite/effect audit PASS. All older proofs/failures preserved.
+- Baseline missing Search RED→GREEN;516 TUI/113 binary; full1843/0/11 all46.
+- fmt/strict locked all-target Clippy/debug+ordinary+release builds/help/release9
+  and original startup/terminal/pacing/S07/AUD32 resource gates PASS; Python55 PASS.
+- Independent every-original-byte/current709/sealed locked-build/ELF/full-comparator/
+  persisted-history/SQLite-WAL/Root/DCP/effect audit PASS; no extra requests/tools.
+- Both controls'15 styled cells and all18 cursor pairs equal; same Root/width5
+  post-drag/restart/history. Native Location CAS differs from Original global scope.
 
 ## Risks
-Native Location preference is not Original global scope equivalence.
-Before-first-paint is a source contract, not transient runtime timing evidence.
-All26 comparisons DIFFERENT:1041 cells86399 pixels; reopen41 cells2323 pixels.
-Search/header/half-rows/Add/rail/tooltip/Home/Sessions/real clock/throughput remain
-unmasked. No full R3/VIS44/R6/T44 PASS; same quota/bounds/no offload or data loss.
+- All36 current comparisons DIFFERENT;1019 paired cells/78557 pixels; reopen20
+  cells733 pixels on attribution. Tooltip/rail-edge/Home/Sessions/time remain.
+- No whole R3/VIS44/R6/T44 PASS or transient before-first-paint runtime claim.
+- All old artifacts/failures/source associations/scratch preserved; no normalization,
+  permission/RAW/model-graph changes, new store/query/poll or resource-bound raise.
 
 ## Next
-Implement functional compact rail search and correct shared Add/half-row styling
-through current guarded owners, then EVERY remaining frozen outcome/supplement
-and final current-source R6/V09 before finish. Do not narrow acceptance or weaken
-RAW, permissions/redaction, current identity, resource or concurrency contracts.
+- Qualify actual VIS12 shared prompt history/boundary/recall/Home/restart and mouse
+  caret click-to-edit with existing real paired probes and current owner guards.
+- Close EVERY remaining frozen R1–R6/VIS01–45 outcome and supplement, then final
+  current-source R6/V09; only then task finish.
 
 
 Ready (до 5): T58

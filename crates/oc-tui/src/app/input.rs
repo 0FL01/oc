@@ -1984,8 +1984,14 @@ impl TuiState {
                         && let Some(tab) = pressed_tab
                         && self.tab_hit(area, event.column, event.row) == Some(tab)
                     {
+                        if matches!(tab, TabPress::Search(_)) {
+                            return self.run_command(CommandAction::OpenSessions);
+                        }
                         return KeyOutcome {
                             intent: Some(match tab {
+                                TabPress::Search(_) => {
+                                    unreachable!("search uses guarded command owner")
+                                }
                                 TabPress::Add => PanelIntent::AddSessionTab,
                                 TabPress::Tab(index) => PanelIntent::ActivateTab { index },
                                 TabPress::Close(index) => PanelIntent::CloseTab { index },

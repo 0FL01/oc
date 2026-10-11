@@ -735,6 +735,19 @@ fn render_deck_tabs(
         );
     }
     let (tabs, active, _) = state.tab_presentation();
+    let frame_area = frame.area();
+    let highlighted = |index: usize| {
+        (if state.home {
+            index == tabs.len()
+        } else {
+            index == active
+        }) || state.hovered_tab(frame_area) == Some(index)
+    };
+    let raised = theme.background_panel();
+    let high = theme.color("background.raised.high").unwrap_or(raised);
+    let add_hovered = strip
+        .add
+        .is_some_and(|add| state.tab_add_hovered(frame.area(), add));
     for marker in [strip.before_marker, strip.after_marker]
         .into_iter()
         .flatten()
@@ -768,6 +781,40 @@ fn render_deck_tabs(
         let hovered = state.hovered_tab(frame.area()) == Some(tab.index);
         let close = state.tab_close_cell(frame.area(), tab.index, tab.rect);
         let attention = state.tab_attention_for(tab.index);
+        if strip.compact && highlighted(tab.index) {
+            // Static highlighted edges share the actual slot's clipped geometry;
+            // adjacent highlighted slots join rather than exposing base fill.
+            paint_rail_half_row(
+                frame,
+                area,
+                tab.rect.y.saturating_sub(1),
+                "▄",
+                high,
+                if tab.index.checked_sub(1).is_some_and(&highlighted) {
+                    high
+                } else {
+                    raised
+                },
+            );
+            paint_rail_half_row(
+                frame,
+                area,
+                tab.rect.bottom(),
+                "▀",
+                high,
+                if tab.index + 1 < tabs.len() + usize::from(state.home) {
+                    if highlighted(tab.index + 1) {
+                        high
+                    } else {
+                        raised
+                    }
+                } else if add_hovered {
+                    high
+                } else {
+                    raised
+                },
+            );
+        }
         frame.render_widget(
             Paragraph::new(deck_tab_line(
                 theme,
@@ -853,36 +900,139 @@ fn render_deck_tabs(
         }
     }
     if let Some(add) = strip.add.filter(|rect| strip.vertical || rect.width == 3) {
-        // session-tabs.tsx:1744-1752: the entire " + " control, including
-        // padding, shares the hovered text and action background tokens.
-        let hovered = state.tab_add_hovered(frame.area(), add);
-        frame.render_widget(
-            Paragraph::new(if strip.vertical && !strip.compact {
-                " + New session"
+        if strip.vertical {
+            let bg = if add_hovered { high } else { raised };
+            let fg = if add_hovered {
+                theme.text()
             } else {
-                " + "
-            })
-            .alignment(if strip.compact {
-                Alignment::Center
+                tint(
+                    theme
+                        .color("text.formfield.base")
+                        .unwrap_or(theme.text_muted()),
+                    raised,
+                    0.55,
+                )
+            };
+            let line = if strip.compact {
+                Line::from(Span::styled("+", Style::default().fg(fg)))
             } else {
-                Alignment::Left
-            })
-            .style(
-                Style::default()
-                    .fg(if hovered {
-                        theme.text()
+                Line::from(vec![
+                    Span::raw(" "),
+                    Span::styled("+ ", Style::default().fg(fg)),
+                    Span::styled(
+                        NEW_SESSION_TAB_TITLE,
+                        Style::default().fg(if add_hovered {
+                            theme.text()
+                        } else {
+                            theme.text_muted()
+                        }),
+                    ),
+                ])
+            };
+            if strip.compact && add_hovered {
+                paint_rail_half_row(
+                    frame,
+                    area,
+                    add.y.saturating_sub(1),
+                    "▄",
+                    high,
+                    if strip.tabs.last().is_some_and(|tab| highlighted(tab.index)) {
+                        high
                     } else {
-                        theme.text_muted()
+                        raised
+                    },
+                );
+                paint_rail_half_row(frame, area, add.bottom(), "▀", high, raised);
+            }
+            frame.render_widget(
+                Paragraph::new(line)
+                    .alignment(if strip.compact {
+                        Alignment::Center
+                    } else {
+                        Alignment::Left
                     })
-                    .bg(if hovered {
-                        theme
-                            .color("background.action.primary.$hovered")
-                            .unwrap_or(theme.background())
-                    } else {
-                        theme.background()
-                    }),
-            ),
-            add,
+                    .style(Style::default().bg(bg)),
+                add,
+            );
+        } else {
+            // session-tabs.tsx:1744-1752: the entire " + " control, including
+            // padding, shares the hovered text and action background tokens.
+            let hovered = state.tab_add_hovered(frame.area(), add);
+            frame.render_widget(
+                Paragraph::new(" + ").alignment(Alignment::Left).style(
+                    Style::default()
+                        .fg(if hovered {
+                            theme.text()
+                        } else {
+                            theme.text_muted()
+                        })
+                        .bg(if hovered {
+                            theme
+                                .color("background.action.primary.$hovered")
+                                .unwrap_or(theme.background())
+                        } else {
+                            theme.background()
+                        }),
+                ),
+                add,
+            );
+        }
+    }
+    if let Some(search) = strip.search {
+        let hovered = state.panel() == &crate::app::TuiPanel::None
+            && state.mouse_position().is_some_and(|(x, y, pointer_area)| {
+                pointer_area == frame.area() && search.contains((x, y).into())
+            });
+        let below = strip.tabs.first().is_some_and(|tab| highlighted(tab.index))
+            || (strip.tabs.is_empty() && add_hovered);
+        paint_rail_half_row(
+            frame,
+            area,
+            search.y.saturating_sub(1),
+            "▄",
+            if hovered { high } else { raised },
+            raised,
+        );
+        frame.render_widget(
+            Paragraph::new(Span::styled(
+                "⌕",
+                Style::default().fg(theme.action_secondary()),
+            ))
+            .alignment(Alignment::Center)
+            .style(Style::default().bg(if hovered { high } else { raised })),
+            search,
+        );
+        // The controls' separator is above tab edges in the pinned component.
+        paint_rail_half_row(
+            frame,
+            area,
+            search.bottom(),
+            if hovered {
+                "▀"
+            } else if below {
+                "▄"
+            } else {
+                " "
+            },
+            high,
+            if hovered && below { high } else { raised },
+        );
+    }
+}
+
+fn paint_rail_half_row(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    y: u16,
+    symbol: &str,
+    fg: Color,
+    bg: Color,
+) {
+    if area.width > 0 && y >= area.y && y < area.bottom() {
+        frame.render_widget(
+            Paragraph::new(symbol.repeat(usize::from(area.width)))
+                .style(Style::default().fg(fg).bg(bg)),
+            Rect::new(area.x, y, area.width, 1),
         );
     }
 }

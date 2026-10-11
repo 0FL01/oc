@@ -130,6 +130,7 @@ pub(crate) fn tab_close_cell(rect: Rect) -> Option<u16> {
 pub struct HorizontalTabStrip {
     pub vertical: bool,
     pub compact: bool,
+    pub search: Option<Rect>,
     pub start: usize,
     pub before: usize,
     pub after: usize,
@@ -228,6 +229,7 @@ pub fn held_after_close(
     Some(HorizontalTabStrip {
         vertical: false,
         compact: false,
+        search: None,
         start,
         before,
         after,
@@ -353,6 +355,7 @@ pub fn horizontal_tab_strip(
     HorizontalTabStrip {
         vertical: false,
         compact: false,
+        search: None,
         start,
         before,
         after,
@@ -422,6 +425,8 @@ pub fn vertical_tab_strip(
     HorizontalTabStrip {
         vertical: true,
         compact,
+        search: (compact && area.width > 0 && area.y.saturating_add(1) < area.bottom())
+            .then(|| Rect::new(area.x, area.y + 1, area.width, 1)),
         start,
         before: start,
         after: count - start - visible,

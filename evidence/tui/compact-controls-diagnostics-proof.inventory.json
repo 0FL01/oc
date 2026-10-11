@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "9b62ee3f65a9ae9cc4da894dd786d8eb01fb292b38a9a8ecc1caa6a511a408d6",
+  "archive_bytes": 807236,
+  "tar_sha256": "65c33574c54830742f199ae441971fcbb002d7580d31e4703a4e03a7b34fdeb5",
+  "tar_bytes": 24811520,
+  "inventory": {
+    "members": 305,
+    "logical_bytes": 24838309,
+    "member_inventory_sha256": "1715d462e6bdd1415b659681734025f6ac2706ac0a6c6525d97eae4bafb8755d",
+    "same_side_png_aliases": 13
+  },
+  "source_roots": {
+    "historical-first": "/home/opencode/.cache/opencode-tmp/opencode/compact-controls-current-001/compact",
+    "historical-second": "/home/opencode/.cache/opencode-tmp/opencode/compact-controls-current-002/compact",
+    "historical-logs": "/home/opencode/.cache/opencode-tmp/opencode/compact-controls-current-001",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/compact-controls-current-002"
+  },
+  "producer_reports": [
+    {
+      "episode": "historical-first",
+      "captures": 24,
+      "current_source": false,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "FAILED"
+      },
+      "comparisons": {
+        "DIFFERENT": 12,
+        "BLOCKED": 24
+      }
+    },
+    {
+      "episode": "historical-second",
+      "captures": 25,
+      "current_source": false,
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "FAILED"
+      },
+      "comparisons": {
+        "DIFFERENT": 12,
+        "BLOCKED": 26
+      }
+    }
+  ],
+  "retainer_source_sha256": "7485495b437178a1be9417037bde77f2f7b7f69ad55c472a7c57a8967a4a7901"
+}
