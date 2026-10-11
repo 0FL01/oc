@@ -209,16 +209,33 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         .unwrap()
         .collect::<Result<_, _>>()
         .unwrap();
-    assert_eq!(presentation_rows.len(), 1);
-    let encoded = &presentation_rows[0];
-    assert!(encoded.len() <= oc_core::tool_output::RECORD_BYTES);
-    for private in ["mcp-media-private-canary", PNG, AUDIO, BLOB] {
-        assert!(!encoded.contains(private));
+    // The label intent and actual result share one operation, not a second
+    // execution. Neither bounded event may copy private/binary media.
+    assert_eq!(presentation_rows.len(), 2);
+    for encoded in &presentation_rows {
+        assert!(encoded.len() <= oc_core::tool_output::RECORD_BYTES);
+        for private in ["mcp-media-private-canary", PNG, AUDIO, BLOB] {
+            assert!(!encoded.contains(private));
+        }
     }
+    let intent: Value = serde_json::from_str(&presentation_rows[0]).unwrap();
+    let label: oc_core::tool_output::Presentation =
+        serde_json::from_value(intent["presentation"].clone()).unwrap();
+    assert!(label.is_valid() && label.label_only);
+    assert_eq!(label.body, "");
+    assert_eq!(label.body_bytes, 0);
+    assert!(!label.generated_guidance && label.capture.is_none());
+    assert_eq!(
+        label.mcp_label.as_ref().unwrap().text,
+        "media_mcp_media_mixed"
+    );
+    assert!(!label.mcp_label.as_ref().unwrap().limited);
+    let encoded = &presentation_rows[1];
     let event: Value = serde_json::from_str(encoded).unwrap();
     let facts: oc_core::tool_output::Presentation =
         serde_json::from_value(event["presentation"].clone()).unwrap();
-    assert!(facts.is_valid());
+    assert!(facts.is_valid() && !facts.label_only);
+    assert_eq!(facts.mcp_label, label.mcp_label);
     assert!(facts.body.contains("[redacted]"));
     assert!(!facts.generated_guidance && !facts.body_limited);
     assert!(facts.capture.is_none() && facts.shell.is_none());
@@ -230,6 +247,7 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         )
         .unwrap();
     assert_eq!(event["operation"], operation);
+    assert_eq!(intent["operation"], operation);
     assert_eq!(
         fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap(),
         bytes

@@ -1,6 +1,235 @@
 use super::*;
 
 #[test]
+fn mcp_label_intent_and_result_survive_exact_raw_reopen_and_fork() {
+    use oc_core::tool_output::{McpLabel, Presentation};
+    for prepared in [false, true] {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Db::open(dir.path()).unwrap();
+        db.create_bound_session("source", "/p").unwrap();
+        let model = oc_core::queries::ModelRef {
+            provider: "fixture".into(),
+            id: "model".into(),
+            variant: None,
+        };
+        let user = db
+            .accept_turn("turn", "source", "unchanged", "unchanged", &model)
+            .unwrap()
+            .user_message;
+        let input = r#"{"query":"actual argument"}"#;
+        let raw = "error: actual outcome; literal [truncated] remains data";
+        let mut log = crate::tools::TurnLog::new("turn", "model", "fixture");
+        log.user_message = Some(user);
+        log.input = vec![
+            crate::provider::InputItem::message(crate::provider::InputRole::User, "unchanged"),
+            crate::provider::InputItem::ProviderOutput(
+                serde_json::json!({"type":"function_call","id":"item","call_id":"call","name":"mcp_hash_2","arguments":input}),
+            ),
+        ];
+        log.display_parts = vec![serde_json::json!({"tool":"op"})];
+        let label = McpLabel {
+            text: "fixture_remote__tool".into(),
+            limited: false,
+        };
+        let intent = Presentation::label(label.clone());
+        let mut invalid = intent.clone();
+        invalid.mcp_label.as_mut().unwrap().text.push('\n');
+        assert!(
+            db.record_turn_tool_intent_with_presentation(
+                "invalid",
+                "source",
+                "turn",
+                "mcp_hash_2",
+                input,
+                &log.to_json().to_string(),
+                Some(&invalid)
+            )
+            .is_err()
+        );
+        assert!(
+            db.list_tool_ops("source").unwrap().is_empty(),
+            "metadata shares the original intent transaction"
+        );
+        db.record_turn_tool_intent_with_presentation(
+            "op",
+            "source",
+            "turn",
+            "mcp_hash_2",
+            input,
+            &log.to_json().to_string(),
+            Some(&intent),
+        )
+        .unwrap();
+        let started = &db.list_tool_ops("source").unwrap()[0];
+        assert_eq!(started.name, "mcp_hash_2");
+        assert_eq!(started.input.as_deref(), Some(input));
+        assert_eq!(started.output_presentation.as_deref(), Some(&intent));
+        let mut final_facts = Presentation::new("actual prepared body", 20, false);
+        final_facts.mcp_label = Some(label);
+        let expected = if prepared { &final_facts } else { &intent };
+        log.input
+            .push(crate::provider::InputItem::FunctionCallOutput {
+                call_id: "call".into(),
+                output: raw.into(),
+            });
+        let journal = log.to_json().to_string();
+        db.tool_outcome_with_log_and_effects(
+            "op",
+            "failed",
+            raw,
+            "turn",
+            &journal,
+            None,
+            prepared.then_some(&final_facts),
+        )
+        .unwrap();
+        db.commit_turn(
+            "turn",
+            "completed",
+            Some(&journal),
+            Some("settled actual result"),
+        )
+        .unwrap();
+        let original = db.turn_result("turn").unwrap();
+        let boundary = db.append_message("source", "user", "next").unwrap();
+        let fork = db
+            .fork_session("source", &boundary, "/p", "fixture", "{}")
+            .unwrap();
+        for session in ["source", fork.session.0.as_str()] {
+            let rows = db.list_tool_ops(session).unwrap();
+            assert_eq!(rows.len(), 1);
+            assert_eq!(rows[0].name, "mcp_hash_2");
+            assert_eq!(rows[0].input.as_deref(), Some(input));
+            assert_eq!(rows[0].output.as_deref(), Some(raw));
+            assert_eq!(rows[0].output_presentation.as_deref(), Some(expected));
+        }
+        drop(db);
+        let db = Db::open(dir.path()).unwrap();
+        assert_eq!(
+            db.turn_result("turn").unwrap(),
+            original,
+            "RAW provider graph is unchanged"
+        );
+        assert_eq!(
+            db.list_tool_ops(&fork.session.0).unwrap()[0]
+                .output_presentation
+                .as_deref(),
+            Some(expected)
+        );
+    }
+    // Optional presentation must not turn an executed result into an unknown
+    // operation when the existing event budget is occupied by a real call ID.
+    let dir = tempfile::tempdir().unwrap();
+    let db = Db::open(dir.path()).unwrap();
+    db.create_bound_session("source", "/p").unwrap();
+    let model = oc_core::queries::ModelRef {
+        provider: "fixture".into(),
+        id: "model".into(),
+        variant: None,
+    };
+    let user = db
+        .accept_turn("cap", "source", "unchanged", "unchanged", &model)
+        .unwrap()
+        .user_message;
+    let call = "c".repeat(28_300);
+    let op = format!("cap-r1-c0-{call}");
+    let body = "\"".repeat(2_048);
+    let label = McpLabel {
+        text: format!("{}_{}", "a".repeat(240), "b".repeat(240)),
+        limited: false,
+    };
+    let intent = Presentation::label(label.clone());
+    let plain = Presentation::new(&body, body.len() as u64, false);
+    let mut labelled = plain.clone();
+    labelled.mcp_label = Some(label);
+    let event_bytes = |id: &str, facts: &Presentation| {
+        serde_json::json!({"operation":id,"presentation":facts})
+            .to_string()
+            .len()
+    };
+    assert!(event_bytes(&op, &plain) <= oc_core::tool_output::RECORD_BYTES);
+    assert!(event_bytes(&op, &labelled) > oc_core::tool_output::RECORD_BYTES);
+    assert_eq!(
+        Db::bounded_mcp_presentation(&op, Some(Box::new(labelled.clone()))).as_deref(),
+        Some(&plain),
+        "live transport and durable outcome use the same budgeted facts"
+    );
+    let mut log = crate::tools::TurnLog::new("cap", "model", "fixture");
+    log.user_message = Some(user);
+    log.input = vec![crate::provider::InputItem::ProviderOutput(
+        serde_json::json!({"type":"function_call","id":"item","call_id":call,"name":"mcp_hash_2","arguments":"{}"}),
+    )];
+    log.display_parts = vec![serde_json::json!({"tool":op})];
+    db.record_turn_tool_intent_with_presentation(
+        &op,
+        "source",
+        "cap",
+        "mcp_hash_2",
+        "{}",
+        &log.to_json().to_string(),
+        Some(&intent),
+    )
+    .unwrap();
+    log.input
+        .push(crate::provider::InputItem::FunctionCallOutput {
+            call_id: call,
+            output: body.clone(),
+        });
+    let journal = log.to_json().to_string();
+    db.tool_outcome_with_log_and_effects(
+        &op,
+        "completed",
+        &body,
+        "cap",
+        &journal,
+        None,
+        Some(&labelled),
+    )
+    .unwrap();
+    let row = &db.list_tool_ops("source").unwrap()[0];
+    assert_eq!(row.state, "completed");
+    assert_eq!(row.output.as_deref(), Some(body.as_str()));
+    assert_eq!(row.output_presentation.as_deref(), Some(&plain));
+    let oversized = "d".repeat(32_500);
+    assert!(event_bytes(&oversized, &intent) > oc_core::tool_output::RECORD_BYTES);
+    assert!(Db::bounded_mcp_presentation(&oversized, Some(Box::new(intent.clone()))).is_none());
+    db.record_turn_tool_intent_with_presentation(
+        &oversized,
+        "source",
+        "cap",
+        "mcp_hash_2",
+        "{}",
+        &journal,
+        Some(&intent),
+    )
+    .unwrap();
+    let refused = format!("{oversized}r");
+    db.record_turn_tool_refusal_with_presentation(
+        &refused,
+        "source",
+        "cap",
+        "mcp_hash_2",
+        "{}",
+        "denied",
+        "error: denied",
+        &journal,
+        Some(&intent),
+    )
+    .unwrap();
+    for row in db
+        .list_tool_ops("source")
+        .unwrap()
+        .iter()
+        .filter(|row| row.op != op)
+    {
+        assert!(
+            row.output_presentation.is_none(),
+            "oversized label-only events do not invent a result body"
+        );
+    }
+}
+
+#[test]
 fn model_shell_frozen_presentation_survives_logical_result_order_reopen_and_fork() {
     use crate::shell::jobs::{Outcome, Provenance};
     use oc_core::queries::TranscriptPart;

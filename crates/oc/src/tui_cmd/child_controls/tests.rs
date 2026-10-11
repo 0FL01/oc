@@ -364,6 +364,7 @@ async fn closed_root_subagent_card_receives_owned_lifecycle_before_parent_comple
         &mut deck,
         &job.parent,
         CoreEvent::ToolCallStarted {
+            output_presentation: None,
             session: job.parent.clone(),
             turn: parent_turn.clone(),
             op: job.operation.clone(),

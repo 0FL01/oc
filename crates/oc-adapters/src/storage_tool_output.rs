@@ -45,6 +45,29 @@ impl Resource {
 }
 
 impl Db {
+    /// Optional MCP names cannot consume the existing result-event budget and
+    /// turn a settled execution into started/unknown. Include the actual escaped
+    /// operation ID; presentation-only size checks miss long provider call IDs.
+    pub(crate) fn bounded_mcp_presentation(
+        operation: &str,
+        mut presentation: Option<Box<oc_core::tool_output::Presentation>>,
+    ) -> Option<Box<oc_core::tool_output::Presentation>> {
+        if let Some(facts) = presentation.as_mut()
+            && facts.is_valid()
+            && facts.mcp_label.is_some()
+            && serde_json::json!({"operation":operation,"presentation":facts})
+                .to_string()
+                .len()
+                > oc_core::tool_output::RECORD_BYTES
+        {
+            if facts.label_only {
+                return None;
+            }
+            facts.mcp_label = None;
+        }
+        presentation
+    }
+
     /// Read-only operation projection in the existing append-only journal. It
     /// commits with the outcome and is independent of HOT/RAW seal placement.
     pub(crate) fn record_tool_presentation_in(
@@ -60,6 +83,11 @@ impl Db {
                 "invalid bounded tool presentation",
             )));
         }
+        let Some(presentation) =
+            Self::bounded_mcp_presentation(operation, Some(Box::new(presentation.clone())))
+        else {
+            return Ok(());
+        };
         let payload =
             serde_json::json!({"operation":operation,"presentation":presentation}).to_string();
         if payload.len() > oc_core::tool_output::RECORD_BYTES {

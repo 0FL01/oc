@@ -315,6 +315,7 @@ impl ScriptDriver {
                     state.apply_tool_argument_stream(&turn, &event);
                 }
                 Ok(Ok(CoreEvent::ToolCallStarted {
+                    output_presentation,
                     turn,
                     op,
                     name,
@@ -322,8 +323,14 @@ impl ScriptDriver {
                     dcp_topic,
                     ..
                 })) => {
-                    state
-                        .apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic);
+                    state.apply_tool_started_with_output_presentation(
+                        &turn,
+                        &op,
+                        &name,
+                        &input,
+                        dcp_topic,
+                        output_presentation,
+                    );
                     if name == "subagent"
                         && state.active_turn() == Some(&turn)
                         && let Some(parent) = state.attached_session().cloned()
@@ -1621,6 +1628,18 @@ impl TuiState {
         input: &str,
         dcp_topic: Option<String>,
     ) {
+        self.apply_tool_started_with_output_presentation(turn, op, name, input, dcp_topic, None);
+    }
+
+    pub fn apply_tool_started_with_output_presentation(
+        &mut self,
+        turn: &WorkerTurnId,
+        op: &str,
+        name: &str,
+        input: &str,
+        dcp_topic: Option<String>,
+        output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
+    ) {
         if Some(turn) != self.active_turn.as_ref() {
             return;
         }
@@ -1644,7 +1663,7 @@ impl TuiState {
             output: None,
             output_bytes: 0,
             output_truncated: false,
-            output_presentation: None,
+            output_presentation: output_presentation.filter(|p| p.label_only && p.is_valid()),
             patch_effects: None,
             dcp: None,
             dcp_topic,
@@ -1829,6 +1848,7 @@ impl TuiState {
         };
         match event {
             ToolStreamEvent::Pending {
+                output_presentation,
                 identity,
                 name,
                 preview,
@@ -1881,7 +1901,9 @@ impl TuiState {
                     output: None,
                     output_bytes: 0,
                     output_truncated: false,
-                    output_presentation: None,
+                    output_presentation: output_presentation
+                        .clone()
+                        .filter(|p| p.label_only && p.is_valid()),
                     patch_effects: None,
                     dcp: None,
                     dcp_topic: None,
@@ -2107,6 +2129,19 @@ impl TuiState {
             row.name = card.name.clone();
             row.input = Some(std::mem::take(input));
             row.child_job = card.child_job.clone();
+            if let Some(label) = card
+                .output_presentation
+                .as_ref()
+                .filter(|facts| facts.is_valid())
+                .and_then(|facts| facts.mcp_label.clone())
+            {
+                // An explicit result presentation may deliberately omit the
+                // optional name to fit its operation-owned event budget.
+                if row.output_presentation.is_none() {
+                    row.output_presentation =
+                        Some(Box::new(oc_core::tool_output::Presentation::label(label)));
+                }
+            }
             let mut finished = card_from_row(&row);
             finished.started_at = card.started_at;
             if let crate::tools::ToolRender::Dcp(view) = &mut finished.render {

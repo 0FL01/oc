@@ -50,6 +50,7 @@ async fn parked_root_events_keep_exact_view_and_restore_it_after_read_failure() 
             delta: "captured parked ROOT delta".into(),
         },
         CoreEvent::ToolCallStarted {
+            output_presentation: None,
             session: root.clone(),
             turn: turn.clone(),
             op: "parked-op".into(),

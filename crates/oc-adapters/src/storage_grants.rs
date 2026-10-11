@@ -14,6 +14,24 @@ impl Db {
         output: &str,
         journal: &str,
     ) -> Result<(), StorageError> {
+        self.record_turn_tool_refusal_with_presentation(
+            op, session, turn, name, input, state, output, journal, None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn record_turn_tool_refusal_with_presentation(
+        &self,
+        op: &str,
+        session: &str,
+        turn: &str,
+        name: &str,
+        input: &str,
+        state: &str,
+        output: &str,
+        journal: &str,
+        presentation: Option<&oc_core::tool_output::Presentation>,
+    ) -> Result<(), StorageError> {
         let mut conn = self.conn.lock().expect("db lock");
         let tx = conn.transaction()?;
         let identity = Self::call_identity(op, turn, journal)?;
@@ -25,6 +43,7 @@ impl Db {
         if n != 1 {
             return Err(StorageError::Sqlite(rusqlite::Error::QueryReturnedNoRows));
         }
+        Self::record_tool_presentation_in(&tx, op, presentation)?;
         tx.commit()?;
         Ok(())
     }

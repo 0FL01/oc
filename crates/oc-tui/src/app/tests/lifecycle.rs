@@ -1,6 +1,118 @@
 use super::*;
 
 #[tokio::test]
+async fn mcp_label_tracks_pending_linked_started_and_failed_without_hiding_raw() {
+    use oc_core::{
+        tool_output::{McpLabel, Presentation},
+        tool_stream::{ToolStreamEvent, ToolStreamIdentity},
+    };
+    let mut state = fresh_state("mcp-label").await;
+    let turn = WorkerTurnId("captured-turn".into());
+    state.begin_linked_turn(turn.clone());
+    state.restore_prompt("unchanged draft Ω界".into());
+    let facts = Box::new(Presentation::label(McpLabel {
+        text: "vis16_output".into(),
+        limited: false,
+    }));
+    let identity = ToolStreamIdentity {
+        round: 1,
+        item_id: "item".into(),
+        call_id: "call".into(),
+    };
+    state.apply_tool_argument_stream(
+        &turn,
+        &ToolStreamEvent::Pending {
+            output_presentation: Some(facts.clone()),
+            identity: identity.clone(),
+            name: "mcp_hash_2".into(),
+            preview: "{unfinished".into(),
+            truncated: false,
+        },
+    );
+    assert!(state.viewport().join("\n").contains("vis16_output"));
+    state.apply_tool_argument_stream(
+        &turn,
+        &ToolStreamEvent::Linked {
+            identity,
+            op: "real-operation".into(),
+        },
+    );
+    state.apply_tool_started_with_output_presentation(
+        &turn,
+        "real-operation",
+        "mcp_hash_2",
+        "{}",
+        None,
+        Some(facts.clone()),
+    );
+    assert_eq!(state.live_parts.len(), 1);
+    state.apply_tool_finished_with_output_presentation(
+        &turn,
+        "real-operation",
+        "mcp_hash_2",
+        "failed",
+        "error: actual failed outcome",
+        28,
+        false,
+        None,
+        None,
+        None,
+        None,
+    );
+    let LivePart::Tool { card, input } = &state.live_parts[0] else {
+        panic!("card")
+    };
+    assert_eq!(card.name, "mcp_hash_2");
+    assert_eq!(card.display_name(), "vis16_output");
+    assert_eq!(card.output_preview, "error: actual failed outcome");
+    assert_eq!(card.input_preview, "{}");
+    assert!(
+        input.is_empty(),
+        "finished input moves to the existing bounded card projection"
+    );
+    assert_eq!(state.input(), "unchanged draft Ω界");
+    state.apply_tool_started_with_output_presentation(
+        &turn,
+        "budgeted-operation",
+        "mcp_hash_2",
+        "{}",
+        None,
+        Some(facts),
+    );
+    let body = "bounded prepared body";
+    state.apply_tool_finished_with_output_presentation(
+        &turn,
+        "budgeted-operation",
+        "mcp_hash_2",
+        "completed",
+        body,
+        body.len() as i64,
+        false,
+        None,
+        None,
+        None,
+        Some(Box::new(Presentation::new(body, body.len() as u64, false))),
+    );
+    let LivePart::Tool { card, .. } = state.live_parts.last().unwrap() else {
+        panic!("card")
+    };
+    assert_eq!(
+        card.display_name(),
+        "mcp_hash_2",
+        "explicit budget omission is not undone by the UI"
+    );
+    assert_eq!(card.output_preview, body);
+    assert!(
+        card.output_presentation
+            .as_ref()
+            .unwrap()
+            .mcp_label
+            .is_none()
+    );
+    assert_eq!(state.input(), "unchanged draft Ω界");
+}
+
+#[tokio::test]
 async fn model_shell_snapshot_requires_the_current_turn_for_retained_live_parts() {
     let (app, mut inbox, _) = CoreApp::channel(8);
     let session = sid("orphaned-live-model");
@@ -1166,6 +1278,7 @@ async fn permission_transient_uses_owner_prepared_resource_warning_without_inten
     state.apply_tool_argument_stream(
         &turn,
         &ToolStreamEvent::Pending {
+            output_presentation: None,
             identity: identity.clone(),
             name: "read".into(),
             preview: "{\"path\":\"invented-fragment".into(),
@@ -1243,6 +1356,7 @@ async fn rejected_prepared_patch_reconciles_without_started_or_duplicate_card() 
     state.apply_tool_argument_stream(
         &turn,
         &ToolStreamEvent::Pending {
+            output_presentation: None,
             identity: ToolStreamIdentity {
                 round: 1,
                 item_id: "item".into(),
@@ -1329,6 +1443,7 @@ async fn argument_stream_exact_identity_caps_reconcile_and_terminal_cleanup() {
         call_id: "call".into(),
     };
     let pending = |identity: Identity, name: &str, preview: &str| Event::Pending {
+        output_presentation: None,
         identity,
         name: name.into(),
         preview: preview.into(),

@@ -584,7 +584,7 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         let frame = BlockFrame::new(theme, width);
         let label = match &card.render {
             ToolRender::Shell(shell) => format!("$ {}", shell.command),
-            _ => card.name.clone(),
+            _ => card.display_name().to_string(),
         };
         return vec![
             frame.row(&[]),
@@ -603,7 +603,7 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         let name = if card.name == "apply_patch" {
             "Patch".to_string()
         } else {
-            card.name
+            card.display_name()
                 .chars()
                 .filter(|c| !c.is_control())
                 .take(80)
@@ -1405,7 +1405,7 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let label = if running {
         let mut label = String::new();
         if generic {
-            label.push_str(&card.name);
+            label.push_str(card.display_name());
         }
         let pending = inline.pending_label();
         if !pending.is_empty() {
@@ -1418,7 +1418,7 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     } else {
         let mut label = String::new();
         if generic {
-            label.push_str(&card.name);
+            label.push_str(card.display_name());
             label.push(' ');
         }
         label.push_str(&inline_label(inline));
@@ -1544,7 +1544,7 @@ pub(crate) fn generic_block_expanded(
     } else {
         "✓"
     };
-    let mut label = card.name.clone();
+    let mut label = card.display_name().to_string();
     if !summary.is_empty() {
         label.push(' ');
         label.push_str(summary);

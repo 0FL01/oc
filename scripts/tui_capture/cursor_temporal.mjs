@@ -33,7 +33,7 @@ export async function probeCursorTemporal({origin,dir,page,send,frame,waitFor,ca
    },'representative geometry preserves logical caret',6000);
    result.draft_input.resized_origin=draftOrigin(resized);
    result.draft_input.resized_cursor=resized.cursor;save();
-  const header=f=>visibleMatches(f,(origin==='oc'?'vis16__output':'vis16_output')+' [index=1');
+   const header=f=>visibleMatches(f,'vis16_output [index=1');
   const cardView=async()=>{
     for(let i=0;i<=16;i++) {
       const f=await frame();

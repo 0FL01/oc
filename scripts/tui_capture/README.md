@@ -825,9 +825,13 @@ and unchanged bytes/hash through view changes/restart, independently of provider
 call counts. Both sides use 12 lines/1024 bytes model-facing output preparation.
 Native separately freezes the actual owned Shell capture's bounded 2048-byte
 display body, without changing that model result. Its read-only audit requires
-four operations and exactly five presentation events: one per MCP operation and
+four operations and exactly five genuine result presentation events: one per MCP operation and
 two identical completed foreground Shell presentations for the same operation
-(logical result and terminal capture). This is not a fifth call or execution.
+(logical result and terminal capture). Three additional intent-only MCP label events
+must keep the same operation/wire IDs and expose no result body/capture authority.
+The visible `vis16_output` comes from captured typed server/remote-tool metadata;
+the native wire `vis16__output` and provider/tool graph remain unchanged through
+live completion, view changes and cold reopen. This is not a fifth call or execution.
 Payload includes literal `[Part preview truncated]`,
 `[output preview truncated; full result retained]` and `[truncated]`: their
 presence is required where the retained body is expanded, not globally forbidden.

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T08:56:56+00:00
+State updated: 2026-10-11T11:55:01+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 actual blink / steady / fallback — qualified slice
+# T44 captured MCP presentation label — qualified slice
 
 ## Result
-Native actual blink cadence/cycles and steady behavior qualified across real
-80×24/120×40/160×48 collapsed/expanded supported/fallback representative profiles.
-Native Rust/editor/frame/config/RAW/permissions unchanged; no new framework/timer.
-Receipt evidence/tui/blink-qualified.md; full frozen T44 remains ACTIVE/NOT_PASS.
-Git determines checked delivery, not predelivery capture associations.
+Safe bounded redacted labels derive from exact immutable request MCP entries;
+canonical wire/RAW/provider/tool graph/permissions stay unchanged. Existing
+presentation owner covers arguments/intents/results/cold fork with unknown-body
+truth and full-event32KiB optional-name guard. Receipt evidence/tui/mcp-label-qualified.md.
+Whole frozen T44 remains ACTIVE/NOT_PASS; Git determines checked delivery.
 
 ## Checks
-All six native owners: blink≥3 cycles with own idle cadence and adequate sampling,
-steady0, phantom0/exact draft/caret restore. Expanded supported/fallback both sides
-qualified; first Original collapsed-hover one-cycle failure preserved visibly.
-All640 full opaque frames/576 caret raster associations/current707/one build per
-profile/effects independently audited; all3,781 files byte-exact5,426,624B retained.
-Direct608 DIFFERENT+64 unmatched; matched211pairs/422 DIFFERENT, no baseline match.
-Actual6requests/4calls/3MCP+17B Shell per side/profile/no replay; Python54/fmt.
-Unchanged native1830 full gates/release9/original guards remain current.
+Current1834/0/11 all46 workspace, strict Clippy/fmt/builds/help/release9 and original
+resources PASS. Four new meaningful units/real MCP events/cold DB reopen/fork,
+budget baseline RED→GREEN and safe actual media/control PTY gates hold.
+Fresh708-source/three locked builds/230 full frames/all1442 original files survive
+exact3920112B proof; independent source/ELF/effect/comparator/restoration audit PASS.
+Typed display vis16_output vs immutable wire vis16__output,3 intents+5 genuine
+facts/four actual calls; full840 Write/39 grammar/MDZig/hover/tail/current RGB hold.
 
 ## Risks
-Temporal behavior is not full pixel equality or whole VIS16/VIS31 completion.
-Reference baseline failure is not native failure/external task blocker or hidden
-PASS. Wire names/redacted literal/Shell/footer/Home/version differences remain.
-All old proof/failures/RAW remain exact; no coordinate/raster/time normalization,
-quota rise/offload/deletion. ALL frozen/supplements and final R6/V09 mandatory.
+Full direct220 DIFFERENT/8 EQUAL/4 NativeOnly; matched144 DIFFERENT, all cursors equal.
+Failed header y23/y25, completed944 cells/63010 pixels, real clocks, Root Home,
+redacted literal/Shell/footer/body/readonly/pacing differences remain unmasked.
+Current default temporal0 phantoms/cycles does not requalify current-source blink.
+All prior RAW/proofs/failures/scratch remain exact; no cap rise/offload/deletion.
+ALL frozen/supplements and final current-source R6/V09 remain mandatory.
 
 ## Next
-Fix actual MCP presentation label through typed captured metadata, preserving
-immutable wire names, model/tool graph, cold replay and permissions/redaction.
-Continue every remaining body/Home/readonly overlay/pacing/scroll/Thoughts/family/
-forms/DCP/MCP/auth frozen outcome, actual current-source full-frame proof, finalR6.
-Do not stop after delivery, invent reference phases or finish T44 early.
+Fix the measured Shell command/tail/counts/body/footer through their actual
+captured owners, preserving redaction, known/unknown provenance and limits.
+Continue every remaining Root Home/readonly/pacing/scroll/Thoughts/family/forms/
+DCP/MCP/auth frozen outcome and current full-frame/effect/resource proof, finalR6.
+Do not stop after delivery or promote label style equality to whole task finish.
 
 
 Ready (до 5): T58

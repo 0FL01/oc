@@ -2171,8 +2171,8 @@ done
     tui.wait_screen("Next line intact", TIMEOUT);
     tui.wait_screen("Model:CSI�[2J", TIMEOUT);
     tui.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
-    tui.wait_screen("probe__ping [note=CSI�[2J", TIMEOUT);
-    tui.wait_screen("✗ probe__fail", TIMEOUT);
+    tui.wait_screen("probe_ping [note=CSI�[2J", TIMEOUT);
+    tui.wait_screen("✗ probe_fail", TIMEOUT);
     assert!(
         tui.screen()
             .iter()
@@ -2280,7 +2280,7 @@ done
     expand_control_probe_error(&mut restarted);
     restarted.wait_screen("Model:CSI�[2J", TIMEOUT);
     restarted.wait_screen("Thought: Think CSI�[2J", TIMEOUT);
-    restarted.wait_screen("probe__ping [note=CSI�[2J", TIMEOUT);
+    restarted.wait_screen("probe_ping [note=CSI�[2J", TIMEOUT);
     open_success_card(&mut restarted);
     assert_safe_vt(&[], &restarted.output.lock().unwrap(), sentinel);
     restarted.raw(b"\x1b");
@@ -2304,7 +2304,7 @@ done
 }
 
 fn expand_control_probe_error(tui: &mut PtyProcess) {
-    tui.wait_screen("✗ probe__fail", TIMEOUT);
+    tui.wait_screen("✗ probe_fail", TIMEOUT);
     let rows = tui.screen();
     assert!(
         !rows
@@ -2315,9 +2315,9 @@ fn expand_control_probe_error(tui: &mut PtyProcess) {
     let (y, row) = rows
         .iter()
         .enumerate()
-        .find(|(_, row)| row.contains("✗ probe__fail"))
+        .find(|(_, row)| row.contains("✗ probe_fail"))
         .unwrap();
-    let prefix = row.split_once("probe__fail").unwrap().0;
+    let prefix = row.split_once("probe_fail").unwrap().0;
     let x = ratatui::text::Line::from(prefix).width() + 2;
     let y = y + 1;
     tui.raw(format!("\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m").as_bytes());

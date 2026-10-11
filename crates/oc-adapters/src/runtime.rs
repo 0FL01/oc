@@ -807,6 +807,7 @@ pub enum ToolCallEvent {
     ArgumentStream(oc_core::tool_stream::ToolStreamEvent),
     /// Intent durably recorded; the call may now run.
     Started {
+        output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
         /// Topic from the admitted compression plan; absent before validation.
         dcp_topic: Option<String>,
         /// Durable operation id.

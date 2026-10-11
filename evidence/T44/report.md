@@ -661,3 +661,26 @@ hold. Python54 PASS; unchanged native1830 full gates/release9/resources current.
 Next typed captured MCP label/body/Shell/footer/Home/readonly/pacing and EVERY
 remaining frozen R1–R6/VIS01–45/outcome/supplement, then final current-source R6/V09.
 Whole T44 ACTIVE/NOT_PASS; temporal qualification is not full pixel acceptance.
+
+## Captured typed MCP label (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/mcp-label-qualified.md) records exact immutable request-entry
+display labels without changing wire IDs, RAW/provider graph, permissions or MCP
+execution. Bounded redacted metadata travels on existing argument/start/result/
+atomic intent/refusal/history/fork owners. Label-only has no known body/capture;
+real RAW errors/512-byte fallback survive. Entire-event32KiB guard drops only an
+optional label, with baseline RED→GREEN; no resource/validation cap weakened.
+Current1834/0/11 all46/strict Clippy/fmt/builds/help/release9/original resource gates
+PASS. Real MCP event/operation labels, actual safe VT/media/cold reopen/fork and
+four new unit scenarios hold. Fresh708-source/three builds/230 full opaque frames/
+144 temporal caret associations/all1442 files100313402 logical bytes retained
+exact3920112B; independent full-byte/source/ELF/comparator/effect audit PASS.
+Native8 events=3 pure intents+5 genuine facts/four calls; visiblevis16_output,
+canonicalvis16__output unchanged. All114 direct+72 matched cursors equal; current
+direct220 DIFFERENT/8 EQUAL/4 NativeOnly, matched144 DIFFERENT stay unmasked.
+Header style is equal, not geometry; completed944cells63010pixels/real clocks/
+Root Home7cells337pixels/security-redacted literal/Shell/footer/body differences
+remain. Current default temporal0 phantom/cycle is not current blink qualification.
+Old proofs/failures/RAW untouched/no offload/quota raise. Next actual Shell/body/
+footer and EVERY remaining frozen R1–R6/VIS01–45/outcome/supplement, then final
+current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global label/pixel acceptance.

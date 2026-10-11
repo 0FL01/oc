@@ -320,6 +320,8 @@ pub enum CoreEvent {
     /// Durable intent notification, emitted before dispatch. Input is complete
     /// recorded arguments JSON, bounded by tool argument caps.
     ToolCallStarted {
+        /// Captured safe intent label; the wire name and arguments stay intact.
+        output_presentation: Option<Box<crate::tool_output::Presentation>>,
         /// Canonical validated/planned compression topic; other tools use None.
         dcp_topic: Option<String>,
         /// Session that owns the turn.

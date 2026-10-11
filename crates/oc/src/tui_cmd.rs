@@ -3865,6 +3865,7 @@ async fn handle_worker_event(
             state.apply_tool_argument_stream(&turn, &event)
         }
         CoreEvent::ToolCallStarted {
+            output_presentation,
             turn,
             op,
             name,
@@ -3872,7 +3873,14 @@ async fn handle_worker_event(
             dcp_topic,
             ..
         } => {
-            state.apply_tool_started_with_presentation(&turn, &op, &name, &input, dcp_topic);
+            state.apply_tool_started_with_output_presentation(
+                &turn,
+                &op,
+                &name,
+                &input,
+                dcp_topic,
+                output_presentation,
+            );
             if name == "subagent" && state.active_turn() == Some(&turn) {
                 child_controls::refresh(app, state).await?;
             }

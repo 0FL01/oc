@@ -21,6 +21,8 @@ pub struct ToolStreamIdentity {
 pub enum ToolStreamEvent {
     /// Replacement snapshot, not a fragment to append or parse as arguments.
     Pending {
+        /// Captured safe label only; never a result body or execution authority.
+        output_presentation: Option<Box<crate::tool_output::Presentation>>,
         /// Exact provider identity.
         identity: ToolStreamIdentity,
         /// Announced registry name; does not imply availability or permission.

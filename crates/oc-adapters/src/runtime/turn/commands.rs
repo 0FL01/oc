@@ -219,6 +219,7 @@ impl Runtime<'_> {
             events(
                 &turn,
                 &ToolCallEvent::Started {
+                    output_presentation: None,
                     op: op.clone(),
                     name: SUBAGENT_TOOL.into(),
                     input,

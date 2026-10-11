@@ -818,6 +818,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
             .unwrap();
         match event {
             CoreEvent::ToolCallStarted {
+                output_presentation,
                 session: owner,
                 turn: id,
                 op,
@@ -829,6 +830,7 @@ async fn vis38_public_multi_range_event_query_replay_and_bounded_summary_agree()
                     (owner, id.clone(), name.as_str()),
                     (session.clone(), turn.clone(), "compress")
                 );
+                assert!(output_presentation.is_none());
                 state.apply_tool_started_with_presentation(&id, &op, &name, &input, dcp_topic);
                 let pending = state
                     .transcript_lines(100, 100)

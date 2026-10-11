@@ -3,6 +3,7 @@ use oc_core::tool_stream::{
 };
 
 struct Pending {
+    output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
     identity: ToolStreamIdentity,
     name: String,
     preview: String,
@@ -16,6 +17,7 @@ impl Pending {
         self.dirty = false;
         self.since_emit = 0;
         ToolStreamEvent::Pending {
+            output_presentation: self.output_presentation.clone(),
             identity: self.identity.clone(),
             name: self.name.clone(),
             preview: self.preview.clone(),
@@ -44,6 +46,7 @@ impl PendingToolStreams {
         item_id: &str,
         call_id: &str,
         name: &str,
+        output_presentation: Option<Box<oc_core::tool_output::Presentation>>,
     ) -> Option<ToolStreamEvent> {
         if item_id.is_empty()
             || call_id.is_empty()
@@ -60,6 +63,7 @@ impl PendingToolStreams {
             return None;
         }
         let mut call = Pending {
+            output_presentation: output_presentation.filter(|p| p.label_only && p.is_valid()),
             identity: ToolStreamIdentity {
                 round: self.round,
                 item_id: item_id.into(),
@@ -105,6 +109,10 @@ impl PendingToolStreams {
 }
 
 #[cfg(test)]
+#[path = "tool_stream/tests.rs"]
+mod label_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -112,9 +120,13 @@ mod tests {
     fn announcement_split_utf8_caps_and_coalescing() {
         let mut streams = PendingToolStreams::new(2);
         assert!(
-            matches!(streams.announce("item", "call", "apply_patch"), Some(ToolStreamEvent::Pending { name, preview, identity, .. }) if name == "apply_patch" && preview.is_empty() && identity.round == 2)
+            matches!(streams.announce("item", "call", "apply_patch", None), Some(ToolStreamEvent::Pending { name, preview, identity, .. }) if name == "apply_patch" && preview.is_empty() && identity.round == 2)
         );
-        assert!(streams.announce("item", "different", "bash").is_none());
+        assert!(
+            streams
+                .announce("item", "different", "bash", None)
+                .is_none()
+        );
         assert!(streams.delta("wrong", "x").is_none());
         assert!(streams.delta("item", "{\"patch").is_none());
         assert!(streams.delta("item", "Text\":\"界").is_none());
@@ -129,7 +141,7 @@ mod tests {
         );
         assert!(streams.delta("item", &"x".repeat(100_000)).is_none());
         for i in 0..100 {
-            streams.announce(&format!("i{i}"), &format!("c{i}"), "unknown");
+            streams.announce(&format!("i{i}"), &format!("c{i}"), "unknown", None);
         }
         assert_eq!(streams.calls.len(), PENDING_TOOL_MAX);
     }

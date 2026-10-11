@@ -85,11 +85,13 @@ pub(crate) fn publish_tool_event(
             event: event.clone(),
         },
         ToolCallEvent::Started {
+            output_presentation,
             dcp_topic,
             op,
             name,
             input,
         } => CoreEvent::ToolCallStarted {
+            output_presentation: output_presentation.clone(),
             dcp_topic: dcp_topic.clone(),
             session: session.clone(),
             turn,

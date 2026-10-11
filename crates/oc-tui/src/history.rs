@@ -1038,6 +1038,15 @@ pub struct ToolCard {
 }
 
 impl ToolCard {
+    /// Presentation only; every grouping, operation and permission key remains
+    /// the canonical wire name. Missing/invalid legacy facts remain that name.
+    pub(crate) fn display_name(&self) -> &str {
+        self.output_presentation
+            .as_ref()
+            .filter(|p| p.is_valid())
+            .and_then(|p| p.mcp_label.as_ref())
+            .map_or(&self.name, |label| label.text.as_str())
+    }
     pub(crate) fn refresh_subagent_job(
         &mut self,
         session: &oc_core::domain::SessionId,
@@ -1230,6 +1239,11 @@ impl ToolCard {
                 .as_ref()
                 .map_or(self.output_truncated, |presentation| {
                     presentation.body_limited
+                        || (presentation.label_only && self.output_truncated)
+                        || presentation
+                            .mcp_label
+                            .as_ref()
+                            .is_some_and(|label| label.limited)
                         || presentation
                             .write
                             .as_ref()
@@ -1320,6 +1334,7 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         .or_else(|| {
             output_presentation
                 .as_ref()
+                .filter(|presentation| !presentation.label_only)
                 .map(|presentation| presentation.body.as_str())
         })
         .or(row.output.as_deref());
@@ -1399,7 +1414,9 @@ pub fn card_from_row(row: &ToolOpView) -> ToolCard {
         name: row.name.clone(),
         state: row.state.clone(),
         input_preview: preview(row.input.as_deref()),
-        output_preview: if human.is_none() && output_presentation.is_some() {
+        output_preview: if human.is_none()
+            && output_presentation.as_ref().is_some_and(|p| !p.label_only)
+        {
             output.unwrap_or_default().to_owned()
         } else {
             preview(output)

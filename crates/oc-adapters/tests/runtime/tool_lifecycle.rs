@@ -963,14 +963,15 @@ for line in sys.stdin:
         ],
         Duration::ZERO,
     );
+    let mut lifecycle = Vec::new();
     let report = runtime
-        .run_turn(params(
-            "s",
-            "first",
-            &harness,
-            provider_of(&base),
-            &NO_CANCEL,
-        ))
+        .run_turn_with_tool_events(
+            params("s", "first", &harness, provider_of(&base), &NO_CANCEL),
+            |_| {},
+            |_, _| {},
+            |_, _| {},
+            |_turn, event| lifecycle.push(event.clone()),
+        )
         .await
         .unwrap();
     assert_eq!(report.status, TurnStatus::Completed);
@@ -978,6 +979,43 @@ for line in sys.stdin:
     assert_eq!(report.calls[0].state, "completed");
     assert_eq!(report.calls[1].state, "failed");
     assert_eq!(report.calls[2].state, "failed");
+    let mut stages = [0usize; 3];
+    for event in &lifecycle {
+        let (name, facts, stage) = match event {
+            ToolCallEvent::ArgumentStream(oc_core::tool_stream::ToolStreamEvent::Pending {
+                name,
+                output_presentation,
+                ..
+            }) => (name, output_presentation, 0),
+            ToolCallEvent::Started {
+                name,
+                output_presentation,
+                ..
+            } => (name, output_presentation, 1),
+            ToolCallEvent::Finished {
+                name,
+                output_presentation,
+                ..
+            } => (name, output_presentation, 2),
+            _ => continue,
+        };
+        assert_eq!(name, "good__query", "wire identity remains unchanged");
+        let facts = facts.as_ref().expect("captured exact MCP registry entry");
+        assert!(facts.is_valid());
+        assert_eq!(facts.mcp_label.as_ref().unwrap().text, "good_query");
+        assert_eq!(facts.label_only, stage != 2);
+        stages[stage] += 1;
+    }
+    assert!(
+        stages[0] >= 3 && stages[1] == 3 && stages[2] == 3,
+        "{stages:?}"
+    );
+    for row in harness.db.list_tool_ops("s").unwrap() {
+        assert_eq!(row.name, "good__query");
+        let facts = row.output_presentation.as_ref().unwrap();
+        assert!(!facts.label_only);
+        assert_eq!(facts.mcp_label.as_ref().unwrap().text, "good_query");
+    }
     assert!(
         report.calls[2]
             .output
@@ -2009,12 +2047,17 @@ async fn dto_tool_events_surface_started_and_finished_with_a_patch() {
     assert_eq!(events.len(), 2, "one intent and one outcome: {events:?}");
     match &events[0] {
         ToolCallEvent::Started {
+            output_presentation,
             dcp_topic,
             op,
             name,
             input,
         } => {
             assert!(dcp_topic.is_none(), "ordinary tools have no DCP topic");
+            assert!(
+                output_presentation.is_none(),
+                "built-in intent has no MCP label"
+            );
             assert_eq!(op, &linked.1);
             assert_eq!(name, "apply_patch");
             assert!(!op.is_empty());

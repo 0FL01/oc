@@ -68,10 +68,36 @@ pub struct Write {
     pub content_limited: bool,
 }
 
+/// Redacted display name derived from an exact captured MCP registry entry.
+/// Never an invocation identifier, registry lookup key or permission resource.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct McpLabel {
+    pub text: String,
+    pub limited: bool,
+}
+
+impl McpLabel {
+    pub fn is_valid(&self) -> bool {
+        !self.text.trim().is_empty()
+            && self.text.len() <= 512
+            && !self.text.chars().any(char::is_control)
+    }
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
 /// One prepared result's safe body and independent provenance. The body is an
 /// available preview, not the output-reference notice appended for the model.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Presentation {
+    /// Intent/argument metadata has no result body. Never hide a later error or
+    /// unknown outcome behind the empty body of this earlier snapshot.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub label_only: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mcp_label: Option<McpLabel>,
     pub body: String,
     pub body_bytes: u64,
     pub body_limited: bool,
@@ -90,6 +116,7 @@ impl Presentation {
     /// Retained text/reference bytes, including independent stream previews.
     pub fn retained_bytes(&self) -> usize {
         self.body.len()
+            + self.mcp_label.as_ref().map_or(0, |label| label.text.len())
             + self.capture.as_ref().map_or(0, |capture| {
                 capture.reference.as_ref().map_or(0, String::len)
             })
@@ -108,6 +135,8 @@ impl Presentation {
     pub fn new(body: &str, body_bytes: u64, generated_guidance: bool) -> Self {
         let end = body.floor_char_boundary(body.len().min(PREVIEW_BYTES));
         Self {
+            label_only: false,
+            mcp_label: None,
             body: body[..end].to_owned(),
             body_bytes,
             body_limited: end < body.len() || body_bytes > body.len() as u64,
@@ -119,10 +148,27 @@ impl Presentation {
         }
     }
 
+    pub fn label(label: McpLabel) -> Self {
+        let mut presentation = Self::new("", 0, false);
+        presentation.label_only = true;
+        presentation.mcp_label = Some(label);
+        presentation
+    }
+
     /// Optional durable facts are trusted only within the same bounded shape as
     /// their producer. Invalid/unknown records fall back to unknown provenance.
     pub fn is_valid(&self) -> bool {
         self.body.len() <= PREVIEW_BYTES
+            && self.mcp_label.as_ref().is_none_or(McpLabel::is_valid)
+            && (self.mcp_label.is_none() || (self.shell.is_none() && self.write.is_none()))
+            && (!self.label_only
+                || (self.mcp_label.is_some()
+                    && self.body.is_empty()
+                    && self.body_bytes == 0
+                    && !self.body_limited
+                    && !self.generated_guidance
+                    && self.producer_limited.is_none()
+                    && self.capture.is_none()))
             && self.body_bytes >= self.body.len() as u64
             && self.capture.as_ref().is_none_or(|capture| {
                 capture

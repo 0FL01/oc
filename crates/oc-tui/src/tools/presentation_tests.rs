@@ -5,6 +5,76 @@ use oc_core::{
     tool_output::{Presentation, Shell},
 };
 
+#[test]
+fn mcp_label_only_keeps_wire_raw_error_limits_and_legacy_truth() {
+    use oc_core::tool_output::McpLabel;
+    let facts = Presentation::label(McpLabel {
+        text: "vis16_output".into(),
+        limited: false,
+    });
+    let raw = "error: real unknown execution outcome";
+    let mut row = operation("mcp_hash_collision_2", raw, Some(facts.clone()));
+    row.state = "failed".into();
+    let before = row.clone();
+    let card = card_from_row(&row);
+    assert_eq!(card.name, "mcp_hash_collision_2");
+    assert_eq!(card.display_name(), "vis16_output");
+    assert_eq!(card.output_preview, raw);
+    assert_eq!(row, before);
+    assert!(
+        presentation_details(&facts).is_empty(),
+        "no invented body/capture facts"
+    );
+    let painted = tool_block(&card, Theme::dark(), 100)
+        .iter()
+        .map(Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(painted.contains("vis16_output") && !painted.contains("mcp_hash_collision_2"));
+    let ToolRender::Inline(inline) = &card.render else {
+        panic!("generic")
+    };
+    let expanded = generic_block_expanded(inline, &card, Theme::dark(), 100, true)
+        .iter()
+        .map(Line::plain_text)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        expanded.contains(raw),
+        "ordinary failure expansion retains the real error: {expanded}"
+    );
+    row.output = Some("real error ".repeat(1000));
+    row.output_bytes = row.output.as_ref().unwrap().len() as i64;
+    row.output_truncated = true;
+    let bounded = card_from_row(&row);
+    assert!(bounded.preview_limited() && bounded.output_preview.len() < 600);
+    row.output_presentation
+        .as_mut()
+        .unwrap()
+        .mcp_label
+        .as_mut()
+        .unwrap()
+        .text
+        .push('\n');
+    let invalid = card_from_row(&row);
+    assert_eq!(invalid.display_name(), row.name);
+    row.output_presentation = None;
+    assert_eq!(
+        card_from_row(&row).display_name(),
+        row.name,
+        "legacy is not heuristically decoded"
+    );
+    row.output_presentation = Some(Box::new(facts));
+    row.output_presentation
+        .as_mut()
+        .unwrap()
+        .mcp_label
+        .as_mut()
+        .unwrap()
+        .limited = true;
+    assert!(card_from_row(&row).preview_limited());
+}
+
 fn operation(name: &str, output: &str, presentation: Option<Presentation>) -> ToolOpView {
     ToolOpView {
         child_job: None,

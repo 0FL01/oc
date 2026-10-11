@@ -48,7 +48,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return f;
   };
   const slash=async text=>{send(text,'tool_preview_command');await waitFor(f=>f.text.includes(text),'draft '+text,6000);send('\r','tool_preview_command_enter');};
-  const target=(f,index)=>visibleMatches(f,(origin==='oc'?'vis16__output':'vis16_output')+' [index='+index);
+   const target=(f,index)=>visibleMatches(f,'vis16_output [index='+index);
   const click=async index=>{
     const hits=target(await frame(),index);if(hits.length!==1)throw Error('Generic header not unique '+index);
     const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'tool_preview_click');
@@ -98,9 +98,21 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
      if(before.mcp_calls.length!==3)throw Error('Real MCP did not execute exactly three times');
      if(before.shell_effect?.lines!==1||before.shell_effect?.bytes!==17)throw Error('Real Shell did not produce exactly one bounded effect');
      if(origin==='oc') {
-       const data=before.observations.flatMap(o=>o.data.presentation||[]);
-       // The four actual operations retain five presentation records: Shell's
-       // frozen process facts and its logical tool result share one operation.
+       const all=before.observations.flatMap(o=>o.data.presentation||[]);
+       const intents=all.filter(record=>record.presentation.label_only===true);
+       const data=all.filter(record=>record.presentation.label_only!==true);
+       const mcp=before.observations.flatMap(o=>o.data.tool_operations||[])
+         .filter(operation=>operation.name==='vis16__output');
+       if(mcp.length!==3||intents.length!==3||all.length!==8||mcp.some(operation=> {
+         const started=intents.filter(record=>record.operation===operation.id);
+         const finished=data.filter(record=>record.operation===operation.id);
+         return started.length!==1||finished.length!==1||[started[0],finished[0]].some(record=>
+           record.presentation.mcp_label?.text!=='vis16_output'||record.presentation.mcp_label.limited!==false)||
+           started[0].presentation.body!==''||started[0].presentation.body_bytes!==0||
+           started[0].presentation.generated_guidance!==false||started[0].presentation.capture!=null;
+       }))throw Error('Captured MCP labels did not preserve actual intent/result operations and wire names');
+       // Intent-only names are not body/capture evidence. The same four actual
+       // operations still retain five genuine result/Shell presentation records.
        const operations=new Map();
        for(const record of data) {
          const records=operations.get(record.operation)||[];
@@ -114,7 +126,8 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
           JSON.stringify(shell[0][0])!==JSON.stringify(shell[0][1]))throw Error('Frozen/logical foreground Shell facts differ');
        if(data.filter(p=>p.presentation.generated_guidance).length<3||data.some(p=>p.presentation.body.includes('[tool output:')))throw Error('Body/guidance not separated');
        if(done.text.includes('[tool output:')||done.text.includes('parts omitted from bounded history preview'))throw Error('Generated guidance/notice in dialogue');
-       result.owner_facts={bounded:true,separate_body_guidance:true,presentation_count:data.length,operation_count:operations.size,frozen_foreground_shell:true,artifacts:Object.keys(before.artifacts).length};
+       result.owner_facts={bounded:true,separate_body_guidance:true,presentation_count:data.length,operation_count:operations.size,frozen_foreground_shell:true,artifacts:Object.keys(before.artifacts).length,
+         mcp_labels:{wire_name:'vis16__output',display_name:'vis16_output',intent_records:intents.length,result_records:mcp.length}};
     }
     // An expanded first card exceeds the base viewport. Use the same tall
     // profile on both binaries rather than asserting offscreen text is absent.

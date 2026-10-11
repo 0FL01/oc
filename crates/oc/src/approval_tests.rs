@@ -252,6 +252,7 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     state.apply_tool_argument_stream(
         &oc_core::core_app::WorkerTurnId(request.binding.turn.clone()),
         &oc_core::tool_stream::ToolStreamEvent::Pending {
+            output_presentation: None,
             identity: oc_core::tool_stream::ToolStreamIdentity {
                 round: 1,
                 item_id: format!("item-{}", request.binding.call),

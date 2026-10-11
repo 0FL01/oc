@@ -27,6 +27,31 @@ pub(super) struct McpGeneration {
 }
 
 impl McpGeneration {
+    /// Exact request-view lookup, never decoding a sanitized/hash/collision wire
+    /// name. Full literal redaction precedes controls and UTF-8 clipping.
+    pub(super) fn label(
+        &self,
+        name: &str,
+        secrets: &[String],
+    ) -> Option<Box<oc_core::tool_output::Presentation>> {
+        let entry = self.entries.iter().find(|entry| entry.namespaced == name)?;
+        let mut text = format!("{}_{}", entry.server, entry.tool);
+        crate::tools::output::redact_string(&mut text, secrets);
+        let mut text: String = text
+            .chars()
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect();
+        let limited = text.len() > 512;
+        if limited {
+            text.truncate(text.floor_char_boundary(509));
+            text.push('…');
+        }
+        let label = oc_core::tool_output::McpLabel { text, limited };
+        label
+            .is_valid()
+            .then(|| Box::new(oc_core::tool_output::Presentation::label(label)))
+    }
+
     pub(super) fn empty(publication: u64, wake: Arc<tokio::sync::Notify>) -> Self {
         Self {
             publication,

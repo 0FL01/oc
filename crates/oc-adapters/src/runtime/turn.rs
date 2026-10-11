@@ -2403,6 +2403,7 @@ impl<'a> Runtime<'a> {
             let mut active_text: Option<usize> = None;
             let mut reasoning_anchors: Vec<(usize, String)> = Vec::new();
             let mut pending_tools = PendingToolStreams::new(rounds.saturating_add(1));
+            let label_secrets = super::mcp::mcp_redactions(&published.config, &self.parent_env);
             if !retry_resuming
                 && let Some(previous) = turn_log.spans.last_mut()
                 && previous.completed.is_none()
@@ -2526,8 +2527,12 @@ impl<'a> Runtime<'a> {
                                 call_id,
                                 name,
                             } => {
-                                if let Some(event) = pending_tools.announce(item_id, call_id, name)
-                                {
+                                if let Some(event) = pending_tools.announce(
+                                    item_id,
+                                    call_id,
+                                    name,
+                                    attached.label(name, &label_secrets),
+                                ) {
                                     tool_event(&turn_id, &ToolCallEvent::ArgumentStream(event));
                                 }
                             }
@@ -3725,6 +3730,8 @@ impl<'a> Runtime<'a> {
             };
             // Keep the original provider identifier in the durable operation id.
             let op = format!("{turn_id}-r{round}-c{i}-{id}");
+            let intent_presentation =
+                Db::bounded_mcp_presentation(&op, attached.label(name, &output_secrets));
             let mut guarded = unit.clone();
             // Paths use the captured product HOME/Location, never ambient runner
             // environment or a later configuration generation.
@@ -4214,7 +4221,7 @@ impl<'a> Runtime<'a> {
                     call_id: id.clone(),
                     output: output.clone(),
                 });
-                self.db.record_turn_tool_refusal(
+                self.db.record_turn_tool_refusal_with_presentation(
                     &op,
                     session,
                     turn_id,
@@ -4223,6 +4230,7 @@ impl<'a> Runtime<'a> {
                     state,
                     output,
                     &turn_log.to_json().to_string(),
+                    intent_presentation.as_deref(),
                 )?;
                 if let Some(identity) = &stream_identities[i] {
                     tool_event(
@@ -4235,7 +4243,17 @@ impl<'a> Runtime<'a> {
                         ),
                     );
                 }
-                emit_tool_finish_with_effects(tool_event, turn_id, &op, name, state, output, None);
+                emit_tool_finish_with_metadata(
+                    tool_event,
+                    turn_id,
+                    &op,
+                    name,
+                    state,
+                    output,
+                    None,
+                    None,
+                    intent_presentation.clone(),
+                );
                 records.push(CallRecord {
                     name: name.to_string(),
                     state: state.to_string(),
@@ -4243,13 +4261,14 @@ impl<'a> Runtime<'a> {
                 });
                 continue;
             }
-            self.db.record_turn_tool_intent(
+            self.db.record_turn_tool_intent_with_presentation(
                 &op,
                 session,
                 turn_id,
                 name,
                 &input,
                 &turn_log.to_json().to_string(),
+                intent_presentation.as_deref(),
             )?;
             if let Some(identity) = &stream_identities[i] {
                 tool_event(
@@ -4263,6 +4282,7 @@ impl<'a> Runtime<'a> {
             tool_event(
                 turn_id,
                 &ToolCallEvent::Started {
+                    output_presentation: intent_presentation.clone(),
                     dcp_topic: invocation_policy
                         .permit
                         .as_ref()
@@ -5112,6 +5132,16 @@ impl<'a> Runtime<'a> {
                     content,
                 );
             }
+            if let Some(intent) = intent_presentation {
+                if let Some(presentation) = output_presentation.as_mut() {
+                    presentation.mcp_label = intent.mcp_label;
+                } else {
+                    // Preserve the name even when preparation failed, without
+                    // claiming an empty result body or hiding the actual error.
+                    output_presentation = Some(intent);
+                }
+            }
+            output_presentation = Db::bounded_mcp_presentation(&op, output_presentation);
             // Failure here leaves started/unknown; never continue the batch.
             turn_log
                 .input
