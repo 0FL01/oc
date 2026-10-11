@@ -1863,6 +1863,10 @@ The real motion at(10,3) after Home close enters the accepted-user inner box.
 Its hovered fill must survive height resize; fresh process replay starts unhovered.
 These distinct pointer/mount states are checked on both binaries, not normalized
 into same-side frame equality. Resize still invalidates every action press receipt.
+The 120→80-column shrink also checks the saved before/after DOM geometry: last
+two rows retain the actual old-width tail background beyond the viewport. Those
+bounded attribute observations accompany the unchanged full PNG/grid comparator;
+no edge pixels are cropped, synthesized or ignored.
 
 The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
 record real initial access times; the first post-render snapshot records access

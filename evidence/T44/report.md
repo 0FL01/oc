@@ -598,3 +598,25 @@ blink remain unmasked. No historical rewrite/deletion/offload or1GiB cap increas
 Next actual raster/Root Home/caret/blink/pacing owners and EVERY remaining frozen
 R1–R6/VIS01–45/outcome/supplement, then final current-source R6/V09. Whole T44
 ACTIVE/NOT_PASS; hover/body/episode qualification is not global acceptance.
+
+## Physical viewport shrink / fractional edge (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/raster-qualified.md) records exact VT/geometry cause:
+native resize ED erased retained out-of-viewport columns; Original did not.
+Resize-only synchronized visible ECH preserves those tails and cursor/SGR while
+Ratatui still clears/repaints every visible cell. Stable/manual/zero-size/error/
+writer guards hold. Baseline RED backend unit, TUI509/strict Clippy, current all46
+workspace1830/0/11,111binary/builds/help/release9/original resource gates PASS.
+Fresh actual Raster001 seven states per side preserve Root/Add/draft/parked
+completion/Home close, one91B overwrite/four requests, natural gen0/reopen/no replay
+and explicit same-root cancel. All32 old right-edge pixels now equal; full narrow
+PNG differs only66 genuine clock pixels. Source39/Write840/MDZig/hover345 styled
+cells match. Live-partial full grid/cursor/PNG EQUAL. All1442 files/230 complete
+captures retained exact3853300B, current707/three real builds/ELF/effect/full-
+comparator/byte-restoration audit PASS. Direct220 DIFFERENT/8 EQUAL plus4 native-only,
+matched144 DIFFERENT remain. Real8.0/8.3s and1.6/1.8s clocks, Home28 cells and composer
+caret/blink remain unmasked. One own untracked FAILED diagnostic keeps every byte/
+metadata and visible failure in an archive; no committed proof/history/foreign
+rewrite, failure deletion/offload or1GiB cap increase. Next actual Root Home/caret/
+blink/pacing and EVERY remaining frozen R1–R6/VIS01–45/outcome/supplement, then final
+current-source R6/V09. Whole T44 ACTIVE/NOT_PASS, not global pixel acceptance.

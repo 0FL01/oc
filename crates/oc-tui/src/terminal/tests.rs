@@ -114,7 +114,12 @@ fn fallback_real_backend_defers_show_through_background_clear_diff_and_final_pos
 
 #[test]
 fn partial_write_or_flush_error_is_non_success_and_never_replays_the_frame() {
-    for (fail_at, fail_flush) in [(Some(3), false), (None, true)] {
+    for (fail_at, fail_flush, resized) in [
+        (Some(3), false, false),
+        (None, true, false),
+        (Some(3), false, true),
+        (None, true, true),
+    ] {
         let recorded = Rc::new(RefCell::new(Recorded::default()));
         let mut backend = FrameBackend::new(Output {
             recorded: recorded.clone(),
@@ -122,7 +127,17 @@ fn partial_write_or_flush_error_is_non_success_and_never_replays_the_frame() {
             fail_at,
             fail_flush,
         });
+        if resized {
+            backend
+                .observe_size(ratatui::layout::Size::new(40, 8))
+                .unwrap();
+        }
         backend.begin_frame().unwrap();
+        if resized {
+            backend
+                .observe_size(ratatui::layout::Size::new(20, 4))
+                .unwrap();
+        }
         backend.clear().unwrap();
         backend.show_cursor().unwrap();
         backend.set_cursor_position((4, 2)).unwrap();
@@ -134,6 +149,114 @@ fn partial_write_or_flush_error_is_non_success_and_never_replays_the_frame() {
         );
         drop(backend);
         assert_eq!(recorded.borrow().bytes, written);
+    }
+}
+
+#[test]
+fn resized_frame_clears_every_visible_cell_without_erasing_retained_columns() {
+    let recorded = Rc::new(RefCell::new(Recorded::default()));
+    let mut backend = FrameBackend::new(Output {
+        recorded: recorded.clone(),
+        fragment: 1,
+        fail_at: None,
+        fail_flush: false,
+    });
+    backend
+        .observe_size(ratatui::layout::Size::new(120, 320))
+        .unwrap();
+    backend.begin_frame().unwrap();
+    backend
+        .observe_size(ratatui::layout::Size::new(80, 24))
+        .unwrap();
+    backend.clear().unwrap();
+    // Ratatui can clear again while resizing its viewport; both are scoped.
+    backend
+        .clear_region(ratatui::backend::ClearType::All)
+        .unwrap();
+    backend.set_cursor_position((4, 2)).unwrap();
+    backend.show_cursor().unwrap();
+    assert!(recorded.borrow().bytes.is_empty());
+    backend.finish_frame().unwrap();
+    let bytes = recorded.borrow().bytes.clone();
+    assert!(!bytes.windows(4).any(|part| part == b"\x1b[2J"));
+    for row in 1..=24 {
+        let command = format!("\x1b[{row};1H\x1b[80X");
+        assert_eq!(
+            bytes
+                .windows(command.len())
+                .filter(|part| *part == command.as_bytes())
+                .count(),
+            2,
+            "each clear must erase all 80 visible columns of row {row}"
+        );
+    }
+    assert!(bytes.starts_with(b"\x1b[?2026h\x1b[?25l"));
+    assert!(bytes.ends_with(b"\x1b[3;5H\x1b[?25h\x1b[?2026l"));
+    assert_eq!(recorded.borrow().flushes, 1);
+
+    // Clear(All) must preserve the cursor even with no subsequent draw/MoveTo.
+    let start = bytes.len();
+    backend.begin_frame().unwrap();
+    crossterm::queue!(
+        backend,
+        crossterm::style::SetBackgroundColor(crossterm::style::Color::Rgb { r: 1, g: 2, b: 3 })
+    )
+    .unwrap();
+    backend.set_cursor_position((7, 3)).unwrap();
+    backend
+        .observe_size(ratatui::layout::Size::new(79, 24))
+        .unwrap();
+    backend.clear().unwrap();
+    backend.show_cursor().unwrap();
+    backend.finish_frame().unwrap();
+    assert!(
+        recorded.borrow().bytes[start..]
+            .windows(8)
+            .any(|part| part == b"\x1b[4;8H\x1b7")
+    );
+    assert!(
+        recorded
+            .borrow()
+            .bytes
+            .ends_with(b"\x1b8\x1b[?25h\x1b[?2026l")
+    );
+    assert!(
+        !recorded.borrow().bytes[start..]
+            .windows(4)
+            .any(|part| part == b"\x1b[0m"),
+        "visible erasure must inherit the caller's attributes, as ED did"
+    );
+
+    // Stable-size/manual clear still uses the original whole-screen operation.
+    let start = recorded.borrow().bytes.len();
+    backend.begin_frame().unwrap();
+    backend
+        .observe_size(ratatui::layout::Size::new(79, 24))
+        .unwrap();
+    backend.clear().unwrap();
+    backend.finish_frame().unwrap();
+    assert!(
+        recorded.borrow().bytes[start..]
+            .windows(4)
+            .any(|part| part == b"\x1b[2J")
+    );
+    for size in [
+        ratatui::layout::Size::new(0, 24),
+        ratatui::layout::Size::new(80, 0),
+    ] {
+        let start = recorded.borrow().bytes.len();
+        backend.begin_frame().unwrap();
+        backend.observe_size(size).unwrap();
+        backend.clear().unwrap();
+        backend
+            .clear_region(ratatui::backend::ClearType::All)
+            .unwrap();
+        backend.finish_frame().unwrap();
+        assert_eq!(
+            &recorded.borrow().bytes[start..],
+            b"\x1b[?2026h\x1b[?25l\x1b[?2026l",
+            "zero-sized viewport cannot erase retained cells"
+        );
     }
 }
 

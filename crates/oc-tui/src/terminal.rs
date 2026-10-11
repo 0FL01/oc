@@ -7,7 +7,7 @@
 
 use std::{
     io::{self, Write},
-    sync::OnceLock,
+    sync::{Mutex, OnceLock},
 };
 
 use crossterm::cursor::{Hide, Show};
@@ -66,6 +66,13 @@ fn restore_output(output: &mut impl Write) -> io::Result<()> {
 pub struct FrameBackend<W: Write> {
     output: FrameOutput<W>,
     show_after_paint: bool,
+    sizes: Mutex<FrameSizes>,
+}
+
+#[derive(Default)]
+struct FrameSizes {
+    observed: Option<ratatui::layout::Size>,
+    resized: Option<ratatui::layout::Size>,
 }
 
 struct FrameOutput<W: Write> {
@@ -100,6 +107,7 @@ impl<W: Write> FrameBackend<W> {
                 pending: None,
             },
             show_after_paint: false,
+            sizes: Mutex::new(FrameSizes::default()),
         }
     }
 
@@ -122,6 +130,10 @@ impl<W: Write> FrameBackend<W> {
             crossterm::queue!(self.output, Show)?;
         }
         crossterm::queue!(self.output, EndSynchronizedUpdate)?;
+        self.sizes
+            .get_mut()
+            .map_err(|_| io::Error::other("terminal size state poisoned"))?
+            .resized = None;
         let output = &mut self.output;
         let pending = output.pending.take().expect("active frame");
         output.output.write_all(&pending)?;
@@ -132,6 +144,48 @@ impl<W: Write> FrameBackend<W> {
     // Borrow it for each operation instead of enabling its unstable writer API.
     fn backend(&mut self) -> ratatui::backend::CrosstermBackend<&mut FrameOutput<W>> {
         ratatui::backend::CrosstermBackend::new(&mut self.output)
+    }
+
+    fn observe_size(&self, size: ratatui::layout::Size) -> io::Result<ratatui::layout::Size> {
+        let mut sizes = self
+            .sizes
+            .lock()
+            .map_err(|_| io::Error::other("terminal size state poisoned"))?;
+        if sizes.observed.is_some_and(|previous| previous != size) {
+            sizes.resized = Some(size);
+        }
+        sizes.observed = Some(size);
+        Ok(size)
+    }
+
+    fn clear_resized_viewport(&mut self) -> io::Result<bool> {
+        let resized = self
+            .sizes
+            .get_mut()
+            .map_err(|_| io::Error::other("terminal size state poisoned"))?
+            .resized;
+        let Some(size) = resized.filter(|_| self.output.pending.is_some()) else {
+            return Ok(false);
+        };
+        if size.width == 0 || size.height == 0 {
+            return Ok(true); // No visible cells, and no whole-screen fallback.
+        }
+        // Alternate-screen shrink may retain cells beyond the new column count.
+        // ED clears those too. Erase every visible cell instead, while Ratatui
+        // still invalidates its buffers and repaints the entire new viewport.
+        // Like Clear(All), keep the caller's cursor and current erase attributes;
+        // all operations remain inside the hidden synchronized frame.
+        crossterm::queue!(self.output, crossterm::cursor::SavePosition)?;
+        let erase = format!("\x1b[{}X", size.width);
+        for row in 0..size.height {
+            crossterm::queue!(
+                self.output,
+                crossterm::cursor::MoveTo(0, row),
+                crossterm::style::Print(&erase)
+            )?;
+        }
+        crossterm::queue!(self.output, crossterm::cursor::RestorePosition)?;
+        Ok(true)
     }
 }
 
@@ -179,16 +233,26 @@ impl<W: Write> ratatui::backend::Backend for FrameBackend<W> {
         self.backend().set_cursor_position(position)
     }
     fn clear(&mut self) -> io::Result<()> {
-        self.backend().clear()
+        if self.clear_resized_viewport()? {
+            Ok(())
+        } else {
+            self.backend().clear()
+        }
     }
     fn clear_region(&mut self, clear_type: ratatui::backend::ClearType) -> io::Result<()> {
-        self.backend().clear_region(clear_type)
+        if matches!(&clear_type, ratatui::backend::ClearType::All)
+            && self.clear_resized_viewport()?
+        {
+            Ok(())
+        } else {
+            self.backend().clear_region(clear_type)
+        }
     }
     fn append_lines(&mut self, n: u16) -> io::Result<()> {
         self.backend().append_lines(n)
     }
     fn size(&self) -> io::Result<ratatui::layout::Size> {
-        ratatui::backend::CrosstermBackend::new(io::sink()).size()
+        self.observe_size(ratatui::backend::CrosstermBackend::new(io::sink()).size()?)
     }
     fn window_size(&mut self) -> io::Result<ratatui::backend::WindowSize> {
         self.backend().window_size()

@@ -1,7 +1,8 @@
 // Actual ordinary write/stream/replay through each running binary, not a token UI.
 import fs from 'node:fs';
+import path from 'node:path';
 
-export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch}) {
+export async function probeSyntax({origin,dir,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch}) {
   const fixtures=JSON.parse(fs.readFileSync(new URL('../../crates/oc-tui/assets/syntax/fixtures.json',import.meta.url)));
   const languages=Object.keys(fixtures);
   const prompt='VIS14 syntax proof: write the owned file, then show the full grammar inventory.';
@@ -102,7 +103,19 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
     'value}); }',
   ];
   if(expectedWrap.some(source=>!narrowRows.some(row=>row.includes(source))))throw Error('Actual narrow Markdown/Zig source did not follow pinned word boundaries');
-  checks.narrow_source_wrap=true;
+   checks.narrow_source_wrap=true;
+   // Read the immutable geometry acquired alongside this actual full PNG. The
+   // visible 80-column viewport must not erase retained old-width tail cells.
+   const shrink=JSON.parse(fs.readFileSync(path.join(dir,'tool-preview-syntax-current-profile-draft.render.json'),'utf8'));
+   for(const geometry of [shrink.before,shrink.after]) {
+     if(geometry.columns!==80||geometry.rows!==24||geometry.dom_rows.last_rows.length!==2||
+        geometry.dom_rows.last_rows.some((row,index)=>row.row_index!==22+index||
+          row.buffer_line_length!==120||row.outside_column_attributes.length!==4||
+          row.outside_column_attributes.some((cell,index)=>cell.column!==80+index||cell.bg!==0x1e1e1e))) {
+       throw Error('Actual shrink erased retained alternate-screen tail backgrounds');
+     }
+   }
+   checks.shrink_retained_tail=true;
   send('\x03','syntax_clear_draft');await waitFor(f=>!f.text.includes('syntax unsent draft'),'syntax draft cleared',6000);
   send('\x03','syntax_natural_exit');
   const deadline=Date.now()+6000;while(!logs.some(item=>item.kind==='exit'&&item.generation===0)) {if(Date.now()>deadline)throw Error('Syntax process did not exit');await new Promise(resolve=>setTimeout(resolve,25));}

@@ -62,7 +62,7 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
   };
   try {
     if(syntaxProbe) {
-      result.syntax=await syntaxProbe({origin,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch});
+      result.syntax=await syntaxProbe({origin,dir,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch});
       result.status='PASS_BEHAVIOR_ONLY';save();return result;
     }
     if(composerProbe) {

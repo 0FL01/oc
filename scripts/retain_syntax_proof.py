@@ -143,7 +143,7 @@ def check_source_manifest(lock, manifest, source_count):
             "producer source manifest seal")
 
 
-def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False):
+def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
     reports = []
@@ -172,6 +172,9 @@ def producer_checks(files, source_count=704, inventory_stages=None, require_hove
                     require(checks["syntax"].get("user_hover_after_resize") is True and
                             checks["syntax"].get("replay_user_unhovered") is True,
                             "actual pointer hover and fresh replay mount")
+                if require_tail:
+                    require(checks["syntax"].get("shrink_retained_tail") is True,
+                            "actual alternate-screen shrink tail")
                 if len(inventory_stages) == 7:
                     facts = checks["syntax"]["root_add"]
                     require(all(facts.get(name) is True for name in
@@ -272,7 +275,7 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover"), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster"), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
@@ -281,9 +284,10 @@ def main():
                  "diagnostic-after": TEMP / "root-loss-diagnostic-002",
                  "probe-first": TEMP / "root-current-001/inventory",
                  "probe-second": TEMP / "root-current-002/inventory"}
-    elif args.campaign in ("root", "hover"):
-        current, regressions = (("root-current-003", "root-regressions-001") if args.campaign == "root"
-                                else ("hover-current-001", "hover-regressions-001"))
+    elif args.campaign in ("root", "hover", "raster"):
+        current, regressions = {"root": ("root-current-003", "root-regressions-001"),
+                                "hover": ("hover-current-001", "hover-regressions-001"),
+                                "raster": ("raster-current-001", "raster-regressions-001")}[args.campaign]
         ROOTS = {"inventory": TEMP / current / "inventory",
                  **{name: TEMP / regressions / name
                     for name in ("ordinary", "temporal", "matched")}}
@@ -314,13 +318,13 @@ def main():
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
         reports = (diagnostic_checks(restored) if args.campaign == "root-diagnostics" else
-                    producer_checks(restored, source_count, inventory_stages, args.campaign == "hover"))
+                    producer_checks(restored, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster"))
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
         reports = (diagnostic_checks(files) if args.campaign == "root-diagnostics" else
-                   producer_checks(files, source_count, inventory_stages, args.campaign == "hover"))
+                   producer_checks(files, source_count, inventory_stages, args.campaign in ("hover", "raster"), args.campaign == "raster"))
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)
