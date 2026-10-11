@@ -6,6 +6,16 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
   const languages=Object.keys(fixtures);
   const prompt='VIS14 syntax proof: write the owned file, then show the full grammar inventory.';
   const checks={languages,stages:[],no_replay:false};
+  const rootDraft='syntax parked root draft';
+  const click=(point,label)=>send(`\x1b[<0;${point.x+1};${point.y+1}M\x1b[<0;${point.x+1};${point.y+1}m`,label);
+  const root=f=>visibleMatches(f,'Syntax inventory fixture').filter(point=>point.y===0);
+  const home=f=>f.text.includes('Ask anything')&&f.text.includes('New session')&&!f.text.includes('GRAMMAR::rust');
+  const add=async()=> {
+    const f=await frame(), targets=visibleMatches(f,' + ').filter(point=>point.y===0);
+    if(targets.length!==1||root(f).length!==1)throw Error('Busy root did not expose one actual actionable Add target');
+    click({x:targets[0].x+1,y:0},'syntax_busy_root_add');
+    await waitFor(home,'actual busy-root Home',6000);
+  };
   const ready=f=>f.text.includes('SYNTAX-INVENTORY-DONE')&&languages.every(name=>f.text.includes('GRAMMAR::'+name));
   const rgb=f=> {
     const row=f.cells.find(row=>row.map(cell=>cell.symbol).join('').includes(prompt));
@@ -29,12 +39,31 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
   await waitFor(f=>f.text.includes('Ask anything'),'syntax Home',15000);
   send('\x1b[200~'+prompt+'\x1b[201~','syntax_submit_draft');send('\r','syntax_submit');
   await shot('syntax-live-partial',f=>f.text.includes('GRAMMAR::rust')&&f.text.includes('/* café')&&!f.text.includes('SYNTAX-INVENTORY-DONE'));
+  const parkedRequests=logs.filter(item=>item.kind==='provider').length;
+  send('\x1b[200~'+rootDraft+'\x1b[201~','syntax_root_draft');
+  await waitFor(f=>f.text.includes(rootDraft),'actual root draft',6000);
+  await add();
+  const selected=await frame(), targets=root(selected);
+  if(targets.length!==1||selected.text.includes(rootDraft))throw Error('Home did not keep the root/draft ownership separate');
+  click(targets[0],'syntax_busy_root_return');
+  await waitFor(f=>f.text.includes(rootDraft)&&f.text.includes('GRAMMAR::rust')&&!ready(f),'same still-busy root and draft',6000);
+  await add();
+  await shot('syntax-root-parked-home',home);
+  if(logs.filter(item=>item.kind==='provider').length!==parkedRequests)throw Error('Root tab interactions generated a provider request');
   control({kind:'tool_preview_control',action:'release-syntax',request_id:'syntax-release'});
   const releaseDeadline=Date.now()+6000;
   while(!logs.some(item=>item.kind==='tool_preview_control_ack'&&item.request_id==='syntax-release'&&item.released)) {
     if(Date.now()>releaseDeadline)throw Error('Owned syntax stream release was not acknowledged');
     await new Promise(resolve=>setTimeout(resolve,25));
   }
+  await waitFor(f=>home(f)&&logs.some(item=>item.kind==='provider_completed'&&item.operation==='syntax_inventory'),
+    'owned generation completed while root remained parked',6000);
+  send('\x18','syntax_home_close_leader');await new Promise(resolve=>setTimeout(resolve,100));send('w','syntax_home_close_key');
+  await waitFor(f=>f.text.includes(rootDraft)&&f.text.includes('SYNTAX-INVENTORY-DONE')&&!f.text.includes('New session'),'completed original root and retained draft',6000);
+  send('\x03','syntax_root_clear_draft');await waitFor(f=>!f.text.includes(rootDraft)&&f.text.includes('SYNTAX-INVENTORY-DONE'),'root draft explicitly cleared',6000);
+  send('\x1b[<35;11;4M','syntax_leave_tab_hover');
+  checks.root_add={actual_busy_mouse_add:true,busy_return_draft_preserved:true,
+    completed_while_parked:true,home_closed_without_root_effect:true,no_provider_replay:true};
   await resize(320);
    const complete=await shot('syntax-complete-inventory',ready);rgb(complete);writeBody(complete);
   if(complete.text.includes('syntax highlighting preview limited')||complete.text.includes('syntax highlighting asset unavailable'))throw Error('Known grammar failed/limited in actual TUI');
@@ -89,5 +118,21 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
     const replay=await shot('syntax-replayed-inventory',ready);rgb(replay);writeBody(replay);
   const after=await snapshot('syntax-restarted');checks.after=after;
   if(JSON.stringify(before.syntax.file)!==JSON.stringify(after.syntax.file)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||logs.filter(e=>e.kind==='fixture_tool_call').length!==1)throw Error('Syntax reopen replayed effect or changed actual operation/RAW');
-  checks.requests=logs.filter(item=>item.kind==='provider').length;checks.no_replay=true;return checks;
+  await resize(40,120);
+  send('\x1b[200~VIS root cancel: keep the original root and stop only this generation.\x1b[201~','syntax_cancel_draft');
+  await waitFor(f=>f.text.includes('VIS root cancel:'),'actual cancel-turn draft',6000);send('\r','syntax_cancel_submit');
+  await shot('syntax-root-cancel-pending',f=>f.text.includes('ROOT-CANCEL-READY')&&f.text.includes('esc interrupt'));
+  send('\x1b','syntax_cancel_first_escape');await new Promise(resolve=>setTimeout(resolve,100));send('\x1b','syntax_cancel_second_escape');
+  await shot('syntax-root-cancelled',f=>f.text.includes('ROOT-CANCEL-READY')&&!f.text.includes('esc interrupt')&&root(f).length===1);
+  const cancelled=await snapshot('syntax-cancelled');checks.cancelled=cancelled;
+  if(logs.filter(item=>item.kind==='provider'&&item.operation==='root_cancel').length!==1||
+     !logs.some(item=>item.kind==='root_cancel_disconnected')||
+     JSON.stringify(before.syntax.file)!==JSON.stringify(cancelled.syntax.file)||
+     logs.filter(item=>item.kind==='fixture_tool_call').length!==1)throw Error('Addressed root cancellation replayed effects or did not stop the owned provider');
+  if(origin==='oc') {
+    const turns=cancelled.observations.flatMap(item=>item.data.syntax_turns||[]);
+    if(turns.length!==2||turns[0].status!=='completed'||turns[1].status!=='cancelled'||turns[0].session_id!==turns[1].session_id)throw Error('Native cancel did not settle exactly the new turn in the retained root');
+    checks.root_add.cancelled_exact_retained_root=true;
+  }
+   checks.requests=logs.filter(item=>item.kind==='provider').length;checks.no_replay=true;return checks;
 }

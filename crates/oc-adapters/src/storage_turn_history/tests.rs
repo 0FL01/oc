@@ -90,6 +90,73 @@ fn working(log: &TurnLog) -> serde_json::Value {
 }
 
 #[test]
+fn active_pending_text_is_not_bounded_loss_but_settled_and_window_loss_remain_visible() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    let settled = closed(&db);
+    let mut log = settled.clone();
+    log.display_parts
+        .push(json!({"pending_text":true,"span":"span"}));
+    let pending = log.to_json().to_string();
+    db.checkpoint_turn("t", &pending).unwrap();
+    let view = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert_eq!(view.parts.len(), 1);
+    assert_eq!(view.part_states[0].sequence, 0);
+    assert_eq!(view.omitted_parts, 0);
+    assert!(
+        !view.truncated,
+        "Uncommitted streaming identity is not discarded text"
+    );
+    assert_eq!(
+        db.turn_result("t").unwrap().1.as_deref(),
+        Some(pending.as_str())
+    );
+
+    let index = log.input.len();
+    log.input.push(InputItem::ProviderOutput(json!({"type":"message","role":"assistant","content":[{"type":"output_text","text":"settled response"}]})));
+    log.display_parts[1] = json!({"message":index,"span":"span"});
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    let complete = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert_eq!(complete.parts.len(), 2);
+    assert_eq!(complete.part_states[1].sequence, 1);
+    assert!(!complete.truncated);
+
+    log.display_parts
+        .push(json!({"reasoning":"x".repeat(16*1024+1),"span":"span"}));
+    db.checkpoint_turn("t", &log.to_json().to_string()).unwrap();
+    let bounded = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert!(bounded.truncated && bounded.part_states[2].truncated);
+    assert_eq!(bounded.omitted_parts, 0);
+
+    let mut window = settled.clone();
+    window
+        .display_parts
+        .extend((0..300).map(|_| json!({"reasoning":"x","span":"span"})));
+    window
+        .display_parts
+        .push(json!({"pending_text":true,"span":"span"}));
+    db.checkpoint_turn("t", &window.to_json().to_string())
+        .unwrap();
+    let bounded = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert_eq!(bounded.parts.len(), 239); // Existing 240-reference window is unchanged.
+    assert_eq!(bounded.omitted_parts, 62);
+    assert!(bounded.truncated);
+
+    // Explicit loss and anomalous terminal placeholders are not cleared.
+    let mut lost = settled.clone();
+    lost.display_parts
+        .push(json!({"pending_text":true,"truncated":true,"span":"span"}));
+    db.checkpoint_turn("t", &lost.to_json().to_string())
+        .unwrap();
+    assert!(db.turn_presentation("s", "t").unwrap().unwrap().truncated);
+    db.commit_turn("t", "completed", Some(&pending), Some("done"))
+        .unwrap();
+    let terminal = db.turn_presentation("s", "t").unwrap().unwrap();
+    assert_eq!(terminal.omitted_parts, 1);
+    assert!(terminal.truncated);
+}
+
+#[test]
 fn go04_sql_hot_raw_fork_and_reopen_keep_original_wire_binding() {
     use oc_core::queries::{NativeProtocol, WireProvenance};
     for protocol in [

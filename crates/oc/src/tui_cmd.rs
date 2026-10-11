@@ -468,6 +468,31 @@ impl LoopState {
         self.tabs.len() < MAX_TABS - usize::from(self.home.is_some() || self.active_tab.is_none())
     }
 
+    fn can_park_busy_root(&self, state: &TuiState) -> bool {
+        state.active_turn().is_some()
+            && !state.has_pending_submission()
+            && state.parent_id.is_none()
+            && state.linked_child().is_none()
+            && state.auth_request().is_none()
+            && !self.read_only
+            && self.child_parent.is_none()
+            && self.active_tab.is_some()
+            && !self.save_disabled
+            && self
+                .location
+                .as_deref()
+                .is_some_and(|location| !location.is_empty())
+            && self.revision.is_some()
+            && self.conversation_job.is_none()
+            && self.conversation_recovery.is_none()
+            && self.recovery_job.is_none()
+            && self.reload_job.is_none()
+            && self.compaction_job.is_none()
+            && !self.authentication.pending()
+            && self.authentication.deadline().is_none()
+            && self.can_open_session()
+    }
+
     fn snapshot(&self, state: &TuiState) -> TabDeckSnapshot {
         let state = self.child_parent.as_deref().unwrap_or(state);
         let sessions = self
@@ -643,7 +668,8 @@ impl LoopState {
             .collect();
         let active = self.active_tab.unwrap_or(self.tabs.len());
         let can_add = !showing_child
-            && (!state.is_busy() || state.approvals.active().is_some())
+            && !self.read_only
+            && (!state.is_busy() || self.can_park_busy_root(state))
             && self.can_open_session();
         let (shown, selected, allowed) = state.tab_presentation();
         // `set_tab_strip` cancels a pending mouse Down: never call it while
@@ -764,6 +790,9 @@ impl LoopState {
         }
         if index >= self.tabs.len() {
             return Err("tab unavailable".into());
+        }
+        if self.tabs[index].as_ref().is_some_and(TuiState::is_busy) {
+            return Err("turn active; tab close refused".into());
         }
         // Fetch a replacement Home while the active tab and its draft still
         // exist. A failed query must not retire the pending-root marker or
@@ -944,6 +973,14 @@ async fn finish_conversation(app: &CoreApp, state: &mut TuiState, deck: &mut Loo
 }
 
 async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), String> {
+    refresh_approvals_in_views(app, state, None).await
+}
+
+async fn refresh_approvals_in_views(
+    app: &CoreApp,
+    state: &mut TuiState,
+    unadmitted_shell: Option<&SessionId>,
+) -> Result<(), String> {
     let pending = app.pending_approvals().await.map_err(|e| e.to_string())?;
     state.project_pending_approvals(&pending);
     let mut visible = Vec::new();
@@ -954,6 +991,12 @@ async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), St
         if state.parent_id.is_none() && state.user_shell_admission_session() == Some(&current) {
             roots.insert(current.0.clone());
             visible.push((request, false));
+            continue;
+        }
+        // A fresh Shell Ask precedes durable session creation. Its existing
+        // Home receipt owns visibility; unrelated parked roots cannot use the
+        // not-yet-created candidate as a history/ancestry source.
+        if Some(&current) == unadmitted_shell {
             continue;
         }
         let mut child = false;
@@ -1024,6 +1067,26 @@ async fn refresh_approvals(app: &CoreApp, state: &mut TuiState) -> Result<(), St
         )
     });
     state.questions.reconcile(&all, visible);
+    Ok(())
+}
+
+async fn refresh_control_views(
+    app: &CoreApp,
+    state: &mut TuiState,
+    deck: &mut LoopState,
+) -> Result<(), String> {
+    let unadmitted_shell = std::iter::once(&*state)
+        .chain(deck.tabs.iter().flatten())
+        .chain(deck.home.iter())
+        .filter(|view| view.attached_session().is_none())
+        .find_map(TuiState::user_shell_admission_session)
+        .cloned();
+    refresh_approvals_in_views(app, state, unadmitted_shell.as_ref()).await?;
+    // Existing bounded retained roots own their control projections too. None
+    // of these reads replies to a request or grants an execution capability.
+    for parked in deck.tabs.iter_mut().flatten() {
+        refresh_approvals_in_views(app, parked, unadmitted_shell.as_ref()).await?;
+    }
     Ok(())
 }
 
@@ -1323,9 +1386,13 @@ async fn drive_ui(app: &CoreApp, session: Option<SessionId>, cli_auto: bool) -> 
             ) {
                 // Fresh direct-user Shell Ask exists before a root history does.
                 // Control events must reach its receipt owner even on Home.
-                refresh_approvals(app, &mut state).await?;
+                refresh_control_views(app, &mut state, &mut loop_state).await?;
                 loop_state.approvals_checked = None;
-            } else if let Some(current) = state.attached_session().cloned() {
+            } else if let Some(current) = state
+                .attached_session()
+                .cloned()
+                .or_else(|| child_controls::event_owner(&event).cloned())
+            {
                 handle_worker_event(app, &mut state, &mut loop_state, &current, event).await?;
             }
             loop_state.sync_tabs(&mut state);
@@ -2192,6 +2259,27 @@ async fn apply_intent_with_origin(
     typed_new: bool,
     preserve_pointer: bool,
 ) -> Result<(), String> {
+    // Intent admission can retain a whole Home view across owner acknowledgements.
+    // Keep that bounded frame on the heap, including direct controller callers.
+    Box::pin(apply_owned_intent(
+        app,
+        state,
+        loop_state,
+        intent,
+        typed_new,
+        preserve_pointer,
+    ))
+    .await
+}
+
+async fn apply_owned_intent(
+    app: &CoreApp,
+    state: &mut TuiState,
+    loop_state: &mut LoopState,
+    intent: PanelIntent,
+    typed_new: bool,
+    preserve_pointer: bool,
+) -> Result<(), String> {
     let terminal_control = matches!(
         intent,
         PanelIntent::Terminal {
@@ -2218,6 +2306,7 @@ async fn apply_intent_with_origin(
         && matches!(
             intent,
             PanelIntent::NewSession
+                | PanelIntent::AddSessionTab
                 | PanelIntent::SwitchLocation { .. }
                 | PanelIntent::SetPermissionMode { .. }
                 | PanelIntent::SwitchSession { .. }
@@ -2588,7 +2677,9 @@ async fn apply_intent_with_origin(
                 .await
             {
                 Err(error) => state.session_delete_rejected(error.to_string()),
-                Ok(oc_core::queries::SessionPickerResult::Renamed) => unreachable!("delete result"),
+                Ok(oc_core::queries::SessionPickerResult::Renamed) => {
+                    unreachable!("delete result")
+                }
                 Ok(oc_core::queries::SessionPickerResult::Deleted(snapshot)) => {
                     if loop_state.location.as_deref() == Some(snapshot.location.as_str())
                         || index.is_some()
@@ -2708,17 +2799,31 @@ async fn apply_intent_with_origin(
         PanelIntent::CycleVariant => {
             state.cycle_variant_draft()?;
         }
-        PanelIntent::NewSession => {
-            if state.is_busy() && state.approvals.active().is_none() {
+        PanelIntent::NewSession | PanelIntent::AddSessionTab => {
+            let busy_add = intent == PanelIntent::AddSessionTab && state.is_busy();
+            if busy_add && !loop_state.can_park_busy_root(state) {
+                return Err("turn active; tab Add unavailable".into());
+            }
+            if !busy_add && state.is_busy() && state.approvals.active().is_none() {
                 return Err("turn active; action unavailable".into());
             }
             let before = loop_state.snapshot(state);
             if loop_state.home.is_some() {
+                if busy_add {
+                    let mut candidate = before.clone();
+                    candidate.active = None;
+                    loop_state
+                        .save_snapshot_checked(app, candidate)
+                        .await
+                        .map_err(|_| "tab Add refused; saved tabs unavailable".to_string())?;
+                }
                 if typed_new {
                     state.accept_intent();
                 }
                 loop_state.restore_home(state);
-                loop_state.save_if_changed(app, state, &before).await;
+                if !busy_add {
+                    loop_state.save_if_changed(app, state, &before).await;
+                }
                 return Ok(());
             }
             if loop_state.tabs.len() >= MAX_TABS && state.attached_session().is_some() {
@@ -2732,11 +2837,24 @@ async fn apply_intent_with_origin(
                 .map_err(|e| e.to_string())?;
             let mut home = TuiState::new_home(app.clone());
             home.apply_catalog(snapshot);
+            if busy_add {
+                if home.chrome.location.as_deref() != loop_state.location.as_deref() {
+                    return Err("tab Add refused; Location binding changed".into());
+                }
+                let mut candidate = before.clone();
+                candidate.active = None;
+                loop_state
+                    .save_snapshot_checked(app, candidate)
+                    .await
+                    .map_err(|_| "tab Add refused; saved tabs unavailable".to_string())?;
+            }
             if typed_new {
                 state.accept_intent();
             }
             loop_state.open_home(state, home);
-            loop_state.save_if_changed(app, state, &before).await;
+            if !busy_add {
+                loop_state.save_if_changed(app, state, &before).await;
+            }
         }
         PanelIntent::ActivateTab { index } => {
             let before = loop_state.snapshot(state);
@@ -2748,7 +2866,9 @@ async fn apply_intent_with_origin(
             refresh_dcp_summaries(app, state).await;
             // Parked prompt/editor state survives routing, but pending ownership
             // must be recovered before its first visible frame after activation.
-            if (!state.approval_roots.is_empty() || state.approvals.active().is_some())
+            if (state.is_busy()
+                || !state.approval_roots.is_empty()
+                || state.approvals.active().is_some())
                 && let Err(error) = refresh_approvals(app, state).await
             {
                 state.approvals.error = Some(error);
@@ -3434,6 +3554,35 @@ async fn handle_worker_event(
     session: &SessionId,
     event: CoreEvent,
 ) -> Result<(), String> {
+    // Root tabs own their live view even while Home/another tab is selected.
+    // Global inventory/Location publications below keep their existing all-view
+    // handlers; only exact session-addressed normal events take this route.
+    if !matches!(
+        &event,
+        CoreEvent::ShellChanged { .. }
+            | CoreEvent::TerminalChanged { .. }
+            | CoreEvent::SessionMoved { .. }
+    ) && let Some(owner) = child_controls::event_owner(&event).cloned()
+        && state.attached_session() != Some(&owner)
+        && let Some(index) = _loop_state.tabs.iter().position(|view| {
+            view.as_ref()
+                .is_some_and(|view| view.attached_session() == Some(&owner))
+        })
+    {
+        let mut parked = _loop_state.tabs[index].take().expect("exact parked root");
+        let result = Box::pin(handle_worker_event(
+            app,
+            &mut parked,
+            _loop_state,
+            &owner,
+            event,
+        ))
+        .await;
+        // Restore unique ownership before propagating a bounded read failure.
+        // The selected state, active slot, drafts and deck revision are untouched.
+        _loop_state.tabs[index] = Some(parked);
+        return result;
+    }
     if child_controls::route_event(app, state, _loop_state, &event).await? {
         return Ok(());
     }
@@ -3525,7 +3674,7 @@ async fn handle_worker_event(
             | CoreEvent::QuestionAsked(_)
             | CoreEvent::QuestionResolved { .. }
     ) {
-        refresh_approvals(app, state).await?;
+        refresh_control_views(app, state, _loop_state).await?;
         _loop_state.approvals_checked = None;
         return Ok(());
     }
@@ -3555,6 +3704,7 @@ async fn handle_worker_event(
         | CoreEvent::ToolArgumentStream { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
+        | CoreEvent::TurnContextUsage { session, .. }
         | CoreEvent::TurnFinished { session, .. }
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. } => session,
@@ -3762,6 +3912,13 @@ async fn handle_worker_event(
                 refresh_dcp_summaries(app, state).await;
             }
         }
+        CoreEvent::TurnContextUsage {
+            turn,
+            input_tokens,
+            output_tokens,
+            context_limit,
+            ..
+        } => state.apply_context_usage(&turn, input_tokens, output_tokens, context_limit),
         CoreEvent::TurnUsage {
             turn,
             input_tokens,

@@ -2925,6 +2925,7 @@ impl Db {
             context_usage: meta["context_usage"]
                 .as_array()
                 .and_then(|v| Some((v.first()?.as_u64()?, v.get(1)?.as_u64()?))),
+            context_usage_limit: meta["context_usage_limit"].as_u64(),
             duration_ms: meta["duration_ms"].as_u64(),
             streamed_ms: meta["streamed_ms"].as_u64(),
             parts: Vec::new(),
@@ -2950,7 +2951,21 @@ impl Db {
         }
         let mut effects_budget = oc_core::patch::EFFECT_PREVIEW_BYTES_CAP;
         let mut budget = effects_budget.saturating_sub(reserved as usize);
+        let mut pending_text = 0usize;
         for (sequence, ordinal, part) in refs {
+            // A served active-stream identity has no committed text yet. It is
+            // not a part discarded by a serving bound. Keep the reference/byte
+            // window and original sequence numbers, and count every other loss.
+            if turn.status == "started"
+                && part["pending_text"].as_bool() == Some(true)
+                && part["truncated"].as_bool() != Some(true)
+                && ["message", "reasoning", "tool"]
+                    .iter()
+                    .all(|key| part.get(key).is_none())
+            {
+                pending_text += 1;
+                continue;
+            }
             let mut state = PartState {
                 model_label: None,
                 sequence,
@@ -3100,7 +3115,8 @@ impl Db {
                 turn.part_states.push(state);
             }
         }
-        turn.omitted_parts = (total.unwrap_or(0) as usize).saturating_sub(turn.parts.len());
+        turn.omitted_parts =
+            (total.unwrap_or(0) as usize).saturating_sub(turn.parts.len() + pending_text);
         turn.truncated |= turn.omitted_parts > 0;
         Ok(Some(turn))
     }

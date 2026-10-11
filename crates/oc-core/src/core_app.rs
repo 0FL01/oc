@@ -279,6 +279,20 @@ pub enum CoreEvent {
         /// Active turn id.
         turn: WorkerTurnId,
     },
+    /// Latest completed generation's measured context, independent of billed
+    /// turn totals. Missing usage does not publish an estimate or erase it.
+    TurnContextUsage {
+        /// Session that owns the captured provider request.
+        session: SessionId,
+        /// Turn that owns the completed generation.
+        turn: WorkerTurnId,
+        /// Provider-reported input total (including any cached input).
+        input_tokens: u64,
+        /// Provider-reported output total (including any reasoning output).
+        output_tokens: u64,
+        /// Context limit captured by this request; zero means unknown.
+        context_limit: u64,
+    },
     /// Terminal provider usage for the turn (only when the provider reported
     /// it; never synthesized).
     TurnUsage {
@@ -2595,6 +2609,7 @@ mod tests {
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
+                | CoreEvent::TurnContextUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}
@@ -2922,6 +2937,7 @@ mod tests {
                 | CoreEvent::ReasoningDelta { .. }
                 | CoreEvent::ReasoningItemEnded { .. }
                 | CoreEvent::TurnUsage { .. }
+                | CoreEvent::TurnContextUsage { .. }
                 | CoreEvent::ToolCallStarted { .. }
                 | CoreEvent::ToolArgumentStream { .. }
                 | CoreEvent::ToolCallFinished { .. } => {}

@@ -1953,7 +1953,7 @@ impl TuiState {
                     {
                         return KeyOutcome {
                             intent: Some(match tab {
-                                TabPress::Add => PanelIntent::NewSession,
+                                TabPress::Add => PanelIntent::AddSessionTab,
                                 TabPress::Tab(index) => PanelIntent::ActivateTab { index },
                                 TabPress::Close(index) => PanelIntent::CloseTab { index },
                             }),

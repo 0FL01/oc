@@ -1738,11 +1738,11 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
     drop(runtime);
     drop(harness.db);
     let reopened = Db::open(harness._data.path()).unwrap();
-    for (id, context, expected_status) in [
-        (fresh.turn_id, [6000, 763], "completed"),
-        (next.turn_id, [4500, 21], "completed"),
-        (failed.turn_id, [7000, 34], "failed"),
-        (cancelled.turn_id, [8000, 45], "cancelled"),
+    for (id, context, expected_status, reported_span) in [
+        (fresh.turn_id, [6000, 763], "completed", 1),
+        (next.turn_id, [4500, 21], "completed", 0),
+        (failed.turn_id, [7000, 34], "failed", 0),
+        (cancelled.turn_id, [8000, 45], "cancelled", 0),
     ] {
         let (status, result) = reopened.turn_result(&id).unwrap();
         assert_eq!(status, expected_status);
@@ -1751,6 +1751,12 @@ async fn provider_context_usage_survives_missing_round_usage_and_restart() {
             result["display"]["context_usage"],
             serde_json::json!(context)
         );
+        assert_eq!(
+            result["display"]["context_usage_limit"],
+            result["spans"][reported_span]["request"]["context_limit"],
+            "restart retains the limit of the generation that supplied the pair"
+        );
+        assert!(result["display"]["context_usage_limit"].as_u64().is_some());
         if status == "completed" {
             assert!(
                 result["display"].get("usage").is_none(),

@@ -2756,7 +2756,7 @@ fn keyboard_close_refuses_busy_turn_without_losing_draft() {
 }
 
 #[test]
-fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
+fn retained_deck_busy_strip_add_keeps_command_guard_and_failed_location() {
     let fixture = Fixture::new();
     let mut pty = PtySession::spawn(
         fixture.clone(),
@@ -2767,20 +2767,46 @@ fn retained_deck_refuses_add_during_turn_and_keeps_tabs_on_failed_location() {
     pty.wait_visible(READY, DEADLINE);
     submit(&mut pty, "slow stream");
     fixture.wait_requests(1);
-    click(&mut pty, 34, 1);
+    wait_screen_row(&pty, "esc interrupt", DEADLINE);
+    // The command remains guarded; the painted strip Add has its own checked
+    // admission and preserves the accepted root rather than creating a turn.
     pty.send(b"/new\r");
     wait_screen_row(&pty, "turn active; action unavailable", DEADLINE);
     assert_eq!(journal_counts(&fixture).0, 1);
     assert!(
         !render_screen(&pty.snapshot()).rows()[0].contains("New session"),
-        "a busy turn cannot leave its tab"
+        "the guarded command cannot leave its busy tab"
     );
-    pty.wait_visible("answer:slow stream", DEADLINE);
-    wait_screen_row(&pty, "Fixture session title", DEADLINE);
-    // The refused command remains editable; clear it before the next action.
     pty.send(&[0x7f; 64]);
     pty.send(b"draft after turn");
     wait_screen_row(&pty, "draft after turn", DEADLINE);
+    let strip = render_screen(&pty.snapshot()).rows()[0].clone();
+    let add = strip
+        .rfind('+')
+        .unwrap_or_else(|| panic!("painted busy Add: {strip:?}"));
+    // Screen stores character cells, not UTF-8 byte offsets (the busy prefix
+    // can be a multibyte spinner).
+    click(&mut pty, strip[..add].chars().count() as u16 + 1, 1);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    assert!(render_screen(&pty.snapshot()).rows()[0].contains("New session"));
+    assert_eq!(journal_counts(&fixture).0, 1, "Add is sessionless");
+    click(&mut pty, 10, 1);
+    wait_screen_row(&pty, "draft after turn", DEADLINE);
+    pty.wait_visible("answer:slow stream", DEADLINE);
+    wait_idle(&pty);
+    wait_screen_row(&pty, "Fixture session title", DEADLINE);
+    // The native strip restores its retained Home through Add when a real root
+    // is selected; it does not paint the inactive Home as another real tab.
+    click(&mut pty, 34, 1);
+    wait_screen_row(&pty, "Ask anything", DEADLINE);
+    pty.send(b"\x18w");
+    wait_screen_row(&pty, "draft after turn", DEADLINE);
+    assert!(!render_screen(&pty.snapshot()).rows()[0].contains("New session"));
+    assert_eq!(
+        fixture.wait_requests(1).len(),
+        1,
+        "tab actions never replay a request"
+    );
     let bad = fixture.root.path().join("bad-deck-location");
     std::fs::create_dir(&bad).unwrap();
     std::fs::write(

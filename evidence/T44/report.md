@@ -551,3 +551,28 @@ All prior qualified/failed bytes/reports/checkpoints, foreign data and1GiB cap a
 unchanged. Next safe parked-root event/job/permission routing before actionable
 Root Add, truthful active usage/preview-loss chrome, then every remaining full
 frozen outcome/supplement/final current-source R6/V09. T44 ACTIVE/NOT_PASS.
+
+## Actionable busy Root Add / captured live context (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/root-qualified.md) records checked CAS-before-parking,
+exact immutable parked-root event/control ownership, return/draft/cancel route,
+fresh unadmitted Shell receipt isolation and separate actual generation context.
+Captured context/limit survives history/provider-only checkpoint continuation;
+served pending identity is not false bounded loss; cancelled public prefixes are
+incomplete facts, never partial-tool admission, retry or completed assistant data.
+Current all46 workspace1828/0/11,111binary/507TUI, strict Clippy/fmt/builds/help,
+release startup19/GET8/TERM01/VIS31/S07/actual AUD32 original guards and Python52 PASS.
+Initial release TERM01 pre-request failure then unchanged isolated PASS is disclosed;
+no causal product/fixture fix or deadline/permission waiver. Actual Root003 seven
+states per side preserve one91B overwrite/four requests, painted busy Add/return,
+parked completion/Home-only close/draft, natural gen0 exit/reopen/no replay and
+explicit same-root gen1cancel. Live-partial whole grid/cursor/PNG equals Original.
+All1442 current+282 historical files/230+36 full captures retained exact3812448+
+1890280B; independent current707/three real builds/ELF/effect/full comparator audit.
+Direct222 DIFFERENT/6 EQUAL plus4 native-only, matched144 DIFFERENT remain. Native
+completion/replay equals itself; Original345 first-user-hover cells differ after
+remount. Actual7.9/8.0s clocks,32 draft raster pixels and current caret/blink remain
+unmasked. No historical rewrite/deletion/offload or original1GiB guard increase.
+Next actual user-hover/resize and raster/caret/pacing owners, then ALL remaining
+frozen R1–R6/VIS01–45/outcomes/supplements and final current-source R6/V09. Whole
+T44 ACTIVE/NOT_PASS; measured episode/body equality is not global acceptance.

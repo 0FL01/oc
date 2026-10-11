@@ -1249,6 +1249,83 @@ async fn cancel_drains_to_records() {
     assert_eq!(status, "cancelled");
 }
 
+#[tokio::test]
+async fn cancelled_public_prefix_stays_incomplete_without_admitting_partial_tool() {
+    let (harness, generation) = make_harness(allow_all());
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("cancel-public").unwrap();
+    let prefix = "visible café 中文 prefix";
+    let stream = concat!(
+        "data: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"type\":\"function_call\",\"id\":\"partial-call\",\"call_id\":\"never-admitted\",\"name\":\"write\",\"arguments\":\"\"}}\n\n",
+        "data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"partial-call\",\"delta\":\"{\\\"path\\\":\\\"never.txt\\\",\\\"content\\\":\\\"\"}\n\n"
+    ).to_owned() + &sse_delta(prefix);
+    let (base, hits, _) = Fake::start_recording(vec![stream], Duration::ZERO);
+    let cancel = AtomicBool::new(false);
+    let mut observed = String::new();
+    let mut announced = false;
+    let report = runtime
+        .run_turn_with_reasoning_items(
+            params(
+                "cancel-public",
+                "retain only actual public output",
+                &harness,
+                provider_of(&base),
+                &cancel,
+            ),
+            |_| {},
+            |_, delta| {
+                observed.push_str(delta);
+                cancel.store(true, Ordering::Relaxed);
+            },
+            |_, _| {},
+            |_| {},
+            |_, event| match event {
+                ToolCallEvent::ArgumentStream(_) => announced = true,
+                ToolCallEvent::Started { .. } | ToolCallEvent::Finished { .. } => {
+                    panic!("partial arguments must never become an admitted operation")
+                }
+            },
+        )
+        .await
+        .unwrap();
+    assert!(announced, "fixture must exercise actual argument streaming");
+    assert_eq!(observed, prefix);
+    assert_eq!(report.status, TurnStatus::Cancelled);
+    assert_eq!(report.text, prefix);
+    assert!(report.calls.is_empty());
+    assert_eq!(*hits.lock().unwrap(), 1, "cancellation must not retry");
+    assert!(!harness._project.path().join("never.txt").exists());
+    assert!(
+        harness
+            .db
+            .list_tool_ops("cancel-public")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        harness.db.read_history("cancel-public").unwrap().len(),
+        1,
+        "an incomplete prefix is a turn fact, not a completed assistant message"
+    );
+    let (status, raw) = harness.db.turn_result(&report.turn_id).unwrap();
+    assert_eq!(status, "cancelled");
+    let log: serde_json::Value = serde_json::from_str(raw.as_deref().unwrap()).unwrap();
+    assert_eq!(log["spans"][0]["status"], "cancelled");
+    let parts = log["display_parts"].as_array().unwrap();
+    assert_eq!(parts.len(), 1);
+    let message = parts[0]["message"].as_u64().unwrap() as usize;
+    assert_eq!(log["input"][message]["type"], "message");
+    assert_eq!(log["input"][message]["status"], "incomplete");
+    assert_eq!(log["input"][message]["content"][0]["text"], prefix);
+    assert!(!raw.as_deref().unwrap().contains("pending_text"));
+    runtime.open_session("cancel-public").unwrap();
+    let (_, reopened) = harness.db.turn_result(&report.turn_id).unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&reopened.unwrap()).unwrap(),
+        log
+    );
+}
+
 #[test]
 fn location_binding_holds() {
     let (harness, generation) = make_harness(allow_all());
@@ -2571,6 +2648,17 @@ async fn dto_application_events_surface_reasoning_and_usage() {
     let (base, _) = Fake::start(
         vec![
             sse_reasoning("**Planning**\n\n") + &sse_delta("visible") + &sse_completed_usage(9, 4),
+            sse_tool_call(
+                "context-one",
+                "read",
+                &serde_json::json!({"path":"usage-fixture.txt"}),
+            ) + &sse_completed_usage(1400, 30),
+            sse_tool_call(
+                "context-two",
+                "read",
+                &serde_json::json!({"path":"usage-fixture.txt"}),
+            ) + sse_completed_without_usage(),
+            sse_delta("later") + &sse_completed_usage(1500, 40),
         ],
         Duration::from_millis(20),
     );
@@ -2584,9 +2672,10 @@ async fn dto_application_events_surface_reasoning_and_usage() {
                 "limit": {"context": 65536, "output": 4096},
             }},
         }},
-        "permissions": {},
+        "permission": {"read": "allow"},
     });
     std::fs::write(project.path().join("opencode.json"), config.to_string()).expect("config");
+    std::fs::write(project.path().join("usage-fixture.txt"), "measured read").unwrap();
     let env: BTreeMap<String, String> = [
         ("HOME", home.path().to_string_lossy().to_string()),
         ("OC_TEST_ALLOW_LOOPBACK", "1".to_string()),
@@ -2599,6 +2688,11 @@ async fn dto_application_events_surface_reasoning_and_usage() {
         .expect("application");
     let session = SessionId::new("s-app-dto").expect("session id");
     app.create_session(session.clone()).await.expect("create");
+    // Keep this provider queue dedicated to the measured rounds, rather than
+    // admitting an independent automatic-title generation between turns.
+    app.rename_session(session.clone(), "Usage fixture".into())
+        .await
+        .unwrap();
     let mut rx = app.subscribe();
     app.submit(session.clone(), "hello".to_string())
         .await
@@ -2606,6 +2700,7 @@ async fn dto_application_events_surface_reasoning_and_usage() {
 
     let mut reasoning = String::new();
     let mut usage = None;
+    let mut context_usage = None;
     let (text, duration_ms) = loop {
         let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
             .await
@@ -2615,6 +2710,16 @@ async fn dto_application_events_surface_reasoning_and_usage() {
             CoreEvent::SessionModelSelected { .. } => {}
             CoreEvent::RetryScheduled { .. } => {}
             CoreEvent::ReasoningDelta { delta, .. } => reasoning.push_str(&delta),
+            CoreEvent::TurnContextUsage {
+                session: owner,
+                input_tokens,
+                output_tokens,
+                context_limit,
+                ..
+            } => {
+                assert_eq!(owner, session);
+                context_usage = Some((input_tokens, output_tokens, context_limit));
+            }
             CoreEvent::TurnUsage {
                 input_tokens,
                 output_tokens,
@@ -2661,6 +2766,62 @@ async fn dto_application_events_surface_reasoning_and_usage() {
     );
     assert_eq!(text, "visible");
     assert!(duration_ms >= 20, "turn duration is measured");
+    assert_eq!(context_usage, Some((9, 4, 65536)));
+
+    let accepted = app
+        .submit(session.clone(), "tool rounds".into())
+        .await
+        .unwrap();
+    let mut reported = Vec::new();
+    let mut tool_starts = 0;
+    loop {
+        let event = tokio::time::timeout(Duration::from_secs(10), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event {
+            CoreEvent::TurnContextUsage {
+                session: owner,
+                turn,
+                input_tokens,
+                output_tokens,
+                context_limit,
+            } => {
+                assert_eq!(owner, session);
+                assert_eq!(turn, accepted);
+                reported.push((input_tokens, output_tokens, context_limit));
+            }
+            CoreEvent::ToolCallStarted {
+                session: owner,
+                turn,
+                ..
+            } => {
+                assert_eq!(owner, session);
+                assert_eq!(turn, accepted);
+                assert_eq!(
+                    reported,
+                    [(1400, 30, 65536)],
+                    "measured context is published before tools; a missing round cannot erase it"
+                );
+                tool_starts += 1;
+            }
+            CoreEvent::ToolCallFinished { state, output, .. } => {
+                assert_eq!(
+                    state, "completed",
+                    "fixture read must be admitted: {output}"
+                );
+            }
+            CoreEvent::TurnUsage { .. } => panic!("a missing round has no known billed total"),
+            CoreEvent::TurnFinished { text, .. } => {
+                assert_eq!(text, "later");
+                break;
+            }
+            CoreEvent::TurnFailed { error, .. } => panic!("unexpected failure: {error}"),
+            _ => {}
+        }
+    }
+    assert_eq!(tool_starts, 2);
+    assert_eq!(reported, [(1400, 30, 65536), (1500, 40, 65536)]);
     app.shutdown().await.expect("shutdown");
     guard.join().await.expect("join");
 }

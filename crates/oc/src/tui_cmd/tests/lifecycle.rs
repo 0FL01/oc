@@ -2397,7 +2397,7 @@ async fn keyboard_close_after_mouse_add_retests_real_pointer_without_mouse_hold(
     state.handle_mouse(mouse(MouseEventKind::Moved), area);
     state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left)), area);
     let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)), area);
-    assert_eq!(outcome.intent, Some(PanelIntent::NewSession));
+    assert_eq!(outcome.intent, Some(PanelIntent::AddSessionTab));
     let worker = tokio::spawn(async move {
         let Some(InboxMsg::HomeSelection { ack, .. }) = inbox.recv().await else {
             panic!("owner Home selection")

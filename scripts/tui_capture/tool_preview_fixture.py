@@ -104,6 +104,9 @@ def snapshot(home, project, spec):
                 data['prompt_input_history'] = json.loads(row[0]) if row and row[0] else []
             if spec.get('user_shell') and spec['origin'] == 'oc' and 'turns' in tables:
                 data['model_turns'] = connection.execute('SELECT COUNT(*) FROM turns').fetchone()[0]
+            if spec.get('syntax_inventory') and spec['origin'] == 'oc' and 'turns' in tables:
+                data['syntax_turns'] = [dict(row) for row in connection.execute(
+                    'SELECT id,session_id,status FROM turns ORDER BY rowid LIMIT 4')]
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'

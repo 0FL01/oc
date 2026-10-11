@@ -19,7 +19,7 @@ mod identity_tests {
 mod controls_tests;
 
 #[path = "binding_replay_tests.rs"]
-mod binding_replay_tests;
+pub(super) mod binding_replay_tests;
 
 #[cfg(test)]
 mod vis38_review_tests {

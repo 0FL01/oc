@@ -1850,6 +1850,16 @@ Both gutter padding cells retain the terminal foreground; only digits are muted.
 The actual80×24 draft view also checks the Markdown inline URL and Zig punctuation
 word boundaries from the unchanged source samples; all cells/styles remain captured.
 
+The same episode now clicks the painted Root Add while the provider is paused,
+returns to the still-busy root with its unsent draft, parks it again and captures
+Home. The generation finishes while Home remains selected; the real leader close
+removes only Home and restores the same root/draft. No tab gesture submits/cancels
+or replays a request/effect. After restart/replay, one explicitly submitted second
+turn is held by its owned provider and cancelled through real Escape input. Its
+pending/cancelled full frames and native root/turn status are retained separately.
+This adds three actual paired stages; the first post-inventory cache observation
+still precedes observer hash reads, with no early cache snapshot during parking.
+
 The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
 record real initial access times; the first post-render snapshot records access
 times before reading/hash verification. Every external grammar/highlight member

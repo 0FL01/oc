@@ -221,6 +221,8 @@ pub enum PanelIntent {
     },
     /// Create an empty application session and attach its Home route.
     NewSession,
+    /// Painted root-strip Add; command New keeps its independent busy guard.
+    AddSessionTab,
     /// Activate a retained real tab by its zero-based deck index.
     ActivateTab {
         index: usize,
@@ -700,6 +702,8 @@ pub struct TuiState {
     reasoning_finished: Option<Instant>,
     /// Provider usage reported for the active turn (never synthesized).
     turn_usage: Option<TurnUsage>,
+    /// Latest measured generation input/output and its captured context limit.
+    turn_context_usage: Option<(u64, u64, u64)>,
     scroll: usize,
     wheel_motion: Option<WheelMotion>,
     note: Option<(String, NoteVariant)>,
@@ -915,6 +919,7 @@ impl TuiState {
             reasoning_started: None,
             reasoning_finished: None,
             turn_usage: None,
+            turn_context_usage: None,
             scroll: 0,
             wheel_motion: None,
             note: None,

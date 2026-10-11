@@ -1,4 +1,5 @@
 import io
+import json
 import lzma
 import tarfile
 import unittest
@@ -8,6 +9,28 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_current_and_historical_producers_require_the_exact_canonical_source_seal(self):
+        # JS locale collation puts app.rs before README.md; codepoint sort does not.
+        manifest = {"crates/oc-tui/README.md": "b" * 64, "crates/oc-tui/app.rs": "a" * 64}
+        canonical = {"crates/oc-tui/app.rs": "a" * 64, "crates/oc-tui/README.md": "b" * 64}
+        seal = proof.digest(json.dumps(canonical, separators=(",", ":")).encode())
+        lock = {"oc": {"source_manifest_sha256": seal}}
+        proof.check_source_manifest(lock, manifest, 2)
+        bad = {"oc": {"source_manifest_sha256": "0" * 64}}
+        with self.assertRaisesRegex(ValueError, "source manifest seal"):
+            proof.check_source_manifest(bad, manifest, 2)
+        for episode, checker, count in (("inventory", proof.producer_checks, 2),
+                                        ("diagnostic-before", proof.diagnostic_checks, 707)):
+            recorded = manifest if count == 2 else {f"crates/input-{index}.rs": "a" * 64
+                                                    for index in range(count)}
+            files = {episode + "/capture.lock.json": json.dumps(bad).encode(),
+                     episode + "/source-manifest.json": json.dumps(recorded).encode()}
+            with self.subTest(episode=episode), self.assertRaisesRegex(ValueError, "source manifest seal"):
+                if count == 2:
+                    checker(files, count)
+                else:
+                    checker(files)
+
     def test_full_byte_roundtrip_same_side_alias_and_independent_commitment(self):
         files = {"inventory/oc/a.png": b"original encoded PNG A\x00\xff",
                  "inventory/oc/b.png": b"original encoded PNG A\x00\xff",

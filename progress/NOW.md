@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-10T23:12:38+00:00
+State updated: 2026-10-11T03:37:24+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,38 +12,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# T44 shared pinned source-word wrap — qualified slice
+# T44 actionable Root Add / captured live context — qualified slice
 
 ## Result
-Common source-space/code/permission wrapping uses actual pinned punctuation and
-script boundaries, preserving source styles, logical indentation and Unicode.
-Actual80×24 Markdown/Zig61-cell mismatch is corrected; RAW/effect/permission,
-draft/selection, resource and concurrency ownership remain unchanged.
-Receipt evidence/tui/wrap-qualified.md; whole T44 ACTIVE/NOT_PASS.
-Git determines reviewed code commit/push, not this pre-delivery checkpoint.
+Painted busy Root Add uses checked deck CAS before parking the same accepted root.
+Exact parked events/controls, return/cancel and fresh Shell receipt ownership hold.
+Actual generation context/limit survives live/history/checkpoint; pending identity
+is not false loss; cancelled public text remains incomplete/no partial tool effects.
+Receipt evidence/tui/root-qualified.md; whole frozen T44 ACTIVE/NOT_PASS.
+Git determines reviewed delivery, not this pre-delivery checkpoint.
 
 ## Checks
-Current all46 workspace1821/0/11,507TUI, strict Clippy/fmt/builds/help, release
-startup19/GET8/TERM01/VIS31/S07/AUD32 original bounds and Python51 checks PASS.
-Baseline-red source-wrap scenarios/final review; actual absolute narrow source
-rows/styles equal, preserved Write840/840cells, one91B overwrite/3requests,
-natural gen0 exit/painted Sessions reopen/no replay. Whole1406 files/224 full
-captures retained exact3216980B; independent current706/ELF/effect/audit PASS.
+Current all46 workspace1828/0/11,111binary/507TUI, strict Clippy/fmt/builds/help,
+release startup19/GET8/TERM01/VIS31/S07/actual AUD32 original guards and Python52 PASS.
+Actual Root0037states/side, mouse Add/return/parked completion/draft/Home close,
+natural gen0/reopen/no replay and explicit gen1cancel; one91B Write/four requests.
+Live partial full grid/cursor/PNG EQUAL. All1442 current+282 historical files,
+230+36 full captures retained byte-exact3812448+1890280B, current707/build/ELF audited.
 
 ## Risks
-Direct218 DIFFERENT/4 EQUAL plus4 native-only; matched144 DIFFERENT. Native1.8s/
-Original2.0s clocks, live Root/status48cells and preexisting raster edge remain
-unmasked. Current parser/raster caret differences persist; blink unqualified.
-All prior bytes/reports/checkpoints and1GiB cap unchanged; no global PASS.
-Full frozen R1–R6/VIS01–45/supplements and final current-source R6/V09 mandatory.
+Direct222 DIFFERENT/6 EQUAL plus4 native-only; matched144 DIFFERENT. Native complete/
+replay equals itself; Original345 user-hover cells differ after remount. Real7.9/8.0s
+clock,32 draft raster-edge pixels and current composer caret/blink remain unmasked.
+All old failed/qualified bytes/checkpoints preserved; original1GiB/bounds unchanged.
+Initial release TERM01 pre-request failure then unchanged isolated PASS, no causal fix.
+ALL frozen R1–R6/VIS01–45/supplements and final current-source R6/V09 mandatory.
 
 ## Next
-Make Root Add actionable only after exact parked-root turn/job/permission routing
-preserves view authority; no inert glyph or blind guard removal. Qualify truthful
-active context usage/preview-loss chrome without suppressing loss or inventing data.
-Continue every remaining frozen Thoughts/family/forms/DCP/MCP/auth supplement and
-actual current paired proof, then final R6/V09. Do not finish T44 early, reduce
-the contract or stop after administrative delivery.
+Fix actual accepted-user hover after resize through current painted identity,
+without stale click/Message Actions/Revert or profile-border regressions. Continue
+raster/caret/blink/real pacing and every remaining Thoughts/family/forms/DCP/MCP/auth
+frozen outcome, actual paired proof, then final current-source R6/V09. Do not stop
+after delivery, normalize pixels/clocks, reduce acceptance or finish T44 early.
 
 
 Ready (до 5): T58

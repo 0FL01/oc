@@ -211,7 +211,7 @@ pub(super) fn return_parent(state: &mut TuiState, deck: &mut LoopState) {
     }
 }
 
-fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
+pub(super) fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
     match event {
         CoreEvent::TurnStarted { session, .. }
         | CoreEvent::TurnPresentation { session, .. }
@@ -222,10 +222,13 @@ fn event_owner(event: &CoreEvent) -> Option<&SessionId> {
         | CoreEvent::ToolArgumentStream { session, .. }
         | CoreEvent::ToolCallFinished { session, .. }
         | CoreEvent::TurnUsage { session, .. }
+        | CoreEvent::TurnContextUsage { session, .. }
         | CoreEvent::TurnFinished { session, .. }
         | CoreEvent::TurnInterrupted { session, .. }
         | CoreEvent::TurnFailed { session, .. }
         | CoreEvent::SessionMoved { session, .. }
+        | CoreEvent::SessionModelSelected { session, .. }
+        | CoreEvent::SessionTitleUpdated { session, .. }
         | CoreEvent::ShellChanged { session }
         | CoreEvent::TerminalChanged { session }
         | CoreEvent::RetryScheduled { session, .. } => Some(session),

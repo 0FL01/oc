@@ -493,6 +493,8 @@ pub struct AssistantMeta {
     /// Latest provider generation's reported input/output context measurement.
     /// Independent of complete turn usage used for tok/s.
     pub context_usage: Option<(u64, u64)>,
+    /// Captured limit for that exact measurement, not the current picker.
+    pub context_usage_limit: Option<u64>,
     /// Provider-active streaming time in milliseconds, when reported.
     pub streamed_ms: Option<u64>,
     /// Current owner presentation setting; not durable turn/provider metadata.

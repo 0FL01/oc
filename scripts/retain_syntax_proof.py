@@ -13,6 +13,7 @@ import os
 from pathlib import Path, PurePosixPath
 import resource
 import stat
+import subprocess
 import tarfile
 
 import archive_failed_capture as storage
@@ -123,12 +124,33 @@ def unpack(encoded):
     return files, aliases, raw_sha, raw_bytes
 
 
-def producer_checks(files, source_count=704):
+def check_source_manifest(lock, manifest, source_count):
+    require(isinstance(manifest, dict) and len(manifest) == source_count and
+            all(isinstance(name, str) and isinstance(value, str) and len(value) == 64 and
+                all(char in "0123456789abcdef" for char in value)
+                for name, value in manifest.items()), "complete producer source membership")
+    # Acquisition uses JavaScript localeCompare, not Python/codepoint key order.
+    # Reuse that exact dev-tool collation; Node runs jitless with a small heap and
+    # inherits the unchanged 384 MiB address-space bound. TAR/XZ stays stdlib-only.
+    canonical = subprocess.run([
+        "node", "--jitless", "--max-old-space-size=16", "--max-semi-space-size=1", "-e",
+        'const m=JSON.parse(require("node:fs").readFileSync(0,"utf8"));'
+        'const c=JSON.stringify(Object.fromEntries(Object.entries(m).sort(([a],[b])=>a.localeCompare(b))));'
+        'process.stdout.write(require("node:crypto").createHash("sha256").update(c).digest("hex"));'
+    ], input=json.dumps(manifest, ensure_ascii=False).encode(), capture_output=True, timeout=10, check=False)
+    require(canonical.returncode == 0 and
+            canonical.stdout.decode("ascii") == lock["oc"]["source_manifest_sha256"],
+            "producer source manifest seal")
+
+
+def producer_checks(files, source_count=704, inventory_stages=None):
+    inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
+                                          "syntax-current-profile-draft", "syntax-replayed-inventory"]
     reports = []
-    for episode, count in (("inventory", 8), ("ordinary", 56), ("temporal", 160)):
+    for episode, count in (("inventory", 2 * len(inventory_stages)), ("ordinary", 56), ("temporal", 160)):
         read = lambda relative: json.loads(files[episode + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
-        require(len(manifest) == source_count, "complete current producer source membership")
+        check_source_manifest(lock, manifest, source_count)
         for name, expected in manifest.items():
             with (REPO / name).open("rb") as stream:
                 require(hashlib.file_digest(stream, "sha256").hexdigest() == expected, "current producer source")
@@ -144,9 +166,18 @@ def producer_checks(files, source_count=704):
             if episode == "inventory":
                 require(checks["status"] == "PASS_BEHAVIOR_ONLY" and checks["syntax"]["no_replay"],
                         "completed actual syntax/reopen proof")
-                require([stage["stage"] for stage in checks["stages"]] ==
-                        ["syntax-live-partial", "syntax-complete-inventory", "syntax-current-profile-draft",
-                         "syntax-replayed-inventory"], "four actual planned states")
+                require([stage["stage"] for stage in checks["stages"]] == inventory_stages,
+                        "all actual planned states")
+                if len(inventory_stages) == 7:
+                    facts = checks["syntax"]["root_add"]
+                    require(all(facts.get(name) is True for name in
+                                ("actual_busy_mouse_add", "busy_return_draft_preserved",
+                                 "completed_while_parked", "home_closed_without_root_effect",
+                                 "no_provider_replay")) and checks["syntax"]["requests"] == 4,
+                            "actual parked-root episode")
+                    if side == "oc":
+                        require(facts.get("cancelled_exact_retained_root") is True,
+                                "actual retained-root cancellation")
             elif episode == "ordinary":
                 require(checks["status"] == "PASS_BEHAVIOR_ONLY", "ordinary actual effects")
             else:
@@ -157,6 +188,40 @@ def producer_checks(files, source_count=704):
                         "complete default temporal proof")
         reports.append({"episode": episode, "captures": count,
                         "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
+def diagnostic_checks(files):
+    # Keep temporary before/after diagnostics and the two failed older-source
+    # probes complete. Retain their provenance, never call them current.
+    reports = []
+    for episode, count in (("diagnostic-before", 8), ("diagnostic-after", 8),
+                           ("probe-first", 6), ("probe-second", 14)):
+        read = lambda relative: json.loads(files[episode + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 707)
+        builds = [item for item in read("commands.json") if item["argv"][0] == "cargo"]
+        require(len(manifest) == 707 and len(lock["captures"]) == count and len(builds) == 1 and
+                builds[0]["argv"][:3] == ["cargo", "build", "--locked"] and builds[0]["exit_code"] == 0,
+                "recorded diagnostic acquisition scope")
+        for side in ("oc", "upstream"):
+            checks = read(side + "/tool-preview-checks.json")
+            if episode == "probe-first":
+                require(checks["status"] == "FAILED" and len(checks["stages"]) == 2,
+                        "failed Root viewport-probe visibility")
+            elif episode == "probe-second":
+                require(checks["status"] == ("FAILED" if side == "oc" else "PASS_BEHAVIOR_ONLY") and
+                        len(checks["stages"]) == (6 if side == "oc" else 7),
+                        "failed native cancelled-prefix visibility")
+            else:
+                require(checks["status"] == "PASS_BEHAVIOR_ONLY" and checks["syntax"]["no_replay"],
+                        "actual diagnostic syntax episode")
+        if episode in ("diagnostic-before", "diagnostic-after"):
+            require(episode + "/oc/scheduler.preview-loss.jsonl" in files,
+                    "original loss diagnostic retained")
+        reports.append({"episode": episode, "captures": count, "current_source": False,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"])),
+                        "native_executable_sha256": lock["oc"]["executable_sha256"]})
     return reports
 
 
@@ -203,10 +268,24 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap"), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics"), default="syntax")
     args = parser.parse_args()
     source_count = 704
-    if args.campaign == "wrap":
+    inventory_stages = None
+    if args.campaign == "root-diagnostics":
+        ROOTS = {"diagnostic-before": TEMP / "root-loss-diagnostic-001",
+                 "diagnostic-after": TEMP / "root-loss-diagnostic-002",
+                 "probe-first": TEMP / "root-current-001/inventory",
+                 "probe-second": TEMP / "root-current-002/inventory"}
+    elif args.campaign == "root":
+        ROOTS = {"inventory": TEMP / "root-current-003/inventory",
+                 **{name: TEMP / "root-regressions-001" / name
+                    for name in ("ordinary", "temporal", "matched")}}
+        source_count = 707
+        inventory_stages = ["syntax-live-partial", "syntax-root-parked-home", "syntax-complete-inventory",
+                            "syntax-current-profile-draft", "syntax-replayed-inventory",
+                            "syntax-root-cancel-pending", "syntax-root-cancelled"]
+    elif args.campaign == "wrap":
         ROOTS = {"inventory": TEMP / "wrap-current-001/inventory",
                  **{name: TEMP / "wrap-regressions-001" / name
                     for name in ("ordinary", "temporal", "matched")}}
@@ -228,12 +307,14 @@ def main():
         restored, aliases, raw_sha, raw_bytes = unpack(encoded)
         require(inventory(restored, aliases) == record["inventory"] and
                 (raw_sha, raw_bytes) == (record["tar_sha256"], record["tar_bytes"]), "whole independent inventory")
-        reports = producer_checks(restored, source_count)
+        reports = (diagnostic_checks(restored) if args.campaign == "root-diagnostics" else
+                   producer_checks(restored, source_count, inventory_stages))
         require(reports == record["producer_reports"], "recorded producer audit scope")
     else:
         require(not archive.exists() and not receipt.exists(), "retained proof overwrite refused")
         files = source_files()
-        reports = producer_checks(files, source_count)
+        reports = (diagnostic_checks(files) if args.campaign == "root-diagnostics" else
+                   producer_checks(files, source_count, inventory_stages))
         aliases = png_aliases(files)
         expected = inventory(files, aliases)  # Seal complete actual targets BEFORE encoding.
         encoded, raw_sha, raw_bytes = encode(files, aliases)

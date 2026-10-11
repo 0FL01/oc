@@ -863,14 +863,17 @@ async fn retained_tab_mouse_routes_only_matching_painted_left_clicks() {
         assert_eq!(click(&mut state, rect.x, 0), None);
     }
     assert_eq!(click(&mut state, area.right() - 1, 1), None);
-    assert_eq!(click(&mut state, add.x, 0), Some(PanelIntent::NewSession));
+    assert_eq!(
+        click(&mut state, add.x, 0),
+        Some(PanelIntent::AddSessionTab)
+    );
     assert_eq!(
         click(&mut state, add.x + 1, 0),
-        Some(PanelIntent::NewSession)
+        Some(PanelIntent::AddSessionTab)
     );
     assert_eq!(
         click(&mut state, add.x + 2, 0),
-        Some(PanelIntent::NewSession)
+        Some(PanelIntent::AddSessionTab)
     );
     state.handle_mouse(event(left, active.x, 0, plain), area);
     assert_eq!(

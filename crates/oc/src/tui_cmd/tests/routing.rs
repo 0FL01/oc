@@ -1,6 +1,511 @@
 use super::*;
 
 #[tokio::test]
+async fn parked_root_events_keep_exact_view_and_restore_it_after_read_failure() {
+    use oc_core::tool_output::Presentation;
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let root = SessionId("parked-root-owner".into());
+    let other = SessionId("unrelated-root".into());
+    let turn = WorkerTurnId("accepted-parked-root-turn".into());
+    let mut state = TuiState::new(app.clone(), root.clone());
+    state.restore_prompt("accepted root prompt".into());
+    state.handle_key(KeyAction::Enter).await;
+    let InboxMsg::Submit { ack, .. } = inbox.recv().await.unwrap() else {
+        panic!("one genuine root admission")
+    };
+    ack.send(Ok(turn.clone())).unwrap();
+    state.poll_submission();
+    assert_eq!(state.active_turn(), Some(&turn));
+    state.restore_prompt("unfinished root draft".into());
+    let mut unrelated = TuiState::new(app.clone(), other.clone());
+    unrelated.restore_prompt("unrelated draft".into());
+    let mut deck = LoopState {
+        tabs: vec![None, Some(unrelated)],
+        tab_cards_before: vec![None, None],
+        active_tab: Some(0),
+        ..Default::default()
+    };
+    deck.open_home(&mut state, TuiState::new_home(app.clone()));
+    state.restore_prompt("unsent Home draft".into());
+    // Home has no session; the event's immutable owner is the routing hint.
+    let home_session = root.clone();
+    let paint = |view: &TuiState| {
+        let mut terminal =
+            ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+        terminal
+            .draw(|frame| oc_tui::shell::render(frame, view))
+            .unwrap();
+        terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<String>()
+    };
+    let events = vec![
+        CoreEvent::TextDelta {
+            session: root.clone(),
+            turn: turn.clone(),
+            delta: "captured parked ROOT delta".into(),
+        },
+        CoreEvent::ToolCallStarted {
+            session: root.clone(),
+            turn: turn.clone(),
+            op: "parked-op".into(),
+            name: "fixture_echo".into(),
+            input: r#"{"value":"recorded input"}"#.into(),
+            dcp_topic: None,
+        },
+        CoreEvent::ToolCallFinished {
+            session: root.clone(),
+            turn: turn.clone(),
+            op: "parked-op".into(),
+            name: "fixture_echo".into(),
+            state: "completed".into(),
+            output: "RAW result remains a separate fact".into(),
+            output_bytes: 34,
+            output_truncated: false,
+            output_presentation: Some(Box::new(Presentation::new("typed parked body", 17, false))),
+            patch_effects: None,
+            dcp: None,
+            question: None,
+        },
+        CoreEvent::SessionTitleUpdated {
+            session: root.clone(),
+            title: "committed parked title".into(),
+        },
+        CoreEvent::TextDelta {
+            session: SessionId("foreign-not-in-this-deck".into()),
+            turn: turn.clone(),
+            delta: "foreign text must not leak".into(),
+        },
+    ];
+    for event in events {
+        handle_worker_event(&app, &mut state, &mut deck, &home_session, event)
+            .await
+            .unwrap();
+    }
+    let parked = deck.tabs[0].as_mut().unwrap();
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| oc_tui::shell::render(frame, parked))
+        .unwrap();
+    let label = "fixture_echo";
+    let position = terminal
+        .backend()
+        .buffer()
+        .content
+        .windows(label.len())
+        .position(|cells| cells.iter().map(|cell| cell.symbol()).collect::<String>() == label)
+        .expect("painted generic header is the real expansion target");
+    for kind in [
+        crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+        crossterm::event::MouseEventKind::Up(crossterm::event::MouseButton::Left),
+    ] {
+        parked.handle_mouse(
+            crossterm::event::MouseEvent {
+                kind,
+                column: (position % 120) as u16,
+                row: (position / 120) as u16,
+                modifiers: crossterm::event::KeyModifiers::NONE,
+            },
+            ratatui::layout::Rect::new(0, 0, 120, 40),
+        );
+    }
+    let painted = paint(parked);
+    assert!(painted.contains("captured parked ROOT delta"));
+    assert!(painted.contains("typed parked body"));
+    assert!(!painted.contains("foreign text must not leak"));
+    assert_eq!(parked.active_turn(), Some(&turn));
+    assert_eq!(
+        parked.session_title.as_deref(),
+        Some("committed parked title")
+    );
+    assert_eq!(parked.input(), "unfinished root draft");
+    assert_eq!(state.input(), "unsent Home draft");
+    assert!(!paint(&state).contains("captured parked ROOT delta"));
+    assert_eq!(deck.tabs[1].as_ref().unwrap().input(), "unrelated draft");
+    assert_eq!(
+        deck.tabs[1].as_ref().unwrap().attached_session(),
+        Some(&other)
+    );
+    assert_eq!(deck.active_tab, None);
+    assert!(inbox.try_recv().is_err(), "no source-unrelated lookups");
+
+    // A failed bounded history read must not discard the unique parked view.
+    let expected = root.clone();
+    let owner = tokio::spawn(async move {
+        let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("completion queries its immutable owner, not Home")
+        };
+        assert_eq!(session, expected);
+        ack.send(Err(CoreError::Shutdown)).unwrap();
+        inbox
+    });
+    assert!(
+        handle_worker_event(
+            &app,
+            &mut state,
+            &mut deck,
+            &home_session,
+            CoreEvent::TurnFinished {
+                session: root.clone(),
+                turn,
+                text: "captured parked ROOT delta".into(),
+                duration_ms: 123,
+                warnings: Vec::new(),
+                service_warning_range: 0..0,
+            },
+        )
+        .await
+        .is_err()
+    );
+    let mut inbox = owner.await.unwrap();
+    let parked = deck.tabs[0]
+        .as_ref()
+        .expect("root survives error propagation");
+    assert_eq!(parked.attached_session(), Some(&root));
+    assert!(!parked.is_busy());
+    assert_eq!(parked.input(), "unfinished root draft");
+    assert_eq!(state.input(), "unsent Home draft");
+    assert!(inbox.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn busy_root_strip_add_commits_before_parking_and_keeps_cancel_route() {
+    for refuse_save in [true, false] {
+        let (app, mut inbox, _) = CoreApp::channel(8);
+        let root = SessionId("accepted-root-for-add".into());
+        let turn = WorkerTurnId("existing-root-turn".into());
+        let mut state = TuiState::new(app.clone(), root.clone());
+        state.restore_prompt("accepted original prompt".into());
+        state.handle_key(KeyAction::Enter).await;
+        let InboxMsg::Submit { ack, .. } = inbox.recv().await.unwrap() else {
+            panic!("one original admission")
+        };
+        let mut deck = LoopState {
+            tabs: vec![None],
+            tab_cards_before: vec![None],
+            active_tab: Some(0),
+            location: Some("/fixture".into()),
+            revision: Some("before-add".into()),
+            ..Default::default()
+        };
+        assert!(!deck.can_park_busy_root(&state), "pending is not accepted");
+        ack.send(Ok(turn.clone())).unwrap();
+        state.poll_submission();
+        state.restore_prompt("unfinished accepted-root draft".into());
+        deck.sync_tabs(&mut state);
+        assert!(state.tab_presentation().2, "painted Add is owner-enabled");
+        assert!(
+            apply_intent(&app, &mut state, &mut deck, PanelIntent::NewSession)
+                .await
+                .is_err(),
+            "command New still refuses an ordinary busy turn"
+        );
+        assert!(inbox.try_recv().is_err());
+        let before = deck.snapshot(&state);
+        deck.conversation_recovery = Some((root.clone(), Instant::now()));
+        assert!(
+            apply_intent(&app, &mut state, &mut deck, PanelIntent::AddSessionTab)
+                .await
+                .is_err()
+        );
+        deck.conversation_recovery = None;
+        assert_eq!(deck.snapshot(&state), before);
+        assert!(inbox.try_recv().is_err());
+
+        let expected_root = root.clone();
+        let expected_before = before.clone();
+        let owner = tokio::spawn(async move {
+            let InboxMsg::HomeSelection { action, ack } = inbox.recv().await.unwrap() else {
+                panic!("sessionless Home choice, not a new runtime admission")
+            };
+            assert!(matches!(action, SelectionAction::New(_)));
+            let mut catalog = catalog();
+            catalog.chrome.location = Some("/fixture".into());
+            ack.send(Ok(catalog)).unwrap();
+            let InboxMsg::SaveTabDeck {
+                deck: snapshot,
+                ack,
+            } = inbox.recv().await.unwrap()
+            else {
+                panic!("CAS before replacing the selected root")
+            };
+            assert_eq!(snapshot.sessions, vec![expected_root]);
+            assert_eq!(
+                snapshot.new_session_titles,
+                expected_before.new_session_titles
+            );
+            assert_eq!(snapshot.location, expected_before.location);
+            assert_eq!(snapshot.revision, expected_before.revision);
+            assert_eq!(snapshot.active, None);
+            if refuse_save {
+                ack.send(Err(CoreError::TabDeckStorage)).unwrap();
+            } else {
+                ack.send(Ok(TabDeckSnapshot {
+                    revision: Some("after-add".into()),
+                    ..snapshot
+                }))
+                .unwrap();
+            }
+            inbox
+        });
+        let result = apply_intent(&app, &mut state, &mut deck, PanelIntent::AddSessionTab).await;
+        inbox = owner.await.unwrap();
+        assert!(
+            inbox.try_recv().is_err(),
+            "no submit, cancel, replay or extra save"
+        );
+        if refuse_save {
+            assert!(result.is_err());
+            assert_eq!(deck.snapshot(&state), before);
+            assert_eq!(state.attached_session(), Some(&root));
+            assert_eq!(state.active_turn(), Some(&turn));
+            assert_eq!(state.input(), "unfinished accepted-root draft");
+            assert!(deck.tabs[0].is_none(), "the selected root is still unique");
+            continue;
+        }
+        result.unwrap();
+        assert!(state.attached_session().is_none());
+        let parked = deck.tabs[0].as_ref().unwrap();
+        assert_eq!(parked.attached_session(), Some(&root));
+        assert_eq!(parked.active_turn(), Some(&turn));
+        assert_eq!(parked.input(), "unfinished accepted-root draft");
+        assert_eq!(deck.revision.as_deref(), Some("after-add"));
+        assert!(deck.close_tab(&app, &mut state, 0).await.is_err());
+        assert!(
+            inbox.try_recv().is_err(),
+            "busy parked owner cannot be discarded"
+        );
+        // Home is idle: the root's same mounted state can be selected and stopped.
+        deck.activate(&mut state, 0).unwrap();
+        assert_eq!(state.attached_session(), Some(&root));
+        assert_eq!(state.active_turn(), Some(&turn));
+        state.handle_key(KeyAction::Cancel).await;
+        assert!(
+            inbox.try_recv().is_err(),
+            "first Esc keeps the interrupt guard"
+        );
+        let owner = tokio::spawn(async move {
+            let InboxMsg::Cancel { session, ack } = inbox.recv().await.unwrap() else {
+                panic!("second Esc addresses the original root")
+            };
+            assert_eq!(session, root);
+            ack.send(Ok(())).unwrap();
+            inbox
+        });
+        state.handle_key(KeyAction::Cancel).await;
+        inbox = owner.await.unwrap();
+        assert!(inbox.try_recv().is_err());
+        assert_eq!(state.input(), "unfinished accepted-root draft");
+    }
+}
+
+#[tokio::test]
+async fn parked_root_controls_keep_bindings_without_selecting_home_or_replying() {
+    use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+    use oc_core::question::{QuestionInput, QuestionPrompt, QuestionRequest};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let root = SessionId("control-root".into());
+    let binding = ApprovalBinding {
+        session: root.0.clone(),
+        turn: "accepted-root-turn".into(),
+        call: "captured-call".into(),
+        operation: "captured-operation".into(),
+        input_digest: "immutable-input-digest".into(),
+        location: "/fixture".into(),
+        generation: 7,
+        agent: None,
+        agent_digest: None,
+    };
+    let permission = ApprovalRequest {
+        id: 31,
+        binding: binding.clone(),
+        project: "/fixture".into(),
+        action: "read".into(),
+        resources: vec!["actual-resource".into()],
+        save_patterns: Vec::new(),
+        preview: ApprovalPreview::Resource {
+            values: vec!["actual-resource".into()],
+        },
+    };
+    let question = QuestionRequest {
+        id: 32,
+        binding,
+        input: QuestionInput {
+            questions: vec![QuestionPrompt {
+                question: "Captured root question?".into(),
+                header: "Root question".into(),
+                options: Vec::new(),
+                multiple: false,
+            }],
+        },
+    };
+    let mut parked = TuiState::new(app.clone(), root.clone());
+    parked.restore_prompt("original root draft".into());
+    let mut state = TuiState::new_home(app.clone());
+    state.restore_prompt("unsent Home draft".into());
+    let mut deck = LoopState {
+        tabs: vec![Some(parked)],
+        tab_cards_before: vec![None],
+        ..Default::default()
+    };
+    let expected_permission = permission.clone();
+    let expected_question = question.clone();
+    let expected_root = root.clone();
+    let owner = tokio::spawn(async move {
+        for _ in 0..2 {
+            let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
+                panic!("bounded permission snapshot")
+            };
+            ack.send(Ok(vec![expected_permission.clone()])).unwrap();
+            let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
+                panic!("permission ancestry")
+            };
+            assert_eq!(session, expected_root);
+            ack.send(Ok(HistoryPage::default())).unwrap();
+            let InboxMsg::PendingQuestions { ack } = inbox.recv().await.unwrap() else {
+                panic!("bounded question snapshot")
+            };
+            ack.send(Ok(vec![expected_question.clone()])).unwrap();
+            let InboxMsg::History { session, ack, .. } = inbox.recv().await.unwrap() else {
+                panic!("question ancestry")
+            };
+            assert_eq!(session, expected_root);
+            ack.send(Ok(HistoryPage::default())).unwrap();
+        }
+        inbox
+    });
+    handle_worker_event(
+        &app,
+        &mut state,
+        &mut deck,
+        &root,
+        CoreEvent::QuestionAsked(question.clone()),
+    )
+    .await
+    .unwrap();
+    let inbox = owner.await.unwrap();
+    assert!(
+        inbox.is_empty(),
+        "projection cannot authorize or answer work"
+    );
+    assert!(state.attached_session().is_none());
+    assert_eq!(state.input(), "unsent Home draft");
+    assert!(state.approvals.active().is_none() && state.questions.active().is_none());
+    let parked = deck.tabs[0].as_ref().unwrap();
+    assert_eq!(parked.attached_session(), Some(&root));
+    assert_eq!(parked.input(), "original root draft");
+    assert_eq!(parked.approvals.active(), Some(&permission));
+    assert_eq!(parked.questions.active(), Some(&question));
+    assert_eq!(deck.active_tab, None);
+    deck.activate(&mut state, 0).unwrap();
+    let reply = state.questions.key(KeyAction::Cancel).intent.unwrap();
+    assert!(
+        matches!(reply, PanelIntent::ReplyQuestion(ref reply) if reply.id == question.id && reply.binding == question.binding)
+    );
+    assert_eq!(state.input(), "original root draft");
+}
+
+#[tokio::test]
+async fn fresh_shell_permission_stays_with_its_receipt_without_parked_history_lookup() {
+    use oc_core::approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new_home(app.clone());
+    state.handle_key(KeyAction::Char('!')).await;
+    state.restore_prompt("printf explicit command".into());
+    state.handle_key(KeyAction::Enter).await;
+    let InboxMsg::UserShell {
+        session,
+        command,
+        cancel,
+        ack,
+        ..
+    } = inbox.try_recv().unwrap()
+    else {
+        panic!("actual fresh-shell receipt")
+    };
+    assert_eq!(command, "printf explicit command");
+    assert_eq!(state.user_shell_admission_session(), Some(&session));
+    assert!(state.attached_session().is_none());
+    let permission = ApprovalRequest {
+        id: 41,
+        binding: ApprovalBinding {
+            session: session.0.clone(),
+            turn: "captured-shell-admission".into(),
+            call: "captured-shell-call".into(),
+            operation: "captured-shell-operation".into(),
+            input_digest: "captured-command-digest".into(),
+            location: "/fixture".into(),
+            generation: 7,
+            agent: None,
+            agent_digest: None,
+        },
+        project: "/fixture".into(),
+        action: "bash".into(),
+        resources: vec![command],
+        save_patterns: Vec::new(),
+        preview: ApprovalPreview::Shell {
+            command: "printf explicit command".into(),
+            cwd: "/fixture".into(),
+        },
+    };
+    let root = SessionId("parked-shell-origin".into());
+    let mut parked = TuiState::new(app.clone(), root.clone());
+    parked.restore_prompt("original root draft".into());
+    let mut deck = LoopState {
+        tabs: vec![Some(parked)],
+        tab_cards_before: vec![None],
+        ..Default::default()
+    };
+    let expected = permission.clone();
+    let fresh = session.clone();
+    let owner = tokio::spawn(async move {
+        for _ in 0..2 {
+            let InboxMsg::PendingApprovals { ack } = inbox.recv().await.unwrap() else {
+                panic!("current permission snapshot")
+            };
+            ack.send(Ok(vec![expected.clone()])).unwrap();
+            match inbox.recv().await.unwrap() {
+                InboxMsg::PendingQuestions { ack } => {
+                    ack.send(Ok(Vec::new())).unwrap();
+                }
+                InboxMsg::History { session, ack, .. } => {
+                    assert_eq!(session, fresh, "baseline queried the unadmitted candidate");
+                    ack.send(Err(CoreError::Shutdown)).unwrap();
+                    return inbox;
+                }
+                _ => panic!("projection must not admit or answer the shell"),
+            }
+        }
+        inbox
+    });
+    let result = refresh_control_views(&app, &mut state, &mut deck).await;
+    let inbox = owner.await.unwrap();
+    assert!(
+        result.is_ok(),
+        "unadmitted history is not a valid projection source: {result:?}"
+    );
+    assert!(
+        inbox.is_empty(),
+        "no Submit, Reply, Cancel or session creation"
+    );
+    assert!(!cancel.load(std::sync::atomic::Ordering::SeqCst));
+    assert_eq!(state.approvals.active(), Some(&permission));
+    assert_eq!(state.user_shell_admission_session(), Some(&session));
+    assert!(state.attached_session().is_none() && state.has_pending_submission());
+    assert_eq!(state.input(), "printf explicit command");
+    let parked = deck.tabs[0].as_ref().unwrap();
+    assert_eq!(parked.attached_session(), Some(&root));
+    assert_eq!(parked.input(), "original root draft");
+    assert!(parked.approvals.active().is_none());
+    assert_eq!(deck.active_tab, None);
+    drop(ack);
+}
+
+#[tokio::test]
 async fn model_shell_notice_reads_only_the_known_original_capture_and_keeps_live_parts() {
     use oc_core::{
         queries::{

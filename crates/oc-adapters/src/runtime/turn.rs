@@ -28,6 +28,10 @@ mod builtin_tests;
 #[path = "child_dcp_tests.rs"]
 mod child_dcp_tests;
 
+#[cfg(test)]
+#[path = "context_tests.rs"]
+mod context_tests;
+
 /// Bound for walking a session's parent chain (cycle guard).
 const SUBAGENT_DEPTH_WALK_CAP: u32 = 64;
 
@@ -1649,13 +1653,17 @@ impl<'a> Runtime<'a> {
         let primary_request = self.db.session_meta(&params.session)?.parent_id.is_none();
         let mut text = String::new();
         let mut usage = None;
-        let mut context_usage = None;
         let mut usage_complete = true;
         let mut streamed = Duration::ZERO;
         let mut calls = Vec::new();
         let resuming = resume.is_some();
         let mut turn_log = resume
             .unwrap_or_else(|| TurnLog::new(&turn_id, &selection.id, &params.catalog.provider));
+        // Provider-only recovery keeps the last measured generation even if
+        // the resumed generation omits usage. A fresh log has no such pair.
+        let mut context_usage = turn_log.display["context_usage"]
+            .as_array()
+            .and_then(|values| Some((values.first()?.as_u64()?, values.get(1)?.as_u64()?)));
         let mut shell_notice_seq = projected
             .iter()
             .filter_map(|(id, _, _)| id.strip_prefix('m')?.parse::<i64>().ok())
@@ -2721,9 +2729,15 @@ impl<'a> Runtime<'a> {
                         }
                         streamed += stream_started.elapsed();
                         let output_started = matches!(&error, crate::provider::ProviderError::Request(f) if f.output_committed);
-                        if output_started {
+                        // Explicit cancellation still retains text already
+                        // published to the user, never a completed response or
+                        // permission to admit the unfinished function arguments.
+                        let cancelled_text = params.cancel.load(Ordering::Relaxed)
+                            && text_slots.iter().any(|slot| !slot.text.is_empty());
+                        if output_started || cancelled_text {
                             let mut partial_items = partial_opaque
                                 .into_iter()
+                                .filter(|_| output_started)
                                 .map(|(part, opaque)| {
                                     turn_log.opaque.push(opaque.clone());
                                     (part, InputItem::ProviderOutput(opaque), false)
@@ -2731,6 +2745,9 @@ impl<'a> Runtime<'a> {
                                 .collect::<Vec<_>>();
                             for slot in &text_slots {
                                 if !slot.text.is_empty() {
+                                    if cancelled_text {
+                                        text.push_str(&slot.text);
+                                    }
                                     partial_items.push((slot.part,InputItem::ProviderOutput(serde_json::json!({
                                 "type":"message", "role":"assistant", "status":"incomplete",
                                 "content":[{"type":"output_text","text":slot.text}]
@@ -2746,10 +2763,12 @@ impl<'a> Runtime<'a> {
                                     turn_log.display_parts[part] = serde_json::json!({"message":index,"span":turn_log.spans.last().expect("active").id});
                                 }
                             }
-                            let span = turn_log.spans.last_mut().expect("active span");
-                            span.status = "failed".into();
-                            span.finish = Some("error".into());
-                            span.completed = Some(millis());
+                            if !cancelled_text {
+                                let span = turn_log.spans.last_mut().expect("active span");
+                                span.status = "failed".into();
+                                span.finish = Some("error".into());
+                                span.completed = Some(millis());
+                            }
                         }
                         turn_log
                             .display_parts
@@ -2901,6 +2920,22 @@ impl<'a> Runtime<'a> {
             // another round omitted usage and the billed turn total is unknown.
             if let Some(reported) = generation.usage {
                 context_usage = Some(reported);
+                turn_log.display["context_usage"] = serde_json::json!(reported);
+                turn_log.display["context_usage_limit"] = budget.context.into();
+                if let Some(events) = self
+                    .compaction_events
+                    .lock()
+                    .expect("event publisher")
+                    .as_ref()
+                {
+                    let _ = events.send(oc_core::core_app::CoreEvent::TurnContextUsage {
+                        session: oc_core::domain::SessionId(params.session.clone()),
+                        turn: oc_core::core_app::WorkerTurnId(turn_id.clone()),
+                        input_tokens: reported.0,
+                        output_tokens: reported.1,
+                        context_limit: budget.context,
+                    });
+                }
             }
             // Usage: the last round's input tokens, output summed over rounds
             // (upstream aggregates per-step output for tok/s, runtime.rs docs).

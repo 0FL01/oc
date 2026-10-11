@@ -778,7 +778,7 @@ impl TuiState {
     /// painted, owner-enabled control; keys never create a mouse close hold.
     pub fn restore_tab_hover_at(&mut self, pointer: (u16, u16, Rect)) {
         let (x, y, area) = pointer;
-        if self.panel != TuiPanel::None || self.is_busy() {
+        if self.panel != TuiPanel::None {
             return;
         }
         if crate::shell::tab_strip(self, area)
@@ -792,7 +792,6 @@ impl TuiState {
 
     pub(crate) fn tab_add_hovered(&self, area: Rect, add: Rect) -> bool {
         self.panel == TuiPanel::None
-            && !self.is_busy()
             && (crate::layout::vertical_tabs_width(area.width, self.chrome.vertical_tabs_width) > 0
                 || add.width == 3)
             && self.last_mouse.is_some_and(|(x, y, pointer_area)| {

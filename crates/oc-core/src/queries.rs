@@ -317,6 +317,9 @@ pub struct HistoryTurn {
     /// Latest provider-reported generation input/output pair, independent of
     /// whether billed usage for every round of this turn is known.
     pub context_usage: Option<(u64, u64)>,
+    /// Context limit of the generation that reported `context_usage`.
+    /// Legacy records omit it; an explicitly captured zero means unknown.
+    pub context_usage_limit: Option<u64>,
     /// Measured wall time, if recorded.
     pub duration_ms: Option<u64>,
     /// Measured provider-active time, if recorded.

@@ -367,6 +367,15 @@ impl ScriptDriver {
                         state.apply_child_jobs(jobs);
                     }
                 }
+                Ok(Ok(CoreEvent::TurnContextUsage {
+                    turn,
+                    input_tokens,
+                    output_tokens,
+                    context_limit,
+                    ..
+                })) => {
+                    state.apply_context_usage(&turn, input_tokens, output_tokens, context_limit);
+                }
                 Ok(Ok(CoreEvent::TurnUsage {
                     turn,
                     input_tokens,
@@ -1001,6 +1010,7 @@ impl TuiState {
         self.reasoning_started = None;
         self.reasoning_finished = None;
         self.turn_usage = None;
+        self.turn_context_usage = None;
         self.scroll = 0;
         self.wheel_motion = None;
     }
@@ -1161,6 +1171,7 @@ impl TuiState {
                 self.reasoning_started = None;
                 self.reasoning_finished = None;
                 self.turn_usage = None;
+                self.turn_context_usage = None;
                 self.live_retry = None;
                 self.live_retry_seen = None;
                 self.retry_due = None;
@@ -1201,6 +1212,8 @@ impl TuiState {
         }
         self.active_turn = Some(turn);
         self.status = TuiStatus::Streaming;
+        self.turn_usage = None;
+        self.turn_context_usage = None;
         self.invalidate_transcript();
     }
 
@@ -1316,6 +1329,14 @@ impl TuiState {
             return;
         }
         self.live_projection_revision = Some((turn.clone(), projection.revision));
+        if let Some((input, output)) = projection.context_usage {
+            self.apply_context_usage(
+                turn,
+                input,
+                output,
+                projection.context_usage_limit.unwrap_or(0),
+            );
+        }
         self.live_part_states = projection.part_states.clone();
         let first = projection
             .spans
@@ -1349,6 +1370,20 @@ impl TuiState {
             .or_else(|| {
                 (!projection.model_label.is_empty()).then(|| projection.model_label.clone())
             });
+    }
+
+    /// Apply one completed generation's measured context to its active owner.
+    /// This does not create billed usage or a token rate.
+    pub fn apply_context_usage(
+        &mut self,
+        turn: &WorkerTurnId,
+        input_tokens: u64,
+        output_tokens: u64,
+        context_limit: u64,
+    ) {
+        if Some(turn) == self.active_turn.as_ref() {
+            self.turn_context_usage = Some((input_tokens, output_tokens, context_limit));
+        }
     }
 
     /// Apply provider-reported usage for the active turn; without it the
@@ -2150,12 +2185,14 @@ impl TuiState {
             })
         });
         let usage = self.turn_usage.take();
+        let context = self.turn_context_usage.take();
         AssistantMeta {
             model,
             duration_ms: (duration_ms > 0).then_some(duration_ms),
             input_tokens: usage.map(|usage| usage.input_tokens),
             output_tokens: usage.map(|usage| usage.output_tokens),
-            context_usage: None,
+            context_usage: context.map(|(input, output, _)| (input, output)),
+            context_usage_limit: context.map(|(_, _, limit)| limit),
             streamed_ms: usage.map(|usage| usage.streamed_ms),
             session_tps: None,
             interrupted,

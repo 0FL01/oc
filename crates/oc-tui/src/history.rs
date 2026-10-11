@@ -912,6 +912,7 @@ fn rows_from_page(row: &HistoryMessage) -> Vec<HistoryRow> {
         input_tokens: turn.usage.map(|v| v.0),
         output_tokens: turn.usage.map(|v| v.1),
         context_usage: turn.context_usage,
+        context_usage_limit: turn.context_usage_limit,
         streamed_ms: turn.streamed_ms,
         session_tps: None,
         interrupted: turn.status == "cancelled",

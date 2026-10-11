@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import threading
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "crates/oc-tui/assets/syntax/fixtures.json"
@@ -68,16 +69,21 @@ def respond(handler, body, spec, emit):
         requests += 1
         number = requests
     results = [item for item in body.get("input", []) if item.get("type") == "function_call_output"]
+    users = [item.get("content", []) for item in body.get("input", []) if item.get("role") == "user"]
+    last_user = users[-1] if users else []
+    last_text = last_user if isinstance(last_user, str) else "".join(
+        part.get("text", "") for part in last_user if part.get("type") in ("input_text", "text"))
     title = not body.get("tools")
+    cancel = not title and last_text == "VIS root cancel: keep the original root and stop only this generation."
     valid = handler.path == "/v1/responses" and body.get("stream") is True and body.get("model") == "fixture-model-1" and number <= 4
     valid = valid and (title or "write" in {item.get("name") for item in body["tools"]})
     valid = valid and (title or len(results) <= 1 and all(item.get("call_id") == "call_syntax_write" for item in results))
-    emit({"kind": "provider", "operation": "title" if title else "syntax_inventory", "valid": valid, "actual_results": results})
+    emit({"kind": "provider", "operation": "title" if title else "root_cancel" if cancel else "syntax_inventory", "valid": valid, "actual_results": results})
     if not valid:
         handler.send_error(400, "Syntax fixture contract rejected")
         return
-    tool = not title and not results
-    text = "Syntax inventory fixture" if title else document()
+    tool = not title and not cancel and not results
+    text = "Syntax inventory fixture" if title else "ROOT-CANCEL-READY" if cancel else document()
     item = ({"id": f"fc_syntax_{number}", "type": "function_call", "status": "completed",
              "call_id": "call_syntax_write", "name": "write", "arguments": json.dumps({"path": "syntax-proof.rs", "content": CONTENT})}
             if tool else {"id": f"msg_syntax_{number}", "type": "message", "role": "assistant", "status": "completed",
@@ -103,8 +109,21 @@ def respond(handler, body, spec, emit):
         event({"type": "response.function_call_arguments.delta", "item_id": item["id"], "output_index": 0, "delta": item["arguments"]})
     else:
         event({"type": "response.content_part.added", "item_id": item["id"], "output_index": 0, "content_index": 0, "part": {"type": "output_text", "text": "", "annotations": []}})
-        boundary = text.index("/* café") + len("/* café") if not title else len(text)
+        boundary = text.index("/* café") + len("/* café") if not title and not cancel else len(text)
         event({"type": "response.output_text.delta", "item_id": item["id"], "output_index": 0, "content_index": 0, "delta": text[:boundary]})
+        if cancel:
+            # SSE comments keep only this owned fixture connection observable;
+            # they produce no model text or UI paint. Cancellation must close it.
+            deadline = time.monotonic() + 45
+            try:
+                while time.monotonic() < deadline:
+                    handler.wfile.write(b": owned root cancellation heartbeat\n\n")
+                    handler.wfile.flush()
+                    time.sleep(0.05)
+            except (BrokenPipeError, ConnectionResetError):
+                emit({"kind": "root_cancel_disconnected"})
+                return
+            raise TimeoutError("Owned root cancellation did not close its provider")
         if not title:
             emit({"kind": "syntax_live_ready"})
             if not release.wait(45):

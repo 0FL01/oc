@@ -2019,19 +2019,29 @@ impl TuiState {
 
     /// Latest measured context, never DCP's estimate or a renderer constant.
     pub fn context_usage(&self) -> Option<(u64, Option<u64>)> {
-        let usage = self
+        if let Some((input, output, limit)) = self.turn_context_usage {
+            return Some((input.saturating_add(output), (limit > 0).then_some(limit)));
+        }
+        let (usage, captured_limit) = self
             .turn_usage
             .as_ref()
-            .map(|u| (u.input_tokens, u.output_tokens))
+            .map(|u| ((u.input_tokens, u.output_tokens), None))
             .or_else(|| {
                 // Live usage is handled above; frozen/live/compaction rows
                 // have no footer measurement. Borrow the retained durable tail.
                 self.window.rows().iter().rev().find_map(|r| {
                     let m = r.meta.as_ref()?;
                     m.context_usage
-                        .or_else(|| Some((m.input_tokens?, m.output_tokens?)))
+                        .map(|usage| (usage, m.context_usage_limit))
+                        .or_else(|| Some(((m.input_tokens?, m.output_tokens?), None)))
                 })
             })?;
+        if let Some(limit) = captured_limit {
+            return Some((
+                usage.0.saturating_add(usage.1),
+                (limit > 0).then_some(limit),
+            ));
+        }
         let limit = self
             .picker
             .as_ref()

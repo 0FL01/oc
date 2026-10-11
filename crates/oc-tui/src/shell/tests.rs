@@ -2180,11 +2180,73 @@ async fn context_footer_uses_reported_generation_without_billing_missing_rounds(
             .any(|line| line.plain_text().contains("tok/s"))
     );
 
-    // TurnFinished carries no separate context event: the durable page
-    // replaces the completed live footer with the same reported pair.
+    // A completed generation is measured before the turn finishes, even if
+    // another generation omitted usage. It does not create billing or tok/s.
     let turn = oc_core::core_app::WorkerTurnId("context-turn".into());
     state.begin_compress_turn(turn.clone());
+    state.close_panel();
+    state.apply_context_usage(&turn, 6000, 763, 225_000);
+    let mut changed = catalog();
+    changed.models[0].context = 1_000_000;
+    state.apply_catalog(changed);
+    state.apply_context_usage(
+        &oc_core::core_app::WorkerTurnId("foreign".into()),
+        99,
+        99,
+        1,
+    );
+    assert_eq!(
+        state.context_usage(),
+        Some((6763, Some(225_000))),
+        "the measured request keeps its captured limit, not a changed picker"
+    );
+    state.apply_presentation(
+        &turn,
+        &HistoryTurn {
+            id: turn.0.clone(),
+            status: "started".into(),
+            truncated: true,
+            ..Default::default()
+        },
+    );
+    for width in [43, 116] {
+        let footer = footer_line(&state, Theme::dark(), width, width + 4).to_string();
+        assert!(footer.contains("Preview limited"), "{footer}");
+        assert!(footer.contains("interrupt"), "{footer}");
+        if width == 116 {
+            assert!(footer.contains("6.8K (3%)"), "{footer}");
+        }
+    }
     state.apply_finished(&turn, "answer", 100);
+    let finished = state
+        .history()
+        .rows()
+        .last()
+        .unwrap()
+        .meta
+        .as_ref()
+        .unwrap();
+    assert_eq!(finished.context_usage, Some((6000, 763)));
+    assert_eq!(finished.context_usage_limit, Some(225_000));
+    assert_eq!(finished.input_tokens, None);
+    assert_eq!(finished.output_tokens, None);
+    assert_eq!(finished.streamed_ms, None);
+    assert_eq!(
+        state.context_usage(),
+        Some((6763, Some(225_000))),
+        "finishing cannot rebind the measured request to the changed picker"
+    );
+    answer.turn.as_mut().unwrap().context_usage_limit = Some(225_000);
+    state.attach_page(&page(vec![answer.clone()]));
+    assert_eq!(
+        state.context_usage(),
+        Some((6763, Some(225_000))),
+        "the durable projection preserves the captured limit too"
+    );
+    answer.turn.as_mut().unwrap().context_usage_limit = None; // legacy record
+    let mut restored = catalog();
+    restored.models[0].context = 225_000;
+    state.apply_catalog(restored);
     state.attach_page(&page(vec![answer.clone()]));
     assert_eq!(state.context_usage(), Some((6763, Some(225_000))));
     assert!(
@@ -2218,6 +2280,29 @@ async fn context_footer_uses_reported_generation_without_billing_missing_rounds(
     answer.turn.as_mut().unwrap().usage = None;
     state.attach_page(&page(vec![answer]));
     assert_eq!(state.context_usage(), None);
+
+    // A newly accepted linked child turn must not inherit the prior turn's
+    // context pair or billed rate, even if it never reported its own usage.
+    let first = oc_core::core_app::WorkerTurnId("linked-first".into());
+    let next = oc_core::core_app::WorkerTurnId("linked-next".into());
+    state.begin_linked_turn(first.clone());
+    state.apply_context_usage(&first, 99, 11, 1000);
+    state.apply_usage(&first, 99, 11, 100);
+    state.begin_linked_turn(next.clone());
+    assert_eq!(state.context_usage(), None);
+    state.apply_finished(&next, "unmeasured", 100);
+    let meta = state
+        .history()
+        .rows()
+        .last()
+        .unwrap()
+        .meta
+        .as_ref()
+        .unwrap();
+    assert_eq!(meta.context_usage, None);
+    assert_eq!(meta.context_usage_limit, None);
+    assert_eq!(meta.input_tokens, None);
+    assert_eq!(meta.output_tokens, None);
 }
 
 #[tokio::test]

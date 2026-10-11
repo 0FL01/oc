@@ -4,7 +4,7 @@ use crate::provider::protocol::Protocol;
 use serde_json::{Value, json};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-fn owner<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
+pub(in crate::runtime) fn owner<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
     Runtime::new(
         db,
         "work",
@@ -27,7 +27,9 @@ fn owner<'a>(db: &'a Db, project: &std::path::Path) -> Runtime<'a> {
     .unwrap()
 }
 
-async fn request(listener: &tokio::net::TcpListener) -> (tokio::net::TcpStream, Value) {
+pub(in crate::runtime) async fn request(
+    listener: &tokio::net::TcpListener,
+) -> (tokio::net::TcpStream, Value) {
     let (mut socket, _) = listener.accept().await.unwrap();
     let mut bytes = Vec::new();
     let mut chunk = [0; 4096];
@@ -96,7 +98,11 @@ fn frames(protocol: Protocol, tool: bool) -> String {
     wire
 }
 
-async fn respond(socket: &mut tokio::net::TcpStream, protocol: Protocol, tool: bool) {
+pub(in crate::runtime) async fn respond(
+    socket: &mut tokio::net::TcpStream,
+    protocol: Protocol,
+    tool: bool,
+) {
     let wire = frames(protocol, tool);
     socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{wire}", wire.len()).as_bytes()).await.unwrap();
 }

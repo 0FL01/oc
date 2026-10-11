@@ -884,6 +884,7 @@ async fn check_application_patch_replay(line: &str, count: usize) {
             | CoreEvent::ReasoningDelta { .. }
             | CoreEvent::ReasoningItemEnded { .. }
             | CoreEvent::TurnUsage { .. }
+            | CoreEvent::TurnContextUsage { .. }
             | CoreEvent::TurnInterrupted { .. }
             | CoreEvent::Compaction(_) => {}
             CoreEvent::ToolArgumentStream { event, .. } => argument_events.push(event),
