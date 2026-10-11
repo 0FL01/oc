@@ -576,3 +576,25 @@ unmasked. No historical rewrite/deletion/offload or original1GiB guard increase.
 Next actual user-hover/resize and raster/caret/pacing owners, then ALL remaining
 frozen R1–R6/VIS01–45/outcomes/supplements and final current-source R6/V09. Whole
 T44 ACTIVE/NOT_PASS; measured episode/body equality is not global acceptance.
+
+## Accepted-user hover after resize (2026-10-11 — qualified slice)
+
+[Factual receipt](../tui/hover-qualified.md) records retention of physical pointer
+only, current painted hover identity and invalidation of all old message/tool/tab/
+reasoning presses. Message Actions/Revert, current-profile border, RAW/history and
+drafts retain their guards. New meaningful hover/identity test and extended stale
+tool-press regression were baseline RED; final TUI508/strict Clippy and current
+all46 workspace1829/0/11,111binary/builds/help/release9/originalresourcegates PASS.
+Fresh actual Hover001 seven states per side preserve Root Add/parked completion/
+draft/Home close, one91B overwrite/four requests, natural gen0/reopen/no replay and
+explicit same-root cancel. All345 accepted-user inner cells match: hovered#1e at
+completion, fresh replay#14, stripe#12ab34; each side's intentional345 BG-cell
+transition is not same-side frame equality. Live-partial full grid/cursor/PNG EQUAL.
+All1442 files/230 complete captures retained exact3867612 B; independent current707/
+three real builds/ELF/effect/body/style/full-comparator/byte-restoration audit PASS.
+Direct222 DIFFERENT/6 EQUAL plus4 native-only, matched144 DIFFERENT remain. Real
+7.9/7.8s clocks,32 draft raster-edge pixels,47 parked-Home cells and composer caret/
+blink remain unmasked. No historical rewrite/deletion/offload or1GiB cap increase.
+Next actual raster/Root Home/caret/blink/pacing owners and EVERY remaining frozen
+R1–R6/VIS01–45/outcome/supplement, then final current-source R6/V09. Whole T44
+ACTIVE/NOT_PASS; hover/body/episode qualification is not global acceptance.

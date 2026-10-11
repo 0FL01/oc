@@ -2600,6 +2600,134 @@ async fn vis10_user_hover_and_click_follow_painted_identity_through_wrap_and_scr
 }
 
 #[tokio::test]
+async fn vis10_resize_rehits_physical_hover_without_retaining_message_press() {
+    use crossterm::event::{MouseButton, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend};
+
+    let mut state = fresh_state("resize-user-hover").await;
+    let text = "same accepted user with café 中文 and wrapping ".repeat(2);
+    state.attach_page(&page(vec![msg(1, Role::User, &text)], 1, false, false));
+    let mut current = snapshot();
+    current.agent_id = Some("y".into());
+    current
+        .chrome
+        .agent_colors
+        .insert("y".into(), "#12ab34".into());
+    state.apply_catalog(current);
+    state.restore_prompt("unsent resize draft".into());
+    let stored = state.history().rows().to_vec();
+    let theme = super::Theme::dark();
+    let stripe = ratatui::style::Color::Rgb(0x12, 0xab, 0x34);
+    let mut frame = Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(frame.width, frame.height)).unwrap();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let area = crate::shell::transcript_area(&state, frame);
+    let (_, _, _, targets) =
+        state.visible_transcript_at_viewport_with_targets(area.width, frame.width, area.height);
+    let x = area.x + 8;
+    let y = area.y + targets.iter().position(Option::is_some).unwrap() as u16 + 1;
+    state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    assert_eq!(
+        terminal.backend().buffer()[(x, y)].bg,
+        theme.decrease(theme.user_message_background())
+    );
+
+    for next in [Rect::new(0, 0, 120, 320), Rect::new(0, 0, 80, 24)] {
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Down(MouseButton::Left), x, y),
+            frame,
+        );
+        assert!(state.message_down.is_some());
+        state.resize_mouse_position(next);
+        assert_eq!(state.mouse_position(), Some((x, y, next)));
+        assert!(state.message_down.is_none());
+        assert!(state.selection.is_none());
+        assert!(state.painted_user_message_target_at(next, x, y).is_none());
+        terminal.backend_mut().resize(next.width, next.height);
+        terminal.resize(next).unwrap();
+        terminal
+            .draw(|f| {
+                assert_eq!(f.area(), next);
+                crate::shell::render(f, &state);
+            })
+            .unwrap();
+        let area = crate::shell::transcript_area(&state, next);
+        let (_, _, _, targets) =
+            state.visible_transcript_at_viewport_with_targets(area.width, next.width, area.height);
+        for (row, target) in targets.iter().enumerate() {
+            if target.as_ref().is_some_and(|target| target.seq == 1) {
+                let buffer = terminal.backend().buffer();
+                assert_eq!(
+                    buffer[(x, area.y + row as u16)].bg,
+                    theme.decrease(theme.user_message_background())
+                );
+                assert_eq!(
+                    buffer[(area.x, area.y + row as u16)].bg,
+                    theme.user_message_background()
+                );
+                assert_eq!(buffer[(area.x, area.y + row as u16)].fg, stripe);
+            }
+        }
+        state.handle_mouse(
+            selection_mouse(MouseEventKind::Up(MouseButton::Left), x, y),
+            next,
+        );
+        assert_eq!(
+            state.panel(),
+            &TuiPanel::None,
+            "resize cannot authorize an old press"
+        );
+        assert_eq!(state.history().rows(), stored);
+        assert_eq!(state.input(), "unsent resize draft");
+        frame = next;
+    }
+
+    // The pointer is not a message receipt: a new paint resolves the current ID.
+    let replacement = msg(9, Role::User, &text);
+    state
+        .window
+        .reset(&page(vec![replacement.clone()], 1, false, false));
+    state.clear_transcript_selection();
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    assert_eq!(
+        terminal.backend().buffer()[(x, y)].bg,
+        theme.decrease(theme.user_message_background())
+    );
+    for kind in [
+        MouseEventKind::Down(MouseButton::Left),
+        MouseEventKind::Up(MouseButton::Left),
+    ] {
+        state.handle_mouse(selection_mouse(kind, x, y), frame);
+    }
+    assert_eq!(
+        state.panel(),
+        &TuiPanel::MessageActions {
+            message: replacement.id.clone(),
+            seq: 9
+        }
+    );
+    state.select.cursor = 1;
+    assert_eq!(
+        state.panel_enter().intent,
+        Some(PanelIntent::ChangeConversation {
+            action: oc_core::queries::ConversationAction::Revert {
+                message: replacement.id
+            }
+        })
+    );
+    state.close_panel();
+    state.handle_mouse(selection_mouse(MouseEventKind::Moved, x, y), frame);
+    state.resize_mouse_position(Rect::new(0, 0, 5, 24));
+    assert_eq!(
+        state.mouse_position(),
+        None,
+        "a pointer outside the resized frame is gone"
+    );
+    assert_eq!(state.input(), "unsent resize draft");
+}
+
+#[tokio::test]
 async fn vis10_painted_target_rejects_identity_change_and_distinguishes_live_echo() {
     use crossterm::event::{MouseButton, MouseEventKind};
     let mut state = fresh_state("identity-ownership").await;

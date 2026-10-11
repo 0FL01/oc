@@ -1859,6 +1859,10 @@ turn is held by its owned provider and cancelled through real Escape input. Its
 pending/cancelled full frames and native root/turn status are retained separately.
 This adds three actual paired stages; the first post-inventory cache observation
 still precedes observer hash reads, with no early cache snapshot during parking.
+The real motion at(10,3) after Home close enters the accepted-user inner box.
+Its hovered fill must survive height resize; fresh process replay starts unhovered.
+These distinct pointer/mount states are checked on both binaries, not normalized
+into same-side frame equality. Resize still invalidates every action press receipt.
 
 The original consumes its unchanged URL-keyed parser/query cache. Preload receipts
 record real initial access times; the first post-render snapshot records access

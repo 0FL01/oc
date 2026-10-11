@@ -118,6 +118,20 @@ async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_
         (&state.input, state.editor.cursor),
         (&"unchanged draft".to_owned(), 5)
     );
+    state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), frame);
+    assert!(state.exploration_down.is_some());
+    let taller = Rect::new(0, 0, frame.width, frame.height + 1);
+    state.resize_mouse_position(taller);
+    assert!(state.exploration_down.is_none());
+    let (_, next_x, next_y) = paint(&mut state, taller);
+    assert_eq!((next_x, next_y), (x, y));
+    state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), taller);
+    assert!(
+        state.exploration_expanded.is_empty(),
+        "resize cannot authorize a stale tool press"
+    );
+    state.resize_mouse_position(frame);
+    paint(&mut state, frame);
     for expanded in [true, false, true] {
         state.click = None;
         state.handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), frame);

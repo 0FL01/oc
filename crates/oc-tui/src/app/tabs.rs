@@ -743,8 +743,9 @@ impl TuiState {
         self.reasoning_down = None;
     }
 
-    /// Resize invalidates press targets, not a still-visible source marquee.
-    /// Re-hit-test the same physical pointer against the admitted new layout.
+    /// Resize invalidates press targets, not the physical pointer. Transcript
+    /// hover resolves current painted identity; only a same-ID tab may retain
+    /// its marquee clock across the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
         self.cancel_shell_footer_pointer();
         self.shells.footer_hit.set(None);
@@ -755,7 +756,14 @@ impl TuiState {
         self.close_hold = None;
         self.tab_down = None;
         self.reasoning_down = None;
+        self.exploration_down = None;
         self.last_mouse = self.last_mouse.and_then(|(x, y, _)| {
+            if self.panel != TuiPanel::None || !area.contains((x, y).into()) {
+                return None;
+            }
+            if !crate::shell::tab_region(self, area).contains((x, y).into()) {
+                return Some((x, y, area));
+            }
             let index = crate::shell::tab_strip(self, area)?.hit_test(x, y)?;
             let id = self.tab_identity(index)?;
             (self.tab_view.borrow().hovered.as_ref() == Some(&id)).then_some((x, y, area))

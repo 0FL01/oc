@@ -21,6 +21,14 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
     const row=f.cells.find(row=>row.map(cell=>cell.symbol).join('').includes(prompt));
     if(!row||row.find(cell=>cell.symbol==='┃')?.fg!=='#12ab34')throw Error('Accepted user stripe did not follow actual current profile');
   };
+  const userHover=(f,expected)=> {
+    const y=f.cells.findIndex(row=>row.map(cell=>cell.symbol).join('').includes(prompt));
+    const x=f.cells[y]?.findIndex(cell=>cell.symbol==='┃');
+    if(y<1||y+1>=f.cells.length||x<0||x+1>=f.cells[y].length-2||[y-1,y,y+1].some(row=>
+      f.cells[row].slice(x+1,f.cells[row].length-2).some(cell=>cell.bg!==expected))) {
+      throw Error('Accepted user hover did not follow the actual pointer/resize or fresh replay mount');
+    }
+  };
   const writeBody=f=> {
     const rows=f.cells.map(row=>row.map(cell=>cell.symbol).join(''));
     const header=rows.findIndex(row=>row.includes('# Wrote')&&row.includes('syntax-proof.rs'));
@@ -65,7 +73,8 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
   checks.root_add={actual_busy_mouse_add:true,busy_return_draft_preserved:true,
     completed_while_parked:true,home_closed_without_root_effect:true,no_provider_replay:true};
   await resize(320);
-   const complete=await shot('syntax-complete-inventory',ready);rgb(complete);writeBody(complete);
+   const complete=await shot('syntax-complete-inventory',ready);rgb(complete);writeBody(complete);userHover(complete,'#1e1e1e');
+   checks.user_hover_after_resize=true;
   if(complete.text.includes('syntax highlighting preview limited')||complete.text.includes('syntax highlighting asset unavailable'))throw Error('Known grammar failed/limited in actual TUI');
   const before=await snapshot('syntax-completed');checks.before=before;
   const expected='/* café\n中文 😀 */\nfn main() {\n    let value = "世界";\n    println!("{}", value);\n}\n';
@@ -115,7 +124,8 @@ export async function probeSyntax({origin,send,shot,waitFor,frame,visibleMatches
    // unchanged four-identical-frame gate. A fresh process lazily compiles the
    // trusted queries for all 39 visible languages; this is not a paint request.
    await frame();
-    const replay=await shot('syntax-replayed-inventory',ready);rgb(replay);writeBody(replay);
+    const replay=await shot('syntax-replayed-inventory',ready);rgb(replay);writeBody(replay);userHover(replay,'#141414');
+   checks.replay_user_unhovered=true;
   const after=await snapshot('syntax-restarted');checks.after=after;
   if(JSON.stringify(before.syntax.file)!==JSON.stringify(after.syntax.file)||JSON.stringify(before.observations)!==JSON.stringify(after.observations)||logs.filter(e=>e.kind==='fixture_tool_call').length!==1)throw Error('Syntax reopen replayed effect or changed actual operation/RAW');
   await resize(40,120);

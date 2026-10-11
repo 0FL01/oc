@@ -2068,7 +2068,12 @@ async fn pending_owner_reload_allows_resize_and_quit_without_dropping_owner_rece
     handle_event(&app, &mut state, &mut deck, CEvent::Resize(100, 30))
         .await
         .unwrap();
-    assert_eq!(state.mouse_position(), None);
+    // Resize preserves an in-frame physical pointer, not any old painted
+    // action receipt; the pending reload still owns the unchanged view/draft.
+    assert_eq!(
+        state.mouse_position(),
+        Some((2, 3, ratatui::layout::Rect::new(0, 0, 100, 30)))
+    );
     assert_eq!(state.status(), &TuiStatus::Idle);
     handle_event(
         &app,
