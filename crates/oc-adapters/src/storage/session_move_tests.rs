@@ -233,6 +233,7 @@ fn tool19_source_self_handoff_is_last_and_pending_root_slots_are_reserved() {
             sessions: ids.clone(),
             new_session_titles: Vec::new(),
             active: ids.first().cloned(),
+            rail_width: None,
         })
         .unwrap(),
     )

@@ -581,6 +581,7 @@ async fn unreadable_parked_tab_keeps_good_route_and_disables_saves() {
                 .map(|id| SessionId::new(id).unwrap())
                 .collect(),
             active: Some(SessionId::new("good").unwrap()),
+            rail_width: None,
         }))
         .unwrap();
         for (id, fails) in [("good", false), ("broken", true), ("last", false)] {
@@ -709,6 +710,7 @@ async fn failed_active_tab_falls_back_to_home_with_surviving_parked_tab() {
                 .map(|id| SessionId::new(id).unwrap())
                 .collect(),
             active: Some(SessionId::new("broken").unwrap()),
+            rail_width: None,
         }))
         .unwrap();
         let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
@@ -2017,6 +2019,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
                 SessionId::new("two").unwrap(),
             ],
             active: None,
+            rail_width: Some(5),
         }))
         .unwrap();
         for id in ["one", "two"] {
@@ -2066,6 +2069,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
         assert_eq!(deck.active.as_ref().map(|id| id.0.as_str()), Some("one"));
         assert_eq!(deck.location, "/fixture");
         assert_eq!(deck.revision.as_deref(), Some("rev-1"));
+        assert_eq!(deck.rail_width, Some(5));
         ack.send(Err(CoreError::TabDeckConflict)).unwrap();
         let Some(InboxMsg::SaveTabDeck { deck, ack }) = inbox.recv().await else {
             panic!("another action retains the expected token")
@@ -2083,6 +2087,7 @@ async fn restore_home_with_parked_views_keeps_order_and_failed_save_keeps_route(
     deck.sync_tabs(&mut state);
     assert!(state.attached_session().is_none());
     assert_eq!(deck.tabs.len(), 2);
+    assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(state.tab_presentation().1, 2);
     apply_intent(
         &app,
@@ -2127,6 +2132,7 @@ async fn pruned_home_deck_keeps_all_owner_projected_tabs() {
                 .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
                 .collect(),
             active: None,
+            rail_width: None,
         }))
         .unwrap();
         for i in 0..MAX_TABS - 1 {
@@ -2179,6 +2185,7 @@ async fn bare_restart_with_full_real_deck_keeps_all_ids_and_selected_route() {
                 .map(|i| SessionId::new(format!("tab-{i}")).unwrap())
                 .collect(),
             active: Some(SessionId::new("tab-12").unwrap()),
+            rail_width: None,
         }))
         .unwrap();
         for i in 0..MAX_TABS {
@@ -2228,6 +2235,7 @@ async fn explicit_restore_adopts_successful_revision_for_next_save() {
             new_session_titles: Vec::new(),
             sessions: vec![SessionId::new("one").unwrap()],
             active: None,
+            rail_width: None,
         }))
         .unwrap();
         let Some(InboxMsg::History { ack, .. }) = inbox.recv().await else {
@@ -3458,6 +3466,7 @@ async fn sessions_delete_changes_deck_only_after_owner_acceptance_and_adopts_sur
                 sessions: vec![SessionId("survivor".into())],
                 active: Some(SessionId("survivor".into())),
                 new_session_titles: Vec::new(),
+                rail_width: None,
             },
         )))
         .unwrap();

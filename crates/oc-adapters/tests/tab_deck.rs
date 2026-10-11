@@ -20,6 +20,7 @@ fn deck(base: &TabDeckSnapshot, ids: &[&str], active: Option<&str>) -> TabDeckSn
         sessions: ids.iter().map(|id| SessionId((*id).into())).collect(),
         new_session_titles: Vec::new(),
         active: active.map(id),
+        rail_width: base.rail_width,
     }
 }
 
@@ -123,7 +124,10 @@ async fn accepted_root_survives_restart_with_previous_tabs_and_save_retires_mark
     let empty = app.tab_deck().await.unwrap();
     app.create_session(id("prior")).await.unwrap();
     let old = app
-        .save_tab_deck(deck(&empty, &["prior"], Some("prior")))
+        .save_tab_deck(TabDeckSnapshot {
+            rail_width: Some(5),
+            ..deck(&empty, &["prior"], Some("prior"))
+        })
         .await
         .unwrap();
     accept_fresh(&app, "accepted").await;
@@ -149,6 +153,7 @@ async fn accepted_root_survives_restart_with_previous_tabs_and_save_retires_mark
     let restored = app.tab_deck().await.unwrap();
     assert_contents(&restored, &["prior", "accepted"], Some("accepted"));
     assert_eq!(restored.revision, old.revision);
+    assert_eq!(restored.rail_width, Some(5));
     assert!(!restored.projected());
     assert_eq!(count(&conn, "turns", "accepted"), before);
     assert_eq!(count(&conn, "sessions", "accepted"), 1);
@@ -637,7 +642,10 @@ async fn deck_is_location_scoped_and_home_restore_does_not_mint_roots() {
     app.create_session(id("a-1")).await.unwrap();
     app.create_session(id("a-2")).await.unwrap();
     let a_deck = app
-        .save_tab_deck(deck(&a_empty, &["a-2", "a-1"], Some("a-1")))
+        .save_tab_deck(TabDeckSnapshot {
+            rail_width: Some(5),
+            ..deck(&a_empty, &["a-2", "a-1"], Some("a-1"))
+        })
         .await
         .unwrap();
     assert!(a_deck.revision.is_some());
@@ -656,10 +664,17 @@ async fn deck_is_location_scoped_and_home_restore_does_not_mint_roots() {
     let b_empty = app.tab_deck().await.unwrap();
     assert_eq!(b_empty.location, b_loc);
     assert_eq!(b_empty.revision, None);
+    assert_eq!(
+        b_empty.rail_width, None,
+        "foreign Location cannot inherit width"
+    );
     assert_contents(&b_empty, &[], None);
     app.create_session(id("b-1")).await.unwrap();
     let b_deck = app
-        .save_tab_deck(deck(&b_empty, &["b-1"], None))
+        .save_tab_deck(TabDeckSnapshot {
+            rail_width: Some(20),
+            ..deck(&b_empty, &["b-1"], None)
+        })
         .await
         .unwrap();
     assert_eq!(
@@ -685,6 +700,11 @@ async fn deck_is_location_scoped_and_home_restore_does_not_mint_roots() {
         .unwrap();
     assert_eq!(app.tab_deck().await.unwrap(), b_deck);
     let b_cleared = app.save_tab_deck(deck(&b_deck, &[], None)).await.unwrap();
+    assert_eq!(
+        b_cleared.rail_width,
+        Some(20),
+        "last-tab close preserves Location presentation"
+    );
     assert_eq!(app.tab_deck().await.unwrap(), b_cleared);
     app.switch_location_home(a.path().display().to_string())
         .await
@@ -731,6 +751,14 @@ async fn hostile_restore_prunes_without_rewriting_and_invalid_saves_are_atomic()
         deck(&updated, &[" real"], None),
         deck(&updated, &["x\0y"], None),
         deck(&updated, &["real"; 17], None),
+        TabDeckSnapshot {
+            rail_width: Some(4),
+            ..updated.clone()
+        },
+        TabDeckSnapshot {
+            rail_width: Some(73),
+            ..updated.clone()
+        },
     ] {
         assert_eq!(app.save_tab_deck(bad).await, Err(CoreError::InvalidTabDeck));
         assert_eq!(stored(&conn, &location), Some(original.clone()));
@@ -1038,6 +1066,7 @@ async fn new_session_tab_fallback_is_bounded_presentation_metadata_not_a_durable
     );
     let mut requested = deck(&legacy, &["legacy", "promoted", "later"], Some("promoted"));
     requested.new_session_titles = vec![false, true, false];
+    requested.rail_width = Some(5);
     let saved = app.save_tab_deck(requested.clone()).await.unwrap();
     assert_eq!(
         app.tab_deck().await.unwrap().new_session_titles,
@@ -1109,6 +1138,7 @@ async fn new_session_tab_fallback_is_bounded_presentation_metadata_not_a_durable
         panic!("delete result")
     };
     assert_contents(&deleted, &["promoted", "later"], Some("promoted"));
+    assert_eq!(deleted.rail_width, Some(5));
     assert_eq!(deleted.new_session_titles, [true, false]);
     assert_eq!(
         app.tab_deck().await.unwrap().new_session_titles,

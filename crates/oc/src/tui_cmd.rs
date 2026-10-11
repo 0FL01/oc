@@ -536,6 +536,7 @@ impl LoopState {
             active: self
                 .active_tab
                 .and_then(|_| state.attached_session().cloned()),
+            rail_width: state.tab_rail_preference(),
         }
     }
 
@@ -572,7 +573,11 @@ impl LoopState {
             return Err(CoreError::InvalidTabDeck);
         }
         match app.save_tab_deck(requested.clone()).await {
-            Ok(saved) if saved.location == requested.location && saved.revision.is_some() => {
+            Ok(saved)
+                if saved.location == requested.location
+                    && saved.revision.is_some()
+                    && saved.rail_width == requested.rail_width =>
+            {
                 self.revision = saved.revision;
                 Ok(())
             }
@@ -843,7 +848,9 @@ impl LoopState {
                     self.sync_tabs(state);
                     return Ok(());
                 }
-                *state = replacement_home.expect("Home fetched before close save");
+                let mut home = replacement_home.expect("Home fetched before close save");
+                home.take_tab_clocks_from(state);
+                *state = home;
                 self.reset_deck();
                 self.sync_tabs(state);
                 return Ok(());
@@ -1865,6 +1872,10 @@ async fn restore_initial(
         }
     };
     if stored.location.is_empty()
+        || stored.rail_width.is_some_and(|width| {
+            !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                .contains(&width)
+        })
         || stored.sessions.len() > MAX_TABS
         || (!stored.new_session_titles.is_empty()
             && stored.new_session_titles.len() != stored.sessions.len())
@@ -1935,6 +1946,9 @@ async fn restore_initial(
         prefer_home_when_space,
     )
     .await?;
+    state
+        .apply_tab_rail_width(stored.rail_width)
+        .map_err(startup_query)?;
     if prefer_home_when_space && deck.tabs.len() == MAX_TABS {
         state.push_note("tab limit reached; Home unavailable until a tab is closed");
     }
@@ -2321,6 +2335,7 @@ async fn apply_owned_intent(
                 | PanelIntent::SetPermissionMode { .. }
                 | PanelIntent::SwitchSession { .. }
                 | PanelIntent::CloseTab { .. }
+                | PanelIntent::SetTabRailWidth { .. }
                 | PanelIntent::ActivateTab { .. }
                 | PanelIntent::SelectModel { .. }
                 | PanelIntent::ChooseModel { .. }
@@ -2336,6 +2351,24 @@ async fn apply_owned_intent(
         return Err("child session: read-only history; saved tabs are unchanged".into());
     }
     match intent {
+        PanelIntent::SetTabRailWidth { width } => {
+            if !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                .contains(&width)
+                || state.chrome.location.as_deref() != loop_state.location.as_deref()
+                || loop_state.location.is_none()
+            {
+                return Err(CoreError::InvalidTabDeck.to_string());
+            }
+            let mut requested = loop_state.snapshot(state);
+            requested.rail_width = Some(width);
+            loop_state
+                .save_snapshot_checked(app, requested)
+                .await
+                .map_err(|e| e.to_string())?;
+            state
+                .apply_tab_rail_width(Some(width))
+                .map_err(|e| e.to_string())?;
+        }
         PanelIntent::LoadAuthMethods { provider, revision } => {
             let methods = app.auth_methods(provider.clone()).await.map_err(|_| ());
             state.apply_auth_methods(&provider, revision, methods);
@@ -2743,6 +2776,11 @@ async fn apply_owned_intent(
                         }
                         loop_state.sync_tabs(state);
                     }
+                    if loop_state.location.as_deref() == Some(snapshot.location.as_str()) {
+                        state
+                            .apply_tab_rail_width(snapshot.rail_width)
+                            .map_err(|error| error.to_string())?;
+                    }
                     // An unrelated deletion keeps modal search and prompt draft.
                     let entries = app
                         .session_list(state.session_search(), state.sessions_all_projects())
@@ -3066,6 +3104,9 @@ async fn apply_owned_intent(
                     state.selected_session_renamed(&target.0, title);
                 }
                 state.apply_catalog(receipt.catalog);
+                state
+                    .apply_tab_rail_width(receipt.deck.rail_width)
+                    .map_err(|error| error.to_string())?;
                 refresh_compactions(app, state).await;
                 loop_state.sync_tabs(state);
                 return Ok(());
@@ -3076,6 +3117,8 @@ async fn apply_owned_intent(
             refresh_compactions(app, &mut next).await;
             state.close_panel();
             next.take_tab_clocks_from(state);
+            next.apply_tab_rail_width(receipt.deck.rail_width)
+                .map_err(|error| error.to_string())?;
             if let Some(old) = loop_state.active_tab.take() {
                 loop_state.tabs[old] = Some(std::mem::replace(state, next));
                 loop_state.tab_cards_before[old] = loop_state.cards_before;
@@ -3379,6 +3422,13 @@ async fn adopt_picker_open(
     let mut active = TuiState::new(app.clone(), receipt.session.clone());
     active.attach_page(&receipt.page);
     active.apply_catalog(receipt.catalog.clone());
+    if active
+        .apply_tab_rail_width(receipt.deck.rail_width)
+        .is_err()
+    {
+        deck.save_disabled = true;
+        active.push_note("Location tabs unavailable; check saved tabs");
+    }
     refresh_compactions(app, &mut active).await;
     if let Some((_, draft)) = drafts
         .iter()
@@ -3467,6 +3517,10 @@ async fn adopt_location(
         Ok(snapshot)
             if snapshot.location != location
                 || snapshot.location.is_empty()
+                || snapshot.rail_width.is_some_and(|width| {
+                    !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                        .contains(&width)
+                })
                 || snapshot.sessions.len() > MAX_TABS
                 || (!snapshot.new_session_titles.is_empty()
                     && snapshot.new_session_titles.len() != snapshot.sessions.len())
@@ -3510,6 +3564,9 @@ async fn adopt_location(
             )
             .await
             .expect("published Home is already available");
+            state
+                .apply_tab_rail_width(snapshot.rail_width)
+                .expect("owner rail width validated before route adoption");
         }
         Err(_) => {
             // With no read token the owner will refuse to overwrite an

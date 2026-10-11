@@ -1418,12 +1418,53 @@ async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
             .width,
         42
     );
+    // A handle click is not a drag commit, including the outside handle cell.
+    // Returning a genuine drag to the original width must not pin the default.
+    for (x, moved) in [(41, false), (42, false), (41, true)] {
+        assert!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, 10), area)
+                .intent
+                .is_none()
+        );
+        if moved {
+            assert!(
+                state
+                    .handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 4, 10), area)
+                    .intent
+                    .is_none()
+            );
+        }
+        assert!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, 10), area)
+                .intent
+                .is_none()
+        );
+        assert_eq!(state.tab_rail_preference(), None);
+        assert_eq!(
+            crate::shell::tab_strip(&state, area).unwrap().tabs[0]
+                .rect
+                .width,
+            42
+        );
+    }
     for event in [
         mouse(MouseEventKind::Down(MouseButton::Left), 41, 10),
         mouse(MouseEventKind::Drag(MouseButton::Left), 4, 10),
         mouse(MouseEventKind::Up(MouseButton::Left), 4, 10),
     ] {
-        assert_eq!(state.handle_mouse(event, area).intent, None);
+        let outcome = state.handle_mouse(event, area);
+        assert_eq!(state.tab_rail_preference(), None);
+        if matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
+            assert_eq!(
+                outcome.intent,
+                Some(PanelIntent::SetTabRailWidth { width: 5 })
+            );
+            state.apply_tab_rail_width(Some(5)).unwrap();
+        } else {
+            assert_eq!(outcome.intent, None);
+        }
         terminal
             .draw(|frame| crate::shell::render(frame, &state))
             .unwrap();
@@ -1441,7 +1482,17 @@ async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
         mouse(MouseEventKind::Drag(MouseButton::Left), 119, 10),
         mouse(MouseEventKind::Up(MouseButton::Left), 119, 10),
     ] {
-        assert_eq!(state.handle_mouse(event, area).intent, None);
+        let outcome = state.handle_mouse(event, area);
+        assert_eq!(state.tab_rail_preference(), Some(5));
+        if matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
+            assert_eq!(
+                outcome.intent,
+                Some(PanelIntent::SetTabRailWidth { width: 56 })
+            );
+            state.apply_tab_rail_width(Some(56)).unwrap();
+        } else {
+            assert_eq!(outcome.intent, None);
+        }
         terminal
             .draw(|frame| crate::shell::render(frame, &state))
             .unwrap();
@@ -1454,7 +1505,17 @@ async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
         mouse(MouseEventKind::Drag(MouseButton::Left), 4, 10),
         mouse(MouseEventKind::Up(MouseButton::Left), 4, 10),
     ] {
-        assert_eq!(state.handle_mouse(event, area).intent, None);
+        let outcome = state.handle_mouse(event, area);
+        assert_eq!(state.tab_rail_preference(), Some(56));
+        if matches!(event.kind, MouseEventKind::Up(MouseButton::Left)) {
+            assert_eq!(
+                outcome.intent,
+                Some(PanelIntent::SetTabRailWidth { width: 5 })
+            );
+            state.apply_tab_rail_width(Some(5)).unwrap();
+        } else {
+            assert_eq!(outcome.intent, None);
+        }
         terminal
             .draw(|frame| crate::shell::render(frame, &state))
             .unwrap();

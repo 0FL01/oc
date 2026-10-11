@@ -734,3 +734,27 @@ cursor10,42 versus47,42. Real tooltip/hover/rail/history/Home/version/clock/foot
 differences remain. No durable-pane/full R3/full VIS44 pixel/T44 PASS claim.
 Next pane/tab persistence/presentation and EVERY remaining frozen R1–R6/VIS01–45
 outcome/supplement, then final current-source R6/V09. Whole T44 ACTIVE/NOT_PASS.
+
+## Durable tab rail (2026-10-11 — qualified behavioral slice)
+
+[Factual receipt](../tui/rail-width-qualified.md) records optional legacy-safe width
+through the existing Location-scoped deck CAS. Preview is not durable state;
+only changed real drag release saves once, matching owner ACK precedes geometry.
+Conflict/read-only/Location/root/adoption/bounds and draft/caret/scroll guards hold.
+Bootstrap, last-root Home and same-/foreign-Location receipts preserve accepted width.
+Current1841/0/11 all46/514 TUI/113 binary/35 T42, strict Clippy/fmt/builds/help,
+release9/original resource gates PASS; application tab-deck14 and Python55 PASS.
+Fresh709-source/one actual locked build retains26 full opaque PNGs. Native saved5
+after drag, empty-deck restart and sameRoot history reopen; Original global5 also
+paints. Both carets10,42,13/13 cursor pairs equal. Each side6 seed/title requests,
+zero close/reopen/provider/tool/project effects; every settled history row unchanged.
+All174 files14516460 logical bytes retained490740B with five direct same-side aliases;
+independent every-original-byte/source/ELF/comparator/SQLite/effect audit PASS.
+All26 strict comparisons DIFFERENT:1005/59520 cells and87718/8027904 pixels;
+reopen42 cells2809 pixels. Ordinal native2,2 versus Original2,3; tooltip/header/rail/
+Home/Sessions/version/real clock/throughput remain unmasked. Native Location scope
+is explicitly not Original global preference equivalence; no full R3/VIS44/T44 PASS.
+No source-seal rewrite, old failed/qualified proof loss, cleanup/archival/offload,
+resource-bound change or new store/query/registry/poll. Full frozen task ACTIVE.
+Next actual compact geometry/paint/hit seam and EVERY remaining R1–R6/VIS01–45
+outcome/supplement, then final current-source R6/V09 before finish.

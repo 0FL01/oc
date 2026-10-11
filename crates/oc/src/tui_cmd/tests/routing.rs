@@ -2578,6 +2578,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
             new_session_titles: Vec::new(),
             sessions: vec![SessionId::new("b-root").unwrap()],
             active: None,
+            rail_width: Some(5),
         }))
         .unwrap();
         let Some(InboxMsg::History { session, ack, .. }) = inbox.recv().await else {
@@ -2598,6 +2599,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
         assert_eq!(deck.location, "/B");
         assert_eq!(deck.revision.as_deref(), Some("B-loaded"));
         assert_eq!(deck.sessions, vec![SessionId::new("b-root").unwrap()]);
+        assert_eq!(deck.rail_width, Some(5));
         ack.send(Ok(TabDeckSnapshot {
             revision: Some("B-saved".into()),
             ..deck
@@ -2622,6 +2624,7 @@ async fn published_location_uses_new_owner_binding_and_token_for_next_save() {
     assert_eq!(state.clipboard_mode(), ClipboardMode::Manual);
     assert_eq!(deck.location.as_deref(), Some("/B"));
     assert_eq!(deck.revision.as_deref(), Some("B-loaded"));
+    assert_eq!(state.tab_rail_preference(), Some(5));
     apply_intent(
         &app,
         &mut state,
@@ -2693,12 +2696,173 @@ async fn close_inactive_tab_reindexes_active_view_and_cursor_without_owner_query
 }
 
 #[tokio::test]
+async fn rail_release_saves_once_and_only_acknowledged_width_changes_the_deck() {
+    use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app.clone(), SessionId("rail-root".into()));
+    state.chrome.location = Some("/rail-location".into());
+    state.chrome.vertical_tabs_width = 42;
+    state.apply_tab_rail_width(Some(20)).unwrap();
+    state.restore_prompt("kept rail draft Ω界".into());
+    state.attach_page(&oc_core::queries::HistoryPage {
+        rows: vec![oc_core::queries::HistoryMessage {
+            id: oc_core::session::MessageId("rail-history".into()),
+            seq: 1,
+            role: Role::User,
+            text: "retained history row\n".repeat(80),
+            turn: None,
+            model_switch: None,
+            child: None,
+            shell_notice: None,
+            user_shell: None,
+        }],
+        total: 1,
+        ..Default::default()
+    });
+    let caret = state.prompt_layout(78).1;
+    let mut deck = LoopState {
+        location: Some("/rail-location".into()),
+        revision: Some("original-revision".into()),
+        ..Default::default()
+    };
+    deck.sync_tabs(&mut state);
+    let area = ratatui::layout::Rect::new(0, 0, 120, 40);
+    let mut terminal = ratatui::Terminal::new(ratatui::backend::TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| oc_tui::shell::render(frame, &state))
+        .unwrap();
+    for _ in 0..3 {
+        assert!(state.scroll_transcript(true).intent.is_none());
+    }
+    let scroll = state.scroll();
+    assert_eq!(scroll, 3);
+    let mouse = |kind, column| MouseEvent {
+        kind,
+        column,
+        row: 10,
+        modifiers: crossterm::event::KeyModifiers::NONE,
+    };
+    for result in [0, 1, 2] {
+        let before = deck.snapshot(&state);
+        assert!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Left), 19), area)
+                .intent
+                .is_none()
+        );
+        assert!(
+            state
+                .handle_mouse(mouse(MouseEventKind::Drag(MouseButton::Left), 4), area)
+                .intent
+                .is_none()
+        );
+        assert_eq!(
+            deck.snapshot(&state),
+            before,
+            "preview must not enter the durable candidate"
+        );
+        assert!(
+            inbox.try_recv().is_err(),
+            "Down/Drag cannot write or submit"
+        );
+        let outcome = state.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), 4), area);
+        assert_eq!(
+            outcome.intent,
+            Some(PanelIntent::SetTabRailWidth { width: 5 })
+        );
+        assert_eq!(state.tab_rail_preference(), Some(20));
+        let expected = before.clone();
+        let owner = async {
+            let Some(InboxMsg::SaveTabDeck {
+                deck: requested,
+                ack,
+            }) = inbox.recv().await
+            else {
+                panic!("one existing checked deck save")
+            };
+            let mut candidate = expected;
+            candidate.rail_width = Some(5);
+            assert_eq!(
+                requested, candidate,
+                "retain every root, Location and CAS token"
+            );
+            if result == 0 {
+                ack.send(Err(CoreError::TabDeckConflict)).unwrap();
+            } else {
+                let mut saved = requested;
+                saved.revision = Some("accepted-revision".into());
+                if result == 1 {
+                    saved.rail_width = Some(6);
+                }
+                ack.send(Ok(saved)).unwrap();
+            }
+        };
+        let (finished, ()) = tokio::join!(
+            apply_intent(&app, &mut state, &mut deck, outcome.intent.unwrap()),
+            owner,
+        );
+        if result < 2 {
+            assert!(finished.is_err());
+            assert_eq!(deck.snapshot(&state), before);
+        } else {
+            finished.unwrap();
+            assert_eq!(state.tab_rail_preference(), Some(5));
+            assert_eq!(deck.revision.as_deref(), Some("accepted-revision"));
+        }
+        assert_eq!(state.session().0, "rail-root");
+        assert_eq!(state.input(), "kept rail draft Ω界");
+        assert_eq!(state.prompt_layout(78).1, caret);
+        assert_eq!(state.scroll(), scroll);
+        assert!(
+            inbox.try_recv().is_err(),
+            "no second save, provider request or effect"
+        );
+    }
+    let accepted = deck.snapshot(&state);
+    for guard in 0..5 {
+        deck.read_only = guard == 0;
+        deck.save_disabled = guard == 1;
+        state.chrome.location = Some(
+            if guard == 2 {
+                "/foreign"
+            } else {
+                "/rail-location"
+            }
+            .into(),
+        );
+        let width = if guard == 3 {
+            4
+        } else if guard == 4 {
+            73
+        } else {
+            20
+        };
+        assert!(
+            apply_intent(
+                &app,
+                &mut state,
+                &mut deck,
+                PanelIntent::SetTabRailWidth { width }
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(deck.snapshot(&state), accepted);
+        assert!(
+            inbox.try_recv().is_err(),
+            "invalid/read-only saves never reach the owner"
+        );
+    }
+}
+
+#[tokio::test]
 async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens() {
     let (app, mut inbox, _) = CoreApp::channel(4);
     let mut state = TuiState::new(app.clone(), SessionId::new("durable").unwrap());
     let mut deck = LoopState::default();
     deck.sync_tabs(&mut state);
     state.handle_paste("saved draft");
+    state.apply_tab_rail_width(Some(5)).unwrap();
     let worker = tokio::spawn(async move {
         for result in [Err(CoreError::Shutdown), Ok(catalog())] {
             let Some(InboxMsg::HomeSelection { action, ack }) = inbox.recv().await else {
@@ -2725,6 +2889,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
             deck: TabDeckSnapshot {
                 sessions: vec![session.clone()],
                 active: Some(session),
+                rail_width: Some(5),
                 ..Default::default()
             },
             previous_deck: old_deck,
@@ -2747,6 +2912,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     assert_eq!(deck.active_tab, None);
     assert!(deck.tabs.is_empty() && deck.tab_cards_before.is_empty());
     assert!(state.tab_presentation().0.is_empty());
+    assert_eq!(state.tab_rail_preference(), Some(5));
     apply_intent(
         &app,
         &mut state,
@@ -2758,6 +2924,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     .await
     .unwrap();
     assert_eq!(state.session().0, "durable");
+    assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(deck.tabs.len(), 1);
     assert_eq!(deck.active_tab, Some(0));
     assert!(deck.home.is_some(), "reopening parks synthetic Home");
@@ -2771,6 +2938,7 @@ async fn close_last_real_tab_queries_current_home_before_discarding_and_reopens(
     .unwrap();
     assert!(state.attached_session().is_none());
     assert!(deck.home.is_none() && deck.tabs.is_empty());
+    assert_eq!(state.tab_rail_preference(), Some(5));
     worker.await.unwrap();
 }
 
@@ -2907,6 +3075,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
                 new_session_titles: vec![true, false],
                 sessions: vec![session.clone(), SessionId("parked-b".into())],
                 active: Some(session),
+                rail_width: Some(5),
             },
             previous_deck: old_deck,
         }))
@@ -2944,6 +3113,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
                 new_session_titles: vec![true],
                 sessions: vec![session.clone()],
                 active: Some(session),
+                rail_width: Some(20),
             },
             previous_deck: old_deck,
         }))
@@ -2966,6 +3136,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
     assert_eq!(state.session().0, "b");
     assert_eq!(deck.location.as_deref(), Some("/b"));
     assert_eq!(deck.revision.as_deref(), Some("accepted-b"));
+    assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(deck.tabs.len(), 2);
     assert!(
         deck.picker_pending_tabs
@@ -2982,6 +3153,7 @@ async fn picker_open_refusal_keeps_old_view_and_accepted_foreign_receipt_survive
     assert_eq!(state.session().0, "a");
     assert_eq!(state.input(), "kept A draft");
     assert_eq!(deck.tabs.len(), 1);
+    assert_eq!(state.tab_rail_preference(), Some(20));
     worker.await.unwrap();
 }
 
@@ -3044,6 +3216,8 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         ..Default::default()
     });
     state.restore_prompt("retained draft".into());
+    state.chrome.location = Some("/a".into());
+    state.apply_tab_rail_width(Some(20)).unwrap();
     let mut deck = LoopState {
         location: Some("/a".into()),
         ..Default::default()
@@ -3061,6 +3235,8 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
         };
         let mut catalog = catalog();
         catalog.chrome.location = Some("/a".into());
+        let mut accepted = old_deck.clone();
+        accepted.rail_width = Some(5);
         ack.send(Ok(oc_core::queries::SessionPickerOpen {
             session,
             location: "/a".into(),
@@ -3072,7 +3248,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
                 title: Some("real title".into()),
                 ..Default::default()
             },
-            deck: old_deck.clone(),
+            deck: accepted,
             previous_deck: old_deck,
         }))
         .unwrap();
@@ -3088,6 +3264,7 @@ async fn picker_open_existing_tab_keeps_older_history_window_and_draft() {
     assert_eq!(state.history().rows()[0].seq, 1);
     assert!(state.history().has_newer());
     assert_eq!(state.input(), "retained draft");
+    assert_eq!(state.tab_rail_preference(), Some(5));
     assert_eq!(state.session_title.as_deref(), Some("real title"));
     worker.await.unwrap();
 }

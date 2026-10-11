@@ -136,6 +136,8 @@ pub(crate) struct StoredDeck {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(crate) new_session_titles: Vec<bool>,
     pub(crate) active: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) rail_width: Option<u16>,
 }
 
 pub(crate) fn tab_deck_key(location: &str) -> String {
@@ -153,9 +155,14 @@ pub(crate) fn parse_stored_deck(raw: Option<&str>) -> Result<StoredDeck, Storage
             sessions: Vec::new(),
             new_session_titles: Vec::new(),
             active: None,
+            rail_width: None,
         },
     };
     if deck.version != 1
+        || deck.rail_width.is_some_and(|width| {
+            !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                .contains(&width)
+        })
         || deck.sessions.len() > MAX_TABS
         || (!deck.new_session_titles.is_empty()
             && deck.new_session_titles.len() != deck.sessions.len())
@@ -1148,6 +1155,7 @@ impl Db {
                 .collect(),
             active: deck.active.map(oc_core::domain::SessionId),
             new_session_titles: deck.new_session_titles,
+            rail_width: deck.rail_width,
         };
         tx.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?1,?2,strftime('%s','now')) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at", params![key,encoded])?;
         for id in pending {
@@ -2115,6 +2123,10 @@ impl Db {
         for deck in decks.iter_mut() {
             if deck.projected()
                 || deck.location.is_empty()
+                || deck.rail_width.is_some_and(|width| {
+                    !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                        .contains(&width)
+                })
                 || deck.sessions.len() > MAX_TABS
                 || (!deck.new_session_titles.is_empty()
                     && deck.new_session_titles.len() != deck.sessions.len())
@@ -2157,6 +2169,7 @@ impl Db {
                 sessions: deck.sessions.iter().map(|id| id.0.clone()).collect(),
                 new_session_titles: deck.new_session_titles.clone(),
                 active: deck.active.as_ref().map(|id| id.0.clone()),
+                rail_width: deck.rail_width,
             })
             .map_err(|_| CoreError::InvalidTabDeck)?;
             if raw.len() > MAX_TAB_DECK_BYTES {

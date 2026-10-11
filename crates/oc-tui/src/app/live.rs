@@ -660,10 +660,12 @@ impl TuiState {
             self.clear_mentions();
         }
         self.apply_owner_clipboard_mode(snapshot.chrome.terminal_copy);
-        if self.chrome.vertical_tabs_width != snapshot.chrome.vertical_tabs_width
-            || self.chrome.location != snapshot.chrome.location
-        {
+        if self.chrome.location != snapshot.chrome.location {
             self.tab_view.get_mut().reset_rail_width();
+        } else if self.chrome.vertical_tabs_width != snapshot.chrome.vertical_tabs_width {
+            // An accepted Location preference is independent of layout mode;
+            // horizontal config ignores it, but invalidates the old gesture.
+            self.tab_view.get_mut().cancel_rail_drag();
         }
         self.chrome = snapshot.chrome.clone();
         if dialog_changed {

@@ -623,6 +623,7 @@ pub(super) struct TabView {
     vertical: bool,
     compact: bool,
     rail_width: Option<u16>,
+    rail_preview: Option<u16>,
     rail_drag: Option<Rect>,
     pub(super) hovered: Option<TabIdentity>,
     pub(super) leave: Option<Instant>,
@@ -633,6 +634,11 @@ pub(super) struct TabView {
 impl TabView {
     pub(super) fn reset_rail_width(&mut self) {
         self.rail_width = None;
+        self.cancel_rail_drag();
+    }
+
+    pub(super) fn cancel_rail_drag(&mut self) {
+        self.rail_preview = None;
         self.rail_drag = None;
     }
 
@@ -678,18 +684,43 @@ impl TuiState {
         if self.chrome.vertical_tabs_width == 0 {
             0
         } else {
-            self.tab_view
-                .borrow()
-                .rail_width
+            let view = self.tab_view.borrow();
+            view.rail_preview
+                .or(view.rail_width)
                 .unwrap_or(self.chrome.vertical_tabs_width)
         }
+    }
+
+    /// The committed preference excludes intermediate drag previews.
+    pub fn tab_rail_preference(&self) -> Option<u16> {
+        self.tab_view.borrow().rail_width
+    }
+
+    /// Apply only an accepted owner preference, without changing admitted config.
+    pub fn apply_tab_rail_width(
+        &mut self,
+        width: Option<u16>,
+    ) -> Result<(), oc_core::session::CoreError> {
+        if width.is_some_and(|width| {
+            !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                .contains(&width)
+        }) {
+            return Err(oc_core::session::CoreError::InvalidTabDeck);
+        }
+        self.tab_view.get_mut().rail_width = width;
+        self.tab_view.get_mut().rail_preview = None;
+        self.resize_mouse_position(
+            self.last_mouse
+                .map_or(Rect::default(), |(_, _, frame)| frame),
+        );
+        Ok(())
     }
 
     pub(super) fn rail_resize_mouse(
         &mut self,
         event: crossterm::event::MouseEvent,
         area: Rect,
-    ) -> bool {
+    ) -> Option<Option<u16>> {
         use crossterm::event::{MouseButton, MouseEventKind};
         let captured = self.tab_view.borrow().rail_drag;
         let admitted = self.panel == TuiPanel::None
@@ -700,7 +731,8 @@ impl TuiState {
             && self.chrome.vertical_tabs_width > 0;
         if !admitted || captured.is_some_and(|frame| frame != area) {
             self.tab_view.get_mut().rail_drag = None;
-            return false;
+            self.tab_view.get_mut().rail_preview = None;
+            return None;
         }
         if captured.is_some() {
             if event.modifiers.is_empty()
@@ -721,21 +753,30 @@ impl TuiState {
                             .saturating_sub(crate::layout::SESSION_CONTENT_PREFERRED_WIDTH),
                     )
                     .max(crate::layout::SESSION_TABS_COMPACT_WIDTH);
-                self.tab_view.get_mut().rail_width = Some(width);
+                let commit = {
+                    let view = self.tab_view.borrow();
+                    view.rail_preview.is_some()
+                        && width != view.rail_width.unwrap_or(self.chrome.vertical_tabs_width)
+                };
                 self.resize_mouse_position(area);
                 if matches!(event.kind, MouseEventKind::Drag(MouseButton::Left)) {
                     self.tab_view.get_mut().rail_drag = Some(area);
+                    self.tab_view.get_mut().rail_preview = Some(width);
                 }
                 self.last_mouse = Some((event.column, event.row, area));
                 self.reasoning_pointer_down =
                     matches!(event.kind, MouseEventKind::Drag(MouseButton::Left));
-                return true;
+                return Some(
+                    (commit && matches!(event.kind, MouseEventKind::Up(MouseButton::Left)))
+                        .then_some(width),
+                );
             }
             if matches!(
                 event.kind,
                 MouseEventKind::Down(_) | MouseEventKind::Up(_) | MouseEventKind::Drag(_)
             ) {
                 self.tab_view.get_mut().rail_drag = None;
+                self.tab_view.get_mut().rail_preview = None;
             }
         }
         let rail = crate::shell::tab_region(self, area);
@@ -754,9 +795,9 @@ impl TuiState {
             self.home_mcp_down = None;
             self.reasoning_pointer_down = true;
             self.last_mouse = Some((event.column, event.row, area));
-            return true;
+            return Some(None);
         }
-        false
+        None
     }
 
     /// Real tabs, selected deck index and application-owned add capability.
@@ -827,6 +868,7 @@ impl TuiState {
     /// Clear a mouse surface when it is hidden or no longer admitted.
     pub fn clear_mouse_position(&mut self) {
         self.tab_view.get_mut().rail_drag = None;
+        self.tab_view.get_mut().rail_preview = None;
         self.painted_prompt.borrow_mut().take();
         self.clear_transcript_selection();
         self.last_mouse = None;
@@ -843,6 +885,7 @@ impl TuiState {
     /// its marquee clock across the admitted new layout.
     pub fn resize_mouse_position(&mut self, area: Rect) {
         self.tab_view.get_mut().rail_drag = None;
+        self.tab_view.get_mut().rail_preview = None;
         self.cancel_shell_footer_pointer();
         self.shells.footer_hit.set(None);
         self.painted_prompt.borrow_mut().take();

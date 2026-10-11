@@ -1312,6 +1312,7 @@ fn fresh_admission_checks_union_before_root_insert_and_deduplicates_markers() {
         sessions: names,
         new_session_titles: Vec::new(),
         active: Some("saved-0".into()),
+        rail_width: None,
     };
     db.set_pref(&key, &serde_json::to_string(&deck).unwrap())
         .unwrap();
@@ -1361,6 +1362,53 @@ fn fresh_admission_checks_union_before_root_insert_and_deduplicates_markers() {
         db.create_bound_session_and_accept_turn("blocked", location, "t2", "prompt", "user", None, &test_model()),
         Err(StorageError::Io(ref e)) if e.kind() == std::io::ErrorKind::InvalidData
     ));
+}
+
+#[test]
+fn tab_rail_width_keeps_legacy_decks_and_cas_across_reopen() {
+    let legacy = r#"{"version":1,"sessions":[],"active":null}"#;
+    let parsed = super::parse_stored_deck(Some(legacy)).unwrap();
+    assert_eq!(serde_json::to_string(&parsed).unwrap(), legacy);
+    let compact = r#"{"version":1,"sessions":[],"active":null,"rail_width":5}"#;
+    let parsed = super::parse_stored_deck(Some(compact)).unwrap();
+    assert_eq!(serde_json::to_value(&parsed).unwrap()["rail_width"], 5);
+    for width in [
+        serde_json::json!(4),
+        serde_json::json!(73),
+        serde_json::json!(true),
+        serde_json::json!(-1),
+        serde_json::json!(65536),
+    ] {
+        let raw = serde_json::json!({"version":1,"sessions":[],"active":null,"rail_width":width});
+        assert!(super::parse_stored_deck(Some(&raw.to_string())).is_err());
+    }
+    let tmp = tmp_root("rail-cas-reopen");
+    let root = tmp.path().join("data");
+    let key = tab_deck_key("/rail-a");
+    let other = tab_deck_key("/rail-b");
+    let db = Db::open(&root).unwrap();
+    db.set_pref(&key, legacy).unwrap();
+    db.set_pref(&other, legacy).unwrap();
+    let revision = super::pref_revision(legacy);
+    assert!(
+        db.compare_set_tab_deck(&key, Some(&revision), compact, "/rail-a", &[])
+            .unwrap()
+    );
+    assert!(
+        !db.compare_set_tab_deck(&key, Some(&revision), legacy, "/rail-a", &[])
+            .unwrap()
+    );
+    assert_eq!(db.get_pref(&key).unwrap().as_deref(), Some(compact));
+    assert_eq!(db.get_pref(&other).unwrap().as_deref(), Some(legacy));
+    drop(db);
+    let db = Db::open(&root).unwrap();
+    let restored = db.get_pref(&key).unwrap().unwrap();
+    let parsed = super::parse_stored_deck(Some(&restored)).unwrap();
+    assert_eq!(serde_json::to_value(parsed).unwrap()["rail_width"], 5);
+    assert!(
+        db.list_sessions().unwrap().is_empty(),
+        "layout does not create history"
+    );
 }
 
 #[test]

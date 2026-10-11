@@ -109,6 +109,10 @@ pub enum SessionProbe {
     Child,
 }
 
+/// Bounds for a persisted manual tab rail, independent of terminal size.
+pub const TAB_RAIL_MIN_WIDTH: u16 = 5;
+pub const TAB_RAIL_MAX_WIDTH: u16 = 72;
+
 /// Ordered root tabs in the current Location. `None` leaves Home sessionless,
 /// even when other tabs are open; this is not a session creation request.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -128,6 +132,9 @@ pub struct TabDeckSnapshot {
     pub new_session_titles: Vec<bool>,
     /// Selected tab, or sessionless Home.
     pub active: Option<SessionId>,
+    /// Location-scoped manual pane width. Absent legacy preferences use config.
+    /// Horizontal layout ignores it; viewport fitting does not rewrite it.
+    pub rail_width: Option<u16>,
 }
 
 impl TabDeckSnapshot {

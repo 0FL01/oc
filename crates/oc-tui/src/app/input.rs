@@ -1591,8 +1591,11 @@ impl TuiState {
     /// replaced (Model → Variant) the former owner is destroyed, and closing
     /// the replacement restores the original prompt draft, selection and caret.
     pub fn handle_mouse(&mut self, event: MouseEvent, area: Rect) -> KeyOutcome {
-        if self.rail_resize_mouse(event, area) {
-            return KeyOutcome::default();
+        if let Some(commit) = self.rail_resize_mouse(event, area) {
+            return KeyOutcome {
+                intent: commit.map(|width| PanelIntent::SetTabRailWidth { width }),
+                ..KeyOutcome::default()
+            };
         }
         if !matches!(event.kind, MouseEventKind::Up(MouseButton::Left))
             || self.panel != TuiPanel::None

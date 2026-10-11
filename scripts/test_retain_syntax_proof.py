@@ -50,6 +50,33 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                 proof.check_middle_build(invalid, manifest, commands)
         with self.assertRaises(ValueError):
             proof.check_middle_build(lock, {"scripts/tui_capture/capture.mjs": "b" * 64}, commands)
+        durable = json.loads(json.dumps(facts))
+        durable["checks"][0]["restart_persistence_claim"] = True
+        durable["checks"].append({"stage": "durable-rail", "width": 5,
+                                  "restored_on_history_reopen": True, "preference_scope": "Location",
+                                  "native_cas_observed": True,
+                                  "actual_ordinal": {"x": 2, "y": 2}})
+        proof.check_middle_facts(durable, "compact", "oc", persistent=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(durable, "compact", "oc")
+        with self.assertRaises(ValueError):
+            proof.check_middle_facts(durable, "compact", "oc", historical=True, persistent=True)
+        for key, value in (("width", True), ("width", 42), ("restored_on_history_reopen", False),
+                           ("preference_scope", "global"), ("native_cas_observed", False),
+                           ("actual_ordinal", {"x": 5, "y": 2}), ("actual_ordinal", {"x": True, "y": 2})):
+            invalid = json.loads(json.dumps(durable))
+            invalid["checks"][-1][key] = value
+            with self.subTest(durable=key), self.assertRaises(ValueError):
+                proof.check_middle_facts(invalid, "compact", "oc", persistent=True)
+        with self.assertRaises(ValueError):
+            proof.check_middle_build(lock, manifest, commands, persistent=True)
+        durable_commands = json.loads(json.dumps(commands))
+        durable_commands[0]["argv"] += ["--rail-persistence", "true", "--middle-case", "compact"]
+        proof.check_middle_build(lock, manifest, durable_commands, persistent=True)
+        original_durable = json.loads(json.dumps(durable))
+        original_durable["origin"] = "upstream"
+        original_durable["checks"][-1].update(preference_scope="global", native_cas_observed=False)
+        proof.check_middle_facts(original_durable, "compact", "upstream", persistent=True)
 
     def test_blink_profile_requires_real_cycles_and_preserves_only_scoped_reference_failure(self):
         facts = {"origin": {"x": 5, "y": 74}, "left_moves": 2,

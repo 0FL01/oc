@@ -108,6 +108,7 @@ pub(super) fn load(db: &Db, runtime: &Runtime<'_>) -> Result<TabDeckSnapshot, Co
         sessions,
         new_session_titles,
         active,
+        rail_width: stored.rail_width,
     };
     if projected {
         snapshot.mark_projected();
@@ -127,6 +128,10 @@ pub(super) fn save(
         return Err(CoreError::TabDeckConflict);
     }
     if deck.sessions.len() > MAX_TABS
+        || deck.rail_width.is_some_and(|width| {
+            !(oc_core::queries::TAB_RAIL_MIN_WIDTH..=oc_core::queries::TAB_RAIL_MAX_WIDTH)
+                .contains(&width)
+        })
         || (deck.active.is_none() && deck.sessions.len() == MAX_TABS)
         || (!deck.new_session_titles.is_empty()
             && deck.new_session_titles.len() != deck.sessions.len())
@@ -152,6 +157,7 @@ pub(super) fn save(
         sessions: deck.sessions.iter().map(|id| id.0.clone()).collect(),
         new_session_titles: deck.new_session_titles.clone(),
         active: deck.active.as_ref().map(|id| id.0.clone()),
+        rail_width: deck.rail_width,
     };
     let raw = serde_json::to_string(&stored).map_err(|_| CoreError::InvalidTabDeck)?;
     if raw.len() > MAX_TAB_DECK_BYTES {

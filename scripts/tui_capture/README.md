@@ -1900,6 +1900,13 @@ process-group pause/drain ACK and screenshot/geometry checks remain unchanged.
 Bounded timeout diagnostics record actual read latency, predicates, hashes and
 the last changed cells; they cannot qualify a failed capture.
 
+The optional `--rail-persistence true` compact middle-close profile verifies the
+actual drag is accepted by the existing native Location-scoped deck CAS, remains
+saved after the last tab closes, and restores the five-column rail on restart
+and history reopen. Read-only owner snapshots and a real painted ordinal accompany
+the unchanged full frames. The donor's global layout preference is not represented
+as native Location-global equivalence; old process-local acquisitions remain intact.
+
 ## VIS44 actual middle-button tab close
 
 `--tab-middle-close true --middle-case horizontal|clipped|vertical|compact`

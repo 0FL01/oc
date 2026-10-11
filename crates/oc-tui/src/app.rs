@@ -231,6 +231,10 @@ pub enum PanelIntent {
     CloseTab {
         index: usize,
     },
+    /// Commit a completed rail gesture through the existing checked deck owner.
+    SetTabRailWidth {
+        width: u16,
+    },
     /// Apply the trimmed title to the attached session through the owner.
     RenameSession {
         title: String,

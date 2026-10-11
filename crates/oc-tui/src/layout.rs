@@ -60,9 +60,9 @@ pub const DIALOG_FOOTER_COLUMN_BREAKPOINT: u16 = 60;
 
 /// Session sidebar/tab widths (`ui/layout.ts:1-7`).
 pub const SESSION_SIDEBAR_WIDTH: u16 = 42;
-pub const SESSION_TABS_COMPACT_WIDTH: u16 = 5;
+pub const SESSION_TABS_COMPACT_WIDTH: u16 = oc_core::queries::TAB_RAIL_MIN_WIDTH;
 pub const SESSION_TABS_COMPACT_BREAKPOINT: u16 = 12;
-pub const SESSION_SIDEBAR_MAX_WIDTH: u16 = 72;
+pub const SESSION_SIDEBAR_MAX_WIDTH: u16 = oc_core::queries::TAB_RAIL_MAX_WIDTH;
 pub const SESSION_CONTENT_MIN_WIDTH: u16 = 44;
 pub const SESSION_CONTENT_PREFERRED_WIDTH: u16 = 64;
 

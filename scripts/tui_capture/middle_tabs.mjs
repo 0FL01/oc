@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 
-export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,middleCase}) {
+export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,middleCase,railPersistence=false}) {
   const names=middleCase==='clipped'?['Alpha','Beta','Gamma','Delta']:['Alpha','Beta','Gamma'];
   const title=name=>`VIS44 ${name} retained middle-close history`;
   const draft=name=>`VIS44 draft ${name} Ω界`;
-  const result={origin,middle_case:middleCase,status:'IN_PROGRESS',checks:[],native_manual_width:'process-local; real drag, not persisted layout qualification'};
+  const result={origin,middle_case:middleCase,status:'IN_PROGRESS',checks:[],native_manual_width:railPersistence?'Location-scoped existing deck CAS; Original has a global layout preference':'process-local; real drag, not persisted layout qualification'};
   const save=()=>fs.writeFileSync(path.join(dir,'middle-tabs-checks.json'),JSON.stringify(result,null,2)+'\n');
   const record=(stage,data={})=>{result.checks.push({stage,...data});save();};
   const poll=async(predicate,label)=>{const end=Date.now()+15000;while(Date.now()<end){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw Error('Timed out '+label);};
@@ -31,6 +31,11 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
     return (scopes[0]?.tabs||[]).map(t=>t.sessionID);
   };
   const journal=s=>JSON.stringify(s.observations.filter(o=>['messages','message','session_message','turns','tool_ops','tool_executions','tool_operations'].includes(o.table)));
+  const acceptedRail=s=>{
+    if(origin!=='oc'||!railPersistence)return;
+    const prefs=s.observations.filter(o=>o.table==='prefs').flatMap(o=>o.rows).filter(r=>r.key.startsWith('tui.selection.tab_deck:'));
+    if(prefs.length!==1||JSON.parse(prefs[0].value).rail_width!==5)throw Error('Accepted Location rail width was lost');
+  };
   let baseline, ids, remaining;
   const unchanged=s=>{
     if(journal(s)!==journal(baseline)||JSON.stringify(s.project_files)!==JSON.stringify(baseline.project_files)||requests().length!==names.length*2||requests().some(r=>!r.valid)||logs.some(e=>e.kind==='fixture_tool_call'))throw Error('Close/reopen changed history or admitted effects');
@@ -93,7 +98,8 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
       send('\x1b[<0;5;11m','vis44_actual_rail_drag_up');
       await resize(24,80);
       await shot('compact',f=>f.columns===80&&f.rows===24&&visibleMatches(f,'1').some(p=>p.x<5));
-      record('compact-geometry',{actual_drag:true,width:5,restart_persistence_claim:false});
+      record('compact-geometry',{actual_drag:true,width:5,restart_persistence_claim:railPersistence});
+      if(railPersistence)acceptedRail(await snap('accepted-rail-owner'));
     }
     // Derive membership from the current painted frame, including clipped strips.
     const current=await frame();
@@ -119,7 +125,7 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
     const exit=logs.find(e=>e.kind==='exit'&&e.generation===0);if(exit.code!==0||exit.termination!=='natural')throw Error('Root close quit or exit was not natural');
     await relaunch();
     await shot('restart-home',f=>f.text.includes('Ask anything')&&!f.text.includes('VIS44-ANSWER-'));
-    unchanged(await snap('restart-owner'));
+    const restarted=await snap('restart-owner');unchanged(restarted);acceptedRail(restarted);
     send('/sessions','vis44_history');await waitFor(f=>f.text.includes('/sessions'),'sessions draft');send('\r','vis44_history_enter');
     await waitFor(f=>f.text.includes('Sessions'),'actual Sessions dialog');
     send('VIS44 Alpha','vis44_history_filter');
@@ -128,8 +134,13 @@ export async function probeMiddleTabs({origin,dir,send,waitFor,frame,capture,vis
     const hits=visibleMatches(list,title('Alpha')).filter(p=>p.y>heading);
     if(hits.length!==1)throw Error('Original closed history title not unique in dialog');
     const p=hits[0];send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,'vis44_history_mouse_reopen');
-    await shot('history-reopened',f=>!f.text.includes('Sessions')&&f.text.includes('VIS44-ANSWER-Alpha'));
-    remaining=[ids.Alpha];unchanged(await snap('reopened-original-id'));
+    const reopened=await shot('history-reopened',f=>!f.text.includes('Sessions')&&f.text.includes('VIS44-ANSWER-Alpha'));
+    remaining=[ids.Alpha];const restored=await snap('reopened-original-id');unchanged(restored);acceptedRail(restored);
+    if(railPersistence) {
+      const ordinal=visibleMatches(reopened,'1').filter(p=>p.x<5);
+      if(ordinal.length!==1)throw Error('Restart did not restore the actual compact rail');
+      record('durable-rail',{width:5,restored_on_history_reopen:true,preference_scope:origin==='oc'?'Location':'global',native_cas_observed:origin==='oc',actual_ordinal:ordinal[0],cursor:reopened.cursor});
+    }
     record('proof',{root_ids:ids,requests:requests().length,tool_calls:0,history_unchanged:true,closed_deck_not_resurrected:true,reopened_same_id:ids.Alpha});
     result.status='PASS_BEHAVIOR_ONLY';save();return result;
   } catch(error) {
