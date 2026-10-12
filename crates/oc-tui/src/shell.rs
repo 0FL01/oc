@@ -369,7 +369,8 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
                 .height
                 .saturating_sub(crate::question_view::height(
                     state,
-                    area.width.saturating_sub(2),
+                    area.width,
+                    terminal_height,
                 ));
         return regions;
     }

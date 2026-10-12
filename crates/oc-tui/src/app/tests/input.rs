@@ -1,6 +1,96 @@
 use super::*;
 
 #[tokio::test]
+async fn vis37_visible_modal_keeps_input_ownership_when_question_arrives() {
+    use crossterm::event::{
+        KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    };
+    use oc_core::{
+        approval::ApprovalBinding,
+        question::{QuestionDecision, QuestionInput, QuestionRequest},
+    };
+    use ratatui::{Terminal, backend::TestBackend};
+    let mut state = fresh_state("vis37-modal-priority").await;
+    state.handle_paste("untouched ordinary draft Ω界");
+    state.panel = TuiPanel::Rename;
+    let request = QuestionRequest {
+        id: 31,
+        binding: ApprovalBinding {
+            session: "vis37-modal-priority".into(),
+            turn: "t".into(),
+            call: "c".into(),
+            operation: "o".into(),
+            input_digest: "d".into(),
+            location: "l".into(),
+            generation: 1,
+            agent: None,
+            agent_digest: None,
+        },
+        input: QuestionInput::parse(&serde_json::json!({"questions":[{
+            "question":"Pick?", "header":"Pick", "options":[{"label":"A", "description":"first"}]
+        }]}))
+        .unwrap(),
+    };
+    state
+        .questions
+        .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+    let area = Rect::new(0, 0, 120, 40);
+    let mut terminal = Terminal::new(TestBackend::new(area.width, area.height)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE))
+        .unwrap();
+    assert!(
+        state.handle_key(action).await.intent.is_none(),
+        "visible empty Rename must own Enter"
+    );
+    assert!(state.handle_panel_key(KeyAction::Enter).intent.is_none());
+    assert!(state.handle_paste("modal draft").intent.is_none());
+    assert_eq!(state.rename_title(), Some("modal draft"));
+    let action = state
+        .terminal_key(KeyEvent::new(KeyCode::Char('!'), KeyModifiers::NONE))
+        .unwrap();
+    assert!(state.handle_key(action).await.intent.is_none());
+    assert_eq!(state.rename_title(), Some("modal draft!"));
+    let pointer = |kind| MouseEvent {
+        kind,
+        column: 1,
+        row: 1,
+        modifiers: KeyModifiers::NONE,
+    };
+    assert!(
+        state
+            .handle_mouse(pointer(MouseEventKind::Down(MouseButton::Left)), area)
+            .intent
+            .is_none()
+    );
+    assert!(
+        state
+            .handle_mouse(pointer(MouseEventKind::Up(MouseButton::Left)), area)
+            .intent
+            .is_none()
+    );
+    assert_eq!(
+        state.panel(),
+        &TuiPanel::None,
+        "modal backdrop must own its click"
+    );
+    assert_eq!(state.questions.active(), Some(&request));
+    let Some(PanelIntent::ReplyQuestion(reply)) = state.handle_key(KeyAction::Enter).await.intent
+    else {
+        panic!("the untouched question still needs its own explicit answer");
+    };
+    assert_eq!(reply.binding, request.binding);
+    assert_eq!(
+        reply.decision,
+        QuestionDecision::Answers(vec![vec!["A".into()]])
+    );
+    assert_eq!(state.input(), "untouched ordinary draft Ω界");
+}
+
+#[tokio::test]
 async fn cfg10_diagnostic_details_copy_and_investigation_never_touch_prompt_or_submit() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use oc_core::queries::{

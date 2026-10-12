@@ -173,6 +173,9 @@ pub enum InlineRender {
         /// Recorded skill id.
         id: String,
     },
+    /// Count from a validated, complete question input for this operation.
+    /// Argument-stream fragments never supply a count or an answer result.
+    Question { count: Option<usize> },
     /// Any other tool (MCP included): `key: value` arguments.
     Generic {
         /// Available recorded parameters, bounded independently of the summary.
@@ -236,6 +239,7 @@ impl ToolRender {
             ) => pattern.len(),
             Self::Inline(InlineRender::WebFetch { url }) => url.len(),
             Self::Inline(InlineRender::Skill { id }) => id.len(),
+            Self::Inline(InlineRender::Question { .. }) => 0,
             Self::Inline(InlineRender::Generic { args, summary, .. }) => {
                 summary.len() + args.iter().map(|(k, v)| k.len() + v.len()).sum::<usize>()
             }
@@ -249,6 +253,17 @@ impl ToolRender {
     pub fn parse(name: &str, input: Option<&str>, output: Option<&str>, state: &str) -> Self {
         if name == "compress" {
             return Self::Dcp(Box::default());
+        }
+        if name == "question" {
+            let count = if state == "argument_stream" {
+                None
+            } else {
+                input
+                    .and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok())
+                    .and_then(|value| oc_core::question::QuestionInput::parse(&value).ok())
+                    .map(|input| input.questions.len())
+            };
+            return Self::Inline(InlineRender::Question { count });
         }
         let value = input.and_then(|raw| serde_json::from_str::<serde_json::Value>(raw).ok());
         match name {
@@ -287,6 +302,7 @@ impl InlineRender {
             InlineRender::Grep { .. } => "Searching content…",
             InlineRender::WebFetch { .. } => "Fetching from the web…",
             InlineRender::Skill { .. } => "Loading skill…",
+            InlineRender::Question { .. } => "Asking questions…",
             InlineRender::Generic { .. } => "",
         }
     }
@@ -595,6 +611,11 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
             frame.row(&[]),
         ];
     }
+    if card.question.is_none()
+        && let ToolRender::Inline(inline @ InlineRender::Question { .. }) = &card.render
+    {
+        return inline_rows(inline, card, theme);
+    }
     if card.state == "argument_stream" {
         if let ToolRender::Subagent(subagent) = &card.render {
             return subagent_block(subagent, card, theme, width);
@@ -619,7 +640,10 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
         ];
     }
     if let Some(result) = &card.question {
-        let frame = BlockFrame::new(theme, width);
+        let mut frame = BlockFrame::new(theme, width);
+        // BlockTool's layout padding has no child text foreground. Question
+        // and answer roles apply only to their real text, including wrap spaces.
+        frame.padding = ratatui::style::Style::default().bg(frame.bg);
         // Question's BlockTool has a muted title, separate question/answer
         // children and one-row gaps (`index.tsx:3519-3533`).
         let mut rows = vec![
@@ -650,9 +674,11 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
                         .chars()
                         .map(|c| if c.is_control() { ' ' } else { c })
                         .collect();
-                    for line in
-                        styled::wrap_line_limited(&Line::styled(safe, style), inner, usize::MAX)
-                    {
+                    for line in styled::wrap_source_space_line_limited(
+                        &Line::styled(safe, style),
+                        inner,
+                        usize::MAX,
+                    ) {
                         rows.push(frame.row(line.spans()));
                     }
                 }
@@ -1395,17 +1421,22 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     let running = is_running(&card.state);
     let failed = is_error_state(&card.state);
     let waiting = card.state == "permission_pending";
+    let question = matches!(inline, InlineRender::Question { .. });
     let style = if waiting {
         ratatui::style::Style::default().fg(theme.warning())
     } else if failed {
         ratatui::style::Style::default().fg(theme.error())
+    } else if question {
+        ratatui::style::Style::default().fg(theme.text_muted())
     } else {
         ratatui::style::Style::default().fg(theme.text())
     };
     let generic = matches!(inline, InlineRender::Generic { .. });
     // Generic tools use the cited `✓/✗` markers (`index.tsx:2620-2669`); the
     // named inline tools keep an empty 2-cell icon column once terminal.
-    let icon = if waiting {
+    let icon = if question {
+        "→".to_string()
+    } else if waiting {
         match inline {
             InlineRender::Read { .. } => "→",
             InlineRender::Glob { .. } | InlineRender::Grep { .. } => "✱",
@@ -1431,7 +1462,9 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     } else {
         style
     };
-    let label = if running {
+    let label = if question {
+        inline_label(inline)
+    } else if running {
         let mut label = String::new();
         if generic {
             label.push_str(card.display_name());
@@ -1537,6 +1570,11 @@ fn inline_label(inline: &InlineRender) -> String {
         },
         InlineRender::WebFetch { url } => format!("WebFetch {url}"),
         InlineRender::Skill { id } => format!("Skill \"{id}\""),
+        InlineRender::Question { count: Some(count) } => format!(
+            "Asked {count} question{}",
+            if *count == 1 { "" } else { "s" }
+        ),
+        InlineRender::Question { count: None } => "Asking questions…".into(),
         InlineRender::Generic { summary, .. } => summary.clone(),
     }
 }

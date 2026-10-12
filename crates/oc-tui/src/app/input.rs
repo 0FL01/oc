@@ -641,7 +641,7 @@ impl TuiState {
                 .terminal_key(event, &self.chrome.permission_shortcuts);
         }
         use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-        if self.questions.active().is_some() {
+        if self.panel == TuiPanel::None && self.questions.active().is_some() {
             return self.questions.terminal_key(event);
         }
         if self.panel == TuiPanel::None && self.shell_viewer().is_some() {
@@ -1560,6 +1560,7 @@ impl TuiState {
     /// Close any open panel (chat view).
     pub fn close_panel(&mut self) {
         self.clear_accounts();
+        self.questions.cancel_pointer();
         let was_open = self.panel != TuiPanel::None;
         self.wheel_motion = None;
         self.clear_transcript_selection();
@@ -1670,10 +1671,15 @@ impl TuiState {
             }
             self.approvals.cancel_pointer();
         }
-        if self.questions.active().is_some()
+        if self.panel != TuiPanel::None || self.approvals.active().is_some() {
+            self.questions.cancel_pointer();
+        }
+        if self.panel == TuiPanel::None
+            && self.approvals.active().is_none()
+            && self.questions.active().is_some()
             && !crate::shell::tab_region(self, area).contains((event.column, event.row).into())
         {
-            return KeyOutcome::default();
+            return self.questions.mouse(event, area);
         }
         if self.panel == TuiPanel::None
             && let Some(outcome) = self.shell_footer_mouse(event, area)
@@ -2375,7 +2381,7 @@ impl TuiState {
             self.approvals.paste(text);
             return KeyOutcome::default();
         }
-        if self.questions.active().is_some() {
+        if self.panel == TuiPanel::None && self.questions.active().is_some() {
             self.questions.paste(text);
             return KeyOutcome::default();
         }
@@ -2636,7 +2642,8 @@ impl TuiState {
         {
             return self.approvals.key(action);
         }
-        if self.questions.active().is_some()
+        if self.panel == TuiPanel::None
+            && self.questions.active().is_some()
             && !(self.terminal_focused()
                 && matches!(action, KeyAction::Leader | KeyAction::SequenceKey(..)))
         {
@@ -3629,7 +3636,7 @@ impl TuiState {
         if self.approvals.active().is_some() {
             return self.approvals.key(action);
         }
-        if self.questions.active().is_some() {
+        if self.panel == TuiPanel::None && self.questions.active().is_some() {
             return self.questions.key(action);
         }
         if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {

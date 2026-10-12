@@ -288,6 +288,114 @@ fn vis37_answered_question_full_and_cached_transcripts_bypass_generic_expansion(
 }
 
 #[test]
+fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_results() {
+    use crate::{
+        history::HistoryRow,
+        messages::{MarkdownCache, transcript_with_expansion, visible_transcript_expanded},
+    };
+    use std::cell::RefCell;
+    let input = serde_json::json!({"questions": [
+        {"question":"First actual question?", "header":"First", "options":[]},
+        {"question":"Second actual question?", "header":"Second", "options":[], "multiple":true}
+    ]})
+    .to_string();
+    let mut operation = operation("question", "not an answer result", None);
+    operation.state = "started".into();
+    operation.input = Some(input.clone());
+    let before = operation.clone();
+    let card = card_from_row(&operation);
+    let theme = Theme::dark();
+    let lines = tool_block(&card, theme, 80);
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0].plain_text(), "   → Asked 2 questions");
+    assert_eq!(
+        lines[0].spans().last().unwrap().style().fg,
+        Some(theme.text_muted())
+    );
+    assert!(card.question.is_none(), "pending is not an invented result");
+    assert!(!generic_expandable(&card));
+    let rows = [HistoryRow {
+        message_id: None,
+        seq: 1,
+        role: "tool".into(),
+        text: String::new(),
+        agent: None,
+        agent_color_index: None,
+        chips: Vec::new(),
+        reasoning: None,
+        child_notice: None,
+        shell_notice: None,
+        meta: None,
+        tool: Some(card),
+    }];
+    let cache = RefCell::new(MarkdownCache::default());
+    for expanded in [false, true] {
+        let full = transcript_with_expansion(
+            &rows,
+            theme,
+            80,
+            80,
+            |_| theme.text(),
+            Some(&cache),
+            &|_| expanded,
+        );
+        assert!(
+            full.iter()
+                .any(|line| line.plain_text() == "   → Asked 2 questions")
+        );
+        let (visible, _) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (80, 80),
+            (200, 0, None),
+            |_| theme.text(),
+            &cache,
+            &|_| expanded,
+        );
+        assert_eq!(visible[1..], styled::wrap_lines(&full, 80));
+    }
+    assert_eq!(operation, before, "RAW and operation binding are unchanged");
+    for (state, input) in [
+        ("argument_stream", input.as_str()),
+        ("started", "{\"questions\":["),
+        ("started", "{\"questions\":[{}]}"),
+    ] {
+        operation.state = state.into();
+        operation.input = Some(input.into());
+        let card = card_from_row(&operation);
+        let lines = tool_block(&card, theme, 80);
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].plain_text(), "   → Asking questions…");
+        assert!(card.question.is_none());
+        assert!(!generic_expandable(&card));
+    }
+    operation.state = "started".into();
+    operation.input = Some(
+        serde_json::json!({"questions":[
+            {"question":"Only?", "header":"Only", "options":[]}
+        ]})
+        .to_string(),
+    );
+    assert_eq!(
+        tool_block(&card_from_row(&operation), theme, 80)[0].plain_text(),
+        "   → Asked 1 question"
+    );
+    operation.state = "cancelled".into();
+    operation.output = Some("The user dismissed this question".into());
+    let cancelled = tool_block(&card_from_row(&operation), theme, 80);
+    assert!(
+        cancelled
+            .iter()
+            .any(|line| line.plain_text().contains("dismissed"))
+    );
+    assert!(
+        cancelled
+            .iter()
+            .all(|line| !line.plain_text().contains("# Questions"))
+    );
+}
+
+#[test]
 fn owned_body_excludes_guidance_but_literal_and_legacy_text_stay_data() {
     let body = "actual [Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]";
     let recorded = format!("{body}\n[tool output: generated model guidance]");

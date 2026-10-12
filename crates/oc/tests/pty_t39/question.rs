@@ -71,7 +71,21 @@ fn vis37_actual_question_auto_still_waits_for_owned_reply_and_durable_restart() 
     pty.wait_visible(&user_needle(PROMPT), DEADLINE);
     pty.send(format!("\x1b[200~{DRAFT}\x1b[201~").as_bytes());
     pty.wait_visible(DRAFT, DEADLINE);
+    // A modal can already be focused when the provider asks. Its visible
+    // controls must not edit, answer or cancel the question behind it.
+    pty.send(b"\x18m");
+    wait_screen_row(&pty, "Select model", DEADLINE);
     fixture.s07_continue.store(true, Ordering::Relaxed);
+    wait_screen_row(&pty, "Pick languages?", DEADLINE);
+    pty.send(b"\x1b[200~vis37-no-such-model\x1b[201~\r");
+    wait_screen_row(&pty, "vis37-no-such-model", DEADLINE);
+    assert_eq!(
+        fixture.wait_requests(1),
+        first,
+        "modal Enter is not a question reply"
+    );
+    mouse_click(&mut pty, 1, 1);
+    dismissed(&pty, "Select model");
     wait_screen_row(&pty, "Pick languages?", DEADLINE);
     assert_eq!(
         fixture.wait_requests(1),
@@ -79,16 +93,17 @@ fn vis37_actual_question_auto_still_waits_for_owned_reply_and_durable_restart() 
         "--auto is not a question answer"
     );
     pty.send(b" \x1b[B \t");
-    // This bounded text-screen observer is not a styled Unicode-cell oracle;
-    // use the actual focus marker, then verify all Unicode bytes on the wire.
-    wait_screen_row(&pty, "[Platform]", DEADLINE);
+    // This text-screen observer is not a styled Unicode-cell oracle. The
+    // second field's ASCII question prefix proves navigation; exact Unicode
+    // and ordered answers are checked in the actual continuation below.
+    wait_screen_row(&pty, "Where ", DEADLINE);
     pty.send(b"3");
-    wait_screen_row(&pty, "Enter confirm", DEADLINE);
+    wait_screen_row(&pty, "esc close", DEADLINE);
     pty.send(format!("\x1b[200~{CUSTOM}\x1b[201~").as_bytes());
     wait_screen_row(&pty, CUSTOM, DEADLINE);
     assert_eq!(fixture.wait_requests(1), first, "editing is not submission");
     pty.send(b"\r");
-    wait_screen_row(&pty, "Submit answers", DEADLINE);
+    wait_screen_row(&pty, "enter submit", DEADLINE);
     assert_eq!(fixture.wait_requests(1), first, "review is not submission");
     pty.send(b"\r");
     let requests = fixture.wait_requests(2);

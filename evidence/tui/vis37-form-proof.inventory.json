@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "65f43236a011331adc6ea4685a7583bb8aa3da080000da25c729744bb44444b0",
+  "archive_bytes": 3319812,
+  "tar_sha256": "2aeef721b91cddd8c8a06fc1525846e92951cad55a7489e70911cd3546661155",
+  "tar_bytes": 116664320,
+  "inventory": {
+    "members": 1467,
+    "logical_bytes": 117703696,
+    "member_inventory_sha256": "4008b2d16f46eaa7c90ff8090c94b69c0c9b7e238b3def9f4df2dbcb6b90fc31",
+    "same_side_png_aliases": 60
+  },
+  "source_roots": {
+    "failed-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-001/wide",
+    "historical-small": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-002/small",
+    "historical-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-002/wide",
+    "historical-tall": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-002/tall",
+    "current-small": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-003/small",
+    "current-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-003/wide",
+    "current-tall": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-003/tall",
+    "failed-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-001",
+    "failed-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture.py",
+    "historical-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-002",
+    "historical-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture-r2.py",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-003",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture-r3.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "failed-wide",
+      "captures": 22,
+      "current_source": false,
+      "scope": "FAILED_SAME_OWNER_GESTURE",
+      "statuses": {
+        "oc": "FAILED",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 8,
+        "BLOCKED": 28
+      }
+    },
+    {
+      "episode": "historical-small",
+      "captures": 34,
+      "current_source": false,
+      "scope": "HISTORICAL_INTERMEDIATE_FORM",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "historical-wide",
+      "captures": 34,
+      "current_source": false,
+      "scope": "HISTORICAL_INTERMEDIATE_FORM",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "historical-tall",
+      "captures": 34,
+      "current_source": false,
+      "scope": "HISTORICAL_INTERMEDIATE_FORM",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-small",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-wide",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    },
+    {
+      "episode": "current-tall",
+      "captures": 34,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 34
+      }
+    }
+  ],
+  "retainer_source_sha256": "9915a5c05fdae42144c13e3a04ec5844e814420620671539c35b0530720907e4"
+}

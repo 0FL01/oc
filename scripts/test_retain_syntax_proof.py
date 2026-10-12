@@ -14,8 +14,13 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                                              "question_forms.mjs", "question_fixture.py")}
         manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
         native, original = str(proof.REPO / "target/debug/oc"), str(proof.TEMP / "t44-reference/package/bin/opencode")
-        for profile, attempt, columns, rows in (("wide", "001", 120, 40), ("small", "002", 80, 24),
-                                                ("wide", "002", 120, 40), ("tall", "002", 160, 48)):
+        cases = [("wide", "001", 120, 40), ("small", "002", 80, 24),
+                 ("wide", "002", 120, 40), ("tall", "002", 160, 48)]
+        acquisitions = [(p, a, c, r, False) for p, a, c, r in cases]
+        acquisitions += [(p, a, c, r, True) for p, a, c, r in cases +
+                         [(p, a, c, r) for a in ("003", "004") for p, c, r in
+                          (("small", 80, 24), ("wide", 120, 40), ("tall", 160, 48))]]
+        for profile, attempt, columns, rows, form in acquisitions:
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
                     "upstream": {"executable_path": original}, "runner_hashes": hashes,
                     "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
@@ -23,23 +28,58 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original, "--oc", native,
                     "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
                     "--tool-preview", "true", "--question-forms", "true", "--columns", str(columns), "--rows", str(rows),
-                    "--output", str(proof.TEMP / ("vis37-current-" + attempt) / profile)]
+                    "--output", str(proof.TEMP / (("vis37-form-current-" if form else "vis37-current-") + attempt) / profile)]
             commands = [{"role": "capture runner invocation", "argv": argv},
                         {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
-            proof.check_vis37_build(lock, manifest, commands, profile, attempt)
+            proof.check_vis37_build(lock, manifest, commands, profile, attempt, form)
             for addition in (["--question-forms", "true"], ["--sessions-interaction", "true"],
                              ["--prompt-caret", "true"], ["--output", "/foreign"]):
                 bad = json.loads(json.dumps(commands))
                 bad[0]["argv"] += addition
                 with self.subTest(profile=profile, addition=addition), self.assertRaises(ValueError):
-                    proof.check_vis37_build(lock, manifest, bad, profile, attempt)
+                    proof.check_vis37_build(lock, manifest, bad, profile, attempt, form)
             with self.assertRaises(ValueError):
-                proof.check_vis37_build(lock, manifest, commands + commands[1:], profile, attempt)
+                proof.check_vis37_build(lock, manifest, commands + commands[1:], profile, attempt, form)
             with self.assertRaises(ValueError):
                 proof.check_vis37_build(lock, {**manifest, "scripts/tui_capture/question_fixture.py": "b" * 64},
-                                        commands, profile, attempt)
+                                        commands, profile, attempt, form)
             with self.assertRaises(ValueError):
-                proof.check_vis37_build(lock, manifest, commands, profile, "003")
+                proof.check_vis37_build(lock, manifest, commands, profile, "005" if form else "003", form)
+            with self.assertRaises(ValueError):
+                proof.check_vis37_build(lock, manifest, commands, profile, attempt, not form)
+
+    def test_vis37_form_separates_all_failed_historical_and_current_roots_and_real_keyboard(self):
+        roots = proof.vis37_form_roots()
+        self.assertEqual(len(roots), 13)
+        current = proof.vis37_form_roots(current_only=True)
+        self.assertEqual(len(current), 5)
+        self.assertEqual(current["current-logs"], proof.TEMP / "vis37-form-current-004")
+        self.assertEqual(current["current-driver"], proof.TEMP / "vis37-form-capture-r4.py")
+        for profile in ("small", "wide", "tall"):
+            self.assertEqual(current["current-" + profile], proof.TEMP / "vis37-form-current-004" / profile)
+        self.assertEqual(roots["failed-wide"], proof.TEMP / "vis37-form-current-001/wide")
+        for profile in ("small", "wide", "tall"):
+            self.assertEqual(roots["historical-" + profile], proof.TEMP / "vis37-form-current-002" / profile)
+            self.assertEqual(roots["current-" + profile], proof.TEMP / "vis37-form-current-003" / profile)
+        for period, attempt, helper in (("failed", "001", "vis37-form-capture.py"),
+                                        ("historical", "002", "vis37-form-capture-r2.py"),
+                                        ("current", "003", "vis37-form-capture-r3.py")):
+            self.assertEqual(roots[period + "-logs"], proof.TEMP / ("vis37-form-current-" + attempt))
+            self.assertEqual(roots[period + "-driver"], proof.TEMP / helper)
+        facts = {"question_forms": {"tab_and_backtab_committed_without_submit": True,
+                                    "return_after_tab_reopens_custom": True, "optional_empty_custom_tab_did_not_submit": True}}
+        inputs = [{"kind": kind, "base64": data} for kind, data in
+                  (("question_empty_custom_tab", "CQ=="), ("question_empty_custom_backtab", "G1ta"),
+                   ("question_custom_tab_commit", "CQ=="), ("question_custom_backtab", "G1ta"),
+                   ("question_custom_reopen_edit", "DQ=="), ("question_commit_custom", "DQ=="),
+                   ("question_explicit_reply", "DQ=="))]
+        proof.check_vis37_form_keyboard(facts, inputs)
+        for bad in (inputs[:-1], inputs + inputs[-1:], list(reversed(inputs)),
+                    [{**inputs[0], "base64": "DQ=="}] + inputs[1:]):
+            with self.assertRaises(ValueError):
+                proof.check_vis37_form_keyboard(facts, bad)
+        with self.assertRaises(ValueError):
+            proof.check_vis37_form_keyboard({"question_forms": {key: False for key in facts["question_forms"]}}, inputs)
 
     def test_vis37_owned_wire_and_durable_sources_reject_replay_raw_rewrite_and_fake_answer(self):
         questions = [{"header": "Languages and native runtimes", "question": "Pick languages?", "multiple": True},

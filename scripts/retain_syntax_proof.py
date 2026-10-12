@@ -52,12 +52,12 @@ def path_ok(name):
 def source_files():
     files, total = {}, 0
     for name, root in ROOTS.items():
-        driver = name in ("failed-driver", "current-driver")
+        driver = name.endswith("-driver")
         require((root.is_file() if driver else root.is_dir()) and not root.is_symlink() and root.resolve().is_relative_to(TEMP),
                 "fresh capture root")
         # Fixed campaign parent logs are additional members; their episode
         # subtrees are already included separately, without duplication.
-        paths = [root] if driver else root.glob("*") if name in ("current-logs", "historical-logs", "failed-logs", "rejected-logs") else root.rglob("*")
+        paths = [root] if driver else root.glob("*") if name.endswith("-logs") else root.rglob("*")
         for path in sorted(paths):
             meta = path.lstat()
             require(not path.is_symlink() and meta.st_uid == os.getuid(), "foreign/symlink capture")
@@ -103,13 +103,32 @@ def inventory(files, aliases):
 def unpack(encoded):
     require(0 < len(encoded) <= MAX_FILE, "encoded archive bound")
     decoder = lzma.LZMADecompressor(memlimit=32 * 1024**2)
-    raw = decoder.decompress(encoded, max_length=MAX_TOTAL + 1)
-    require(decoder.eof and not decoder.unused_data and len(raw) <= MAX_TOTAL, "single complete bounded XZ")
-    raw_sha, raw_bytes = digest(raw), len(raw)
-    buffer = io.BytesIO(raw)
-    del raw, decoder
+    raw_sha = hashlib.sha256()
+
+    class Decoded:
+        size = 0
+        last_nonzero_end = 0
+        started = False
+
+        def read(self, size):
+            if decoder.eof:
+                return b""
+            data = decoder.decompress(encoded if not self.started else b"", max_length=min(size, 64 * 1024))
+            self.started = True
+            require(data or decoder.eof, "complete XZ input")
+            tail = data.rstrip(b"\0")
+            if tail:
+                self.last_nonzero_end = self.size + len(tail)
+            self.size += len(data)
+            require(self.size <= MAX_TOTAL, "single complete bounded XZ")
+            raw_sha.update(data)
+            return data
+
+    # Source bytes and inverse members coexist for byte equality. Streaming
+    # avoids a third complete TAR allocation under the unchanged 384 MiB AS cap.
+    stream = Decoded()
     files, aliases = {}, {}
-    with tarfile.open(fileobj=buffer, mode="r:") as archive:
+    with tarfile.open(fileobj=stream, mode="r|") as archive:
         for item in archive:
             path = path_ok(item.name)
             require(item.name not in files and item.name not in aliases and
@@ -126,13 +145,16 @@ def unpack(encoded):
                 files[item.name] = data
         # tarfile stops at the first end marker. The single USTAR stream must
         # contain both end blocks and only its canonical zero record padding.
-        require(raw_bytes % tarfile.RECORDSIZE == 0 and raw_bytes - archive.offset >= 1024 and
-                not any(buffer.getbuffer()[archive.offset:]), "complete TAR tail")
+        while stream.read(64 * 1024):
+            pass
+        require(decoder.eof and not decoder.unused_data, "single complete bounded XZ")
+        require(stream.size % tarfile.RECORDSIZE == 0 and stream.size - archive.offset >= 1024 and
+                stream.last_nonzero_end <= archive.offset, "complete TAR tail")
     for name, target in aliases.items():
         require(target in files and target not in aliases, "direct canonical alias only")
         files[name] = files[target]
     require(sum(map(len, files.values())) <= MAX_TOTAL, "logical bound")
-    return files, aliases, raw_sha, raw_bytes
+    return files, aliases, raw_sha.hexdigest(), stream.size
 
 
 def check_source_manifest(lock, manifest, source_count):
@@ -627,8 +649,12 @@ def vis12_wrap_checks(files):
     return reports
 
 
-def check_vis37_build(lock, manifest, commands, profile, attempt):
-    require((profile, attempt) in (("wide", "001"), ("small", "002"), ("wide", "002"), ("tall", "002")),
+def check_vis37_build(lock, manifest, commands, profile, attempt, form_campaign=False):
+    allowed = (("wide", "001"), ("small", "002"), ("wide", "002"), ("tall", "002"))
+    if form_campaign:
+        allowed += tuple((profile, attempt) for attempt in ("003", "004")
+                         for profile in ("small", "wide", "tall"))
+    require((profile, attempt) in allowed,
             "fixed VIS37 acquisition")
     columns, rows = {"small": (80, 24), "wide": (120, 40), "tall": (160, 48)}[profile]
     invocation = commands[0]
@@ -642,7 +668,7 @@ def check_vis37_build(lock, manifest, commands, profile, attempt):
                 "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
                 "--sample": "short", "--sidebar": "hide", "--tool-preview": "true", "--question-forms": "true",
                 "--columns": str(columns), "--rows": str(rows),
-                "--output": str(TEMP / ("vis37-current-" + attempt) / profile)}
+                "--output": str(TEMP / (("vis37-form-current-" if form_campaign else "vis37-current-") + attempt) / profile)}
     require(len(options) == len(pairs) and options == expected and
             lock["oc"]["executable_path"] == options["--oc"] and
             lock["upstream"]["executable_path"] == options["--reference"] and
@@ -841,6 +867,95 @@ def vis37_checks(files):
     return reports
 
 
+def vis37_form_roots(current_only=False):
+    if current_only:
+        return {**{"current-" + profile: TEMP / "vis37-form-current-004" / profile
+                   for profile in ("small", "wide", "tall")},
+                "current-logs": TEMP / "vis37-form-current-004",
+                "current-driver": TEMP / "vis37-form-capture-r4.py"}
+    roots = {"failed-wide": TEMP / "vis37-form-current-001/wide"}
+    roots.update({period + "-" + profile: TEMP / ("vis37-form-current-" + attempt) / profile
+                  for period, attempt in (("historical", "002"), ("current", "003"))
+                  for profile in ("small", "wide", "tall")})
+    for period, attempt, helper in (("failed", "001", "vis37-form-capture.py"),
+                                    ("historical", "002", "vis37-form-capture-r2.py"),
+                                    ("current", "003", "vis37-form-capture-r3.py")):
+        roots[period + "-logs"] = TEMP / ("vis37-form-current-" + attempt)
+        roots[period + "-driver"] = TEMP / helper
+    return roots
+
+
+def check_vis37_form_keyboard(checks, inputs):
+    require(all(checks["question_forms"].get(key) is True for key in
+                ("tab_and_backtab_committed_without_submit", "return_after_tab_reopens_custom", "optional_empty_custom_tab_did_not_submit")),
+            "actual custom Tab/Shift+Tab/reedit without reply")
+    expected = [("question_empty_custom_tab", "CQ=="), ("question_empty_custom_backtab", "G1ta"),
+                ("question_custom_tab_commit", "CQ=="), ("question_custom_backtab", "G1ta"),
+                ("question_custom_reopen_edit", "DQ=="), ("question_commit_custom", "DQ=="),
+                ("question_explicit_reply", "DQ==")]
+    selected = [(item.get("kind"), item.get("base64")) for item in inputs if item.get("kind") in dict(expected)]
+    require(selected == expected, "exact real PTY navigation, commit and single explicit reply bytes")
+
+
+def vis37_form_checks(files, current_only=False):
+    reports = []
+    if current_only:
+        episodes = [("current-" + profile, "004", profile) for profile in ("small", "wide", "tall")]
+    else:
+        episodes = [("failed-wide", "001", "wide")]
+        episodes += [(period + "-" + profile, attempt, profile)
+                     for period, attempt in (("historical", "002"), ("current", "003"))
+                     for profile in ("small", "wide", "tall")]
+    for prefix, attempt, profile in episodes:
+        read = lambda relative: json.loads(files[prefix + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        current, failed = attempt == ("004" if current_only else "003"), attempt == "001"
+        check_source_manifest(lock, manifest, 713)
+        check_vis37_build(lock, manifest, read("commands.json"), profile, attempt, form_campaign=True)
+        require(len(lock["captures"]) == (22 if failed else 34) and
+                len(lock["attempts"]) == (36 if failed else 34), "complete form frames and failed attempts retained")
+        if failed or not current:
+            require(collections.Counter(item["status"] for item in lock["attempts"]) ==
+                    ({"DIFFERENT": 8, "BLOCKED": 28} if failed else {"DIFFERENT": 34}),
+                    "honest failed and intermediate form comparison outcomes")
+        if current:
+            check_current_source(manifest)
+            for side in ("oc", "upstream"):
+                with Path(lock[side]["executable_path"]).open("rb") as stream:
+                    require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                            "actual current form executables")
+        statuses = {}
+        output = TEMP / ("vis37-form-current-" + attempt) / profile
+        root = TEMP / "t44-reference/runs" / (profile + "-" + digest(str(output).encode())[:12])
+        for side in ("oc", "upstream"):
+            checks, protocol = read(side + "/tool-preview-checks.json"), read(side + "/protocol.json")
+            require(checks == lock["tool_preview"][side], "form side producer facts remain exact")
+            launches = [item for item in protocol if item.get("kind") in ("launch", "relaunch")]
+            home = root / side / "home"
+            require(len(launches) == (1 if failed and side == "oc" else 2) and
+                    all(item.get("cwd") == str(root / "project") for item in launches) and
+                    launches[0]["env"].get("HOME") == str(home) and
+                    all(launches[0]["env"].get("XDG_" + key + "_HOME") == str(home / key.lower())
+                        for key in ("CONFIG", "CACHE", "DATA", "STATE")), "sealed form fixture ownership and lineage")
+            if failed and side == "oc":
+                providers = [item for item in protocol if item.get("kind") == "provider"]
+                require(checks.get("status") == "FAILED" and len(checks["stages"]) == 4 and
+                        checks.get("reason") == "Timed out waiting for question-long-field" and
+                        len(providers) == 2 and all(item.get("valid") is True for item in providers),
+                        "lost same-owner gesture failure and partial effects remain visible")
+            else:
+                check_vis37_facts(checks, protocol, side)
+                if current:
+                    check_vis37_form_keyboard(checks, read(side + "/inputs.json"))
+            statuses[side] = checks["status"]
+        reports.append({"episode": prefix, "captures": len(lock["captures"]), "current_source": current,
+                        "scope": "PENDING_FORM_BEHAVIOR_ONLY" if current else
+                                 "FAILED_SAME_OWNER_GESTURE" if failed else "HISTORICAL_INTERMEDIATE_FORM",
+                        "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
@@ -1022,13 +1137,15 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "vis37":
+    if args.campaign in ("vis37-form", "vis37-form-r4"):
+        ROOTS = vis37_form_roots(args.campaign == "vis37-form-r4")
+    elif args.campaign == "vis37":
         ROOTS = {"failed-wide": TEMP / "vis37-current-001/wide",
                  **{"current-" + profile: TEMP / "vis37-current-002" / profile for profile in ("small", "wide", "tall")},
                  "failed-logs": TEMP / "vis37-current-001", "current-logs": TEMP / "vis37-current-002",
@@ -1109,6 +1226,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign in ("vis37-form", "vis37-form-r4"):
+            return vis37_form_checks(files, args.campaign == "vis37-form-r4")
         if args.campaign == "vis37":
             return vis37_checks(files)
         if args.campaign == "vis12-wrap":
@@ -1157,7 +1276,9 @@ def main():
         metadata = (json.dumps(record, indent=2) + "\n").encode()
         allocated = storage.owned_allocation()
         extra = sum((length + 4095) // 4096 * 4096 for length in (len(encoded), len(metadata)))
-        require(allocated + extra <= storage.CAP, "unchanged retained-evidence cap")
+        require(allocated + extra <= storage.CAP,
+                f"unchanged retained-evidence cap: allocated={allocated}, extra={extra}, "
+                f"archive={len(encoded)}, receipt={len(metadata)}, cap={storage.CAP}")
         if args.mode == "pack":
             storage.durable(archive, encoded)
             storage.durable(receipt, metadata)

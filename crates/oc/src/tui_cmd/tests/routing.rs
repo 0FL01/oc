@@ -402,6 +402,36 @@ async fn parked_root_controls_keep_bindings_without_selecting_home_or_replying()
     assert_eq!(parked.approvals.active(), Some(&permission));
     assert_eq!(parked.questions.active(), Some(&question));
     assert_eq!(deck.active_tab, None);
+    let busy = parked.is_busy();
+    deck.sync_tabs(&mut state);
+    assert_eq!(
+        state.tab_presentation().0[0].attention,
+        Some(oc_tui::app::TabAttention::Permission)
+    );
+    assert_eq!(state.tab_presentation().0[0].busy, busy);
+    state.approval_roots.clear();
+    deck.sync_tabs(&mut state);
+    assert_eq!(
+        state.tab_presentation().0[0].attention,
+        Some(oc_tui::app::TabAttention::Question)
+    );
+    assert_eq!(
+        state.tab_presentation().0[0].busy,
+        busy,
+        "attention never changes the execution state"
+    );
+    deck.tabs[0]
+        .as_mut()
+        .unwrap()
+        .questions
+        .reconcile(&[], vec![]);
+    deck.sync_tabs(&mut state);
+    assert_eq!(state.tab_presentation().0[0].attention, None);
+    deck.tabs[0]
+        .as_mut()
+        .unwrap()
+        .questions
+        .reconcile(std::slice::from_ref(&question), vec![question.clone()]);
     deck.activate(&mut state, 0).unwrap();
     let reply = state.questions.key(KeyAction::Cancel).intent.unwrap();
     assert!(

@@ -22,6 +22,11 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
     }
   };
   const slash=async text=>{send(text,'question_command');await waitFor(f=>f.text.includes(text),'question command draft',6000);send('\r','question_command_enter');};
+  const click=async (needle,tag)=>{
+    const f=await waitFor(f=>visibleMatches(f,needle).length===1,'unique painted question control',6000);
+    const p=visibleMatches(f,needle)[0];
+    send(`\x1b[<0;${p.x+1};${p.y+1}M\x1b[<0;${p.x+1};${p.y+1}m`,tag);
+  };
   const reopen=async stage=>{
     await slash('/sessions');
     const f=await waitFor(f=>f.text.includes('Sessions')&&f.text.includes(TITLE),'question saved session',6000);
@@ -32,12 +37,24 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
   await shot('question-home',f=>f.text.includes('Ask anything'));
   send(`\x1b[200~${PROMPT}\x1b[201~`,'question_user_prompt');send('\r','question_user_submit');
   const pending=await shot('question-pending',f=>f.text.includes('Pick languages?')&&f.text.includes('Type your own answer'));
-  send(' ','question_select_rust');await shot('question-one-selected',f=>f.text.includes('Pick languages?'));
-  send('\x1b[B ','question_select_python');await shot('question-multiple-selected',f=>f.text.includes('Pick languages?'));
-  send('\t','question_next_field');await shot('question-long-field',f=>f.text.includes('Where Ω界?'));
-  send('3','question_custom_select');await shot('question-custom-empty',f=>f.text.includes('Type your own answer'));
+  await click('1. [ ] Rust','question_select_rust_mouse');await shot('question-one-selected',f=>f.text.includes('1. [✓] Rust'));
+  send('\x1b[B ','question_select_python');await shot('question-multiple-selected',f=>f.text.includes('1. [✓] Rust')&&f.text.includes('2. [✓] Python'));
+  await click('Platform and execution…','question_next_field_mouse');await shot('question-long-field',f=>f.text.includes('Where Ω界?'));
+  await click('Type your own answer','question_custom_select_mouse');await shot('question-custom-empty',f=>f.text.includes('Type your own answer'));
+  send('\t','question_empty_custom_tab');
+  await waitFor(f=>f.text.includes('Rust, Python')&&!f.text.includes('Where Ω界?'),'optional empty custom Tab does not add required validation',6000);
+  send('\x1b[Z','question_empty_custom_backtab');
+  await waitFor(f=>f.text.includes('Where Ω界?'),'empty custom field restored without reply',6000);
+  await click('Type your own answer','question_empty_custom_reedit_mouse');
   send(`\x1b[200~${CUSTOM}\x1b[201~`,'question_custom_paste');await shot('question-custom-edited',f=>f.text.includes(CUSTOM));
   if(mains().length!==1)throw Error('Question edits generated provider continuation');
+  send('\t','question_custom_tab_commit');
+  await waitFor(f=>f.text.includes('Rust, Python')&&f.text.includes(CUSTOM),'custom Tab commits into review without reply',6000);
+  send('\x1b[Z','question_custom_backtab');
+  await waitFor(f=>f.text.includes('Where Ω界?')&&f.text.includes(CUSTOM),'Shift+Tab restores owned custom answer',6000);
+  send('\r','question_custom_reopen_edit');
+  await waitFor(f=>f.cursor.visible&&f.text.includes(CUSTOM)&&f.text.includes('esc close'),'custom answer editing after Tab/Shift+Tab',6000);
+  if(mains().length!==1)throw Error('Tab/Shift+Tab/edit implicitly submitted answers');
   send('\r','question_commit_custom');await shot('question-review',f=>f.text.includes(CUSTOM)&&f.text.includes('Rust')&&f.text.includes('Python'));
   if(mains().length!==1)throw Error('Review implicitly submitted answers');
   send('\r','question_explicit_reply');await shot('question-completed',f=>f.text.includes(DONE)&&!f.text.includes('interrupt'));
@@ -77,5 +94,7 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
   return {status:'OBSERVED_OWNED_QUESTION',provider_requests:4,main_requests:3,explicit_user_submissions:2,
     explicit_answer_submissions:1,question_calls:2,answers,completed,reopened,restarted,dismissed,final,
     no_edit_submission:true,no_restart_replay:true,cancellation_not_answered:true,
+    tab_and_backtab_committed_without_submit:true,return_after_tab_reopens_custom:true,
+    optional_empty_custom_tab_did_not_submit:true,
     pending_cursor:pending.cursor,readonly_native_and_donor_source_records:true};
 }

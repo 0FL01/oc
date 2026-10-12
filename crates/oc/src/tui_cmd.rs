@@ -659,10 +659,13 @@ impl LoopState {
                     }),
                     home: false,
                     busy: view.is_busy(),
-                    attention: state
-                        .tab_attention
-                        .contains(&index)
-                        .then_some(oc_tui::app::TabAttention::Permission),
+                    attention: if state.tab_attention.contains(&index) {
+                        Some(oc_tui::app::TabAttention::Permission)
+                    } else {
+                        view.questions
+                            .active()
+                            .map(|_| oc_tui::app::TabAttention::Question)
+                    },
                     ..TabPresentation::new(
                         view.attached_session()
                             .expect("real tab has session")

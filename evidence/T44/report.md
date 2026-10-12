@@ -876,3 +876,48 @@ finalgeneration1 forced teardown not clean-final-lifecycle evidence. Same bounds
 cleanup/offload/capraise/old evidence rewrite/new store/query/poll/paid campaign.
 No whole VIS37/R6/T44 PASS. Next real pending-form owner, EVERY frozen outcome/
 supplement and final current-source R6/V09 before finish.
+
+## VIS37 owned pending form (2026-10-12 — code qualified, retention BLOCKED)
+
+[Factual receipt](../tui/vis37-form-qualified-blocked.md): pinned panel/border/padding,
+24-character tabs/narrow fallback, description rows, wrapped custom editor/review,
+current-painted mouse targets and same-owner Down/Up synchronization. Tab/Shift+Tab
+commit without reply; optional blank custom behavior follows actual donor toField,
+final typed validation remains. Pending transcript uses validated operation input,
+never partial fragments/invented results; production Question attention preserves
+Permission precedence/busy. Existing modal keeps key/paste/click/cursor ownership
+when a question arrives: RED→GREEN unit plus actual binary Model-modal PTY consumer.
+RAW/permissions/child authority/ordinary draft remain; no new runtime owner/framework.
+
+Current workspace1856/0/11 all46/TUI526/PTY58, fmt/strict Clippy/locked+ordinary debug/
+locked release/help and actual release9 startup/discovery/TERM01/panic/VIS31/S07/
+VIS38/AUD32 gates PASS. RootPython63/nestedQuestion2/JS/docs58 tasks173 specs/progress
+PASS. Complete52 gate members/full commands/logs retained56120B; independent inverse
+PASS. No test/deadline/resource threshold/baseline changes or new ignores.
+
+Failed form00122 PNGs (Original17/Native4-stage failure,8 DIFFERENT/28 BLOCKED),
+intermediate002102 and003102 PNGs/helpers/parent logs are all preserved in3319812B:
+1467 files117703696 logical bytes/60 direct same-run-side identical PNG aliases.
+Independent final whole-byte/manual-XZ-USTAR inverse and original metadata PASS.
+003 is historical after modal-fix; frozen pack-time current flags are not rewritten.
+Exclusive current004 real80x24/120x40/160x48: both17-stage behavior PASS, all102 strict
+comparisons DIFFERENT; independent full244800 cells33012096 pixels counts4444 cells/
+317372 pixels different,48of51 cursors equal. All24 pending-owner/3 answered-owner
+full styled-cell regions equal, including prior blank-FG residuals. Whole-frame/cursor
+residuals stay visible. Current24 valid providers18 main6 title/12 calls/12 user+
+6 answer submissions/30 RO snapshots; no observed edit/review/restart/cancel
+continuation or extra project/Shell/MCP effects; actual native/donor V2 RAW intact.
+Finalgeneration1 forced stop and unread DCP tables are not qualified final lifecycle.
+
+BLOCKED_CURRENT004_PROOF_RETENTION: initial owned1072304128/1073741824 headroom1437696,
+full004 archive1913176+receipt2052 rounded1921024 exceeds cap by483328 already.
+Unchanged-dictionary stronger XZ gives identical bytes; PNG-only1752548 exceeds
+remaining space before metadata. No cleanup/offload/capraise/mask/reencode/predictor.
+Gate/audit records-only retention leaves1072607232 allocated/headroom1134592 before
+human receipt; it does not save004 images/cells/VT/protocol or waive the missing proof.
+Audit programs/reports19 members retained210056B; current713 source/actual ELFs
+reverified after gates. Same16/128MiB/2000/384MiB caps and decoder/dictionary32/16MiB.
+No current004 durable archive/inverse, whole VIS37/R6/V09/T44 PASS or task finish.
+Full frozen R1–R6/VIS01–45/supplements remain ACTIVE_NOT_PASS. Required external
+dependency: authorized durable proof capacity; then retain existing004 without
+replay, close remaining owners/outcomes and final current-source R6/V09.
