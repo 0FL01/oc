@@ -620,15 +620,45 @@ pub fn tool_block(card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
     }
     if let Some(result) = &card.question {
         let frame = BlockFrame::new(theme, width);
-        let mut rows = vec![frame.row(&[Span::styled("✓ Questions answered", frame.body_style())])];
-        for (question, answers) in result.questions.iter().zip(&result.answers) {
-            let text = format!("{}: {}", question.question, answers.join(", "));
-            let safe: String = text
-                .chars()
-                .map(|c| if c.is_control() { ' ' } else { c })
-                .collect();
-            rows.push(frame.row(&[Span::styled(safe, frame.body_style())]));
+        // Question's BlockTool has a muted title, separate question/answer
+        // children and one-row gaps (`index.tsx:3519-3533`).
+        let mut rows = vec![
+            frame.row(&[]),
+            frame.row(&[Span::styled("# Questions", frame.body_style())]),
+            frame.row(&[]),
+        ];
+        let inner = if width == 0 {
+            usize::MAX
+        } else {
+            (width as usize).saturating_sub(3).max(1)
+        };
+        for (index, question) in result.questions.iter().enumerate() {
+            if index > 0 {
+                rows.push(frame.row(&[]));
+            }
+            let answer = result
+                .answers
+                .get(index)
+                .filter(|answers| !answers.is_empty())
+                .map_or_else(|| "(no answer)".into(), |answers| answers.join(", "));
+            for (text, style) in [
+                (question.question.as_str(), frame.body_style()),
+                (answer.as_str(), frame.body_style().fg(theme.text())),
+            ] {
+                for raw in text.split('\n') {
+                    let safe: String = raw
+                        .chars()
+                        .map(|c| if c.is_control() { ' ' } else { c })
+                        .collect();
+                    for line in
+                        styled::wrap_line_limited(&Line::styled(safe, style), inner, usize::MAX)
+                    {
+                        rows.push(frame.row(line.spans()));
+                    }
+                }
+            }
         }
+        rows.push(frame.row(&[]));
         return rows;
     }
     match &card.render {
@@ -1638,7 +1668,8 @@ pub(crate) fn generic_block_expanded(
 }
 
 pub(crate) fn generic_expandable(card: &ToolCard) -> bool {
-    matches!(&card.render, ToolRender::Inline(InlineRender::Generic { args, .. })
+    card.question.is_none()
+        && matches!(&card.render, ToolRender::Inline(InlineRender::Generic { args, .. })
         if !args.is_empty() || !card.output_preview.trim().is_empty())
 }
 

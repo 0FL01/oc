@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T02:19:10+00:00
+State updated: 2026-10-12T05:17:36+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,40 +12,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS12 longword geometry qualified; full T44 remains ACTIVE
+# VIS37 actual answer consumer/card glyphs qualified; full T44 remains ACTIVE
 
 ## Result
-- Existing word-wrap owner starts oversized words after the nonempty prefix;
-  actual expanded RAW1610 stays exact, final60z/caret86,27 agree with Original.
-- New real-paint/mouse regression RED→GREEN covers tail edit, undo/redo/no effects.
-- Existing fresh fixture roots now include prompt history/caret; no user config edits.
-- All843 original files64934263 bytes/138 whole PNGs/13 aliases retained1581536 bytes.
-  Failed001 and rejected003 preserved; current002 behavior/geometry only.
+- Result-derived # Questions, ordered roles/spacing/wrap now reach full/cached
+  transcripts without Generic expansion. Two meaningful renderer RED→GREEN cases.
+- Three actual native PTY/headless cases prove --auto waits, owned answer reaches
+  next request/durable restart, dismissal is cancellation and headless requires TUI.
+- Real paired 80x24/120x40/160x48: both17-stage behavior PASS, all102 comparisons
+  DIFFERENT. Failed00125 PNGs preserved, not replayed; donor observation uses real V2.
 
 ## Checks
-- Current workspace1844/0/11 all46, TUI517/binary113; strict Clippy/fmt,
-  locked/ordinary debug and locked release builds, both help/JS syntax PASS.
-- Current release9 PASS: startup/terminal restore, VIS31 idle/pacing,
-  S07 equal-view archive and AUD32 actual binary memory; no raised bounds.
-- Python59/docs58 tasks173 specs/progress PASS; pack/reopen FULL_BYTE_EXACT
-  and independent inverse all843 bytes/source709/actual ELFs/one build PASS.
-- Current50 strict comparisons DIFFERENT:474 cells20754 pixels,25/25 cursors equal;
-  expanded7 cells298 pixels,900 visible styledz/final60 geometry equal.
-- Actual10 valid requests5 main5 title/5 Enters/18 snapshots; no observed extra
-  project/tool/Shell/MCP/DCP effects/replay, current native RAW row unchanged.
-- Same1GiB/16MiB/128MiB/2000/384MiB; after proof before receipt allocation
-  1066545152/1073741824 headroom7196672. No cleanup/offload/capraise.
+- Current workspace1849/0/11 all46/TUI519/PTY58, strict Clippy/fmt, locked+ordinary
+  debug/locked release/help, current release9 startup/terminal/pacing/archive/memory PASS.
+- RootPython62/nestedQuestion2/JS/docs58 tasks173 specs/progress PASS.
+- All829 original files64853986 bytes/127 whole PNGs/31 aliases retained2404048 bytes;
+  pack/reopen and independent inverse/current713 sources/ELFs/one build PASS.
+- Current24 providers18 main6 title/12 question calls/12 user+6 answer submits/
+  30 RO snapshots; no observed edit/review generation, reask/cancel continuation
+  or extra project/Shell/MCP effects. Typed/native and actual donor V2/RAW IDs intact.
+- Allnonblank answered-card glyphs/order/spacing/wrap equal; full46999 cells3493728
+  pixels/30of51 cursors equal.57 owner blank-FG residuals plus real clocks remain.
+- Same1GiB/16MiB/128MiB/2000/384MiB; before receipt allocation1068965888/1073741824
+  headroom4775936, TMP1544192 separate. No cleanup/offload/capraise.
 
 ## Risks
-- No VIS12/R6/T44 pixel PASS. Blank-cell FG plus footer/dynamic residuals stay unmasked.
-- Generic cursor FG experiment refuted by four new differences; all candidate
-  paint/test changes removed.001 incomplete root-contamination failure not replayed.
-- Reference RAW/DCP tables not decoded; no invented equality or broad old-entry audit.
-- Immutable captured source/commands and prior evidence preserved; no new store,
-  registry/query/poll, env/authoring config/policy/RAW change or paid campaign.
+- No VIS37/R6/T44 pixel PASS. Pending form still lacks pinned panel/tab/description
+  layout; finalgeneration1 forced teardown is not clean-final-lifecycle proof.
+- DCP tables unread; no new blanket all-old-artifact audit. Failed partial request
+  counts separate, captured associations and prior specifically observed sets unchanged.
+- No new runtime/store/registry/query/poll/policy/RAW/authoring-env-config/live campaign.
+  Earlier generic cursor-FG experiment remains refuted and removed.
 
 ## Next
-- Trace the real blank-cell render owner, not cursor coordinates or fixture lengths.
+- Fix existing question_view pending panel/border/padding,24-character tabs and
+  separate descriptions; qualify actual effects/full pairs in all three profiles.
 - Close EVERY remaining frozen R1–R6/VIS01–45 and supplement, then final
   current-source R6/V09; only then task finish.
 

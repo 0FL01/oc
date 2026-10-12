@@ -9,6 +9,142 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_vis37_builder_rejects_cross_mode_duplicate_build_and_unsealed_fixture(self):
+        hashes = {name: "a" * 64 for name in ("capture.mjs", "tool_preview.mjs", "tool_preview_fixture.py",
+                                             "question_forms.mjs", "question_fixture.py")}
+        manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
+        native, original = str(proof.REPO / "target/debug/oc"), str(proof.TEMP / "t44-reference/package/bin/opencode")
+        for profile, attempt, columns, rows in (("wide", "001", 120, 40), ("small", "002", 80, 24),
+                                                ("wide", "002", 120, 40), ("tall", "002", 160, 48)):
+            lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
+                    "upstream": {"executable_path": original}, "runner_hashes": hashes,
+                    "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
+                    "profile": {"columns": columns, "rows": rows, "question_forms": True}}
+            argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original, "--oc", native,
+                    "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
+                    "--tool-preview", "true", "--question-forms", "true", "--columns", str(columns), "--rows", str(rows),
+                    "--output", str(proof.TEMP / ("vis37-current-" + attempt) / profile)]
+            commands = [{"role": "capture runner invocation", "argv": argv},
+                        {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
+            proof.check_vis37_build(lock, manifest, commands, profile, attempt)
+            for addition in (["--question-forms", "true"], ["--sessions-interaction", "true"],
+                             ["--prompt-caret", "true"], ["--output", "/foreign"]):
+                bad = json.loads(json.dumps(commands))
+                bad[0]["argv"] += addition
+                with self.subTest(profile=profile, addition=addition), self.assertRaises(ValueError):
+                    proof.check_vis37_build(lock, manifest, bad, profile, attempt)
+            with self.assertRaises(ValueError):
+                proof.check_vis37_build(lock, manifest, commands + commands[1:], profile, attempt)
+            with self.assertRaises(ValueError):
+                proof.check_vis37_build(lock, {**manifest, "scripts/tui_capture/question_fixture.py": "b" * 64},
+                                        commands, profile, attempt)
+            with self.assertRaises(ValueError):
+                proof.check_vis37_build(lock, manifest, commands, profile, "003")
+
+    def test_vis37_owned_wire_and_durable_sources_reject_replay_raw_rewrite_and_fake_answer(self):
+        questions = [{"header": "Languages and native runtimes", "question": "Pick languages?", "multiple": True},
+                     {"header": "Platform and execution targets", "question": "Where Ω界?", "multiple": False}]
+        argument, answers = {"questions": questions}, [["Rust", "Python"], ["custom Ω界"]]
+        names = ("question-home question-pending question-one-selected question-multiple-selected question-long-field "
+                 "question-custom-empty question-custom-edited question-review question-completed question-answered-card "
+                 "question-switched question-reopened question-restarted question-cancel-pending question-dismissed "
+                 "question-cancel-switched question-cancel-reopened").split()
+        prompt, cancel = "VIS37 paired question consumer", "VIS37 dismiss the next question"
+        for side in ("oc", "upstream"):
+            output = json.dumps({**argument, "answers": answers}) if side == "oc" else (
+                'User has answered your questions: "Pick languages?"="Rust, Python", "Where Ω界?"="custom Ω界".'
+                " You can now continue with the user's answers in mind.")
+            protocol = [{"kind": "provider", "operation": "question_title", "valid": True, "index": 1}]
+            for index in (1, 2, 3):
+                protocol.append({"kind": "provider", "operation": "question_main", "valid": True, "index": index,
+                                 "registered_tools": ["question"], "user_texts": [prompt] + ([cancel] if index == 3 else []),
+                                 "actual_results": [] if index == 1 else [{"type": "function_call_output",
+                                                                          "call_id": "call_vis37_answer", "output": output}]})
+            protocol += [{"kind": "fixture_tool_call", "name": "question", "call_id": call, "arguments": argument}
+                         for call in ("call_vis37_answer", "call_vis37_cancel")]
+            snapshots = {}
+            for key in ("completed", "reopened", "restarted", "dismissed", "final"):
+                cancelled = key in ("dismissed", "final")
+                if side == "oc":
+                    operations = [{"id": "answer", "name": "question", "provider_call_id": "call_vis37_answer", "state": "completed",
+                                   "input": json.dumps(argument), "output": output}]
+                    if cancelled:
+                        operations.append({"id": "dismissed", "name": "question", "provider_call_id": "call_vis37_cancel", "state": "cancelled",
+                                           "input": json.dumps(argument), "output": "error: question dismissed"})
+                    messages = [{"role": "user", "text": text} for text in ([prompt, cancel] if cancelled else [prompt])]
+                else:
+                    operations = [{"message_id": "answer", "data": {"type": "tool", "name": "question", "id": "call_vis37_answer",
+                                   "state": {"status": "completed", "input": argument, "metadata": {"answers": answers},
+                                             "content": [{"type": "text", "text": output}]}}}]
+                    if cancelled:
+                        operations.append({"message_id": "dismissed", "data": {"name": "question", "id": "call_vis37_cancel",
+                                           "state": {"status": "error", "input": argument}}})
+                    messages = [{"type": "user", "data": json.dumps({"text": text})} for text in ([prompt, cancel] if cancelled else [prompt])]
+                data = {"question_records": {"operations": operations, "messages": messages, "readonly": True}}
+                if side == "oc":
+                    data.update(tool_operations=operations, tool_output_resources=[])
+                snapshot = {"kind": "tool_preview_snapshot", "observations": [{"data": data}], "artifacts": {},
+                            "shell_effect": None, "mcp_calls": [], "mcp_lifecycle": []}
+                snapshots[key] = snapshot
+                protocol.append(snapshot)
+            protocol += [{"kind": "exit", "generation": 0, "code": 0},
+                         {"kind": "exit", "generation": 1, "code": -15, "termination": "forced_stop"}]
+            facts = {"status": "OBSERVED_OWNED_QUESTION", "provider_requests": 4, "main_requests": 3,
+                     "explicit_user_submissions": 2, "explicit_answer_submissions": 1, "question_calls": 2,
+                     "answers": answers, "no_edit_submission": True, "no_restart_replay": True,
+                     "cancellation_not_answered": True, "readonly_native_and_donor_source_records": True, **snapshots}
+            stages = [{"stage": name, "status": "CAPTURED_TOOL_PREVIEW", "requests": 0 if i == 0 else 2 if i < 8 else 3 if i < 13 else 4,
+                       "calls": 0 if i == 0 else 1 if i < 13 else 2} for i, name in enumerate(names)]
+            checks = {"origin": side, "status": "PASS_BEHAVIOR_ONLY", "stages": stages, "question_forms": facts}
+            proof.check_vis37_facts(checks, protocol, side)
+            for kind in ("bool-count", "edit-generation", "missing-stage", "raw-rewrite", "cancel-replay", "wrong-call", "extra-effect"):
+                bad, trace = json.loads(json.dumps(checks)), json.loads(json.dumps(protocol))
+                if kind == "bool-count":
+                    bad["question_forms"]["explicit_answer_submissions"] = True
+                elif kind == "edit-generation":
+                    bad["stages"][7]["requests"] = 3
+                elif kind == "missing-stage":
+                    bad["stages"].pop()
+                elif kind == "raw-rewrite":
+                    bad["question_forms"]["restarted"]["observations"][0]["data"]["question_records"]["messages"].clear()
+                elif kind == "cancel-replay":
+                    trace.append(trace[3])
+                elif kind == "wrong-call":
+                    trace[2]["actual_results"][0]["call_id"] = "call_vis37_cancel"
+                else:
+                    bad["question_forms"]["final"]["mcp_calls"] = [{"unknown_effect": True}]
+                with self.subTest(side=side, kind=kind), self.assertRaises(ValueError):
+                    proof.check_vis37_facts(bad, trace, side)
+
+    def test_vis37_answered_glyph_assertion_keeps_all_blank_cells_unmodified(self):
+        for columns, rows in ((80, 24), (120, 40), (160, 48)):
+            blank = {"symbol": " ", "fg": "#ffffff", "bg": "#1e1e1e", "width": 1, "modifiers": []}
+            native = {"columns": columns, "rows": rows, "cells": [[dict(blank) for _ in range(columns)] for _ in range(rows)],
+                      "cursor": {"x": 5, "y": rows - 6, "visible": True, "shape": "block"}}
+            for y, text in enumerate(("", "# Questions", "", "Pick languages?", "Rust, Python", ""), 2):
+                native["cells"][y][1]["symbol"] = "┃"
+                for x, character in enumerate(text, 5):
+                    native["cells"][y][x].update(symbol=character, fg="#eeeeee")
+            original = json.loads(json.dumps(native))
+            original["cells"][3][3]["fg"] = "#eeeeee"
+            before = json.dumps((native, original))
+            proof.check_vis37_answered_card(native, original)
+            self.assertEqual(json.dumps((native, original)), before)
+            for kind in ("missing-title", "wrong-answer", "wrong-role", "wrong-caret", "short-frame"):
+                bad = json.loads(json.dumps(native))
+                if kind == "missing-title":
+                    bad["cells"][3][5]["symbol"] = " "
+                elif kind == "wrong-answer":
+                    bad["cells"][6][5]["symbol"] = "X"
+                elif kind == "wrong-role":
+                    bad["cells"][6][5]["fg"] = "#888888"
+                elif kind == "wrong-caret":
+                    bad["cursor"]["x"] += 1
+                else:
+                    bad["cells"].pop()
+                with self.subTest(columns=columns, kind=kind), self.assertRaises(ValueError):
+                    proof.check_vis37_answered_card(bad, original)
+
     def test_vis12_build_is_bound_to_each_exact_mode_fixture_and_repository_output(self):
         for episode, attempt in (("history", None), ("remap", None), ("caret", None),
                                  ("caret", "001"), ("caret", "002"), ("caret", "003")):

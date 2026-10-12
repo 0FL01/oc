@@ -30,6 +30,7 @@ import {probePasteNavigation, expectedPasteDraft} from './prompt_paste.mjs';
 import {frameArtifacts} from './frame_artifacts.mjs';
 import {probeSyntax} from './syntax_preview.mjs';
 import {probeMiddleTabs} from './middle_tabs.mjs';
+import {probeQuestionForms} from './question_forms.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -66,6 +67,10 @@ const mcpStatus = args['mcp-status'] === 'true';
 const mcpFooter = args['mcp-footer'];
 const promptCaret=args['prompt-caret']==='true';
 const promptHistory=args['prompt-history'];
+const questionForms=args['question-forms']==='true';
+if(args['question-forms']!==undefined&&(!toolPreview||!['true','false'].includes(args['question-forms'])))throw Error('--question-forms requires tool-preview and true|false');
+if(questionForms&&Object.keys(args).some(k=>!['reference','oc','build-oc','geometry','sample','sidebar','tool-preview','question-forms','columns','rows','output'].includes(k)))throw Error('--question-forms requires an exclusive paired question profile');
+if(questionForms&&args['build-oc']!=='true')throw Error('--question-forms requires a current repository build');
 const userShell=args['user-shell']==='true';
 const combinedComposer=args['combined-composer']==='true';
 const modelShell=args['model-shell']==='true';
@@ -91,10 +96,10 @@ const cursorCase=args['cursor-case']||'collapsed', cursorSync=args['cursor-sync'
 if(args['cursor-case']&&(!cursorTemporal||!['collapsed','expanded'].includes(cursorCase)))throw Error('--cursor-case requires cursor-temporal and collapsed|expanded');
 if(args['cursor-sync']&&(!cursorTemporal||!['supported','unsupported'].includes(cursorSync)))throw Error('--cursor-sync requires cursor-temporal and supported|unsupported');
 const cursorGeometry={columns:Number(args.columns),rows:Number(args.rows)};
-const toolPreviewGeometry=cursorTemporal||combinedComposer?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
+const toolPreviewGeometry=cursorTemporal||combinedComposer||questionForms?[[80,24],[120,40],[160,48]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):promptHistory||userShell?[[80,24],[120,40]].some(([c,r])=>c===cursorGeometry.columns&&r===cursorGeometry.rows):cursorGeometry.columns===120&&cursorGeometry.rows===40;
 if(args['tool-preview']!==undefined&&!['true','false'].includes(args['tool-preview']))throw Error('--tool-preview must be true|false');
 if(cursorTemporal&&args['refresh-before-capture']==='true')throw Error('Cursor temporal qualification cannot force a frontend repaint');
-if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
+if(toolPreview&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='short'||!toolPreviewGeometry||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['tool-preview','question-forms','mcp-status','prompt-caret','user-shell','combined-composer','model-shell','subagent-cards','root-handoff','syntax-cache','syntax-inventory','compress-cells','compress-frames','geometry','build-oc','refresh-before-capture'].includes(k))))throw Error('--tool-preview requires exclusive paired short geometry sidebar hide');
 if(args['clean-services']!==undefined&&!['true','false'].includes(args['clean-services']))throw Error('--clean-services must be true|false');
 if(cleanServices&&(args.geometry!=='true'||args.sidebar!=='hide'||args.sample!=='tools'||args['agent-profile']!=='true'||Number(args.columns)!==120||Number(args.rows)!==40||!args.reference||!args.oc||args.session||args['seed-root']||boundedMode||Object.entries(args).some(([k,v])=>v==='true'&&!['clean-services','geometry','agent-profile','build-oc'].includes(k))))throw Error('--clean-services requires exclusive paired Reader/tools 120x40 geometry sidebar hide');
 const leaderPending = args['leader-pending'] === 'true';
@@ -372,6 +377,7 @@ const json = (name, value) => fs.writeFileSync(path.join(output, name), JSON.str
 const fixture = path.join(repo, 'tui-recovery/fixtures');
 const fixtureFiles = Object.fromEntries(fs.readdirSync(fixture).sort().map(n => [n, sha(fs.readFileSync(path.join(fixture,n)))]));
 const fixtureSha = sha(canonical({files: fixtureFiles, sample: args.sample || 'table', variants: args.variants === 'true',
+    ...(questionForms?{question_forms:true,probe:sha(fs.readFileSync(path.join(here,'question_forms.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'question_fixture.py')))}:{}),
     ...(userShell ? {user_shell:true,probe:sha(fs.readFileSync(path.join(here,'user_shell.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'user_shell_fixture.py')))} : {}),
     ...(combinedComposer ? {combined_composer:true,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,probe:sha(fs.readFileSync(path.join(here,'composer.mjs'))),fixture:sha(fs.readFileSync(path.join(here,'composer_fixture.py')))} : {}),
     ...(syntaxCache?{syntax_cache:true,syntax_manifest:sha(fs.readFileSync(path.join(repo,'crates/oc-tui/assets/syntax/manifest.json'))),cache_loader:sha(fs.readFileSync(path.join(here,'syntax_cache.py')))}:{}),
@@ -422,6 +428,7 @@ if(mcpStatus)lock.runner_hashes['mcp_status.mjs']=sha(fs.readFileSync(path.join(
 if(mcpFooter)lock.runner_hashes['mcp_footer.mjs']=sha(fs.readFileSync(path.join(here,'mcp_footer.mjs')));
 if(promptCaret)for(const n of ['prompt_caret.mjs','prompt_caret_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(promptHistory)for(const n of ['prompt_history.mjs','prompt_history_fixture.py','prompt_caret_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
+if(questionForms)for(const n of ['question_forms.mjs','question_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(userShell)for(const n of ['user_shell.mjs','user_shell_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(combinedComposer)for(const n of ['composer.mjs','composer_fixture.py'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
 if(cursorTemporal)for(const n of ['cursor_temporal.mjs','cursor_frontend.js'])lock.runner_hashes[n]=sha(fs.readFileSync(path.join(here,n)));
@@ -447,7 +454,7 @@ if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['session
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
 // These stateful probes must be new even when fresh output trees share a
 // basename. Reusing a home mixes prior operations/cache/history into proof.
-const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret;
+const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret || questionForms;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),
@@ -498,7 +505,8 @@ try {
     columns: Number(args.columns || 160), rows: Number(args.rows || 48), TERM: 'xterm-256color', COLORTERM: 'truecolor', locale: 'C.UTF-8',
      cursor_blink:cursorTemporal==='blink', cursor_temporal:cursorTemporal||null,cursor_renderer:cursorRenderer,cursor_case:cursorCase,cursor_sync:cursorSync,
         ...(toolPreview?{mcp_status:mcpStatus,mcp_footer:mcpFooter||null,prompt_caret:promptCaret,prompt_history:promptHistory||null,user_shell:userShell,combined_composer:combinedComposer,model_shell:modelShell,subagent_cards:subagentCards,root_handoff:rootHandoff,syntax_cache:syntaxCache,syntax_inventory:syntaxInventory,cells_encoding:compressCells?'gzip':'json',frame_sidecars_encoding:compressFrames?'gzip':'plain',same_side_identical_png_links:compressFrames,refresh_before_capture:args['refresh-before-capture']==='true'}:{}),
-    unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
+     unicode_width_policy: '@xterm/addon-unicode11 0.9.0 (Unicode 11)',
+     ...(questionForms?{question_forms:true}:{}),
      settings: {theme: 'opencode', mode: 'dark', sidebar: args.sidebar || 'auto', devtools: args.devtools === 'unset' ? null : args.devtools === 'true', tabs: args.tabs || 'horizontal',
           ...(applyPatch?{diffs:{view:args['patch-view']||'default',wrap:args['patch-wrap']||'default'},session_tps_override:false}:{}),
       clock_policy: 'real application wall clock; fixed provider created_at; no masking or clock claim',
@@ -530,7 +538,8 @@ try {
                   mcp_status:mcpStatus,
                    mcp_footer:mcpFooter||null,
                    prompt_caret:promptCaret,
-                    prompt_history:promptHistory||null,
+                     prompt_history:promptHistory||null,
+                     question_forms:questionForms,
                      user_shell:userShell,
                       combined_composer:combinedComposer,
                        model_shell:modelShell,
@@ -763,7 +772,8 @@ try {
             const resize=async (rows,columns=profile.columns)=>{profile.rows=rows;profile.columns=columns;await page.evaluate(({columns,rows})=>term.resize(columns,rows),{columns,rows});child.stdin.write(JSON.stringify({kind:'resize',columns,rows})+'\n');};
              const checks=await probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,
                  syntaxProbe:syntaxInventory?probeSyntax:null,
-                promptProbe:promptCaret?probePromptCaret:null,
+                 promptProbe:promptCaret?probePromptCaret:null,
+                 questionProbe:questionForms?probeQuestionForms:null,
                  historyProbe:promptHistory?args=>probePromptHistory({...args,mode:promptHistory}):null,
                   userShellProbe:userShell?probeUserShell:null,
                      composerProbe:combinedComposer?args=>probeComposer({...args,modelShell,subagentCards,rootHandoff}):null,

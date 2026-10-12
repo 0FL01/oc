@@ -95,6 +95,199 @@ fn operation(name: &str, output: &str, presentation: Option<Presentation>) -> To
 }
 
 #[test]
+fn vis37_answered_questions_use_metadata_order_block_spacing_and_semantic_roles() {
+    use oc_core::question::{QuestionInput, QuestionResult};
+    use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
+
+    let input = QuestionInput::parse(&serde_json::json!({"questions": [
+        {"question": "Pick Ω界?", "header": "Pick", "options": [], "multiple": true},
+        {"question": "Next?", "header": "Next", "options": []}
+    ]}))
+    .unwrap();
+    let answers = vec![vec!["A".into(), "B".into()], vec![]];
+    input.validate_answers(&answers).unwrap();
+    let result = QuestionResult {
+        questions: input.questions,
+        answers,
+    };
+    let raw = serde_json::to_string(&result).unwrap();
+    let mut row = operation("question", &raw, None);
+    row.question = Some(result);
+    let before = row.clone();
+    let mut card = card_from_row(&row);
+    let theme = Theme::dark();
+    let lines = tool_block(&card, theme, 30);
+    assert_eq!(
+        lines
+            .iter()
+            .map(|line| line.plain_text().trim_end().to_string())
+            .collect::<Vec<_>>(),
+        [
+            "┃",
+            "┃  # Questions",
+            "┃",
+            "┃  Pick Ω界?",
+            "┃  A, B",
+            "┃",
+            "┃  Next?",
+            "┃  (no answer)",
+            "┃"
+        ]
+    );
+    let mut terminal = Terminal::new(TestBackend::new(30, 9)).unwrap();
+    terminal
+        .draw(|frame| {
+            frame.render_widget(
+                Paragraph::new(styled::Lines::from(lines).into_text()),
+                frame.area(),
+            )
+        })
+        .unwrap();
+    let buffer = terminal.backend().buffer();
+    for y in [1, 3, 6] {
+        assert_eq!(buffer[(3, y)].fg, theme.text_muted());
+    }
+    for y in [4, 7] {
+        assert_eq!(buffer[(3, y)].fg, theme.text());
+    }
+    for y in 0..9 {
+        assert_eq!(buffer[(0, y)].symbol(), "┃");
+        assert_eq!(buffer[(0, y)].fg, theme.background());
+        assert_eq!(buffer[(29, y)].bg, theme.background_raised());
+    }
+    assert_eq!(
+        row, before,
+        "rendering does not change durable result or RAW"
+    );
+
+    let result = card.question.as_mut().unwrap();
+    result.questions[0].question = format!("{} \u{1b}[31m\nnext", "界".repeat(24));
+    result.answers[0] = vec![format!("{}\nanswer \u{7} tail", "Ω".repeat(40))];
+    let before = card.question.clone();
+    let wrapped = tool_block(&card, theme, 20);
+    assert!(wrapped.len() > 9, "long Unicode and literal newlines wrap");
+    assert!(
+        wrapped.iter().all(|line| {
+            line.spans().iter().map(styled::span_width).sum::<usize>() == 20
+                && !line.plain_text().chars().any(char::is_control)
+                && line.plain_text().starts_with("┃  ")
+        }),
+        "each safe continuation keeps its border/padding within the width"
+    );
+    assert_eq!(
+        card.question, before,
+        "sanitization only changes presentation"
+    );
+}
+
+#[test]
+fn vis37_answered_question_full_and_cached_transcripts_bypass_generic_expansion() {
+    use crate::{
+        history::HistoryRow,
+        messages::{
+            MarkdownCache, exploration_header_at_with_range, transcript_with_expansion,
+            visible_transcript_expanded,
+        },
+    };
+    use oc_core::question::{QuestionInput, QuestionResult};
+    use std::cell::RefCell;
+    let input = QuestionInput::parse(&serde_json::json!({"questions": [
+        {"question":"Actual question?", "header":"Actual", "options":[]}
+    ]}))
+    .unwrap();
+    let mut operation = operation("question", "model-only question output", None);
+    operation.question = Some(QuestionResult {
+        questions: input.questions,
+        answers: vec![vec!["accepted Ω界".into()]],
+    });
+    let before = operation.clone();
+    let card = card_from_row(&operation);
+    let rows = [HistoryRow {
+        message_id: None,
+        seq: 1,
+        role: "tool".into(),
+        text: String::new(),
+        agent: None,
+        agent_color_index: None,
+        chips: Vec::new(),
+        reasoning: None,
+        child_notice: None,
+        shell_notice: None,
+        meta: None,
+        tool: Some(card),
+    }];
+    let theme = Theme::dark();
+    let cache = RefCell::new(MarkdownCache::default());
+    for width in [43, 80] {
+        let mut previous = None;
+        for expanded in [false, true] {
+            let full = transcript_with_expansion(
+                &rows,
+                theme,
+                width,
+                width,
+                |_| theme.text(),
+                Some(&cache),
+                &|_| expanded,
+            );
+            let full = styled::wrap_lines(&full, width as usize);
+            assert!(
+                full.iter()
+                    .any(|line| line.plain_text().trim_end() == "┃  # Questions"),
+                "real transcript dispatch must reach the answered renderer"
+            );
+            let (visible, total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (width, width),
+                (200, 0, None),
+                |_| theme.text(),
+                &cache,
+                &|_| expanded,
+            );
+            let paint = |lines: Vec<Line>| {
+                use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};
+                let mut terminal = Terminal::new(TestBackend::new(width, 200)).unwrap();
+                terminal
+                    .draw(|frame| {
+                        frame.render_widget(
+                            Paragraph::new(styled::Lines::from(lines).into_text()),
+                            frame.area(),
+                        )
+                    })
+                    .unwrap();
+                terminal.backend().buffer().clone()
+            };
+            assert_eq!(paint(visible[1..].to_vec()), paint(full));
+            assert_eq!(total, visible.len());
+            if let Some(previous) = previous {
+                assert_eq!(visible, previous);
+            }
+            let y = visible
+                .iter()
+                .position(|line| line.plain_text().contains("# Questions"))
+                .unwrap();
+            assert!(
+                exploration_header_at_with_range(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (200, 0, None),
+                    |_| theme.text(),
+                    &cache,
+                    (&|_| expanded, (3, y))
+                )
+                .is_none(),
+                "Question BlockTool has no generic expansion click target"
+            );
+            previous = Some(visible);
+        }
+    }
+    assert!(!generic_expandable(rows[0].tool.as_ref().unwrap()));
+    assert_eq!(operation, before);
+}
+
+#[test]
 fn owned_body_excludes_guidance_but_literal_and_legacy_text_stay_data() {
     let body = "actual [Part preview truncated]\n[output preview truncated; full result retained]\n[truncated]";
     let recorded = format!("{body}\n[tool output: generated model guidance]");

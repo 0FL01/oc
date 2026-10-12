@@ -4,7 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {probeHomeMcp} from './home_mcp.mjs';
 
-export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,userShellProbe,composerProbe,syntaxProbe}) {
+export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,visibleMatches,logs,control,relaunch,resize,cursorProbe,mcpProbe,promptProbe,historyProbe,questionProbe,userShellProbe,composerProbe,syntaxProbe}) {
   const result={origin,status:'IN_PROGRESS',stages:[],differences:mcpProbe?[
     'Native intrinsic Connected bold follows frozen source contract; the running pinned original may lose this attribute.',
     'Native repeated keyboard/mouse investigation must populate an unsent draft; pinned Home may not reinject an identical route prompt after the user clears it. This reference difference is observed, not native acceptance.',
@@ -79,6 +79,11 @@ export async function probeToolPreview({origin,dir,send,waitFor,frame,capture,vi
     return shot(stage,f=>f.text.includes('VIS16-DONE:')&&target(f,1).length===1&&!f.text.includes('output: VIS-MCP-FIRST'));
   };
   try {
+    if(questionProbe) {
+      result.differences=['Question ownership, structured answers, cancellation and durable restart are observed through the real binaries. Native JSON result and donor canonical model content are separately validated; full styled grids/PNGs/cursors remain unmasked, not global parity.'];
+      result.question_forms=await questionProbe({origin,send,shot,waitFor,frame,visibleMatches,logs,snapshot,relaunch});
+      result.status='PASS_BEHAVIOR_ONLY';save();return result;
+    }
     if(syntaxProbe) {
       result.syntax=await syntaxProbe({origin,dir,send,shot,waitFor,frame,visibleMatches,resize,logs,snapshot,control,relaunch});
       result.status='PASS_BEHAVIOR_ONLY';save();return result;

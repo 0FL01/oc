@@ -52,11 +52,12 @@ def path_ok(name):
 def source_files():
     files, total = {}, 0
     for name, root in ROOTS.items():
-        require(root.is_dir() and not root.is_symlink() and root.resolve().is_relative_to(TEMP),
+        driver = name in ("failed-driver", "current-driver")
+        require((root.is_file() if driver else root.is_dir()) and not root.is_symlink() and root.resolve().is_relative_to(TEMP),
                 "fresh capture root")
         # Fixed campaign parent logs are additional members; their episode
         # subtrees are already included separately, without duplication.
-        paths = root.glob("*") if name in ("current-logs", "historical-logs", "failed-logs", "rejected-logs") else root.rglob("*")
+        paths = [root] if driver else root.glob("*") if name in ("current-logs", "historical-logs", "failed-logs", "rejected-logs") else root.rglob("*")
         for path in sorted(paths):
             meta = path.lstat()
             require(not path.is_symlink() and meta.st_uid == os.getuid(), "foreign/symlink capture")
@@ -70,7 +71,7 @@ def source_files():
                     (after.st_size, after.st_mtime_ns, after.st_ino), "capture changed")
             total += len(data)
             require(total <= MAX_TOTAL and len(files) < 2000, "complete campaign bound")
-            member = name + "/" + path.relative_to(root).as_posix()
+            member = name + "/" + (path.name if driver else path.relative_to(root).as_posix())
             path_ok(member)
             files[member] = data
     return files
@@ -626,6 +627,220 @@ def vis12_wrap_checks(files):
     return reports
 
 
+def check_vis37_build(lock, manifest, commands, profile, attempt):
+    require((profile, attempt) in (("wide", "001"), ("small", "002"), ("wide", "002"), ("tall", "002")),
+            "fixed VIS37 acquisition")
+    columns, rows = {"small": (80, 24), "wide": (120, 40), "tall": (160, 48)}[profile]
+    invocation = commands[0]
+    argv = invocation["argv"]
+    require(invocation.get("role") == "capture runner invocation" and len(argv) >= 2 and
+            argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
+            "actual VIS37 capture runner")
+    pairs = list(zip(argv[2::2], argv[3::2], strict=True))
+    options = dict(pairs)
+    expected = {"--reference": str(TEMP / "t44-reference/package/bin/opencode"),
+                "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
+                "--sample": "short", "--sidebar": "hide", "--tool-preview": "true", "--question-forms": "true",
+                "--columns": str(columns), "--rows": str(rows),
+                "--output": str(TEMP / ("vis37-current-" + attempt) / profile)}
+    require(len(options) == len(pairs) and options == expected and
+            lock["oc"]["executable_path"] == options["--oc"] and
+            lock["upstream"]["executable_path"] == options["--reference"] and
+            lock["profile"]["columns"] == columns and lock["profile"]["rows"] == rows and
+            lock["profile"].get("question_forms") is True, "fixed VIS37 options, paths and geometry")
+    require(all(lock["runner_hashes"][name] == manifest["scripts/tui_capture/" + name]
+                for name in ("capture.mjs", "tool_preview.mjs", "tool_preview_fixture.py",
+                             "question_forms.mjs", "question_fixture.py")) and
+            lock["oc"]["build_command"] == ["cargo", "build", "--locked"] and
+            lock["sources"]["upstream_commit"] == "2670273ff17da96f85c5826ced57aa1b368754fa",
+            "sealed VIS37 producer/fixture and pinned donor")
+    builds = [item for item in commands if item["argv"][0] == "cargo"]
+    require(len(builds) == 1 and builds[0]["argv"] == lock["oc"]["build_command"] and
+            builds[0]["exit_code"] == 0, "one exact captured VIS37 repository build")
+
+
+def check_vis37_facts(checks, protocol, side):
+    names = ("question-home question-pending question-one-selected question-multiple-selected question-long-field "
+             "question-custom-empty question-custom-edited question-review question-completed question-answered-card "
+             "question-switched question-reopened question-restarted question-cancel-pending question-dismissed "
+             "question-cancel-switched question-cancel-reopened").split()
+    require(checks.get("origin") == side and checks.get("status") == "PASS_BEHAVIOR_ONLY" and
+            [item.get("stage") for item in checks["stages"]] == names, "all actual owned VIS37 stages")
+    for index, stage in enumerate(checks["stages"]):
+        requests, calls = (0, 0) if index == 0 else (2, 1) if index < 8 else (3, 1) if index < 13 else (4, 2)
+        require(stage.get("status") == "CAPTURED_TOOL_PREVIEW" and
+                type(stage.get("requests")) is int and stage["requests"] == requests and
+                type(stage.get("calls")) is int and stage["calls"] == calls,
+                "no editing/review/reopen/restart/dismissal generation")
+    facts = checks["question_forms"]
+    answers = [["Rust", "Python"], ["custom Ω界"]]
+    require(facts.get("status") == "OBSERVED_OWNED_QUESTION" and facts.get("answers") == answers and
+            all(type(facts.get(key)) is int and facts[key] == value for key, value in
+                (("provider_requests", 4), ("main_requests", 3), ("explicit_user_submissions", 2),
+                 ("explicit_answer_submissions", 1), ("question_calls", 2))) and
+            all(facts.get(key) is True for key in ("no_edit_submission", "no_restart_replay",
+                                                 "cancellation_not_answered", "readonly_native_and_donor_source_records")),
+            "exact explicit VIS37 inputs and ownership scope")
+    providers = [item for item in protocol if item.get("kind") == "provider"]
+    mains = [item for item in providers if item.get("operation") == "question_main"]
+    titles = [item for item in providers if item.get("operation") == "question_title"]
+    calls = [item for item in protocol if item.get("kind") == "fixture_tool_call"]
+    require(len(providers) == 4 and len(mains) == 3 and len(titles) == 1 and
+            all(item.get("valid") is True and type(item.get("index")) is int for item in providers) and titles[0].get("index") == 1 and
+            [item.get("index") for item in mains] == [1, 2, 3] and
+            [item.get("call_id") for item in calls] == ["call_vis37_answer", "call_vis37_cancel"] and
+            all(item.get("name") == "question" for item in calls), "real question wire sequence and no continuation on cancel")
+    argument = calls[0]["arguments"]
+    require(argument == calls[1]["arguments"] and len(argument["questions"]) == 2 and
+            [question.get("header") for question in argument["questions"]] ==
+            ["Languages and native runtimes", "Platform and execution targets"] and
+            argument["questions"][0].get("multiple") is True and argument["questions"][1].get("multiple") is False and
+            all(item.get("registered_tools") == ["question"] for item in mains) and
+            [item.get("user_texts") for item in mains] == [["VIS37 paired question consumer"]] * 2 +
+            [["VIS37 paired question consumer", "VIS37 dismiss the next question"]] and
+            mains[0].get("actual_results") == [], "actual same typed questions and exact user submissions")
+    native_result = {**argument, "answers": answers}
+    donor_result = 'User has answered your questions: ' + ', '.join(
+        '"' + question["question"] + '"="' + ', '.join(answer) + '"'
+        for question, answer in zip(argument["questions"], answers, strict=True)
+    ) + ". You can now continue with the user's answers in mind."
+    for request in mains[1:]:
+        results = request["actual_results"]
+        require(len(results) == 1 and results[0].get("type") == "function_call_output" and
+                results[0].get("call_id") == "call_vis37_answer" and
+                (json.loads(results[0]["output"]) == native_result if side == "oc" else
+                 results[0].get("output") == donor_result), "actual owned native typed/donor canonical answer result")
+    snapshots = [facts[key] for key in ("completed", "reopened", "restarted", "dismissed", "final")]
+    observed = [item for item in protocol if item.get("kind") == "tool_preview_snapshot"]
+    require(observed == snapshots and all(item.get("artifacts") == {} and item.get("shell_effect") is None and
+                                         item.get("mcp_calls") == [] and item.get("mcp_lifecycle") == []
+                                         for item in snapshots), "actual read-only snapshots without extra effects")
+    require(snapshots[0]["observations"] == snapshots[1]["observations"] == snapshots[2]["observations"] and
+            snapshots[3]["observations"] == snapshots[4]["observations"], "durable source IDs and RAW unchanged on viewing/restart")
+    for index, snapshot in enumerate(snapshots):
+        data = [row["data"] for row in snapshot["observations"] if "question_records" in row["data"]]
+        require(len(data) == 1 and data[0]["question_records"].get("readonly") is True,
+                "bounded actual native/donor source records")
+        records = data[0]["question_records"]["operations"]
+        require(len(records) == (1 if index < 3 else 2), "only completed answer and owned dismissed question")
+        if side == "oc":
+            require(records[0].get("provider_call_id") == "call_vis37_answer" and
+                    records[0].get("name") == "question" and records[0].get("state") == "completed" and
+                    json.loads(records[0]["input"]) == argument and json.loads(records[0]["output"]) == native_result and
+                    len(data[0]["tool_operations"]) == len(records) and data[0]["tool_output_resources"] == [] and
+                    all(any(all(row.get(key) == value for key, value in record.items())
+                            for row in data[0]["tool_operations"]) for record in records),
+                    "actual completed native typed metadata/input/output")
+            users = [row["text"] for row in data[0]["question_records"]["messages"] if row["role"] == "user"]
+            if index >= 3:
+                require(records[1].get("provider_call_id") == "call_vis37_cancel" and records[1].get("name") == "question" and
+                        records[1].get("state") == "cancelled" and records[1].get("output") == "error: question dismissed" and
+                        json.loads(records[1]["input"]) == argument, "native cancellation is not a successful answer")
+        else:
+            part = records[0]["data"]
+            require(part.get("type") == "tool" and part.get("name") == "question" and part.get("id") == "call_vis37_answer" and
+                    part["state"].get("status") == "completed" and part["state"].get("input") == argument and
+                    part["state"]["metadata"].get("answers") == answers and
+                    part["state"]["content"] == [{"type": "text", "text": donor_result}],
+                    "actual donor V2 source part and typed answers")
+            users = [json.loads(row["data"])["text"] for row in data[0]["question_records"]["messages"] if row["type"] == "user"]
+            if index >= 3:
+                cancelled = records[1]["data"]
+                require(cancelled.get("id") == "call_vis37_cancel" and cancelled.get("name") == "question" and
+                        cancelled["state"].get("status") == "error" and cancelled["state"].get("input") == argument and
+                        "answers" not in (cancelled["state"].get("metadata") or {}), "donor cancellation is not an answered source")
+        require(users == ["VIS37 paired question consumer"] + (["VIS37 dismiss the next question"] if index >= 3 else []),
+                "actual RAW user submissions stay exact")
+    exits = [item for item in protocol if item.get("kind") == "exit"]
+    require(len(exits) == 2 and exits[0].get("generation") == 0 and exits[0].get("code") == 0 and
+            exits[1].get("generation") == 1 and exits[1].get("termination") == "forced_stop",
+            "natural first shutdown and honest final harness teardown")
+
+
+def check_vis37_answered_card(native, original):
+    # Owner-glyph assertion only. Every blank cell, clock and whole-frame report
+    # remains unmodified and participates in the strict full comparisons.
+    require((native.get("columns"), native.get("rows")) in ((80, 24), (120, 40), (160, 48)) and
+            all((frame.get("columns"), frame.get("rows")) == (native["columns"], native["rows"]) and
+                len(frame["cells"]) == frame["rows"] and all(len(row) == frame["columns"] for row in frame["cells"])
+                for frame in (native, original)) and native.get("cursor") == original.get("cursor"),
+            "complete answered frame geometry/caret")
+    ranges = []
+    for frame in (native, original):
+        titles = [y for y, row in enumerate(frame["cells"]) if '# Questions' in ''.join(cell["symbol"] for cell in row)]
+        require(len(titles) == 1, "actual unique answered card heading")
+        start = end = titles[0]
+        borders = [x for x, cell in enumerate(frame["cells"][start]) if cell["symbol"] == "┃"]
+        require(len(borders) == 1, "actual answered block border")
+        border = borders[0]
+        while start > 0 and frame["cells"][start - 1][border]["symbol"] == "┃":
+            start -= 1
+        while end + 1 < frame["rows"] and frame["cells"][end + 1][border]["symbol"] == "┃":
+            end += 1
+        ranges.append((start, end, border))
+    require(ranges[0] == ranges[1], "actual answered block order/spacing/wrap geometry")
+    for y in range(ranges[0][0], ranges[0][1] + 1):
+        for left, right in zip(native["cells"][y], original["cells"][y], strict=True):
+            if left["symbol"].strip() or right["symbol"].strip():
+                require(left == right, "all actual answered nonblank glyph styles/text")
+
+
+def vis37_checks(files):
+    reports = []
+    for prefix, attempt, profile, count in (("failed-wide", "001", "wide", 25),
+                                            ("current-small", "002", "small", 34),
+                                            ("current-wide", "002", "wide", 34),
+                                            ("current-tall", "002", "tall", 34)):
+        read = lambda relative: json.loads(files[prefix + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 713)
+        check_vis37_build(lock, manifest, read("commands.json"), profile, attempt)
+        current = attempt == "002"
+        require(len(lock["captures"]) == count and len(lock["attempts"]) == (34 if current else 30),
+                "all complete and failed VIS37 frames/comparison attempts")
+        require(collections.Counter(item["status"] for item in lock["attempts"]) ==
+                ({"DIFFERENT": 34} if current else {"DIFFERENT": 20, "BLOCKED": 10}),
+                "whole strict comparisons remain different; failed missing counterparts stay blocked")
+        if current:
+            check_current_source(manifest)
+            for side in ("oc", "upstream"):
+                with Path(lock[side]["executable_path"]).open("rb") as stream:
+                    require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                            "actual current VIS37 executable identity")
+            check_vis37_answered_card(read("oc/tool-preview-question-answered-card.cells.json"),
+                                      read("upstream/tool-preview-question-answered-card.cells.json"))
+        statuses = {}
+        output = TEMP / ("vis37-current-" + attempt) / profile
+        root = TEMP / "t44-reference/runs" / (profile + "-" + digest(str(output).encode())[:12])
+        for side in ("oc", "upstream"):
+            checks, protocol = read(side + "/tool-preview-checks.json"), read(side + "/protocol.json")
+            require(checks == lock["tool_preview"][side], "captured VIS37 side facts remain exact")
+            launches = [item for item in protocol if item.get("kind") in ("launch", "relaunch")]
+            home = root / side / "home"
+            require(len(launches) == (2 if current or side == "oc" else 1) and
+                    all(item.get("cwd") == str(root / "project") for item in launches) and
+                    launches[0]["env"].get("HOME") == str(home) and
+                    all(launches[0]["env"].get("XDG_" + key + "_HOME") == str(home / key.lower())
+                        for key in ("CONFIG", "CACHE", "DATA", "STATE")), "actual sealed fresh fixture launch/relaunch lineage")
+            if current:
+                check_vis37_facts(checks, protocol, side)
+            else:
+                require(checks.get("origin") == side and checks.get("status") == "FAILED" and
+                        len(checks["stages"]) == (14 if side == "oc" else 9) and
+                        checks.get("reason") == ("Timed out waiting for question-dismissed" if side == "oc" else
+                                                 "Extra/missing question ownership or effects"),
+                        "known observer failures remain visible, not promoted/replayed")
+                providers = [item for item in protocol if item.get("kind") == "provider"]
+                require(len(providers) == (4 if side == "oc" else 3) and
+                        all(item.get("valid") is True for item in providers), "actual failed partial provider effects")
+            statuses[side] = checks["status"]
+        reports.append({"episode": prefix, "captures": count, "current_source": current,
+                        "scope": "ANSWER_CONSUMER_CARD_GLYPHS_ONLY" if current else "FAILED_OBSERVER_PROJECTION",
+                        "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
@@ -807,13 +1022,18 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "vis12-wrap":
+    if args.campaign == "vis37":
+        ROOTS = {"failed-wide": TEMP / "vis37-current-001/wide",
+                 **{"current-" + profile: TEMP / "vis37-current-002" / profile for profile in ("small", "wide", "tall")},
+                 "failed-logs": TEMP / "vis37-current-001", "current-logs": TEMP / "vis37-current-002",
+                 "failed-driver": TEMP / "vis37-capture.py", "current-driver": TEMP / "vis37-capture-r2.py"}
+    elif args.campaign == "vis12-wrap":
         ROOTS = {period + "-" + kind: TEMP / ("vis12-wrap-current-" + attempt) / ("caret" if kind == "caret" else "")
                  for period, attempt in (("failed", "001"), ("current", "002"), ("rejected", "003"))
                  for kind in ("caret", "logs")}
@@ -889,6 +1109,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign == "vis37":
+            return vis37_checks(files)
         if args.campaign == "vis12-wrap":
             return vis12_wrap_checks(files)
         if args.campaign == "vis12":

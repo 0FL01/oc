@@ -848,3 +848,31 @@ completed restart replay; reference RAW/DCP tables not decoded. Same bounds/no
 cleanup/offload/old evidence rewrite/new store/query/poll/paid campaign. No whole
 VIS12/R6/T44 pixel PASS. Next real blank-cell owner diagnosis, EVERY frozen outcome/
 supplement and final current-source R6/V09 before finish.
+
+## VIS37 actual question consumer/answered glyphs (2026-10-12 — qualified slice)
+
+[Factual receipt](../tui/vis37-answered-qualified.md): result-derived # Questions,
+ordered question/answer roles, spacing/wrap reach full/cached transcripts without
+Generic expansion. Two renderer RED→GREEN cases and three actual native PTY/headless
+cases prove --auto waits for an owned reply, typed answer in next provider request/
+durable restart, honest cancellation and headless question_required; existing
+adapter binding/durable-before-wire test and effective Deny ceilings retained.
+Actual three profiles80x24/120x40/160x48: both17-stage behavioral PASS, all102 strict
+comparisons DIFFERENT;46999 cells3493728 pixels/30of51 cursors equal. Answered-card
+nonblank glyph roles/order/spacing/wrap equal;57 blank-FG owner residuals and clocks
+stay visible. Pending question_view geometry/tabs/descriptions remain a real gap.
+Failed00125 whole PNGs/20 DIFFERENT/10 BLOCKED preserved; wrong V1 observer and
+honest interrupted-footer predicate corrected only for fresh002, no episode replay.
+Current workspace1849/0/11 all46/TUI519/PTY58, strict Clippy/fmt/builds/help/current
+release9/resources PASS; RootPython62/nestedQuestion2/JS/docs/progress PASS.
+All829 original files64853986 logical bytes/127 whole PNGs/31 direct same-run-side
+aliases retained2404048 encoded bytes; independent whole-byte inverse/current713
+source/actual ELFs/one recorded locked build per acquisition PASS. Specifically
+inventoried preservation sets/first verifier/report unchanged, no blanket old audit.
+Current24 requests18 main6 title/12 question calls/12 user+6 answer submissions/
+30 RO snapshots/no observed edit generation/reask/cancel continuation/extra effects;
+native typed and actual donor V2/RAW source IDs durable. DCP tables not decoded;
+finalgeneration1 forced teardown not clean-final-lifecycle evidence. Same bounds/no
+cleanup/offload/capraise/old evidence rewrite/new store/query/poll/paid campaign.
+No whole VIS37/R6/T44 PASS. Next real pending-form owner, EVERY frozen outcome/
+supplement and final current-source R6/V09 before finish.

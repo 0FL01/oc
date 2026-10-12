@@ -291,11 +291,15 @@ enum Script {
     S07Markdown,
     ReasoningClick,
     ReasoningSteps,
+    Question,
     Compress(String),
 }
 
 fn script(body: &serde_json::Value) -> Script {
     if has_function_call_output(body) {
+        if last_user_text(body).as_deref() == Some(question::PROMPT) {
+            return Script::Text(question::DONE.into());
+        }
         if last_user_text(body).as_deref() == Some(S07_PROMPT) {
             return Script::S07Markdown;
         }
@@ -345,6 +349,9 @@ fn script(body: &serde_json::Value) -> Script {
     }
     if prompt == REASONING_STEPS_PROMPT {
         return Script::ReasoningSteps;
+    }
+    if prompt == question::PROMPT {
+        return Script::Question;
     }
     Script::Text(format!("echo: {prompt}"))
 }
@@ -542,6 +549,23 @@ fn respond(
             finish_completed(socket, &answer)
         }
         Script::Compress(arguments) => finish_call(socket, "compress", arguments),
+        Script::Question => {
+            // Reuse the fixture's existing explicit stream-release gate. The
+            // real composer receives an unfinished draft before the question.
+            let start = Instant::now();
+            while !s07_continue.load(Ordering::Relaxed) && !stop.load(Ordering::Relaxed) {
+                assert!(start.elapsed() < DEADLINE, "question fixture release");
+                std::thread::sleep(POLL);
+            }
+            if stop.load(Ordering::Relaxed) {
+                return Ok(());
+            }
+            finish_call(
+                socket,
+                "question",
+                &serde_json::to_string(&question::input()).unwrap(),
+            )
+        }
         Script::Cfg10DeniedRead => {
             finish_call(socket, "read", r#"{"path":"cfg10-denied-note.txt"}"#)
         }
@@ -2063,5 +2087,7 @@ mod plugin_admission;
 mod prompt_history;
 #[path = "pty_t39/provider_readiness.rs"]
 mod provider_readiness;
+#[path = "pty_t39/question.rs"]
+mod question;
 #[path = "pty_t39/user_shell.rs"]
 mod user_shell;

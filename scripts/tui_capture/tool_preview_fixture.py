@@ -9,6 +9,7 @@ import prompt_history_fixture
 import user_shell_fixture
 import composer_fixture
 import syntax_fixture
+import question_fixture
 
 lock = threading.Lock()
 requests = 0
@@ -65,7 +66,9 @@ def configure(spec, home, project, config, cli):
         (project / 'note.txt').write_text('HISTORY_FILE_CURRENT_CANARY')
         if spec['prompt_history'] == 'remap':
             cli['keybinds'] = {'leader':'ctrl+g','prompt.history.previous':'f2,<leader>p',
-                               'prompt.history.next':'f3'}
+                                'prompt.history.next':'f3'}
+    if spec.get('question_forms'):
+        question_fixture.configure(spec, config)
 
 def control(home, action, project=None, spec=None):
     if spec and spec.get('syntax_inventory'):
@@ -107,6 +110,8 @@ def snapshot(home, project, spec):
             if spec.get('syntax_inventory') and spec['origin'] == 'oc' and 'turns' in tables:
                 data['syntax_turns'] = [dict(row) for row in connection.execute(
                     'SELECT id,session_id,status FROM turns ORDER BY rowid LIMIT 4')]
+            if spec.get('question_forms'):
+                data['question_records'] = question_fixture.snapshot(connection, tables, spec['origin'])
             observations.append({'tables':sorted(tables), 'data':data})
     peer = home / 'vis16-mcp.jsonl'
     lifecycle = home / 'vis16-mcp-lifecycle.jsonl'
@@ -149,6 +154,8 @@ def respond(handler, body, spec, emit):
     items = body.get('input', [])
     system = str(body.get('instructions','')) + json.dumps([x for x in items if x.get('role') in ('system','developer')])
     title = 'title generator' in system.lower() or (not body.get('tools') and 'title' in system.lower())
+    if spec.get('question_forms'):
+        return question_fixture.respond(handler, body, spec, emit, title, number)
     if spec.get('prompt_caret'):
         return prompt_caret_fixture.respond(handler, body, spec, emit, title, number)
     if spec.get('prompt_history'):

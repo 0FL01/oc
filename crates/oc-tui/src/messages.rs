@@ -634,10 +634,11 @@ fn expandable_tool_entry(
             crate::tools::subagent_block_expanded(subagent, card, theme, width, expanded(&card.op))
         }
         crate::tools::ToolRender::Inline(inline @ crate::tools::InlineRender::Generic { .. })
-            if !matches!(
-                card.state.as_str(),
-                "argument_stream" | "permission_pending"
-            ) =>
+            if card.question.is_none()
+                && !matches!(
+                    card.state.as_str(),
+                    "argument_stream" | "permission_pending"
+                ) =>
         {
             crate::tools::generic_block_expanded(inline, card, theme, width, expanded(&card.op))
         }
