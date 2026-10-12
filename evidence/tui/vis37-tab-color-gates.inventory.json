@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ original full logs; independent manual inverse",
+  "archive_sha256": "795613bbe12356160c5f68faa71ad2f8ed76072e7281c605d60ae3c8d00eb777",
+  "archive_bytes": 64632,
+  "tar_sha256": "a754cbeed6ed4c05f3937fb1737b22595c9d9e7b77a04e9a5720a77f4b5230cc",
+  "tar_bytes": 737280,
+  "inventory": {
+    "members": 95,
+    "logical_bytes": 662500,
+    "member_inventory_sha256": "524405158b407c6e8d8bde107180014ffda1145675d9306bfe65506563a3845b",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "tab-padding-burst-isolated": 0,
+    "tab-padding-clippy-final": 0,
+    "tab-padding-clippy": 0,
+    "tab-padding-debug-help": 0,
+    "tab-padding-debug-locked": 0,
+    "tab-padding-debug-ordinary": 0,
+    "tab-padding-docs-final": 0,
+    "tab-padding-fmt-final": 0,
+    "tab-padding-geometry-isolated": 0,
+    "tab-padding-line-limit-isolated": 0,
+    "tab-padding-long-history-isolated": 0,
+    "tab-padding-model004-after": 0,
+    "tab-padding-model004-archive": 0,
+    "tab-padding-model004-before": 0,
+    "tab-padding-model004-preflight": 0,
+    "tab-padding-progress-final": 0,
+    "tab-padding-pulse-stop-green": 0,
+    "tab-padding-pulse-stop-red": 101,
+    "tab-padding-python-final": 0,
+    "tab-padding-python": 0,
+    "tab-padding-question-python": 0,
+    "tab-padding-r10-after": 0,
+    "tab-padding-r10-audit": 0,
+    "tab-padding-r10-before": 0,
+    "tab-padding-r10-measure": 0,
+    "tab-padding-r10-pack": 0,
+    "tab-padding-r9-after": 0,
+    "tab-padding-r9-audit": 0,
+    "tab-padding-r9-before": 0,
+    "tab-padding-r9-measure": 0,
+    "tab-padding-r9-pack": 0,
+    "tab-padding-release-aud32": 0,
+    "tab-padding-release-build": 0,
+    "tab-padding-release-dcp-archive": 0,
+    "tab-padding-release-help": 0,
+    "tab-padding-release-pacing": 0,
+    "tab-padding-release-panic": 0,
+    "tab-padding-release-s07": 0,
+    "tab-padding-release-startup": 0,
+    "tab-padding-release-term01": 0,
+    "tab-padding-role-green-complete": 0,
+    "tab-padding-role-green": 101,
+    "tab-padding-role-red": 101,
+    "tab-padding-workspace-complete": 0,
+    "tab-padding-workspace-final": 101,
+    "tab-padding-workspace": 101
+  },
+  "current_source": {
+    "source_manifest_sha256": "5e108520e1504102ea0dc70818ebb1027eb7af4334bc475f877d0cebce47aff3",
+    "changed_inputs": [
+      "crates/oc-tui/src/shell.rs",
+      "crates/oc-tui/src/shell/tests.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484335816,
+        "sha256": "658dd4f4775678a38d79b53214b400499d81ac9321971e7606b5ec87215cf10c",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "02c160d473e68b271b77a44e5a91caf6a51a170b716cd7c7053858fd82b942df",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 64596,
+        "uncompressed_bytes": 737280,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "a754cbeed6ed4c05f3937fb1737b22595c9d9e7b77a04e9a5720a77f4b5230cc"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 64608
+  }
+}

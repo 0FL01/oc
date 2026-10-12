@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T16:39:08+00:00
+State updated: 2026-10-12T19:33:27+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,44 +12,45 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS37 typed cancelled Question qualified; continue full T44
+# VIS37 complete header colors qualified; continue full T44
 
 ## Result
-- Actual pinned TUI cancellation is muted struck Asked N questions, no raw error
-  row and unstyled icon-box blank. Corrects0129's mistaken web-only Next; historical
-  records unchanged. Typed cancelled+valid input only; RAW/state/IDs/binding intact.
-- Receipt evidence/tui/vis37-cancelled-question-qualified.md; complete006/007/008
-  proofs/audits preserve every attempt, current008 byte exact and independently recounted.
+- Question-attention eleven layout blanks use base; idle/static-busy white canvas,
+  title and other roles preserved. Static009 BG delta was not a clock phase:
+  animations:false; pinned tint quantizes each stage before pulse compositing.
+  Exact RGB44,40,51 versus44,41,51 RED→GREEN, no coordinate/cursor/timing hack.
+- Receipt evidence/tui/vis37-tab-colors-qualified.md;009 intermediate/010 current
+  complete proofs and independent byte/metadata/inverse/recount, old flags immutable.
 
 ## Checks
-- Final current workspace1857 PASS/0 FAIL/11 unchanged ignore/46 complete targets;
+- Final complete workspace1858/0/11 unchanged ignore/46 targets/TUI528/PTY58;
   strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS.
-  Python68+question2/target10/actualPTY3 PASS, no new ignore/limits/baseline weakened.
-- Fresh008 all6sides18stages behavior PASS;108wholePNGs/all108strictDIFFERENT.
-  Independent54/54cursors,259200cells34953984pixels checked,2823cells215832pixels
-  differ.27pending/3answered/6cancelled rows every styled cell+geometry equal only.
-- All701files55972004B/24exactsame-sidePNGaliases retained1972564B; measure/pack/audit
-  independent manualXZUSTAR all-original inverse PASS;83priorproofs unchanged.
-- Current713 dfa9bf029e868459360db3eb2bd513a1501cddd59464125294e6856a5322a0e9;
-  native9a190f804546746861286aab6e97a0bfe1e1096716896d4b96b64fbe191e4d9f.
-- Actual24providers18main6title/12calls/12user6answers/30RO snapshots, native/OriginalV2
-  RAWIDs/no observed extra effects. IndependentVmPeak240074752B <384MiB.
-- Existing ownFAILEDmodel-shell002 archival72files/3dirs exactbytesmetadata with
-  reserved3145728 frees6238208B; caps unchanged. After008 beforefinaldelivery
-  owned1072730112/headroom1011712; finalactualallocation recount authoritative.
+  Shell71/Python68+question2/docs/progress/diff PASS; all failed attempts retained.
+- Current010 all6sides18behaviorPASS/108wholePNGs/62DIFFERENT46EQUAL comparisons;
+  independent54/54cursors259200cells34953984pixels checked2490cells210603pixelsdiff,
+  25wholegrid21wholePNGpairs equal.51completeheaderstyledrows(27Question24other)
+  equal;27pending/3answered/6cancelled fullownerregions equal, not whole PASS.
+- All704files55984207B/27same-side exact PNG aliases retained1624864B; bounded
+  measure/pack/audit/manualXZUSTAR every-original inverse PASS,91priorproofs unchanged.
+- Current713 5e108520e1504102ea0dc70818ebb1027eb7af4334bc475f877d0cebce47aff3;
+  native658dd4f4775678a38d79b53214b400499d81ac9321971e7606b5ec87215cf10c.
+- Actual24valid18main6title/12calls/12user6answers/30ROsnapshots nativeOriginalV2
+  RAWIDs/no observed extra effects; independentVmPeak239378432B <384MiB.
+- Existing ownFAILEDmodel-shell004 archival69files/3dirs fullbyte+metadata inverse,
+  visibleFAILEDpointer/reserved3145728 frees5632000B;003notFAILED leftuntouched.
+  After010report owned1071730688/headroom2011136 beforedelivery, actualrecountfinal.
 
 ## Risks
-- WholeVIS37/R6/V09/T44 notPASS; DCPtables unread/finalgen1forced notcleanfinal.
-  Cancelled Question state cannot uniquely prove deliberate user vs turn cancellation.
-- 006/007 now historical afterlayout/testborrow corrections, oldflags/data unchanged;
-  007sixsmallwholeEQUAL notpromotedto008. FailedGenericassertion/reader/Clippy attempts
-  retained; fixed actual contract/observer/borrow, no disabledcheck or warning suppression.
+- WholeVIS37/R6/V09/T44 notPASS; DCPtables unread/gen1forced notcleanfinal.
+- Intermediate workspace paging and serialized burst/geometry/oversized-line timing
+  failures retained. Fresh isolated unchanged PASS then standard full1858green;
+  no test/deadline/baseline/ignore weakened.009notcurrent afterroundingfix.
 
 ## Next
-- Review exact stage/commit/push this major checked slice; then11 source-proven
-  session-tab layout blankFG cells (white vsbase), keeping pulseBG separate.
-- Continue every remaining frozenR1-R6/VIS01-VIS45/supplements and current-source
-  R6/V09 aftermandatorychanges. Checked commit/push permajor slice; noT44finish yet.
+- Review exact stage/commit/push checked header slice, then source-check actual
+  small long/custom/cancel-pending transcript offset/first-item margin+padding.
+- Continue all frozenR1-R6/VIS01-VIS45/supplements and final current-sourceR6/V09;
+  checked commit/push permajor slice. No T44 finish or source/proof promotion.
 
 
 Ready (до 5): T58

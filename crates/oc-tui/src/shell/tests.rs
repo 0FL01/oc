@@ -1031,6 +1031,62 @@ async fn selected_session_tab_title_is_bold() {
 }
 
 #[tokio::test]
+async fn vis37_question_attention_tab_padding_preserves_idle_canvas_and_title_roles() {
+    let theme = Theme::dark();
+    for (width, height) in [(80, 24), (120, 40), (160, 48)] {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("question-padding".into()));
+        state.chrome.animations = Some(false);
+        let mut tab = TabPresentation::new(SessionId("question-padding".into()));
+        tab.title = Some("VIS question fixture".into());
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        for (attention, busy) in [
+            (Some(TabAttention::Question), true),
+            (None, false),
+            (None, true),
+        ] {
+            tab.attention = attention;
+            tab.busy = busy;
+            state.set_tab_strip(vec![tab.clone()], 0, false);
+            terminal.draw(|frame| render(frame, &state)).unwrap();
+            let cells = terminal.backend().buffer();
+            assert_eq!(
+                cells[(1, 0)].symbol(),
+                if attention.is_some() {
+                    "?"
+                } else if busy {
+                    "⠋"
+                } else {
+                    " "
+                }
+            );
+            for x in [0, 2, 23, 24, 25, 26, 27, 28, 29, 30, 31] {
+                let cell = &cells[(x, 0)];
+                assert_eq!(cell.symbol(), " ", "{width}x{height} x={x}");
+                assert_eq!(
+                    cell.fg,
+                    if attention.is_some() {
+                        theme.text()
+                    } else {
+                        Color::Rgb(255, 255, 255)
+                    },
+                    "{width}x{height} attention={attention:?} x={x}"
+                );
+                assert!(cell.modifier.is_empty(), "layout blank x={x}");
+            }
+            let title: String = (3..23).map(|x| cells[(x, 0)].symbol()).collect();
+            assert_eq!(title, "VIS question fixture");
+            for x in 3..23 {
+                assert_ne!(cells[(x, 0)].fg, Color::Rgb(255, 255, 255), "title x={x}");
+                assert!(cells[(x, 0)].modifier.contains(Modifier::BOLD));
+            }
+            assert_eq!(cells[(50, 7)].symbol(), " ");
+            assert_eq!(cells[(50, 7)].fg, Color::Rgb(255, 255, 255));
+        }
+    }
+}
+
+#[tokio::test]
 async fn vis39_selected_animated_spinner_attributes_and_prefix_match_u47_fallback() {
     let mut state = golden_state().await;
     state.set_tab_strip(
@@ -1313,6 +1369,28 @@ async fn vis39_painted_permission_priority_number_mode_and_static_busy_fallback(
 
 #[test]
 fn vis39_u48_styled_sweep_whitecaps_and_blend_order_preserve_title_attributes() {
+    let attention = TabPulseFrame {
+        glow: 1.0,
+        dim: 0.7,
+        ..Default::default()
+    };
+    assert_eq!(
+        blend_tab_pulse_color(
+            Color::Rgb(30, 30, 30),
+            [
+                (
+                    Color::Rgb(157, 124, 216),
+                    attention.dim,
+                    attention.glow_at(2.0, 32, 12.0),
+                ),
+                (Color::Reset, 0.0, 0.0),
+                (Color::Reset, 0.0, 0.0),
+                (Color::Reset, 0.0, 0.0),
+            ],
+        ),
+        Color::Rgb(44, 41, 51),
+        "pinned tint quantizes the stage color before the floating-point pulse blend"
+    );
     assert_eq!(
         blend_tab_pulse_color(
             Color::Rgb(10, 20, 30),

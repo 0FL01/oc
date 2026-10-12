@@ -517,16 +517,19 @@ fn deck_tab_line(
             .whitecap
             .max(if vertical { 0.35 } else { 0.15 } * sweep_level),
     );
-    // U47's mounted spinner does not inherit the fallback text attributes;
-    // its box padding inherits text.base, while fallback blanks retain canvas white.
+    // U47's mounted spinner does not inherit the fallback text attributes.
+    // Its box padding and question-attention layout inherit text.base;
+    // other fallback blanks retain canvas white.
     let animated_indicator =
         busy && attention.is_none() && pulse.animations && indicators == TabIndicators::Status;
     let blank = Style::default()
-        .fg(if animated_indicator {
-            theme.text()
-        } else {
-            Color::Rgb(255, 255, 255)
-        })
+        .fg(
+            if animated_indicator || attention == Some(TabAttention::Question) {
+                theme.text()
+            } else {
+                Color::Rgb(255, 255, 255)
+            },
+        )
         .bg(tab_bg);
     let label = match indicators {
         _ if home_slot => Some("+".to_string()),
@@ -629,12 +632,14 @@ fn deck_tab_line(
         spans.push(Span::styled((*grapheme).to_owned(), style));
     }
     let pad = (tab_width as usize).saturating_sub(number_width + 1 + used);
+    let padding = if attention == Some(TabAttention::Question) {
+        blank
+    } else {
+        Style::default().bg(tab_bg)
+    };
     if hovered && close.0 {
         if pad > 2 {
-            spans.push(Span::styled(
-                " ".repeat(pad - 2),
-                Style::default().bg(tab_bg),
-            ));
+            spans.push(Span::styled(" ".repeat(pad - 2), padding));
         }
         spans.push(Span::styled(
             "✕",
@@ -648,9 +653,9 @@ fn deck_tab_line(
                 })
                 .bg(tab_bg),
         ));
-        spans.push(Span::styled(" ", Style::default().bg(tab_bg)));
+        spans.push(Span::styled(" ", padding));
     } else if pad > 0 {
-        spans.push(Span::styled(" ".repeat(pad), Style::default().bg(tab_bg)));
+        spans.push(Span::styled(" ".repeat(pad), padding));
     }
     Line::from(spans)
 }
@@ -1038,8 +1043,9 @@ fn paint_rail_half_row(
     }
 }
 
-/// U48 mixes glow → sweep → edge flash → completion in floating point. Round
-/// only the final truecolor cell, not each intermediate blend stage.
+/// U48 first quantizes each theme tint into an RGBA stage color, then mixes
+/// glow → sweep → edge flash → completion in floating point. Only that
+/// compositing chain waits until the final truecolor cell to round.
 fn blend_tab_pulse_color(background: Color, layers: [(Color, f32, f32); 4]) -> Color {
     let Color::Rgb(r, g, b) = background else {
         return background;
@@ -1049,7 +1055,7 @@ fn blend_tab_pulse_color(background: Color, layers: [(Color, f32, f32); 4]) -> C
     for (color, stop, opacity) in layers {
         let Color::Rgb(r, g, b) = color else { continue };
         for ((channel, base), overlay) in channels.iter_mut().zip(base).zip([r, g, b]) {
-            let overlay = base + (f32::from(overlay) - base) * stop;
+            let overlay = (base + (f32::from(overlay) - base) * stop).round();
             *channel += (overlay - *channel) * opacity;
         }
     }

@@ -1028,3 +1028,42 @@ deletion/offload/cap raise. After008 report owned1072730112/headroom1011712 befo
 bounded delivery records; final allocation recount authoritative. Continue11
 source-proven tab-layout blank FG cells, other full-frame owners and all frozen
 R1–R6/VIS01–45/supplements/final current-sourceR6/V09. No finish or PASS promotion.
+
+## 2026-10-12 — Question tab layout and static tint roles qualified; continue full T44
+
+[Qualified receipt](../tui/vis37-tab-colors-qualified.md). Eleven observed tab-layout
+blank FG cells now use base only for Question attention; idle/static-busy canvas
+and title roles remain intact. Intermediate009 revealed a deterministic static BG
+delta, not a clock phase: all profiles animations:false. Pinned tint rounds its
+stage color before pulse compositing; exact RGB44,40,51→44,41,51 RED→GREEN and
+minimal pre-tint rounding preserve the later float blend chain. No coordinate,
+caret-FG, timing, canvas-wide change or acceptance weakening.
+
+Current010 all6sides18 stages behavior PASS,108 whole PNGs/108 strict executions:
+62 DIFFERENT/46 EQUAL. Independent54 full pairs259200 styled cells34953984 RGBA
+pixels checked,2490 cells210603 pixels differ;54/54 cursor pairs agree,25 whole
+grids/21 whole PNG pairs equal. All51 complete header rows every styled cell equal
+(27Question/24nonQuestion),27pending/3answered/6cancelled owner regions equal only.
+FullVIS37/R6/V09/T44 remain NOTPASS, DCPtables unread/gen1forced notcleanfinal.
+
+All704files55984207B/27same-run-side exact PNG aliases retained1624864B;
+measure/pack/audit and independent manualXZUSTAR every-original inverse/recount
+PASS. Archive`0b07d5ea81d1aa2f152b2c26f326965fc0320d613fa422d25ad35e180e634de6`;
+source713`5e108520e1504102ea0dc70818ebb1027eb7af4334bc475f877d0cebce47aff3`,
+native`658dd4f4775678a38d79b53214b400499d81ac9321971e7606b5ec87215cf10c`.
+91priorproof files byte+metadata unchanged;009 nowhistorical flags/data immutable.
+Actual24providers18main6title/12calls/12user6answers/30ROsnapshots/nativeOriginalV2
+RAWIDs/no observed extra effects remain bound. Independent VmPeak239378432B <384MiB.
+
+Final current complete workspace1858/0/11 unchanged ignores,46 targets/TUI528/PTY58;
+strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS,
+Python68+question2/docs/progress/diff PASS. Intermediate paging timeout and serialized
+three timing failures retained; fresh isolated cases passed unchanged, then final
+standard two-thread full suite green. No deadline, baseline, test or ignore changed.
+
+Actual FAILED model-shell004 lossless archival69files/3dirs inverse-checked every
+byte/path/modeUIDGIDmtime, failure pointer preserved,3MiBreserve frees5632000B;
+003PASSbehavior/DIFFERENT untouched. After010 report owned1071730688/headroom2011136
+beforebounded delivery; caps/accounting unchanged, no qualified deletion/offload.
+Continue source-proven small transcript margin/padding offset and every frozen
+R1–R6/VIS01–45/supplement/final current-source R6/V09; checked major commit/push.
