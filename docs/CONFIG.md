@@ -323,6 +323,45 @@ chronological system/effort and T50's next-request switch, without new tasks/fra
 Snapshot false aliases remain T44 conversation-only target; compaction.auto works,
 legacy compaction.prune remains diagnosed unsupported, not imported OC1 pruning.
 
+## Custom /connect onboarding — T59 (approved 2026-10-12; pending)
+
+[Frozen contract](goals/2026-10-12-custom-provider-connect-and-discovery.md) adds a
+native user-created connection, **not yet implemented**. Completed T53 configured
+connections/wires remain separate from this new wizard; their evidence is not proof
+of arbitrary endpoint onboarding or discovery.
+
+- `/connect` retains OC2 provider/search/accounts/method/key/ACK→filtered-picker flow;
+  key entry has no mandatory account-label step (`default`, Rename later). Add only
+  `Custom provider…` → name → literal API base URL → API key / explicit no-auth →
+  read-only catalog → concrete API confirmation when ambiguous → save → models.
+  Anonymous is never inferred from localhost/blank key; OAuth methods are existing
+  built-in T57 registrations, not guessed from custom endpoint/catalog.
+- Typed records in existing SQLite, stable ID separate from display name, key only
+  existing credential accounts; initial record/account commit atomic. Custom scope
+  tagged by record ID and normalized endpoint, no env/OAuth/Go/MCP inheritance.
+  Existing raw config provider IDs win collisions even when disabled; normal enabled
+  whitelist/disabled filters still apply. Wizard does not rewrite JSON/JSONC configs.
+- User-admitted GET `<base-prefix>/models` only: no automatic `/v1`, host scan or paid
+  generation test. OpenAI list cannot distinguish Responses from Chat; show explicit
+  API choice, no default/fallback by model/provider name. Paginated Anthropic and safe
+  OpenProxy `opencode` metadata supported; alias alone still never opts in discovery.
+- ID-only rows remain selectable with unknown modalities/effort/limits; preserve
+  supplied full modalities or partial supported flags and exact effort levels.
+  Unknown/false/empty are distinct, no capability/effort invention. Display advertised
+  server media separately from unsupported native PDF/audio/video/image generation.
+- Save ACK is local persistence, not server validation. Failed discovery retains the
+  connection/key and shows actionable catalog error/Retry/change-key; valid custom
+  empty success retires all remote IDs. No auto-selection, full reload or MCP restart.
+  No-provider/model TUI opens Home/history/commands; dependent submit/headless fails
+  before effects. Existing mandatory policy/storage failures remain fatal.
+- `oc models` joins bounded sanitized saved custom snapshots via read-only DB access,
+  no key read/custom network/second owner or selection. Missing/failed/revision-mismatched
+  snapshot makes listing incomplete/nonzero; valid empty complete. This does not prove
+  credentials/endpoint/generation readiness. Legacy OpenProxy oracle is unchanged.
+
+CONN01–CONN05 only T59; implementation/qualification NOT_RUN. Shared auth presentation
+remains T44/VIS45 with masked-key security difference; active T44/state/history intact.
+
 ## Tool-output configuration — T50/R10/TOOL21 (approved 2026-10-01; pending)
 
 Frozen [tool-output contract](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending)
@@ -509,8 +548,10 @@ Static/public metadata не требует generation key, authenticated OpenPro
 Pinned OC2 `opencode models` имеет ServerParams, а не OC1 positional provider/
 `--verbose`/`--refresh`. Прежнее проектируемое `oc models list [--refresh]` superseded;
 native server/standalone/JSON/filter/bind flags и compatibility alias не добавляются.
-Existing global `--data-dir` принимается; catalog-only команда не открывает native
-database/data-root, не читает saved preferences и не запускает recovery.
+Existing global `--data-dir` принимается; catalog-only команда не вызывает `Db::open`,
+не захватывает второго writable data-root owner, не читает saved selection/UI preferences
+и не запускает recovery. Existing read-only public-cache path остаётся; T59 добавляет
+к нему bounded sanitized saved custom catalogs, без credential material/custom probes.
 Например: `target/debug/oc --data-dir /path/to/native-data models`.
 
 Целевой путь пользователя: скопировать ID из `oc models`, затем вручную указать его

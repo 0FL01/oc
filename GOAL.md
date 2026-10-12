@@ -882,6 +882,41 @@ config-authoring UI. Единственный owner SKILL01 — T58; final T30 �
 План зарегистрирован todo/implementation NOT_STARTED; active T44 и прежние статусы
 сохраняются, runtime/visual PASS не заявляется. Метод — TEST_PLAN, порядок — M8.
 
+## Owner amendment (2026-10-12 — custom /connect, discovery и знакомая OC2 авторизация)
+
+Владелец утвердил [T59 contract](docs/goals/2026-10-12-custom-provider-connect-and-discovery.md)
+и current-branch plan commit/push: `/connect` принимает название, literal API base URL
+и API key либо explicit anonymous, получает каталог стандартным read-only `/models`
+и сразу показывает модели с supplied modalities/reasoning effort. ID-only entries
+остаются видимыми, отсутствующие metadata — unknown. Responses versus Chat по одному
+OpenAI list не различаются: явное подтверждение API, без detection generation POST,
+model-name guesses или hidden fallback. Anthropic pagination/capabilities и OpenProxy
+`opencode` extension импортируются по фактическим полям, не придуманным defaults.
+
+Привычный OC2 flow: provider search/categories/source checkmark → accounts/method →
+masked key или existing approved OAuth → owner ACK → provider-filtered model picker.
+Нет обязательного account label перед ключом: `default`, Rename позже. Новый
+`Custom provider…` добавляет только endpoint setup/discovery/API confirmation, не
+вторую auth систему. TUI/Home/history доступны без providers/models; invalid submit/
+headless отказывает до session/turn/generation/tools. Нет auto-selection после connect.
+
+Typed custom connections и sanitized last-good catalog — additive table в existing
+SQLite owner, keys только scoped credential accounts; atomic create, config-ID wins,
+provider filters, literal local/LAN endpoint authority и tagged custom auth scope.
+Captured binding revisions отбрасывают старые discovery results; narrow publication
+не reload проекта, не restart MCP и не меняет selection/generation ID/Location epoch.
+`oc models` читает saved safe custom catalog без endpoint probe/credential/second owner.
+OpenProxy oracle/priority, prepared request/tools, raw history/DCP, security/resource
+guards и existing no-model unavailable semantics сохраняются.
+
+Узко superseded no-config-authoring-UI/no-custom-onboarding запрет только для typed
+T59 wizard и user-admitted bounded discovery; alias alone не разрешает guessed probe.
+Нет arbitrary-provider OAuth/MCP autodiscovery, file-config writer, JS/SDK host, новых
+wires или PDF/audio/video/image generation. CONN01–CONN05 только T59, T44/VIS45 остаётся
+единственным owner общего auth visual parity, T57 — OpenAI OAuth. T30 зависит от T59.
+Plan todo/implementation NOT_STARTED/NOT_RUN; active T44, completed T53 и остальные
+execution statuses/historical evidence неизменны. Метод — TEST_PLAN, порядок — M8.
+
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.

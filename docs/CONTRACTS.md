@@ -434,6 +434,32 @@ Owner-approved 2026-10-02 clarification (still pending):
   prevent unsupported fields. Preserve configured controls/OpenProxy oracle and exact
   selected wire reasoning/options; no model-name defaults or image-generation scope.
 
+## User-created custom connections — T59 (approved 2026-10-12; pending)
+
+[T59/R1–R5](goals/2026-10-12-custom-provider-connect-and-discovery.md) is additive to
+completed T53, not a rewrite of its static-config/OpenProxy/credential contracts.
+Native `/connect` owns explicit name/literal endpoint/Key-or-anonymous admission and
+bounded read-only catalog discovery. A compatible alias alone still grants no probe;
+ambiguous API requires user confirmation, no generation detection or hidden fallback.
+
+One typed table in existing Db stores connection identity/wire/auth policy and safe
+last-good catalog, never keys/raw remote payloads. Initial metadata/key atomic, custom
+tagged scope prevents config collision key inheritance; raw config IDs and enabled/
+disabled filters remain authoritative. Explicit literal local/LAN provenance keeps
+existing dial/peer/prefix/redirect/proxy/security restrictions, no test-only allowance.
+
+Discovery results carry provider ID/captured binding revision; effective credential/
+Location retirement cancels owned work and rejects stale outcomes. One-view immutable
+publication preserves selection/generation ID/Location epoch and prepared requests,
+without project reload/MCP restart. Unknown/false/declared-empty model metadata survives
+the read view; exact supplied efforts only. Read-only CLI consumes sanitized saved
+custom catalog without custom probes, credential material or another Db owner.
+
+OC2 auth/accounts/ACK→picker remains the common path; no required account-label prompt,
+default `default`, Rename later. New custom setup is a narrow native extension, not
+arbitrary OAuth or a second auth framework. CONN01–CONN05 only T59; shared visual T44/
+VIS45 and built-in OAuth T57 ownership preserved, plan delivery is not runtime PASS.
+
 ## Native OpenAI/Codex authorization — T57 (approved 2026-10-06; pending)
 
 [Frozen contract](goals/2026-10-06-codex-oauth-and-openai-key.md) adds OpenAI browser

@@ -2439,6 +2439,26 @@ explicit resume; approval of this plan does not run OAuth or start backend/UI wo
   form/error/footer, exact semantic colors/attributes, URL wrapping, cursor/focus and
   temporal waiting states, at shared existing representative narrow/wide profiles.
 
+### Connect-flow clarification — T59 consumer (approved 2026-10-12; pending)
+
+Owner requires the familiar pinned OC2 authorization pattern for new custom-provider
+onboarding; [T59](../docs/goals/2026-10-12-custom-provider-connect-and-discovery.md)
+owns creation/discovery and functional CONN01–CONN05, not OAuth or a second visual gate.
+Keep the real generic `Connect an integration` provider/search/categories/checkmark →
+accounts/method → auth → owner ACK → provider-filtered picker. A single interactive
+method skips method selection, env source is not a selectable login. API key directly
+opens the masked prompt: remove mandatory native account-label entry, use `default`
+and keep Rename account in the account manager. No optimistic success/model commit.
+
+`Custom provider…` adds name/literal base URL/explicit Key-or-anonymous, bounded
+read-only catalog and API confirmation only when unresolved. These new screens have
+no equivalent in pinned donor TUI: declare native extension, do not invent full custom
+wizard pixel parity or relax existing VIS45 comparisons. T59 consumes qualified shared
+auth seams; T57 still owns browser/device lifecycle and existing method labels/order.
+VIS45 retains paired complete common-screen geometry/styles/cursor/transitions/error/
+cancel/ACK proof, including direct key entry without an extra label dialog. Active T44
+and all historical execution/evidence statuses remain unchanged by plan delivery.
+
 ### Security differences and boundaries
 
 Donor TUI key entry uses an unmasked DialogPrompt textarea. Existing native T53

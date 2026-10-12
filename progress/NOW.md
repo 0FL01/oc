@@ -53,7 +53,7 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
   checked commit/push permajor slice. No T44 finish or source/proof promotion.
 
 
-Ready (до 5): T58
+Ready (до 5): T58, T59
 Blocked: T27, T45, T57
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

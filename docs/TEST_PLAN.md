@@ -1366,6 +1366,75 @@ T52 проверяет ARCH01–ARCH05 из `planning/acceptance.json`; это �
 
 Размерный helper из T52/R0 warning-only при превышении 5k; его тесты проверяют подсчёт/фильтрацию/Git changes и не превращают ориентир в hidden hard gate. Новых SHA256-based regression gates нет; используем Git identity/diff и семантические проверки. Старые frozen locks и используемые продуктом digests не переписываются в этом scope.
 
+## Custom provider connect — T59 (approved 2026-10-12; pending)
+
+[Frozen R1–R5](goals/2026-10-12-custom-provider-connect-and-discovery.md).
+CONN01–CONN05 only T59; existing GO/DISC/VAR01/AUTH/UI07/TOOL18 owners and historical
+evidence stay unchanged. Completed T53 static/custom wires do not prove this new
+user-entered endpoint wizard. T44/VIS45 owns shared auth presentation, not T59;
+custom-only screens have no pinned-donor counterpart and are declared native extension.
+
+| ID | Minimum primary evidence surface |
+| --- | --- |
+| CONN01 | Existing Db/composition owner tests: additive migration/reopen, atomic record+initial key rollback, explicit anonymous/no credential, custom scope versus config collision, raw disabled-ID reservation, enabled whitelist/disabled filters and startup/switch/move attachment before credential resolution. Explicit literal localhost/LAN admission with existing endpoint negative fixtures, no production test flag. |
+| CONN02 | Fake GET-only custom transport/parser/clock: OpenAI ID-only/opencode any-provider-ID and Anthropic pages, ambiguous API confirmation/no POST, exact prefix/auth candidates/anonymous, progress/duplicates/partial/malformed/empty/deadline/cumulative bytes/row caps and atomic last-good publication. Reuse dial-bound DNS/peer/redirect/proxy guards and unchanged OpenProxy oracle, not another network safety framework. |
+| CONN03 | Parser → typed ModelEntry → snapshot → TUI reconstruction/picker, retaining unknown/false/declared-empty modalities/partial capabilities/efforts/limits. Exact supported effort lowered on three existing wires in short captures, T47 canonical order. No guessed thinking settings or unsupported media enablement; authoritative full modalities precede partial image flag. |
+| CONN04 | Existing TUI owner tests plus actual rebuilt debug/release `pty_t39`: fresh zero-provider Home/history/commands → `/connect` → Custom provider name/literal base/Key-or-anonymous → GET discovery/API confirmation → durable ACK → scoped models/variants/capabilities → explicit choice → fake generation → restart. Masked cancel/paste, no mandatory label prompt, default label/Rename/accounts, pending/error/Retry and no implicit model commit; no-model submit/headless zero effects. |
+| CONN05 | Barrier-held ProviderWork/actor/runtime results: requested nonselected provider, old-key/account/Location/form rejection, cancel/join/single-flight, narrow additive publication and all mounted/parked/Home consumers. Held prepared request/tools remain captured; next committed request uses intended view. Read-only CLI saved-cache complete/incomplete/empty/revision cases, no custom fetch/credential/second Db/recovery/prefs/config/session effects. |
+
+### Binary scenario and invariant checks
+
+1. Isolate built-in public catalog traffic deterministically. `enabled_providers: []`
+   is appropriate for a separate zero-provider refusal fixture, but is a whitelist
+   that also forbids creating a new custom ID. For zero-provider → create scenario,
+   disable every known preset while admitting newly generated IDs; do not bypass policy
+   or rely on external models.dev failure. Use synthetic keys and local captured HTTP.
+2. Before Save, cancel setup/probe and verify no connection/account rows, session/turn/
+   tool operations or generation POST. Once acknowledged Save occurs, closing its picker
+   is not rollback; connection/key remain. Repeated pending Enter must not save twice.
+3. ID-only/unknown fixture remains selectable with honest details; rich `opencode`
+   metadata and Anthropic partial/effort fixtures prove actual displayed values rather
+   than placeholder defaults. Model choice stays blank until explicit selection;
+   cancelled/retired/unavailable draft does not become committed fallback.
+4. After failed/401 discovery, connection/key survives with actionable catalog status;
+   auth rejection still blocks generation under readiness rules. Retry or acknowledged
+   key change uses a new binding revision, never a late old-key result. Valid custom
+   empty success clears its models and leaves an explicit retired selection unavailable.
+   Legacy OpenProxy empty-failure behavior stays unchanged.
+5. Use an existing local fake wire to confirm prefix/protocol/exact model/selected effort,
+   then reopen/restart. Reuse T53 three-wire serialization and captured-request/auxiliary
+   tests instead of duplicating whole GO03/GO04 matrices. Conn creation/publication must
+   not alter saved selection, generation ID/Location epoch or restart unrelated MCP.
+6. Invoke actual `oc models` against saved bounded sanitized catalog using existing
+   read-only connection path. Complete empty prints nothing/exit0; incomplete may emit
+   safe last-good IDs and diagnostics/nonzero. Assert zero saved-custom endpoint requests
+   and credential material reads; listing is not auth/server/generation proof.
+7. Common provider/method/accounts/direct-key/OAuth/ACK→picker presentation uses existing
+   T44 VIS45 paired full styled-cell/PNG/cursor proof and synthetic material. Keep
+   narrow/wide/focus/URL/code/wait/error/expiry/cancel checks and masked-secret difference.
+   New wizard/metadata details use owner/PTY evidence without claiming nonexistent
+   donor pixel oracle. No new VIS IDs or whole-T57 live/T44 completion dependency.
+
+Planning delivery runs docs/journal/Python/diff checks only. For later implementation,
+run actual nonzero nearest filters per slice; module filters below become available
+only after their owner modules/tests are created:
+
+```sh
+cargo test -p oc-adapters --locked custom_discovery::tests::
+cargo test -p oc-adapters --locked storage_provider_connections::tests::
+cargo test -p oc-adapters --locked application::provider_catalog::tests::
+cargo test -p oc-tui --locked accounts
+cargo test -p oc --test pty_t39 --locked
+```
+
+Legacy discovery/configless/provider-readiness/auth/captured-model regression suites,
+affected crate gates, final workspace fmt/clippy/tests/locked build/help and actual
+debug/release binary checks remain required. All CONN01–CONN05 pending/NOT_RUN at
+plan delivery; factual `evidence/T59/report.md` distinguishes future implementation,
+shared visual and existing mandatory live results. No new paid detection/campaign;
+any later explicitly admitted live smoke uses existing runbook guards, never a
+substitute for the offline fake wire assertions or a budget reset.
+
 ## T53 — OpenCode Go и единые provider credentials (approved 2026-09-29; pending)
 
 [Frozen contract](goals/2026-09-29-opencode-go-and-provider-auth.md) и GO01–GO06 в
@@ -1383,6 +1452,10 @@ planning/acceptance.json имеют только T53 как owner. Одна inte
 | GO06 | Factual report final fmt/clippy/workspace tests/locked build/help + bounded real Go text/tool representative per protocol и known route-conflict probes. Fake/live/NOT_RUN и exact binding/counters различаются. |
 
 ### Custom-provider fixture matrix — GO01–GO04 clarification 2026-10-02
+
+This matrix remains static/config-authorized T53 evidence. T59 separately adds explicit
+user-admitted `/connect` discovery; it does not turn a compatible alias into probing
+permission or rewrite this completed task's acceptance/results.
 
 Use synthetic metadata/credentials and inert host-shaped identities, never copy the
 user's expanded config/secrets. Each row goes through the real legacy/canonical loader,

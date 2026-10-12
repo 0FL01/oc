@@ -15,3 +15,4 @@ Plan: ../../roadmap/M8.md
 - [T56](T56/INDEX.md) [done] — Native session-local interactive PTYs для Terminals; latest: 0001.md.
 - [T57](T57/INDEX.md) [blocked] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: 0001.md.
 - [T58](T58/INDEX.md) [todo] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: нет.
+- [T59](T59/INDEX.md) [todo] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: нет.

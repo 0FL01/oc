@@ -509,7 +509,8 @@
         "T54",
         "T56",
         "T57",
-        "T58"
+        "T58",
+        "T59"
       ],
       "tests": [
         "OPS02",
@@ -897,6 +898,16 @@
       "work": "Owner-approved 2026-10-08 additive delivery: one bundled offline native config manual, narrow metadata and ordinary skill registration/snapshot/permissions/user overrides. Existing defs registration and configured_workspace fake-provider binary fixture suffice; only adjacent production fix is replacement-safe skill count guard without raising caps. Preserve malformed-override diagnostics/last valid winner, autoinvoke filtering, Deny and headless Ask refusal. Native recommendations follow working consumers, not upstream schema or Proposed examples; concise AGENTS link and touched CONFIG corrections, no generic docs audit. Frozen R1-R3 and method in spec/TEST_PLAN, SKILL01 only T58; TOOL11/CFG07/UI06/E2E05/AUD17 owners unchanged. Plan-only registration todo/implementation NOT_STARTED; active T44 and historical states/leaves intact, no new loader/registry/schema/JS host/paid campaign or runtime PASS.",
       "evidence": "evidence/T58/report.md",
       "spec": "docs/goals/2026-10-08-customize-opencode-skill.md"
+    },
+    {
+      "id": "T59",
+      "phase": "M8",
+      "title": "Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery",
+      "depends_on": ["T53"],
+      "tests": ["A02", "A03", "A04", "A07", "A08", "A10", "A13", "CONN01", "CONN02", "CONN03", "CONN04", "CONN05"],
+      "work": "Owner-approved 2026-10-12 additive R1-R5: familiar OC2 provider/search/accounts/method/masked-key/ACK/filtered-picker flow, default account label without mandatory label prompt; Custom provider entry asks name/literal API base URL and Key or explicit anonymous. One typed table in existing SQLite with atomic initial credential, custom tagged endpoint auth scope, raw-config collision precedence and provider filters. Bounded GET models discovery uses existing secured transport for OpenAI-compatible/opencode and paginated Anthropic catalogs; ambiguous API requires confirmation, never generation POST/name heuristics/hidden fallback. ID-only models remain visible, supplied modalities/partial capabilities/exact supported efforts and unknown/false/empty survive core/TUI projection; existing three native wires and legacy OpenProxy oracle unchanged. Captured provider/binding revisions, abort/join/stale guards and narrow immutable provider publication preserve selection/prepared requests/generation/Location/MCP ownership. Read-only oc models consumes sanitized saved snapshots without custom network/credential/second-Db effects. CONN01-CONN05 owner/binary/restart/zero-model/effect/metadata checks and final gates in spec/TEST_PLAN; T44 VIS45 owns shared auth visuals, T57 OAuth scope/live blockers unchanged. Plan registration todo/implementation NOT_STARTED, active T44 and dirty source/scripts/evidence preserved; no paid campaign, config writer, JS host or arbitrary OAuth. T30 requires T59; no T53 reopening or historical PASS rewrite.",
+      "evidence": "evidence/T59/report.md",
+      "spec": "docs/goals/2026-10-12-custom-provider-connect-and-discovery.md"
     }
   ]
 }
