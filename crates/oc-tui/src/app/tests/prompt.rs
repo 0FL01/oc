@@ -12,6 +12,81 @@ fn pointer(kind: MouseEventKind, x: u16, y: u16) -> MouseEvent {
 }
 
 #[tokio::test]
+async fn vis12_expanded_long_word_starts_after_prefix_and_paints_partial_tail() {
+    let (app, mut inbox, _) = CoreApp::channel(4);
+    let mut state = TuiState::new_home(app);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    let area = Rect::new(0, 0, 120, 40);
+    state.handle_paste("NEIGHBOR ");
+    state.handle_paste(&"z".repeat(1600));
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let input = state.painted_prompt.borrow().as_ref().unwrap().input;
+    state.handle_mouse(
+        pointer(
+            MouseEventKind::Down(MouseButton::Left),
+            input.x + 4,
+            input.y,
+        ),
+        area,
+    );
+    state.handle_key(KeyAction::Char('X')).await;
+    let actual = format!("NEIGXHBOR {}", "z".repeat(1600));
+    assert_eq!(state.input(), actual);
+    assert_eq!(state.editor.chip_count(), 1, "neighbor edit preserves chip");
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let chip = state.painted_prompt.borrow().as_ref().unwrap().chips[0].0;
+    state.handle_mouse(
+        pointer(MouseEventKind::Down(MouseButton::Left), chip.x, chip.y),
+        area,
+    );
+    assert_eq!(state.input(), actual, "expansion never replaces raw bytes");
+    assert_eq!(state.editor.cursor, actual.len());
+    assert_eq!(state.editor.chip_count(), 0);
+    let (rows, caret) = state.prompt_layout(70);
+    // Pinned OpenTUI 0.5.10 starts even an oversized word on a fresh row,
+    // then splits it: prefix, 22 full 70-cell rows, final 60-cell row.
+    assert_eq!(rows[0].text, "NEIGXHBOR ");
+    assert_eq!(rows.len(), 24);
+    assert_eq!(caret, (23, 60));
+    assert_eq!(rows.last().unwrap().text, "z".repeat(60));
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    let input = state.painted_prompt.borrow().as_ref().unwrap().input;
+    let last = input.bottom() - 1;
+    let tail = (input.x..input.right())
+        .map(|x| terminal.backend().buffer()[(x, last)].symbol())
+        .collect::<String>();
+    assert_eq!(tail, format!("{}{}", "z".repeat(60), " ".repeat(10)));
+    assert_eq!(
+        terminal.get_cursor_position().unwrap(),
+        (input.x + 60, last).into()
+    );
+    state.handle_key(KeyAction::Undo).await;
+    assert_eq!(state.input(), actual);
+    assert_eq!(state.editor.chip_count(), 1);
+    state.handle_key(KeyAction::Redo).await;
+    assert_eq!(state.input(), actual);
+    assert_eq!(state.editor.cursor, actual.len());
+    terminal.draw(|f| crate::shell::render(f, &state)).unwrap();
+    state.handle_mouse(
+        pointer(MouseEventKind::Down(MouseButton::Left), input.x + 30, last),
+        area,
+    );
+    assert_eq!(
+        state.editor.cursor,
+        actual.len() - 30,
+        "visible tail maps to raw offset"
+    );
+    state.handle_key(KeyAction::Char('Q')).await;
+    let mut edited = actual;
+    edited.insert(edited.len() - 30, 'Q');
+    assert_eq!(state.input(), edited);
+    assert!(
+        inbox.try_recv().is_err(),
+        "expand/navigate/edit never dispatches"
+    );
+}
+
+#[tokio::test]
 async fn vis12_prompt_click_moves_editor_before_typing_on_home_and_session() {
     for home in [true, false] {
         let (app, mut inbox, _) = CoreApp::channel(4);

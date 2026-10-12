@@ -54,9 +54,9 @@ def source_files():
     for name, root in ROOTS.items():
         require(root.is_dir() and not root.is_symlink() and root.resolve().is_relative_to(TEMP),
                 "fresh capture root")
-        # Fixed middle campaign parent logs are additional members; its eight
-        # episode subtrees are already included separately, without duplication.
-        paths = root.glob("*") if name in ("current-logs", "historical-logs") else root.rglob("*")
+        # Fixed campaign parent logs are additional members; their episode
+        # subtrees are already included separately, without duplication.
+        paths = root.glob("*") if name in ("current-logs", "historical-logs", "failed-logs", "rejected-logs") else root.rglob("*")
         for path in sorted(paths):
             meta = path.lstat()
             require(not path.is_symlink() and meta.st_uid == os.getuid(), "foreign/symlink capture")
@@ -407,7 +407,9 @@ def compact_controls_diagnostic_checks(files):
     return reports
 
 
-def check_vis12_build(lock, manifest, commands, episode):
+def check_vis12_build(lock, manifest, commands, episode, *, wrap_attempt=None):
+    require(wrap_attempt is None or (episode == "caret" and wrap_attempt in ("001", "002", "003")),
+            "fixed VIS12 wrap attempt")
     invocation = commands[0]
     argv = invocation["argv"]
     require(invocation.get("role") == "capture runner invocation" and len(argv) >= 2 and
@@ -419,7 +421,8 @@ def check_vis12_build(lock, manifest, commands, episode):
                 "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
                 "--sample": "short", "--sidebar": "hide", "--tool-preview": "true",
                 "--columns": "80" if episode == "history" else "120", "--rows": "24" if episode == "history" else "40",
-                "--output": str(TEMP / "vis12-current-001" / episode)}
+                "--output": str(TEMP / ("vis12-current-001" if wrap_attempt is None else
+                                       "vis12-wrap-current-" + wrap_attempt) / episode)}
     expected["--prompt-caret" if episode == "caret" else "--prompt-history"] = (
         "true" if episode == "caret" else "default" if episode == "history" else "remap")
     require(len(options) == len(pairs) and options == expected and
@@ -531,6 +534,94 @@ def vis12_checks(files):
             check_vis12_facts(checks, episode, side)
             statuses[side] = checks["status"]
         reports.append({"episode": episode, "captures": count, "current_source": True, "statuses": statuses,
+                        "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
+def check_vis12_wrap_launches(protocol, attempt, side):
+    output = TEMP / ("vis12-wrap-current-" + attempt) / "caret"
+    name = "caret" if attempt == "001" else "caret-" + digest(str(output).encode())[:12]
+    root = TEMP / "t44-reference/runs" / name
+    launches = [item for item in protocol if item.get("kind") in ("launch", "relaunch")]
+    require(len(launches) == (1 if attempt == "001" else 2) and
+            all(item.get("cwd") == str(root / "project") for item in launches),
+            "actual VIS12 wrap fixture root on launch/relaunch")
+    home = root / side / "home"
+    require(launches[0]["env"].get("HOME") == str(home) and
+            all(launches[0]["env"].get("XDG_" + key + "_HOME") == str(home / suffix)
+                for key, suffix in (("CONFIG", "config"), ("CACHE", "cache"),
+                                    ("DATA", "data"), ("STATE", "state"))),
+            "actual isolated VIS12 wrap HOME/XDG lineage")
+
+
+def check_vis12_wrap_geometry(native, original):
+    # An assertion about the acquired owner slice, not a normalized frame or a
+    # full equality claim. Complete comparisons and all blank/footer cells stay.
+    require(all(frame.get("columns") == 120 and frame.get("rows") == 40 and
+                len(frame["cells"]) == 40 and all(len(row) == 120 for row in frame["cells"])
+                for frame in (native, original)) and
+            native.get("cursor") == original.get("cursor") ==
+            {"x": 86, "y": 27, "visible": True, "shape": "block"},
+            "actual expanded long-word full geometry and complete caret")
+    for y in range(15, 28):
+        count = 60 if y == 27 else 70
+        for frame in (native, original):
+            require("".join(cell["symbol"] for cell in frame["cells"][y][26:96]) ==
+                    "z" * count + " " * (70 - count), "actual visible long-word partial tail")
+        require(native["cells"][y][26:26 + count] == original["cells"][y][26:26 + count],
+                "all 900 visible long-word styled glyph cells")
+
+
+def vis12_wrap_checks(files):
+    reports = []
+    for prefix, attempt, count, current, scope in (
+            ("failed-caret", "001", 38, False, "FAILED_INCOMPLETE"),
+            ("current-caret", "002", 50, True, "BEHAVIOR_GEOMETRY_ONLY"),
+            ("rejected-caret", "003", 50, False, "REJECTED_FOREGROUND_EXPERIMENT")):
+        read = lambda relative: json.loads(files[prefix + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 709)
+        check_vis12_build(lock, manifest, read("commands.json"), "caret", wrap_attempt=attempt)
+        require(len(lock["captures"]) == count and lock["profile"]["columns"] == 120 and
+                lock["profile"]["rows"] == 40 and lock["profile"]["prompt_caret"] is True and
+                lock["profile"]["prompt_history"] is None, "complete VIS12 wrap capture scope")
+        if current:
+            check_current_source(manifest)
+            for side in ("oc", "upstream"):
+                with Path(lock[side]["executable_path"]).open("rb") as stream:
+                    require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                            "actual current VIS12 wrap executable")
+            check_vis12_wrap_geometry(read("oc/tool-preview-caret-chip-expanded.cells.json"),
+                                      read("upstream/tool-preview-caret-chip-expanded.cells.json"))
+        if attempt == "001":
+            require([item["status"] for item in lock["attempts"]] == ["FAILED", "BLOCKED"],
+                    "interrupted acquisition remains failed/blocked, not compared or replayed")
+        else:
+            require(len(lock["attempts"]) == 50 and all(item["status"] == "DIFFERENT" for item in lock["attempts"]),
+                    "complete strict VIS12 wrap comparisons remain DIFFERENT")
+        statuses = {}
+        for side in ("oc", "upstream"):
+            checks, protocol = read(side + "/tool-preview-checks.json"), read(side + "/protocol.json")
+            check_vis12_wrap_launches(protocol, attempt, side)
+            providers = [item for item in protocol if item.get("kind") == "provider"]
+            require(len(providers) == (0 if attempt == "001" and side == "oc" else 2) and
+                    all(item.get("valid") is True for item in providers), "actual wrap provider count/validity")
+            require(all(item.get("artifacts") == {} and item.get("shell_effect") is None and
+                        item.get("mcp_calls") == [] and item.get("mcp_lifecycle") == []
+                        for item in protocol if item.get("kind") == "tool_preview_snapshot"),
+                    "actual wrap protocol snapshots without additional effects")
+            if attempt == "001":
+                require(checks.get("origin") == side and
+                        checks.get("status") == ("IN_PROGRESS" if side == "oc" else "FAILED") and
+                        len(checks["stages"]) == (14 if side == "oc" else 23) and
+                        (side == "oc" or checks.get("reason") == "Saved caret session row not unique"),
+                        "failed duplicate-title and incomplete native facts retained")
+            else:
+                require(checks == lock["tool_preview"][side], "actual complete wrap side facts")
+                check_vis12_facts(checks, "caret", side)
+            statuses[side] = checks["status"]
+        reports.append({"episode": prefix, "captures": count, "current_source": current, "scope": scope,
+                        "statuses": statuses,
                         "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
     return reports
 
@@ -716,13 +807,17 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "vis12":
+    if args.campaign == "vis12-wrap":
+        ROOTS = {period + "-" + kind: TEMP / ("vis12-wrap-current-" + attempt) / ("caret" if kind == "caret" else "")
+                 for period, attempt in (("failed", "001"), ("current", "002"), ("rejected", "003"))
+                 for kind in ("caret", "logs")}
+    elif args.campaign == "vis12":
         ROOTS = {name: TEMP / "vis12-current-001" / name for name in ("history", "remap", "caret")}
         ROOTS["current-logs"] = TEMP / "vis12-current-001"
     elif args.campaign == "compact-controls-diagnostics":
@@ -794,6 +889,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign == "vis12-wrap":
+            return vis12_wrap_checks(files)
         if args.campaign == "vis12":
             return vis12_checks(files)
         if args.campaign == "compact-controls-diagnostics":

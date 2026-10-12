@@ -445,9 +445,9 @@ if(args['build-oc'] === 'true') {
 fs.copyFileSync(path.join(tools, 'package-lock.json'), path.join(output, 'tooling.package-lock.json'));
 if(args['sessions-root'] && (!sessionsInteraction || !path.resolve(args['sessions-root']).startsWith(path.join(tools,'runs')+path.sep)))
   throw Error('--sessions-root requires Sessions and an owned tooling runs root');
-// A frozen syntax consumer must be new even when two fresh output trees share
-// a basename. Reusing a home would mix prior operations/cache reads into proof.
-const freshRoot = leaderPending || syntaxCache || tabMiddleClose;
+// These stateful probes must be new even when fresh output trees share a
+// basename. Reusing a home mixes prior operations/cache/history into proof.
+const freshRoot = leaderPending || syntaxCache || tabMiddleClose || promptHistory || promptCaret;
 const isolated = args['sessions-root'] ? path.resolve(args['sessions-root']) : path.join(tools, 'runs', freshRoot ? path.basename(output)+'-'+sha(Buffer.from(output)).slice(0,12) : path.basename(output));
 if(freshRoot && fs.existsSync(isolated))throw Error('Fresh capture fixture root already exists: '+isolated);
 const cleanEnv = {PATH: '/usr/bin:/bin', HOME: path.join(isolated, 'browser-home'),

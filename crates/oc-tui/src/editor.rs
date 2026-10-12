@@ -910,9 +910,10 @@ fn layout_wrapped(
             }
             continue;
         }
-        if column > 0
-            && (column + cells > width || (word_cells <= width && column + word_cells > width))
-        {
+        // OpenTUI starts an oversized word on a fresh row too, then splits
+        // it by cells. Filling the prefix's remaining cells shifts its tail
+        // and can turn the real final partial row into an empty caret row.
+        if column > 0 && (column + cells > width || column + word_cells > width) {
             let previous = rows.last_mut().expect("one row");
             // A soft-wrap separator belongs to the next raw word, but a click
             // in this row's trailing blank stops before that separator. Using

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "bc30ac220c064595e157ec1619617134583e901cf918e8f3d06786add9f4306b",
+  "archive_bytes": 1581536,
+  "tar_sha256": "d30467559cda3787ebf296d512c418fe63be7555829c1088d70222a3726df466",
+  "tar_bytes": 65280000,
+  "inventory": {
+    "members": 843,
+    "logical_bytes": 64934263,
+    "member_inventory_sha256": "87a7c12975cc249fa61148fc77f63873da73ff7e783dc8199965bdfbb1868ca8",
+    "same_side_png_aliases": 13
+  },
+  "source_roots": {
+    "failed-caret": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-001/caret",
+    "failed-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-001",
+    "current-caret": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-002/caret",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-002",
+    "rejected-caret": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-003/caret",
+    "rejected-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis12-wrap-current-003"
+  },
+  "producer_reports": [
+    {
+      "episode": "failed-caret",
+      "captures": 38,
+      "current_source": false,
+      "scope": "FAILED_INCOMPLETE",
+      "statuses": {
+        "oc": "IN_PROGRESS",
+        "upstream": "FAILED"
+      },
+      "comparisons": {
+        "FAILED": 1,
+        "BLOCKED": 1
+      }
+    },
+    {
+      "episode": "current-caret",
+      "captures": 50,
+      "current_source": true,
+      "scope": "BEHAVIOR_GEOMETRY_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 50
+      }
+    },
+    {
+      "episode": "rejected-caret",
+      "captures": 50,
+      "current_source": false,
+      "scope": "REJECTED_FOREGROUND_EXPERIMENT",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 50
+      }
+    }
+  ],
+  "retainer_source_sha256": "0d0d2badfb2b7eff958b8eae5401c004e584558e4e41bee0ee6e19246528d98f"
+}

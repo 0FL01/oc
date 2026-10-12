@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-11T23:52:42+00:00
+State updated: 2026-10-12T02:19:10+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,39 +12,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS12 current behavior retained; full T44 remains ACTIVE
+# VIS12 longword geometry qualified; full T44 remains ACTIVE
 
 ## Result
-- Actual default80×24/remap120×40/caret120→80→120 probes: both sides behavioral
-  PASS; all156 full strict comparisons DIFFERENT, no pixel promotion.
-- Shared durable recall/boundaries/edit-copy/Home/restart/accepted slash and exact
-  mouse-click edit→one Enter preserve raw input/history and owner priority.
-- Native unfinished-draft restore versus Original empty/nonempty refusal explicit;
-  reference raw schema not decoded, actual wire/full frames separate evidence.
-- All988 files63666559 logical bytes/19 aliases retained2435860 encoded bytes;
-  all11430 old artifacts/metadata and direct parent logs preserved.
+- Existing word-wrap owner starts oversized words after the nonempty prefix;
+  actual expanded RAW1610 stays exact, final60z/caret86,27 agree with Original.
+- New real-paint/mouse regression RED→GREEN covers tail edit, undo/redo/no effects.
+- Existing fresh fixture roots now include prompt history/caret; no user config edits.
+- All843 original files64934263 bytes/138 whole PNGs/13 aliases retained1581536 bytes.
+  Failed001 and rejected003 preserved; current002 behavior/geometry only.
 
 ## Checks
-- Python57 PASS; closest actual PTY history1 and TUI VIS12 six PASS; fmt/locked
-  rebuild restore captured ELF; previous production1843/0/11 all46 gates current.
-- Pack/reopen FULL_BYTE_EXACT plus independent first/inverse audits PASS: every
-  original byte, current709 source/actual ELF and one locked build per episode.
-- Actual28 requests18 main10 title/24 snapshots, no extra tool/project/MCP/DCP
-  effects/replay; restart native raw rows/IDs/shared history unchanged.
-- Same1GiB/16MiB/128MiB/2000/384MiB bounds; after proof before receipt allocation
-  1064947712/1073741824, headroom8794112; no cleanup/offload/bounds raise.
+- Current workspace1844/0/11 all46, TUI517/binary113; strict Clippy/fmt,
+  locked/ordinary debug and locked release builds, both help/JS syntax PASS.
+- Current release9 PASS: startup/terminal restore, VIS31 idle/pacing,
+  S07 equal-view archive and AUD32 actual binary memory; no raised bounds.
+- Python59/docs58 tasks173 specs/progress PASS; pack/reopen FULL_BYTE_EXACT
+  and independent inverse all843 bytes/source709/actual ELFs/one build PASS.
+- Current50 strict comparisons DIFFERENT:474 cells20754 pixels,25/25 cursors equal;
+  expanded7 cells298 pixels,900 visible styledz/final60 geometry equal.
+- Actual10 valid requests5 main5 title/5 Enters/18 snapshots; no observed extra
+  project/tool/Shell/MCP/DCP effects/replay, current native RAW row unchanged.
+- Same1GiB/16MiB/128MiB/2000/384MiB; after proof before receipt allocation
+  1066545152/1073741824 headroom7196672. No cleanup/offload/capraise.
 
 ## Risks
-- 2811 paired cells165950 pixels;71/78 cursor pairs equal; no VIS12/R6/T44 PASS.
-- Actual chip-expanded native misses final60z/cursor26vs86; footer6 cells separate.
-  Trace actual chip/editor/layout/viewport owner, not timing text or normalization.
-- No product/producer/env/config/RAW/policy change; capture source associations and
-  old evidence remain immutable, no new store/registry/query/poll or paid campaign.
+- No VIS12/R6/T44 pixel PASS. Blank-cell FG plus footer/dynamic residuals stay unmasked.
+- Generic cursor FG experiment refuted by four new differences; all candidate
+  paint/test changes removed.001 incomplete root-contamination failure not replayed.
+- Reference RAW/DCP tables not decoded; no invented equality or broad old-entry audit.
+- Immutable captured source/commands and prior evidence preserved; no new store,
+  registry/query/poll, env/authoring config/policy/RAW change or paid campaign.
 
 ## Next
-- Reproduce and fix observed long-chip expansion/full-row/caret owner discrepancy,
-  then real paired qualification and affected crate/full integration gates.
-- Close EVERY remaining frozen R1–R6/VIS01–45 outcome and supplement, then final
+- Trace the real blank-cell render owner, not cursor coordinates or fixture lengths.
+- Close EVERY remaining frozen R1–R6/VIS01–45 and supplement, then final
   current-source R6/V09; only then task finish.
 
 

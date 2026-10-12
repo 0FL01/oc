@@ -822,3 +822,29 @@ old artifact entries/metadata/bytes and original parent logs untouched. Same res
 bounds/no cleanup/offload/capraise/new store/query/poll/old evidence rewrite.
 No VIS12/R6/T44 pixel PASS or finish. Next concrete chip/editor/layout owner fix,
 EVERY remaining frozen outcome/supplement and final current-source R6/V09.
+
+## VIS12 expanded-longword geometry (2026-10-12 — current-source qualified slice)
+
+[Factual receipt](../tui/vis12-wrap-qualified.md): existing oversized-word placement
+now starts after the nonempty prefix; exact1610-byte RAW/final60z/caret86,27 preserved.
+Real painted mouse/undo/tail-edit regression RED→GREEN. Current002 actual120×40/
+80×40 resize: both25-stage behavioral PASS, all50 strict comparisons DIFFERENT;
+474 cells20754 pixels,25/25 complete cursor pairs equal. Expanded900 styledz/
+final60 geometry agrees;7 cells298 pixels residual (blank foreground plus footer).
+Failed00138 PNGs and rejected00350 PNGs retained; generic cursor FG candidate
+created four differences and was removed. Existing hashed fresh-root isolation now
+covers prompt history/caret; incomplete episode not replayed/no fabricated driver log.
+Current workspace1844/0/11 all46/TUI517/binary113, strict Clippy/fmt/locked+ordinary
+debug/locked release/help/JS syntax and release9 startup/terminal/pacing/archive/
+actual memory PASS. Python59/docs58 tasks173 specs/progress PASS. First authoring
+envelope expiry diagnosed; unchanged finite local failure fixture completed under
+larger envelope, no test/deadline changes. Current source709/ELFs/one captured locked
+build exact; later quality commands not inserted into acquisition provenance.
+All843 original files64934263 logical bytes/138 whole PNGs/13 direct aliases retained
+1581536 encoded bytes; independent whole-byte inverse PASS. Specifically captured
+preservation sets/previous proof files intact, no invented all-old-entry re-audit.
+Actual10 requests5 main5 title/5 Enters/18 snapshots/no observed extra effects or
+completed restart replay; reference RAW/DCP tables not decoded. Same bounds/no
+cleanup/offload/old evidence rewrite/new store/query/poll/paid campaign. No whole
+VIS12/R6/T44 pixel PASS. Next real blank-cell owner diagnosis, EVERY frozen outcome/
+supplement and final current-source R6/V09 before finish.

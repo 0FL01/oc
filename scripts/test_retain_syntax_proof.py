@@ -10,7 +10,8 @@ import retain_syntax_proof as proof
 
 class SyntaxProofRetentionTests(unittest.TestCase):
     def test_vis12_build_is_bound_to_each_exact_mode_fixture_and_repository_output(self):
-        for episode in ("history", "remap", "caret"):
+        for episode, attempt in (("history", None), ("remap", None), ("caret", None),
+                                 ("caret", "001"), ("caret", "002"), ("caret", "003")):
             probe = "prompt_caret" if episode == "caret" else "prompt_history"
             hashes = {name: "a" * 64 for name in ("capture.mjs", probe + ".mjs", probe + "_fixture.py")}
             manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
@@ -22,26 +23,78 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original,
                     "--oc", native, "--build-oc", "true", "--geometry", "true", "--sample", "short",
                     "--sidebar", "hide", "--tool-preview", "true", "--columns", "80" if episode == "history" else "120",
-                    "--rows", "24" if episode == "history" else "40", "--output", str(proof.TEMP / "vis12-current-001" / episode),
+                    "--rows", "24" if episode == "history" else "40", "--output",
+                    str(proof.TEMP / ("vis12-current-001" if attempt is None else "vis12-wrap-current-" + attempt) / episode),
                     "--prompt-caret" if episode == "caret" else "--prompt-history",
                     "true" if episode == "caret" else "default" if episode == "history" else "remap"]
             commands = [{"role": "capture runner invocation", "argv": argv},
                         {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
-            proof.check_vis12_build(lock, manifest, commands, episode)
+            proof.check_vis12_build(lock, manifest, commands, episode, wrap_attempt=attempt)
             for addition in (["--build-oc", "true"], ["--sessions-interaction", "true"],
                              ["--output", "/unrelated"], ["--prompt-history", "default"]):
                 invalid = json.loads(json.dumps(commands))
                 invalid[0]["argv"] += addition
                 with self.subTest(episode=episode, addition=addition), self.assertRaises(ValueError):
-                    proof.check_vis12_build(lock, manifest, invalid, episode)
+                    proof.check_vis12_build(lock, manifest, invalid, episode, wrap_attempt=attempt)
             for bad in ([{"argv": ["cargo", "build", "--locked"], "exit_code": 1}],
                         commands[1:] * 2, [{"argv": ["cargo", "build", "--locked", "--release"], "exit_code": 0}]):
                 with self.subTest(episode=episode, builds=bad), self.assertRaises(ValueError):
-                    proof.check_vis12_build(lock, manifest, commands[:1] + bad, episode)
+                    proof.check_vis12_build(lock, manifest, commands[:1] + bad, episode, wrap_attempt=attempt)
             invalid = dict(manifest)
             invalid["scripts/tui_capture/" + probe + ".mjs"] = "b" * 64
             with self.assertRaises(ValueError):
-                proof.check_vis12_build(lock, invalid, commands, episode)
+                proof.check_vis12_build(lock, invalid, commands, episode, wrap_attempt=attempt)
+            with self.assertRaisesRegex(ValueError, "fixed VIS12 wrap attempt"):
+                proof.check_vis12_build(lock, manifest, commands, episode, wrap_attempt="004")
+
+    def test_wrap_launch_lineage_distinguishes_reused_failed_and_fresh_qualified_roots(self):
+        for attempt in ("001", "002", "003"):
+            output = proof.TEMP / ("vis12-wrap-current-" + attempt) / "caret"
+            name = "caret" if attempt == "001" else "caret-" + proof.digest(str(output).encode())[:12]
+            root = proof.TEMP / "t44-reference/runs" / name
+            for side in ("oc", "upstream"):
+                home = root / side / "home"
+                env = {"HOME": str(home), **{"XDG_" + key + "_HOME": str(home / key.lower())
+                                             for key in ("CONFIG", "CACHE", "DATA", "STATE")}}
+                protocol = [{"kind": "launch", "cwd": str(root / "project"), "env": env}]
+                if attempt != "001":
+                    protocol.append({"kind": "relaunch", "cwd": str(root / "project")})
+                proof.check_vis12_wrap_launches(protocol, attempt, side)
+                wrong = json.loads(json.dumps(protocol))
+                wrong[-1]["cwd"] = str(proof.TEMP / "t44-reference/runs/unrelated/project")
+                with self.assertRaises(ValueError):
+                    proof.check_vis12_wrap_launches(wrong, attempt, side)
+                wrong = json.loads(json.dumps(protocol))
+                wrong[0]["env"]["XDG_DATA_HOME"] = "/foreign/data"
+                with self.assertRaises(ValueError):
+                    proof.check_vis12_wrap_launches(wrong, attempt, side)
+                with self.assertRaises(ValueError):
+                    proof.check_vis12_wrap_launches(protocol + protocol, attempt, side)
+
+    def test_wrap_geometry_checks_whole_caret_and_partial_tail_without_blank_normalization(self):
+        cell = {"symbol": " ", "fg": "#ffffff", "bg": "#1e1e1e", "width": 1, "modifiers": []}
+        original = {"columns": 120, "rows": 40, "cells": [[dict(cell) for _ in range(120)] for _ in range(40)],
+                    "cursor": {"x": 86, "y": 27, "visible": True, "shape": "block"}}
+        for y in range(15, 28):
+            for x in range(26, 26 + (60 if y == 27 else 70)):
+                original["cells"][y][x].update(symbol="z", fg="#eeeeee")
+        native = json.loads(json.dumps(original))
+        original["cells"][27][86]["fg"] = "#eeeeee"
+        before = json.dumps((native, original))
+        proof.check_vis12_wrap_geometry(native, original)
+        self.assertEqual(json.dumps((native, original)), before)
+        for kind in ("missing-tail", "wrong-style", "wrong-caret", "short-frame"):
+            wrong = json.loads(json.dumps(native))
+            if kind == "missing-tail":
+                wrong["cells"][27][85]["symbol"] = " "
+            elif kind == "wrong-style":
+                wrong["cells"][27][85]["fg"] = "#ffffff"
+            elif kind == "wrong-caret":
+                wrong["cursor"]["x"] = 26
+            else:
+                wrong["cells"].pop()
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                proof.check_vis12_wrap_geometry(wrong, original)
 
     def test_vis12_caret_rejects_navigation_generation_effects_and_raw_rewrite(self):
         names = ("caret-home caret-home-word-clicked caret-home-word-edited caret-wide-second-clicked "
