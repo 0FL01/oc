@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T12:46:14+00:00
+State updated: 2026-10-12T13:51:48+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,48 +12,45 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# Current004 retention unblocked by checked lossless archival; continue full T44
+# VIS37 current005 observed focus frame qualified; continue full T44
 
 ## Result
-- Existing own untracked FAILED model-shell-001 diagnostics retained byte-exact,
-  not deleted:58 files5040210 bytes +3 directory metadata in278616B and visible
-  FAILED pointer. Same1GiB cap/accounting, actual2183168 reservation;4882432 bytes
-  released. Explicit campaign/pre-post reservation guards and docs updated.
-- Current004 complete proof now retained1913176B/665 files53495947 bytes/28 direct
-  same-run-side exact PNG aliases. Receipt evidence/tui/vis37-retention-unblocked.md.
-- No authorized-capacity dependency remains for004. Previous blocked receipt/0127
-  are historical measured attempts, not overwritten or future stopping authority.
+- Preserved004 VT proves Down+Space hidden-cursor discrepancy is two paints versus
+  one coalesced diff, not a visible custom-editor caret bug. No Rust/FG/coordinate
+  workaround. Probe observes/captures actual focus before separate toggle; old
+  burst discrepancy remains preserved and is not claimed fixed or normalized.
+- Fresh005 18 stages each side/profile PASS_BEHAVIOR_ONLY; receipt
+  evidence/tui/vis37-focus-paint-qualified.md, full proof and independent audit.
 
 ## Checks
-- RootPython67/67:6 archive tests/14 retainer tests incl actualFAILED notDIFFERENT,
-  reserve boundary/invalid values and public-write/final-cap interruption survival.
-- Existing measure -> exclusive pack -> audit FULL_BYTE_EXACT; fresh independent
-  manual PAX/XZ diagnostic and USTAR/XZ every004 byte inverse PASS. All63 prior
-  archives/inventories preserved exact bytes/meta;004 originals/meta/helpers intact.
-- Current713 seal540195999c68df1710ced7274273eca77f7c178ebb4cd563500a966a9c1a6928,
-  nativeELF3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271 unchanged.
-  Storage scripts/docs outside capture/native inputs; no build or episode replay.
-- Current24 valid providers18main6title/12calls/12user6answers/30RO snapshots;
-  real native/OriginalV2 RAW/IDs and no observed extra effects. VmPeak238796800B.
-- After pack allocation1069719552/headroom4022272 BEFORE bounded report/delivery;
-  final actual recount required. Same16/128MiB/2000/dict16/decoder32/AS384 caps.
-- Historical native1856/0/11 and release9 gates unaffected, not newly run here.
+- Actual108 comparisons:100 DIFFERENT/8 EQUAL (four wide full-grid+PNG pairs).
+  Independent54/54 cursors equal;259200 cells34953984 pixels checked,4461 cells/
+  317181 pixels differ.27 pending-owner/3 answered-owner styled regions equal only.
+- All701 files56049246 bytes/27 direct same-side exact PNG aliases retained1953940B;
+  measure/pack/audit/manual XZ/USTAR every-byte inverse/full-artifact recount PASS.
+- Actual24 providers18main6title/12calls/12user6answers/30RO snapshots; native typed
+  and OriginalV2 RAW IDs persist with no observed extra effects/continuations.
+- 713 source seal7178f1bb8abe558cd093a1e1a30a273829c6786f19f2b657cc2a8872a3ea7f6b;
+  unchanged native ELF3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271.
+- Retainer15/rootPython68/JS/diff/docs/progress PASS. Native1856/0/11/release9 gates
+  unchanged, not newly run. Independent VmPeak240185344B under384MiB hard AS.
+- After-report allocation1072025600/headroom1716224 before bounded delivery records;
+  final actual recount required, samecaps/no offload/deletion/reencoding/masks.
 
 ## Risks
-- Whole102 strict comparisons DIFFERENT: preserved independent4444cells317372pixels,
-  48/51cursors;24pending-owner/3answered-owner styled regions equal only. Three
-  hiddenmultiple cursor residuals and other outerchrome/footer/history differences.
-- DCP tables unread; finalgen1 forced harness teardown, not clean final lifecycle.
-  Full frozenR1-R6/VIS01-45/all supplements/final currentR6/V09 remain NOT_PASS.
-- First archive command lacked --archive (preflight only); cap measure failed until
-  actual explicit transaction. All records kept; no unknown side effect replay.
+- Whole100 comparisons still DIFFERENT, including outerchrome/underlay/footer and
+  cancelled-question transcript. Owner/cursor equality is not whole pixel PASS.
+- DCP tables unread/finalgen1 forced teardown; full frozenR1-R6/VIS01-45/all
+  supplements/final currentR6/V09 remain NOT_PASS.004 now historical probe source.
+- First independent guard assumed allDIFFERENT and refused realEQUAL; new local
+  strict reader verifies EQUAL0PASS orDIFFERENT1FAIL, old helper/data untouched.
 
 ## Next
-- Review/commit/push this major storage/docs/proof slice, then immediately target
-  the3 VIS37 cursor mismatches through existing QuestionView/editor owner tests.
-- Continue every remaining frozen outcome with actual effects plus fresh full
-  paired styled-cell/PNG/cursor qualification and commit/push each major slice.
-- Final current-sourceR6/V09 only after whole scope; never finishT44 on this slice.
+- Review/commit/push this major qualified probe/proof slice, then fix existing
+  dismissed-question transcript owner: weak right-aligned Questions dismissed
+  instead of raw error row, preserving cancelled RAW/binding/no continuation.
+- Continue every remaining frozen outcome/supplement and commit/push checked major
+  slices. Only full contract plus final current-sourceR6/V09 permits T44 finish.
 
 
 Ready (до 5): T58

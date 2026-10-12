@@ -652,7 +652,7 @@ def vis12_wrap_checks(files):
 def check_vis37_build(lock, manifest, commands, profile, attempt, form_campaign=False):
     allowed = (("wide", "001"), ("small", "002"), ("wide", "002"), ("tall", "002"))
     if form_campaign:
-        allowed += tuple((profile, attempt) for attempt in ("003", "004")
+        allowed += tuple((profile, attempt) for attempt in ("003", "004", "005")
                          for profile in ("small", "wide", "tall"))
     require((profile, attempt) in allowed,
             "fixed VIS37 acquisition")
@@ -685,15 +685,20 @@ def check_vis37_build(lock, manifest, commands, profile, attempt, form_campaign=
             builds[0]["exit_code"] == 0, "one exact captured VIS37 repository build")
 
 
-def check_vis37_facts(checks, protocol, side):
+def check_vis37_facts(checks, protocol, side, focus_painted=False):
     names = ("question-home question-pending question-one-selected question-multiple-selected question-long-field "
              "question-custom-empty question-custom-edited question-review question-completed question-answered-card "
              "question-switched question-reopened question-restarted question-cancel-pending question-dismissed "
              "question-cancel-switched question-cancel-reopened").split()
+    if focus_painted:
+        names.insert(3, "question-multiple-focused")
+        require(checks["question_forms"].get("multiselect_focus_painted_before_toggle") is True,
+                "actual multiselect focus painted before toggle")
     require(checks.get("origin") == side and checks.get("status") == "PASS_BEHAVIOR_ONLY" and
             [item.get("stage") for item in checks["stages"]] == names, "all actual owned VIS37 stages")
     for index, stage in enumerate(checks["stages"]):
-        requests, calls = (0, 0) if index == 0 else (2, 1) if index < 8 else (3, 1) if index < 13 else (4, 2)
+        requests, calls = ((0, 0) if index == 0 else (2, 1) if index < 8 + focus_painted
+                           else (3, 1) if index < 13 + focus_painted else (4, 2))
         require(stage.get("status") == "CAPTURED_TOOL_PREVIEW" and
                 type(stage.get("requests")) is int and stage["requests"] == requests and
                 type(stage.get("calls")) is int and stage["calls"] == calls,
@@ -867,12 +872,14 @@ def vis37_checks(files):
     return reports
 
 
-def vis37_form_roots(current_only=False):
+def vis37_form_roots(current_only=False, current_attempt="004"):
     if current_only:
-        return {**{"current-" + profile: TEMP / "vis37-form-current-004" / profile
-                   for profile in ("small", "wide", "tall")},
-                "current-logs": TEMP / "vis37-form-current-004",
-                "current-driver": TEMP / "vis37-form-capture-r4.py"}
+        require(current_attempt in ("004", "005"), "fixed current form acquisition")
+        root = TEMP / ("vis37-form-current-" + current_attempt)
+        driver = "vis37-form-capture-" + {"004": "r4", "005": "r5"}[current_attempt] + ".py"
+        return {**{"current-" + profile: root / profile
+                    for profile in ("small", "wide", "tall")},
+                "current-logs": root, "current-driver": TEMP / driver}
     roots = {"failed-wide": TEMP / "vis37-form-current-001/wide"}
     roots.update({period + "-" + profile: TEMP / ("vis37-form-current-" + attempt) / profile
                   for period, attempt in (("historical", "002"), ("current", "003"))
@@ -885,7 +892,7 @@ def vis37_form_roots(current_only=False):
     return roots
 
 
-def check_vis37_form_keyboard(checks, inputs):
+def check_vis37_form_keyboard(checks, inputs, focus_painted=False):
     require(all(checks["question_forms"].get(key) is True for key in
                 ("tab_and_backtab_committed_without_submit", "return_after_tab_reopens_custom", "optional_empty_custom_tab_did_not_submit")),
             "actual custom Tab/Shift+Tab/reedit without reply")
@@ -895,12 +902,20 @@ def check_vis37_form_keyboard(checks, inputs):
                 ("question_explicit_reply", "DQ==")]
     selected = [(item.get("kind"), item.get("base64")) for item in inputs if item.get("kind") in dict(expected)]
     require(selected == expected, "exact real PTY navigation, commit and single explicit reply bytes")
+    if focus_painted:
+        require(checks["question_forms"].get("multiselect_focus_painted_before_toggle") is True,
+                "actual multiselect focus painted before toggle")
+        selected = [(item.get("kind"), item.get("base64")) for item in inputs
+                    if item.get("kind") in ("question_python_focus", "question_select_python")]
+        require(selected == [("question_python_focus", "G1tC"), ("question_select_python", "IA==")],
+                "separate real PTY focus and toggle bytes in exact order")
 
 
-def vis37_form_checks(files, current_only=False):
+def vis37_form_checks(files, current_only=False, current_attempt="004"):
     reports = []
     if current_only:
-        episodes = [("current-" + profile, "004", profile) for profile in ("small", "wide", "tall")]
+        require(current_attempt in ("004", "005"), "fixed current form acquisition")
+        episodes = [("current-" + profile, current_attempt, profile) for profile in ("small", "wide", "tall")]
     else:
         episodes = [("failed-wide", "001", "wide")]
         episodes += [(period + "-" + profile, attempt, profile)
@@ -909,11 +924,13 @@ def vis37_form_checks(files, current_only=False):
     for prefix, attempt, profile in episodes:
         read = lambda relative: json.loads(files[prefix + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
-        current, failed = attempt == ("004" if current_only else "003"), attempt == "001"
+        current, failed = attempt == (current_attempt if current_only else "003"), attempt == "001"
+        focus_painted = attempt == "005"
         check_source_manifest(lock, manifest, 713)
         check_vis37_build(lock, manifest, read("commands.json"), profile, attempt, form_campaign=True)
-        require(len(lock["captures"]) == (22 if failed else 34) and
-                len(lock["attempts"]) == (36 if failed else 34), "complete form frames and failed attempts retained")
+        complete_frames = 36 if focus_painted else 34
+        require(len(lock["captures"]) == (22 if failed else complete_frames) and
+                len(lock["attempts"]) == (36 if failed else complete_frames), "complete form frames and failed attempts retained")
         if failed or not current:
             require(collections.Counter(item["status"] for item in lock["attempts"]) ==
                     ({"DIFFERENT": 8, "BLOCKED": 28} if failed else {"DIFFERENT": 34}),
@@ -944,9 +961,9 @@ def vis37_form_checks(files, current_only=False):
                         len(providers) == 2 and all(item.get("valid") is True for item in providers),
                         "lost same-owner gesture failure and partial effects remain visible")
             else:
-                check_vis37_facts(checks, protocol, side)
+                check_vis37_facts(checks, protocol, side, focus_painted)
                 if current:
-                    check_vis37_form_keyboard(checks, read(side + "/inputs.json"))
+                    check_vis37_form_keyboard(checks, read(side + "/inputs.json"), focus_painted)
             statuses[side] = checks["status"]
         reports.append({"episode": prefix, "captures": len(lock["captures"]), "current_source": current,
                         "scope": "PENDING_FORM_BEHAVIOR_ONLY" if current else
@@ -1137,14 +1154,14 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("vis37-form", "vis37-form-r4"):
-        ROOTS = vis37_form_roots(args.campaign == "vis37-form-r4")
+    if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5"):
+        ROOTS = vis37_form_roots(args.campaign != "vis37-form", "005" if args.campaign == "vis37-form-r5" else "004")
     elif args.campaign == "vis37":
         ROOTS = {"failed-wide": TEMP / "vis37-current-001/wide",
                  **{"current-" + profile: TEMP / "vis37-current-002" / profile for profile in ("small", "wide", "tall")},
@@ -1226,8 +1243,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign in ("vis37-form", "vis37-form-r4"):
-            return vis37_form_checks(files, args.campaign == "vis37-form-r4")
+        if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5"):
+            return vis37_form_checks(files, args.campaign != "vis37-form", "005" if args.campaign == "vis37-form-r5" else "004")
         if args.campaign == "vis37":
             return vis37_checks(files)
         if args.campaign == "vis12-wrap":

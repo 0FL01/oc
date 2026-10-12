@@ -955,3 +955,37 @@ measure/pack/audit/independent checks passed. Logs retain both attempts. Current
 capacity is no longer an external blocker: proceed with3 VIS37 cursor residuals,
 remaining whole-frame owners and every frozen outcome/supplement, with reviewed
 commit/push per major slice. No task finish, whole VIS37/R6/V09/T44 PASS or cap waiver.
+
+## VIS37 observed focus-paint boundary (2026-10-12 — current005, T44 ACTIVE_NOT_PASS)
+
+[Qualified receipt](../tui/vis37-focus-paint-qualified.md). Complete004 VT inspection
+establishes different paint granularity for the Down+Space burst: Native focused-row
+paint then checkbox-only paint leaves hidden x10; Original coalesced row/checkbox
+paint leaves x18. Neither renderer repositions an invisible cursor after diff output.
+No visible custom-caret defect or reason for a runtime coordinate/FG hack was found.
+The existing probe now separately observes/captures the actual focused Python row
+before Space. All original burst data remain preserved; burst parity is not claimed.
+
+Fresh005 three profiles each side18 stages PASS_BEHAVIOR_ONLY;108 full comparisons:
+100 DIFFERENT/8 EQUAL, no BLOCKED. Four wide completed/answered/reopened/restarted
+pairs each have full-grid+PNG EQUAL. Independent54 complete cursor pairs agree;
+259200 styled cells34953984 pixels checked,4461 cells317181 pixels differ. All27
+pending-owner/3 answered-owner full styled regions equal including blank styles;
+owner equality is not whole VIS37/R6/V09/T44 PASS. Actual wire24 valid18main6title/
+12calls/12user6answers/30RO snapshots, native typed/OriginalV2 RAW/IDs and no observed
+extra effects; DCP tables unread/finalgen1 forced remain explicitly unqualified.
+
+Complete701 files56049246 logical bytes/27 direct same-side exact PNG aliases
+retained1953940B; measure/pack/audit and independent manual XZ/USTAR every-original
+inverse plus full PNG/styled/cursor recount PASS. Current713 source seal:
+`7178f1bb8abe558cd093a1e1a30a273829c6786f19f2b657cc2a8872a3ea7f6b`; unchanged actual native/reference ELFs;
+only captured probe JS changed.004 source now historical, old flags not rewritten.
+Retainer15/rootPython68/JS/docs/progress PASS; prior native1856/0/11/release9 untouched,
+not rerun or finalqualification. Independent VmPeak240185344B <384MiB. Before final
+delivery records allocated1072025600/headroom1716224; unchangedcaps/actualrecount.
+
+The first independent-reader attempt rejected a real EQUAL due to inherited
+all-DIFFERENT assumption. Local strict guard now admits only actual EQUAL0PASS or
+DIFFERENT1FAIL with independent every-artifact recount; old readers/data untouched,
+both attempts retained. Continue source-proven dismissed-question status mismatch
+and every remaining frozen outcome/supplement; checked commit/push per major slice.

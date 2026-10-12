@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "codec": "stdlib USTAR + single XZ; original encoded PNGs unchanged",
+  "archive_sha256": "f8417af26c27c1688641b344dba2096c31ed54473f25259df25acd4e32a0a653",
+  "archive_bytes": 1953940,
+  "tar_sha256": "8305cb0f3c067fbca610099e0b855f3843f8bc20106882657f22a0ff6e63de89",
+  "tar_bytes": 55613440,
+  "inventory": {
+    "members": 701,
+    "logical_bytes": 56049246,
+    "member_inventory_sha256": "611a21e22421dd0674e640b92971acc2467125cc8a3e988ad56658b384e6fcc8",
+    "same_side_png_aliases": 27
+  },
+  "source_roots": {
+    "current-small": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-005/small",
+    "current-wide": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-005/wide",
+    "current-tall": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-005/tall",
+    "current-logs": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-current-005",
+    "current-driver": "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-capture-r5.py"
+  },
+  "producer_reports": [
+    {
+      "episode": "current-small",
+      "captures": 36,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 36
+      }
+    },
+    {
+      "episode": "current-wide",
+      "captures": 36,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 28,
+        "EQUAL": 8
+      }
+    },
+    {
+      "episode": "current-tall",
+      "captures": 36,
+      "current_source": true,
+      "scope": "PENDING_FORM_BEHAVIOR_ONLY",
+      "statuses": {
+        "oc": "PASS_BEHAVIOR_ONLY",
+        "upstream": "PASS_BEHAVIOR_ONLY"
+      },
+      "comparisons": {
+        "DIFFERENT": 36
+      }
+    }
+  ],
+  "retainer_source_sha256": "f5334709a1dc324c762b9324489846b2976d8383be9a892b471750554429a991"
+}

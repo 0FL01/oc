@@ -37,8 +37,22 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
   await shot('question-home',f=>f.text.includes('Ask anything'));
   send(`\x1b[200~${PROMPT}\x1b[201~`,'question_user_prompt');send('\r','question_user_submit');
   const pending=await shot('question-pending',f=>f.text.includes('Pick languages?')&&f.text.includes('Type your own answer'));
-  await click('1. [ ] Rust','question_select_rust_mouse');await shot('question-one-selected',f=>f.text.includes('1. [✓] Rust'));
-  send('\x1b[B ','question_select_python');await shot('question-multiple-selected',f=>f.text.includes('1. [✓] Rust')&&f.text.includes('2. [✓] Python'));
+  await click('1. [ ] Rust','question_select_rust_mouse');
+  const one=await shot('question-one-selected',f=>f.text.includes('1. [✓] Rust'));
+  const rust=visibleMatches(one,'1. [✓] Rust');
+  if(rust.length!==1)throw Error('Painted multiselect focus owner not unique');
+  const active=one.cells[rust[0].y][rust[0].x];
+  // Hidden terminal position is the last emitted diff cell, not an editor
+  // caret. Observe the actual focus paint before toggling; a Down+Space burst
+  // can legitimately form one donor diff and two native diffs. Keep both
+  // complete frames and their unmodified cursor/VT facts, not a cursor anchor.
+  send('\x1b[B','question_python_focus');
+  await shot('question-multiple-focused',f=>{
+    const hits=visibleMatches(f,'2. [ ] Python');
+    return hits.length===1&&f.cells[hits[0].y][hits[0].x].fg===active.fg&&
+      f.cells[hits[0].y][hits[0].x].bg===active.bg&&f.text.includes('1. [✓] Rust');
+  });
+  send(' ','question_select_python');await shot('question-multiple-selected',f=>f.text.includes('1. [✓] Rust')&&f.text.includes('2. [✓] Python'));
   await click('Platform and execution…','question_next_field_mouse');await shot('question-long-field',f=>f.text.includes('Where Ω界?'));
   await click('Type your own answer','question_custom_select_mouse');await shot('question-custom-empty',f=>f.text.includes('Type your own answer'));
   send('\t','question_empty_custom_tab');
@@ -95,6 +109,6 @@ export async function probeQuestionForms({origin,send,shot,waitFor,frame,visible
     explicit_answer_submissions:1,question_calls:2,answers,completed,reopened,restarted,dismissed,final,
     no_edit_submission:true,no_restart_replay:true,cancellation_not_answered:true,
     tab_and_backtab_committed_without_submit:true,return_after_tab_reopens_custom:true,
-    optional_empty_custom_tab_did_not_submit:true,
+    optional_empty_custom_tab_did_not_submit:true,multiselect_focus_painted_before_toggle:true,
     pending_cursor:pending.cursor,readonly_native_and_donor_source_records:true};
 }

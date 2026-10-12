@@ -18,7 +18,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                  ("wide", "002", 120, 40), ("tall", "002", 160, 48)]
         acquisitions = [(p, a, c, r, False) for p, a, c, r in cases]
         acquisitions += [(p, a, c, r, True) for p, a, c, r in cases +
-                         [(p, a, c, r) for a in ("003", "004") for p, c, r in
+                         [(p, a, c, r) for a in ("003", "004", "005") for p, c, r in
                           (("small", 80, 24), ("wide", 120, 40), ("tall", 160, 48))]]
         for profile, attempt, columns, rows, form in acquisitions:
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
@@ -44,7 +44,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                 proof.check_vis37_build(lock, {**manifest, "scripts/tui_capture/question_fixture.py": "b" * 64},
                                         commands, profile, attempt, form)
             with self.assertRaises(ValueError):
-                proof.check_vis37_build(lock, manifest, commands, profile, "005" if form else "003", form)
+                proof.check_vis37_build(lock, manifest, commands, profile, "006" if form else "003", form)
             with self.assertRaises(ValueError):
                 proof.check_vis37_build(lock, manifest, commands, profile, attempt, not form)
 
@@ -55,8 +55,15 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         self.assertEqual(len(current), 5)
         self.assertEqual(current["current-logs"], proof.TEMP / "vis37-form-current-004")
         self.assertEqual(current["current-driver"], proof.TEMP / "vis37-form-capture-r4.py")
+        focused = proof.vis37_form_roots(current_only=True, current_attempt="005")
+        self.assertEqual(len(focused), 5)
+        self.assertEqual(focused["current-logs"], proof.TEMP / "vis37-form-current-005")
+        self.assertEqual(focused["current-driver"], proof.TEMP / "vis37-form-capture-r5.py")
+        with self.assertRaises(ValueError):
+            proof.vis37_form_roots(current_only=True, current_attempt="006")
         for profile in ("small", "wide", "tall"):
             self.assertEqual(current["current-" + profile], proof.TEMP / "vis37-form-current-004" / profile)
+            self.assertEqual(focused["current-" + profile], proof.TEMP / "vis37-form-current-005" / profile)
         self.assertEqual(roots["failed-wide"], proof.TEMP / "vis37-form-current-001/wide")
         for profile in ("small", "wide", "tall"):
             self.assertEqual(roots["historical-" + profile], proof.TEMP / "vis37-form-current-002" / profile)
@@ -80,6 +87,25 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                 proof.check_vis37_form_keyboard(facts, bad)
         with self.assertRaises(ValueError):
             proof.check_vis37_form_keyboard({"question_forms": {key: False for key in facts["question_forms"]}}, inputs)
+
+    def test_vis37_multiselect_requires_the_painted_focus_before_a_separate_toggle(self):
+        checks = {"question_forms": {key: True for key in
+                  ("tab_and_backtab_committed_without_submit", "return_after_tab_reopens_custom",
+                   "optional_empty_custom_tab_did_not_submit", "multiselect_focus_painted_before_toggle")}}
+        navigation = [("question_empty_custom_tab", "CQ=="), ("question_empty_custom_backtab", "G1ta"),
+                      ("question_custom_tab_commit", "CQ=="), ("question_custom_backtab", "G1ta"),
+                      ("question_custom_reopen_edit", "DQ=="), ("question_commit_custom", "DQ=="),
+                      ("question_explicit_reply", "DQ==")]
+        events = [("question_python_focus", "G1tC"), ("question_select_python", "IA==")]
+        inputs = [{"kind": kind, "base64": data} for kind, data in events + navigation]
+        proof.check_vis37_form_keyboard(checks, inputs, focus_painted=True)
+        for bad in ([{"kind": "question_select_python", "base64": "G1tCIA=="}] + inputs[2:],
+                    list(reversed(inputs[:2])) + inputs[2:], inputs[:2] + inputs[1:]):
+            with self.assertRaises(ValueError):
+                proof.check_vis37_form_keyboard(checks, bad, focus_painted=True)
+        checks["question_forms"]["multiselect_focus_painted_before_toggle"] = False
+        with self.assertRaises(ValueError):
+            proof.check_vis37_form_keyboard(checks, inputs, focus_painted=True)
 
     def test_vis37_owned_wire_and_durable_sources_reject_replay_raw_rewrite_and_fake_answer(self):
         questions = [{"header": "Languages and native runtimes", "question": "Pick languages?", "multiple": True},
