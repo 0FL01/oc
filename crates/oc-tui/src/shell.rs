@@ -363,15 +363,20 @@ fn session_regions(state: &TuiState, area: Rect, terminal_height: u16) -> layout
     }
     if state.questions.active().is_some() {
         let mut regions = layout::dynamic_session_regions(area, 0, 0);
-        regions.transcript.height =
-            regions
-                .content
-                .height
-                .saturating_sub(crate::question_view::height(
-                    state,
-                    area.width,
-                    terminal_height,
-                ));
+        let form_height = crate::question_view::height(state, area.width, terminal_height)
+            .min(regions.content.height);
+        // The status box remains a height-1 flex sibling before FormPrompt,
+        // even without a visible action (index.tsx:1331-1387). It is not an
+        // extra transcript row; the existing sticky slice must exclude it.
+        let available = regions.content.height.saturating_sub(form_height);
+        let status_height = available.min(layout::STATUS_ROW_HEIGHT);
+        regions.transcript.height = available.saturating_sub(status_height);
+        regions.status = Rect::new(
+            regions.content.x,
+            regions.transcript.bottom(),
+            regions.content.width,
+            status_height,
+        );
         return regions;
     }
     let input_height = (input.len() as u16)
@@ -1167,13 +1172,13 @@ fn render_session(frame: &mut Frame<'_>, state: &TuiState, theme: &Theme, area: 
     }
     let regions = session_regions(state, area, frame.area().height);
     render_transcript(frame, state, regions.transcript, frame.area().width);
-    if state.approvals.active().is_some()
-        || state.questions.active().is_some()
-        || state.composer_open()
-    {
+    if state.approvals.active().is_some() || state.composer_open() {
         return;
     }
     render_status(frame, state, theme, regions.status);
+    if state.questions.active().is_some() {
+        return;
+    }
     render_prompt(
         frame,
         state,

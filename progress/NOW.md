@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T19:33:27+00:00
+State updated: 2026-10-12T21:16:30+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,45 +12,46 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS37 complete header colors qualified; continue full T44
+# VIS37 question/status sibling qualified; continue full T44
 
 ## Result
-- Question-attention eleven layout blanks use base; idle/static-busy white canvas,
-  title and other roles preserved. Static009 BG delta was not a clock phase:
-  animations:false; pinned tint quantizes each stage before pulse compositing.
-  Exact RGB44,40,51 versus44,41,51 RED→GREEN, no coordinate/cursor/timing hack.
-- Receipt evidence/tui/vis37-tab-colors-qualified.md;009 intermediate/010 current
-  complete proofs and independent byte/metadata/inverse/recount, old flags immutable.
+- Initial Messages spacer hypothesis refuted: full/index counts correct, untouched.
+  Actual pinned status sibling reserves one row before form; Question-only native
+  geometry/paint now does likewise, preserving priority/clipping/input binding/draft.
+- Receipt evidence/tui/vis37-question-status-qualified.md;011 current complete proof,
+  independent inverse/recount;010 historical immutable. No baseline/caret/timing hack.
 
 ## Checks
-- Final complete workspace1858/0/11 unchanged ignore/46 targets/TUI528/PTY58;
+- Final complete workspace1859/0/11 unchanged ignore/46 targets/TUI529/PTY58;
   strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS.
-  Shell71/Python68+question2/docs/progress/diff PASS; all failed attempts retained.
-- Current010 all6sides18behaviorPASS/108wholePNGs/62DIFFERENT46EQUAL comparisons;
-  independent54/54cursors259200cells34953984pixels checked2490cells210603pixelsdiff,
-  25wholegrid21wholePNGpairs equal.51completeheaderstyledrows(27Question24other)
-  equal;27pending/3answered/6cancelled fullownerregions equal, not whole PASS.
-- All704files55984207B/27same-side exact PNG aliases retained1624864B; bounded
-  measure/pack/audit/manualXZUSTAR every-original inverse PASS,91priorproofs unchanged.
-- Current713 5e108520e1504102ea0dc70818ebb1027eb7af4334bc475f877d0cebce47aff3;
-  native658dd4f4775678a38d79b53214b400499d81ac9321971e7606b5ec87215cf10c.
+  Shell72/actualPTY3/Python68+question2/docs/progress/diff PASS, failures retained.
+- Current011 all6sides18behaviorPASS/108wholePNGs/64DIFFERENT44EQUAL comparisons;
+  independent54/54cursors259200cells34953984pixels checked265cells13168pixelsdiff,
+  25wholegrid19wholePNGpairs equal.51completeheaders/27pending/3answered/6cancelled/
+  3smalltranscriptstatus regions every styled cell equal, not whole PASS.
+- All704files55979473B/27same-side exact PNG aliases retained1573812B;
+  manualXZUSTAR every-original inverse PASS,97priorproofs byte+metadata unchanged.
+- Current713 c5004540f17136e55e22ef42de7a38c71c835a9622fd5e62b711622058e2b886;
+  native52cba8d040441bfcc6bebfd9e8d702e1d512aa14d1289c4fc9b08f709340338c.
 - Actual24valid18main6title/12calls/12user6answers/30ROsnapshots nativeOriginalV2
-  RAWIDs/no observed extra effects; independentVmPeak239378432B <384MiB.
-- Existing ownFAILEDmodel-shell004 archival69files/3dirs fullbyte+metadata inverse,
-  visibleFAILEDpointer/reserved3145728 frees5632000B;003notFAILED leftuntouched.
-  After010report owned1071730688/headroom2011136 beforedelivery, actualrecountfinal.
+  RAWIDs/no observed extras; independentVmPeak239718400B <384MiB.
+- OwnFAILEDmodel-shell005 archival62files/3dirs everybyte+metadata preserved,
+  visible FAILED pointer/3MiBreservation frees4853760; qualified proofs untouched.
+  After011report owned1069072384/headroom4669440 before delivery, final recountactual.
 
 ## Risks
 - WholeVIS37/R6/V09/T44 notPASS; DCPtables unread/gen1forced notcleanfinal.
-- Intermediate workspace paging and serialized burst/geometry/oversized-line timing
-  failures retained. Fresh isolated unchanged PASS then standard full1858green;
-  no test/deadline/baseline/ignore weakened.009notcurrent afterroundingfix.
+- Zero-test exact filter and new-test container-style correction retained; initial
+  workspace3timing/CPU failures isolatedunchangedPASS then complete warm1859green.
+  No deadlines/thresholds/tests/baselines/ignores weakened. Foreign9aac plan preserved.
+- Remaining265cells:178randomexamples+54nativeversion+33realelapsed, unnormalized;
+  six grid-equal custom PNG pairs795caret pixels; focused cursor-color seam next.
 
 ## Next
-- Review exact stage/commit/push checked header slice, then source-check actual
-  small long/custom/cancel-pending transcript offset/first-item margin+padding.
-- Continue all frozenR1-R6/VIS01-VIS45/supplements and final current-sourceR6/V09;
-  checked commit/push permajor slice. No T44 finish or source/proof promotion.
+- Reviewed exact stage/commit/push checked status slice, then focused Question caret
+  color via existing owner/color path, preserving modal/Approval/normal caret priority.
+- Continue all frozen R1–R6/VIS01–45/supplements and final current-sourceR6/V09;
+  checked commit/push each major slice. No T44 finish or old proof promotion.
 
 
 Ready (до 5): T58, T59

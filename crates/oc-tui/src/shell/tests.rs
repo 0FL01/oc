@@ -1087,6 +1087,131 @@ async fn vis37_question_attention_tab_padding_preserves_idle_canvas_and_title_ro
 }
 
 #[tokio::test]
+async fn vis37_question_transcript_reserves_and_paints_the_status_row_before_the_form() {
+    use oc_core::{approval::ApprovalBinding, core_app::WorkerTurnId, question::*};
+    let input = serde_json::json!({"questions": [
+        {"header":"Languages and native runtimes", "question":"Pick languages?", "multiple":true,
+         "options":[{"label":"Rust","description":"Native owner and a bounded ordered answer."},
+                    {"label":"Python","description":"Fixture peer, not a production runtime dependency."}]},
+        {"header":"Platform and execution targets",
+         "question":"Where Ω界? Choose an explicit host for the current workspace and retain this long question in metadata order.",
+         "options":[{"label":"Linux","description":"Current GNU/Linux host, with no external service or paid effect."},
+                    {"label":"Other","description":"An explicit custom selection remains owned by this question."}]}
+    ]});
+    let request = QuestionRequest {
+        id: 1,
+        binding: ApprovalBinding {
+            session: "question-status".into(),
+            turn: "turn".into(),
+            call: "call".into(),
+            operation: "operation".into(),
+            input_digest: "digest".into(),
+            location: "location".into(),
+            generation: 1,
+            agent: None,
+            agent_digest: None,
+        },
+        input: QuestionInput::parse(&input).unwrap(),
+    };
+    for (width, height) in [(80, 24), (120, 40), (160, 48)] {
+        let (app, _, _) = CoreApp::channel(4);
+        let mut state = TuiState::new(app, SessionId("question-status".into()));
+        state.chrome.devtools = Some(false);
+        state.chrome.sidebar_hidden = true;
+        state.chrome.animations = Some(false);
+        state.attach_page(&page(vec![msg(
+            20,
+            Role::User,
+            "VIS37 paired question consumer",
+        )]));
+        state.handle_paste("ordinary unsent draft Ω界");
+        let turn = WorkerTurnId("turn".into());
+        state.begin_linked_turn(turn.clone());
+        state.apply_tool_started(&turn, "operation", "question", &input.to_string());
+        state
+            .questions
+            .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+        state.questions.key(KeyAction::Tab);
+        let frame = Rect::new(0, 0, width, height);
+        let main = prompt_main(&state, frame);
+        let content = layout::content_box(main);
+        let form_top = content.bottom().saturating_sub(
+            crate::question_view::height(&state, width, height).min(content.height),
+        );
+        let regions = session_regions(&state, main, height);
+        assert_eq!(
+            regions.transcript.bottom() + 1,
+            form_top,
+            "{width}x{height}"
+        );
+        assert_eq!(
+            regions.status,
+            Rect::new(content.x, form_top - 1, content.width, 1)
+        );
+        assert_eq!(transcript_area(&state, frame), regions.transcript);
+        let full = state.rendered_transcript(content.width, width);
+        let (indexed, total) =
+            state.visible_transcript(content.width, width, regions.transcript.height);
+        assert_eq!(
+            total,
+            full.len(),
+            "the indexed leading blank is already counted"
+        );
+        let paint_projection = |lines: Vec<crate::styled::Line>| {
+            let mut terminal =
+                Terminal::new(TestBackend::new(content.width, regions.transcript.height)).unwrap();
+            terminal
+                .draw(|frame| {
+                    render_background(frame);
+                    frame.render_widget(
+                        Paragraph::new(crate::styled::Lines::from(lines).into_text()),
+                        frame.area(),
+                    );
+                })
+                .unwrap();
+            terminal.backend().buffer().clone()
+        };
+        assert_eq!(
+            paint_projection(indexed),
+            paint_projection(
+                full[full
+                    .len()
+                    .saturating_sub(regions.transcript.height as usize)..]
+                    .to_vec(),
+            )
+        );
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let row = |y| {
+            (0..width)
+                .map(|x| terminal.backend().buffer()[(x, y)].symbol())
+                .collect::<String>()
+        };
+        assert!(row(regions.status.y).trim().is_empty());
+        if width == 80 {
+            assert_eq!(row(2).trim(), "┃  VIS37 paired question consumer");
+            assert_eq!(row(regions.status.y - 1).trim(), "→ Asked 2 questions");
+        }
+        // A reader already detached when the form arrives keeps an observable
+        // status surface; painting it must not mutate or reply to the request.
+        state.prepend_page(&page(
+            (1..20)
+                .map(|seq| msg(seq, Role::User, "older row"))
+                .collect(),
+        ));
+        state.scroll_transcript(true);
+        assert!(state.scroll() > 0);
+        terminal.draw(|frame| render(frame, &state)).unwrap();
+        let status: String = (0..width)
+            .map(|x| terminal.backend().buffer()[(x, regions.status.y)].symbol())
+            .collect();
+        assert_eq!(status.trim(), JUMP_TO_LATEST);
+        assert_eq!(state.questions.active(), Some(&request));
+        assert_eq!(state.input(), "ordinary unsent draft Ω界");
+    }
+}
+
+#[tokio::test]
 async fn vis39_selected_animated_spinner_attributes_and_prefix_match_u47_fallback() {
     let mut state = golden_state().await;
     state.set_tab_strip(

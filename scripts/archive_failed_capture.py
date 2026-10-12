@@ -155,7 +155,7 @@ def durable(path, data):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003", "subagent-cards-004", "model-shell-001", "model-shell-002", "model-shell-004"])
+    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003", "subagent-cards-004", "model-shell-001", "model-shell-002", "model-shell-004", "model-shell-005"])
     parser.add_argument("--archive", action="store_true", help="perform verified archival after preflight")
     parser.add_argument("--reserve-bytes", type=int, default=0,
                         help="leave this allocated capacity for the next proof and delivery records")

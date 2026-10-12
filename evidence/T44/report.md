@@ -1067,3 +1067,44 @@ byte/path/modeUIDGIDmtime, failure pointer preserved,3MiBreserve frees5632000B;
 beforebounded delivery; caps/accounting unchanged, no qualified deletion/offload.
 Continue source-proven small transcript margin/padding offset and every frozen
 R1–R6/VIS01–45/supplement/final current-source R6/V09; checked major commit/push.
+
+## 2026-10-12 — Question/status sibling and sticky transcript qualified
+
+[Qualified receipt](../tui/vis37-question-status-qualified.md). The first Messages
+spacer hypothesis was refuted: full/indexed positions already count it equally.
+Pinned TUI reserves a one-row status sibling before the bottom form; native used
+it for transcript and skipped status painting. Question-only geometry now reserves
+and paints that row, preserving Approval/composer priority, zero-height clipping,
+shared input/render area, request and unsent draft. No Messages/paging baseline edit.
+
+Current011 all6sides18 stages behavior PASS,108 whole PNGs/108 strict executions:
+64 DIFFERENT/44 EQUAL. Independent54 full pairs259200 styled cells34953984 pixels,
+265 cells13168 pixels differ;54/54 cursors agree,25 whole grids/19 whole PNGs equal.
+51 complete headers/27pending/3answered/6cancelled/3small transcript-status regions
+match every styled cell only; whole VIS37/R6/V09/T44 remain NOTPASS.
+
+All704files55979473B/27same-side exact encoded PNG aliases retained1573812B;
+measure/pack/audit/manualsingleXZUSTAR every-original inverse/recount PASS.
+Archive`c7dee0afadba3e83ec137e4ac8bed1a5f43c03a978c31fdc35f34cdab79fddc6`;
+source713`c5004540f17136e55e22ef42de7a38c71c835a9622fd5e62b711622058e2b886`,
+native`52cba8d040441bfcc6bebfd9e8d702e1d512aa14d1289c4fc9b08f709340338c`.
+97priorproof files byte+metadata unchanged;010 historical flags/data immutable.
+Actual24providers18main6title/12calls/12user6answers/30ROsnapshots/nativeOriginalV2
+RAWIDs/no observed extra effects; independentVmPeak239718400B <384MiB.
+
+Final complete workspace1859/0/11 unchanged ignores/46 targets/TUI529/PTY58;
+strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS,
+Python68+question2/docs/progress/diff PASS. Initial zero-test exact filter and
+new-test Line-container mismatch retained honestly. First full three timing/CPU
+failures retained; fresh isolated unchanged cases then complete warm full green.
+No deadline, threshold, test, baseline or ignore weakened; foreign planning commit
+9aac88423 preserved independently, producer capture identity remains d4cfa.
+
+Actual FAILED model-shell005 lossless archival62files/3dirs fullbyte+metadata
+inverse, visible FAILED pointer,3MiBreservation frees4853760B; qualified old proofs
+untouched. After011 report owned1069072384/headroom4669440 before delivery,
+unchanged caps/accounting/no offload. Remaining265cell deltas classify as178random
+examples+54nativeversion+33realelapsed; six grid-equal custom PNG pairs leave795
+caret pixels, focused cursor-color source seam next. Do not normalize those data.
+Continue every frozen R1–R6/VIS01–45/supplement/final current-sourceR6/V09; checked
+major commit/push, no T44 finish or promotion of historical source receipts.

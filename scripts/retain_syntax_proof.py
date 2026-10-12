@@ -652,7 +652,7 @@ def vis12_wrap_checks(files):
 def check_vis37_build(lock, manifest, commands, profile, attempt, form_campaign=False):
     allowed = (("wide", "001"), ("small", "002"), ("wide", "002"), ("tall", "002"))
     if form_campaign:
-        allowed += tuple((profile, attempt) for attempt in ("003", "004", "005", "006", "007", "008", "009", "010")
+        allowed += tuple((profile, attempt) for attempt in ("003", "004", "005", "006", "007", "008", "009", "010", "011")
                          for profile in ("small", "wide", "tall"))
     require((profile, attempt) in allowed,
             "fixed VIS37 acquisition")
@@ -874,9 +874,9 @@ def vis37_checks(files):
 
 def vis37_form_roots(current_only=False, current_attempt="004"):
     if current_only:
-        require(current_attempt in ("004", "005", "006", "007", "008", "009", "010"), "fixed current form acquisition")
+        require(current_attempt in ("004", "005", "006", "007", "008", "009", "010", "011"), "fixed current form acquisition")
         root = TEMP / ("vis37-form-current-" + current_attempt)
-        driver = "vis37-form-capture-" + {"004": "r4", "005": "r5", "006": "r6", "007": "r7", "008": "r8", "009": "r9", "010": "r10"}[current_attempt] + ".py"
+        driver = "vis37-form-capture-" + {"004": "r4", "005": "r5", "006": "r6", "007": "r7", "008": "r8", "009": "r9", "010": "r10", "011": "r11"}[current_attempt] + ".py"
         return {**{"current-" + profile: root / profile
                     for profile in ("small", "wide", "tall")},
                 "current-logs": root, "current-driver": TEMP / driver}
@@ -914,7 +914,7 @@ def check_vis37_form_keyboard(checks, inputs, focus_painted=False):
 def vis37_form_checks(files, current_only=False, current_attempt="004"):
     reports = []
     if current_only:
-        require(current_attempt in ("004", "005", "006", "007", "008", "009", "010"), "fixed current form acquisition")
+        require(current_attempt in ("004", "005", "006", "007", "008", "009", "010", "011"), "fixed current form acquisition")
         episodes = [("current-" + profile, current_attempt, profile) for profile in ("small", "wide", "tall")]
     else:
         episodes = [("failed-wide", "001", "wide")]
@@ -925,7 +925,7 @@ def vis37_form_checks(files, current_only=False, current_attempt="004"):
         read = lambda relative: json.loads(files[prefix + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
         current, failed = attempt == (current_attempt if current_only else "003"), attempt == "001"
-        focus_painted = attempt in ("005", "006", "007", "008", "009", "010")
+        focus_painted = attempt in ("005", "006", "007", "008", "009", "010", "011")
         check_source_manifest(lock, manifest, 713)
         check_vis37_build(lock, manifest, read("commands.json"), profile, attempt, form_campaign=True)
         complete_frames = 36 if focus_painted else 34
@@ -1154,14 +1154,14 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10"):
-        ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010"}.get(args.campaign, "004"))
+    if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11"):
+        ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011"}.get(args.campaign, "004"))
     elif args.campaign == "vis37":
         ROOTS = {"failed-wide": TEMP / "vis37-current-001/wide",
                  **{"current-" + profile: TEMP / "vis37-current-002" / profile for profile in ("small", "wide", "tall")},
@@ -1243,8 +1243,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10"):
-            return vis37_form_checks(files, args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010"}.get(args.campaign, "004"))
+        if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11"):
+            return vis37_form_checks(files, args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011"}.get(args.campaign, "004"))
         if args.campaign == "vis37":
             return vis37_checks(files)
         if args.campaign == "vis12-wrap":
