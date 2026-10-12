@@ -13,11 +13,11 @@ import archive_failed_capture as archive
 
 class FailedCaptureArchiveTests(unittest.TestCase):
     @contextmanager
-    def failed_campaign(self):
+    def failed_campaign(self, campaign="model-shell-001"):
         with tempfile.TemporaryDirectory(prefix="failed-archive-test-", dir=archive.TEMP) as private:
             repo = Path(private)
             evidence = repo / "evidence/tui"
-            root = evidence / "model-shell-001"
+            root = evidence / campaign
             for side, status in (("oc", "FAILED"), ("upstream", "PASS_BEHAVIOR_ONLY")):
                 target = root / side
                 target.mkdir(parents=True)
@@ -30,21 +30,23 @@ class FailedCaptureArchiveTests(unittest.TestCase):
                 yield root, quota
 
     def test_explicit_model_shell_preflight_requires_actual_failure_not_pixel_difference(self):
-        with self.failed_campaign() as (root, _), patch.object(sys, "argv", ["archive", "model-shell-001"]):
-            before = archive.snapshot(root)
-            with patch.object(sys, "stdout", new_callable=io.StringIO) as output:
-                archive.main()
-            summary = json.loads(output.getvalue())
-            self.assertEqual(summary["state"], "VERIFIED_PREFLIGHT")
-            self.assertEqual(summary["statuses_unchanged"], {"oc": "FAILED", "upstream": "PASS_BEHAVIOR_ONLY"})
-            self.assertEqual(archive.snapshot(root), before)
-            self.assertFalse((root.parent / "model-shell-001.tar.xz").exists())
-            (root / "oc/tool-preview-checks.json").write_text(json.dumps({"status": "PASS_BEHAVIOR_ONLY"}))
-            (root / "capture.lock.json").write_text(json.dumps({"attempts": [{"status": "DIFFERENT"}]}))
-            with patch.object(archive, "archive_bytes") as encode:
-                with self.assertRaisesRegex(ValueError, "actual failed"):
+        for campaign in ("model-shell-001", "model-shell-002"):
+            with self.subTest(campaign=campaign), self.failed_campaign(campaign) as (root, _), \
+                    patch.object(sys, "argv", ["archive", campaign]):
+                before = archive.snapshot(root)
+                with patch.object(sys, "stdout", new_callable=io.StringIO) as output:
                     archive.main()
-                encode.assert_not_called()
+                summary = json.loads(output.getvalue())
+                self.assertEqual(summary["state"], "VERIFIED_PREFLIGHT")
+                self.assertEqual(summary["statuses_unchanged"], {"oc": "FAILED", "upstream": "PASS_BEHAVIOR_ONLY"})
+                self.assertEqual(archive.snapshot(root), before)
+                self.assertFalse((root.parent / (campaign + ".tar.xz")).exists())
+                (root / "oc/tool-preview-checks.json").write_text(json.dumps({"status": "PASS_BEHAVIOR_ONLY"}))
+                (root / "capture.lock.json").write_text(json.dumps({"attempts": [{"status": "DIFFERENT"}]}))
+                with patch.object(archive, "archive_bytes") as encode:
+                    with self.assertRaisesRegex(ValueError, "actual failed"):
+                        archive.main()
+                    encode.assert_not_called()
 
     def test_reserved_capacity_boundary_refuses_before_any_transaction(self):
         with self.failed_campaign() as (root, quota):

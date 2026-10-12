@@ -308,6 +308,12 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
     let lines = tool_block(&card, theme, 80);
     assert_eq!(lines.len(), 1);
     assert_eq!(lines[0].plain_text(), "   → Asked 2 questions");
+    assert_eq!(lines[0].spans()[1].content(), "→");
+    assert_eq!(lines[0].spans()[2].content(), " ");
+    assert_eq!(
+        lines[0].spans()[2].style(),
+        ratatui::style::Style::default()
+    );
     assert_eq!(
         lines[0].spans().last().unwrap().style().fg,
         Some(theme.text_muted())
@@ -380,18 +386,144 @@ fn vis37_pending_question_uses_validated_input_not_stream_fragments_or_answer_re
         tool_block(&card_from_row(&operation), theme, 80)[0].plain_text(),
         "   → Asked 1 question"
     );
+}
+
+#[test]
+fn vis37_cancelled_question_uses_muted_struck_inline_and_preserves_raw_other_errors() {
+    use crate::{
+        history::HistoryRow,
+        messages::{MarkdownCache, transcript_with_expansion, visible_transcript_expanded},
+    };
+    use ratatui::style::Modifier;
+    use std::cell::RefCell;
+
+    let raw = "error: question dismissed";
+    let mut operation = operation("question", raw, None);
     operation.state = "cancelled".into();
-    operation.output = Some("The user dismissed this question".into());
-    let cancelled = tool_block(&card_from_row(&operation), theme, 80);
-    assert!(
-        cancelled
-            .iter()
-            .any(|line| line.plain_text().contains("dismissed"))
+    operation.input = Some(
+        serde_json::json!({"questions":[
+            {"question":"First?", "header":"First", "options":[]},
+            {"question":"Second?", "header":"Second", "options":[], "multiple":true}
+        ]})
+        .to_string(),
+    );
+    let before = operation.clone();
+    let theme = Theme::dark();
+    let card = card_from_row(&operation);
+    let lines = tool_block(&card, theme, 80);
+    assert_eq!(
+        lines.len(),
+        1,
+        "no expanded raw error row for a cancelled question"
+    );
+    assert_eq!(lines[0].plain_text(), "   → Asked 2 questions");
+    assert_eq!(lines[0].spans()[1].content(), "→");
+    assert_eq!(lines[0].spans()[2].content(), " ");
+    assert_eq!(
+        lines[0].spans()[2].style(),
+        ratatui::style::Style::default()
+    );
+    for span in [&lines[0].spans()[1], lines[0].spans().last().unwrap()] {
+        assert_eq!(span.style().fg, Some(theme.text_muted()));
+        assert!(span.style().add_modifier.contains(Modifier::CROSSED_OUT));
+    }
+    assert_eq!(
+        card.output_preview, raw,
+        "presentation does not erase the raw outcome"
     );
     assert!(
-        cancelled
+        card.question.is_none(),
+        "cancellation is not an answered result"
+    );
+    assert!(!generic_expandable(&card));
+
+    let rows = [HistoryRow {
+        message_id: None,
+        seq: 1,
+        role: "tool".into(),
+        text: String::new(),
+        agent: None,
+        agent_color_index: None,
+        chips: Vec::new(),
+        reasoning: None,
+        child_notice: None,
+        shell_notice: None,
+        meta: None,
+        tool: Some(card),
+    }];
+    let cache = RefCell::new(MarkdownCache::default());
+    for (width, expanded) in [(80, false), (80, true), (15, false), (15, true)] {
+        let full = transcript_with_expansion(
+            &rows,
+            theme,
+            width,
+            width,
+            |_| theme.text(),
+            Some(&cache),
+            &|_| expanded,
+        );
+        assert!(full.iter().all(|line| {
+            !line.plain_text().contains(raw) && !line.plain_text().contains("# Questions")
+        }));
+        let (visible, _) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (width, width),
+            (200, 0, None),
+            |_| theme.text(),
+            &cache,
+            &|_| expanded,
+        );
+        assert_eq!(visible[1..], styled::wrap_lines(&full, width as usize));
+    }
+    assert_eq!(
+        operation, before,
+        "state, operation binding and RAW are unchanged"
+    );
+
+    // Identical words in an actual failure/unknown/denial are not classification
+    // evidence. Those existing outcomes retain their real error presentation.
+    for state in ["failed", "unknown", "denied"] {
+        operation.state = state.into();
+        let card = card_from_row(&operation);
+        let lines = tool_block(&card, theme, 80);
+        assert!(lines.iter().any(|line| line.plain_text().contains(raw)));
+        assert_eq!(lines[0].spans()[1].style().fg, Some(theme.error()));
+        if state == "unknown" {
+            assert!(
+                lines
+                    .iter()
+                    .any(|line| line.plain_text().contains("[outcome unknown]"))
+            );
+        }
+        assert!(card.question.is_none());
+    }
+    operation.state = "cancelled".into();
+    operation.input = Some("{\"questions\":[".into());
+    assert!(
+        tool_block(&card_from_row(&operation), theme, 80)
             .iter()
-            .all(|line| !line.plain_text().contains("# Questions"))
+            .any(|line| line.plain_text().contains(raw)),
+        "incomplete input does not invent a cancelled form"
+    );
+    operation.name = "mcp_fixture".into();
+    operation.input = before.input;
+    let card = card_from_row(&operation);
+    let ToolRender::Inline(inline @ InlineRender::Generic { .. }) = &card.render else {
+        panic!("another tool keeps its existing Generic presentation");
+    };
+    // Generic error details retain their existing explicit expansion contract.
+    let other = generic_block_expanded(inline, &card, theme, 80, true);
+    assert!(
+        other.iter().any(|line| line.plain_text().contains(raw)),
+        "another tool's cancellation is not a question dismissal"
+    );
+    assert_eq!(other[0].spans()[1].style().fg, Some(theme.error()));
+    assert!(
+        !other[0].spans()[1]
+            .style()
+            .add_modifier
+            .contains(Modifier::CROSSED_OUT)
     );
 }
 

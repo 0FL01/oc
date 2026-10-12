@@ -1419,9 +1419,14 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     }
     let pad = Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING));
     let running = is_running(&card.state);
-    let failed = is_error_state(&card.state);
     let waiting = card.state == "permission_pending";
     let question = matches!(inline, InlineRender::Question { .. });
+    let cancelled_question =
+        card.state == "cancelled" && matches!(inline, InlineRender::Question { count: Some(_) });
+    // Pinned TUI treats a cancelled question as a denied inline row, not a
+    // web "Questions dismissed" notice. Use the validated input/state, never
+    // words in output; turn cancellation shares this outcome with form dismissal.
+    let failed = is_error_state(&card.state) && !cancelled_question;
     let style = if waiting {
         ratatui::style::Style::default().fg(theme.warning())
     } else if failed {
@@ -1455,9 +1460,9 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
     } else {
         String::new()
     };
-    // Only a denied call is struck through (`message-parts.tsx:176-253`);
-    // failed/cancelled keep the plain error color.
-    let style = if card.state == "denied" {
+    // Preserve other failures/cancellations; only the typed question cancellation
+    // joins the denied strike-through (`index.tsx:2712-2737`, message-parts:176-253).
+    let style = if card.state == "denied" || cancelled_question {
         style.add_modifier(ratatui::style::Modifier::CROSSED_OUT)
     } else {
         style
@@ -1486,11 +1491,16 @@ fn inline_rows(inline: &InlineRender, card: &ToolCard, theme: &Theme) -> Vec<Lin
         label.push_str(&inline_label(inline));
         label
     };
-    let spans = vec![
-        pad.clone(),
-        Span::styled(format!("{icon:<TOOL_ICON_WIDTH$}"), style),
-        Span::styled(label, style),
-    ];
+    let mut spans = vec![pad.clone()];
+    if question {
+        // The pinned Question's one-cell arrow lives in a two-cell icon box.
+        // Its remaining layout blank does not inherit the glyph's FG/strike.
+        spans.push(Span::styled(icon, style));
+        spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH - 1)));
+    } else {
+        spans.push(Span::styled(format!("{icon:<TOOL_ICON_WIDTH$}"), style));
+    }
+    spans.push(Span::styled(label, style));
     let mut out = vec![Line::new(spans)];
     // Read's Loaded rows require upstream metadata.loaded (:3097–3121).
     // Our recorded operation has no such metadata; a path is not evidence of it.

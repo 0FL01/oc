@@ -989,3 +989,42 @@ all-DIFFERENT assumption. Local strict guard now admits only actual EQUAL0PASS o
 DIFFERENT1FAIL with independent every-artifact recount; old readers/data untouched,
 both attempts retained. Continue source-proven dismissed-question status mismatch
 and every remaining frozen outcome/supplement; checked commit/push per major slice.
+
+## VIS37 cancelled Question inline/geometry qualified (2026-10-12 — current008, T44 ACTIVE_NOT_PASS)
+
+[Qualified receipt](../tui/vis37-cancelled-question-qualified.md). Correction of
+checkpoint0129/focus-paint Next: weak right-aligned Questions dismissed belongs
+to web, not pinned TUI. Actual TUI InlineTool keeps muted struck `→ Asked N
+questions`, no raw error row, with unstyled icon-container gap. Native now uses
+only typed cancelled state and validated complete Question input; ordinary
+failed/unknown/denied/invalid-input/Generic diagnostics remain unchanged. Saved
+RAW/output/state/IDs/binding and no-reask consumer persist. Cancellation origin
+is not uniquely user dismissal; turn cancellation has the same typed outcome.
+
+RED→GREEN named renderer/layout roles and three actual question PTY/headless
+scenarios; final current workspace1857/0/11 unchanged ignore,46 complete targets,
+strict Clippy/fmt/locked+ordinary debug build/help/locked release build/help and9
+release/resource cases PASS. Python68+question2 PASS; all commands/measurements
+and failed attempts retained. Clippy's test-only needless borrow was corrected,
+then complete workspace rerun and fresh008 acquired, not source checks weakened.
+
+All006/007/008 proofs and independent byte/metadata audits preserved;006 icon-gap
+residual and007 six small whole EQUAL pairs are historical, not current claims.
+Current008 all6 sides18 stages PASS_BEHAVIOR_ONLY,108 whole PNGs/108 strict
+DIFFERENT comparisons; independent54 full cursor pairs agree,259200 styled
+cells34953984 pixels checked,2823 cells215832 pixels differ. All27 pending-owner,
+3 answered-owner/6 cancelled-row full styled geometry equal, not whole VIS37/R6/
+V09/T44 PASS. All701 files55972004 bytes/24 direct same-side exact PNG aliases
+retained1972564B, independent manual XZ/USTAR every-original inverse PASS.
+Source713 seal`dfa9bf029e868459360db3eb2bd513a1501cddd59464125294e6856a5322a0e9`,
+actual native ELF`9a190f804546746861286aab6e97a0bfe1e1096716896d4b96b64fbe191e4d9f`.
+Actual24 valid18main6title/12calls/12user6answers/30RO snapshots with bound native/
+OriginalV2 RAW IDs, no observed extra effects/continuations; DCP tables unread/
+finalgen1 forced unqualified. Independent VmPeak240074752B under384MiB.
+
+Existing lossless actual-FAILED model-shell002 archival independently retains72
+files/3dir byte+metadata, failure pointer, reservation3145728, no qualified-proof
+deletion/offload/cap raise. After008 report owned1072730112/headroom1011712 before
+bounded delivery records; final allocation recount authoritative. Continue11
+source-proven tab-layout blank FG cells, other full-frame owners and all frozen
+R1–R6/VIS01–45/supplements/final current-sourceR6/V09. No finish or PASS promotion.

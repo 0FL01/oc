@@ -166,6 +166,20 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
     let requests = fixture.wait_requests(1);
     pty.send(b"\x1b");
     wait_idle(&pty);
+    pty.wait_visible("interrupted", DEADLINE);
+    let screen = render_screen(&pty.snapshot());
+    assert!(
+        screen
+            .rows()
+            .iter()
+            .any(|row| row.contains("Asked 2 questions"))
+    );
+    assert!(
+        screen
+            .rows()
+            .iter()
+            .all(|row| !row.contains("error: question dismissed"))
+    );
     assert_eq!(fixture.wait_requests(1), requests);
     pty.send(b"\x03");
     assert!(pty.wait_exit(DEADLINE).0.success() && pty.restored());
@@ -183,12 +197,19 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
     let mut restarted = spawn_auto(fixture.clone());
     restarted.wait_visible("Fixture session title", DEADLINE);
     wait_idle(&restarted);
+    restarted.wait_visible("interrupted", DEADLINE);
     assert_eq!(fixture.wait_requests(1), requests);
+    let screen = render_screen(&restarted.snapshot());
     assert!(
-        !render_screen(&restarted.snapshot())
+        screen
             .rows()
             .iter()
-            .any(|row| row.contains("# Questions"))
+            .any(|row| row.contains("Asked 2 questions"))
+    );
+    assert!(
+        screen.rows().iter().all(|row| {
+            !row.contains("# Questions") && !row.contains("error: question dismissed")
+        })
     );
     restarted.send(b"\x03");
     assert!(restarted.wait_exit(DEADLINE).0.success() && restarted.restored());

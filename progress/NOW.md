@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T13:51:48+00:00
+State updated: 2026-10-12T16:39:08+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,45 +12,44 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS37 current005 observed focus frame qualified; continue full T44
+# VIS37 typed cancelled Question qualified; continue full T44
 
 ## Result
-- Preserved004 VT proves Down+Space hidden-cursor discrepancy is two paints versus
-  one coalesced diff, not a visible custom-editor caret bug. No Rust/FG/coordinate
-  workaround. Probe observes/captures actual focus before separate toggle; old
-  burst discrepancy remains preserved and is not claimed fixed or normalized.
-- Fresh005 18 stages each side/profile PASS_BEHAVIOR_ONLY; receipt
-  evidence/tui/vis37-focus-paint-qualified.md, full proof and independent audit.
+- Actual pinned TUI cancellation is muted struck Asked N questions, no raw error
+  row and unstyled icon-box blank. Corrects0129's mistaken web-only Next; historical
+  records unchanged. Typed cancelled+valid input only; RAW/state/IDs/binding intact.
+- Receipt evidence/tui/vis37-cancelled-question-qualified.md; complete006/007/008
+  proofs/audits preserve every attempt, current008 byte exact and independently recounted.
 
 ## Checks
-- Actual108 comparisons:100 DIFFERENT/8 EQUAL (four wide full-grid+PNG pairs).
-  Independent54/54 cursors equal;259200 cells34953984 pixels checked,4461 cells/
-  317181 pixels differ.27 pending-owner/3 answered-owner styled regions equal only.
-- All701 files56049246 bytes/27 direct same-side exact PNG aliases retained1953940B;
-  measure/pack/audit/manual XZ/USTAR every-byte inverse/full-artifact recount PASS.
-- Actual24 providers18main6title/12calls/12user6answers/30RO snapshots; native typed
-  and OriginalV2 RAW IDs persist with no observed extra effects/continuations.
-- 713 source seal7178f1bb8abe558cd093a1e1a30a273829c6786f19f2b657cc2a8872a3ea7f6b;
-  unchanged native ELF3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271.
-- Retainer15/rootPython68/JS/diff/docs/progress PASS. Native1856/0/11/release9 gates
-  unchanged, not newly run. Independent VmPeak240185344B under384MiB hard AS.
-- After-report allocation1072025600/headroom1716224 before bounded delivery records;
-  final actual recount required, samecaps/no offload/deletion/reencoding/masks.
+- Final current workspace1857 PASS/0 FAIL/11 unchanged ignore/46 complete targets;
+  strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS.
+  Python68+question2/target10/actualPTY3 PASS, no new ignore/limits/baseline weakened.
+- Fresh008 all6sides18stages behavior PASS;108wholePNGs/all108strictDIFFERENT.
+  Independent54/54cursors,259200cells34953984pixels checked,2823cells215832pixels
+  differ.27pending/3answered/6cancelled rows every styled cell+geometry equal only.
+- All701files55972004B/24exactsame-sidePNGaliases retained1972564B; measure/pack/audit
+  independent manualXZUSTAR all-original inverse PASS;83priorproofs unchanged.
+- Current713 dfa9bf029e868459360db3eb2bd513a1501cddd59464125294e6856a5322a0e9;
+  native9a190f804546746861286aab6e97a0bfe1e1096716896d4b96b64fbe191e4d9f.
+- Actual24providers18main6title/12calls/12user6answers/30RO snapshots, native/OriginalV2
+  RAWIDs/no observed extra effects. IndependentVmPeak240074752B <384MiB.
+- Existing ownFAILEDmodel-shell002 archival72files/3dirs exactbytesmetadata with
+  reserved3145728 frees6238208B; caps unchanged. After008 beforefinaldelivery
+  owned1072730112/headroom1011712; finalactualallocation recount authoritative.
 
 ## Risks
-- Whole100 comparisons still DIFFERENT, including outerchrome/underlay/footer and
-  cancelled-question transcript. Owner/cursor equality is not whole pixel PASS.
-- DCP tables unread/finalgen1 forced teardown; full frozenR1-R6/VIS01-45/all
-  supplements/final currentR6/V09 remain NOT_PASS.004 now historical probe source.
-- First independent guard assumed allDIFFERENT and refused realEQUAL; new local
-  strict reader verifies EQUAL0PASS orDIFFERENT1FAIL, old helper/data untouched.
+- WholeVIS37/R6/V09/T44 notPASS; DCPtables unread/finalgen1forced notcleanfinal.
+  Cancelled Question state cannot uniquely prove deliberate user vs turn cancellation.
+- 006/007 now historical afterlayout/testborrow corrections, oldflags/data unchanged;
+  007sixsmallwholeEQUAL notpromotedto008. FailedGenericassertion/reader/Clippy attempts
+  retained; fixed actual contract/observer/borrow, no disabledcheck or warning suppression.
 
 ## Next
-- Review/commit/push this major qualified probe/proof slice, then fix existing
-  dismissed-question transcript owner: weak right-aligned Questions dismissed
-  instead of raw error row, preserving cancelled RAW/binding/no continuation.
-- Continue every remaining frozen outcome/supplement and commit/push checked major
-  slices. Only full contract plus final current-sourceR6/V09 permits T44 finish.
+- Review exact stage/commit/push this major checked slice; then11 source-proven
+  session-tab layout blankFG cells (white vsbase), keeping pulseBG separate.
+- Continue every remaining frozenR1-R6/VIS01-VIS45/supplements and current-source
+  R6/V09 aftermandatorychanges. Checked commit/push permajor slice; noT44finish yet.
 
 
 Ready (до 5): T58
