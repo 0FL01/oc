@@ -1,0 +1,1426 @@
+{
+  "status": "INDEPENDENT_BEFORE_RETENTION_RECOVERY_T44_ACTIVE_NOT_PASS",
+  "diagnostic": {
+    "files": {
+      "model-shell-001/capture.lock.json": {
+        "bytes": 22767,
+        "sha256": "9700776a12434d06e3109d4cf0dfe6c689e9b53c1431ee21efeee799b7c4cb9a",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872568250724
+        ]
+      },
+      "model-shell-001/commands.json": {
+        "bytes": 113693,
+        "sha256": "e1dae1115b9c48206379a7bcebcfa894e136d62fc48dfa3ce3bb7e6a0cf485e3",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872568250724
+        ]
+      },
+      "model-shell-001/oc/bridge-spec.json": {
+        "bytes": 1236,
+        "sha256": "d162e280d9c11cfab295323bfc2e41f616acf66470a1735430da91bb367d92c6",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545850008087783
+        ]
+      },
+      "model-shell-001/oc/bridge.stderr.txt": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872108247402
+        ]
+      },
+      "model-shell-001/oc/inputs.json": {
+        "bytes": 146,
+        "sha256": "1c75687e93c06006d004322ff3eed2fa97be38b1d79f6c43ac48db98ba838e20",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872108247402
+        ]
+      },
+      "model-shell-001/oc/protocol.json": {
+        "bytes": 34165,
+        "sha256": "92d60167de4b511219ee4d5ad60d8d33bf045e00c3cf6f839859097e42adb89f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872108247402
+        ]
+      },
+      "model-shell-001/oc/raw.vt": {
+        "bytes": 15982,
+        "sha256": "ee00509df9484aaa07e8d7c728effecdb4cfdea6f2f17800e7aac03745129b5d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545872104247373
+        ]
+      },
+      "model-shell-001/oc/tool-preview-checks.json": {
+        "bytes": 738,
+        "sha256": "59cb821e021a4e372c90f25e5a399cfccaa36a2e8dd607332bd1542ea5712c43",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871788245091
+        ]
+      },
+      "model-shell-001/oc/tool-preview-failure.cells.json": {
+        "bytes": 336821,
+        "sha256": "a10d99bdb2176a8aa7846150ab26da9ee73ddda9944458cf8f66d85e8951685f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871780245033
+        ]
+      },
+      "model-shell-001/oc/tool-preview-failure.png": {
+        "bytes": 33428,
+        "sha256": "0097b206a2dd98cb7582750c4ba9958e0a37d3765cf5c5abf48aec36378be465",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871512243097
+        ]
+      },
+      "model-shell-001/oc/tool-preview-failure.render.json": {
+        "bytes": 170005,
+        "sha256": "f482fbfbec7ebd7876d3534766281575fbcd3af067d97ca3e864aa320f5b7b18",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871784245062
+        ]
+      },
+      "model-shell-001/oc/tool-preview-failure.txt": {
+        "bytes": 5117,
+        "sha256": "6aadf2f4f033824fef4de31d85f6e80c7b26ba42a3745ad77ec9e3cb1341434b",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871780245033
+        ]
+      },
+      "model-shell-001/oc/tool-preview-failure.vt": {
+        "bytes": 15982,
+        "sha256": "ee00509df9484aaa07e8d7c728effecdb4cfdea6f2f17800e7aac03745129b5d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545871788245091
+        ]
+      },
+      "model-shell-001/oc/tool-preview-model-shell-home.cells.json": {
+        "bytes": 337267,
+        "sha256": "67e3843f99a6691dc6abe8d1ed937ab30ab3b9d7a0a098fe519aeb4547833635",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545855780129474
+        ]
+      },
+      "model-shell-001/oc/tool-preview-model-shell-home.png": {
+        "bytes": 17725,
+        "sha256": "ddda412233779e187b37bb2de547dfcb4a9973afe30ad08e21fe283d1f5b6ae8",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545855512127538
+        ]
+      },
+      "model-shell-001/oc/tool-preview-model-shell-home.render.json": {
+        "bytes": 134716,
+        "sha256": "77740404cb54805d3fce5ae0efb6d8cc8d674f3f9d2b0ee498905666ac7ca29d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545855792129561
+        ]
+      },
+      "model-shell-001/oc/tool-preview-model-shell-home.txt": {
+        "bytes": 5173,
+        "sha256": "b61d4d530b11c96c39ce0b8309027d25b6ae33a02381644665bf2a1c22c3d799",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545855784129503
+        ]
+      },
+      "model-shell-001/oc/tool-preview-model-shell-home.vt": {
+        "bytes": 8028,
+        "sha256": "e105e2ca7bec6e17ee2232feafa446c6b827364c61712c6e669e562f8dccd3e5",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545855800129618
+        ]
+      },
+      "model-shell-001/source-manifest.json": {
+        "bytes": 60219,
+        "sha256": "5136d77d1f5bffbf7f97e9dc61281757ef7fa4ee78fb46aa61e57021391ad359",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545810823804730
+        ]
+      },
+      "model-shell-001/tool-preview-model-shell-home.grid-diff.json": {
+        "bytes": 2834,
+        "sha256": "a3490ac17fd89def51ce12fb0954910a5e10d6c32f10da3d5723f9b85b09fd32",
+        "metadata": [
+          384,
+          1003,
+          1003,
+          1791545872224248239
+        ]
+      },
+      "model-shell-001/tool-preview-model-shell-home.png-diff.json": {
+        "bytes": 523,
+        "sha256": "fe0bead8d3ef817c87958c0e2edb3fc7471e7f34ff1564d8b313f594929d4bfc",
+        "metadata": [
+          384,
+          1003,
+          1003,
+          1791545872492250175
+        ]
+      },
+      "model-shell-001/tooling.package-lock.json": {
+        "bytes": 2436,
+        "sha256": "3a51953684903f9d5b7ca8a02e677b2e2a763a5fe99dc4b7f0e59ed95d91e399",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545811231807677
+        ]
+      },
+      "model-shell-001/upstream/bridge-spec.json": {
+        "bytes": 1290,
+        "sha256": "bb56b5603608c4e90dee86c5db23067d04b4df26a92c74a7ca97b290ad4b7d23",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545812523817012
+        ]
+      },
+      "model-shell-001/upstream/bridge.stderr.txt": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545849428083594
+        ]
+      },
+      "model-shell-001/upstream/inputs.json": {
+        "bytes": 2639,
+        "sha256": "4ed8948881306deb95016fc7dddc95344ba7cda30ebcb3bf67be5f26aa21477f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545849428083594
+        ]
+      },
+      "model-shell-001/upstream/protocol.json": {
+        "bytes": 43715,
+        "sha256": "8376f602271040db43d59fa1e319c7a2a6d0c4cca31fa7664bd0d9734e6d8231",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545849428083594
+        ]
+      },
+      "model-shell-001/upstream/raw.vt": {
+        "bytes": 63278,
+        "sha256": "bee60cc7edf5bd28c9344501b10bce21e91eefe6f5fffc9cc4d10b02df3ae75d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545849424083565
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-checks.json": {
+        "bytes": 9221,
+        "sha256": "48b9c5942261fb45863243f7cbcbbb5741b25e62a853fc1f1e7bce157e59896a",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545848832079289
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background-output.cells.json": {
+        "bytes": 336754,
+        "sha256": "d685c1a711079cbfea98ea145c894673b4e58c779542a4622929c24ac2dc8e96",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545839060008704
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background-output.png": {
+        "bytes": 50047,
+        "sha256": "90f67418d4e1cc134c45fe2efdb0565172500ee9f376a9450ec70188c2719c36",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545838780006681
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background-output.render.json": {
+        "bytes": 208937,
+        "sha256": "b9571fbfe2b2c95cfe7757d95605dd22b5f13d39660b94f4f4c574ce52facbc2",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545839068008762
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background-output.txt": {
+        "bytes": 4870,
+        "sha256": "1a4cee221cf960bdcdad5853bcabea611247418738b268ee02a93706a1897c36",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545839060008704
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background-output.vt": {
+        "bytes": 47437,
+        "sha256": "48662624d577924fdd42ed6564f59f17b4dd95a751bec0e37581a1f126cb0d83",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545839076008820
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background.cells.json": {
+        "bytes": 336845,
+        "sha256": "44fd0c633e5bf01b10c6e514d55ffb51931cdb8589b03de5138f6f48a7f4c04d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545830443946466
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background.png": {
+        "bytes": 33414,
+        "sha256": "de51bdce1da4644a77665ea31469cf4ca71e492d4bd824f075254d72430ea015",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545830115944097
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background.render.json": {
+        "bytes": 173076,
+        "sha256": "2d7d6375d647250c44aa7008e1cc154a73f9cae6f7262bcba0d91005a6d043e3",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545830451946524
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background.txt": {
+        "bytes": 5120,
+        "sha256": "b24cfac36aaf8a2e0ffa6099c5412ecf9a4cd20a7d8a88704eee84fec91c1e82",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545830443946466
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-background.vt": {
+        "bytes": 31460,
+        "sha256": "da117e8d5d34f54df7cc2a0990aa806ef973d586f28c2d0f20fad995de99d867",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545830459946582
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-final-output.cells.json": {
+        "bytes": 336750,
+        "sha256": "0a2e072b7bf51a8b68585dc9bfb39b183d4bb6f7448a621a9c924565964702be",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545843040037453
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-final-output.png": {
+        "bytes": 50805,
+        "sha256": "4b8632924f8953ff7d6cf2167b6f0d249c82c5acdcb102076cd55c50b03496b7",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545842772035517
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-final-output.render.json": {
+        "bytes": 208920,
+        "sha256": "37dac164d17f1de5ad68396a7ab1574c1554d3e1f201ee68cd05d7e482d75ab4",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545843052037539
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-final-output.txt": {
+        "bytes": 4871,
+        "sha256": "a97e7cbecc15a7f36e64538ce53c34fdbfabd903de319a8e0c82920a8b467cfc",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545843040037453
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-final-output.vt": {
+        "bytes": 48395,
+        "sha256": "b55d38e56dbe818a4d05c5a19e39cf8c70c40ee7c066fab55a678b496751f89a",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545843056037569
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-foreground.cells.json": {
+        "bytes": 336842,
+        "sha256": "e34c0c95cfd2570292840118f7dccaa9dfb7ed2ef2b6f3a7b78e40e58e2bc06a",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545824167901130
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-foreground.png": {
+        "bytes": 36611,
+        "sha256": "6054d5d9dfc62e83ccc7835e31839fa37a58db8691eb620def2dd4419a20578f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545823927899396
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-foreground.render.json": {
+        "bytes": 173094,
+        "sha256": "45db487576c56578884f556531088a363519958667641d1ba06251dc3b4cd9e4",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545824179901216
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-foreground.txt": {
+        "bytes": 5117,
+        "sha256": "361e9363635bfbb0f4b2eb0254ceb2915c3048375ed1f3efac66a3e147d56ee2",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545824167901130
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-foreground.vt": {
+        "bytes": 27521,
+        "sha256": "153d6ef02f55bba74f2a176c6c47faab695ae90b0af69f402e0c663309e411af",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545824187901274
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-home.cells.json": {
+        "bytes": 337273,
+        "sha256": "376bf3aa2f964059c5927e0dc8b52cb94698287cdfec32af968e819c1d3a29ec",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545819767869344
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-home.png": {
+        "bytes": 17160,
+        "sha256": "1d1d7fd27ddcacfc558b9c5e960e21e2972ef6cabed2a1621395dadcb613de3d",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545819507867466
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-home.render.json": {
+        "bytes": 134634,
+        "sha256": "f63b7b70e4e60f4e61c21ea14576f58f1cafed9f161f28c0456a8ede20b8d2ef",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545819775869402
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-home.txt": {
+        "bytes": 5173,
+        "sha256": "eb848d1684ec81eb0ff327f1646014079696a122dc4dfd19e91c76b531b76cd0",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545819767869344
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-home.vt": {
+        "bytes": 17235,
+        "sha256": "47bb20525c9404385e800b902a3595b70bd808bf0098574c3351b05295e4c727",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545819783869460
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-second.cells.json": {
+        "bytes": 336933,
+        "sha256": "0d3522291c6e06fbd509b190ad69b8aff7e049cc995e43f408c91b00082a7103",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545846304061029
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-second.png": {
+        "bytes": 38730,
+        "sha256": "c7ca1d7b0b43dbf9a9a1417ecda1059fc7f444275acb851322f9d387c050294f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545846052059209
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-second.render.json": {
+        "bytes": 193282,
+        "sha256": "03605caee973b9bebbde23a8b552a4a5f7d1fcaf83f3db1d7d4035bbcdf99e4f",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545846312061087
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-second.txt": {
+        "bytes": 4903,
+        "sha256": "8f064a3a501810ffcc55cd8e4dc39a29b2283863b7c04a294eeb9137b3727842",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545846304061029
+        ]
+      },
+      "model-shell-001/upstream/tool-preview-model-shell-second.vt": {
+        "bytes": 58857,
+        "sha256": "ddf51fed7eb2253ccba980e3dc78002b0d4510bde5f7634fa1ead2a0c56b2cd3",
+        "metadata": [
+          436,
+          1003,
+          1003,
+          1791545846316061116
+        ]
+      }
+    },
+    "directories": {
+      "model-shell-001": [
+        509,
+        1003,
+        1003,
+        1791545872496250204
+      ],
+      "model-shell-001/oc": [
+        509,
+        1003,
+        1003,
+        1791545872108247402
+      ],
+      "model-shell-001/upstream": [
+        509,
+        1003,
+        1003,
+        1791545849428083594
+      ]
+    }
+  },
+  "current_inventory_sha256": "f3523fea1b20861095e2c3346747e0361b466e80cee29057c2a3e29c236626bc",
+  "current_recount_sha256": "bcf3aa2519c252cf01ae07d108662eb955e99ed73961fddaa18889e0259b8e30",
+  "source_and_elf": {
+    "source_manifest_sha256": "540195999c68df1710ced7274273eca77f7c178ebb4cd563500a966a9c1a6928",
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484335256,
+        "sha256": "3c2025c095e3618c4a03112646f8e0a0ac61a7c77372db38480a177af7436271",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "preserved_prior_proofs": {
+    "/home/opencode/ai/oc/evidence/tui/blink-baseline-proof.tar.xz": {
+      "sha256": "15d882f9d4c86c5fb0769727feb1be4b39414c6ec2fe79e504ac01ba8b52f9d8",
+      "metadata": [
+        1049924,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212679,
+        1791707417977341430
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-fallback-proof.tar.xz": {
+      "sha256": "953d501960e59a3e0e60d667f1955e79908647f1cbfe7ddd495e5130c2a18ec2",
+      "metadata": [
+        957440,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213683,
+        1791707425337393761
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-steady-proof.tar.xz": {
+      "sha256": "b8539d008eae3e0de44b9b5c9ba3f92a1c20d905ec2baaab8cfdcd03136960c0",
+      "metadata": [
+        1685100,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213687,
+        1791707448801560593
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-supported-proof.tar.xz": {
+      "sha256": "b5df2e7d85866011cdd8fe5de3559d2af222dbcc49298732912932e8ebe2316e",
+      "metadata": [
+        1734160,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213685,
+        1791707435977469412
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/caret-proof.tar.xz": {
+      "sha256": "a5feb469d1411d6a2631b1dcad51aaf79a1396acb52bd59d3e76804a1a842d42",
+      "metadata": [
+        812072,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212671,
+        1791703389264639542
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-controls-diagnostics-proof.tar.xz": {
+      "sha256": "9b62ee3f65a9ae9cc4da894dd786d8eb01fb292b38a9a8ecc1caa6a511a408d6",
+      "metadata": [
+        807236,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213936,
+        1791757789568595460
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-controls-r3-proof.tar.xz": {
+      "sha256": "e95fb27713aee6aa99bb36ce43ee4fe420adac1835718f6f136cfcb0a12fe308",
+      "metadata": [
+        627728,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213943,
+        1791757796892648277
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-layout-proof.tar.xz": {
+      "sha256": "08509f360f7334308939b3dd8a9d65e02c7a2aa3b250397129e5ba9becbe629b",
+      "metadata": [
+        464452,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212767,
+        1791752062323608125
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/hover-proof.tar.xz": {
+      "sha256": "4a9ed18dd2089a92a4b3f5f6cea92bc7613e46ba5b8dffce9929a307d666edd8",
+      "metadata": [
+        3867612,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213518,
+        1791694777534934364
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/mcp-label-proof.tar.xz": {
+      "sha256": "c40e322701902a92001ebed11403cca5b7eac0f409c30da30a995e5da3dc53a7",
+      "metadata": [
+        3920112,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212652,
+        1791717898333685011
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/middle-tabs-proof.tar.xz": {
+      "sha256": "ceb8acf4f26bcf5b69399b3925aaf0d52f8a00c76cef4a24adb06ea5eff52ca1",
+      "metadata": [
+        2600336,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213921,
+        1791741277907615108
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/rail-width-proof.tar.xz": {
+      "sha256": "6456a8dddaab68f5744ec2dde2eabd5809762835065ae9927fa40786814fd5c5",
+      "metadata": [
+        490740,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213791,
+        1791748007073382777
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/raster-proof.tar.xz": {
+      "sha256": "2c631f6fd76f05b87715976bc553a93f3e3d714246b7a24755f3624a2af72bbf",
+      "metadata": [
+        3853300,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213675,
+        1791701118752248104
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/root-diagnostics-proof.tar.xz": {
+      "sha256": "335cc6440d3b5793eaaa92b0616cd4ad57675baf9f0e2374bae4b14ed016b0cf",
+      "metadata": [
+        1890280,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213424,
+        1791686013322276870
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/root-handoff-regressions.tar.xz": {
+      "sha256": "8e9a5223943247e03496b1a3dfcf5f0b56f586e2cf74aa0cca8813d6d0a808b6",
+      "metadata": [
+        2477500,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212891,
+        1791599966002420249
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/root-proof.tar.xz": {
+      "sha256": "686ea4bad286fca51ca6161548b98c881a4361ca0f6c68781c3fee8f6c225e76",
+      "metadata": [
+        3812448,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213426,
+        1791686371052811916
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-diagnostics-proof.tar.xz": {
+      "sha256": "b0c357f1fb06b848a2ef1654a012530d4b52a5c8817248eeb7bc6978e711cfea",
+      "metadata": [
+        1728580,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213794,
+        1791730296669625938
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-proof.tar.xz": {
+      "sha256": "f758200abc738063029b7d56db1fb367bf1bdf451c64668101de93b9e769bd52",
+      "metadata": [
+        3882732,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213690,
+        1791724846605006088
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-r3-proof.tar.xz": {
+      "sha256": "7d020a434ffc49741fad3a0b324f0b33a13aaf310a31ad14f03e29dab87c2e72",
+      "metadata": [
+        3851204,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213796,
+        1791730772157176913
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/subagent-cards-001.tar.xz": {
+      "sha256": "48031bb7bbcace9a1581e3c54d0301631fa21009e02540be9cca1f07d8bf81e3",
+      "metadata": [
+        595732,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213205,
+        1791640090788069339
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/subagent-cards-002.tar.xz": {
+      "sha256": "0a7a864fa6092505ec6879e714aecba4fbfa82641256d30ddf18710aed45d463",
+      "metadata": [
+        765112,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213270,
+        1791656870084950440
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/subagent-cards-003.tar.xz": {
+      "sha256": "0cdd44b217705f9ee9657766761308e2572a1bcda986b81af81865d7dfbca1a6",
+      "metadata": [
+        830748,
+        33204,
+        1003,
+        1003,
+        65027,
+        4212656,
+        1791698659814890595
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/subagent-cards-004.tar.xz": {
+      "sha256": "7c70a49908319c6e6022631bd43c7dfcad685a869d4d98d4c9f835f7ba76f966",
+      "metadata": [
+        966116,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213792,
+        1791727681277933249
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/syntax-proof.tar.xz": {
+      "sha256": "164778616790a31574dd3e48f93f3cd8523f7a7ca6d7614c52fb739aefa1e021",
+      "metadata": [
+        3631412,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213207,
+        1791640870393836327
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis12-proof.tar.xz": {
+      "sha256": "8a279fe3e84bbff3ae3977c1f89f5b85e9553c9e2cdd74899962a5bf10674c64",
+      "metadata": [
+        2435860,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213948,
+        1791761812389593786
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis12-wrap-proof.tar.xz": {
+      "sha256": "bc30ac220c064595e157ec1619617134583e901cf918e8f3d06786add9f4306b",
+      "metadata": [
+        1581536,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213955,
+        1791770259451219650
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-audits.tar.xz": {
+      "sha256": "5cd9ffb786d7523ff3bcdb61b8918b95296b9728023962f03d9b1b2d12239018",
+      "metadata": [
+        210056,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169786,
+        1791802888056254444
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-gates.tar.xz": {
+      "sha256": "4d6e33e9e14cddefbc750a23cbc6b08c679305e36556afb621c4061d4079f800",
+      "metadata": [
+        56120,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169774,
+        1791802670890655573
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-proof.tar.xz": {
+      "sha256": "65f43236a011331adc6ea4685a7583bb8aa3da080000da25c729744bb44444b0",
+      "metadata": [
+        3319812,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169770,
+        1791796721458452782
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-proof.tar.xz": {
+      "sha256": "630c078fcf8952952e23366f22d2b47b3e4aba18e3365cf4198d945f854d3651",
+      "metadata": [
+        2404048,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213980,
+        1791780965963277899
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/wrap-proof.tar.xz": {
+      "sha256": "cbf8b2dbfdb87cc9e497a566d0a75ea5918601cc93dc486797b21dce2f39fc6b",
+      "metadata": [
+        3216980,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213285,
+        1791672504566659252
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-proof.tar.xz": {
+      "sha256": "76e6d0db33c99f8c839e9604d9e3d4941a7a19e49bda7969711874e076a1684a",
+      "metadata": [
+        3604504,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213222,
+        1791650681962882500
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-r2-proof.tar.xz": {
+      "sha256": "ffc61b547d2c5a53a529802c03321752ce102a8276f3101b36a4f586950997c8",
+      "metadata": [
+        3238248,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213268,
+        1791655185344250378
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-r3-proof.tar.xz": {
+      "sha256": "664cf06fa2fa876b558fed2be3eb87f886e86d71c1fea9056902666d5ed169fd",
+      "metadata": [
+        3214952,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213306,
+        1791666368626399629
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-baseline-proof.inventory.json": {
+      "sha256": "115e2b385f83a6ae0d69c68c56f2d22e47d09d655c603a875052e4e0a1ddeb8e",
+      "metadata": [
+        1090,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213682,
+        1791707417981341459
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-fallback-proof.inventory.json": {
+      "sha256": "49e18b0265fd4b82cf0c7a5796fca82775a91c49e2560eb253129fe4640b51b4",
+      "metadata": [
+        1181,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213684,
+        1791707425341393789
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-steady-proof.inventory.json": {
+      "sha256": "409b7ba797dbd5f80402b8c004e93a2b424d4ffd4f696b5c4d59a64f1018e160",
+      "metadata": [
+        1164,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213688,
+        1791707448805560621
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/blink-supported-proof.inventory.json": {
+      "sha256": "7194bbcf7492d2747757d0cb6d56da2fe368358b2e581207fd9c49077fd7baec",
+      "metadata": [
+        1195,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213686,
+        1791707435993469526
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/caret-proof.inventory.json": {
+      "sha256": "d750ed99b7226f56693ee1fe0cc7666ccb53f2c647a1b3cd318a575ea1bcfde7",
+      "metadata": [
+        967,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213679,
+        1791703389272639601
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-controls-diagnostics-proof.inventory.json": {
+      "sha256": "acff16e1d6f868ae6c38b1f5d1862f325cccf3ee0d411413bd3151fdf8f034dc",
+      "metadata": [
+        1630,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213937,
+        1791757789572595489
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-controls-r3-proof.inventory.json": {
+      "sha256": "6f77182d65a1fcec19ca5f0a58fcd2eccb844298d769e18336ba69cbcc735c78",
+      "metadata": [
+        1131,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213944,
+        1791757796900648335
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/compact-layout-proof.inventory.json": {
+      "sha256": "e3c96dcb8c8cfe05ed7438a9e524553f5ff0f733253ce2ae1c38eba982cc4104",
+      "metadata": [
+        1127,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213521,
+        1791752062335608215
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/hover-proof.inventory.json": {
+      "sha256": "7802dbf0ac4fa487fc905711e0a4bee04351b28ccbab76a813d3c6f8d2dce553",
+      "metadata": [
+        1486,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213519,
+        1791694777542934420
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/mcp-label-proof.inventory.json": {
+      "sha256": "b70054b3ad98166df5904290adfd2ac22a622054cd9c735d81c5f8d74af7ad95",
+      "metadata": [
+        1502,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213244,
+        1791717898345685098
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/middle-tabs-proof.inventory.json": {
+      "sha256": "c0be6f348fd16040872f66ebe01b242360a1c4b8dea5d85106bf48d851a5c122",
+      "metadata": [
+        3816,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213922,
+        1791741277919615199
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/rail-width-proof.inventory.json": {
+      "sha256": "b9ba7e463241373650e6a120bb796eb4bef93d5da152bce567aba11a43723e0c",
+      "metadata": [
+        1119,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213800,
+        1791748007081382837
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/raster-proof.inventory.json": {
+      "sha256": "05a6c9e46b9ca669bb83422ebec0573d9845d5928812ce5d1f00b3d2ef468ea9",
+      "metadata": [
+        1490,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213676,
+        1791701118760248162
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/root-diagnostics-proof.inventory.json": {
+      "sha256": "53881ee9e6b8985e096a476ffe94c4ce5ad3bf73177ca4cedf793e1cc1da8efb",
+      "metadata": [
+        2155,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213425,
+        1791686013334276956
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/root-proof.inventory.json": {
+      "sha256": "94ec92cdaa371762368a47abcfa00d5d573763f9993cde724ed0603365cb8809",
+      "metadata": [
+        1482,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213430,
+        1791686371064812001
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-diagnostics-proof.inventory.json": {
+      "sha256": "387bcd3070425d4ebfb916c277dd57a645ad73c9ad6e845b557765d1e99ea9d1",
+      "metadata": [
+        1408,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213795,
+        1791730296677625998
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-proof.inventory.json": {
+      "sha256": "b9d84d5af74d877a5d25f41bba17458f1b1b44c4ea23a8f2ace549e64508243f",
+      "metadata": [
+        1506,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213691,
+        1791724846621006207
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/shell-wrap-r3-proof.inventory.json": {
+      "sha256": "6e727622810bcffee37514f98481096ec09d6c205d6c4a8af0d4b9f93c038d6d",
+      "metadata": [
+        1506,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213797,
+        1791730772173177033
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/syntax-proof.inventory.json": {
+      "sha256": "0cc2b9f50411ea80fe75a148bf969dd4f9ce6aae2546b7b5451bfa82e81dc55a",
+      "metadata": [
+        1467,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213208,
+        1791640870405836416
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis12-proof.inventory.json": {
+      "sha256": "db43a20956049e0d4a0f480d026470732c17a9c9540d03c8281d3b7854e807e8",
+      "metadata": [
+        1767,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213949,
+        1791761812397593843
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis12-wrap-proof.inventory.json": {
+      "sha256": "0a3a1c9b55280cd5f9ba0d5ae203656b5326e9e904ebf5f81f8655cd1779692d",
+      "metadata": [
+        2136,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213956,
+        1791770259455219677
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-audits.inventory.json": {
+      "sha256": "f3f6d7e38eeb56a66a330967a5bf7ec1ab6002dddaf9794a95da48a4bf875867",
+      "metadata": [
+        5729,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169787,
+        1791802888060254473
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-gates.inventory.json": {
+      "sha256": "81c6ece03e45ecb20f8fbdb1fb8e8f255a21c9c100972e97a0fe1fb15936ed88",
+      "metadata": [
+        20976,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169775,
+        1791802670894655603
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-form-proof.inventory.json": {
+      "sha256": "476d326c799f4f768476641f079fae77c55abf3a94c7b6d72ee06c7aa2786e77",
+      "metadata": [
+        4058,
+        33204,
+        1003,
+        1003,
+        65027,
+        4169771,
+        1791796721470452868
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/vis37-proof.inventory.json": {
+      "sha256": "6b0ad94dffc4cc659a2713aa1f86d4a9166a214af89e4a095fd33e0c9ca1e3bd",
+      "metadata": [
+        2606,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213981,
+        1791780965971277959
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/wrap-proof.inventory.json": {
+      "sha256": "b375fdb55b5f55de036ba364b1ccd4901e1ddcd9dd96f4313e0e69f1a08b8b43",
+      "metadata": [
+        1459,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213317,
+        1791672504578659338
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-proof.inventory.json": {
+      "sha256": "06e2e308d6741db8f74cc763b5d956e108c49cc4798e128d0f3cefd4b0095273",
+      "metadata": [
+        1463,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213243,
+        1791650681970882559
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-r2-proof.inventory.json": {
+      "sha256": "355227e9f771da682a9245a4a73c7ae3b253249e32ef56b6cf7cb6328613bc28",
+      "metadata": [
+        1463,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213269,
+        1791655185356250468
+      ]
+    },
+    "/home/opencode/ai/oc/evidence/tui/write-r3-proof.inventory.json": {
+      "sha256": "faa8edf74e5abf14835116f5ceee38f05506e784a95b12deeaf64f4d2d2644c6",
+      "metadata": [
+        1483,
+        33204,
+        1003,
+        1003,
+        65027,
+        4213307,
+        1791666368638399715
+      ]
+    }
+  },
+  "helpers": {
+    "/home/opencode/ai/oc/evidence/tui/vis37-retention-recovery-audit.py": "2a2c0d3951f22d7e2208562e407dfc477d6da4bdb8b47bef446065b4505631a2",
+    "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/verifier.py": "71678794a49b72f842aa858945b57834f61f36931b5196edc2e2bc59e709214a",
+    "/home/opencode/.cache/opencode-tmp/opencode/vis37-form-independent-20261012-sole-verifier/owner_refinement.py": "b35df7957415aa97f13daab5336475faba450d66201ff5cba1ab391f4834a2d5",
+    "/home/opencode/.cache/opencode-tmp/opencode/vis37-independent-20261012-sole-verifier/inverse_verifier.py": "28e94d3c2d9fdc28c7054919ad57263a3fd2e177a8aff01a88b3584aa9dcad1a",
+    "/home/opencode/.cache/opencode-tmp/opencode/vis37-independent-20261012-sole-verifier/verifier.py": "052acc768f2952b8c3521bcd621e13277680913a5c4379813663a588682e06f7"
+  },
+  "quota": {
+    "allocated_bytes": 1072640000,
+    "quota_bytes": 1073741824,
+    "headroom_bytes": 1101824,
+    "stat_only_unique_inodes": 11436,
+    "prefixes": [
+      "model-shell",
+      "subagent",
+      "root-",
+      "syntax-",
+      "write-",
+      "wrap-",
+      "hover-",
+      "raster-",
+      "caret-",
+      "blink-",
+      "mcp-label-",
+      "shell-wrap-",
+      "middle-tabs-",
+      "rail-width-",
+      "compact-layout-",
+      "compact-controls-",
+      "vis12-",
+      "vis37-"
+    ],
+    "scope": "Only established evidence/tui prefixes including vis37-; TMP excluded; not a historical byte audit"
+  },
+  "memory": {
+    "VmPeak_bytes": 88440832,
+    "VmSize_bytes": 87392256,
+    "VmHWM_bytes": 39387136,
+    "VmRSS_bytes": 38195200
+  }
+}

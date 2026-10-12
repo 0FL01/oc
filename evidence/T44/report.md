@@ -921,3 +921,37 @@ No current004 durable archive/inverse, whole VIS37/R6/V09/T44 PASS or task finis
 Full frozen R1–R6/VIS01–45/supplements remain ACTIVE_NOT_PASS. Required external
 dependency: authorized durable proof capacity; then retain existing004 without
 replay, close remaining owners/outcomes and final current-source R6/V09.
+
+## Retention recovery (2026-10-12 — blocker removed, T44 ACTIVE_NOT_PASS)
+
+[Recovery receipt](../tui/vis37-retention-unblocked.md) supersedes the prior stop,
+not its immutable measurements. Existing lossless archival of own untracked FAILED
+`model-shell-001` preserves58 files5040210 bytes and full path/mode/UID/GID/mtime_ns
+in278616 bytes, with visible FAILED pointer; no qualified proof/receipt was deleted
+or rewritten. Same1GiB cap/accounting scope; actual2183168 reservation and4882432
+allocated bytes released. Explicit campaign and pre/post reservation guards have
+rootPython67/67 PASS, including interruption/final-cap preservation regressions.
+
+Current004 now durably retained:1913176 encoded bytes,665 files53495947 logical bytes,
+28 direct same-run-side exact PNG aliases. Measure/pack/audit FULL_BYTE_EXACT; fresh
+independent manual PAX/XZ diagnostic and USTAR/XZ current004 whole inverse PASS.
+All63 prior archives/inventories exact byte/metadata preservation; current713 source,
+actual ELFs,004 originals/metadata/helpers unchanged. Independent VmPeak238796800
+bytes <384MiB AS. Complete102 original PNGs/cells/cursors/VT/clocks/commands/effects/
+source/build/parents/driver retained, without episode replay, mask or reencoding.
+
+All102 strict full comparisons remain DIFFERENT; sealed prior independent recount
+4444 cells317372 pixels/48of51 cursors equal,24 pending-owner/3 answered-owner equal
+is preserved by exact restored bytes, not promoted to full pixel PASS. Fresh typed
+wire/RAW audit24 valid providers18 main6 title/12 calls/12 user6 answers/30 RO
+snapshots and no observed extra effects. DCP tables unread/finalgen1 forced unchanged.
+Allocation after full004 pack1069719552/headroom4022272 BEFORE bounded after-report/
+delivery records; final recount remains required. Historical1856/0/11 native code
+gates are unaffected by storage-only scripts/docs, not rerun or final R6/V09.
+
+The first supposed archive invocation was only preflight (missing `--archive`), so
+its measure correctly refused cap; actual explicit transaction and subsequent
+measure/pack/audit/independent checks passed. Logs retain both attempts. Current
+capacity is no longer an external blocker: proceed with3 VIS37 cursor residuals,
+remaining whole-frame owners and every frozen outcome/supplement, with reviewed
+commit/push per major slice. No task finish, whole VIS37/R6/V09/T44 PASS or cap waiver.

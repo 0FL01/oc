@@ -26,7 +26,7 @@ Docker проверять только непосредственно перед
 
 Срез — небольшая независимо проверяемая единица: API+test, parser case, adapter roundtrip, UI action. Не «переписал весь provider и DCP». Создавать checkpoint до ожидаемого context exhaustion, перед non-idempotent external operation, при blocker или существенном незакоммиченном handoff. Semantic `Next` не должен быть только «stage/commit/push».
 
-Test failure → записать конкретную причину/следующий experiment. После 3 unsuccessful attempts одного blocker: block task, продолжить independent ready tasks. Не three attempts на весь проект; не маскировать retry тем, что каждый раз переименована та же проблема. Не отключать lint/assertion или marked test ради completion.
+Test failure → установить конкретную причину и выполнить следующий содержательный experiment с учётом результата. Число попыток не является основанием для block: менять гипотезу, уменьшать воспроизведение или прослеживать владельца поведения, не повторяя опровергнутый подход без новых данных. Block допустим только при наблюдаемой необходимой внешней зависимости после проверки разрешённых альтернатив; независимые ready-срезы продолжаются. Не отключать lint/assertion или marked test ради completion.
 
 ## Контекст 400k и делегирование
 
@@ -59,3 +59,5 @@ Permission boundary violation, root process, чужие изменения в а
 ## Локальные raw logs
 
 Писать stdout/stderr в отдельные files по task/run, не в checkpoint. Ограничивать каждый сохраняемый raw log 16 MiB и суммарное собственное .local/evidence — 1 GiB; при достижении квоты сохранить короткий sanitized report и остановить дополнительную запись, не удаляя чужие данные. Большие benchmark outputs stream-агрегировать в metrics, а не накапливать целиком. Отмечать truncated и сохранять полезный error excerpt. Это собственные initial safety defaults, не размер продуктовой истории.
+
+Квота сама по себе не доказывает внешний blocker. Перед остановкой проверить уже существующий lossless archival собственных untracked/unstaged FAILED diagnostics через `scripts/archive_failed_capture.py`: одна явно разрешённая кампания, actual `FAILED` в owner checks, все исходные bytes/paths/mode/UID/GID/mtime и видимый FAILED pointer сохраняются. Loose-копии заменяются только после durable encode/full-byte/meta audit; qualified proofs, старые receipts/checkpoints и чужие данные не переписываются. Перед transaction зарезервировать allocation следующего обязательного proof и bounded delivery records, затем проверить actual allocation и независимый inverse. При interruption private quarantine сохраняется; сначала исследовать transaction, не replay-ить её вслепую. Caps, accounting scope, original encoded PNGs и failure statuses не меняются; TMP transaction не является постоянным offload. Этот существующий путь уже применён в `evidence/tui/syntax-qualified.md`.

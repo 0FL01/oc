@@ -1,0 +1,55 @@
+{
+  "archive_sha256": "322121f4ad9d3ca04a6f203f442be26cc7eef6f17c8951fbba13a99bfecd310b",
+  "archive_bytes": 4920,
+  "tar_sha256": "f0722dcd1193134343ed9ab33102f7843539bafcb66a4fe748d9c41eb23a47f8",
+  "tar_bytes": 51200,
+  "inventory": {
+    "members": 29,
+    "logical_bytes": 26509,
+    "member_inventory_sha256": "2ca76559a6c9325fb12873975c55900faa4d7a3007065b88cacb8fe0a9dd83ef",
+    "same_side_png_aliases": 0
+  },
+  "gate_labels": [
+    "retention-archiver-red",
+    "retention-archiver-green",
+    "retention-python-final",
+    "retention-model-preflight",
+    "retention-independent-before",
+    "retention-model-archive",
+    "retention-current004-measure",
+    "retention-model-archive-actual",
+    "retention-current004-measure-unblocked",
+    "retention-current004-pack",
+    "retention-current004-audit",
+    "retention-independent-after",
+    "retention-docs-final",
+    "retention-progress-final"
+  ],
+  "manual_inverse_xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 4883,
+        "uncompressed_bytes": 51200,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "f0722dcd1193134343ed9ab33102f7843539bafcb66a4fe748d9c41eb23a47f8"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 4896
+  },
+  "helper_sha256": "d8aab994cd7441b23e0772ee7967aa7cce1d37edbf5f7f129e584dbe417a578e",
+  "memory": {
+    "VmPeak_bytes": 237760512,
+    "VmSize_bytes": 60784640,
+    "VmHWM_bytes": 64188416,
+    "VmRSS_bytes": 30101504
+  }
+}

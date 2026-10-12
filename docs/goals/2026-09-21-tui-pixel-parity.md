@@ -12,7 +12,7 @@ Additional source: owner-reported phantom caret over large highlighted tool outp
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
 Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
-Last updated: 2026-10-07
+Last updated: 2026-10-12
 
 ## Objective
 
@@ -349,6 +349,18 @@ theme without reparsing the full completed transcript; use existing VIS31/32 bou
 - Expected paths, symbols, and direct consumers: `views.rs`, `app.rs`, `picker.rs`, `history.rs`, `dcp_panel.rs`, `events.rs`, `commands.rs`, `terminal.rs`; new modules for theme, components, snapshots.
 - Allowed and forbidden artifacts: source/tests/docs/evidence. Forbidden: editing GOAL.md gates, deleting tests, adding JS runtime, committing secrets.
 - User or harness budget: commits+pushes per slice; iterative rounds; no attempt limit.
+
+Evidence-retention continuation (owner instruction 2026-10-12): remove the reported
+storage blocker using the existing lossless FAILED-diagnostic archival path, not a
+cap increase, accounting rescope, proof deletion or permanent offload. Extend only
+the explicit campaign selection/reservation checks and their tests; measure before
+replacing owned untracked loose copies, preserve every original byte/path/metadata
+and failure status, and independently inverse-audit the durable result. Retain the
+already-acquired current004 proof without episode replay, then continue every frozen
+R1–R6/VIS01–VIS45 outcome and supplement with commit/push after each major checked
+slice. Historical blocked receipts remain factual history; `progress.py` records the
+new current state only after verification. No pixel/R6/V09 gate is waived or closed
+by archival or by code-only test results.
 
 ## Current handoff and historical startup checkpoint
 

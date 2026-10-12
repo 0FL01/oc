@@ -155,9 +155,12 @@ def durable(path, data):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003", "subagent-cards-004"])
+    parser.add_argument("campaign", choices=["subagent-cards-001", "subagent-cards-002", "subagent-cards-003", "subagent-cards-004", "model-shell-001"])
     parser.add_argument("--archive", action="store_true", help="perform verified archival after preflight")
+    parser.add_argument("--reserve-bytes", type=int, default=0,
+                        help="leave this allocated capacity for the next proof and delivery records")
     args = parser.parse_args()
+    require(0 <= args.reserve_bytes <= CAP, "reservation outside unchanged cap")
     resource.setrlimit(resource.RLIMIT_AS, (384 * 1024**2, 384 * 1024**2))
     require(os.getuid() != 0, "non-root only")
     source = EVIDENCE / args.campaign
@@ -192,10 +195,11 @@ def main():
     round_blocks = lambda length: (length + 4095) // 4096 * 4096
     before = owned_allocation()
     after = before - allocation(source) + round_blocks(len(encoded)) + round_blocks(len(receipt)) + 8192
-    require(before <= CAP and after <= CAP, "unchanged owned-retention cap")
+    require(before <= CAP and after + args.reserve_bytes <= CAP, "unchanged owned-retention cap/reservation")
     summary = {key: record[key] for key in ("statuses_unchanged", "archive_bytes", "archive_sha256",
                                            "members", "logical_bytes", "member_inventory_sha256")}
     summary.update({"before_allocated": before, "predicted_after_allocated": after,
+                    "reserved_bytes": args.reserve_bytes,
                     "state": "VERIFIED_PREFLIGHT"})
     print(json.dumps(summary), flush=True)
     if not args.archive:
@@ -216,9 +220,10 @@ def main():
     require(sha(saved) == record["archive_sha256"], "durable encoded archive identity")
     audit(saved, files, rows, directories)
     require(snapshot(quarantine)[1:] == (rows, directories), "quarantine changed")
-    require(owned_allocation() <= CAP, "final owned-retention cap")
+    final_allocation = owned_allocation()
+    require(final_allocation + args.reserve_bytes <= CAP, "final owned-retention cap/reservation")
     shutil.rmtree(private)  # Only redundant bytes from this fully verified private transaction.
-    summary.update({"state": "DURABLY_ARCHIVED_FAILED", "after_allocated": owned_allocation()})
+    summary.update({"state": "DURABLY_ARCHIVED_FAILED", "after_allocated": final_allocation})
     print(json.dumps(summary))
 
 
