@@ -23,25 +23,32 @@ pub fn render_frame(frame: &mut Frame<'_>, state: &TuiState) {
     crate::shell::render(frame, state);
 }
 
-/// Pinned DialogSelect paints its caret with the focused form-field token.
+/// Pinned editable form fields paint their caret with the focused field token.
 /// This cannot be represented by the underlying cell foreground/background.
 pub fn cursor_color(state: &TuiState) -> ratatui::style::Color {
-    if matches!(
-        state.panel(),
-        TuiPanel::Commands
-            | TuiPanel::Settings
-            | TuiPanel::MessageActions { .. }
-            | TuiPanel::Model
-            | TuiPanel::Variant
-            | TuiPanel::Agents
-            | TuiPanel::Sessions
-            | TuiPanel::Skills
-            | TuiPanel::Mcps
-    ) && state.approvals.active().is_none()
+    let question_field = state.panel() == &TuiPanel::None && state.questions.custom_editing();
+    if (question_field
+        || matches!(
+            state.panel(),
+            TuiPanel::Commands
+                | TuiPanel::Settings
+                | TuiPanel::MessageActions { .. }
+                | TuiPanel::Model
+                | TuiPanel::Variant
+                | TuiPanel::Agents
+                | TuiPanel::Sessions
+                | TuiPanel::Skills
+                | TuiPanel::Mcps
+        ))
+        && state.approvals.active().is_none()
         && state.mcp_detail_server().is_none()
     {
         crate::theme::Theme::dark()
-            .color("@dialog.text.formfield.$focused")
+            .color(if question_field {
+                "text.formfield.$focused"
+            } else {
+                "@dialog.text.formfield.$focused"
+            })
             .unwrap_or_else(|| crate::theme::Theme::dark().border_active())
     } else {
         ratatui::style::Color::Reset

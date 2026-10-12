@@ -1108,3 +1108,43 @@ examples+54nativeversion+33realelapsed; six grid-equal custom PNG pairs leave795
 caret pixels, focused cursor-color source seam next. Do not normalize those data.
 Continue every frozen R1–R6/VIS01–45/supplement/final current-sourceR6/V09; checked
 major commit/push, no T44 finish or promotion of historical source receipts.
+
+## 2026-10-12 — focused Question custom caret color / current012
+
+Status ACTIVE_NOT_PASS. Receipt `evidence/tui/vis37-question-cursor-qualified.md`;
+producer base eceb08c32, immutable actual capture identity separate from delivery.
+Pinned custom textarea selects focused form-field cursor color; native no-panel
+Reset was a concrete source mismatch behind six prior PNG-only custom states.
+Existing shared Question draft owner exposes exact-active-request editing state;
+existing cursor_color owner selects Question token only with no modal, retaining
+Approval/MCP-detail guards and distinct existing dialog token. Ordinary composer,
+Rename, coordinates/visibility/cells/frame ordering/RAW/policy remain unchanged.
+Actual new unit RED then 13 VIS37 targets and three real PTY/headless consumers
+green; visible caret/OSC12/theme token/modal paste/Approval/retirement/draft guards.
+
+Current012 six sides each18behaviorPASS,108whole PNGs /108strict comparisons
+58DIFFERENT50EQUAL, noBLOCKED. Independent54pairs259200styledcells34953984pixels,
+259cell11532pixeldiff54/54cursors,25wholegrid25wholePNGpairs equal. ALL6custom
+empty/edited WHOLEgrid+PNG+cursorframes equal;51completeheaders27pending3answered
+6cancelled3smallunderlay fullstyled regions remain equal. No crop/mask/tolerance,
+cursor/clock normalization or numeric cell-color hack; wholeVIS37/R6V09NOTPASS.
+
+704files55993176B/26same-side original encoded PNG aliases retained1482060B;
+measure/pack/audit/manualsingleXZUSTAR every-original inverse/recount PASS.
+Archive`ef56d773351888a2312389566e4245a8636123cac62459738493bb67f7435841`;
+source713`ed309316934f99322de6ec538a22958eb40601f62dd44657fd6492faf743c185`,
+native`32b90fe9a0474adfe08e60dcf2ce65aaf54c91e461203a451de57b14024349fc`.
+101priorproof files byte+metadata unchanged;011 historical flags/data immutable.
+Actual24providers18main6title/12calls/12user6answer/30ROsnapshots/nativeOriginalV2
+RAWIDs/no observed extra effects; gen0natural0/gen1forcednotcleanfinal,DCPunread.
+IndependentVmPeak239693824B <384MiB. No unknown replay or authority widening.
+
+Complete current workspace1860/0/11 unchanged ignores/46targets/TUI530/PTY58;
+strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS,
+Python68+question2 green; complete gate logs/RED retained with independent inverse.
+Gate bundle27commands/56members243935B encoded54036B manualinverse memory/durable,
+SHA`dfc935240aeae2baaac1522edf51d4b509cee5e2d7773c51a15d3c1aa88fbbd2`.
+No baseline, deadline, threshold, validation, test or ignore weakened. Actual owned
+1071058944/headroom2682880 before delivery; caps/accounting remain unchanged.
+Continue every remaining frozen R1–R6/VIS01–45/supplement/final current-sourceR6/V09;
+checked major commit/push, no T44 finish or fake version/random/elapsed equality.

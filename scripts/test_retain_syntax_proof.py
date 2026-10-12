@@ -18,7 +18,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                  ("wide", "002", 120, 40), ("tall", "002", 160, 48)]
         acquisitions = [(p, a, c, r, False) for p, a, c, r in cases]
         acquisitions += [(p, a, c, r, True) for p, a, c, r in cases +
-                         [(p, a, c, r) for a in ("003", "004", "005", "006", "007", "008", "009", "010", "011") for p, c, r in
+                         [(p, a, c, r) for a in ("003", "004", "005", "006", "007", "008", "009", "010", "011", "012") for p, c, r in
                           (("small", 80, 24), ("wide", 120, 40), ("tall", 160, 48))]]
         for profile, attempt, columns, rows, form in acquisitions:
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
@@ -44,7 +44,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                 proof.check_vis37_build(lock, {**manifest, "scripts/tui_capture/question_fixture.py": "b" * 64},
                                         commands, profile, attempt, form)
             with self.assertRaises(ValueError):
-                proof.check_vis37_build(lock, manifest, commands, profile, "012" if form else "003", form)
+                proof.check_vis37_build(lock, manifest, commands, profile, "013" if form else "003", form)
             with self.assertRaises(ValueError):
                 proof.check_vis37_build(lock, manifest, commands, profile, attempt, not form)
 
@@ -74,12 +74,15 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         status_row = proof.vis37_form_roots(current_only=True, current_attempt="011")
         self.assertEqual(status_row["current-logs"], proof.TEMP / "vis37-form-current-011")
         self.assertEqual(status_row["current-driver"], proof.TEMP / "vis37-form-capture-r11.py")
+        cursor = proof.vis37_form_roots(current_only=True, current_attempt="012")
+        self.assertEqual(cursor["current-logs"], proof.TEMP / "vis37-form-current-012")
+        self.assertEqual(cursor["current-driver"], proof.TEMP / "vis37-form-capture-r12.py")
         self.assertEqual(qualified["current-driver"], proof.TEMP / "vis37-form-capture-r8.py")
         self.assertEqual(len(focused), 5)
         self.assertEqual(focused["current-logs"], proof.TEMP / "vis37-form-current-005")
         self.assertEqual(focused["current-driver"], proof.TEMP / "vis37-form-capture-r5.py")
         with self.assertRaises(ValueError):
-            proof.vis37_form_roots(current_only=True, current_attempt="012")
+            proof.vis37_form_roots(current_only=True, current_attempt="013")
         for profile in ("small", "wide", "tall"):
             self.assertEqual(current["current-" + profile], proof.TEMP / "vis37-form-current-004" / profile)
             self.assertEqual(focused["current-" + profile], proof.TEMP / "vis37-form-current-005" / profile)

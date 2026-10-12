@@ -1,6 +1,99 @@
 use super::*;
 
 #[tokio::test]
+async fn vis37_custom_caret_color_uses_the_focused_field_without_stealing_overlay_ownership() {
+    use oc_core::{
+        approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest},
+        question::{QuestionInput, QuestionRequest},
+    };
+    use ratatui::{Terminal, backend::TestBackend, style::Color};
+    let mut state = fresh_state("vis37-caret-color").await;
+    state.handle_paste("untouched ordinary draft Ω界");
+    let request = QuestionRequest {
+        id: 32,
+        binding: ApprovalBinding {
+            session: "vis37-caret-color".into(),
+            turn: "t".into(),
+            call: "c".into(),
+            operation: "o".into(),
+            input_digest: "d".into(),
+            location: "l".into(),
+            generation: 1,
+            agent: None,
+            agent_digest: None,
+        },
+        input: QuestionInput::parse(&serde_json::json!({"questions":[{
+            "question":"Pick?", "header":"Pick", "options":[{"label":"A", "description":"first"}]
+        }]}))
+        .unwrap(),
+    };
+    let focused = Theme::dark().color("text.formfield.$focused").unwrap();
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    state
+        .questions
+        .reconcile(std::slice::from_ref(&request), vec![request.clone()]);
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    assert!(
+        state
+            .handle_key(KeyAction::Char('2'))
+            .await
+            .intent
+            .is_none()
+    );
+    assert_eq!(crate::views::cursor_color(&state), focused);
+    let mut terminal = Terminal::new(TestBackend::new(120, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    assert!(terminal.backend().cursor_visible());
+    assert!(state.handle_paste("custom Ω界").intent.is_none());
+    assert_eq!(crate::views::cursor_color(&state), focused);
+    let Color::Rgb(r, g, b) = focused else {
+        panic!("focused form-field token must be terminal RGB");
+    };
+    let mut output = Vec::new();
+    crate::terminal::set_cursor_color(&mut output, crate::views::cursor_color(&state)).unwrap();
+    assert_eq!(
+        output,
+        format!("\x1b]12;#{r:02x}{g:02x}{b:02x}\x07").as_bytes()
+    );
+
+    state.panel = TuiPanel::Rename;
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    assert!(state.handle_paste("modal-only draft").intent.is_none());
+    assert_eq!(state.rename_title(), Some("modal-only draft"));
+    state.panel = TuiPanel::Model;
+    assert_eq!(crate::views::cursor_color(&state), focused);
+    state.approvals.reconcile(vec![(
+        ApprovalRequest {
+            id: 9,
+            binding: request.binding.clone(),
+            project: "p".into(),
+            action: "read".into(),
+            resources: vec!["file".into()],
+            save_patterns: vec![],
+            preview: ApprovalPreview::Resource {
+                values: vec!["file".into()],
+            },
+        },
+        false,
+    )]);
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    state.panel = TuiPanel::None;
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    state.approvals.reconcile(vec![]);
+    assert_eq!(crate::views::cursor_color(&state), focused);
+    assert!(state.handle_key(KeyAction::Cancel).await.intent.is_none());
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+    assert_eq!(state.questions.active(), Some(&request));
+    assert_eq!(state.input(), "untouched ordinary draft Ω界");
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    assert_eq!(crate::views::cursor_color(&state), focused);
+    state.questions.reconcile(&[], vec![]);
+    assert_eq!(crate::views::cursor_color(&state), Color::Reset);
+}
+
+#[tokio::test]
 async fn vis37_visible_modal_keeps_input_ownership_when_question_arrives() {
     use crossterm::event::{
         KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T21:16:30+00:00
+State updated: 2026-10-12T22:10:59+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -12,46 +12,47 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 Последний checkpoint этой задачи (проверить актуальность по Git):
 
-# VIS37 question/status sibling qualified; continue full T44
-
 ## Result
-- Initial Messages spacer hypothesis refuted: full/index counts correct, untouched.
-  Actual pinned status sibling reserves one row before form; Question-only native
-  geometry/paint now does likewise, preserving priority/clipping/input binding/draft.
-- Receipt evidence/tui/vis37-question-status-qualified.md;011 current complete proof,
-  independent inverse/recount;010 historical immutable. No baseline/caret/timing hack.
+
+T44 ACTIVE_NOT_PASS; focused Question custom caret source slice qualified.
+Pinned textarea focused token now reaches existing terminal cursor-color owner
+through exact active shared-draft editing state. Modal/Approval/MCP-detail and
+ordinary caret priority preserved; no cell FG, coordinate, visibility, clock or
+frame-order hack. Source713 ed309316934f99322de6ec538a22958eb40601f62dd44657fd6492faf743c185;
+native32b90fe9a0474adfe08e60dcf2ce65aaf54c91e461203a451de57b14024349fc.
 
 ## Checks
-- Final complete workspace1859/0/11 unchanged ignore/46 targets/TUI529/PTY58;
-  strict Clippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9 PASS.
-  Shell72/actualPTY3/Python68+question2/docs/progress/diff PASS, failures retained.
-- Current011 all6sides18behaviorPASS/108wholePNGs/64DIFFERENT44EQUAL comparisons;
-  independent54/54cursors259200cells34953984pixels checked265cells13168pixelsdiff,
-  25wholegrid19wholePNGpairs equal.51completeheaders/27pending/3answered/6cancelled/
-  3smalltranscriptstatus regions every styled cell equal, not whole PASS.
-- All704files55979473B/27same-side exact PNG aliases retained1573812B;
-  manualXZUSTAR every-original inverse PASS,97priorproofs byte+metadata unchanged.
-- Current713 c5004540f17136e55e22ef42de7a38c71c835a9622fd5e62b711622058e2b886;
-  native52cba8d040441bfcc6bebfd9e8d702e1d512aa14d1289c4fc9b08f709340338c.
-- Actual24valid18main6title/12calls/12user6answers/30ROsnapshots nativeOriginalV2
-  RAWIDs/no observed extras; independentVmPeak239718400B <384MiB.
-- OwnFAILEDmodel-shell005 archival62files/3dirs everybyte+metadata preserved,
-  visible FAILED pointer/3MiBreservation frees4853760; qualified proofs untouched.
-  After011report owned1069072384/headroom4669440 before delivery, final recountactual.
+
+Actual RED then 13 VIS37 unit targets / three actual PTY/headless consumers PASS.
+Complete workspace1860/0/11unchangedignore/46targets/TUI530/PTY58; strict locked
+alltargetClippy/fmt/debuglockedordinarybuildhelp/releasebuildhelp/release9 PASS.
+Python68+question2 green. Current0126sides18behaviorPASS108wholePNG/108comparisons
+58DIFFERENT50EQUAL. Independent54pairs259200cells34953984pixels259cell11532pixdiff,
+54/54cursors25wholegrid25wholePNGequal; ALL6custom wholeframes equal. Existing
+51headers27pending3answered6cancelled3smallunderlay fullstyled equality preserved.
+704original byte+metadata inverse/101priorproof files preserved. Source changes
+only app/tests/input.rs/question_view.rs/views.rs relative011. Current012 proof
+1482060B ef56d773351888a2312389566e4245a8636123cac62459738493bb67f7435841.
+Receipt evidence/tui/vis37-question-cursor-qualified.md; complete command logs/RED
+retained in bounded independent-inverse gates bundle. No old source promotion.
 
 ## Risks
-- WholeVIS37/R6/V09/T44 notPASS; DCPtables unread/gen1forced notcleanfinal.
-- Zero-test exact filter and new-test container-style correction retained; initial
-  workspace3timing/CPU failures isolatedunchangedPASS then complete warm1859green.
-  No deadlines/thresholds/tests/baselines/ignores weakened. Foreign9aac plan preserved.
-- Remaining265cells:178randomexamples+54nativeversion+33realelapsed, unnormalized;
-  six grid-equal custom PNG pairs795caret pixels; focused cursor-color seam next.
+
+Whole VIS37/R6/V09/T44 NOTPASS. Actual native version/random examples/real elapsed
+remain unnormalized. Captured producer eceb08c32 separate from delivery HEAD.
+24validproviders18main6title/12calls/12user6answer/30ROsnapshots/nativeOriginalV2
+RAWIDs/no observed extras; gen0natural0/gen1forcednotcleanfinal; DCPtablesunread.
+Owned1071058944/headroom2682880 before delivery allocation,1GiB cap unchanged;
+16MiBfilesencoded/128MiBTARlogical/2000members/dict16decoder32/hardAS384 unchanged.
+No qualified deletion/re-encoding/offload/capraise or policy/RAW/schema weakening.
 
 ## Next
-- Reviewed exact stage/commit/push checked status slice, then focused Question caret
-  color via existing owner/color path, preserving modal/Approval/normal caret priority.
-- Continue all frozen R1–R6/VIS01–45/supplements and final current-sourceR6/V09;
-  checked commit/push each major slice. No T44 finish or old proof promotion.
+
+Review and ordinary commit/push this major checked slice; continue ALL frozen
+R1–R6/VIS01–45/supplements, not only question. Choose next unresolved named
+acceptance outcome and source-correct existing owner; acquire genuine paired
+evidence without fake version/random/time normalization. Final current-source
+R6/V09 and full closure remain required; no T44 finish on a green local slice.
 
 
 Ready (до 5): T58, T59

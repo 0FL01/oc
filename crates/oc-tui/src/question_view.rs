@@ -220,6 +220,16 @@ impl QuestionView {
     pub fn active(&self) -> Option<&QuestionRequest> {
         self.visible.first()
     }
+    pub(crate) fn custom_editing(&self) -> bool {
+        let Some(request) = self.active() else {
+            return false;
+        };
+        self.drafts
+            .lock()
+            .expect("question drafts")
+            .iter()
+            .any(|draft| draft.request == *request && draft.editing)
+    }
     /// The frontend loop owns process-memory drafts; remounted views share them.
     pub fn share_drafts(&mut self, owner: &Self) {
         // Synchronization happens before every input, including between mouse
