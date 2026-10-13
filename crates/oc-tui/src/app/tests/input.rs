@@ -1,6 +1,128 @@
 use super::*;
 
 #[tokio::test]
+async fn vis36_dialog_center_rounds_half_cells_for_paint_caret_and_pointer_targets() {
+    use crate::commands::CommandAction;
+    use crate::dialog::{DialogFrame, DialogHit, DialogSize};
+    use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    use ratatui::{Terminal, backend::TestBackend, layout::Rect};
+
+    let theme = Theme::dark();
+    let base = theme
+        .color("@dialog.text.base")
+        .or_else(|| theme.color("text.base"))
+        .unwrap();
+    let muted = theme
+        .color("@dialog.text.muted")
+        .or_else(|| theme.color("text.muted"))
+        .unwrap();
+    for (width, left) in [(79, 10), (80, 10), (120, 30), (121, 31)] {
+        let mut state = fresh_state("vis36-dialog-center").await;
+        state.handle_paste("unchanged ordinary draft Ω界");
+        state.run_command(CommandAction::OpenSettings);
+        state.handle_paste("Permissions");
+        let area = Rect::new(0, 0, width, 40);
+        assert_eq!(
+            DialogFrame::rect(area, DialogSize::Medium, 10),
+            Rect::new(left, 10, 60, 10)
+        );
+        let mut terminal = Terminal::new(TestBackend::new(width, 40)).unwrap();
+        terminal
+            .draw(|frame| crate::views::render_frame(frame, &state))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        for (index, ch) in "Permissions".chars().enumerate() {
+            assert_eq!(
+                buffer[(left + 4 + index as u16, 13)].symbol(),
+                ch.to_string()
+            );
+        }
+        for (index, ch) in "←/→".chars().enumerate() {
+            let cell = &buffer[(left + 4 + index as u16, 18)];
+            assert_eq!(cell.symbol(), ch.to_string());
+            assert_eq!(cell.fg, base);
+            assert_eq!(cell.modifier, ratatui::style::Modifier::BOLD);
+        }
+        let separator = &buffer[(left + 7, 18)];
+        assert_eq!(separator.symbol(), " ");
+        assert_eq!(separator.fg, base);
+        assert!(separator.modifier.is_empty());
+        for (index, ch) in "change".chars().enumerate() {
+            let cell = &buffer[(left + 8 + index as u16, 18)];
+            assert_eq!(cell.symbol(), ch.to_string());
+            assert_eq!(cell.fg, muted);
+            assert!(cell.modifier.is_empty());
+        }
+        assert_eq!(
+            terminal.get_cursor_position().unwrap(),
+            (left + 15, 13).into()
+        );
+        let options = state.modal_options();
+        assert_eq!(options.len(), 1);
+        assert_eq!(
+            state
+                .select
+                .hit(area, DialogSize::Medium, &options, left - 1, 10),
+            DialogHit::Backdrop
+        );
+        assert_eq!(
+            state
+                .select
+                .hit(area, DialogSize::Medium, &options, left + 3, 13),
+            DialogHit::Surface
+        );
+        assert_eq!(
+            state
+                .select
+                .hit(area, DialogSize::Medium, &options, left + 4, 13),
+            DialogHit::Search
+        );
+        assert_eq!(
+            state
+                .select
+                .hit(area, DialogSize::Medium, &options, left + 4, 16),
+            DialogHit::Option(0)
+        );
+        let event = |kind| MouseEvent {
+            kind,
+            column: left + 4,
+            row: 16,
+            modifiers: KeyModifiers::NONE,
+        };
+        assert!(
+            state
+                .handle_mouse(event(MouseEventKind::Down(MouseButton::Left)), area)
+                .intent
+                .is_none()
+        );
+        assert_eq!(
+            state
+                .handle_mouse(event(MouseEventKind::Up(MouseButton::Left)), area)
+                .intent,
+            Some(PanelIntent::SetPermissionMode { auto_once: true })
+        );
+        assert_eq!(state.select.query, "Permissions");
+        assert_eq!(state.input(), "unchanged ordinary draft Ω界");
+    }
+    // The shared frame also centers larger consumers relative to their own
+    // bounds; narrow widths still obey the same maxWidth = terminalWidth - 2.
+    for (size, width) in [
+        (DialogSize::Medium, 60),
+        (DialogSize::Large, 88),
+        (DialogSize::Xlarge, 116),
+    ] {
+        assert_eq!(
+            DialogFrame::rect(Rect::new(3, 4, 121, 40), size, 10),
+            Rect::new(3 + (121_u16 - width).div_ceil(2), 14, width, 10)
+        );
+        assert_eq!(
+            DialogFrame::rect(Rect::new(3, 4, 43, 24), size, 40),
+            Rect::new(4, 10, 41, 18)
+        );
+    }
+}
+
+#[tokio::test]
 async fn vis37_custom_caret_color_uses_the_focused_field_without_stealing_overlay_ownership() {
     use oc_core::{
         approval::{ApprovalBinding, ApprovalPreview, ApprovalRequest},

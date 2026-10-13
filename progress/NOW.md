@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T00:46:05+00:00
+State updated: 2026-10-13T02:12:55+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,44 +14,45 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. VIS36 Settings filter after modeACK fixed/qualified.
-Pinned DialogConfig retains query; native select owner now syncs cursor, notreset.
-PublicAPI/approvalbusinesspolicy/RAW/schema/config/security unchanged. New wholeframe
-test retains query/selection/caret/value/Unicode draft. Old owner expectation alone
-corrected to pinned semantics, firstEscape clears filter/secondEscape closes.
-Source713 cf12d8212bce7376843892f5b3598b4053e1f2e2dcdf13efd733b4d85e5e8272;
-nativee48b61c11bb6667f8725bddd10dc5ab0cb4a48a164f465d602f82bfad59d38ba.
+T44 ACTIVE_NOT_PASS. VIS36 sharedodd-widthDialoggeometry/footerroles qualified.
+ActualOriginalhalfcelltie-up fixedexistingDialogFrame horizontalceil; unchanged
+width/vertical/clipping. Paint/caret/hits shared. Settingshint nowboldbase←/→,
+baseunboldspace/mutedchange, otherMCP/Sessionsfootersunchanged. No policy/RAW/schema/
+config/security/API/goldenchange. Source713
+4a0a41038113d4a346cfd948953b311152131194867b79ce2b8270f67f4b6cf8;
+native3b40d0b2d715fb104371a7d57ab6c90b351eda52b68b749405ebbda0b90607b2.
 
 ## Checks
 
-2VIS36TUI/sevenactualowner/Python70/strictClippy PASS; RED/oldassert failure retained.
-Currentworkspace1865/0/11unchangedignore46targets/TUI531/PTY58; fmt/lockedordinary
-debugbuildhelp/lockedreleasebuildhelp/actualrelease9 PASS. Docs/progress/diff checked.
-Fresh004 BOTH38behaviorPASS/eacheighteenvalid18complete16main2title8calls11ROsnapshots
-2naturalexit0/nogrants/rootchildOnce/mixedDeny/relaunch effects. Freshrootonrelaunch.
-212files22071995B/2same-sideoriginalPNGaliases/1261404Barchive manualsingleXZUSTAR
-EVERYbyte inverse/sourceELFs/111priorproofbyteMETA/recount PASS. Full16pairs32PNGs
-77440cells10444800pixels20318celldiff2395128pixeldiff9of16cursorsmatch/ALL32DIFFERENT.
-Receipt evidence/tui/vis36-settings-qualified.md; full command gatebundle retained.
+Real79/80/120/121+narrow/nonzero/largerdialogs paint/caret/pointertests; VIS36UI3/
+actualowner7/Python70/strictClippy PASS. AllRED/observerfailedattempts retained.
+Currentworkspace1866/0/11oldignore46targets/TUI532/PTY58;fmt/lockedordinarydebug
+buildhelp/lockedreleasebuildhelp/actualrelease9 PASS. InitialS07/DCPzero-testsnot
+casePASS;correctedactual1eachincluded9. Docs/progress/diffchecked.
+Fresh006wide121/small79 EACHorigin38behaviorPASS/18valid18complete16main2title/
+8calls11ROsnapshots2natural0/nogrants/rootchildOnce/mixedDeny/relaunch effects.
+422files39842563logicalB/4exactsame-sidePNGaliases/2278516Barchive manualsingleXZ
+USTAR EVERYbyte inverse/meta/current713ELFs/119priorproofbyteMETA/recount PASS.
+32fullpairs64PNGs128000cells17264640pixels33431celldiff3918102pixeldiff28of32cursors.
+FourCOMPLETE600cellSettingsmodals/query/carets equal;ALL64wholecomparisonsDIFFERENT.
+Receipt evidence/tui/vis36-dialog-qualified.md; fullcommandgatebundle retained.
 
 ## Risks
 
-No wholeVIS36/R6/V09/T44PASS. Historical003flags/oldproofs unchanged; capturedproducer
-a8d7 separate fromdeliveryHEAD. Queryglyphstyles equal, odd-width dialogonecolumn
-offset stillvisible; notallSettingsdiffs attributedtofilter. SQLiteRO notCoreEvent/
-syscallproof; realtypedowner ordering separate. No oldepisode replay/mask/tolerance.
-OwnactualFAILEDmodel00669files3dirmeta losslessPAXinverse/FAILEDpointer/reserve passed;
-5632000allocatedB reclaimed onlyverifiedduplicate. model003PASSbehaviorDIFFERENT safe.
-Post004report actualallocation1069088768/headroom4653056 BEFOREreceipt/gatebundle,
-finalrecount authoritative/additivevis36scope. Same1GiB/16MiBfileencoded128MiBTAR/
-logical2000members/dict16decoder32/hardAS384/noqualifieddeletion/offload/capraise.
+No wholeVIS36/R6/V09/T44PASS. Old005flags/data immutablehistorical; producer4889
+separatefromdeliveryHEAD. SQLRO notCoreEvent/syscallproof, typedownerorderingseparate.
+No replay/mask/crop/tolerance/clockcursorfake. OwnFAILEDmodel00882files3dirmeta
+losslessPAXinverse/FAILEDpointer/3MiBreserve;4214784allocatedB reclaimedonlyverified
+duplicate; model007PASSbehaviorDIFFERENTsafe. Pre-deliveryactualallocation1070067712/
+headroom3674112; finalrecount authoritative/additivevis36scope. Capsunchanged1GiB/
+16MiBfileencoded128MiBTARlogical2000/dict16decoder32/hardAS384/noqualifieddelete/
+offload/reencoding/capraise. Othertranscript/tool/footer differences stillobserved.
 
 ## Next
 
-Exactreview/ordinarycommit/push major slice. Sourceverify/fixodd-widthDialogSelect
-centering with sharedowner/fullframes/cursor; preserve currentfilterpriority/draft.
-Continue ALL frozenR1–R6/VIS01–45/supplements; finalcurrent-sourceR6/V09/fullclosure
-mandatory. Do not finish on local behavioral PASS.
+Exactreview/ordinarycommit/pushmajor. SourcecheckobservedemptyShellsuccessresult
+againstfrozenTUIcontract, then ALL remainingR1–R6/VIS01–45/supplements and final
+current-sourceR6/V09. Do notfinishonlocalmodalqualification.
 
 
 Ready (до 5): T58, T59

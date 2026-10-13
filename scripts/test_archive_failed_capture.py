@@ -30,7 +30,7 @@ class FailedCaptureArchiveTests(unittest.TestCase):
                 yield root, quota
 
     def test_explicit_model_shell_preflight_requires_actual_failure_not_pixel_difference(self):
-        for campaign in ("model-shell-001", "model-shell-002", "model-shell-004", "model-shell-005", "model-shell-006"):
+        for campaign in ("model-shell-001", "model-shell-002", "model-shell-004", "model-shell-005", "model-shell-006", "model-shell-008"):
             with self.subTest(campaign=campaign), self.failed_campaign(campaign) as (root, _), \
                     patch.object(sys, "argv", ["archive", campaign]):
                 before = archive.snapshot(root)

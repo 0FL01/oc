@@ -1228,3 +1228,42 @@ finalactualrecount authoritative/additivevis36scope. Same1GiB/16MiB/128MiB/2000/
 dict16decoder32/hardAS384, noqualifieddeletion/offload/reencoding/capraise.
 Next odd-width dialog geometry via existingowner; all frozen R1–R6/VIS01–45/
 supplements and finalcurrent-sourceR6/V09 still required. No finish on this slice.
+
+### 2026-10-13 — VIS36 shared dialog geometry / footer roles qualified, T44 active
+
+Actual121-columnOriginalmodalleft31/native30 provedsharedhalfcellcenteringgap.
+DialogFrame nowceil-divideshorizontalremainder, retainingwidth/vertical/clipping;
+paint/caret/hitownersallshared. Real79/80/120/121+narrow/nonzero/largerareas tested.
+Fresh005 pairedgeometry/query/caret matched; retainedfourhint-cellresidual then
+fixedSettingsownedFooterHint roles: boldbase←/→,baseunboldspace,mutedchange.
+MCP/Sessionsfootersunchanged;no coordinate/numericFGhack/newDTO/policy/RAW/schema.
+
+Current006wide121/small79 fouractualsideprofiles38behaviorPASS/64wholePNGs and64
+strictcomparisons ALLDIFFERENT. FourCOMPLETE600cellSettingsmodal/query/carets match,
+includinghint;regionaldiagnosticNOTsubstitutionforwholeframe. Full32pairs128000
+cells17264640pixels33431celldiff3918102pixeldiff28of32cursoragree,notpixelPASS.
+Each18valid18complete16main2title8calls11ROsnapshots2naturalexit0/nogrants/rootchild
+Once/mixedDeny/CLIrelaunch effects intact. Relaunchfreshroot;SQLiteRO notCoreEvent/
+syscallproof, realtypedowner ordering separate. FullVIS36/R6/V09/T44 NOTPASS.
+
+Geometry-only005422originals/2273696Barchive immutableHISTORICALafterhintpatch.
+Current006422files39842563logicalB/4same-sideoriginalPNGaliases/2278516Barchive
+`f00c7062545f03de3d98db55171492a995d72d0e07f53c4e0129a443a252f667`.
+IndependentmanualsingleXZUSTAR EVERYoriginal byte/meta/sourceELFs/helpers/119prior
+proofbyteMETA/fullrecount PASS underhardAS384MiB. No oldepisode replay/mask/tolerance.
+Source713`4a0a41038113d4a346cfd948953b311152131194867b79ce2b8270f67f4b6cf8`;
+native`3b40d0b2d715fb104371a7d57ab6c90b351eda52b68b749405ebbda0b90607b2`.
+Producer4889separatefromdeliveryHEAD;oldproofflags/data/receipts notrewritten.
+
+Actualcurrentworkspace1866/0/11unchangedignore46targets/TUI532/PTY58,strictClippy/
+fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/Python70 PASS.
+FirstS07/DCPexactfiltersZEROtests honestnotcasePASS; correctedactual1eachincluded9.
+Compile/test-localtoken/observerarity/count failures allretained, no threshold/
+deadline/baseline/ignore/validationweakening. Fullcommandgatebytes manualinverse.
+OwnactualFAILEDmodel00882files3dirmeta PAXbyteinverse/FAILEDpointer/3MiBreserve;
+onlyverifiedredundantprivatecopyremoved. 4214784allocatedB reclaimed;model007
+PASSbehaviorDIFFERENTnotFAILED. Pre-deliveryallocation1070067712/headroom3674112,
+finalrecountauthoritative/additivevis36scope/same1GiB16/128MiB2000/dict16decoder32/
+hardAS384/noqualifieddeletion/offload/reencoding/capraise. Receipt
+`evidence/tui/vis36-dialog-qualified.md`. Continue observedShellsuccesspresentation
+and ALL frozenR1–R6/VIS01–45/supplements/finalcurrent-sourceR6/V09, no taskfinish.

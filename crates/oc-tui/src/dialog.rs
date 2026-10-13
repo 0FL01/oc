@@ -39,7 +39,8 @@ impl DialogFrame {
         let width = wanted.min(area.width.saturating_sub(2));
         let top = area.y + area.height / 4;
         Rect::new(
-            area.x + (area.width - width) / 2,
+            // The pinned centered flex box rounds a half-cell origin rightward.
+            area.x + (area.width - width).div_ceil(2),
             top,
             width,
             height.min(area.bottom() - top),
@@ -789,6 +790,28 @@ impl SelectList {
                     y,
                     6,
                     "ctrl+a",
+                    Style::default().fg(muted),
+                );
+            } else if title == "Settings" {
+                // DialogConfig supplies a semantic FooterHint: the shortcut
+                // title is bold/base, its layout separator is unbolded/base,
+                // and the description remains muted.
+                let y = area.y + 6 + height as u16;
+                line(
+                    frame,
+                    area.x + 4,
+                    y,
+                    3,
+                    "←/→",
+                    Style::default().fg(text).add_modifier(Modifier::BOLD),
+                );
+                line(frame, area.x + 7, y, 1, " ", Style::default().fg(text));
+                line(
+                    frame,
+                    area.x + 8,
+                    y,
+                    area.width.saturating_sub(12),
+                    "change",
                     Style::default().fg(muted),
                 );
             } else {

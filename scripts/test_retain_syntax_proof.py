@@ -18,33 +18,42 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         self.assertEqual(len(roots), 9)
         current = proof.vis36_auto_roots(True)
         self.assertEqual(set(current), {"current", "current-logs", "current-driver"})
-        for attempt, profile in (("001", "cli-wide"), ("002", "cli-wide-r2"), ("003", "cli-wide-r3"), ("004", "cli-wide-r4")):
+        dialog = proof.vis36_auto_roots(True, "005")
+        self.assertEqual(set(dialog), {"current-wide", "current-small", "current-logs", "current-driver"})
+        dialog_final = proof.vis36_auto_roots(True, "006")
+        self.assertEqual(set(dialog_final), set(dialog))
+        for attempt, profile, columns in (("001", "cli-wide", 121), ("002", "cli-wide-r2", 121),
+                                         ("003", "cli-wide-r3", 121), ("004", "cli-wide-r4", 121),
+                                         ("005", "cli-wide-r5", 121), ("005", "cli-small-r5", 79),
+                                         ("006", "cli-wide-r6", 121), ("006", "cli-small-r6", 79)):
             period = "current" if attempt in ("003", "004") else "failed-" + attempt
-            selected = current if attempt == "004" else roots
+            if attempt in ("005", "006"):
+                period = "current-wide" if columns == 121 else "current-small"
+            selected = dialog_final if attempt == "006" else dialog if attempt == "005" else current if attempt == "004" else roots
             self.assertEqual(selected[period], proof.TEMP / ("vis36-mode-current-" + attempt) / profile)
-            self.assertEqual(selected[period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
+            self.assertEqual(selected["current-driver" if attempt in ("005", "006") else period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
                     "upstream": {"executable_path": original}, "runner_hashes": hashes,
                     "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
-                    "profile": {"columns": 121, "rows": 40}}
+                    "profile": {"columns": columns, "rows": 40}}
             argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original, "--oc", native,
                     "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
-                    "--permission", "true", "--permission-mode", "auto-cli", "--columns", "121", "--rows", "40",
+                    "--permission", "true", "--permission-mode", "auto-cli", "--columns", str(columns), "--rows", "40",
                     "--output", str(selected[period])]
             commands = [{"role": "capture runner invocation", "argv": argv},
                         {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
-            proof.check_vis36_auto_build(lock, manifest, commands, attempt)
+            proof.check_vis36_auto_build(lock, manifest, commands, attempt, profile)
             for addition in (["--permission-mode", "prompt"], ["--question-forms", "true"], ["--output", "/foreign"]):
                 bad = json.loads(json.dumps(commands))
                 bad[0]["argv"] += addition
                 with self.assertRaises(ValueError):
-                    proof.check_vis36_auto_build(lock, manifest, bad, attempt)
+                    proof.check_vis36_auto_build(lock, manifest, bad, attempt, profile)
             with self.assertRaises(ValueError):
-                proof.check_vis36_auto_build(lock, manifest, commands + commands[1:], attempt)
+                proof.check_vis36_auto_build(lock, manifest, commands + commands[1:], attempt, profile)
             with self.assertRaises(ValueError):
-                proof.check_vis36_auto_build(lock, manifest, commands, "005")
+                proof.check_vis36_auto_build(lock, manifest, commands, "007", profile)
             with self.assertRaises(ValueError):
-                proof.check_vis36_auto_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, attempt)
+                proof.check_vis36_auto_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, attempt, profile)
 
     def test_vis37_builder_rejects_cross_mode_duplicate_build_and_unsealed_fixture(self):
         hashes = {name: "a" * 64 for name in ("capture.mjs", "tool_preview.mjs", "tool_preview_fixture.py",

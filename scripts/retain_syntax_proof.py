@@ -973,7 +973,13 @@ def vis37_form_checks(files, current_only=False, current_attempt="004"):
     return reports
 
 
-def vis36_auto_roots(current_only=False):
+def vis36_auto_roots(current_only=False, current_attempt="004"):
+    require(current_attempt in ("004", "005", "006"), "fixed current VIS36 acquisition")
+    if current_only and current_attempt in ("005", "006"):
+        root = TEMP / ("vis36-mode-current-" + current_attempt)
+        suffix = "r" + str(int(current_attempt))
+        return {"current-wide": root / ("cli-wide-" + suffix), "current-small": root / ("cli-small-" + suffix),
+                "current-logs": root, "current-driver": TEMP / ("vis36-mode-capture-" + suffix + ".py")}
     profiles = {"004": "cli-wide-r4"} if current_only else {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
     roots = {}
     for attempt, profile in profiles.items():
@@ -984,9 +990,15 @@ def vis36_auto_roots(current_only=False):
     return roots
 
 
-def check_vis36_auto_build(lock, manifest, commands, attempt):
-    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3", "004": "cli-wide-r4"}
+def check_vis36_auto_build(lock, manifest, commands, attempt, profile=None):
+    profiles = {"001": {"cli-wide": 121}, "002": {"cli-wide-r2": 121},
+                "003": {"cli-wide-r3": 121}, "004": {"cli-wide-r4": 121},
+                 "005": {"cli-wide-r5": 121, "cli-small-r5": 79},
+                 "006": {"cli-wide-r6": 121, "cli-small-r6": 79}}
     require(attempt in profiles, "fixed VIS36 auto acquisition")
+    profile = profile or next(iter(profiles[attempt]))
+    require(profile in profiles[attempt], "fixed VIS36 acquisition profile")
+    columns = profiles[attempt][profile]
     argv = commands[0]["argv"]
     require(commands[0].get("role") == "capture runner invocation" and len(argv) >= 2 and
             argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
@@ -996,12 +1008,12 @@ def check_vis36_auto_build(lock, manifest, commands, attempt):
     expected = {"--reference": str(TEMP / "t44-reference/package/bin/opencode"),
                 "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
                 "--sample": "short", "--sidebar": "hide", "--permission": "true",
-                "--permission-mode": "auto-cli", "--columns": "121", "--rows": "40",
-                "--output": str(TEMP / ("vis36-mode-current-" + attempt) / profiles[attempt])}
+                "--permission-mode": "auto-cli", "--columns": str(columns), "--rows": "40",
+                "--output": str(TEMP / ("vis36-mode-current-" + attempt) / profile)}
     require(len(options) == len(pairs) and options == expected and
             lock["oc"]["executable_path"] == options["--oc"] and
             lock["upstream"]["executable_path"] == options["--reference"] and
-            (lock["profile"]["columns"], lock["profile"]["rows"]) == (121, 40),
+            (lock["profile"]["columns"], lock["profile"]["rows"]) == (columns, 40),
             "fixed VIS36 options, paths and geometry")
     require(all(lock["runner_hashes"][name] == manifest["scripts/tui_capture/" + name]
                 for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",
@@ -1057,18 +1069,21 @@ def check_vis36_auto_facts(checks, protocol, side, fixture_model="gpt-fixture-mo
             "title_requests": 2, "tool_calls": 8, "readonly_snapshots": 11, "natural_exits": 2}
 
 
-def vis36_auto_checks(files, current_only=False):
+def vis36_auto_checks(files, current_only=False, current_attempt="004"):
     reports = []
-    episodes = (("current", "004"),) if current_only else (("failed-001", "001"), ("failed-002", "002"), ("current", "003"))
-    for prefix, attempt in episodes:
+    require(current_attempt in ("004", "005", "006"), "fixed current VIS36 acquisition")
+    episodes = tuple(("current-" + profile, current_attempt, "cli-" + profile + "-r" + str(int(current_attempt)))
+                     for profile in ("wide", "small")) if current_only and current_attempt in ("005", "006") else (
+        (("current", "004", None),) if current_only else (("failed-001", "001", None), ("failed-002", "002", None), ("current", "003", None)))
+    for prefix, attempt, profile in episodes:
         read = lambda relative: json.loads(files[prefix + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
         check_source_manifest(lock, manifest, 713)
-        check_vis36_auto_build(lock, manifest, read("commands.json"), attempt)
-        require(len(lock["captures"]) == {"001": 18, "002": 4, "003": 32, "004": 32}[attempt] and
-                len(lock["attempts"]) == {"001": 34, "002": 9, "003": 32, "004": 32}[attempt],
+        check_vis36_auto_build(lock, manifest, read("commands.json"), attempt, profile)
+        require(len(lock["captures"]) == {"001": 18, "002": 4, "003": 32, "004": 32, "005": 32, "006": 32}[attempt] and
+                len(lock["attempts"]) == {"001": 34, "002": 9, "003": 32, "004": 32, "005": 32, "006": 32}[attempt],
                 "all failed and current whole frames retained")
-        current = attempt == ("004" if current_only else "003")
+        current = attempt == (current_attempt if current_only else "003")
         if current:
             check_current_source(manifest)
             for side in ("oc", "upstream"):
@@ -1286,14 +1301,14 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("vis36-auto", "vis36-settings"):
-        ROOTS = vis36_auto_roots(args.campaign == "vis36-settings")
+    if args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6"):
+        ROOTS = vis36_auto_roots(args.campaign != "vis36-auto", "006" if args.campaign == "vis36-dialog-r6" else "005" if args.campaign == "vis36-dialog" else "004")
     elif args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
         ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
     elif args.campaign == "vis37":
@@ -1377,8 +1392,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign in ("vis36-auto", "vis36-settings"):
-            return vis36_auto_checks(files, args.campaign == "vis36-settings")
+        if args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6"):
+            return vis36_auto_checks(files, args.campaign != "vis36-auto", "006" if args.campaign == "vis36-dialog-r6" else "005" if args.campaign == "vis36-dialog" else "004")
         if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
             return vis37_form_checks(files, args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
         if args.campaign == "vis37":
