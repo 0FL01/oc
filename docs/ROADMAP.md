@@ -16,13 +16,15 @@
 
 **M6: Квалификация и handoff.** См. `roadmap/M6.md`.
 
+**M8 additions: local service / hot reload.** [T61](goals/2026-10-14-hot-reload-shared-service.md), approved 2026-10-14; one task/five slices, HOT01–HOT04 and final T30 dependency. Registration todo/implementation NOT_STARTED, no active-task switch.
+
 **M10: Укрупнённые code slices для agent-only разработки.** См. `roadmap/M10.md`, task T52. Это структурная работа без нового product scope, смены baseline и расширения A01–A13.
 
 ## Порядок работы
 
-Утверждённое исключение для первого прохода T52: после явного resume с этой задачей выполнить её до нового функционального роста затрагиваемых T44/T45/T46/T50/T51 owners. T44 сейчас active/PAUSED; её состояние не подменять автоматическим стартом T52. Порядок pause/start/resume — в `roadmap/M10.md`. Не добавлять зависимости T44 → T52 или T52 → done T44: это не минимальные feature prerequisites и ломает текущий active-state. T30 получает done-dependency T52; завершённые задачи/исторические PASS не переписываются.
+Утверждённое исключение для первого прохода T52: после явного resume с этой задачей выполнить её до нового функционального роста затрагиваемых T44/T45/T46/T50/T51 owners. Это исторический порядок первого прохода, не текущее состояние задач; actual active/status берутся только из progress/STATE.json, без автоматического start/resume. Порядок pause/start/resume — в `roadmap/M10.md`. Не добавлять зависимости T44 → T52 или T52 → done T44: это не минимальные feature prerequisites и ломает текущий active-state. T30 получает done-dependency T52; завершённые задачи/исторические PASS не переписываются.
 
-Выбирать первый ready task по ID, но при blocked live/network task продолжать независимые offline задачи. Например, отсутствие ключей блокирует T16/T27, но не DCP/MCP fake suite/TUI/soak. Никакой обязательной реализации serve/attach, OAuth, migration или Code Mode в этом графе нет.
+Выбирать первый ready task по ID, но при blocked live/network task продолжать независимые offline задачи. Например, отсутствие ключей блокирует T16/T27, но не DCP/MCP fake suite/TUI/soak. Исходные exclusions уточняются dated owner amendments: T57 OAuth, T60 Code Mode и T61 local shared service/hot reload обязательны в своих узких контрактах. General HTTP/remote serve/attach parity и migration/importer не добавляются; planning registration не runtime PASS.
 
 До каждого stage только кратко уточнить ближайший task: affected modules, failing test, done condition. Не переписывать весь roadmap до функций. Новый действительно необходимый task требует rationale, dependency/test mapping и обновления registry, не неограниченный backlog.
 

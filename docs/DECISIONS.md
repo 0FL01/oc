@@ -18,7 +18,7 @@ Configured workspace добавлен владельцем в первый daily
 
 ## Defaults этой редакции, не ответы владельца задним числом
 
-D01: четыре packages и небольшой typed application API; бинарник oc, namespace oc-rs. Local TUI/headless; serve/attach отложены.
+D01: четыре packages и небольшой typed application API; бинарник oc, namespace oc-rs. Local TUI/headless. Local shared service добавлена D25/T61 (pending); general HTTP/remote serve/attach остаются вне scope.
 
 D02: один native Responses adapter, explicit projection/store:false, no previous_response_id в первом scope. Основан на OpenAI package/default family и observed proxy route; exact replay проходит wire spike. Chat Completions не добавлять «на всякий случай».
 
@@ -36,7 +36,7 @@ D08: рабочая ветка `agent/oc-rust-port` от текущего сог
 
 D09: нет большого монолитного progress log. Один маленький state, current handoff, indices и immutable factual leaves. No RAG, embeddings, database или новый agent framework для планирования.
 
-D10: одна immutable config generation на turn. Skills snapshot-ятся bounded при построении generation и раскрывают body только через native tool result; primary agents могут только сужать central policy; commands проходят ровно один durable SubmitInput. Location switch выбирает Location-scoped session, не перепривязывает активную session.
+D10: baseline — одна immutable config generation на turn; D25/T61 supersedes same-Location config adoption только на fresh request boundary, issued request/full batch immutable (pending). Skills snapshot-ятся bounded при построении generation и раскрывают body только через native tool result; primary agents могут только сужать central policy; commands проходят ровно один durable SubmitInput. Location switch выбирает Location-scoped session, не перепривязывает активную session.
 
 T50/D20 adds a distinct durable same-session move; ordinary Location switch and
 in-flight immutable generation remain as above. Only permanent binding is superseded.
@@ -216,6 +216,35 @@ default into Code Mode like the donor; `codemode:false` keeps them direct. Neste
 `fetch` are admitted through the ordinary runtime owners (`admit_tool`, MCP lease,
 `webfetch` guards) under the `execute` operation. Resource guards are always on. This
 supersedes D04 only; `opencode_*` stay direct (T50). Contract: T60 spec.
+
+### D25 — local shared service и request-boundary hot reload (approved 2026-10-14; pending)
+
+Owner explicitly includes shared service after RECON and approves the audited minimal
+plan: [T61](goals/2026-10-14-hot-reload-shared-service.md), HOT01–HOT04, one task/five slices.
+One native host/Tokio/Db write/root-lock owner, bounded canonical-Location state, one
+foreground root per Location; no same-Location scheduler. Existing guarded read-only
+catalog SQLite helper stays allowed and does not become a second application owner.
+Unix socket/closed operation DTOs preserve shipped frontend capabilities; no public
+HTTP/SDK/remote parity. Detach, scoped interaction/PTY authority, durable admission
+lookup, explicit resnapshot and joined restart are required before managed defaults.
+
+One atomic source publication plus issued request/full-batch leases replaces idle-only
+same-Location config reload. Root/child fresh preparation adopts validated config,
+selection/history/authority coherently; child immutable launch ceiling and source
+Location persist. Prepared retry and auxiliary summary stay captured; fresh settled
+preparation re-admits. No latest-counter rejection of valid old work or effect replay.
+
+One watcher/manual pipeline and persistent Location MCP supervisor; unchanged auto
+reuse, per-instance lease retirement, shared sticky safety and incarnation fencing.
+Fatal validation/discovery retains complete last-good; optional service isolation and
+fatal caps/cleanup unchanged. Manual all-loaded forced reload reports config publication
+separately from pending connections; typed Reloaded settles affected unresolved waits,
+not whole-turn cancel. Client settings/env/persistence separate from shared services.
+
+Supersedes only D01 daemon exclusion, D10/old lifecycle whole-turn config pinning and
+D23's unchanged-config limitation; session_move, RAW/HOT/provenance, no-JS-host, all
+permission/security/retry/resource guarantees and existing test ownership remain.
+Task todo/implementation NOT_STARTED, gates NOT_RUN; no status/evidence rewrite.
 
 ## Остаточные prerequisites, не новые Q
 

@@ -51,7 +51,7 @@ and independent approved plans at a safe journal handoff. Preserve unrelated tas
 states/user data; no finish until the complete contract and current evidence pass.
 
 
-Ready (до 5): T58, T59, T60
+Ready (до 5): T58, T59, T60, T61
 Blocked: T27, T45, T57
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

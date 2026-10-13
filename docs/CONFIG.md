@@ -2,7 +2,7 @@
 
 ## Разделение файлов
 
-Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.opencode`, ordered `AGENTS.md`, local skill/agent/command definitions, `dcp.jsonc/json`. Global `cli.json` — отдельный read-only TUI domain: он не является project config и не участвует в runtime-config precedence. Native controls: `oc-rs.toml`. Никаких runtime writes в исходные configs, auto-install packages или credential migration.
+Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.opencode`, ordered `AGENTS.md`, local skill/agent/command definitions, `dcp.jsonc/json`. CLI `cli.json/jsonc` — отдельный presentation domain, не runtime `opencode` config. Native код читает admitted G → Location → .opencode, JSON перед JSONC, с runtime fallbacks; project CLI layers — native extension, не donor global-only поведение. Client ownership/watch/inline overlay — pending T61 ниже. Native controls: `oc-rs.toml`. Никаких автоматических runtime-config rewrites, auto-install packages или credential migration; explicit permission-preference persistence остаётся узким отдельным owner action.
 
 В supplied примере provider snippet был фрагментом с лишними завершающими скобками/запятыми. `examples/opencode.jsonc` — заново собранный валидный полный пример, не побайтная копия; URL/keys остаются env references. Модели в основном примере не зафиксированы. Static модели из Q01 сохранены отдельно как fixture `examples/static-models.user.json` с отметкой «пользовательские metadata, не проверенные публичные спецификации».
 
@@ -99,6 +99,47 @@ Selected-model/provider readiness is separate from local availability. Discovery
 deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
 joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
+
+## Hot reload и shared service — T61 approved target, NOT_STARTED
+
+Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md); commands ниже —
+планируемый интерфейс, не claim текущей реализации. Существующий `/reload` пока idle-only.
+
+| Изменение | Применение после T61 |
+|---|---|
+| Admitted opencode.json(c), agents/commands/skills, instructions, DCP/native-module settings и admitted file substitutions | Automatic validated publication; следующая fresh preparation той же задачи, не mid-stream/tool batch |
+| MCP command/URL/headers/cwd/env/disabled | Reconcile affected instances, unchanged auto reuse; old leased batch finishes before cleanup/replacement, actual tools after handshake |
+| `/mcps` connect/disconnect/retry | Runtime control actual Location owner; сохранение намерения в config отдельно; auto no-op его не сбрасывает |
+| `oc reload` / `/reload` | Force discovery/services для already-loaded Locations, не boot cwd; config publication/pending/failure отдельны, per-Location atomicity |
+| Native CLI settings/theme/keybinds | Independent client watch/last-good UI snapshot, no provider/MCP rebuild |
+| Новый binary/server process env | `oc service restart`; TUI environment изменяется только при restart самого TUI |
+
+Один native service/root-lock owner; TUI/run/auth/sessions/control attach, client exit
+не service shutdown. `oc service start|status|stop|restart`; status/help/models не
+auto-spawn. `--standalone` использует тот же runtime privately, занятый root даёт
+DataRootBusy, не второй store. Unix socket local IPC, не general HTTP API/SDK parity.
+
+Fatal config/security/mandatory definition/discovery failure сохраняет complete
+last-good; valid removal saved agent/model/variant сохраняет exact unavailable identity
+и запрещает next dispatch без fallback. Optional service failures и cap/cleanup errors
+сохраняют existing isolation versus non-success. Watch re-arm/rescan после overflow,
+root recreation и readiness; no dotenv discovery/новых ancestor config roots.
+
+CLI target сохраняет native G/Location/.opencode JSON→JSONC precedence/runtime fallbacks,
+затем captured client `OPENCODE_CLI_CONFIG_CONTENT` overlay last. Добавляются actual CLI
+consumers animations/terminal.copy. Supported theme — compiled opencode, dark/light/
+system (known terminal mode, deterministic dark fallback при unknown), без external
+palette documents. Donor binding shapes поддерживаются для implemented actions с
+реальной заявленной event/fallthrough semantics; unsupported options diagnostic, не
+silent flatten. Invalid settings retain last-good, deletion restores admitted fallback.
+Shared-file changes независимо видят все использующие его TUI; inline env/consumer
+state не shared defaults. Preference-file persistence client-owned; permission mode
+идёт scoped execution command, `--auto` не authorizes чужие pending asks.
+
+OpenProxy discovery остаётся существующим bounded native механизмом с original local
+model overrides; manual reload forces refresh, failure не заменяется partial/default
+catalog. Нет periodic /models polling, environment mutation живого процесса или
+произвольного plugin-code reload. Quota/sidebar refresh не пересоздаёт services.
 
 ## MCP/permissions compatibility — approved 2026-10-02
 

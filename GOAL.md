@@ -36,7 +36,7 @@
 
 **A12 HANDOFF:** `evidence/FINAL.md` содержит code commit, команды проверки, отдельный результат каждого A-gate, supported differences, инструкцию запуска и известные ограничения. Лицензии и provenance DCP/upstream сохранены до push производного кода. Нет обещания full OpenCode parity.
 
-**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. Один turn использует одну immutable Location/config generation; switch сохраняет global и полностью убирает старое project-local состояние. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Унаследованные OpenCode TS конфиги/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG10, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
+**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. До T61 один turn использует одну immutable Location/config generation; утверждённый T61 target ниже переносит same-Location config adoption на fresh request boundary, сохраняя issued request/full tool batch. Switch сохраняет global и убирает старое project-local состояние; session_move остаётся отдельным turn boundary. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Унаследованные OpenCode TS конфиги/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG10, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
 
 Детальные test IDs и методики: `docs/TEST_PLAN.md`. Задачи/зависимости: `planning/tasks.json`.
 
@@ -50,7 +50,7 @@
 
 ## Вне этого goal
 
-OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), служба serve/attach и HTTP parity, web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
+OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), общий HTTP/remote serve/attach parity (локальная shared service включена T61, 2026-10-14), web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
 
 ## Owner scope amendment (2026-09-21)
 
@@ -937,3 +937,43 @@ attach) не меняются: `execute` — confined interpreter, не plugin h
 ## Исполнение
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.
+
+## Owner amendment (2026-10-14 — hot reload и native shared service; pending)
+
+После RECON и параллельного read-only аудита владелец утвердил исправленный план и
+commit/push текущей ветки; явно выбрал **также shared service**, не watcher-only TUI.
+[T61/R1–R5](docs/goals/2026-10-14-hot-reload-shared-service.md) — один task, пять срезов,
+четыре detailed gates HOT01–HOT04. T24 idle-only reload, T46 lifecycle и T51 last-good
+остаются completed baselines, не доказательством новой реализации. T30 требует T61.
+
+- Native service: один process/Tokio/Db write/root-lock owner, bounded Location map,
+  current single-flight foreground root per Location; different Locations independent,
+  children unchanged. Unix socket/typed local operations, не public HTTP/SDK parity.
+  TUI/headless/control клиенты, `oc service start|status|stop|restart`, `oc reload`,
+  `oc mcp list`; detach не shutdown. Existing read-only catalog SQLite helper разрешён.
+- Automatic admitted config/definitions/native-module updates и manual reload идут
+  одним validated pipeline. Whole last-good при fatal input/discovery failure;
+  optional service failures изолированы. Explicit reload forces all loaded Locations,
+  receipt различает published/services pending/failure; per-Location atomicity.
+- Fresh preparation той же задачи получает новую coherent source publication;
+  issued stream/approval/full tool batch/outcomes immutable. Prepared retry pinned,
+  fresh settled retry/continuation re-admitted; summary pinned до конца. Child current
+  view только внутри launch ceiling; source Location и move boundaries не меняются.
+  Compatible latest HOT/closed pairs остаются, RAW/labels не переписываются, unknown
+  effects не повторяются. Publication counter не restart authorization.
+- Один MCP supervisor per Location: unchanged auto reuse, changed/removed retired
+  instances доступны только issued leases; затем confirmed cleanup/replacement.
+  Late completions fenced, sticky quarantine shared даже для late old-call unknown;
+  caps/cleanup non-success. Auto сохраняет valid pending interactions; manual завершает
+  только affected unresolved interaction typed Reloaded, не whole task/user cancellation.
+- Client settings отдельно: native precedence/fallbacks + captured inline client env,
+  supported theme/binding subset, narrow UI application/complete palette propagation;
+  no provider/MCP rebuild или draft/selection/live-state reset. Consumers/--auto/SIGINT/
+  PTY controls scoped до shared defaults; lost ACK reconciles durable admission без replay.
+  Новый server binary/env — service restart; client env — restart клиента.
+
+Superseded узко daemon exclusion и whole-turn **same-Location config** pinning, включая
+старую оговорку model-switch D23; HTTP/remote/plugin-host exclusions, session_move,
+security/history/DCP/retry/cleanup/AGPL и mandatory live/visual owners сохраняются.
+Новых scheduler/store/framework/paid campaigns нет. T61 todo/NOT_STARTED, HOT01–HOT04
+NOT_RUN; эта плановая доставка не start/resume/finish других задач и не runtime PASS.

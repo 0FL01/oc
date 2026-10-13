@@ -45,6 +45,68 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
+## Hot reload / native shared service — T61/HOT01–HOT04 (approved 2026-10-14; pending)
+
+Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md). Four cohesive
+scenarios, only T61 owns them; not one gate per field/layer or a new paid campaign.
+
+- **HOT01 — request/authority/history.** Held provider stream and tool/approval prove
+  issuing G1 config/provider/profile/catalog/output limits/redactions/instructions,
+  full batch and durable outcomes remain G1; next fresh preparation SAME task uses G2,
+  no new user input. Composite child/retry/partial continuation/summary barriers prove
+  declared pinned-versus-fresh boundaries, exact unavailable selection, source-scoped
+  launch ceiling, once-only closed outcomes/latest HOT/no forgotten archive reads.
+  Include valid old approval/read/instruction CAS/rename/move, no latest-counter false
+  refusal; optional new request provenance reads old logs/restart without relabelling.
+- **HOT02 — watch/MCP pipeline.** Real atomic saves/create/delete/recreate/recursive
+  definitions/admitted substitution files, readiness/overflow re-arm+rescan and burst
+  coalescing. Mandatory malformed candidate retains ALL G1 fields and starts no rejected
+  MCP effects; correction recovers. Auto semantic no-op/unchanged entries cause zero
+  discovery/reconnect, preserving manual control state; manual force cannot be lost.
+  Held MCP call keeps old instance; new requests omit retired tools, pending retirement
+  visible, replacement only after lease release/confirmed cleanup. Late incarnation
+  completions/control, optional handshake failure, fatal aggregate cap/cleanup, late
+  unknown quarantine and repeated edits stay truthful/bounded. Explicit reload settles
+  affected unresolved interaction once as Reloaded, not entire task/user cancel.
+- **HOT03 — actual service processes.** Cold concurrent clients elect ONE write/root
+  owner; different Location routing independent, second foreground root SAME Location
+  TurnBusy before durable input. Detach preserves work; lost acceptance ACK reconciles
+  admission token without duplicate dispatch. Consumer detach/reconnect, competing reply,
+  own SIGINT, --auto and one PTY controller prove no cross-session authority/cancellation.
+  Slow/oversized clients/gaps resnapshot active work/interactions/output with bounded
+  queues. Root recovery once, safe children by stored Location; kill/restart unknown
+  effects no replay. Auth-only broken-project startup, sessions while store owned,
+  help/models/status no spawn; standalone conflict; restart/version/election/stale path,
+  changed binary/env, cleanup failure and no overlapping root-lock holders.
+- **HOT04 — actual TUI settings.** PTY atomic valid/invalid/delete edits test native
+  precedence/runtime fallback/captured client overlay, compiled theme dark/light/system,
+  binding forms/events/leader reset and supported tabs/diffs/TPS/copy/animations. Palette
+  reaches transcript/dialog/approval/question/terminal and hit-testing/cache revision.
+  Preserve drafts/parked tabs/live parts/panels/selection/readiness through later server
+  snapshots. Shared-file changes reach matching clients, per-client overlays do not leak;
+  presentation edits have zero provider/MCP rebuilds. Permission persistence/consumer
+  scope remains a functional owner check, not cosmetic global autoaccept.
+
+Use existing owner unit modules and Cargo targets `application`, `configured_workspace`,
+`mcp_application`, `recovery_startup`, `pty_t39`, `pty_t42`, `terminals`, `memory_bounds`
+and auth suites; extend thematic modules, no file per case/new test framework. Reuse
+CFG02/04/05/06/07/09/10, DISC01–DISC10, MCP04/05/07–10, STORE02–05, TOOL09/10/11/12/19,
+DCP08/10/11, SUB01/02 and PRM01 regressions without second ownership or blanket full-task
+T44/T45/T57 dependencies. Busy-reload-refusal assertions become safe-boundary proofs,
+not deleted tests; existing move and model-switch contracts retain separate semantics.
+
+Run nearest gates per slice, affected crates at integration. Final composed current
+code requires workspace fmt/strict all-target clippy/locked tests, locked AND ordinary
+build/help plus rebuilt debug/release fixtures and clean HOME/XDG/no Node/Bun proof.
+Legacy owner-exit binary fixtures use explicit standalone where needed; service fixtures
+own stop/join even on failure. Freeze bounded workload before resource comparison;
+count connecting/live/retiring MCP, Location states, client bytes/tasks/FDs/processes,
+no linear retained growth. Existing mandatory live gates and T44 paired-visual owners
+remain; no new paid/visual campaign or runtime PASS from planning checks.
+
+Plan-only validation: progress reindex/check, check_docs and existing Python
+journal/docs regressions. HOT01–HOT04 implementation/qualification NOT_RUN.
+
 ## Customize-opencode — T58/SKILL01 (approved 2026-10-08; pending)
 
 Contract: [T58/R1–R3](goals/2026-10-08-customize-opencode-skill.md). SKILL01 owns the

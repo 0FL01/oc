@@ -510,7 +510,8 @@
         "T56",
         "T57",
         "T58",
-        "T59"
+        "T59",
+        "T61"
       ],
       "tests": [
         "OPS02",
@@ -918,6 +919,35 @@
       "work": "Owner amendment 2026-10-13: model-facing execute({code}) runs a JavaScript subset in a confined interpreter written in Rust (own lexer/parser, async evaluator, donor-shaped stdlib, regress RegExp), no JS engine/Node/Bun/host. MCP defaults into Code Mode as in donor v2.0.12; codemode:false keeps a server direct. Nested tools.* calls and fetch go through admit_tool/approval/MCP lease and the webfetch guard under the execute op. Resource guards always on. Declared differences in spec; live OpenProxy check NOT_RUN until executed.",
       "evidence": "evidence/T60/report.md",
       "spec": "docs/goals/2026-10-13-code-mode.md"
+    },
+    {
+      "id": "T61",
+      "phase": "M8",
+      "title": "Hot reload и native shared service",
+      "depends_on": [
+        "T24",
+        "T46",
+        "T51"
+      ],
+      "tests": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A10",
+        "A13",
+        "HOT01",
+        "HOT02",
+        "HOT03",
+        "HOT04"
+      ],
+      "work": "Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices. Coherent source publication and issued request/full-batch leases; fresh same-task root/child preparation, captured retry/summary boundaries and latest-HOT provenance. One admitted watcher/manual pipeline, whole last-good, persistent Location MCP supervisor with unchanged reuse/per-instance retirement/shared quarantine. Native local IPC service, one Db write/root-lock owner, bounded Locations and foreground-root single-flight per Location; durable admission lookup, scoped consumers/auto/SIGINT/PTY, recovery, detach/resnapshot/joined restart. Preserve guarded readonly models/no-spawn helpers. Independent client settings precedence/env overlay/theme/bindings, no cosmetic runtime rebuild. Composed actual debug/release fixtures and final gates; no HTTP/SDK parity, scheduler/store/framework/plugin host or paid campaign. Qualified seams, not whole T44/T45/T57 dependencies; T30 requires T61. Plan registration todo/implementation NOT_STARTED, other execution states and historical evidence unchanged.",
+      "evidence": "evidence/T61/report.md",
+      "spec": "docs/goals/2026-10-14-hot-reload-shared-service.md"
     }
   ]
 }

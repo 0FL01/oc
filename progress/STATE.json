@@ -422,6 +422,13 @@
       "latest": null,
       "evidence": null,
       "reopen_reason": null
+    },
+    "T61": {
+      "status": "todo",
+      "last_seq": 0,
+      "latest": null,
+      "evidence": null,
+      "reopen_reason": null
     }
   },
   "last_checkpoint_task": "T44"
