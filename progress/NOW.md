@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T07:11:12+00:00
+State updated: 2026-10-13T09:31:01+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,43 +14,42 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. Actual ordinary Prompt acquisition121/79 and completebyte
-retention qualified, notwholeVIS36/R6V09. No Rust/fixture/policy/RAW/schema/auth/env/
-config/productionchanges. SharedstrictVIS36builderextractionkeepsauto guards;
-source713cab6b76afc047dbeef6d195a26d00c8e6a555cf13ec2c7ffc547ff5434b188b2/
-native9a3486ca8f968b836f26c11cdbbff7257f69136c0409c9175d91e9855797ef93 unchanged.
+T44 ACTIVE_NOT_PASS. VIS41 hover overlay now paints independently of unchanged
+VIS44 busy close authority. Shell-onlyvisualhelperkeepsHome/modal/slot/clipping;
+publicclosecell/actionownerstillrefusesbusy. ActualheldPTYclickatpaintedcross
+keepssameturn/oneheldrequest/noabortorcontinuationandcompletesafterrelease.
+No RAW/policy/schema/auth/env/config/API/manifest changes/frozenShelloverrideintact.
 
 ## Checks
 
-NewrootPython71/docs/progress/diffPASS. Previousactualworkspace1868/0/11all46/
-strictClippyfmt/debugreleasehelps/actualrelease9applytoidenticalRustELFs,notnewruns.
-Bothorigins/profile112behaviorPASS/51wholeframes/26valid26complete24main2title/
-14calls34RO2natural0. Pendingpause/parkedHome/OnceRejectAlways/persistentgrant/
-restart/mixedDeny/MCP/childfeedback/readShell/globURL/Settingsmodefacts retained.
-Wide634files80629031logicalB3642052Barchive;small634files65643248logicalB3007408B.
-Per-profileunchanged128MiBguard/no omission. Everybyte/DIRmeta/sourceELFs/helpers/
-141priorproofbyteMETA/manualsingleXZUSTARinverse/fullrecountPASS. 102pairs204PNGs/
-408000cells55031040pixels182786cell9960403pixeldiff86of102cursors,ONEwholegrid/
-ONEwholePNGpairEQUAL. Wide102D/small100D2E(total202D2E,noBLOCKED).
-Receipt evidence/tui/vis36-prompt-qualified.md. VmPeak278667264/HWM228798464<AS384.
+Currentfullworkspace1868/0/11unchangedignore46targets/TUI534/PTY58,strictlocked
+Clippyfmt/debuglockedordinaryhelps/releaselockedhelp/ACTUALrelease9/Python71 PASS.
+Oldfull1866/2/11oldvisualassertionskept;onlycontractcontradictioncorrectedwithreal
+busyclickrefusalstrengthened/deadlinesuntouched. Current003121/79eachside112behavior
+PASS/51wholeframes26valid26complete24main2title14calls34RO2natural0. Every634byte/
+profile DIRmeta/sourceELFs/helpers/153priorproofbyteMETA/manualsingleXZUSTARinverse/
+fullrecountPASS. 102pairs204PNG408000cells55031040pixels182882cell9965501pixeldiff,
+86cursorsagree/ZEROwholeEQUAL/ALL204DIFFERENT. SixhoverglyphcellsstyledequalPAINTONLY.
+Receipt evidence/tui/vis41-busy-hover-qualified.md. InverseVmPeak282103808/HWM232566784.
 
 ## Risks
 
-No globalVIS36/R6V09/T44PASS. All51stagesfullstyledPNGcursor retained,no cropmask/
-tolerance/golden/cursorclockfake. NativeAlwaysapply_patch/approval.txt vsOriginal
-edit/*nottranslated;SQLno_startedproducerheuristicNOTCoreEvent/syscalltrace.
-Beforepost-save telemetryfailureknown/sealedinventoryseparatelyverifiedNOreplay/
-overwrite;allobserverfailuresretained. Pre-deliveryowned1063464960/headroom10276864
-of1GiB,finalactualrecountauthoritative. All16MiBfileencoded/128MiBTARlogical/2000/
-dict16decoder32/hardAS384/allprefixes+vis36unchanged/TMPseparate/nooffload/deletion.
-FrozenShellfee0123/RAWdenialcopyintact;producerfc2fseparatefromdeliveryHEAD.
+No wholeVIS41/VIS36/R6V09/T44PASS/no closeauthority from paintedcross. SQLpending
+no_startedsnapshotheuristicNOTCoreEvent/syscalltrace. NativeAlwaysapply_patch/
+approval.txtvsOriginaledit/*nottranslated. Source7135e668220ec03746993beada2a455af1dcf8e9fcd890446aae886acd42c7c5e16/
+native66a002312a9ad7942b0e567b3f6ff3da185e882f71eb19a5b0d9493271abbdb1.
+Old002proof/audit/flagsimmutableHISTORICALafterPTYtestchange/producerE6eseparate.
+OnlyownFAILEDtool-regression001losslesslyretained261files3DIRmeta/reclaimed28405760,
+reserve8MiB/qualified006andPASSrootsuntouched. Beforehumanreceipt/bundleowned
+1048711168of1073741824/headroom25030656;finalactualrecountauthoritative. All16file/
+encoded128TARlogical2000dict16decoder32hardAS384allprefixes+vis36capsunchanged.
 
 ## Next
 
-Reviewedordinarycommit/pushmajor. Sourceverifybusy-tabhovervisualglyphindependent
-fromcloseeligibilityperVIS41/VIS44;NOchangingbusy/permission/Location/lifecycle
-actionguards. ThenALLremainingfrozenR1–R6/VIS01–45/supplements/finalcurrentR6V09.
-Do notfinishonordinaryPromptlocalqualification.
+Reviewedordinarycommit/pushcheckedmajor. Generic MCP preview Tool(action) gap uses
+existingtypedrequest/previewowner,preservepolicyresources/grants/RAW/binding/cancel/
+redaction/previewlimits; no vendor heuristics/freeLLMparser/newstore/framework.
+ContinueALLfrozenR1–R6/VIS01–VIS45/supplements/finalcurrentR6V09; finishonlyfullcontract.
 
 
 Ready (до 5): T58, T59

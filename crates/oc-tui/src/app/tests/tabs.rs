@@ -1907,6 +1907,7 @@ async fn vertical_rail_drag_repaints_compact_geometry_without_tab_actions() {
 async fn busy_and_clipped_tabs_never_emit_close() {
     use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
     use ratatui::layout::Rect;
+    use ratatui::{Terminal, backend::TestBackend};
     let mut state = fresh_state("close-busy").await;
     let wide = Rect::new(0, 0, 80, 24);
     let mouse = |kind, x| MouseEvent {
@@ -1943,6 +1944,20 @@ async fn busy_and_clipped_tabs_never_emit_close() {
         .right()
         - 2;
     state.handle_mouse(mouse(MouseEventKind::Moved, x), wide);
+    let mut terminal = Terminal::new(TestBackend::new(wide.width, wide.height)).unwrap();
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "✕");
+    let busy_rect = crate::shell::tab_strip(&state, wide).unwrap().tabs[0].rect;
+    assert_eq!(state.tab_close_cell(wide, 0, busy_rect), None);
+    assert_eq!(
+        state
+            .handle_mouse(mouse(MouseEventKind::Down(MouseButton::Middle), x), wide)
+            .intent,
+        None,
+        "a visual hover cross does not grant busy-close authority"
+    );
     state.handle_mouse(mouse(down, x), wide);
     assert_eq!(
         state.handle_mouse(mouse(up, x), wide).intent,
@@ -1960,6 +1975,10 @@ async fn busy_and_clipped_tabs_never_emit_close() {
     );
     state.active_turn = Some(WorkerTurnId("busy-close".into()));
     state.handle_mouse(mouse(MouseEventKind::Moved, x), wide);
+    terminal
+        .draw(|frame| crate::shell::render(frame, &state))
+        .unwrap();
+    assert_eq!(terminal.backend().buffer()[(x, 0)].symbol(), "✕");
     assert_eq!(
         state.tab_close_cell(
             wide,
@@ -1973,6 +1992,7 @@ async fn busy_and_clipped_tabs_never_emit_close() {
         state.handle_mouse(mouse(up, x), wide).intent,
         Some(PanelIntent::ActivateTab { index: 0 })
     );
+    assert_eq!(state.active_turn, Some(WorkerTurnId("busy-close".into())));
     state.active_turn = None;
     let small = crate::shell::tab_strip(&state, narrow).unwrap().tabs[0].rect;
     assert_eq!(small.width, 4);

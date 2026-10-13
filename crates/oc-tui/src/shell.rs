@@ -790,7 +790,7 @@ fn render_deck_tabs(
             tab.index == active
         };
         let hovered = state.hovered_tab(frame.area()) == Some(tab.index);
-        let close = state.tab_close_cell(frame.area(), tab.index, tab.rect);
+        let close = state.tab_close_overlay_cell(frame.area(), tab.index, tab.rect);
         let attention = state.tab_attention_for(tab.index);
         if strip.compact && highlighted(tab.index) {
             // Static highlighted edges share the actual slot's clipped geometry;

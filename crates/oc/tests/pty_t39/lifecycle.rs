@@ -412,6 +412,7 @@ fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
         let began = Instant::now();
         let mut frames = std::collections::BTreeSet::new();
         let mut scrolled = false;
+        let mut hover_cross = false;
         // U56 capture: title width50 + gap3, first step600, return at4760,
         // leading tween settled at5010. Reader/scheduler jitter gets a margin.
         while began.elapsed() < Duration::from_millis(5500) {
@@ -423,10 +424,7 @@ fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
                 );
                 frames.insert(frame);
             }
-            assert!(
-                !row.contains(&'✕'),
-                "busy hover painted an ineligible close"
-            );
+            hover_cross |= row.get(30) == Some(&'✕');
             scrolled |= row.get(3).is_some_and(|&ch| ch != 'a');
             // Same-tab motion never restarts the captured 600/80 clock.
             if began.elapsed() < Duration::from_secs(1) {
@@ -435,6 +433,10 @@ fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
             std::thread::sleep(POLL);
         }
         assert!(scrolled, "animation setting cannot disable hover marquee");
+        assert!(
+            hover_cross,
+            "busy hover must retain the visual close overlay"
+        );
         assert_eq!(
             header(&pty).get(3),
             Some(&'a'),
@@ -445,6 +447,10 @@ fn vis39_vis41_real_pty_held_tab_spinner_and_one_cycle_marquee() {
         } else {
             assert_eq!(frames, ['⠋'].into_iter().collect());
         }
+        // The painted hover overlay does not grant busy-close authority.
+        // Click its actual one-based terminal cell while the response is held.
+        vis27_mouse(&mut pty, 0, 31, 1, 'M');
+        vis27_mouse(&mut pty, 0, 31, 1, 'm');
         assert!(!fixture.vis28_continue.load(Ordering::Relaxed));
         assert_eq!(
             fixture.requests.lock().unwrap().len(),

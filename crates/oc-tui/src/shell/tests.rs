@@ -1740,7 +1740,7 @@ async fn vis41_busy_hover_scrolls_without_close_and_vertical_compact_is_reachabl
         state.tab_close_cell(area, 0, tab_strip(&state, area).unwrap().tabs[0].rect),
         None
     );
-    assert_eq!(terminal.backend().buffer()[(30, 0)].symbol(), " ");
+    assert_eq!(terminal.backend().buffer()[(30, 0)].symbol(), "✕");
     let delay = state.next_ui_deadline().unwrap();
     assert!(state.tick_ui(delay));
     terminal.draw(|f| render(f, &state)).unwrap();
@@ -1918,7 +1918,7 @@ async fn retained_home_promotes_a_single_new_session_slot_and_consumes_a_row() {
 }
 
 #[tokio::test]
-async fn close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left() {
+async fn close_overlay_tracks_hover_without_relaxing_busy_close_and_title_fade_moves_left() {
     use crossterm::event::{KeyModifiers, MouseEvent, MouseEventKind};
     let mut state = golden_state().await;
     state.home = true;
@@ -1993,10 +1993,11 @@ async fn close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left() {
     state.home = false;
     state.handle_mouse(moved(first.x + 3), area);
     terminal.draw(|f| render(f, &state)).unwrap();
-    assert_ne!(
+    assert_eq!(
         terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
         "✕"
     );
+    assert_eq!(state.tab_close_cell(area, 0, first), None);
     state.set_tab_strip(
         vec![TabPresentation {
             title: Some("Long title".into()),
@@ -2018,10 +2019,11 @@ async fn close_glyph_only_on_hovered_eligible_tab_and_title_fade_moves_left() {
     state.handle_key(KeyAction::Enter).await;
     assert!(state.is_busy());
     terminal.draw(|f| render(f, &state)).unwrap();
-    assert_ne!(
+    assert_eq!(
         terminal.backend().buffer()[(first.right() - 2, 0)].symbol(),
         "✕"
     );
+    assert_eq!(state.tab_close_cell(area, 0, first), None);
 }
 
 #[tokio::test]

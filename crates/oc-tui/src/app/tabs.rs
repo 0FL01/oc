@@ -1390,9 +1390,23 @@ impl TuiState {
         changed
     }
 
-    /// Same eligibility and cell for the painted overlay and mouse action.
+    /// A painted hover cross is not authority to close a busy or covered tab.
     pub fn tab_close_cell(&self, area: Rect, index: usize, rect: Rect) -> Option<u16> {
-        (self.tab_close_eligible(index)
+        self.tab_close_overlay_cell(area, index, rect)
+            .filter(|_| self.tab_close_eligible(index))
+    }
+
+    /// OC2's hover overlay remains visible during work. Action eligibility is
+    /// separately enforced by `tab_close_cell` and the middle-click owner.
+    pub(crate) fn tab_close_overlay_cell(
+        &self,
+        area: Rect,
+        index: usize,
+        rect: Rect,
+    ) -> Option<u16> {
+        (!self.tabs.is_empty()
+            && (index < self.tabs.len() || (self.home && index == self.tabs.len()))
+            && self.panel == TuiPanel::None
             && self.hovered_tab(area) == Some(index)
             && !(crate::layout::vertical_tabs_width(area.width, self.tab_rail_width()) > 0
                 && rect.width < crate::layout::SESSION_TABS_COMPACT_BREAKPOINT))
