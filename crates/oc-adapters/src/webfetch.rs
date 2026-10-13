@@ -654,6 +654,162 @@ async fn fetch_body(
     }
 }
 
+/// One HTTP exchange requested by a Code Mode program's `fetch`.
+#[derive(Debug, Clone)]
+pub(crate) struct RawRequest {
+    pub url: String,
+    pub method: String,
+    pub headers: Vec<(String, String)>,
+    pub body: Option<Vec<u8>>,
+}
+
+/// Unconverted response for Code Mode `fetch`.
+#[derive(Debug, Clone)]
+pub(crate) struct RawResponse {
+    pub url: String,
+    pub status: u16,
+    pub status_text: String,
+    pub redirected: bool,
+    pub headers: Vec<(String, String)>,
+    pub body: Vec<u8>,
+}
+
+/// Guarded raw exchange: the same egress checks, redirect bound, total deadline and body
+/// cap as the `webfetch` tool, but with the caller's method, headers and body and without
+/// text conversion. A body above the cap is refused rather than silently cut.
+pub(crate) async fn fetch_raw(
+    request: RawRequest,
+    opts: FetchOptions,
+    cancel: &AtomicBool,
+) -> Result<RawResponse, FetchError> {
+    let deadline = Instant::now()
+        .checked_add(opts.timeout)
+        .ok_or(FetchError::Deadline)?;
+    let mut network = std::pin::pin!(tokio::time::timeout_at(
+        tokio::time::Instant::from_std(deadline),
+        raw_exchange(request, opts, deadline)
+    ));
+    loop {
+        if cancel.load(Ordering::Acquire) {
+            return Err(FetchError::Cancelled);
+        }
+        tokio::select! {
+            raw = &mut network => return raw.map_err(|_| FetchError::Deadline)?,
+            () = tokio::time::sleep(Duration::from_millis(5)) => {}
+        }
+    }
+}
+
+async fn raw_exchange(
+    request: RawRequest,
+    opts: FetchOptions,
+    deadline: Instant,
+) -> Result<RawResponse, FetchError> {
+    let method = reqwest::Method::from_bytes(request.method.as_bytes())
+        .map_err(|_| FetchError::InvalidUrl)?;
+    let mut method = method;
+    let mut body = request.body;
+    let mut headers = reqwest::header::HeaderMap::new();
+    for (name, value) in &request.headers {
+        let name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
+            .map_err(|_| FetchError::InvalidUrl)?;
+        if matches!(
+            name.as_str(),
+            "host" | "content-length" | "transfer-encoding" | "connection"
+        ) {
+            continue;
+        }
+        let value =
+            reqwest::header::HeaderValue::from_str(value).map_err(|_| FetchError::InvalidUrl)?;
+        headers.append(name, value);
+    }
+    let mut current = parse_request_url(&request.url)?;
+    let lookup: Arc<dyn reqwest::dns::Resolve> = Arc::new(SystemResolver);
+    let resolver: Arc<dyn reqwest::dns::Resolve> =
+        Arc::new(GuardedResolver::new(lookup, opts.allow_loopback));
+    let client = guarded_client(opts, resolver.clone())?;
+    let mut hops = 0usize;
+    loop {
+        let host = {
+            let raw = current.host_str().ok_or(FetchError::InvalidUrl)?;
+            raw.strip_prefix('[')
+                .and_then(|h| h.strip_suffix(']'))
+                .unwrap_or(raw)
+                .to_string()
+        };
+        check_dial_target(&resolver, &host, opts.allow_loopback).await?;
+        let mut req = client
+            .request(method.clone(), current.clone())
+            .headers(headers.clone())
+            .timeout(budget_left(deadline)?);
+        if let Some(bytes) = &body {
+            req = req.body(bytes.clone());
+        }
+        let resp = req.send().await.map_err(|e| {
+            if blocked_address(&e) {
+                FetchError::PrivateHost
+            } else if e.is_timeout() || e.is_connect() {
+                FetchError::Deadline
+            } else {
+                FetchError::Transport
+            }
+        })?;
+        if let Some(peer) = resp.remote_addr()
+            && ensure_public(peer.ip(), opts.allow_loopback).is_err()
+        {
+            return Err(FetchError::PrivateHost);
+        }
+        let status = resp.status();
+        if status.is_redirection()
+            && let Some(location) = resp
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|v| v.to_str().ok())
+        {
+            if hops >= opts.max_redirects {
+                return Err(FetchError::TooManyRedirects);
+            }
+            let next = redirect_target(&current, location)?;
+            let code = status.as_u16();
+            if code == 303 || ((code == 301 || code == 302) && method == reqwest::Method::POST) {
+                method = reqwest::Method::GET;
+                body = None;
+                headers.remove(reqwest::header::CONTENT_TYPE);
+            }
+            if next.origin() != current.origin() {
+                headers.remove(reqwest::header::AUTHORIZATION);
+                headers.remove(reqwest::header::COOKIE);
+            }
+            current = next;
+            hops += 1;
+            continue;
+        }
+        let response_headers = resp
+            .headers()
+            .iter()
+            .filter_map(|(name, value)| {
+                Some((name.as_str().to_string(), value.to_str().ok()?.to_string()))
+            })
+            .collect();
+        let status_text = status.canonical_reason().unwrap_or("").to_string();
+        let body_budget = budget_left(deadline)?;
+        let capped = tokio::time::timeout(body_budget, read_capped_body(resp, opts.body_cap))
+            .await
+            .map_err(|_| FetchError::Deadline)??;
+        if capped.truncated {
+            return Err(FetchError::TooLarge);
+        }
+        return Ok(RawResponse {
+            url: current.to_string(),
+            status: status.as_u16(),
+            status_text,
+            redirected: hops > 0,
+            headers: response_headers,
+            body: capped.body,
+        });
+    }
+}
+
 fn guarded_client(
     opts: FetchOptions,
     resolver: Arc<dyn reqwest::dns::Resolve>,

@@ -176,7 +176,6 @@ impl StdioConfig {
         if entry.kind != "local"
             || !entry.enabled
             || entry.oauth
-            || entry.codemode == Some(true)
             || entry.protocol != "legacy"
             || entry.failure.is_some()
             || entry.command.is_empty()

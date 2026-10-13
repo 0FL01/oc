@@ -1211,6 +1211,7 @@ async fn connect_one(
         server_id: server.into(),
         client: Arc::new(client),
         registry,
+        code_mode: entry.codemode != Some(false),
     })
 }
 

@@ -2386,6 +2386,7 @@ fn effective_compress_permission(config: &DcpConfig, policy: &RuntimePolicy<'_>)
     }
 }
 
+mod code_mode;
 mod context;
 mod instructions;
 mod mcp;

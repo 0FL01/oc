@@ -642,9 +642,6 @@ fn parse_entry(
             },
         ));
     }
-    if entry.codemode == Some(true) {
-        return Err(("codemode", UnsupportedCapability));
-    }
     if entry.cwd.as_ref().is_some_and(|v| v.contains('\0')) {
         return Err(("cwd", InvalidConfig));
     }

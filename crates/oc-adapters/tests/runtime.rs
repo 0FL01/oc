@@ -593,7 +593,7 @@ async fn dropped_remote_call_cannot_retry_after(shutdown: bool) {
             headers: BTreeMap::new(),
             command: Vec::new(),
             timeout: Some(10_000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -992,6 +992,8 @@ async fn check_application_patch_replay(line: &str, count: usize) {
     guard.join().await.unwrap();
 }
 
+#[path = "runtime/code_mode.rs"]
+mod code_mode;
 #[path = "runtime/context.rs"]
 mod context;
 #[path = "runtime/mcp_lifecycle.rs"]

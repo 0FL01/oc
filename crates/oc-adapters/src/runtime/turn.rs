@@ -1443,20 +1443,7 @@ impl<'a> Runtime<'a> {
                 self.approvals.has_consumer(),
             ));
         }
-        for entry in attached
-            .entries
-            .iter()
-            .filter(|entry| policy.tool_visible(&entry.namespaced))
-        {
-            tool_defs.push(ToolDef {
-                name: entry.namespaced.clone(),
-                description: entry
-                    .description
-                    .clone()
-                    .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
-                parameters: entry.input_schema.clone(),
-            });
-        }
+        tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
         let prompt_input = if let Some(log) = &resume {
             log.input_for_bound(&selection.id, &params.catalog.provider, Some(&binding))
         } else {
@@ -2035,20 +2022,7 @@ impl<'a> Runtime<'a> {
                     self.approvals.has_consumer(),
                 ));
             }
-            for entry in attached
-                .entries
-                .iter()
-                .filter(|entry| policy.tool_visible(&entry.namespaced))
-            {
-                tool_defs.push(ToolDef {
-                    name: entry.namespaced.clone(),
-                    description: entry
-                        .description
-                        .clone()
-                        .unwrap_or_else(|| format!("mcp {} tool", entry.tool)),
-                    parameters: entry.input_schema.clone(),
-                });
-            }
+            tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
             let usage_scope = crate::compaction::fingerprint(&(
                 crate::compaction::route_identity(
                     &params.catalog.provider,
@@ -5004,6 +4978,21 @@ impl<'a> Runtime<'a> {
                                 }
                             }
                         }
+                    }
+                    Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL => {
+                        self.execute_code_mode(
+                            call,
+                            session,
+                            turn_id,
+                            &op,
+                            ctx,
+                            policy,
+                            attached,
+                            cancel,
+                            turn_log.display["agent"].as_str().map(str::to_string),
+                            turn_log.agent_digest.clone(),
+                        )
+                        .await
                     }
                     Assembled::Call(call) if is_builtin(&call.name) => {
                         let output = execute_batch(ctx, vec![guarded]).await.remove(0).output;

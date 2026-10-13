@@ -223,7 +223,6 @@ impl CodexWebConfig {
             || !entry.enabled
             || entry.oauth
             || entry.failure.is_some()
-            || entry.codemode == Some(true)
             || entry.protocol != "legacy"
         {
             return Err(McpError::InvalidConfig);

@@ -189,11 +189,6 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"local","command":["x"],"codemode":true}),
-            "codemode",
-            ServiceCode::UnsupportedCapability,
-        ),
-        (
             serde_json::json!({"type":"local","command":["x"],"protocol":"auto"}),
             "protocol",
             ServiceCode::UnsupportedProtocol,

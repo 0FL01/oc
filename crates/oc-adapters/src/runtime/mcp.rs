@@ -52,6 +52,13 @@ impl McpGeneration {
             .then(|| Box::new(oc_core::tool_output::Presentation::label(label)))
     }
 
+    /// Whether this server's tools are callable only inside Code Mode.
+    pub(super) fn code_mode_server(&self, server: &str) -> bool {
+        self.servers
+            .iter()
+            .any(|attached| attached.server_id == server && attached.code_mode)
+    }
+
     pub(super) fn empty(publication: u64, wake: Arc<tokio::sync::Notify>) -> Self {
         Self {
             publication,
@@ -80,6 +87,8 @@ struct AttachedMcp {
     server_id: String,
     client: Arc<AttachedServer>,
     registry: Vec<mcp_remote::RegistryEntry>,
+    /// Tools are reached through `execute` unless the server sets `codemode: false`.
+    code_mode: bool,
 }
 
 struct McpCallLease<'a> {
@@ -133,13 +142,22 @@ pub(super) fn mcp_instruction_input(
         .servers
         .iter()
         .filter_map(|server| {
-            let tools: Vec<&str> = attached
+            let tools: Vec<String> = attached
                 .entries
                 .iter()
                 .filter(|entry| {
                     entry.server == server.server_id && policy.check(&entry.namespaced).is_ok()
                 })
-                .map(|entry| entry.namespaced.as_str())
+                .map(|entry| {
+                    if server.code_mode {
+                        crate::codemode::tool_expression(&format!(
+                            "{}.{}",
+                            entry.server, entry.tool
+                        ))
+                    } else {
+                        entry.namespaced.clone()
+                    }
+                })
                 .collect();
             if tools.is_empty() {
                 return None;
@@ -148,10 +166,15 @@ pub(super) fn mcp_instruction_input(
                 AttachedServer::Remote(client) => client.instructions(),
                 AttachedServer::Stdio(client) => client.instructions(),
             }?;
+            let scope = if server.code_mode {
+                "Code Mode tools, callable only inside `execute`"
+            } else {
+                "permitted tools"
+            };
             Some(InputItem::message(
                 InputRole::Developer,
                 format!(
-                    "MCP server guidance for permitted tools [{}]:\n{instructions}",
+                    "MCP server guidance for {scope} [{}]:\n{instructions}",
                     tools.join(", ")
                 ),
             ))

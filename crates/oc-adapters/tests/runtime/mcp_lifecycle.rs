@@ -110,6 +110,7 @@ async fn mcp_late_failure_reaches_completed_existing_and_fresh_turn_without_star
                         "MCP10_CANARY".into(),
                         "mcp10-activated-canary".into(),
                     )]),
+                    codemode: Some(false),
                     ..Default::default()
                 },
             );
@@ -289,6 +290,7 @@ for line in sys.stdin:
                 log.display().to_string(),
             ],
             timeout: Some(1000),
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -376,6 +378,7 @@ for line in sys.stdin:
                     pid.display().to_string(),
                 ],
                 timeout: Some(1000),
+                codemode: Some(false),
                 ..Default::default()
             },
         );

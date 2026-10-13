@@ -286,12 +286,10 @@ fn entry_mapping_keeps_exact_argv_and_refuses_risky_shapes() {
         StdioConfig::from_entry("browser", &oauth, project.path(), &parent_env),
         Err(StdioError::InvalidConfig)
     );
+    // Code Mode is a runtime exposure choice, not a transport capability.
     let mut codemode = entry.clone();
     codemode.codemode = Some(true);
-    assert_eq!(
-        StdioConfig::from_entry("browser", &codemode, project.path(), &parent_env),
-        Err(StdioError::InvalidConfig)
-    );
+    assert!(StdioConfig::from_entry("browser", &codemode, project.path(), &parent_env).is_ok());
     let mut empty = entry.clone();
     empty.command.clear();
     assert_eq!(

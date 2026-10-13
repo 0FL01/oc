@@ -407,7 +407,7 @@ for line in sys.stdin:
                 order.to_string_lossy().into_owned(),
             ],
             timeout: Some(2000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -671,7 +671,7 @@ for line in sys.stdin:
                 pid_file.to_string_lossy().into_owned(),
             ],
             timeout: Some(30_000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -793,7 +793,7 @@ for line in sys.stdin:
                 lifecycle.to_string_lossy().into_owned(),
             ],
             timeout: Some(2_000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -924,6 +924,7 @@ for line in sys.stdin:
                 ],
                 headers: BTreeMap::from([("x-fixture".into(), "HEADER-CANARY".into())]),
                 timeout: Some(2_000),
+                codemode: Some(false),
                 ..McpEntry::default()
             },
         );
@@ -1211,7 +1212,7 @@ for line in sys.stdin:
                     notification_gate.to_string_lossy().into_owned(),
                 ],
                 timeout: Some(2_000),
-                codemode: None,
+                codemode: Some(false),
                 ..Default::default()
             },
         );
@@ -1315,7 +1316,7 @@ for line in sys.stdin:
                 lifecycle.to_string_lossy().into_owned(),
             ],
             timeout: Some(2_000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -1403,7 +1404,7 @@ async fn aud23_server_cap_blocks_spawn_before_first_child() {
                     format!("printf 'spawned\\n' >> {}", marker.display()),
                 ],
                 timeout: Some(2_000),
-                codemode: None,
+                codemode: Some(false),
                 ..Default::default()
             },
         );
@@ -1462,7 +1463,7 @@ for line in sys.stdin:
                 pid_file.to_string_lossy().into_owned(),
             ],
             timeout: Some(2_000),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -1479,7 +1480,7 @@ for line in sys.stdin:
             )]),
             command: Vec::new(),
             timeout: Some(200),
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );
@@ -1540,7 +1541,7 @@ async fn mcp_attach_failure_degrades_the_server() {
                 .collect(),
             command: Vec::new(),
             timeout: None,
-            codemode: None,
+            codemode: Some(false),
             ..Default::default()
         },
     );

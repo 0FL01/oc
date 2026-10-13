@@ -2786,18 +2786,12 @@ mod tests {
             assemble(&[src("s", bad_npm, true)], &env(&[]), None),
             Err(ConfigError::UnsupportedCapability { .. })
         ));
+        // Code Mode is native now: an explicit opt-in is an ordinary admitted entry.
         let codemode = r#"{"mcp": {"m": {"type": "local",
             "command": ["npx", "x"], "enabled": true, "codemode": true}}}"#;
-        assert_eq!(
-            assemble(&[src("s", codemode, true)], &env(&[]), None)
-                .unwrap()
-                .mcp["m"]
-                .failure
-                .as_ref()
-                .unwrap()
-                .code,
-            oc_core::queries::ServiceCode::UnsupportedCapability
-        );
+        let admitted = assemble(&[src("s", codemode, true)], &env(&[]), None).unwrap();
+        assert!(admitted.mcp["m"].failure.is_none());
+        assert_eq!(admitted.mcp["m"].codemode, Some(true));
         let oauth = r#"{"mcp": {"w": {"type": "remote", "url": "https://w.invalid/mcp",
             "enabled": true, "oauth": true}}}"#;
         assert_eq!(

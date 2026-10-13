@@ -955,10 +955,12 @@ async fn load_stages(
         &sources,
     )?;
     // Keep central authority independent of the startup primary selection.
+    // `execute` only scripts calls that are each admitted under their own rules.
     for tool in [
         "opencode_models",
         "opencode_session_rename",
         "opencode_session_move",
+        crate::codemode::TOOL_NAME,
     ] {
         generation
             .permission_rules
