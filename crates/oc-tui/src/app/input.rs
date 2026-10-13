@@ -144,7 +144,15 @@ impl TuiState {
                     .into(),
                     false,
                 )];
-                if let Some(provider) = &self.chrome.provider {
+                // Settings keeps actionable owner facts, not a permanent healthy
+                // provider summary. A usable request can still have a pending or
+                // failed catalog attempt, whose details must remain accessible.
+                if let Some(provider) = self.chrome.provider.as_ref().filter(|provider| {
+                    use oc_core::queries::ProviderStatus;
+                    provider.status != ProviderStatus::Ready
+                        || provider.catalog_status != ProviderStatus::Ready
+                        || provider.diagnostic.is_some()
+                }) {
                     options.push(item(
                         "provider".into(),
                         format!("Provider request — {}", provider.status.as_str()),

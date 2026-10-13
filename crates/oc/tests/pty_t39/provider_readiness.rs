@@ -155,7 +155,14 @@ fn settings(pty: &mut PtySession, status: &str) {
     wait_idle(pty);
     pty.send(b"/settings\r");
     wait_screen_row(pty, "Settings", DEADLINE);
-    wait_screen_row(pty, &format!("Provider request — {status}"), DEADLINE);
+    if status == "ready" {
+        // Healthy owner facts remain usable but do not add a permanent summary
+        // row. Wait for any pending/failed inventory to retire; real refusal and
+        // plugin/config detail routes below remain independently observable.
+        wait_screen_absent(pty, "Provider request");
+    } else {
+        wait_screen_row(pty, &format!("Provider request — {status}"), DEADLINE);
+    }
     wait_screen_row(pty, "DCP — active", DEADLINE);
 }
 

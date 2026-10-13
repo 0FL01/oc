@@ -393,6 +393,90 @@ async fn cfg10_diagnostic_details_copy_and_investigation_never_touch_prompt_or_s
 }
 
 #[tokio::test]
+async fn vis42_settings_omits_healthy_provider_summary_without_hiding_owner_issues() {
+    use oc_core::queries::{ProviderReadiness, ProviderStatus};
+
+    let mut state = fresh_state("vis42-provider-settings").await;
+    state.handle_paste("keep this unsent Ω界 draft");
+    state.panel = TuiPanel::Settings;
+    let mut catalog = snapshot();
+    let mut readiness = ProviderReadiness {
+        service: "provider-opaque-fixture".into(),
+        model: "model-opaque-fixture".into(),
+        status: ProviderStatus::Ready,
+        catalog_status: ProviderStatus::Ready,
+        diagnostic: None,
+    };
+    catalog.chrome.provider = Some(readiness.clone());
+    state.apply_catalog(catalog.clone());
+    assert_eq!(state.chrome.provider.as_ref(), Some(&readiness));
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|row| row.value != "provider")
+    );
+    let frame = crate::views::render_test(&state, 121, 40).join("\n");
+    assert!(!frame.contains("Provider request") && !frame.contains("Services"));
+    assert!(frame.contains("Permissions") && frame.contains("prompt"));
+
+    for (status, catalog_status) in [
+        (ProviderStatus::Pending, ProviderStatus::Pending),
+        (ProviderStatus::Unavailable, ProviderStatus::Failed),
+        (ProviderStatus::Failed, ProviderStatus::Failed),
+        (ProviderStatus::Ready, ProviderStatus::Pending),
+        (ProviderStatus::Ready, ProviderStatus::Failed),
+    ] {
+        readiness.status = status;
+        readiness.catalog_status = catalog_status;
+        catalog.chrome.provider = Some(readiness.clone());
+        state.apply_catalog(catalog.clone());
+        let rows = state.modal_options();
+        state.select.cursor = rows.iter().position(|row| row.value == "provider").unwrap();
+        let result = state.handle_panel_key(KeyAction::Enter);
+        assert!(result.intent.is_none());
+        assert_eq!(result.note.as_deref(), Some(readiness.to_string().as_str()));
+        assert_eq!(state.input(), "keep this unsent Ω界 draft");
+    }
+
+    // A ready request may still carry a failed catalog attempt. Keep its safe
+    // diagnostic route even if both readiness enums have recovered to Ready.
+    readiness.status = ProviderStatus::Ready;
+    readiness.catalog_status = ProviderStatus::Ready;
+    readiness.diagnostic = Some(oc_core::queries::ServiceDiagnostic {
+        kind: oc_core::queries::ServiceKind::Provider,
+        service: "provider-opaque-fixture".into(),
+        source: "source-123/opencode.json".into(),
+        field: vec!["models".into()],
+        stage: oc_core::queries::ServiceStage::ModelCatalog,
+        code: oc_core::queries::ServiceCode::Transport,
+        action: oc_core::queries::ServiceAction::RefreshCatalog,
+    });
+    catalog.chrome.provider = Some(readiness.clone());
+    state.apply_catalog(catalog.clone());
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .any(|row| row.value == "provider")
+    );
+
+    readiness.diagnostic = None;
+    catalog.chrome.provider = Some(readiness.clone());
+    state.apply_catalog(catalog);
+    assert_eq!(state.select.cursor, 0);
+    assert!(
+        state
+            .modal_options()
+            .iter()
+            .all(|row| row.value != "provider")
+    );
+    assert_eq!(state.chrome.provider.as_ref(), Some(&readiness));
+    assert_eq!(state.input(), "keep this unsent Ω界 draft");
+    assert!(!state.has_pending_submission());
+}
+
+#[tokio::test]
 async fn ui07_provider_settings_are_read_only_owner_facts_and_preserve_draft() {
     use oc_core::queries::{
         ProviderReadiness, ProviderStatus, ServiceAction, ServiceCode, ServiceDiagnostic,

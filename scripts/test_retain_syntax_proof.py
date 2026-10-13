@@ -22,16 +22,22 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         self.assertEqual(set(dialog), {"current-wide", "current-small", "current-logs", "current-driver"})
         dialog_final = proof.vis36_auto_roots(True, "006")
         self.assertEqual(set(dialog_final), set(dialog))
+        settings_clean = proof.vis36_auto_roots(True, "007")
+        self.assertEqual(set(settings_clean), set(dialog))
+        settings_final = proof.vis36_auto_roots(True, "008")
+        self.assertEqual(set(settings_final), set(dialog))
         for attempt, profile, columns in (("001", "cli-wide", 121), ("002", "cli-wide-r2", 121),
                                          ("003", "cli-wide-r3", 121), ("004", "cli-wide-r4", 121),
                                          ("005", "cli-wide-r5", 121), ("005", "cli-small-r5", 79),
-                                         ("006", "cli-wide-r6", 121), ("006", "cli-small-r6", 79)):
+                                         ("006", "cli-wide-r6", 121), ("006", "cli-small-r6", 79),
+                                         ("007", "cli-wide-r7", 121), ("007", "cli-small-r7", 79),
+                                         ("008", "cli-wide-r8", 121), ("008", "cli-small-r8", 79)):
             period = "current" if attempt in ("003", "004") else "failed-" + attempt
-            if attempt in ("005", "006"):
+            if attempt in ("005", "006", "007", "008"):
                 period = "current-wide" if columns == 121 else "current-small"
-            selected = dialog_final if attempt == "006" else dialog if attempt == "005" else current if attempt == "004" else roots
+            selected = settings_final if attempt == "008" else settings_clean if attempt == "007" else dialog_final if attempt == "006" else dialog if attempt == "005" else current if attempt == "004" else roots
             self.assertEqual(selected[period], proof.TEMP / ("vis36-mode-current-" + attempt) / profile)
-            self.assertEqual(selected["current-driver" if attempt in ("005", "006") else period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
+            self.assertEqual(selected["current-driver" if attempt in ("005", "006", "007", "008") else period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
                     "upstream": {"executable_path": original}, "runner_hashes": hashes,
                     "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
@@ -51,7 +57,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 proof.check_vis36_auto_build(lock, manifest, commands + commands[1:], attempt, profile)
             with self.assertRaises(ValueError):
-                proof.check_vis36_auto_build(lock, manifest, commands, "007", profile)
+                proof.check_vis36_auto_build(lock, manifest, commands, "009", profile)
             with self.assertRaises(ValueError):
                 proof.check_vis36_auto_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, attempt, profile)
 

@@ -1267,3 +1267,46 @@ finalrecountauthoritative/additivevis36scope/same1GiB16/128MiB2000/dict16decoder
 hardAS384/noqualifieddeletion/offload/reencoding/capraise. Receipt
 `evidence/tui/vis36-dialog-qualified.md`. Continue observedShellsuccesspresentation
 and ALL frozenR1–R6/VIS01–45/supplements/finalcurrent-sourceR6/V09, no taskfinish.
+
+### 2026-10-13 — VIS42 healthy Settings projection qualified, T44 active
+
+SourcecheckedemptyShellobservationagainstownerfee0123/frozenR4VIS16: generated
+exit0/emptyplaceholder/phantomseparatorMUSTremainabsent. ExistingShellsuccess
+override/code/testunchanged; originaldifferenceNOTpermissiontofakefullcomparison.
+ActualnextgaphealthyServices/Providerrequestready summary: omitONLYbothrequest
+andcatalogReady/noDiagnostic. Typedreadinessunchanged; pending/failed/unavailable/
+Ready-with-diagnostic keeprealSettingsDetails. No policy/RAW/schema/config/APIchange.
+Newunitactualpaint/retirement/draftandallissueclasses; owner7/errorACK/filter/
+mode/twoEscapes intact. Initialworkspace1864/3/11 deterministicPTYready-row
+expectationscorrectedONLYsharedexistingReadywaittoabsence; nonReadyexactwaits/
+deadlinesunchanged. All5readinessPTYthenpassed, fullfinal1867/0/11oldignore46targets/
+TUI533/PTY58,strictClippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/
+actualrelease9/rootPython70 PASS. AllRED/ownercompile/initialworkspacebytesretained.
+
+Current008wide121/small79 fouractualsideprofiles38behaviorPASS;64wholePNGs64strict
+comparisonsALLDIFFERENT. Full32pairs128000cells17264640pixels33934celldiff4029488
+pixeldiff28of32cursors,notpixelPASS. FourCOMPLETE600cellfilteredmodal/query/carets
+equal;14healthyNativeSettingsframesnoSummary, notwhole-frame masks/substitutions.
+Each18valid18complete16main2title8calls11RO2natural0/nogrants/rootchildOnce/mixedDeny/
+savedAutoacceptPrompt/CLIrelaunchfreshroot intact. SQLROnotCoreEvent/syscalltrace;
+realtypedownerorderingseparate. FullVIS36/VIS42/R6/V09/T44 NOTPASS.
+
+007422originals/2260660BproofimmutableHISTORICALafterPTYtestsourcecorrection.
+Current008422files39736502logicalB/4same-sideoriginalPNGaliases/2249636Barchive
+`c533afb30d920030debdd611320de28cdaf5d7c1abf2ec02978147e65edfa895`.
+ManualsingleXZUSTAREVERYoriginalbyte/meta/sourceactualELFs/helpers/127priorproof
+byteMETA/fullrecount PASS underhardAS384. Source713
+`8687688a5ebd2b20868bcf6b0bc5b85de43e4df489650bece9e33670a41178bb`;
+native`48f538eb92153fc40b9160e11941ebe20f4ef766adf4e74cb265b8e398e1c6b6`.
+Producer905831separatefromdeliveryHEAD;oldflags/data/receiptsunchanged/noreplay.
+OwnactualFAILEDmodel009110files3dirmeta PAXbyteinverse/FAILEDpointer/3MiBreserve;
+5709824allocatedB reclaimedonlyverifiedredundantprivatecopy. 003/007PASSbehavior/
+DIFFERENTuntouched. Post008reportallocation1069527040/headroom4214784 BEFOREdelivery;
+finalrecountauthoritative/additivevis36scope/same1GiB16/128MiB2000/dict16decoder32/
+hardAS384/noqualifieddeletion/offload/reencoding/capraise. Receipt
+`evidence/tui/vis36-settings-healthy-qualified.md`; completegatebytesretained.
+NextobservedfailedPatchdetailgap/mutedrole then ALL frozenR1–R6/VIS01–45/supplements/
+finalcurrent-sourceR6/V09; do notfinishT44onhealthySettingsregionalqualification.
+Deliverygatebundle59652B/85members460352logicalB independentEVERYcommand/helperbyte
+inverse PASS; actualafterreceipt/gates1069604864of1073741824/headroom4136960,
+allprefixesunchanged. FinalsealcheckerkeepscapturedproduceridentityseparatefromHEAD.

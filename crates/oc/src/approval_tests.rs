@@ -465,24 +465,20 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
     state.handle_paste("permission");
     state.handle_panel_key(KeyAction::Cancel);
     assert_eq!(state.panel(), &TuiPanel::Settings);
-    assert_eq!(state.modal_options().len(), 2);
-    assert_eq!(state.modal_options()[1].title, "Provider request — ready");
-    assert!(state.modal_options()[1].footer.is_empty());
-    state.handle_panel_key(KeyAction::Down);
-    let detail = state.handle_panel_key(KeyAction::Enter);
-    assert!(detail.intent.is_none());
+    assert_eq!(state.modal_options().len(), 1);
+    assert_eq!(state.modal_options()[0].value, "permissions");
+    let provider = app.catalog().await.unwrap().chrome.provider.unwrap();
+    assert_eq!(provider.status, oc_core::queries::ProviderStatus::Ready);
     assert_eq!(
-        detail.note,
-        Some(
-            app.catalog()
-                .await
-                .unwrap()
-                .chrome
-                .provider
-                .unwrap()
-                .to_string()
-        )
+        provider.catalog_status,
+        oc_core::queries::ProviderStatus::Ready
     );
+    assert!(provider.diagnostic.is_none());
+    for width in [79, 80, 120, 121] {
+        let rows = oc_tui::views::render_test(&state, width, 40).join("\n");
+        assert!(!rows.contains("Provider request") && !rows.contains("Services"));
+    }
+    assert!(state.handle_panel_key(KeyAction::Down).intent.is_none());
     state.handle_panel_key(KeyAction::Up);
     state.handle_paste("permission");
     for width in [79, 80, 120, 121] {
