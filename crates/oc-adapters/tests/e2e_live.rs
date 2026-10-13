@@ -369,3 +369,148 @@ async fn live_workflow_harness() {
         started.elapsed().as_secs()
     );
 }
+
+/// T60 live Code Mode smoke: one bounded turn where the real model calls `execute`, whose
+/// program reaches the configured `codex_web` MCP server through `tools.codex_web.*`. Model
+/// text is never asserted; the admitted `execute` call and its non-error output are.
+#[tokio::test]
+#[ignore = "needs live OpenProxy credentials"]
+async fn live_code_mode_execute_reaches_mcp() {
+    let Some((provider, model, variant)) = live_env() else {
+        panic!(
+            "live Code Mode smoke BLOCKED: set LUDKA2_API_URL, LUDKA2_API_KEY and OC_TEST_MODEL"
+        );
+    };
+    let key = std::env::var("LUDKA2_API_KEY").expect("key");
+    // Same shape as the documented user config: `{env:LUDKA2_API_URL}/mcp`.
+    let mcp_url = std::env::var("LUDKA2_MCP_URL")
+        .ok()
+        .filter(|url| !url.trim().is_empty())
+        .unwrap_or_else(|| format!("{}/mcp", provider.base_url.trim_end_matches('/')));
+    let project = tempfile::tempdir().expect("project");
+    let data = tempfile::tempdir().expect("data");
+    let db = Db::open(data.path()).expect("db");
+    let catalog = ModelCatalog {
+        provider: "ludka2".to_string(),
+        models: [(
+            model.clone(),
+            serde_json::json!({"limit": {"context": 1_000_000, "output": 100_000}}),
+        )]
+        .into_iter()
+        .collect(),
+    };
+    let mut permissions: BTreeMap<String, Permission> = BTreeMap::new();
+    permissions.insert("execute".into(), Permission::Allow);
+    let mut generation = oc_adapters::config::Generation {
+        tool_output: Default::default(),
+        compaction: Default::default(),
+        config_diagnostics: Vec::new(),
+        animations: None,
+        providers: BTreeMap::new(),
+        public_go_enabled: false,
+        public_openai_enabled: false,
+        mcp: BTreeMap::new(),
+        permissions,
+        permission_rules: Default::default(),
+        provenance: BTreeMap::new(),
+        warnings: Vec::new(),
+    };
+    generation.mcp.insert(
+        "codex_web".into(),
+        oc_adapters::config::McpEntry {
+            kind: "remote".into(),
+            url: Some(mcp_url),
+            enabled: true,
+            headers: BTreeMap::from([("Authorization".into(), format!("Bearer {key}"))]),
+            timeout: Some(60_000),
+            ..Default::default()
+        },
+    );
+    let runtime = Runtime::new(
+        &db,
+        "work",
+        generation,
+        ProtectedGlobs {
+            patterns: Vec::new(),
+        },
+        oc_adapters::files::Files::new(project.path(), data.path()).expect("files"),
+        oc_adapters::shell::Shell::new(project.path()).expect("shell"),
+        BTreeMap::new(),
+        oc_adapters::tools::ToolRoots {
+            project: project.path().to_path_buf(),
+            data: data.path().to_path_buf(),
+        },
+        None,
+        false,
+        DcpConfig::default(),
+    )
+    .expect("runtime");
+    runtime.start_mcp().expect("mcp start");
+    let deadline = Instant::now() + Duration::from_secs(60);
+    while runtime
+        .mcp_status()
+        .servers
+        .iter()
+        .any(|row| row.status == oc_core::queries::McpStatus::Pending)
+    {
+        assert!(Instant::now() < deadline, "codex_web did not settle");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert!(
+        runtime
+            .mcp_status()
+            .servers
+            .iter()
+            .all(|row| row.status == oc_core::queries::McpStatus::Connected),
+        "codex_web not connected"
+    );
+    runtime.create_session("live-code-mode").expect("session");
+    let cancel = std::sync::Arc::new(AtomicBool::new(false));
+    let watchdog = cancel.clone();
+    let guard = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_secs(240)).await;
+        watchdog.store(true, std::sync::atomic::Ordering::Release);
+    });
+    let report = runtime
+        .run_turn(TurnParams {
+            session: "live-code-mode".to_string(),
+            prompt:
+                "Call the `execute` tool exactly once. In its program, use the codex_web search \
+                tool from the Code Mode catalog to search for \"Rust programming language\" with a \
+                short response, and return the first result title or URL as a string. Then reply \
+                with one short sentence and stop."
+                    .to_string(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: model.clone(),
+            variant,
+            max_output: 2_048,
+            provider,
+            cancel: &cancel,
+        })
+        .await
+        .expect("code mode turn");
+    guard.abort();
+    let executes: Vec<_> = report
+        .calls
+        .iter()
+        .filter(|call| call.name == "execute")
+        .collect();
+    eprintln!(
+        "LIVE_CODE_MODE status={:?} calls={:?}",
+        report.status,
+        report
+            .calls
+            .iter()
+            .map(|call| (call.name.as_str(), call.state.as_str()))
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert!(!executes.is_empty(), "model did not call execute");
+    assert!(
+        executes
+            .iter()
+            .any(|call| call.state == "completed" && !call.output.trim().is_empty()),
+        "no completed execute output"
+    );
+}

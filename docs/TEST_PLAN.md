@@ -1703,3 +1703,33 @@ replay an uncertain code exchange/refresh or reset a campaign to replenish capac
 No paid user-workspace generation, real token/header/JWT/code/verifier dumps or live
 secret-bearing capture artifacts. Browser/device/key fake/live/NOT_RUN statuses remain
 separate in report; full product READY still requires all A01–A13 and T30 final evidence.
+
+## Code Mode `execute` — T60/CM01–CM08 (approved 2026-10-13)
+
+Spec: `docs/goals/2026-10-13-code-mode.md`. Unit target: `cargo test -p oc-adapters --lib
+codemode`; integration: `cargo test -p oc-adapters --test runtime code_mode`.
+
+- **CM01 language/stdlib:** results (return, trailing expression, `null`), JS number
+  formatting, UTF-16 strings, arrays/objects/destructuring, classes/getters/closures,
+  control flow, generators/async generators, Map/Set/Date/URL/encodings, RegExp groups.
+- **CM02 async host:** `tools.*` return promises; `Promise.all` keeps two host calls in
+  flight at once; await ordering defers continuations; race/allSettled/then/finally.
+- **CM03 diagnostics:** ParseError/UnsupportedSyntax with position, ReferenceError/TypeError
+  with source line, `Uncaught:` values, UnknownTool/InvalidToolInput/ToolFailure/
+  ToolCallLimitExceeded kinds and donor suggestions.
+- **CM04 guards:** step budget (`TimeoutExceeded`, uncatchable), turn cancellation of a
+  busy loop, native-stack RangeError, string/array/pending-promise limits.
+- **CM05 boundary/format:** donor data-boundary table, circular/Uint8Array refusals,
+  `formatResult` value/Warnings/Logs text, unhandled-rejection warning.
+- **CM06 catalog:** compact/pretty TS signatures with JSDoc, catalog render, bracket
+  paths, `search` ranking and `tools.search` alias, `Object.keys(tools)`.
+- **CM07 runtime routing:** default MCP leaves the direct list and is reached through
+  `execute` (concurrent nested calls, single `execute` op, logs in output); denied tools
+  leave the catalog; `codemode:false` stays direct; `execute` absent without catalog or
+  when denied.
+- **CM08 nested authority/fetch:** nested Ask without consumer fails inside the program
+  without effect; `fetch` admitted as `webfetch` and refused for private hosts unless the
+  test exception is set.
+
+Live CM check (bounded OpenProxy request using `execute` over a configured MCP server)
+stays NOT_RUN until actually executed under the runbook envelope.

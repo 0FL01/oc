@@ -24,7 +24,7 @@ D02: один native Responses adapter, explicit projection/store:false, no prev
 
 D03: DCP range core и базовая панель; experimental message mode/custom prompts/subagents вне goal. Required source-derived fixtures обязательны. Automatic strategies не удалять только ради минимального demo.
 
-D04: explicit direct exposure в native profile. Отсутствующий codemode field имеет direct semantics в этом профиле, explicit true отклоняется. Так устраняется прежний blocker на пропущенном ключе в пользовательском MCP config без скрытой подмены true→false.
+D04 (superseded D24/T60, 2026-10-13): explicit direct exposure в native profile. Отсутствующий codemode field имеет direct semantics в этом профиле, explicit true отклоняется. Так устраняется прежний blocker на пропущенном ключе в пользовательском MCP config без скрытой подмены true→false.
 
 D05: один data-root owner, SQLite worker, sequential tool execution; no distributed locks/frameworks. История на диске, DCP — projection. D19 supersedes sequential execution only for independent subagent calls/background jobs; serial non-child mutation ordering remains.
 
@@ -206,6 +206,16 @@ finite retry or quarantine. T50 owns TOOL12 and request/selection slices, T45/PR
 consumes shared composer/prompt lifecycle, T47/VAR01 retains ordering, T44 retains
 VIS09/VIS29/VIS17/VIS35/VIS36 paired visuals. No new tool/task/ID/store/paid campaign,
 completion cycle, historical PASS rewrite or status change; R8/T55 schedule preserved.
+
+### D24 — Code Mode on a native interpreter (owner-approved 2026-10-13)
+
+`execute` runs a JavaScript subset in an interpreter written in Rust inside
+`oc-adapters/src/codemode` (own lexer/parser, async tree-walking evaluator on a dedicated
+thread, `regress` for RegExp). No embedded JS engine, Node/Bun or plugin host. MCP servers
+default into Code Mode like the donor; `codemode:false` keeps them direct. Nested calls and
+`fetch` are admitted through the ordinary runtime owners (`admit_tool`, MCP lease,
+`webfetch` guards) under the `execute` operation. Resource guards are always on. This
+supersedes D04 only; `opencode_*` stay direct (T50). Contract: T60 spec.
 
 ## Остаточные prerequisites, не новые Q
 

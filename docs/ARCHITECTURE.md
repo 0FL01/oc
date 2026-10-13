@@ -72,7 +72,7 @@ Background shell jobs retain bounded owned capture/cancel/teardown/durable notic
 unset/zero execution timeout does not make retention or shutdown unbounded. Question
 uses typed application-owned pending/answer/cancel identities, not permission replies
 or a held database transaction. Direct opencode_* tools reuse catalog/session owners,
-without Code Mode/execute, websearch integration, built-in browser or a second registry.
+without websearch integration, built-in browser or a second registry; T60 `execute` is a separate dynamic tool over MCP, not their transport.
 Read images use the existing provider media boundary, not base64 text pretending to
 be an image. Search/conversion engines stay bounded and pinned; PDF remains excluded.
 

@@ -114,9 +114,11 @@ with a safe diagnostic. Typed legacy servers literally named servers/timeout rem
 distinct from canonical container/defaults keys.
 
 Canonical **direct-mode example** below preserves the supplied URLs/headers/argv/env
-and numeric timeout intent. `codemode:false` explicitly selects direct OC2 transport;
-it is not an automatic migration rewrite. Native omitted codemode remains direct,
-unlike donor default CodeMode query/fallback behavior. crw's URL gets no extra `/mcp`;
+and numeric timeout intent. `codemode:false` explicitly selects direct exposure; it is
+not an automatic migration rewrite. Since T60 (2026-10-13) omitted or `codemode:true`
+follows the donor default: the server's tools are reached only through `execute` as
+`tools.<server>.<tool>`. The donor `?codemode=false` URL query is not sent (declared
+difference). crw's URL gets no extra `/mcp`;
 oauth:false means no discovery, while native omitted OAuth is also no-OAuth (declared
 difference). Native protocol omitted/legacy negotiates up to2025-11-25; unsupported
 auto/2026-07-28 remains a per-entry capability failure. Disabled local chrome has zero
@@ -515,8 +517,8 @@ shell(command/workdir/timeout/background), with explicit legacy bash(argv/cwd/
 timeout_ms) compatibility through one policy owner. No second interchangeable model
 schema or alias-based Deny bypass. Search/read/fetch options and native question/
 opencode_* controls require real runtime semantics, not silent config acceptance.
-Built-in websearch/provider integrations, Code Mode/execute and built-in browser are
-excluded; configured MCP search/browser remains opt-in, permission-gated and catalog-
+Built-in websearch/provider integrations and built-in browser are excluded (Code
+Mode/`execute` was admitted by T60 on 2026-10-13); configured MCP search/browser remains opt-in, permission-gated and catalog-
 derived. PDF stays outside scope. Do not modify runtime config examples before the
 corresponding implementation exists or claim old grants automatically authorize
 new session-control actions/destination resources.

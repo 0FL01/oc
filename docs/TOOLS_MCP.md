@@ -383,6 +383,8 @@ server schema `query` + `response_length`, не helper `limit`.
 
 ## Direct exposure vs Code Mode
 
+**Superseded by T60 (owner amendment 2026-10-13):** как у донора, omitted или `codemode: true` переводит инструменты сервера в каталог `execute` (`tools.<server>.<tool>`), `codemode: false` оставляет их прямыми. `execute` исполняется нативным Rust-интерпретатором (`crates/oc-adapters/src/codemode`), не Node eval/shim/remote execute; вложенные вызовы проходят обычный admission/approval/MCP lease. Ниже — история прежнего direct-only решения.
+
 В `oc-rs.toml` профиль явно `tool_exposure = "direct"`. При отсутствии upstream codemode field выбранный профиль означает direct — это объявленное отличие. Explicit true = actionable unsupported error. Не запускать JS interpreter, Node eval, Code Mode shim или remote execute to emulate missing interpreter.
 
 The owner explicitly keeps this exclusion under T50. Native opencode_* tools are

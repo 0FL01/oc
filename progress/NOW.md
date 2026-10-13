@@ -48,7 +48,7 @@ R1–R6/VIS01–VIS45/supplements/finalcurrentR6V09. Keep T44 active checkpoint1
 preserve T59 and unrelated fields; no finish, blocker status or task switch.
 
 
-Ready (до 5): T58, T59
+Ready (до 5): T58, T59, T60
 Blocked: T27, T45, T57
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.

@@ -908,6 +908,16 @@
       "work": "Owner-approved 2026-10-12 additive R1-R5: familiar OC2 provider/search/accounts/method/masked-key/ACK/filtered-picker flow, default account label without mandatory label prompt; Custom provider entry asks name/literal API base URL and Key or explicit anonymous. One typed table in existing SQLite with atomic initial credential, custom tagged endpoint auth scope, raw-config collision precedence and provider filters. Bounded GET models discovery uses existing secured transport for OpenAI-compatible/opencode and paginated Anthropic catalogs; ambiguous API requires confirmation, never generation POST/name heuristics/hidden fallback. ID-only models remain visible, supplied modalities/partial capabilities/exact supported efforts and unknown/false/empty survive core/TUI projection; existing three native wires and legacy OpenProxy oracle unchanged. Captured provider/binding revisions, abort/join/stale guards and narrow immutable provider publication preserve selection/prepared requests/generation/Location/MCP ownership. Read-only oc models consumes sanitized saved snapshots without custom network/credential/second-Db effects. CONN01-CONN05 owner/binary/restart/zero-model/effect/metadata checks and final gates in spec/TEST_PLAN; T44 VIS45 owns shared auth visuals, T57 OAuth scope/live blockers unchanged. Plan registration todo/implementation NOT_STARTED, active T44 and dirty source/scripts/evidence preserved; no paid campaign, config writer, JS host or arbitrary OAuth. T30 requires T59; no T53 reopening or historical PASS rewrite.",
       "evidence": "evidence/T59/report.md",
       "spec": "docs/goals/2026-10-12-custom-provider-connect-and-discovery.md"
+    },
+    {
+      "id": "T60",
+      "phase": "M8",
+      "title": "Code Mode execute на нативном Rust-интерпретаторе",
+      "depends_on": ["T46", "T50"],
+      "tests": ["A01", "A05", "A06", "CM01", "CM02", "CM03", "CM04", "CM05", "CM06", "CM07", "CM08"],
+      "work": "Owner amendment 2026-10-13: model-facing execute({code}) runs a JavaScript subset in a confined interpreter written in Rust (own lexer/parser, async evaluator, donor-shaped stdlib, regress RegExp), no JS engine/Node/Bun/host. MCP defaults into Code Mode as in donor v2.0.12; codemode:false keeps a server direct. Nested tools.* calls and fetch go through admit_tool/approval/MCP lease and the webfetch guard under the execute op. Resource guards always on. Declared differences in spec; live OpenProxy check NOT_RUN until executed.",
+      "evidence": "evidence/T60/report.md",
+      "spec": "docs/goals/2026-10-13-code-mode.md"
     }
   ]
 }

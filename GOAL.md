@@ -8,7 +8,7 @@
 
 Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. В этом lane API/OAuth реальных upstream providers остаются за OpenProxy. Direct Go/custom wires допущены только T53; built-in OpenAI Key и Codex OAuth — только T57 по amendment ниже, без изменения OpenProxy alias/authority/oracle.
 
-Целевой direct набор: `read`, `glob`, `grep`, файловое семейство `apply_patch` либо `edit`/`write` по текущей модели, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Точный OC2 selector и обязательное обновление каталога/guidance при смене модели — amendment T50 от 2026-10-01 ниже. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. Built-in `websearch` и Code Mode/`execute` не выставляются модели. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → совместимая файловая правка → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
+Целевой direct набор: `read`, `glob`, `grep`, файловое семейство `apply_patch` либо `edit`/`write` по текущей модели, `shell`, `webfetch`, `skill`, `question`, `subagent`, `compress`, `opencode_models`, `opencode_session_rename`, `opencode_session_move` и dynamically registered MCP tools. Точный OC2 selector и обязательное обновление каталога/guidance при смене модели — amendment T50 от 2026-10-01 ниже. Канонический command-shell дополняется совместимостью прежнего `bash(argv)` через одного владельца исполнения/permissions; не две взаимозаменяемые схемы в каталоге. Built-in `websearch` не выставляется модели; Code Mode/`execute` выставляется по owner amendment 2026-10-13 (T60) ниже. Встроенный DCP переносит required range/compress, nudges, protections, deduplication, purgeErrors, сохранение projection и минимальную панель управления. Модель может провести цикл read → совместимая файловая правка → shell test → корректировка → ответ, выполнить webfetch и явно настроенный `codex_web` search, по запросу загрузить объявленный skill, сжать завершённый контекст и продолжить после restart. Это требуемый результат, не claim, что новые tools уже реализованы; контракт T50 ниже.
 
 ## Критерии приёмки — A01–A13
 
@@ -50,7 +50,7 @@
 
 ## Вне этого goal
 
-OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter, служба serve/attach и HTTP parity, web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
+OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), служба serve/attach и HTTP parity, web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
 
 ## Owner scope amendment (2026-09-21)
 
@@ -916,6 +916,23 @@ wires или PDF/audio/video/image generation. CONN01–CONN05 только T59,
 единственным owner общего auth visual parity, T57 — OpenAI OAuth. T30 зависит от T59.
 Plan todo/implementation NOT_STARTED/NOT_RUN; active T44, completed T53 и остальные
 execution statuses/historical evidence неизменны. Метод — TEST_PLAN, порядок — M8.
+
+## Owner amendment (2026-10-13 — Code Mode / `execute`)
+
+Владелец снял исключение Code Mode: [T60 contract](docs/goals/2026-10-13-code-mode.md).
+Модель получает `execute({ code })`; программа на подмножестве JavaScript исполняется
+собственным интерпретатором на Rust внутри `oc` (как донорский AST-интерпретатор, без
+Node/Bun/V8/QuickJS и без JS-host зависимости). MCP-серверы по умолчанию уходят в каталог
+`execute` (`tools.<server>.<tool>`), `codemode: false` оставляет сервер прямым; explicit
+`codemode: true` больше не отклоняется. `fetch` в программе идёт через владельца `webfetch`
+с его guards и permission. Каждый вложенный вызов проходит общий admission/approval/MCP
+lease под операцией `execute`; resource guards (шаги, отмена, стек, размеры) всегда включены.
+
+Узко superseded: «Code Mode/`execute` не выставляются модели», «Code Mode interpreter» в
+списке вне goal, D04 (omitted codemode = direct) и соответствующие строки CONFIG/TOOLS_MCP/
+ARCHITECTURE. Прочие запреты (arbitrary JS/TS/npm plugin runtime, JS-host, OAuth, serve/
+attach) не меняются: `execute` — confined interpreter, не plugin host. `opencode_*` остаются
+прямыми по T50. CM01–CM08 — TEST_PLAN; T60 владеет ими, live-проверка не заявлена без прогона.
 
 ## Исполнение
 

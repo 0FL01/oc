@@ -16,3 +16,4 @@ Plan: ../../roadmap/M8.md
 - [T57](T57/INDEX.md) [blocked] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: 0001.md.
 - [T58](T58/INDEX.md) [todo] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: нет.
 - [T59](T59/INDEX.md) [todo] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: нет.
+- [T60](T60/INDEX.md) [todo] — Code Mode execute на нативном Rust-интерпретаторе; latest: нет.
