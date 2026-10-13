@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T09:31:01+00:00
+State updated: 2026-10-13T11:37:44+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,42 +14,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. VIS41 hover overlay now paints independently of unchanged
-VIS44 busy close authority. Shell-onlyvisualhelperkeepsHome/modal/slot/clipping;
-publicclosecell/actionownerstillrefusesbusy. ActualheldPTYclickatpaintedcross
-keepssameturn/oneheldrequest/noabortorcontinuationandcompletesafterrelease.
-No RAW/policy/schema/auth/env/config/API/manifest changes/frozenShelloverrideintact.
+Bounded VIS36 typed generic Tool/action approval body slice qualified. Additive
+string-free preview marker uses bounded actual action, independent of raw policy
+resources/grants/save patterns/binding. T44 remains ACTIVE_NOT_PASS. Receipt:
+evidence/tui/vis36-mcp-tool-qualified.md; append-only evidence/T44/report.md.
 
 ## Checks
 
-Currentfullworkspace1868/0/11unchangedignore46targets/TUI534/PTY58,strictlocked
-Clippyfmt/debuglockedordinaryhelps/releaselockedhelp/ACTUALrelease9/Python71 PASS.
-Oldfull1866/2/11oldvisualassertionskept;onlycontractcontradictioncorrectedwithreal
-busyclickrefusalstrengthened/deadlinesuntouched. Current003121/79eachside112behavior
-PASS/51wholeframes26valid26complete24main2title14calls34RO2natural0. Every634byte/
-profile DIRmeta/sourceELFs/helpers/153priorproofbyteMETA/manualsingleXZUSTARinverse/
-fullrecountPASS. 102pairs204PNG408000cells55031040pixels182882cell9965501pixeldiff,
-86cursorsagree/ZEROwholeEQUAL/ALL204DIFFERENT. SixhoverglyphcellsstyledequalPAINTONLY.
-Receipt evidence/tui/vis41-busy-hover-qualified.md. InverseVmPeak282103808/HWM232566784.
+Actual producer/UI RED101 then approval36/core2PASS; changed crates1549/0/4;
+final current fullworkspace1873/0/11/46; strictClippy/fmt/debug locked+ordinary/help/
+release locked/help/rootPython71/actualrelease9 PASS. Fresh005 wide121/small79×40:
+eachside112checks/26valid26completions24main2title14calls34RO2natural0/51stages PASS.
+Independent every634 member/profile/complete four archives/manual memoryANDdurable
+XZ/USTAR inverse/full grid+PNG/current715source/ELFs/159priorproofMETA/16708legacy
+files/214DIRmetadata PASS. Actual complete command logs, failures and programs
+retained; read-only pre-stage/post-push checker performs final byte/cap seals.
 
 ## Risks
 
-No wholeVIS41/VIS36/R6V09/T44PASS/no closeauthority from paintedcross. SQLpending
-no_startedsnapshotheuristicNOTCoreEvent/syscalltrace. NativeAlwaysapply_patch/
-approval.txtvsOriginaledit/*nottranslated. Source7135e668220ec03746993beada2a455af1dcf8e9fcd890446aae886acd42c7c5e16/
-native66a002312a9ad7942b0e567b3f6ff3da185e882f71eb19a5b0d9493271abbdb1.
-Old002proof/audit/flagsimmutableHISTORICALafterPTYtestchange/producerE6eseparate.
-OnlyownFAILEDtool-regression001losslesslyretained261files3DIRmeta/reclaimed28405760,
-reserve8MiB/qualified006andPASSrootsuntouched. Beforehumanreceipt/bundleowned
-1048711168of1073741824/headroom25030656;finalactualrecountauthoritative. All16file/
-encoded128TARlogical2000dict16decoder32hardAS384allprefixes+vis36capsunchanged.
+Strict current102pairs204PNG differ:182843cells/9962957pixels,86cursorequal,
+zero whole grids/PNG equal. Original004 remains historical after test-only Clippy
+correction, original flags/seals/bytes/metadata untouched. Retained TERM01 child
+admission and releaseVIS38 restoration failures passed unchanged fresh isolated
+fixtures; current fullworkspace1873PASS. SQL no_started is producer heuristic,
+not CoreEvent/syscalltrace. Raw origin tool IDs/grant scopes are untranslated.
+All authority/resource/binding/size guards and frozen Shell/raw denial/busy-close
+contracts remain. All established prefixes under unchanged1GiB; no offload.
 
 ## Next
 
-Reviewedordinarycommit/pushcheckedmajor. Generic MCP preview Tool(action) gap uses
-existingtypedrequest/previewowner,preservepolicyresources/grants/RAW/binding/cancel/
-redaction/previewlimits; no vendor heuristics/freeLLMparser/newstore/framework.
-ContinueALLfrozenR1–R6/VIS01–VIS45/supplements/finalcurrentR6V09; finishonlyfullcontract.
+Return sole mutation ownership to parent after ordinary reviewed commit/push.
+Parent CONTINUES full frozen R1–R6/VIS01–VIS45/supplements and final-current R6/V09.
+Keep T44 active; no finish/block/switch/GOAL or acceptance weakening.
 
 
 Ready (до 5): T58, T59

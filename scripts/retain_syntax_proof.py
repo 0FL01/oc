@@ -1141,8 +1141,8 @@ VIS36_PROMPT_STAGES = ("home once-ask once-newhome once-returned-ask once-fullsc
 
 def vis36_prompt_roots(profile, attempt="001"):
     require(profile in ("wide", "small"), "fixed Prompt profile")
-    require(attempt in ("001", "002", "003"), "fixed Prompt attempt")
-    revision = {"001": "r1", "002": "r2", "003": "r3"}[attempt]
+    require(attempt in ("001", "002", "003", "004", "005"), "fixed Prompt attempt")
+    revision = {"001": "r1", "002": "r2", "003": "r3", "004": "r4", "005": "r5"}[attempt]
     root = TEMP / ("vis36-prompt-current-" + attempt)
     return {"current": root / ("prompt-" + profile + "-" + revision), "current-logs": root,
             "current-driver": TEMP / ("vis36-prompt-capture-" + revision + ".py")}
@@ -1209,7 +1209,10 @@ def check_vis36_prompt_facts(checks, protocol, side):
 def vis36_prompt_checks(files, profile, attempt="001"):
     read = lambda name: json.loads(files["current/" + name])
     lock, manifest = read("capture.lock.json"), read("source-manifest.json")
-    check_source_manifest(lock, manifest, 713)
+    # Prompt004 adds two owner test modules. Exact acquisition membership and
+    # every current source byte are still checked below; older campaigns retain
+    # their frozen count.
+    check_source_manifest(lock, manifest, 715 if attempt in ("004", "005") else 713)
     check_current_source(manifest)
     check_vis36_prompt_build(lock, manifest, read("commands.json"), profile, attempt)
     require(len(lock["captures"]) == 102 and len(lock["attempts"]) == 102 and
@@ -1408,7 +1411,7 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap", "vis36-prompt-wide", "vis36-prompt-small", "vis36-busy-hover-wide", "vis36-busy-hover-small", "vis36-busy-hover-r3-wide", "vis36-busy-hover-r3-small", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap", "vis36-prompt-wide", "vis36-prompt-small", "vis36-busy-hover-wide", "vis36-busy-hover-small", "vis36-busy-hover-r3-wide", "vis36-busy-hover-r3-small", "vis36-mcp-tool-wide", "vis36-mcp-tool-small", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
@@ -1416,7 +1419,8 @@ def main():
     temporal_only = args.campaign == "caret" or temporal_profile is not None
     prompt_campaigns = {"vis36-prompt-wide": ("wide", "001"), "vis36-prompt-small": ("small", "001"),
                         "vis36-busy-hover-wide": ("wide", "002"), "vis36-busy-hover-small": ("small", "002"),
-                        "vis36-busy-hover-r3-wide": ("wide", "003"), "vis36-busy-hover-r3-small": ("small", "003")}
+                        "vis36-busy-hover-r3-wide": ("wide", "003"), "vis36-busy-hover-r3-small": ("small", "003"),
+                        "vis36-mcp-tool-wide": ("wide", "005"), "vis36-mcp-tool-small": ("small", "005")}
     if args.campaign in prompt_campaigns:
         ROOTS = vis36_prompt_roots(*prompt_campaigns[args.campaign])
     elif args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap"):

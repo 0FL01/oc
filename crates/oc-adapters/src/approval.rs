@@ -290,9 +290,7 @@ pub(crate) async fn prepare(
                 values: resources.to_vec(),
             }
         }
-        _ => ApprovalPreview::Resource {
-            values: resources.to_vec(),
-        },
+        _ => ApprovalPreview::Tool,
     };
     Ok((
         preview,

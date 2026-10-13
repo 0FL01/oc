@@ -7,6 +7,8 @@ use tokio::sync::{broadcast, oneshot};
 /// Owner-prepared display data; consumers never inspect the filesystem.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalPreview {
+    /// Generic invocation; display the already-bounded request action, not policy resources.
+    Tool,
     Resource {
         values: Vec<String>,
     },
@@ -158,6 +160,7 @@ impl ApprovalQueue {
     ) -> Result<ApprovalDecision, &'static str> {
         let strings = request.resources.iter().chain(&request.save_patterns);
         let preview_bytes = match &request.preview {
+            ApprovalPreview::Tool => 0,
             ApprovalPreview::Resource { values } => values.iter().map(String::len).sum(),
             ApprovalPreview::Shell { command, cwd } => command.len() + cwd.len(),
             ApprovalPreview::Search {
@@ -254,6 +257,10 @@ impl Drop for WaitGuard {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "approval_tool_tests.rs"]
+mod tool_tests;
 
 #[cfg(test)]
 mod tests {

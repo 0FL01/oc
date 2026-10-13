@@ -1,5 +1,70 @@
 use super::*;
 
+#[tokio::test]
+async fn generic_tool_preview_keeps_action_separate_from_policy_resources_and_digest() {
+    use crate::tools::{AllowAllPolicy, SkillSnapshot, ToolRoots};
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let files = crate::files::Files::new(project.path(), data.path()).unwrap();
+    let shell = crate::shell::Shell::new(project.path()).unwrap();
+    let env = std::collections::BTreeMap::new();
+    let cancel = std::sync::atomic::AtomicBool::new(false);
+    let (snapshot, _) = SkillSnapshot::build(&[]);
+    let ctx = ToolContext {
+        files: &files,
+        shell: &shell,
+        parent_env: &env,
+        webfetch_auth: None,
+        webfetch_allow_private: false,
+        policy: &AllowAllPolicy,
+        subagent: None,
+        snapshot: &snapshot,
+        cancel: &cancel,
+        roots: Some(ToolRoots {
+            project: project.path().into(),
+            data: data.path().into(),
+        }),
+    };
+    let mut call = ToolCall {
+        id: "call-mcp".into(),
+        name: "vis36__echo".into(),
+        arguments: serde_json::json!({"text": "actual invocation"}),
+    };
+    let resources = crate::tools::permission_resources(&call).unwrap();
+    assert_eq!(resources, ["*"]);
+    assert_ne!(call.name, resources[0]);
+    let (preview, digest, preimage, cwd) = prepare(&ctx, &call, &resources).await.unwrap();
+    assert_eq!(preview, ApprovalPreview::Tool);
+    assert!(preimage.is_none() && cwd.is_none());
+    assert_eq!(
+        grant_resources(project.path(), &call.name, &resources),
+        resources
+    );
+    assert_eq!(save_patterns(&call.name, &resources), resources);
+    assert_eq!(prepare(&ctx, &call, &resources).await.unwrap().1, digest);
+    call.arguments["text"] = "changed invocation".into();
+    assert_ne!(prepare(&ctx, &call, &resources).await.unwrap().1, digest);
+    for (name, arguments, resources) in [
+        (
+            "read",
+            serde_json::json!({"path":"note.txt"}),
+            vec!["note.txt".into()],
+        ),
+        (
+            "webfetch",
+            serde_json::json!({"url":"https://example.com/"}),
+            vec!["https://example.com/".into()],
+        ),
+    ] {
+        call.name = name.into();
+        call.arguments = arguments;
+        assert_eq!(
+            prepare(&ctx, &call, &resources).await.unwrap().0,
+            ApprovalPreview::Resource { values: resources }
+        );
+    }
+}
+
 #[test]
 fn donor_identity_hash_and_origin_forms() {
     assert_eq!(

@@ -539,6 +539,7 @@ fn feedback_width(width: u16, terminal_width: u16) -> u16 {
 
 fn presentation_title(request: &ApprovalRequest) -> Option<(&'static str, String)> {
     match &request.preview {
+        ApprovalPreview::Tool => Some(("⚙", format!("Call tool {}", request.action))),
         ApprovalPreview::Shell { .. } => None,
         ApprovalPreview::Patch { files, .. } => Some((
             "→",
@@ -953,6 +954,10 @@ fn preview(
     theme: &Theme,
 ) -> Vec<Line<'static>> {
     match &request.preview {
+        ApprovalPreview::Tool => vec![Line::styled(
+            format!("Tool: {}", request.action),
+            Style::default().fg(theme.text_muted()),
+        )],
         ApprovalPreview::Shell { command, .. } => vec![Line::raw(format!("$ {command}"))],
         ApprovalPreview::Search { pattern, .. } => vec![Line::styled(
             format!("Pattern: {pattern}"),
@@ -1016,6 +1021,10 @@ fn preview(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "approval_view_tool_tests.rs"]
+mod tool_tests;
 
 #[cfg(test)]
 mod tests {

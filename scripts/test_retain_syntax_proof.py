@@ -39,7 +39,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
                 proof.check_vis36_auto_build(lock, manifest, commands, "001")
             with self.assertRaises(ValueError):
                 proof.check_vis36_prompt_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, profile)
-            for attempt, revision in (("002", "r2"), ("003", "r3")):
+            for attempt, revision in (("002", "r2"), ("003", "r3"), ("004", "r4"), ("005", "r5")):
                 second = proof.vis36_prompt_roots(profile, attempt)
                 self.assertEqual(second["current"], proof.TEMP / ("vis36-prompt-current-" + attempt) / ("prompt-" + profile + "-" + revision))
                 self.assertEqual(second["current-driver"], proof.TEMP / ("vis36-prompt-capture-" + revision + ".py"))
@@ -53,7 +53,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             proof.vis36_prompt_roots("tall")
         with self.assertRaises(ValueError):
-            proof.vis36_prompt_roots("wide", "004")
+            proof.vis36_prompt_roots("wide", "006")
 
     def test_vis36_auto_builder_preserves_failed_roots_and_rejects_cross_mode_or_duplicate_build(self):
         hashes = {name: "a" * 64 for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",

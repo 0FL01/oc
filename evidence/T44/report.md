@@ -1482,3 +1482,42 @@ gateshashes/all99gatebytes/FAILEDarchivalseals/T44active141/unchangedactualaddit
 Noauditorentrypoint/repack/capture/provider/Cargoreplay;producerE6eNOTdeliveryHEAD.
 Actualdeliveryallocation1048862720of1073741824/headroom24879104;repeatreadonly
 checkerafterordinarypush, finalactualrecountauthoritative/T44ACTIVE_NOT_PASS.
+
+## 2026-10-13 — VIS36 typed generic Tool/action permission body
+
+T44 ACTIVE_NOT_PASS. Additive string-free `ApprovalPreview::Tool` preserves the
+existing bounded action, separate resources/save patterns/grants/digest/binding,
+all authority/policy/admission/recheck/cancellation/redaction/RAW/history and size
+guards. Generic fallback and fullscreen/inline body now show `Tool: {action}`;
+explicit resource-specific previews remain. Origin MCP IDs stay untranslated.
+Five owner regressions; actual producer/UI RED101 → approval36PASS/core2PASS.
+Current fullworkspace1873/0/11/46; changedcrates1549/0/4; fmt/strictClippy/debug
+locked+ordinary/help/release locked/help/rootPython71/ACTUALrelease9 PASS.
+Clippy's new-test cloned-slice fix makes004 historical; fresh005121/79×40 both
+origins112checksPASS/51stages/26valid26completions24main2title14calls34RO2natural0.
+Once/Reject/Always/persistedgrant/relaunch/MCP/childfeedback/read/Shell/glob/URL/
+Settings real effects, native apply_patchapproval.txt versus Originaledit/* raw
+grant scope, SQL producer heuristics, busy-cross PAINT/busy-close REFUSED and
+frozenShelloverride/rawPatchdenial preserved. Original004 source flags/sealed
+BEFORE/program/bytes+metadata untouched; all failed gates retained, no replay.
+Independent every634 original byte perprofile, manual XZ/USTAR memoryANDdurable
+inverse/current715source/ELFs/helpers/159priorproofbyteMETA/16708legacyfiles/
+214DIRmetadata PASS. Four separate complete profile archives, no drop/reencoding.
+Current102pairs204PNG408000cells55031040pixels:182843cells/9962957pixelsdifferent,
+86cursorequal/ZEROwholegrid/ZEROwholePNG equal. Action body diagnostics use actual
+vis36_echo/vis36__echo, no masks/translations/global VIS36 or R6V09PASS claim.
+Source71522ae1dbaaf6d2e5ba2c64bf5e4bfd3b4163aa32884613341aa290a60e997f84c;
+actualdebug3c8f5eee5f466641d84357baf6a7fd35c65109af36264003fe5743cfba0ec2e9.
+OriginalELFunchanged/producerDafseparatefromdeliveryHEAD. InverseVmPeak294137856/
+HWM246181888<hardAS384. Unchanged all-prefix1GiB/16MiB/128MiB/2000/dict16/decode32
+caps; no reclaim/deletion/offload. Receipt evidence/tui/vis36-mcp-tool-qualified.md.
+Retained currentworkspace TERM01 child-admission and releaseVIS38 restoration
+failures; fresh isolated unchanged cases PASS, subsequent fullworkspace PASS.
+Next CONTINUE full frozen R1–R6/VIS01–VIS45/supplements/finalcurrent R6V09.
+Completegatebundle67512B/SHA3043ba62aa2a9bf6251ef180fe98799d820c9c7e22e2d747d9a5df6224fa92f9:
+39completeJSON/fullLOGpairs+12originalprograms/90members826362logical/zeroaliases;
+EVERYbyte memoryANDdurablemanualinversePASS/allfivefailed101commandsretained.
+Docs59tasks178specs/progressPASS/T44active142/allforeignSTATEfieldsincludingT59
+preserved. ReadonlydeliverysealsPASS/current715actualELFs/originalDIRmetadata/
+priorproofs+helpers/newarchives+allgatebytes/caps. Postbundleallocation1072787456/
+1073741824headroom954368BEFOREfinalfactualaddition;postpushrecountauthoritative.
