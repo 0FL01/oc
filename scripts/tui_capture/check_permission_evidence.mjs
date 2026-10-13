@@ -54,7 +54,18 @@ for(const name of autoRuns)for(const origin of ['upstream','oc']) {
  const dir=path.join(base,name,origin),checks=read(path.join(dir,'permission-checks.json'));
  assert.equal(checks.status,'PASS');
  for(const c of checks.checks.filter(c=>c.snapshot))assert.equal(c.snapshot.observations.flatMap(o=>o.data.permission_grants||o.data.permission||[]).length,0);
- const mixed=checks.checks.find(c=>c.stage==='auto-mixed-proof');assert(mixed.files_unchanged);assert(/denied/i.test(JSON.stringify(mixed.actual_results)));
+  const mixed=checks.checks.find(c=>c.stage==='auto-mixed-proof');assert(mixed.files_unchanged);assert(/denied/i.test(JSON.stringify(mixed.actual_results)));
+  const cliPriority=checks.checks.find(c=>c.stage==='cli-priority-proof');
+  if(cliPriority) {
+   assert.deepEqual(cliPriority,{stage:'cli-priority-proof',saved_prompt:true,root_auto_after_prompt:true,child_once_without_grant:true,restarted_cli_override:true});
+   const snapshot=stage=>checks.checks.find(c=>c.stage===stage).snapshot;
+   assert.equal(snapshot('settings-auto-config').cli.session.permissions,'autoaccept');
+   for(const stage of ['settings-prompt-config','cli-restart-config'])assert.equal(snapshot(stage).cli.session.permissions,'prompt');
+   for(const c of ['autoonce','promptagain','childroot','clirestart']){const proof=checks.checks.find(p=>p.stage==='auto-'+c+'-proof');assert(proof.files_unchanged&&proof.no_saved_grants);assert.equal(proof.actual_results.length,1);}
+   const protocol=read(path.join(dir,'protocol.json')),exits=protocol.filter(e=>e.kind==='exit');assert.equal(exits.length,2);assert(exits.every(e=>e.code===0||e.returncode===0||e.exit_code===0));
+   const operationCounts=protocol.filter(e=>e.kind==='provider'&&e.operation!=='title').reduce((a,e)=>(a[e.case]=(a[e.case]||0)+1,a),{});
+   for(const c of ['once','shell','mixed','autoonce','promptagain','childroot','childread','clirestart'])assert.equal(operationCounts[c],2);
+  }
  report.checks.push({name,origin,auto_mode_saves_zero_grants:true,pass:true});
 }
 const headless=read(path.join(base,headlessRun,'report.json'));assert(headless.cases.every(c=>c.pass));

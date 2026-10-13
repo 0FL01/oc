@@ -12,12 +12,57 @@ use std::{
 
 #[test]
 fn headless_requires_explicit_once_consumer_even_with_tui_auto_config() {
-    run(false, false);
-    run(true, false);
-    run(true, true);
+    run(None, false);
+    for flag in ["--auto", "--yolo", "--dangerously-skip-permissions"] {
+        run(Some(flag), false);
+        run(Some(flag), true);
+    }
 }
 
-fn run(auto: bool, deny: bool) {
+#[test]
+fn vis36_actual_hidden_auto_aliases_keep_help_side_effect_free() {
+    let root = tempfile::tempdir().unwrap();
+    let home = root.path().join("home");
+    let config = home.join("config/opencode");
+    std::fs::create_dir_all(&config).unwrap();
+    // Help must finish in the CLI parser, before even malformed config loads.
+    std::fs::write(config.join("opencode.json"), "{").unwrap();
+    let data = root.path().join("data");
+    for flag in ["--auto", "--yolo", "--dangerously-skip-permissions"] {
+        for argv in [
+            vec![flag, "--help"],
+            vec![flag, "tui", "--help"],
+            vec!["tui", flag, "--help"],
+            vec![flag, "run", "--help"],
+            vec!["run", flag, "--help"],
+        ] {
+            let output = Command::new(env!("CARGO_BIN_EXE_oc"))
+                .env_clear()
+                .env("HOME", &home)
+                .env("XDG_CONFIG_HOME", home.join("config"))
+                .env("PATH", "/usr/bin:/bin")
+                .arg("--data-dir")
+                .arg(&data)
+                .args(&argv)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{argv:?}: {output:?}");
+            let help = String::from_utf8(output.stdout).unwrap();
+            assert!(help.contains("--auto"));
+            assert!(!help.contains("--yolo"));
+            assert!(!help.contains("--dangerously-skip-permissions"));
+            assert!(output.stderr.is_empty());
+            assert!(!data.exists(), "help created native storage");
+            assert_eq!(
+                std::fs::read_to_string(config.join("opencode.json")).unwrap(),
+                "{"
+            );
+        }
+    }
+}
+
+fn run(auto_flag: Option<&str>, deny: bool) {
+    let auto = auto_flag.is_some();
     let root = tempfile::tempdir().unwrap();
     let home = root.path().join("home");
     let project = root.path().join("project");
@@ -28,11 +73,8 @@ fn run(auto: bool, deny: bool) {
     listener.set_nonblocking(true).unwrap();
     let base = format!("http://{}/v1", listener.local_addr().unwrap());
     std::fs::write(config.join("opencode.json"), serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"fixture"},"models":{"m":{"limit":{"context":65536,"output":4096}}}}},"permission":{"bash":if deny { "deny" } else { "ask" }},"agent":{"title":{"disable":true}}}).to_string()).unwrap();
-    std::fs::write(
-        config.join("cli.json"),
-        r#"{"session":{"permissions":"autoaccept"}}"#,
-    )
-    .unwrap();
+    let saved_cli = r#"{"session":{"permissions":"autoaccept"}}"#;
+    std::fs::write(config.join("cli.json"), saved_cli).unwrap();
     let stop = Arc::new(AtomicBool::new(false));
     let stopping = stop.clone();
     let server = std::thread::spawn(move || {
@@ -112,8 +154,8 @@ fn run(auto: bool, deny: bool) {
         .arg("invoke shell")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
-    if auto {
-        command.arg("--auto");
+    if let Some(flag) = auto_flag {
+        command.arg(flag);
     }
     let mut child = command.spawn().unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
@@ -139,6 +181,10 @@ fn run(auto: bool, deny: bool) {
         );
     }
     assert_eq!(project.join("headless-marker").exists(), auto && !deny);
+    assert_eq!(
+        std::fs::read_to_string(config.join("cli.json")).unwrap(),
+        saved_cli
+    );
     assert!(calls >= 1);
     if !auto {
         assert!(String::from_utf8_lossy(&output.stderr).contains("approval"));

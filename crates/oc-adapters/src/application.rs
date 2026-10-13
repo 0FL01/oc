@@ -2940,20 +2940,21 @@ async fn query(
         }
         InboxMsg::RegisterApprovalConsumer {
             auto_once,
-            persist,
+            preference,
             ack,
         } => {
-            if persist
-                && let Err(error) = crate::composition::save_permission_mode(composition, auto_once)
+            if let Some(preference) = preference
+                && let Err(error) =
+                    crate::composition::save_permission_mode(composition, preference)
             {
                 let _ = ack.send(Err(app_error(error.to_string())));
                 return;
             }
             runtime.register_approval_consumer(auto_once);
-            if persist {
+            if let Some(preference) = preference {
                 composition
                     .permission_preference
-                    .store(auto_once, Ordering::SeqCst);
+                    .store(preference, Ordering::SeqCst);
             }
             composition
                 .approval_consumer_mode

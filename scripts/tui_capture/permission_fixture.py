@@ -16,16 +16,26 @@ PATCHES = {
 
 def configure(spec, home, project, config, cli):
     apply_patch_fixture.configure(spec, home, project, config, cli)
+    # This campaign emits ordinary patch calls. Select a real compatible fixture
+    # model on both sides rather than injecting an unadvertised file tool into
+    # the non-GPT model's edit/write request view.
+    model = 'gpt-fixture-model-1'
+    providers = config['providers' if spec['origin'] == 'upstream' else 'provider']
+    models = providers['fixture']['models']
+    models[model] = models.pop('fixture-model-1')
+    config['model'] = 'fixture/' + model
+    spec['fixture_model'] = model
     (project / 'approval.txt').write_text('before approval\n')
     (project / 'approval.txt').chmod(0o640)
     spec['permission_patches'] = PATCHES
     spec['permission_calls'] = {
         'read': {'name':'read','arguments':{'path':'approval.txt','offset':1,'limit':5}},
-        'shell': {'name':'bash' if spec['origin']=='oc' else 'shell','arguments':{'argv':['/usr/bin/touch','shell-marker']} if spec['origin']=='oc' else {'command':'/usr/bin/touch shell-marker'}},
+        'shell': {'name':'shell','arguments':{'command':'/usr/bin/touch shell-marker'}},
         'glob': {'name':'glob','arguments':{'pattern':'**/*.txt'}},
         'url': {'name':'webfetch','arguments':{'url':'https://example.invalid/vis36/never-fetch?wrapped='+'word-'*24}},
         'autoonce': {'name':'read','arguments':{'path':'approval.txt','limit':5}},
         'promptagain': {'name':'read','arguments':{'path':'approval.txt','limit':5}},
+        'clirestart': {'name':'read','arguments':{'path':'approval.txt','limit':5}},
         'mcp': {'name':'vis36__echo' if spec['origin']=='oc' else 'vis36_echo','arguments':{'message':'bounded real call ' + 'wrap words ' * 12}},
         'childroot': {'name':'subagent','arguments':{'agent':'vis36-child','description':'VIS36 child permission feedback','prompt':'VIS36 childread: read approval.txt; honor rejection feedback.'}},
         'childread': {'name':'read','arguments':{'path':'approval.txt','limit':5}},

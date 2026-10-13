@@ -1148,3 +1148,44 @@ No baseline, deadline, threshold, validation, test or ignore weakened. Actual ow
 1071058944/headroom2682880 before delivery; caps/accounting remain unchanged.
 Continue every remaining frozen R1–R6/VIS01–45/supplement/final current-sourceR6/V09;
 checked major commit/push, no T44 finish or fake version/random/elapsed equality.
+
+## 2026-10-12 — VIS36 CLI aliases / atomic effective mode / current003
+
+ACTIVE_NOT_PASS. Receipt `evidence/tui/vis36-auto-qualified.md`; captured producer
+601006d09 separate from delivery. Hidden --yolo/dangerously-skip-permissions share
+canonical global --auto; native actual Ask/Deny/help/config-only refusal and
+QuestionRequired tests pass for all flags, no Always grants or question answer.
+Real FIFO barrier reproduced Settings saved-Prompt temporarily publishing a Prompt
+consumer under CLI Auto. Existing bounded owner now saves preference then applies
+effective OR atomically in one request, preserving save error/oldAPI/policy/bindings.
+Seven typed owner cases include pending/new/Prompt restore/CLI root-child/reload/
+cancel/error ACK, matching Asked→ResolvedOnce before tool start and real effects.
+
+Failed001 non-GPT unadvertised patch and002 upstream config-key/legacybash mismatch
+are byte-exact retained with all prefix effects/failure frames; strict validators
+were not bypassed. Actual-compatible fixture GPT ID and canonicalShell(command)
+corrected acquisition only. Current003 both PASS38; each18valid18complete16main2title,
+8calls11ROsnapshots2naturalexit0/zero grants, genuine Settings/palette/root/child/
+relaunch effects. Relaunch admits fresh root, not same-root restart. Native8ops7done
+1failed/8completedturns16messages, OriginalV2RAW32messages8toolparts/sourceIDsbound.
+SQLite is not CoreEvent/syscall proof; typed owner tests supply ordering separately.
+
+All363files36387917logicalB/6exactsame-sideencodedPNGaliases retained1799324B;
+archive`9ed9865e3f99809bbc396ce0c9af7f39ed622d17487f2d4a4125a80370a6caae`.
+ManualsingleXZUSTAR every-original inverse/sourceELFs/105priorproof byteMETA/recount
+PASS. All observer corrections/failed logs/firstEscape states retained, no data mask.
+Current16wholepairs32PNGs77440cells10444800pixels/14122celldiff1495640pixeldiff,
+11/16cursors, ALL32DIFFERENT. WholeVIS36/R6/V09/T44 NOTPASS. Source713
+`d3d02ec520b6f7f5cf9511244ead95ef15e12e1e1ff1bf46157f8a96011dbefe`,
+native`34e06ce943f45c4c067903b0ddd2469168f1fd245562860666afdc7506aa5a1c`.
+IndependentVmPeak187707392 <384MiB, old012 sourceflags remain immutable historical.
+
+Currentworkspace1864/0/11unchangedignore46targets/TUI530/PTY58; strictClippy/fmt/
+lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/Python70 PASS. Complete
+success/RED/failed-observer command bytes retained in independent-inverse gatebundle.
+Actual additive vis36-prefix recount1073123328/headroom618496 BEFORE receipt/bundle;
+legacy-reader printed prior-prefix quota is not current allocation. Same1GiB/16MiB/
+128MiB/2000/dict16decoder32/hardAS384, no offload/capraise/qualified deletion/reencoding.
+Next actual Settings filter reset after modeACK; preserve query/selection and acquire
+current paired pixels/cursor. Continue ALL frozen R1–R6/VIS01–45/supplements and final
+current-sourceR6/V09; checked major commit/push, no finish on local behavioral PASS.

@@ -750,6 +750,81 @@ fn finished() -> String {
             serde_json::json!({"type":"response.completed","response":{"id":"r","status":"completed","usage":{"input_tokens":1,"output_tokens":1}}}),
         )
 }
+
+#[tokio::test]
+async fn vis36_cli_auto_keeps_child_once_bound_to_its_own_request_without_grants() {
+    let fixture = Fixture::new(vec![
+        tool_call("delegate-auto", "subagent", serde_json::json!({"agent":"helper","description":"Auto child fixture","prompt":"Run shell"}).to_string()),
+        tool("auto-child-marker"),
+        finished(),
+        finished(),
+    ]);
+    let (app, guard) = fixture.app().await;
+    let root = SessionId("auto-family".into());
+    app.create_session(root.clone()).await.unwrap();
+    app.rename_session(root.clone(), "Auto family fixture".into())
+        .await
+        .unwrap();
+    app.set_permission_mode_with_cli_auto(false, true)
+        .await
+        .unwrap();
+    let mut events = app.subscribe();
+    app.submit(
+        root.clone(),
+        "delegate with the captured CLI consumer".into(),
+    )
+    .await
+    .unwrap();
+    let mut request = None;
+    let mut resolved = None;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::PermissionAsked(child_request) => {
+                    assert_ne!(child_request.binding.session, root.0);
+                    assert!(request.replace(child_request).is_none());
+                    assert!(app.pending_approvals().await.unwrap().is_empty());
+                }
+                CoreEvent::PermissionResolved {
+                    request: child_request,
+                    decision,
+                } => {
+                    assert_eq!(request.take(), Some(child_request.clone()));
+                    assert_eq!(decision, ApprovalDecision::Once);
+                    assert!(resolved.replace(child_request).is_none());
+                }
+                CoreEvent::ToolCallStarted { name, session, .. } if name == "bash" => {
+                    assert_eq!(session.0, resolved.as_ref().unwrap().binding.session);
+                    assert!(request.is_none());
+                }
+                CoreEvent::TurnFinished { session, .. } if session == root => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(resolved.is_some());
+    assert!(
+        fixture
+            .root
+            .path()
+            .join("project/auto-child-marker")
+            .exists()
+    );
+    assert!(app.pending_approvals().await.unwrap().is_empty());
+    assert!(!app.catalog().await.unwrap().chrome.permissions_auto);
+    let db = rusqlite::Connection::open(fixture.root.path().join("data/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM permission_grants", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
 async fn asked(events: &mut tokio::sync::broadcast::Receiver<CoreEvent>) -> ApprovalRequest {
     tokio::time::timeout(Duration::from_secs(5), async {
         loop {
@@ -779,6 +854,105 @@ async fn complete(events: &mut tokio::sync::broadcast::Receiver<CoreEvent>) {
 }
 
 #[tokio::test]
+async fn vis36_cli_auto_prompt_save_keeps_one_effective_consumer_at_the_owner_boundary() {
+    use std::{future::Future, task::Poll};
+
+    let fixture = Fixture::new(vec![tool("cli-priority-marker"), finished()]);
+    let (app, guard) = fixture.app().await;
+    let session = SessionId("cli-priority".into());
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "CLI priority fixture".into())
+        .await
+        .unwrap();
+    app.register_approval_consumer(true).await.unwrap();
+    let (mut state, mut deck) = restore_initial(&app, Some(session.clone())).await.unwrap();
+    deck.cli_auto = true;
+    state.handle_paste("owned draft Ω界");
+    let mut events = app.subscribe();
+    let mut save = Box::pin(apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::SetPermissionMode { auto_once: false },
+    ));
+    // Queue the real Settings owner command, then observe its committed state
+    // before polling the frontend again. A second re-registration cannot hide
+    // an intermediate Prompt consumer from this FIFO query barrier.
+    std::future::poll_fn(|cx| {
+        assert!(save.as_mut().poll(cx).is_pending());
+        Poll::Ready(())
+    })
+    .await;
+    let snapshot = app.catalog().await.unwrap();
+    assert_eq!(
+        snapshot.auto_accept,
+        oc_core::queries::AutoAcceptState::Enabled
+    );
+    assert!(
+        !snapshot.chrome.permissions_auto,
+        "saved preference is Prompt"
+    );
+    app.submit(session, "CLI override survives Settings Prompt".into())
+        .await
+        .unwrap();
+    let mut automatic_request = None;
+    let mut once_replies = 0;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::PermissionAsked(request) => {
+                    // Auto preserves the real Asked/Resolved event pair; it
+                    // never leaves this request waiting for the frontend.
+                    assert!(automatic_request.replace(request).is_none());
+                    assert!(app.pending_approvals().await.unwrap().is_empty());
+                }
+                CoreEvent::PermissionResolved { request, decision } => {
+                    assert_eq!(automatic_request.take(), Some(request));
+                    assert_eq!(decision, ApprovalDecision::Once);
+                    once_replies += 1;
+                }
+                CoreEvent::ToolCallStarted { .. } => assert!(automatic_request.is_none()),
+                CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                CoreEvent::TurnFinished { .. } => break,
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(once_replies, 1);
+    save.await.unwrap();
+    assert!(
+        fixture
+            .root
+            .path()
+            .join("project/cli-priority-marker")
+            .exists()
+    );
+    assert_eq!(state.input(), "owned draft Ω界");
+    assert!(!state.chrome.permissions_auto);
+    assert_eq!(
+        state.auto_accept,
+        oc_core::queries::AutoAcceptState::Enabled
+    );
+    assert!(app.pending_approvals().await.unwrap().is_empty());
+    let cli: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(fixture.root.path().join("home/.config/opencode/cli.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(cli.pointer("/session/permissions").unwrap(), "prompt");
+    let db = rusqlite::Connection::open(fixture.root.path().join("data/oc.sqlite")).unwrap();
+    assert_eq!(
+        db.query_row("SELECT count(*) FROM permission_grants", [], |row| row
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}
+
+#[tokio::test]
 async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     let fixture = Fixture::new(vec![
         tool("once-marker"),
@@ -788,6 +962,7 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
         finished(),
         tool("new-auto"),
         finished(),
+        tool("prompt-again-marker"),
     ]);
     let (app, guard) = fixture.app().await;
     let session = SessionId("root".into());
@@ -874,13 +1049,71 @@ async fn real_binary_permission_intent_error_ack_cancel_and_pending_auto() {
     complete(&mut events).await;
     assert!(app.pending_approvals().await.unwrap().is_empty());
     assert!(fixture.root.path().join("project/pending-auto").exists());
-    app.submit(session, "new auto".into()).await.unwrap();
+    app.submit(session.clone(), "new auto".into())
+        .await
+        .unwrap();
     complete(&mut events).await;
     assert!(fixture.root.path().join("project/new-auto").exists());
     assert!(
         std::fs::read_to_string(fixture.root.path().join("home/.config/opencode/cli.json"))
             .unwrap()
             .contains("autoaccept")
+    );
+    apply_intent(
+        &app,
+        &mut state,
+        &mut deck,
+        PanelIntent::SetPermissionMode { auto_once: false },
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        app.catalog().await.unwrap().auto_accept,
+        oc_core::queries::AutoAcceptState::Disabled
+    );
+    app.submit(session.clone(), "prompt again".into())
+        .await
+        .unwrap();
+    let request = asked(&mut events).await;
+    assert_eq!(
+        app.pending_approvals().await.unwrap(),
+        vec![request.clone()]
+    );
+    assert!(
+        !fixture
+            .root
+            .path()
+            .join("project/prompt-again-marker")
+            .exists()
+    );
+    app.reply_approval(ApprovalReply {
+        id: request.id,
+        binding: request.binding,
+        decision: ApprovalDecision::Reject { feedback: None },
+    })
+    .await
+    .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::TurnInterrupted {
+                    session: interrupted,
+                    ..
+                } if interrupted == session => break,
+                CoreEvent::ToolCallStarted { .. } => panic!("rejected Prompt request executed"),
+                CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        !fixture
+            .root
+            .path()
+            .join("project/prompt-again-marker")
+            .exists()
     );
     deck.cli_auto = true;
     apply_intent(

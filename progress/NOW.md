@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-12T22:10:59+00:00
+State updated: 2026-10-13T00:00:49+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,45 +14,44 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS; focused Question custom caret source slice qualified.
-Pinned textarea focused token now reaches existing terminal cursor-color owner
-through exact active shared-draft editing state. Modal/Approval/MCP-detail and
-ordinary caret priority preserved; no cell FG, coordinate, visibility, clock or
-frame-order hack. Source713 ed309316934f99322de6ec538a22958eb40601f62dd44657fd6492faf743c185;
-native32b90fe9a0474adfe08e60dcf2ce65aaf54c91e461203a451de57b14024349fc.
+T44 ACTIVE_NOT_PASS. VIS36 CLI aliases/atomic effective approval consumer qualified.
+Hidden yolo/dangerously-skip-permissions use same global auto bool. Settings saved
+Prompt and process CLI override publish in one existing owner command/save-first;
+FIFO barrier RED→GREEN, no temporary Prompt consumer. Existing APIs/security/RAW/
+Deny/preimage/child binding unchanged. Source713 d3d02ec520b6f7f5cf9511244ead95ef15e12e1e1ff1bf46157f8a96011dbefe;
+native34e06ce943f45c4c067903b0ddd2469168f1fd245562860666afdc7506aa5a1c.
 
 ## Checks
 
-Actual RED then 13 VIS37 unit targets / three actual PTY/headless consumers PASS.
-Complete workspace1860/0/11unchangedignore/46targets/TUI530/PTY58; strict locked
-alltargetClippy/fmt/debuglockedordinarybuildhelp/releasebuildhelp/release9 PASS.
-Python68+question2 green. Current0126sides18behaviorPASS108wholePNG/108comparisons
-58DIFFERENT50EQUAL. Independent54pairs259200cells34953984pixels259cell11532pixdiff,
-54/54cursors25wholegrid25wholePNGequal; ALL6custom wholeframes equal. Existing
-51headers27pending3answered6cancelled3smallunderlay fullstyled equality preserved.
-704original byte+metadata inverse/101priorproof files preserved. Source changes
-only app/tests/input.rs/question_view.rs/views.rs relative011. Current012 proof
-1482060B ef56d773351888a2312389566e4245a8636123cac62459738493bb67f7435841.
-Receipt evidence/tui/vis37-question-cursor-qualified.md; complete command logs/RED
-retained in bounded independent-inverse gates bundle. No old source promotion.
+Seven typed owner cases/current pending/new/rootchild/Prompt restore/errorACK/
+reload/cancel; actualaliases Ask/Deny/help/config-only refusal and QuestionRequired.
+Currentworkspace1864/0/11 unchangedignore46targets/TUI530/PTY58; strictClippy/fmt/
+lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/Python70 PASS.
+Current003 BOTH38behaviorPASS, each18valid18complete16main2title/8calls11ROsnapshots/
+2naturalexit0/zeroAlwaysgrants/rootchildSettingsrelaunch. Actual fresh root on restart.
+363files36387917B/6same-sideoriginalPNGaliases/1799324B archive retained with all
+failed001002 bytes/effects. ManualsingleXZUSTAR/sourceELFs/105priorproofbyteMETA
+inverse and independentfull16pairs32PNGs77440cells10444800pixels PASS;14122cells
+1495640pixelsdifferent/11of16cursorsmatch/ALL32strictDIFFERENT. FullVIS36NOTPASS.
+Receipt evidence/tui/vis36-auto-qualified.md; completefailed/successcommandbundle.
 
 ## Risks
 
-Whole VIS37/R6/V09/T44 NOTPASS. Actual native version/random examples/real elapsed
-remain unnormalized. Captured producer eceb08c32 separate from delivery HEAD.
-24validproviders18main6title/12calls/12user6answer/30ROsnapshots/nativeOriginalV2
-RAWIDs/no observed extras; gen0natural0/gen1forcednotcleanfinal; DCPtablesunread.
-Owned1071058944/headroom2682880 before delivery allocation,1GiB cap unchanged;
-16MiBfilesencoded/128MiBTARlogical/2000members/dict16decoder32/hardAS384 unchanged.
-No qualified deletion/re-encoding/offload/capraise or policy/RAW/schema weakening.
+No current-sourceR6/V09/T44PASS. Historical012flags/proofs unchanged. SQLite RO
+snapshots notCoreEvent/syscallproof; actual typed owner ordering separate. Recorded
+producer601006 separate fromdeliveryHEAD. Fixturestrictadmissionfailures preserved,
+no schema injection/model allowlist or paid generation. Observer38/37naturalstages/
+queriedtables/firstEscape refinements recorded, no omitted metric/state.
+Additivevis36-prefix currentallocation1073123328/headroom618496 BEFOREdelivery;
+legacyreaderprintedoldscopequotaNOTcurrent. Same1GiB/16MiBfileencoded128MiBTARlogical/
+2000members/dict16decoder32hardAS384; noqualifieddeletion/offload/reencoding/capraise.
 
 ## Next
 
-Review and ordinary commit/push this major checked slice; continue ALL frozen
-R1–R6/VIS01–45/supplements, not only question. Choose next unresolved named
-acceptance outcome and source-correct existing owner; acquire genuine paired
-evidence without fake version/random/time normalization. Final current-source
-R6/V09 and full closure remain required; no T44 finish on a green local slice.
+Review exact stage/ordinarycommit/push major slice. Fix actualSettings query reset
+after modeACK using existingselect owner; preservequery/selection and qualifypaired
+frames/cursor without attributing allSettingsdiffs tothatgap. Continue every frozen
+R1–R6/VIS01–45/supplement; finalcurrent-sourceR6/V09andfullclosure stillrequired.
 
 
 Ready (до 5): T58, T59

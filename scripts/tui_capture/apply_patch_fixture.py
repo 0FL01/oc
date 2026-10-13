@@ -81,7 +81,7 @@ def respond(handler, body, spec, emit):
     call_id = 'call_'+prefix.lower()+'_'+str(case)
     results = [x for x in items if x.get('type')=='function_call_output' and x.get('call_id')==call_id]
     tool = not title and case is not None and not results
-    valid = handler.path=='/v1/responses' and body.get('stream') is True and body.get('model')=='fixture-model-1' and index<=(40 if spec.get('permission') else 32) and (title or case is not None)
+    valid = handler.path=='/v1/responses' and body.get('stream') is True and body.get('model')==spec.get('fixture_model','fixture-model-1') and index<=(40 if spec.get('permission') else 32) and (title or case is not None)
     if tool:
         valid = valid and name in definitions and definitions[name].get('type')=='function'
         if case not in spec.get('permission_calls',{}):

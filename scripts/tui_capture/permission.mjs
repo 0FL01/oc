@@ -20,6 +20,8 @@ export async function probePermission({origin,dir,send,waitFor,frame,capture,vis
   // row. This predicate checks the entire draft, including every wrapped word.
   // Captured grids/PNGs retain the footer and all decoration without masks.
   const visibleFeedback=f=>{const start=visibleMatches(f,'VIS36-FEEDBACK:')[0];if(!start)return '';const lines=[];for(let y=start.y;y<f.rows;y++){const footer=visibleMatches(f,'enter confirm').find(p=>p.y===y);const line=f.cells[y].slice(start.x,footer?.x??f.columns).map(c=>c.symbol).join('').trim();if(line)lines.push(line);}return lines.join(' ').replace(/\s+/g,' ');};
+  const closeSettings=async(stage)=>{send('\x1b','vis36_settings_escape');await new Promise(r=>setTimeout(r,1000));const f=await frame();record(stage+'-first-escape',{settings_remains:f.text.includes('Settings'),filter_remains:f.text.includes('Permissions')});await capture('permission-'+stage+'-first-escape',f,'CAPTURED');if(f.text.includes('Settings'))send('\x1b','vis36_settings_escape_close');await waitFor(f=>!f.text.includes('Settings'),'settings dismissed',6000);};
+  const settings=async(stage)=>{if(stage==='settings-auto-reopen'){send('\x10','vis36_palette');await waitFor(f=>f.text.includes('Commands'),'settings command palette',6000);send('Open settings','vis36_palette_filter');await shot('settings-palette-filtered',f=>f.text.includes('Open settings'));send('\r','vis36_palette_open_settings');}else{send('/settings','vis36_settings');await waitFor(f=>f.text.includes('/settings'),'settings draft',6000);send('\r','vis36_settings_enter');}await shot(stage,f=>f.text.includes('Settings'));};
   let previous;
   try {
     await shot('home',f=>f.text.includes('Ask anything'));previous=await snap('seed');
@@ -29,7 +31,29 @@ export async function probePermission({origin,dir,send,waitFor,frame,capture,vis
         record('auto-'+name+'-proof',{mode,grants:grants(after),files_unchanged:JSON.stringify(previous.files)===JSON.stringify(after.files),actual_results:logs.filter(e=>e.kind==='provider'&&e.case===name).flatMap(e=>e.actual_results||[])});
         if(grants(after).length||(name==='once'&&bytes(after,'before approval'))||(name==='shell'&&!after.files['shell-marker'].present)||(name==='mixed'&&JSON.stringify(previous.files)!==JSON.stringify(after.files)))throw Error('Auto mode effects or grant failure');previous=after;
       }
-      await cleanExit(0);result.status='PASS';record('counts',{provider_requests:requests(),provider_completed:logs.filter(e=>e.kind==='provider_completed').length,tool_calls:logs.filter(e=>e.kind==='fixture_tool_call').length,invalid_requests:logs.filter(e=>e.kind==='provider'&&!e.valid).length});return result;
+      let generation=0;
+      if(mode==='auto-cli') {
+        const automaticRead=async(name)=>{
+          submit(name);await shot('auto-'+name+'-completed',done(name));const after=await snap('auto-'+name+'-effects');
+          const proof={files_unchanged:JSON.stringify(previous.files)===JSON.stringify(after.files),no_saved_grants:grants(after).length===0,actual_results:logs.filter(e=>e.kind==='provider'&&e.case===(name==='childroot'?'childread':name)).flatMap(e=>e.actual_results||[])};
+          record('auto-'+name+'-proof',proof);
+          if(!proof.files_unchanged||!proof.no_saved_grants||proof.actual_results.length!==1)throw Error('CLI auto read/child outcome or grant failure');
+          previous=after;
+        };
+        await settings('settings-prompt');send('Permissions','vis36_settings_filter');await waitFor(f=>f.text.includes('Permissions'),'filtered permissions',6000);send('\r','vis36_settings_toggle');
+        await shot('settings-autoaccept',f=>/Autoaccept|auto accept/.test(f.text));await closeSettings('settings-auto');const autoConfig=await snap('settings-auto-config');
+        if(autoConfig.cli.session.permissions!=='autoaccept')throw Error('Settings Autoaccept was not saved');
+        await automaticRead('autoonce');
+        await settings('settings-auto-reopen');send('Permissions','vis36_settings_filter');await waitFor(f=>f.text.includes('Permissions'),'filtered permissions',6000);send('\r','vis36_settings_toggle');
+        await shot('settings-restored-prompt',f=>/Prompt|prompt/.test(f.text));await closeSettings('settings-prompt');const promptConfig=await snap('settings-prompt-config');
+        if(promptConfig.cli.session.permissions!=='prompt')throw Error('CLI override changed the saved Prompt preference');
+        await automaticRead('promptagain');await automaticRead('childroot');
+        await cleanExit(0);await relaunch();generation=1;await shot('cli-restart',f=>f.text.includes('Ask anything')||f.text.includes('VIS36-DONE-childroot'));
+        await automaticRead('clirestart');const restored=await snap('cli-restart-config');
+        if(restored.cli.session.permissions!=='prompt')throw Error('CLI auto persisted across restart');
+        record('cli-priority-proof',{saved_prompt:true,root_auto_after_prompt:true,child_once_without_grant:true,restarted_cli_override:true});
+      }
+      await cleanExit(generation);result.status='PASS';record('counts',{provider_requests:requests(),provider_completed:logs.filter(e=>e.kind==='provider_completed').length,tool_calls:logs.filter(e=>e.kind==='fixture_tool_call').length,invalid_requests:logs.filter(e=>e.kind==='provider'&&!e.valid).length});return result;
     }
     for(const name of ['once','reject','always']) {
       submit(name);await shot(name+'-ask',ask);
@@ -89,8 +113,6 @@ export async function probePermission({origin,dir,send,waitFor,frame,capture,vis
       const proof={files_unchanged:JSON.stringify(previous.files)===JSON.stringify(after.files),shell_effect:after.files['shell-marker'].present,no_extra_provider_requests:requests()===count+(name==='read'||name==='shell'?1:0),actual_results:logs.filter(e=>e.kind==='provider'&&e.case===name).flatMap(e=>e.actual_results||[])};
       record(name+'-proof',proof);if(!proof.no_extra_provider_requests||(name==='shell'?!proof.shell_effect:!proof.files_unchanged))throw Error(name+' actual lifecycle failed');previous=after;
     }
-    const closeSettings=async(stage)=>{send('\x1b','vis36_settings_escape');await new Promise(r=>setTimeout(r,1000));const f=await frame();record(stage+'-first-escape',{settings_remains:f.text.includes('Settings'),filter_remains:f.text.includes('Permissions')});await capture('permission-'+stage+'-first-escape',f,'CAPTURED');if(f.text.includes('Settings'))send('\x1b','vis36_settings_escape_close');await waitFor(f=>!f.text.includes('Settings'),'settings dismissed',6000);};
-    const settings=async(stage)=>{if(stage==='settings-auto-reopen'){send('\x10','vis36_palette');await waitFor(f=>f.text.includes('Commands'),'settings command palette',6000);send('Open settings','vis36_palette_filter');await shot('settings-palette-filtered',f=>f.text.includes('Open settings'));send('\r','vis36_palette_open_settings');}else{send('/settings','vis36_settings');await waitFor(f=>f.text.includes('/settings'),'settings draft',6000);send('\r','vis36_settings_enter');}await shot(stage,f=>f.text.includes('Settings'));};
     await settings('settings-prompt');
     send('Permissions','vis36_settings_filter');await waitFor(f=>f.text.includes('Permissions'),'filtered permissions',6000);send('\r','vis36_settings_toggle');
     await shot('settings-autoaccept',f=>/Autoaccept|auto accept/.test(f.text));await closeSettings('settings-auto');await snap('settings-auto-config');

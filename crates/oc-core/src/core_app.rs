@@ -511,7 +511,7 @@ pub enum InboxMsg {
     },
     RegisterApprovalConsumer {
         auto_once: bool,
-        persist: bool,
+        preference: Option<bool>,
         ack: oneshot::Sender<Result<(), CoreError>>,
     },
     CompactSession {
@@ -995,11 +995,22 @@ impl CoreApp {
         rx.await.map_err(|_| CoreError::Shutdown)?
     }
     pub async fn register_approval_consumer(&self, auto_once: bool) -> Result<(), CoreError> {
-        self.approval_consumer(auto_once, false).await
+        self.approval_consumer(auto_once, None).await
     }
     /// Persist a consumer mode preference through the application owner.
     pub async fn set_permission_mode(&self, auto_once: bool) -> Result<(), CoreError> {
-        self.approval_consumer(auto_once, true).await
+        self.set_permission_mode_with_cli_auto(auto_once, false)
+            .await
+    }
+    /// Save the preference and apply its effective process-only CLI override
+    /// in one owner command, without briefly registering a Prompt consumer.
+    pub async fn set_permission_mode_with_cli_auto(
+        &self,
+        auto_once: bool,
+        cli_auto: bool,
+    ) -> Result<(), CoreError> {
+        self.approval_consumer(auto_once || cli_auto, Some(auto_once))
+            .await
     }
     /// Shared bounded input history. Appending is independent of generation,
     /// while normal input is recorded atomically by durable turn acceptance.
@@ -1019,12 +1030,16 @@ impl CoreApp {
             })?;
         rx.await.map_err(|_| CoreError::Shutdown)?
     }
-    async fn approval_consumer(&self, auto_once: bool, persist: bool) -> Result<(), CoreError> {
+    async fn approval_consumer(
+        &self,
+        auto_once: bool,
+        preference: Option<bool>,
+    ) -> Result<(), CoreError> {
         let (ack, rx) = oneshot::channel();
         self.inbox
             .send(InboxMsg::RegisterApprovalConsumer {
                 auto_once,
-                persist,
+                preference,
                 ack,
             })
             .await

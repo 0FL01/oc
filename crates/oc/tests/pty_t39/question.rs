@@ -219,13 +219,19 @@ fn vis37_actual_question_dismiss_is_cancelled_not_answered_or_replayed() {
 
 #[test]
 fn vis37_actual_headless_auto_surfaces_question_required_without_answer() {
+    for auto_flag in ["--auto", "--yolo", "--dangerously-skip-permissions"] {
+        headless_question_required(auto_flag);
+    }
+}
+
+fn headless_question_required(auto_flag: &str) {
     let fixture = Fixture::new();
     let project = fixture.root.path().join("project");
     seed_session(&fixture.data_dir(), &project, SESSION, 0);
     fixture.s07_continue.store(true, Ordering::Relaxed);
     let mut command = fixture.command();
     command
-        .args(["run", PROMPT, "--auto", "--session", SESSION])
+        .args(["run", PROMPT, auto_flag, "--session", SESSION])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     let mut child = command.spawn().unwrap();

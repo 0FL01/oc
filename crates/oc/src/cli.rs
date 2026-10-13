@@ -16,7 +16,12 @@ pub struct Args {
     #[arg(long, global = true)]
     pub data_dir: Option<PathBuf>,
     /// Automatically answer permission requests once (never saves grants).
-    #[arg(long = "auto", global = true, default_value_t = false)]
+    #[arg(
+        long = "auto",
+        aliases = ["yolo", "dangerously-skip-permissions"],
+        global = true,
+        default_value_t = false
+    )]
     pub auto: bool,
     /// Print linked crate versions and exit without side effects.
     #[arg(long, default_value_t = false)]

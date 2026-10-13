@@ -9,6 +9,40 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_vis36_auto_builder_preserves_failed_roots_and_rejects_cross_mode_or_duplicate_build(self):
+        hashes = {name: "a" * 64 for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",
+                  "permission_fixture.py", "permission_mcp.py", "apply_patch_fixture.py", "apply_patch_admission.mjs")}
+        manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
+        native, original = str(proof.REPO / "target/debug/oc"), str(proof.TEMP / "t44-reference/package/bin/opencode")
+        roots = proof.vis36_auto_roots()
+        self.assertEqual(len(roots), 9)
+        for attempt, profile in (("001", "cli-wide"), ("002", "cli-wide-r2"), ("003", "cli-wide-r3")):
+            period = "current" if attempt == "003" else "failed-" + attempt
+            self.assertEqual(roots[period], proof.TEMP / ("vis36-mode-current-" + attempt) / profile)
+            self.assertEqual(roots[period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
+            lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
+                    "upstream": {"executable_path": original}, "runner_hashes": hashes,
+                    "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
+                    "profile": {"columns": 121, "rows": 40}}
+            argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original, "--oc", native,
+                    "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
+                    "--permission", "true", "--permission-mode", "auto-cli", "--columns", "121", "--rows", "40",
+                    "--output", str(roots[period])]
+            commands = [{"role": "capture runner invocation", "argv": argv},
+                        {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
+            proof.check_vis36_auto_build(lock, manifest, commands, attempt)
+            for addition in (["--permission-mode", "prompt"], ["--question-forms", "true"], ["--output", "/foreign"]):
+                bad = json.loads(json.dumps(commands))
+                bad[0]["argv"] += addition
+                with self.assertRaises(ValueError):
+                    proof.check_vis36_auto_build(lock, manifest, bad, attempt)
+            with self.assertRaises(ValueError):
+                proof.check_vis36_auto_build(lock, manifest, commands + commands[1:], attempt)
+            with self.assertRaises(ValueError):
+                proof.check_vis36_auto_build(lock, manifest, commands, "004")
+            with self.assertRaises(ValueError):
+                proof.check_vis36_auto_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, attempt)
+
     def test_vis37_builder_rejects_cross_mode_duplicate_build_and_unsealed_fixture(self):
         hashes = {name: "a" * 64 for name in ("capture.mjs", "tool_preview.mjs", "tool_preview_fixture.py",
                                              "question_forms.mjs", "question_fixture.py")}

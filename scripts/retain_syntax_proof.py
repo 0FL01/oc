@@ -973,6 +973,137 @@ def vis37_form_checks(files, current_only=False, current_attempt="004"):
     return reports
 
 
+def vis36_auto_roots():
+    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
+    roots = {}
+    for attempt, profile in profiles.items():
+        period = "current" if attempt == "003" else "failed-" + attempt
+        roots[period] = TEMP / ("vis36-mode-current-" + attempt) / profile
+        roots[period + "-logs"] = TEMP / ("vis36-mode-current-" + attempt)
+        roots[period + "-driver"] = TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py")
+    return roots
+
+
+def check_vis36_auto_build(lock, manifest, commands, attempt):
+    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
+    require(attempt in profiles, "fixed VIS36 auto acquisition")
+    argv = commands[0]["argv"]
+    require(commands[0].get("role") == "capture runner invocation" and len(argv) >= 2 and
+            argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
+            "actual VIS36 capture runner")
+    pairs = list(zip(argv[2::2], argv[3::2], strict=True))
+    options = dict(pairs)
+    expected = {"--reference": str(TEMP / "t44-reference/package/bin/opencode"),
+                "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
+                "--sample": "short", "--sidebar": "hide", "--permission": "true",
+                "--permission-mode": "auto-cli", "--columns": "121", "--rows": "40",
+                "--output": str(TEMP / ("vis36-mode-current-" + attempt) / profiles[attempt])}
+    require(len(options) == len(pairs) and options == expected and
+            lock["oc"]["executable_path"] == options["--oc"] and
+            lock["upstream"]["executable_path"] == options["--reference"] and
+            (lock["profile"]["columns"], lock["profile"]["rows"]) == (121, 40),
+            "fixed VIS36 options, paths and geometry")
+    require(all(lock["runner_hashes"][name] == manifest["scripts/tui_capture/" + name]
+                for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",
+                             "permission_fixture.py", "permission_mcp.py", "apply_patch_fixture.py",
+                             "apply_patch_admission.mjs")) and
+            lock["sources"]["upstream_commit"] == "2670273ff17da96f85c5826ced57aa1b368754fa" and
+            lock["oc"]["build_command"] == ["cargo", "build", "--locked"],
+            "sealed VIS36 producer and pinned donor")
+    builds = [item for item in commands if item["argv"][0] == "cargo"]
+    require(len(builds) == 1 and builds[0]["argv"] == lock["oc"]["build_command"] and
+            builds[0]["exit_code"] == 0, "one exact captured VIS36 repository build")
+
+
+def check_vis36_auto_facts(checks, protocol, side, fixture_model="gpt-fixture-model-1"):
+    require(checks.get("origin") == side and checks.get("status") == "PASS" and
+            len(checks["checks"]) == 38, "complete actual CLI-auto lifecycle")
+    rows = checks["checks"]
+    stage = lambda name: next(item for item in rows if item.get("stage") == name)
+    proof = stage("cli-priority-proof")
+    require(proof == {"stage": "cli-priority-proof", "saved_prompt": True,
+                      "root_auto_after_prompt": True, "child_once_without_grant": True,
+                      "restarted_cli_override": True}, "actual CLI priority and child/restart scope")
+    snapshots = [item["snapshot"] for item in rows if "snapshot" in item]
+    require(len(snapshots) == 11 and all(item.get("kind") == "permission_snapshot" and
+            all(not observation["data"].get("permission_grants", []) and
+                not observation["data"].get("permission", []) for observation in item["observations"])
+            for item in snapshots), "all read-only snapshots preserve zero Always grants")
+    require(stage("settings-auto-config")["snapshot"]["cli"]["session"]["permissions"] == "autoaccept" and
+            all(stage(name)["snapshot"]["cli"]["session"]["permissions"] == "prompt"
+                for name in ("settings-prompt-config", "cli-restart-config")), "actual saved mode differs from CLI override")
+    for case in ("autoonce", "promptagain", "childroot", "clirestart"):
+        item = stage("auto-" + case + "-proof")
+        require(item.get("files_unchanged") is True and item.get("no_saved_grants") is True and
+                len(item["actual_results"]) == 1, "one real automatic result without grant or file mutation")
+    require(stage("auto-mixed-proof").get("files_unchanged") is True and
+            len(stage("auto-mixed-proof")["actual_results"]) == 1, "mixed Deny preserves all files")
+    providers = [item for item in protocol if item.get("kind") == "provider"]
+    mains = [item for item in providers if item.get("operation") == "patch"]
+    require(len(providers) == 18 and len(mains) == 16 and
+            all(item.get("valid") is True and item["request"].get("model") == fixture_model
+                for item in providers) and
+            collections.Counter(item.get("case") for item in mains) ==
+            {name: 2 for name in ("once", "shell", "mixed", "autoonce", "promptagain", "childroot", "childread", "clirestart")},
+            "exact real main/aux requests and no replay")
+    require(len([item for item in protocol if item.get("kind") == "provider_completed"]) == 18 and
+            len([item for item in protocol if item.get("kind") == "fixture_tool_call"]) == 8 and
+            len([item for item in protocol if item.get("kind") == "permission_snapshot"]) == 11,
+            "complete protocol counts")
+    exits = [item for item in protocol if item.get("kind") == "exit"]
+    require(len(exits) == 2 and all(item.get("code", item.get("returncode", item.get("exit_code"))) == 0
+                                 for item in exits), "both actual generations exited naturally")
+    return {"provider_requests": 18, "provider_completions": 18, "main_requests": 16,
+            "title_requests": 2, "tool_calls": 8, "readonly_snapshots": 11, "natural_exits": 2}
+
+
+def vis36_auto_checks(files):
+    reports = []
+    for prefix, attempt in (("failed-001", "001"), ("failed-002", "002"), ("current", "003")):
+        read = lambda relative: json.loads(files[prefix + "/" + relative])
+        lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+        check_source_manifest(lock, manifest, 713)
+        check_vis36_auto_build(lock, manifest, read("commands.json"), attempt)
+        require(len(lock["captures"]) == {"001": 18, "002": 4, "003": 32}[attempt] and
+                len(lock["attempts"]) == {"001": 34, "002": 9, "003": 32}[attempt],
+                "all failed and current whole frames retained")
+        current = attempt == "003"
+        if current:
+            check_current_source(manifest)
+            for side in ("oc", "upstream"):
+                with Path(lock[side]["executable_path"]).open("rb") as stream:
+                    require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"],
+                            "actual current VIS36 executables")
+        sides = {}
+        for side in ("oc", "upstream"):
+            protocol = read(side + "/protocol.json")
+            key = prefix + "/" + side + "/permission-checks.json"
+            if key in files:
+                checks = read(side + "/permission-checks.json")
+                require(checks == lock["permission"][side], "exact actual permission facts")
+                if current or (attempt == "001" and side == "upstream"):
+                    sides[side] = {"status": checks["status"], **check_vis36_auto_facts(
+                        checks, protocol, side, "fixture-model-1" if attempt == "001" else "gpt-fixture-model-1")}
+                    continue
+                require(checks.get("status") == "FAILED", "actual earlier native failure retained")
+            else:
+                require(attempt == "002" and side == "upstream" and
+                        b"KeyError: 'provider'" in files[prefix + "/upstream/bridge.stderr.txt"],
+                        "actual configuration failure retained without invented checks")
+            providers = [item for item in protocol if item.get("kind") == "provider"]
+            expected = (2, 1, 0, 1) if attempt == "001" else (4, 3, 1, 1) if side == "oc" else (0, 0, 0, 0)
+            actual = (len(providers), len([item for item in protocol if item.get("kind") == "provider_completed"]),
+                      len([item for item in protocol if item.get("kind") == "fixture_tool_call"]),
+                      len([item for item in providers if item.get("valid") is not True]))
+            require(actual == expected, "honest failed partial provider/effect counts")
+            sides[side] = {"status": "FAILED", "provider_requests": actual[0],
+                           "provider_completions": actual[1], "tool_calls": actual[2], "invalid_requests": actual[3]}
+        reports.append({"episode": prefix, "current_source": current, "captures": len(lock["captures"]),
+                        "scope": "CLI_AUTO_BEHAVIOR_ONLY" if current else "FAILED_DIAGNOSTIC",
+                        "sides": sides, "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
+    return reports
+
+
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
     inventory_stages = inventory_stages or ["syntax-live-partial", "syntax-complete-inventory",
                                           "syntax-current-profile-draft", "syntax-replayed-inventory"]
@@ -1154,13 +1285,15 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
+    if args.campaign == "vis36-auto":
+        ROOTS = vis36_auto_roots()
+    elif args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
         ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
     elif args.campaign == "vis37":
         ROOTS = {"failed-wide": TEMP / "vis37-current-001/wide",
@@ -1243,6 +1376,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign == "vis36-auto":
+            return vis36_auto_checks(files)
         if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
             return vis37_form_checks(files, args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
         if args.campaign == "vis37":

@@ -2488,16 +2488,11 @@ async fn apply_owned_intent(
             child_controls::refresh(app, state).await?;
         }
         PanelIntent::SetPermissionMode { auto_once } => {
-            app.set_permission_mode(auto_once)
+            app.set_permission_mode_with_cli_auto(auto_once, loop_state.cli_auto)
                 .await
                 .map_err(|e| e.to_string())?;
             state.chrome.permissions_auto = auto_once;
             let effective = auto_once || loop_state.cli_auto;
-            if loop_state.cli_auto {
-                app.register_approval_consumer(true)
-                    .await
-                    .map_err(|e| e.to_string())?;
-            }
             loop_state.permission_auto = Some(effective);
             state.auto_accept = if effective {
                 oc_core::queries::AutoAcceptState::Enabled
