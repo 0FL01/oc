@@ -180,15 +180,13 @@ pub enum InlineRender {
     Generic {
         /// Available recorded parameters, bounded independently of the summary.
         args: Vec<(String, String)>,
-        /// Pinned primitive summary, with the existing native summary limits.
+        /// Pinned primitive summary within the aggregate argument preview budget.
         summary: String,
         arguments_limited: bool,
     },
 }
 
-/// Max argument pairs rendered for a generic tool.
-pub const GENERIC_ARGS_MAX: usize = 4;
-/// Max characters per rendered argument value.
+/// Short approval resource label budget; Generic summaries use PREVIEW_BYTES.
 pub const GENERIC_ARG_CHARS: usize = 120;
 
 impl ToolRender {
@@ -328,31 +326,8 @@ fn returned_count(output: Option<&str>) -> Option<usize> {
 
 fn generic_args(value: Option<&serde_json::Value>) -> InlineRender {
     let object = value.and_then(serde_json::Value::as_object);
-    let primitive = object
-        .into_iter()
-        .flatten()
-        .filter(|(_, value)| value.is_string() || value.is_number() || value.is_boolean())
-        .take(GENERIC_ARGS_MAX)
-        .map(|(key, value)| {
-            let value = value
-                .as_str()
-                .map_or_else(|| value.to_string(), str::to_owned);
-            format!(
-                "{}={}",
-                crate::truncate_utf8(key, GENERIC_ARG_CHARS),
-                crate::truncate_utf8(&value, GENERIC_ARG_CHARS)
-            )
-        })
-        .collect::<Vec<_>>();
-    let summary = if primitive.is_empty() {
-        String::new()
-    } else {
-        format!("[{}]", primitive.join(", "))
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
-    };
     let mut args = Vec::new();
+    let mut primitive = Vec::new();
     let mut remaining = oc_core::tool_output::PREVIEW_BYTES;
     let mut arguments_limited = false;
     for (key, value) in object.into_iter().flatten() {
@@ -367,9 +342,29 @@ fn generic_args(value: Option<&serde_json::Value>) -> InlineRender {
         );
         let end = text.floor_char_boundary(text.len().min(remaining));
         arguments_limited |= end < text.len();
+        if value.is_string() || value.is_number() || value.is_boolean() {
+            primitive.push(format!("{key}={}", &text[..end]));
+        }
         args.push((key.clone(), text[..end].to_owned()));
         remaining -= end;
     }
+    // OC2 includes primitive values without shortening each key/value. Use the
+    // same admitted, aggregate-bounded parameters as expansion, not model prose
+    // or a second unbounded input copy. Separators also consume the summary budget.
+    let summary = if primitive.is_empty() {
+        String::new()
+    } else {
+        // Normalize after enclosing the summary: trailing value whitespace is
+        // an interior separator before ']', and must not disappear.
+        let text = format!("[{}]", primitive.join(", "))
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        let inner = &text[1..text.len() - 1];
+        let kept = crate::truncate_utf8(inner, oc_core::tool_output::PREVIEW_BYTES - 2);
+        arguments_limited |= kept.len() < inner.len();
+        format!("[{kept}]")
+    };
     InlineRender::Generic {
         args,
         summary,

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T13:51:59+00:00
+State updated: 2026-10-13T18:33:32+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,40 +14,38 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-Bounded current-release VIS38 committed DCP durable slice qualified; T44 remains
-ACTIVE_NOT_PASS. Standalone categorical bar uses existing indexed branch coverage.
-Actual three-compression owner, session switch/reopen, Undo/Redo/new branch and
-three-size branch reopen preserve RAW/operations and current stats/cards without
-restoration compression/provider/tool replay. Receipt:
-evidence/tui/vis36-vis38-durable.md; append-only evidence/T44/report.md.
+Generic/MCP primitive summary corrected at the structured presentation owner,
+with existing finite aggregate retention bounds. Long Unicode/key/value/fifth
+primitive/cached-indexed-click/RAW regression and trailing-space RED both fixed.
+Receipt: evidence/tui/vis36-generic-summary.md; immutable Prompt006 intermediate
+and final full Prompt007. T44 remains ACTIVE_NOT_PASS.
 
 ## Checks
 
-Actual RED101/1 → four targeted storage view tests PASS; complete current workspace
-1874/0/11/46; strictClippy/fmt/debug locked+ordinary/help/release locked/help/
-rootPython71/actualrequiredrelease9 PASS. Native01114boundedoffline requests,
-one explicit branch generation; zero restore/display requests. Pinned Original
-real pair3sizes14400cells/1941888pixels/three cursors+PNGbytes all equal.
-Independent28wholeframes128640cells17342976pixels/14ROobservations/14→16RAW/
-three immutable operations; complete byte/DIR/codec/source/ELF/prior-proof seals.
-All failures/logs/programs and immutable acquisition episodes retained.
+Current serial workspace1874/0/11/all46, affectedcrate536/0, targeted11/0,
+strictClippy/fmt/debug locked+ordinary/help/release locked/help/Python71/actual
+requiredrelease9 PASS. Final102fullpairs408000cells55031040pixels ALLgrid/PNG
+DIFFERENT;86cursors equal; named y27 full summary row equal bothprofiles.
+Every634original perprofile/metadata/DIR/manualXZUSTAR inverse;195priorproofs/
+19208legacyfiles495DIRs+helpers unchanged. Ordinary debug e1c86b/release dbac351
+distinct from immutable acquisitionrelease b813; actualOriginal2b082 unchanged.
 
 ## Risks
 
-Only this bounded gate is qualified, not wholeVIS38/R6V09/T44. Failure/cancel/
-no-gain/protected/nested/control/fullpublicDTO/paging-resource coverage pending.
-Target disappeared008→009; cause unknown, owned rebuilds recovered identical
-ELFs/baselineproofs/RAW intact/no unknown-effect replay. Only actual FAILED own
-tool-regression002 losslessly archived/reserve16MiB/manualPAX inverse; qualified006
-and PASS-only episodes untouched. All1GiB/16MiB/128MiB/2000/dict16/decoder32/AS384
-caps and authority/raw/provenance guards remain; no paid provider/config reads.
+Six failed complete workspace attempts, one interruption and five failed
+observers retained; final serial PASS does not prove host timing stability.
+Wide summary wrap-blank x115FG and other approval/chrome/detail/cursor/full-frame
+gaps persist. All caps/validation/redaction/RAW/grants/recheck/busyclose/Shell
+guards preserved; no paid API, old-effect replay, deletion/offload or cap raise.
+Old current-source flags are historical, never rewritten/promoted.
 
 ## Next
 
-Ordinary reviewed own-branch commit/push, read-only pre-stage/post-push byte and
-actual quota/source/ELF/checkpoint143 checks; return sole mutation ownership.
-Parent CONTINUES full frozen R1–R6/VIS01–VIS45/supplements/final-current R6/V09.
-Keep T44 active; no finish, blocker status, task switch or acceptance weakening.
+Reviewed ordinary own-branch commit/push with independent pre-stage/post-push
+source/actualELF/all originals/DIR/prior proofs/new archives/gates/actualquota
+checks; return sole mutation ownership. Parent CONTINUES full frozen
+R1–R6/VIS01–VIS45/supplements/finalcurrentR6V09. Keep T44 active checkpoint144;
+preserve T59 and unrelated fields; no finish, blocker status or task switch.
 
 
 Ready (до 5): T58, T59

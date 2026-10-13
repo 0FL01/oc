@@ -1563,3 +1563,33 @@ Completedgatearchive191members5760843logical772184encoded/SHA0b14dedaa62fa3ae22c
 inventory948667127926af433c11b99ef4eee67443daf7032c4812011d4f1c615e351512,
 separate exactcodeccommand/output retained/nonrecursive. Postbundle allocation
 1041903616/1073741824headroom31838208 BEFOREfactualaddition; finalrecount governs.
+
+## 2026-10-13 — Generic/MCP primitive summary, full Prompt007 qualification
+
+T44 ACTIVE_NOT_PASS. Owner-correct aggregate-bounded summary removes arbitrary
+per-key/value120 and four-primitive cutoff; exact longUnicode/fifthprimitive/
+whitespace/RAW/full-cached-indexed-click/retention regression RED101 → targeted11/0.
+Prompt006 exposed trailing-value-space loss; second RED101 → corrected bracketed
+normalization. Immutable006 and fresh007 each two full real51-stage profiles;
+per-side112checks/26valid26complete24main2title14calls34RO2naturalexit0 PASS.
+Final007 independent102wholepairs408000styledcells55031040pixels: ALL102grid/
+102PNG DIFFERENT,86cursors equal. Previously shortened y27 entire summary row
+now equal bothprofiles; wide x115 wrap-blankFG and other full-frame gaps remain.
+No ROI substitution/crop/mask/tolerance/normalization/PNG reencoding/paid API.
+Finalserialworkspace1874/0/11/all46 and affectedcrate536/0, strictClippy/fmt/
+debuglocked+ordinary/help/releaselocked/help/Python71/requiredactualrelease9 PASS.
+Sixfailedcompleteworkspace attempts, oneinterruption and fiveobserver failures
+retained; no deadline/threshold/baseline/ignore weakening or unknown-effect replay.
+Currentsource715e8dc500cd1d1b74b8499a62152a58b9846d764b7eb361c0828b8813be554675e;
+ordinarydebuge1c86b37619525baa9e1b56b05e3890d49d89bd041ef7a7ef88638c1eeb5dfb9;
+ordinaryreleasedbac351c3b647dc376fc4d685ddf85c9babb8460229101d0c9ad289211b75ff9.
+Acquisitionreleaseb813 separately historical; Original2b082 unchanged, oldsource
+flags/produceridentities/seals never rewritten/promoted. Four634-member profile
+archives+threegate bundles manualsingleXZ/canonicalUSTAR everybyte/path/metadata/
+aliases/DIR inverse;195priorproof seals19208legacyfiles495DIRs+helpers preserved.
+All1GiB/16MiB/128MiB/2000/dict16/decode32/AS384 caps unchanged/no deletion/offload.
+Receipt evidence/tui/vis36-generic-summary.md; immutable after-r2 and checked
+ordinaryELF/help distinction. Checkpoint144 T44 ACTIVE, allT59/foreignfields intact.
+Read-only pre-stage/post-push source/ELF/alloriginal/DIR/prior/newarchive/gates/quota
+checks govern final delivery. CONTINUE full frozenR1–R6/VIS01–45/supplements/
+finalcurrentR6V09; no finish, task switch or acceptance reduction.

@@ -686,6 +686,7 @@ fn owned_body_excludes_guidance_but_literal_and_legacy_text_stay_data() {
     );
     let ToolRender::Inline(InlineRender::Generic {
         args,
+        summary,
         arguments_limited,
         ..
     }) = &bounded_input.render
@@ -693,6 +694,8 @@ fn owned_body_excludes_guidance_but_literal_and_legacy_text_stay_data() {
         panic!("generic input")
     };
     assert!(*arguments_limited);
+    assert!(summary.len() <= oc_core::tool_output::PREVIEW_BYTES);
+    assert!(bounded_input.render.retained_bytes() <= 2 * oc_core::tool_output::PREVIEW_BYTES);
     assert!(
         args.iter()
             .map(|(key, value)| key.len() + value.len())
@@ -974,11 +977,41 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
         "model-only guidance",
         Some(Presentation::new(body, body.len() as u64, true)),
     );
+    let long_key = format!("{}suffix", "κ".repeat(65));
+    let long_value = format!("{}Ω界🦊 final-suffix", "words wrap ".repeat(16));
     row.input = Some(
-        r#"{"query":"a value","limit":3,"enabled":true,"nested":{"key":"detail"},"empty":null}"#
-            .into(),
+        serde_json::json!({
+            "query": long_value,
+            "limit": 3,
+            "enabled": true,
+            "nested": {"key": "detail"},
+            "empty": null,
+            long_key.clone(): "long-key-value",
+            "last": "fifth primitive \n\t"
+        })
+        .to_string(),
     );
+    let original = row.clone();
     let card = card_from_row(&row);
+    let ToolRender::Inline(InlineRender::Generic {
+        summary,
+        arguments_limited,
+        ..
+    }) = &card.render
+    else {
+        panic!("structured Generic summary")
+    };
+    assert_eq!(
+        summary,
+        &format!(
+            "[query={long_value}, limit=3, enabled=true, {long_key}=long-key-value, last=fifth primitive ]"
+        )
+    );
+    assert!(!arguments_limited && !card.preview_limited());
+    assert_eq!(
+        row, original,
+        "presentation preserves the admitted RAW input"
+    );
     let rows = [HistoryRow {
         message_id: None,
         seq: 1,
@@ -1008,6 +1041,22 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
                 &|_| expanded,
             );
             let full = crate::styled::wrap_lines(&full, width as usize);
+            assert_eq!(
+                full,
+                crate::styled::wrap_lines(
+                    &transcript_with_expansion(
+                        &rows,
+                        theme,
+                        width,
+                        width,
+                        |_| theme.text(),
+                        None,
+                        &|_| expanded,
+                    ),
+                    width as usize
+                ),
+                "cached and uncached long summary"
+            );
             let (visible, total) = visible_transcript_expanded(
                 &rows,
                 theme,
@@ -1031,7 +1080,7 @@ fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection()
             assert!(!text.contains("model-only guidance"));
             if expanded {
                 for wanted in [
-                    "query: a value",
+                    "final-suffix",
                     "nested:",
                     "detail",
                     "empty: null",
