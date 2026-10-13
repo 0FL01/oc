@@ -12,7 +12,11 @@ const parent = path.join(repo, "evidence/tui/recovery-v00")
 const [oracleArg, nativeArg, outputArg] = process.argv.slice(2)
 assert(oracleArg && nativeArg && outputArg, "PINNED_ORACLE_DIR QUALIFIED_NATIVE_DIR NEW_ORACLE_DIR")
 const oracle = path.resolve(oracleArg), native = path.resolve(nativeArg), output = path.resolve(outputArg)
-for (const dir of [oracle, native, output]) assert.equal(path.dirname(dir), parent)
+const approved = "/home/opencode/.cache/opencode-tmp/opencode"
+const allowed = (dir: string) => path.dirname(dir) === parent ||
+  path.dirname(path.dirname(dir)) === approved && /^vis38-durable-current-[0-9]{3}$/.test(path.basename(path.dirname(dir)))
+for (const dir of [oracle, native, output]) assert(allowed(dir), "Confined evidence or exclusive approved TMP acquisition")
+assert.equal(path.dirname(native), path.dirname(output))
 assert.match(path.basename(output), /^dcp-oracle[a-z0-9-]+$/)
 const sha = (data: string | Buffer) => createHash("sha256").update(data).digest("hex")
 const read = (file: string) => JSON.parse(fs.readFileSync(file, "utf8"))
@@ -81,7 +85,7 @@ for (const check of qualification.checks.filter((c: any) => ["single", "multi", 
       topic: actual.topic, summary: actual.summary, summaryTokens: active.summary_tokens,
       compressedTokens: current?.removed ?? 0, active: true,
       directMessageIds: current?.new_message_ids ?? [], directToolIds: current?.new_tool_ids ?? [],
-      effectiveMessageIds: memberships.filter((m: any) => m.block_id === actual.id).map((m: any) => m.message_id), effectiveToolIds: [] }
+      effectiveMessageIds: active.effective_message_ids ?? memberships.filter((m: any) => m.block_id === actual.id).map((m: any) => m.message_id), effectiveToolIds: [] }
   })
   const entries = run.block_ids.map((id: string) => {
     const b = blocks.find((b: any) => b.nativeBlockId === id)

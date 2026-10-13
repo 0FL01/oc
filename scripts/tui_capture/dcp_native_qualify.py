@@ -12,10 +12,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import sqlite3
 import subprocess
 import threading
+import traceback
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--oc', required=True, type=Path)
@@ -25,7 +27,9 @@ parser.add_argument('--output', required=True, type=Path)
 parser.add_argument('--default-detail-only', action='store_true',
                     help='Match supported display settings; capture only recompression at three sizes, without extra controls; summaries off unless --show-compression')
 parser.add_argument('--show-compression', action='store_true',
-                     help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
+                      help='Include actual saved summaries in --default-detail-only (detailed/chat) captures')
+parser.add_argument('--durable-lifecycle', action='store_true',
+                    help='After restart, capture public session switch, Undo/Redo, and a new branch at 120x40; requires --default-detail-only')
 parser.add_argument('--comparable-controls', action='store_true',
                     help='Match supported display settings; capture only real reopened minimal/off/toast controls at three sizes')
 parser.add_argument('--control-continuations', type=int, choices=range(4), default=0,
@@ -37,11 +41,15 @@ if args.control_continuations and not args.comparable_controls:
     parser.error('--control-continuations requires --comparable-controls')
 if args.show_compression and not args.default_detail_only:
     parser.error('--show-compression requires --default-detail-only')
+if args.durable_lifecycle and not args.default_detail_only:
+    parser.error('--durable-lifecycle requires --default-detail-only')
 comparable_display = args.default_detail_only or args.comparable_controls
 show_compression = not args.default_detail_only or args.show_compression
 repo = Path(__file__).resolve().parents[2]
 output = args.output.resolve()
-assert output.parent == repo / 'evidence/tui/recovery-v00'
+approved = Path('/home/opencode/.cache/opencode-tmp/opencode')
+assert output.parent == repo / 'evidence/tui/recovery-v00' or (
+    output.parent.parent == approved and re.fullmatch(r'vis38-durable-current-[0-9]{3}', output.parent.name))
 assert output.name.startswith('dcp-native') and output.name.replace('-', '').isalnum()
 assert args.oc.is_absolute()
 binary_sha256 = hashlib.sha256(args.oc.read_bytes()).hexdigest()
@@ -76,6 +84,10 @@ def observe():
                       'dcp_coverage', 'dcp_run_identity')
             if comparable_display:
                 wanted += ('sessions', 'turns', 'turn_acceptances')
+            if args.durable_lifecycle:
+                wanted += ('conversation_state', 'conversation_redo', 'conversation_points',
+                           'conversation_exclusions', 'conversation_contexts', 'conversation_revision',
+                           'conversation_versions', 'conversation_objects', 'conversation_tools')
             views = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type='view'")}
             data = {name: [dict(r) for r in connection.execute(f'SELECT * FROM "{name}" LIMIT 101')]
                     for name in wanted if name in tables | views}
@@ -91,6 +103,25 @@ def rows(observations, table):
 def estimate(text):
     # Independently declared DcpEstimateMethod: half-up UTF-16 code units / 4.
     return (len(text.encode('utf-16-le')) // 2 + 2) // 4
+
+
+def effective_memberships(observations):
+    """Current standalone owner stores endpoints/hot metadata, not legacy members."""
+    legacy = rows(observations, 'compression_members')
+    canonical = rows(observations, 'conversation_messages')
+    positions = {r['id']: r['seq'] for r in rows(observations, 'messages')}
+    effective = list(legacy)
+    for block in rows(observations, 'compression_blocks'):
+        hot = json.loads(block['hot']) if block.get('hot') else None
+        if not hot or not hot.get('standalone') or not hot.get('active'):
+            continue
+        assert hot['version'] == 1 and not hot['protected'] and not hot['legacy_protected'], 'This fixture qualifies unprotected standalone ranges only'
+        start, end = positions[block['start_msg']], positions[block['end_msg']]
+        assert start <= end
+        assert not any(m['block_id'] == block['id'] for m in legacy), 'Do not combine two membership owners'
+        effective.extend({'block_id': block['id'], 'message_id': r['id']} for r in canonical
+                         if r['session_id'] == block['session_id'] and start <= r['seq'] <= end)
+    return effective
 
 
 def wire_contents(body, current_call):
@@ -136,7 +167,11 @@ class Provider(BaseHTTPRequestHandler):
         event = {'kind': 'request', 'index': index, 'stage': stage, 'title': title, 'path': self.path,
                  'body': body, 'request_sha256': hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()}
         events.append(event)
-        if self.path != '/v1/responses' or body.get('model') != 'vis38-native-model' or body.get('stream') is not True or index > 16 or stage.startswith('capture-'):
+        branch_prompt = 'VIS38 durable branch: retain requirements A B C without replay.'
+        branch_request = stage == 'durable-lifecycle' and any(
+            x.get('role') == 'user' and x.get('content') == [{'type': 'input_text', 'text': branch_prompt}]
+            for x in body.get('input', [])[-1:])
+        if self.path != '/v1/responses' or body.get('model') != 'vis38-native-model' or body.get('stream') is not True or index > 16 or stage.startswith('capture-') or (stage == 'durable-lifecycle' and not branch_request):
             self.send_error(400, 'VIS38 bounded request contract')
             return
         outputs = [x for x in body.get('input', []) if x.get('type') == 'function_call_output'
@@ -162,7 +197,7 @@ class Provider(BaseHTTPRequestHandler):
                     'call_id': 'call_vis38_' + stage, 'name': 'compress', 'arguments': json.dumps(compression_args)}
         else:
             if title:
-                text = 'VIS38 actual compression owner'
+                text = 'VIS38 other durable session' if stage == 'seed-D' else 'VIS38 actual compression owner'
             elif stage.startswith('seed-'):
                 text = f'VIS38-ARCHIVE-{stage[-1]}: closed analysis complete; retain requirement {stage[-1]}.'
             else:
@@ -236,11 +271,11 @@ result = {'status': 'IN_PROGRESS', 'qualification': 'Actual native compression/c
             'checks': checks, 'display_cases': [], 'not_qualified': ['failure/cancel/no-gain', 'Undo/Redo routing', 'bounded archive/resources', 'live ToolCallFinished publication / public ToolOpView DTO equality']}
 
 
-def run(label, prompt):
+def run(label, prompt, selected_session=None):
     global stage
     stage = label
     stage_requests.clear()
-    argv = [str(args.oc), 'run', '--session', session, prompt]
+    argv = [str(args.oc), 'run', '--session', selected_session or session, prompt]
     process = subprocess.Popen(argv, cwd=project, env=env, stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     try:
@@ -262,7 +297,7 @@ def run(label, prompt):
 
 def capture_stage(label, context_file, run_snapshot, display=None):
     global stage
-    if args.default_detail_only and label != 'recompression':
+    if args.default_detail_only and label not in ('recompression', 'branch-reopened'):
         return
     if args.comparable_controls and label not in ('minimal', 'off', 'toast'):
         return
@@ -292,7 +327,60 @@ def capture_stage(label, context_file, run_snapshot, display=None):
     assert capture.returncode == 0, capture.stderr
     result['display_cases'].append({'stage': label, 'context_snapshot': context_file,
         'typed_snapshot': run_snapshot, 'display': display, 'output': str(capture_output),
-        'provider_requests': 0, 'owner_state_unchanged': True})
+         'provider_requests': 0, 'owner_state_unchanged': True})
+
+
+def capture_durable(run_snapshot):
+    global stage
+    other_id = 's-vis38-durable-other'
+    other_observation, other_requests = run('seed-D', 'VIS38 other session: a saved unrelated requirement D.', other_id)
+    assert len(other_requests) == 1
+    observation = observe()
+    databases = [o['database'] for o in observation if rows([o], 'messages')]
+    assert len(databases) == 1
+    current = next(s for s in rows(observation, 'sessions') if s['id'] == session)
+    save('durable-before.json', observation)
+    spec = {'binary': str(args.oc), 'binary_sha256': binary_sha256, 'origin': 'oc',
+            'session': session, 'operation_id': run_snapshot['operation_id'], 'stage': 'durable',
+            'context_snapshot': 'durable-before.json', 'isolated_root': str(root),
+            'argv': [str(args.oc), 'tui', '--session', session], 'cwd': str(project), 'env': env,
+            'source_HEAD': result['source_HEAD'], 'typed_snapshot': run_snapshot,
+            'capture_after': sorted((r for r in rows(observation, 'conversation_messages') if r['session_id'] == session), key=lambda r: r['seq'])[-1]['text'],
+            'durable_lifecycle': {'database': databases[0], 'session_title': current['title'],
+                'other_session': other_id, 'other_title': next(s['title'] for s in rows(other_observation, 'sessions') if s['id'] == other_id),
+                'branch_prompt': 'VIS38 durable branch: retain requirements A B C without replay.'},
+            'capture_gate': 'Public TUI mutations only; bounded read-only SQLite observer, no history ingress.'}
+    save('native-tui-durable-spec.json', spec)
+    capture_output = output.parent / ('dcp-nativecapture-' + output.name + '-durable')
+    before_requests = count
+    stage = 'durable-lifecycle'
+    capture = subprocess.run(['/usr/bin/node', str(repo / 'scripts/tui_capture/dcp_reference_capture.mjs'),
+        '--native-spec', str(output / 'native-tui-durable-spec.json'), '--output', str(capture_output)],
+        capture_output=True, text=True, timeout=360)
+    save('native-capture-durable.json', {'argv': capture.args, 'exit_code': capture.returncode,
+        'stdout': capture.stdout, 'stderr': capture.stderr, 'output': str(capture_output),
+        'lock_sha256': hashlib.sha256((capture_output / 'capture.lock.json').read_bytes()).hexdigest(),
+        'provider_requests_before': before_requests, 'provider_requests_after': count})
+    final = observe()
+    save('durable-after.json', final)
+    assert capture.returncode == 0, capture.stderr
+    assert json.loads((capture_output / 'capture.lock.json').read_text())['durable_lifecycle']['status'] == 'PASS_PUBLIC_DURABLE_BRANCH'
+    assert count == before_requests + 1, 'Only the explicit new branch may request the provider'
+    assert rows(final, 'tool_operations') == rows(observation, 'tool_operations'), 'Lifecycle replayed/mutated immutable operations'
+    assert all(r in rows(final, 'messages') for r in rows(observation, 'messages')), 'Lifecycle mutated immutable RAW'
+    assert len(rows(final, 'messages')) == len(rows(observation, 'messages')) + 2
+    views = rows(final, 'dcp_run_views')
+    assert len(views) == 2 and {json.loads(v['snapshot'])['ordinal'] for v in views} == {1, 2}
+    assert [json.loads(v['snapshot']) for v in rows(final, 'dcp_accounting')] == [checks[1]['typed_snapshot']['cumulative']]
+    assert not rows(final, 'conversation_redo')
+    result['durable_lifecycle'] = {'output': str(capture_output), 'provider_requests': 1,
+        'restoration_provider_requests': 0, 'raw_preserved': True, 'immutable_operations_preserved': True,
+        'branch_ordinals': [1, 2], 'abandoned_ordinal': 3}
+    result['not_qualified'].remove('Undo/Redo routing')
+    capture_stage('branch-reopened', 'durable-after.json', checks[1]['typed_snapshot'])
+    reopened = result['display_cases'].pop()
+    assert reopened['stage'] == 'branch-reopened'
+    result['durable_lifecycle']['branch_reopened'] = reopened
 
 
 try:
@@ -361,7 +449,7 @@ try:
         canonical_after = sorted(rows(committed, 'conversation_messages'), key=lambda r: r['seq'])
         assert canonical_after[-1]['role'] == 'assistant' and canonical_after[-1]['text'] == 'VIS38-NATIVE-CONTINUED: retain requirements; no tool replay.'
         canonical = canonical_after[:-1]
-        memberships = rows(committed, 'compression_members')
+        memberships = effective_memberships(committed)
         previous_coverage = {(r['kind'], r['identity']) for r in rows(precommit, 'dcp_coverage')}
         new_coverage = {(r['kind'], r['identity']) for r in rows(committed, 'dcp_coverage')} - previous_coverage
         recent_ids = {identity for kind, identity in new_coverage if kind == 'message'}
@@ -406,7 +494,8 @@ try:
                          'new_messages': expected_new, 'ranges': len(ranges), 'typed_snapshot': snapshot,
                         'commit_message_ids': [r['id'] for r in canonical], 'prior_message_ids': sorted(prior_ids),
                         'new_message_ids': sorted(recent_ids), 'new_tool_ids': sorted(recent_tools), 'range_inputs': range_inputs,
-                         'active_summaries': [{'block_id': b['id'], 'summary_tokens': estimate(b['summary'])} for b in active_blocks],
+                          'active_summaries': [{'block_id': b['id'], 'summary_tokens': estimate(b['summary']),
+                              'effective_message_ids': sorted(m['message_id'] for m in memberships if m['block_id'] == b['id'])} for b in active_blocks],
                           'display': {'notification': 'detailed', 'channel': 'chat', 'show_compression': show_compression},
                         'categorical_bar_independently_checked': True})
         capture_stage(label, 'compress-' + label + '-snapshot.json', snapshot)
@@ -445,6 +534,8 @@ try:
         save('control-' + label + '-config.json', configured)
         capture_stage(label, control_context, snapshot, display)
     dcp_file.write_text(json.dumps(original_config))
+    if args.durable_lifecycle:
+        capture_durable(snapshot)
     save('native-tui-spec.json', {'binary': str(args.oc), 'origin': 'oc', 'session': session, 'isolated_root': str(root),
                                 'argv': [str(args.oc), 'tui', '--session', session], 'cwd': str(project), 'env': env,
                                 'note': 'Use the same real saved owner session for deferred native PTY; no transcript/snapshot injection'})
@@ -452,6 +543,7 @@ try:
 except Exception as error:
     result['status'] = 'FAILED_ACTUAL_OWNER_PROBE'
     result['reason'] = str(error)
+    result['traceback'] = traceback.format_exc()
 finally:
     server.shutdown()
     server.server_close()

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T11:37:44+00:00
+State updated: 2026-10-13T13:51:59+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,38 +14,40 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-Bounded VIS36 typed generic Tool/action approval body slice qualified. Additive
-string-free preview marker uses bounded actual action, independent of raw policy
-resources/grants/save patterns/binding. T44 remains ACTIVE_NOT_PASS. Receipt:
-evidence/tui/vis36-mcp-tool-qualified.md; append-only evidence/T44/report.md.
+Bounded current-release VIS38 committed DCP durable slice qualified; T44 remains
+ACTIVE_NOT_PASS. Standalone categorical bar uses existing indexed branch coverage.
+Actual three-compression owner, session switch/reopen, Undo/Redo/new branch and
+three-size branch reopen preserve RAW/operations and current stats/cards without
+restoration compression/provider/tool replay. Receipt:
+evidence/tui/vis36-vis38-durable.md; append-only evidence/T44/report.md.
 
 ## Checks
 
-Actual producer/UI RED101 then approval36/core2PASS; changed crates1549/0/4;
-final current fullworkspace1873/0/11/46; strictClippy/fmt/debug locked+ordinary/help/
-release locked/help/rootPython71/actualrelease9 PASS. Fresh005 wide121/small79×40:
-eachside112checks/26valid26completions24main2title14calls34RO2natural0/51stages PASS.
-Independent every634 member/profile/complete four archives/manual memoryANDdurable
-XZ/USTAR inverse/full grid+PNG/current715source/ELFs/159priorproofMETA/16708legacy
-files/214DIRmetadata PASS. Actual complete command logs, failures and programs
-retained; read-only pre-stage/post-push checker performs final byte/cap seals.
+Actual RED101/1 → four targeted storage view tests PASS; complete current workspace
+1874/0/11/46; strictClippy/fmt/debug locked+ordinary/help/release locked/help/
+rootPython71/actualrequiredrelease9 PASS. Native01114boundedoffline requests,
+one explicit branch generation; zero restore/display requests. Pinned Original
+real pair3sizes14400cells/1941888pixels/three cursors+PNGbytes all equal.
+Independent28wholeframes128640cells17342976pixels/14ROobservations/14→16RAW/
+three immutable operations; complete byte/DIR/codec/source/ELF/prior-proof seals.
+All failures/logs/programs and immutable acquisition episodes retained.
 
 ## Risks
 
-Strict current102pairs204PNG differ:182843cells/9962957pixels,86cursorequal,
-zero whole grids/PNG equal. Original004 remains historical after test-only Clippy
-correction, original flags/seals/bytes/metadata untouched. Retained TERM01 child
-admission and releaseVIS38 restoration failures passed unchanged fresh isolated
-fixtures; current fullworkspace1873PASS. SQL no_started is producer heuristic,
-not CoreEvent/syscalltrace. Raw origin tool IDs/grant scopes are untranslated.
-All authority/resource/binding/size guards and frozen Shell/raw denial/busy-close
-contracts remain. All established prefixes under unchanged1GiB; no offload.
+Only this bounded gate is qualified, not wholeVIS38/R6V09/T44. Failure/cancel/
+no-gain/protected/nested/control/fullpublicDTO/paging-resource coverage pending.
+Target disappeared008→009; cause unknown, owned rebuilds recovered identical
+ELFs/baselineproofs/RAW intact/no unknown-effect replay. Only actual FAILED own
+tool-regression002 losslessly archived/reserve16MiB/manualPAX inverse; qualified006
+and PASS-only episodes untouched. All1GiB/16MiB/128MiB/2000/dict16/decoder32/AS384
+caps and authority/raw/provenance guards remain; no paid provider/config reads.
 
 ## Next
 
-Return sole mutation ownership to parent after ordinary reviewed commit/push.
-Parent CONTINUES full frozen R1–R6/VIS01–VIS45/supplements and final-current R6/V09.
-Keep T44 active; no finish/block/switch/GOAL or acceptance weakening.
+Ordinary reviewed own-branch commit/push, read-only pre-stage/post-push byte and
+actual quota/source/ELF/checkpoint143 checks; return sole mutation ownership.
+Parent CONTINUES full frozen R1–R6/VIS01–VIS45/supplements/final-current R6/V09.
+Keep T44 active; no finish, blocker status, task switch or acceptance weakening.
 
 
 Ready (до 5): T58, T59

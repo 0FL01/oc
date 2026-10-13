@@ -164,7 +164,7 @@ for columns, height in ((80, 24), (120, 40), (160, 48)):
         for extension, digest in capture['files'].items():
             file = directory / ('bottom.' + extension)
             assert sha(file) == digest
-            file_seals.append({'file': str(file.relative_to(repo)), 'sha256': digest})
+            file_seals.append({'file': str(file.relative_to(repo)) if file.is_relative_to(repo) else str(file), 'sha256': digest})
         grid = read(directory / 'bottom.cells.json')
         assert grid['origin'] == origin and grid['columns'] == columns and grid['rows'] == height
         assert len(grid['cells']) == height and all(len(row) == columns for row in grid['cells'])

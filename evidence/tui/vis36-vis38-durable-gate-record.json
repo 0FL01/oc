@@ -1,0 +1,9 @@
+{
+  "status": "FULL_MANUAL_INVERSE_MEMORY_AND_DURABLE",
+  "command": ["env", "PYTHONPATH=/home/opencode/ai/oc/scripts", "python3", "-B", "evidence/tui/vis36-vis38-durable-retain.py", "gates"],
+  "exit_code": 0,
+  "preflight_command_label": "vis38-durable-gates-resource-preflight",
+  "stdout": "{\"status\": \"FULL_MANUAL_INVERSE_MEMORY_AND_DURABLE\", \"archive\": \"/home/opencode/ai/oc/evidence/tui/vis36-vis38-durable-gates.tar.xz\", \"archive_sha256\": \"0b14dedaa62fa3ae22cdb5f504c577221e20790d7150ce72351adebba9c7a0e8\", \"archive_bytes\": 772184, \"inventory\": {\"members\": 191, \"logical_bytes\": 5760843, \"member_inventory_sha256\": \"948667127926af433c11b99ef4eee67443daf7032c4812011d4f1c615e351512\", \"same_side_png_aliases\": 0}, \"quota\": {\"allocated_bytes\": 1041903616, \"cap_bytes\": 1073741824, \"headroom_bytes\": 31838208}, \"memory\": {\"VmPeak_bytes\": 251514880, \"VmSize_bytes\": 88477696, \"VmHWM_bytes\": 129376256, \"VmRSS_bytes\": 55435264}}\n",
+  "stderr": "",
+  "record_scope": "Exact completed codec command/output; separate from archived preceding command/log/program bytes to avoid a recursive self-archive. Final read-only delivery checks emit their actual results to the tool-call transcript."
+}

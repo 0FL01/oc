@@ -1,0 +1,5179 @@
+{
+  "version": 1,
+  "codec": "encoder-only canonical USTAR / single SHA256-XZ; independent manual inverse",
+  "archive_sha256": "955d9473212254a527e3e6347cb5a80793d13c1506735f0dea2d9bfd7a1139c0",
+  "archive_bytes": 1428568,
+  "tar_sha256": "4c26813f967ae3e6d2a5afe2d79ef53a500428d6c878848aff27838616a38209",
+  "tar_bytes": 40540160,
+  "inventory": {
+    "members": 293,
+    "logical_bytes": 40604937,
+    "member_inventory_sha256": "763ebc469b3d9eec58aec9f15e3ce041af6ec6b9b99bfa4d77011b36c89a323f",
+    "same_side_png_aliases": 4
+  },
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 1428528,
+        "uncompressed_bytes": 40540160,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "4c26813f967ae3e6d2a5afe2d79ef53a500428d6c878848aff27838616a38209"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 16,
+    "index_offset": 1428540
+  },
+  "original_members": {
+    "acquisition/display/fixture.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-display-vis38-durable-011/fixture.json",
+      "bytes": 87930,
+      "sha256": "53e0490957a0d7bd9673df6e7ae7f2c67cc0f3fa8eee50aa3609672362d6b278",
+      "original_metadata": [
+        87930,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032972,
+        1791897977042428584
+      ]
+    },
+    "acquisition/owner/commands.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/commands.json",
+      "bytes": 51372,
+      "sha256": "322260b7627355f0f558be1389fb1a78781a34cb21d49c2f7b0757f2c3315423",
+      "original_metadata": [
+        51372,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032635,
+        1791897550719398493
+      ]
+    },
+    "acquisition/owner/compress-multi-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-multi-before.json",
+      "bytes": 228236,
+      "sha256": "e2103e2ac4c5b13e6d316cd2de0205858161c4c9048c010e31cd1cec8326974e",
+      "original_metadata": [
+        228236,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032480,
+        1791897423258467281
+      ]
+    },
+    "acquisition/owner/compress-multi-measurement.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-multi-measurement.json",
+      "bytes": 70800,
+      "sha256": "cb75fdc2cc612ce2b6946674e8673aba2ede67049591f31221bb6291acdec425",
+      "original_metadata": [
+        70800,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032482,
+        1791897423430468537
+      ]
+    },
+    "acquisition/owner/compress-multi-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-multi-snapshot.json",
+      "bytes": 248322,
+      "sha256": "62da91a5b85722a3954e8d19baf7d149cfad933c73327c88599493b94c358d39",
+      "original_metadata": [
+        248322,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032481,
+        1791897423430468537
+      ]
+    },
+    "acquisition/owner/compress-recompression-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-recompression-before.json",
+      "bytes": 248322,
+      "sha256": "62da91a5b85722a3954e8d19baf7d149cfad933c73327c88599493b94c358d39",
+      "original_metadata": [
+        248322,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032483,
+        1791897423438468596
+      ]
+    },
+    "acquisition/owner/compress-recompression-measurement.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-recompression-measurement.json",
+      "bytes": 9736,
+      "sha256": "afc1dc3e9aa331cf2ad946360a1b05e08f65e2619e1c9052542f6f815306973e",
+      "original_metadata": [
+        9736,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032485,
+        1791897423618469911
+      ]
+    },
+    "acquisition/owner/compress-recompression-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-recompression-snapshot.json",
+      "bytes": 264121,
+      "sha256": "90c097b85f12f2f12769d7d864ba348318f98864485d1a53bea7143919ecd3ba",
+      "original_metadata": [
+        264121,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032484,
+        1791897423618469911
+      ]
+    },
+    "acquisition/owner/compress-single-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-single-before.json",
+      "bytes": 208930,
+      "sha256": "f5a60715f447a16172fa5b8e3f51ae672a80ef1ec70caab512275abf41a01785",
+      "original_metadata": [
+        208930,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032477,
+        1791897423074465936
+      ]
+    },
+    "acquisition/owner/compress-single-measurement.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-single-measurement.json",
+      "bytes": 100229,
+      "sha256": "30122cba0fc077f2d9fd7ecc7488270a3e9d049bb055a9ee94eda3b19118dfe3",
+      "original_metadata": [
+        100229,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032479,
+        1791897423254467252
+      ]
+    },
+    "acquisition/owner/compress-single-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/compress-single-snapshot.json",
+      "bytes": 228236,
+      "sha256": "e2103e2ac4c5b13e6d316cd2de0205858161c4c9048c010e31cd1cec8326974e",
+      "original_metadata": [
+        228236,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032478,
+        1791897423250467222
+      ]
+    },
+    "acquisition/owner/durable-after.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/durable-after.json",
+      "bytes": 285629,
+      "sha256": "2eaacb676cecb68a00d75f48008e8c9b9431d2999040b19533982ee569542663",
+      "original_metadata": [
+        285629,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032628,
+        1791897532979268901
+      ]
+    },
+    "acquisition/owner/durable-before.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/durable-before.json",
+      "bytes": 277376,
+      "sha256": "f4aad508e88bfa0212f03996aad7afe9aa901c67c76a2e2d0b79494885378cbf",
+      "original_metadata": [
+        277376,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032526,
+        1791897436366563059
+      ]
+    },
+    "acquisition/owner/fixture-config.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/fixture-config.json",
+      "bytes": 1664,
+      "sha256": "859c1b83c209bc5ab8f7144247cf2075a60033c51e4bf3c3f1cd31ba66209e76",
+      "original_metadata": [
+        1664,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032473,
+        1791897422590462400
+      ]
+    },
+    "acquisition/owner/native-capture-branch-reopened.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-capture-branch-reopened.json",
+      "bytes": 1297,
+      "sha256": "8d75fe18b10fd3038a3c7a09142a0ce56c8d6f60d7a270fb9fa967ac582f6ce9",
+      "original_metadata": [
+        1297,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032633,
+        1791897550259395133
+      ]
+    },
+    "acquisition/owner/native-capture-durable.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-capture-durable.json",
+      "bytes": 1037,
+      "sha256": "a37c146004f034bf0aec488ee20875276c4d268950188a361b56e44e2a1e0f46",
+      "original_metadata": [
+        1037,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032627,
+        1791897532967268813
+      ]
+    },
+    "acquisition/owner/native-capture-recompression.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-capture-recompression.json",
+      "bytes": 1283,
+      "sha256": "1d7536c1e0faf983f551095033dcc114f255cb525bb01819c656dcbf2466e95c",
+      "original_metadata": [
+        1283,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032523,
+        1791897436086561013
+      ]
+    },
+    "acquisition/owner/native-tui-branch-reopened-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-tui-branch-reopened-spec.json",
+      "bytes": 2768,
+      "sha256": "d231f3820a2bebc3d52875445e00ad1823732230425822005360c5374be20eb3",
+      "original_metadata": [
+        2768,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032629,
+        1791897532983268930
+      ]
+    },
+    "acquisition/owner/native-tui-durable-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-tui-durable-spec.json",
+      "bytes": 2937,
+      "sha256": "6f33d826c717282cfd35895266b7a9627994b43b3d35a8a17a5d06ff8f320798",
+      "original_metadata": [
+        2937,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032528,
+        1791897436366563059
+      ]
+    },
+    "acquisition/owner/native-tui-recompression-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-tui-recompression-spec.json",
+      "bytes": 2655,
+      "sha256": "6f608798aa6221482da038232c94e78ea4e3db46ac3b647c3a72c410e3a874ce",
+      "original_metadata": [
+        2655,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032486,
+        1791897423626469970
+      ]
+    },
+    "acquisition/owner/native-tui-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/native-tui-spec.json",
+      "bytes": 1333,
+      "sha256": "d61b1176eee74d3120cae12c94125f49c534529c6104c6a7a3a7872c08a01501",
+      "original_metadata": [
+        1333,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032634,
+        1791897550275395250
+      ]
+    },
+    "acquisition/owner/requests.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/requests.json",
+      "bytes": 304805,
+      "sha256": "393475139b3c58ee4e6187fb7913741dcf2f27bf97c3f6fa0312882a6a5ec8b6",
+      "original_metadata": [
+        304805,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032636,
+        1791897550723398522
+      ]
+    },
+    "acquisition/owner/restart-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/restart-snapshot.json",
+      "bytes": 270632,
+      "sha256": "2ea5741e10654a737be2efde2740765b8ef66692999c062fa2041c28f01458f6",
+      "original_metadata": [
+        270632,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032524,
+        1791897436250562211
+      ]
+    },
+    "acquisition/owner/result.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/result.json",
+      "bytes": 15914,
+      "sha256": "94a23c43844c46f2877991f2d92149e7ffcdd61ff7a3be974f5730b03ad2fec1",
+      "original_metadata": [
+        15914,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032637,
+        1791897550735398610
+      ]
+    },
+    "acquisition/owner/seed-A-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/seed-A-snapshot.json",
+      "bytes": 71244,
+      "sha256": "2db4b65b716ed914c417e1738a19863861e8e0c915663739d5db8b02b6247dd0",
+      "original_metadata": [
+        71244,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032474,
+        1791897422850464300
+      ]
+    },
+    "acquisition/owner/seed-B-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/seed-B-snapshot.json",
+      "bytes": 140086,
+      "sha256": "8ebf9dff3ade82b6fd0aa759724a68ece5dfa7f6e739646155401308f53e7d9d",
+      "original_metadata": [
+        140086,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032475,
+        1791897422962465118
+      ]
+    },
+    "acquisition/owner/seed-C-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/seed-C-snapshot.json",
+      "bytes": 208930,
+      "sha256": "f5a60715f447a16172fa5b8e3f51ae672a80ef1ec70caab512275abf41a01785",
+      "original_metadata": [
+        208930,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032476,
+        1791897423070465907
+      ]
+    },
+    "acquisition/owner/seed-D-snapshot.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011/seed-D-snapshot.json",
+      "bytes": 277376,
+      "sha256": "f4aad508e88bfa0212f03996aad7afe9aa901c67c76a2e2d0b79494885378cbf",
+      "original_metadata": [
+        277376,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032525,
+        1791897436362563029
+      ]
+    },
+    "acquisition/oc/branch-reopened/capture.lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/capture.lock.json",
+      "bytes": 7288,
+      "sha256": "fbacad6b242c86607d0472b0e9705cd52632a42274e200c9aa52753394fc4657",
+      "original_metadata": [
+        7288,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032632,
+        1791897550227394900
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bottom.cells.json",
+      "bytes": 645233,
+      "sha256": "885568e6f58d7a1ab406298b14c3b941f6b70f6e37746502493034fc8c830e23",
+      "original_metadata": [
+        645233,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032828,
+        1791897545247358521
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bottom.png",
+      "bytes": 71155,
+      "sha256": "5b2caf115a8c963e56ed129de864f5c28fe6e783322363f5a3c439cfd137ece7",
+      "original_metadata": [
+        71155,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032827,
+        1791897544967356475
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bottom.render.json",
+      "bytes": 187744,
+      "sha256": "7ba07baf2ab2a00eeab3b85369b5cf965cc08d9616811a9512b83feb61133cf1",
+      "original_metadata": [
+        187744,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032831,
+        1791897545275358725
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bottom.txt",
+      "bytes": 5247,
+      "sha256": "dff2aeea1535a98c49fb50cd028488e5c53f310f83ea70640b024459e51bb921",
+      "original_metadata": [
+        5247,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032829,
+        1791897545247358521
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bottom.vt",
+      "bytes": 11591,
+      "sha256": "0e9e1e3144ae3dfc9e3ba243b141149c565bd7a89fccc0d89d449925081b15fa",
+      "original_metadata": [
+        11591,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032830,
+        1791897545247358521
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bridge-spec.json",
+      "bytes": 624,
+      "sha256": "8e406d22221ca473d722618a442afb1b4f8475e249567fadfbd22341b4cc0bad",
+      "original_metadata": [
+        624,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032825,
+        1791897541687332514
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032834,
+        1791897545375359456
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/inputs.json",
+      "bytes": 87,
+      "sha256": "32fe06fb107b65a27f44bc02b3174c083be60ec025d9f4b9355b6d6246e5dedb",
+      "original_metadata": [
+        87,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032833,
+        1791897545375359456
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/protocol.json",
+      "bytes": 3804,
+      "sha256": "dd3568dd2040d2e7568760fc3ba2159ebf5952e16fa8761d72ba6ae488b668b6",
+      "original_metadata": [
+        3804,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032832,
+        1791897545375359456
+      ]
+    },
+    "acquisition/oc/branch-reopened/120x40/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40/raw.vt",
+      "bytes": 11659,
+      "sha256": "453aa6611772c0fde4a28b6584e32e6398454bfd3d7c2535bdafbad9b16b1822",
+      "original_metadata": [
+        11659,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032826,
+        1791897545275358725
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bottom.cells.json",
+      "bytes": 1031453,
+      "sha256": "16ca60b4e425fc6991d788b0c016803cf191fad0b94cadc529e0ad1d97ee3d6a",
+      "original_metadata": [
+        1031453,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032839,
+        1791897550015393351
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bottom.png",
+      "bytes": 86306,
+      "sha256": "dd4f4365a0abdabd58d649844d2f99bf1a804c4cccfcd6df6dab2c391da5a867",
+      "original_metadata": [
+        86306,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032838,
+        1791897549579390166
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bottom.render.json",
+      "bytes": 226760,
+      "sha256": "89214aa535c774028381a258a090f78c60f67fb12eba047c485dba72031aef7e",
+      "original_metadata": [
+        226760,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032842,
+        1791897550063393701
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bottom.txt",
+      "bytes": 8339,
+      "sha256": "d384a378851ec89a2bcde83fd52cfbda166a7b7c7fde680cf53fdffd90b570ef",
+      "original_metadata": [
+        8339,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032840,
+        1791897550019393380
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bottom.vt",
+      "bytes": 17475,
+      "sha256": "30987462c577612fc5184d0274ea489391d02df7460d2dd2a43b1d2fb44cf598",
+      "original_metadata": [
+        17475,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032841,
+        1791897550019393380
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bridge-spec.json",
+      "bytes": 624,
+      "sha256": "abfd7bef40c58e26a28e84a61d856ce2e35758c949dc8318199ce770dd114f79",
+      "original_metadata": [
+        624,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032836,
+        1791897545387359543
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032845,
+        1791897550167394461
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/inputs.json",
+      "bytes": 87,
+      "sha256": "0bc7e696febedb2f77f8de06eef4a51347c008886713b6f7c11af67d698f645e",
+      "original_metadata": [
+        87,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032844,
+        1791897550167394461
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/protocol.json",
+      "bytes": 3804,
+      "sha256": "dd3568dd2040d2e7568760fc3ba2159ebf5952e16fa8761d72ba6ae488b668b6",
+      "original_metadata": [
+        3804,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032843,
+        1791897550167394461
+      ]
+    },
+    "acquisition/oc/branch-reopened/160x48/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48/raw.vt",
+      "bytes": 17543,
+      "sha256": "7ecdc51199115f73eb54daf31ac96c46eb99d4a9bd0bcae8b303f7f6b5c7e0f7",
+      "original_metadata": [
+        17543,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032837,
+        1791897550067393731
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bottom.cells.json",
+      "bytes": 258895,
+      "sha256": "aeef37b6195f1c4ce6990933edcb3593a88a4f22ced95da3a79a59448fe8f102",
+      "original_metadata": [
+        258895,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032807,
+        1791897537275300284
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bottom.png",
+      "bytes": 40370,
+      "sha256": "71014fe91a2a28c013e6d7d5f975461eab51e93f243f6528520b576551c7872e",
+      "original_metadata": [
+        40370,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032806,
+        1791897537095298969
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bottom.render.json",
+      "bytes": 117143,
+      "sha256": "fca19439d763affd8b79e8315c665e927bf24b64289eed43e1dea02e2baadeb4",
+      "original_metadata": [
+        117143,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032810,
+        1791897537307300518
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bottom.txt",
+      "bytes": 2127,
+      "sha256": "a9f4b6498a7f85cfb6ffd45c07824df86a76d04d9c3ec3bcde9e8cb2287afb0b",
+      "original_metadata": [
+        2127,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032808,
+        1791897537275300284
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bottom.vt",
+      "bytes": 5474,
+      "sha256": "83e30ea3c5a417cebafbf8f9f2d54cb7f4cd3c6d4c26fb57eaaa0a195499b75e",
+      "original_metadata": [
+        5474,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032809,
+        1791897537275300284
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bridge-spec.json",
+      "bytes": 622,
+      "sha256": "4ca36114aea8f2f62713c7c3534a3b5dccca1f736e8b02540794a84bcdfb7b35",
+      "original_metadata": [
+        622,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032798,
+        1791897534491279946
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032823,
+        1791897541675332427
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/inputs.json",
+      "bytes": 285,
+      "sha256": "00c770c2f172dc49a3c217d980970b39ebf415e326c1beb54f4b7f4b488b2be8",
+      "original_metadata": [
+        285,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032822,
+        1791897541675332427
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/protocol.json",
+      "bytes": 3804,
+      "sha256": "dd3568dd2040d2e7568760fc3ba2159ebf5952e16fa8761d72ba6ae488b668b6",
+      "original_metadata": [
+        3804,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032821,
+        1791897541675332427
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/raw.vt",
+      "bytes": 11211,
+      "sha256": "49a6a69e5993631f230ae68fe48862190a5671b3fdb4dbe888e5cfb4dad4402a",
+      "original_metadata": [
+        11211,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032805,
+        1791897541575331696
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-0.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-0.cells.json",
+      "bytes": 259025,
+      "sha256": "eeea677f1299daf531bcd82e40c320badf05c6baf392d8543462fc27f52d8f80",
+      "original_metadata": [
+        259025,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032812,
+        1791897539383315683
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-0.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-0.png",
+      "bytes": 42681,
+      "sha256": "4f813d655b9fb6c63d8ec9b0366b829c2c2b54d9f2fbd89169018ff47ef15dd6",
+      "original_metadata": [
+        42681,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032811,
+        1791897539227314544
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-0.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-0.render.json",
+      "bytes": 123251,
+      "sha256": "f5a4fbb01acf2060b823d21148f48eda17e1a5612a6429d8408d918075f6aff3",
+      "original_metadata": [
+        123251,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032815,
+        1791897539411315888
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-0.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-0.txt",
+      "bytes": 2255,
+      "sha256": "eb07b55fd157dae434932a68c795335aa5e607d0f5d9b846892f59be8a4d0fcf",
+      "original_metadata": [
+        2255,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032813,
+        1791897539383315683
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-0.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-0.vt",
+      "bytes": 8998,
+      "sha256": "05f14224c12b9d2655c8cacdfcb68a740b2b7aed316ec45f2af4da3443a0042d",
+      "original_metadata": [
+        8998,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032814,
+        1791897539383315683
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-1.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-1.cells.json",
+      "bytes": 259029,
+      "sha256": "2c98a784a0fe84dab433b0aadc498af6cad7676d4c090e726b9e57718b7c3581",
+      "original_metadata": [
+        259029,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032817,
+        1791897541543331462
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-1.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-1.png",
+      "bytes": 41405,
+      "sha256": "dbe4351af407b2aa5b58c56105e277845284c164a5bb9430efb606fa17fb231b",
+      "original_metadata": [
+        41405,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032816,
+        1791897541391330352
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-1.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-1.render.json",
+      "bytes": 126295,
+      "sha256": "e76b1bb7240c1f5af4f93dc9c77ddaa4fcb8a17655ddc04965a6a85a868010ad",
+      "original_metadata": [
+        126295,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032820,
+        1791897541571331667
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-1.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-1.txt",
+      "bytes": 2259,
+      "sha256": "95bb3ae1ff2649cbfd571e916051ecdead6f3e252ead44ee8d25294813eb9e60",
+      "original_metadata": [
+        2259,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032818,
+        1791897541543331462
+      ]
+    },
+    "acquisition/oc/branch-reopened/80x24/scroll-1.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24/scroll-1.vt",
+      "bytes": 11143,
+      "sha256": "ce6e836e90549064f20c057c362c130f84031387968dbb678c752ca11a9e08b0",
+      "original_metadata": [
+        11143,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032819,
+        1791897541543331462
+      ]
+    },
+    "acquisition/oc/branch-reopened/tooling.package-lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/tooling.package-lock.json",
+      "bytes": 2436,
+      "sha256": "3a51953684903f9d5b7ca8a02e677b2e2a763a5fe99dc4b7f0e59ed95d91e399",
+      "original_metadata": [
+        2436,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032631,
+        1791897534055276762
+      ]
+    },
+    "acquisition/oc/durable/capture.lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/capture.lock.json",
+      "bytes": 14815,
+      "sha256": "b8b7987b7fe0355bfbc59acaaca639f1894357136aea0ad6ff7106060be6ceb8",
+      "original_metadata": [
+        14815,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032626,
+        1791897532915268434
+      ]
+    },
+    "acquisition/oc/durable/120x40/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bottom.cells.json",
+      "bytes": 645213,
+      "sha256": "cb6ce4e6270b018db3e58d2a6def67516c852e9b8f30ff935aa1bc863ff7798c",
+      "original_metadata": [
+        645213,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032710,
+        1791897441166598131
+      ]
+    },
+    "acquisition/oc/durable/120x40/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bottom.png",
+      "bytes": 67365,
+      "sha256": "5b18c0abf2fddda07fdcb36981dab22bf71fcb9e6064130b8f8ce2afdb9446f1",
+      "original_metadata": [
+        67365,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032709,
+        1791897440890596115
+      ]
+    },
+    "acquisition/oc/durable/120x40/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bottom.render.json",
+      "bytes": 187776,
+      "sha256": "5d6456d8e2ca9253494f5942d373a2cadda9ea5a1ce6f4106afc47e6d16fb7ee",
+      "original_metadata": [
+        187776,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032713,
+        1791897441214598482
+      ]
+    },
+    "acquisition/oc/durable/120x40/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bottom.txt",
+      "bytes": 5235,
+      "sha256": "c09a9a345b7f983207a091bdb77264cd16ae840af7167037b98a84481e5df5a4",
+      "original_metadata": [
+        5235,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032711,
+        1791897441170598160
+      ]
+    },
+    "acquisition/oc/durable/120x40/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bottom.vt",
+      "bytes": 11535,
+      "sha256": "02ef6ead94824df71be8e4549dd6142b57705dd99f4f69ccee41a8b269bc2a61",
+      "original_metadata": [
+        11535,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032712,
+        1791897441170598160
+      ]
+    },
+    "acquisition/oc/durable/120x40/branch-base.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branch-base.cells.json",
+      "bytes": 645243,
+      "sha256": "01db5a4925e936b3947c36f1a5fc518b6e464e67ee7c43b9d81cff7b2b3dfc33",
+      "original_metadata": [
+        645243,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032780,
+        1791897517799158006
+      ]
+    },
+    "acquisition/oc/durable/120x40/branch-base.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branch-base.png",
+      "bytes": 75945,
+      "sha256": "b84ebaefdb2c4eec1bae31b31aed15841fa58296e1e227b682e4d63016289c39",
+      "original_metadata": [
+        75945,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032779,
+        1791897517499155815
+      ]
+    },
+    "acquisition/oc/durable/120x40/branch-base.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branch-base.render.json",
+      "bytes": 194897,
+      "sha256": "414a1db56fd240ffe4bcb92c3930e31bde74ef77003400a41f3ccb1244fd1548",
+      "original_metadata": [
+        194897,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032783,
+        1791897517851158386
+      ]
+    },
+    "acquisition/oc/durable/120x40/branch-base.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branch-base.txt",
+      "bytes": 5259,
+      "sha256": "19211d67c920cadd7019c9b8f02f2edbafa9aae97585e40ca4a3c96b84d9470c",
+      "original_metadata": [
+        5259,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032781,
+        1791897517799158006
+      ]
+    },
+    "acquisition/oc/durable/120x40/branch-base.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branch-base.vt",
+      "bytes": 201671,
+      "sha256": "3416ece230bbe8a7cd2c5be8486b08b8a67af9cf7eda92eb8528a9d9f1928376",
+      "original_metadata": [
+        201671,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032782,
+        1791897517799158006
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched-dcp.cells.json",
+      "bytes": 646747,
+      "sha256": "a874a88a2f95b2f2e9c442be26d9f9af4e7fa0c9f71fcbc4c5312241545d7324",
+      "original_metadata": [
+        646747,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032790,
+        1791897529891246343
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched-dcp.png",
+      "bytes": 82974,
+      "sha256": "b98d3b87601124bb4a62f23fe4ab8f5e114f43b97468db4d830adfee462e5518",
+      "original_metadata": [
+        82974,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032789,
+        1791897529599244209
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched-dcp.render.json",
+      "bytes": 200669,
+      "sha256": "c2e560ae77aed60dee8398d97216136390400c93c99a5e88b4d2fec1654d7500",
+      "original_metadata": [
+        200669,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032793,
+        1791897529935246664
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched-dcp.txt",
+      "bytes": 5150,
+      "sha256": "8bf82a5f380180bf27029797810939d44e128283a0c8a7eaf71c1007a524fdc6",
+      "original_metadata": [
+        5150,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032791,
+        1791897529891246343
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched-dcp.vt",
+      "bytes": 240154,
+      "sha256": "f9681828840a8d2bdf8805b868fed6f95397a50bf4a972160c9a5b859afdbb22",
+      "original_metadata": [
+        240154,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032792,
+        1791897529891246343
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched.cells.json",
+      "bytes": 645227,
+      "sha256": "57b58ce955f3e879195245457e8b179a7bb963d96d8bfef76901e5634aff1c51",
+      "original_metadata": [
+        645227,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032785,
+        1791897526315220219
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched.png",
+      "bytes": 71155,
+      "sha256": "5b2caf115a8c963e56ed129de864f5c28fe6e783322363f5a3c439cfd137ece7",
+      "original_metadata": [
+        71155,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032784,
+        1791897526015218027
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched.render.json",
+      "bytes": 187744,
+      "sha256": "7ba07baf2ab2a00eeab3b85369b5cf965cc08d9616811a9512b83feb61133cf1",
+      "original_metadata": [
+        187744,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032788,
+        1791897526347220452
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched.txt",
+      "bytes": 5247,
+      "sha256": "dff2aeea1535a98c49fb50cd028488e5c53f310f83ea70640b024459e51bb921",
+      "original_metadata": [
+        5247,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032786,
+        1791897526315220219
+      ]
+    },
+    "acquisition/oc/durable/120x40/branched.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/branched.vt",
+      "bytes": 222118,
+      "sha256": "9957ab95593a9eb555029e1cfbc20e28a7dac57cf5576fbfa8cdd601faeb1d30",
+      "original_metadata": [
+        222118,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032787,
+        1791897526319220248
+      ]
+    },
+    "acquisition/oc/durable/120x40/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bridge-spec.json",
+      "bytes": 584,
+      "sha256": "f27a925d49d1637195e493e9232684eca208785ec14008e1f374361134ba8ffc",
+      "original_metadata": [
+        584,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032701,
+        1791897437654572470
+      ]
+    },
+    "acquisition/oc/durable/120x40/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032796,
+        1791897532839267878
+      ]
+    },
+    "acquisition/oc/durable/120x40/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/inputs.json",
+      "bytes": 2827,
+      "sha256": "64d6bd3b8c8862e88bfa691359856161ac03bbe2e10860079e0a7dccbfe7b834",
+      "original_metadata": [
+        2827,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032795,
+        1791897532839267878
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-dcp.cells.json",
+      "bytes": 646641,
+      "sha256": "bba1cd8a5e1ef9489960c4bae6bc92e1617850219416fe612edcafab8e802f49",
+      "original_metadata": [
+        646641,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032730,
+        1791897460050736107
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-dcp.png",
+      "bytes": 59607,
+      "sha256": "00dc637ae70bdb7e5accd981d0179ed5767a33dedbf60a82ae334a4fceb6e328",
+      "original_metadata": [
+        59607,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032729,
+        1791897459710733622
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-dcp.render.json",
+      "bytes": 179527,
+      "sha256": "7229c0a1e3d6be5703c4271d18116576277c485bfc0e814f5e21b53f3987a8aa",
+      "original_metadata": [
+        179527,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032733,
+        1791897460106736516
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-dcp.txt",
+      "bytes": 5091,
+      "sha256": "8b32fe7454e677479385ce657c6a0bd7e7928d802c7e7e3c056de041d73fda23",
+      "original_metadata": [
+        5091,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032731,
+        1791897460050736107
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-dcp.vt",
+      "bytes": 74209,
+      "sha256": "ef0864b98dc0dc2745a62fa7bfe2fce30f616a43599c2596be10d79cd60ab2f9",
+      "original_metadata": [
+        74209,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032732,
+        1791897460050736107
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-picker.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-picker.cells.json",
+      "bytes": 646188,
+      "sha256": "a6981adbd58e863370d9e668fa61540880ea10ded5b730e1abf23fdc813f5a93",
+      "original_metadata": [
+        646188,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032720,
+        1791897450726667982
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-picker.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-picker.png",
+      "bytes": 67365,
+      "sha256": "c1ba24878fe3f0fc587c2dfaace492cf4e0524451f4bd15a83197c118baf622b",
+      "original_metadata": [
+        67365,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032719,
+        1791897450442665907
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-picker.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-picker.render.json",
+      "bytes": 195575,
+      "sha256": "cd49a2ad14ef249f93447cbfab5ef775ee63eeae01518700347c25afd357e497",
+      "original_metadata": [
+        195575,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032723,
+        1791897450770668303
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-picker.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-picker.txt",
+      "bytes": 5155,
+      "sha256": "95dc3f7944028c90856aa74b2ba81e41df2a1be953ff5f78482aa7e8cda48cdd",
+      "original_metadata": [
+        5155,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032721,
+        1791897450726667982
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session-picker.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session-picker.vt",
+      "bytes": 51811,
+      "sha256": "e7e166c3f38d7d7a0c3a610f1d1191eea6521b14f10a1b41e49a6713a5483769",
+      "original_metadata": [
+        51811,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032722,
+        1791897450726667982
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session.cells.json",
+      "bytes": 645024,
+      "sha256": "68f3760b7ca08a02100d1ffc80976e7730ef8a4dcca67e0bc6f1cf28b606952d",
+      "original_metadata": [
+        645024,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032725,
+        1791897456734711878
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session.png",
+      "bytes": 33378,
+      "sha256": "1c3d58be848b5b56ecaf913996795274bdb6f6d7532d020b68a7f41013fcb77f",
+      "original_metadata": [
+        33378,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032724,
+        1791897456386709336
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session.render.json",
+      "bytes": 138220,
+      "sha256": "4eaf1e94836baa7c5db46830266710f1f9e487b89a7699144aa68c230d57bda5",
+      "original_metadata": [
+        138220,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032728,
+        1791897456762712083
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session.txt",
+      "bytes": 5091,
+      "sha256": "a7855a9e2ae90acb41cdbe4a9e5c6a7f8e351523fb92eca9d2e4ca3b1dc54393",
+      "original_metadata": [
+        5091,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032726,
+        1791897456734711878
+      ]
+    },
+    "acquisition/oc/durable/120x40/other-session.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/other-session.vt",
+      "bytes": 60980,
+      "sha256": "6c7adcf66482504a33e8f24df13fd4c8453ee3ed72fe38ae4976499eb5f11e6e",
+      "original_metadata": [
+        60980,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032727,
+        1791897456734711878
+      ]
+    },
+    "acquisition/oc/durable/120x40/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/protocol.json",
+      "bytes": 2014256,
+      "sha256": "0f12deed4b77d163e4faa8de4d6fc742a8c1275288b1d08a92d4bcb53e2a7c1f",
+      "original_metadata": [
+        2014256,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032794,
+        1791897532835267849
+      ]
+    },
+    "acquisition/oc/durable/120x40/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/raw.vt",
+      "bytes": 249364,
+      "sha256": "2e98775ff758096a6c53863689c867f02d636109c8acc2e5681d973eb2567556",
+      "original_metadata": [
+        249364,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032708,
+        1791897532723267031
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone-dcp.cells.json",
+      "bytes": 646747,
+      "sha256": "2bf722e3e610f28cf0fcaec2b63f14dc0401839072f28742fed7f4aac12bffe3",
+      "original_metadata": [
+        646747,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032770,
+        1791897505827070545
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone-dcp.png",
+      "bytes": 83825,
+      "sha256": "484c4ac2bfde307f6c40f99666af785cfe3f31d54b34d8b5ae46d5cb53510cbb",
+      "original_metadata": [
+        83825,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032769,
+        1791897505547068499
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone-dcp.render.json",
+      "bytes": 201783,
+      "sha256": "2f7e0e9316a2e57f2eb5bbf61722c7109284b7e54789f8c50c0063d0a00807e0",
+      "original_metadata": [
+        201783,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032773,
+        1791897505871070866
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone-dcp.txt",
+      "bytes": 5152,
+      "sha256": "21372ea2512d68183c105e20f121f29e455701d8f7a728daf71ba2d679a5f469",
+      "original_metadata": [
+        5152,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032771,
+        1791897505827070545
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone-dcp.vt",
+      "bytes": 183551,
+      "sha256": "b2d1273b620d204efc183c67ddf7c6bed2181f21284fc105797a5bb5aedd5bbf",
+      "original_metadata": [
+        183551,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032772,
+        1791897505827070545
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone.cells.json",
+      "bytes": 645213,
+      "sha256": "ed3bfc00774482842da4728dcf9bff67a611364d990648983fc948739481fa03",
+      "original_metadata": [
+        645213,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032765,
+        1791897502207044098
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone.png",
+      "bytes": 69194,
+      "sha256": "fd4e920fe2d7e857a89dff6a4cead63d4634cc93e8a360c5d1a5f912af1c1b8f",
+      "original_metadata": [
+        69194,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032764,
+        1791897501935042111
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone.render.json",
+      "bytes": 187764,
+      "sha256": "0506ebb0db6b40d41423c50a2762c67d39de13789ebfdb2ef59453ea0141571e",
+      "original_metadata": [
+        187764,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032768,
+        1791897502267044537
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone.txt",
+      "bytes": 5235,
+      "sha256": "e04968e7933f1ae3f531772c09ad01dc04e2e4e7487e45902ba5536aaec22436",
+      "original_metadata": [
+        5235,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032766,
+        1791897502207044098
+      ]
+    },
+    "acquisition/oc/durable/120x40/redone.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/redone.vt",
+      "bytes": 170104,
+      "sha256": "72df1ef891dc3ac0b058e2e7386929265c77427dabcacafb3f37472032b93613",
+      "original_metadata": [
+        170104,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032767,
+        1791897502207044098
+      ]
+    },
+    "acquisition/oc/durable/120x40/reopened-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/reopened-dcp.cells.json",
+      "bytes": 646749,
+      "sha256": "e580957ee5f8091635141dfa4426bd26a9448694a79472890879c2600f175ba9",
+      "original_metadata": [
+        646749,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032715,
+        1791897444734624201
+      ]
+    },
+    "acquisition/oc/durable/120x40/reopened-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/reopened-dcp.png",
+      "bytes": 82153,
+      "sha256": "44764a181e3923e0126f9ed9a1ff762665af337cd0dd7930797b3c7aad0d3eb1",
+      "original_metadata": [
+        82153,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032714,
+        1791897444378621600
+      ]
+    },
+    "acquisition/oc/durable/120x40/reopened-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/reopened-dcp.render.json",
+      "bytes": 201803,
+      "sha256": "aa3beb7449192bae2669c9b7c699ed42d1609ada86695b310164918c5cdc35a0",
+      "original_metadata": [
+        201803,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032718,
+        1791897444770624464
+      ]
+    },
+    "acquisition/oc/durable/120x40/reopened-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/reopened-dcp.txt",
+      "bytes": 5152,
+      "sha256": "44dc00d10c2603551893ac74f99fc63450da219ea61ab6d001feea15f49e54af",
+      "original_metadata": [
+        5152,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032716,
+        1791897444734624201
+      ]
+    },
+    "acquisition/oc/durable/120x40/reopened-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/reopened-dcp.vt",
+      "bytes": 29095,
+      "sha256": "0438ea154b07deab1c2e43fb91bcc5b1f8bdfe65bba1bd0c4047d25f5c86f208",
+      "original_metadata": [
+        29095,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032717,
+        1791897444734624201
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed-dcp.cells.json",
+      "bytes": 646748,
+      "sha256": "f9bc71e13fcbd4660b756b2555591b8867c88b45d0f88dc2eec659dd82bfa7b2",
+      "original_metadata": [
+        646748,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032745,
+        1791897475630849937
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed-dcp.png",
+      "bytes": 83857,
+      "sha256": "c3581c27f0a4bb6473c13850bb4dd202dfbb224b6b589ab5e17031b82a68d612",
+      "original_metadata": [
+        83857,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032744,
+        1791897475318847657
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed-dcp.render.json",
+      "bytes": 201783,
+      "sha256": "2f7e0e9316a2e57f2eb5bbf61722c7109284b7e54789f8c50c0063d0a00807e0",
+      "original_metadata": [
+        201783,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032748,
+        1791897475698850434
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed-dcp.txt",
+      "bytes": 5152,
+      "sha256": "2c652b80a53d5e59187bb9e5496f7ebc91bc555cc2b0180fc58285ffeaad8168",
+      "original_metadata": [
+        5152,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032746,
+        1791897475630849937
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed-dcp.vt",
+      "bytes": 119201,
+      "sha256": "ad2623bd96ae3a48d56305985ec2b2382fc713cfa2086896d459f5e056db4c30",
+      "original_metadata": [
+        119201,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032747,
+        1791897475630849937
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed.cells.json",
+      "bytes": 645214,
+      "sha256": "865ea4d49e8e47157a2216e193882ff9948f0bf5a4384be2b1145bef60f25a9b",
+      "original_metadata": [
+        645214,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032740,
+        1791897471902822700
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed.png",
+      "bytes": 69194,
+      "sha256": "fd4e920fe2d7e857a89dff6a4cead63d4634cc93e8a360c5d1a5f912af1c1b8f",
+      "original_metadata": [
+        69194,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032739,
+        1791897471630820713
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed.render.json",
+      "bytes": 187764,
+      "sha256": "0506ebb0db6b40d41423c50a2762c67d39de13789ebfdb2ef59453ea0141571e",
+      "original_metadata": [
+        187764,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032743,
+        1791897471966823168
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed.txt",
+      "bytes": 5235,
+      "sha256": "e04968e7933f1ae3f531772c09ad01dc04e2e4e7487e45902ba5536aaec22436",
+      "original_metadata": [
+        5235,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032741,
+        1791897471902822700
+      ]
+    },
+    "acquisition/oc/durable/120x40/resumed.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/resumed.vt",
+      "bytes": 103047,
+      "sha256": "60092d4919f14298990dd4f0e0017ec9e71075efaf6c7279ed12414ef3e3a6d4",
+      "original_metadata": [
+        103047,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032742,
+        1791897471902822700
+      ]
+    },
+    "acquisition/oc/durable/120x40/session-picker.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/session-picker.cells.json",
+      "bytes": 645990,
+      "sha256": "2cb864d7d87294ddee22c2fd0134d9d2edd3e548dbb83a62b62d0fc96209c609",
+      "original_metadata": [
+        645990,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032735,
+        1791897466014779682
+      ]
+    },
+    "acquisition/oc/durable/120x40/session-picker.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/session-picker.png",
+      "bytes": 43995,
+      "sha256": "784cdaff72b94cf3269f458fb754c2a98db65edb2b303ad323ad58ed5713733b",
+      "original_metadata": [
+        43995,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032734,
+        1791897465726777577
+      ]
+    },
+    "acquisition/oc/durable/120x40/session-picker.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/session-picker.render.json",
+      "bytes": 167279,
+      "sha256": "a67445f41735ad944d032b929a80e5992f5f9b158c138a2206e3f538d849b4bd",
+      "original_metadata": [
+        167279,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032738,
+        1791897466038779856
+      ]
+    },
+    "acquisition/oc/durable/120x40/session-picker.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/session-picker.txt",
+      "bytes": 5093,
+      "sha256": "5c9eb8ebc2bfae152c4582e3dd6581b3d0902a09b6ecf7b2a6bc98d764d4681f",
+      "original_metadata": [
+        5093,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032736,
+        1791897466014779682
+      ]
+    },
+    "acquisition/oc/durable/120x40/session-picker.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/session-picker.vt",
+      "bytes": 92269,
+      "sha256": "6443b03d838d577d0684872111f2a7846ce3ca89b5bc8014827596516e631bd0",
+      "original_metadata": [
+        92269,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032737,
+        1791897466014779682
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-compression.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-compression.cells.json",
+      "bytes": 645248,
+      "sha256": "bf1db6997a35f85346479a5c8053f8ffe8760d49c77619ab2b923bd196bd702a",
+      "original_metadata": [
+        645248,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032755,
+        1791897488442943541
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-compression.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-compression.png",
+      "bytes": 75945,
+      "sha256": "b84ebaefdb2c4eec1bae31b31aed15841fa58296e1e227b682e4d63016289c39",
+      "original_metadata": [
+        75945,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032754,
+        1791897488166941525
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-compression.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-compression.render.json",
+      "bytes": 194897,
+      "sha256": "414a1db56fd240ffe4bcb92c3930e31bde74ef77003400a41f3ccb1244fd1548",
+      "original_metadata": [
+        194897,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032758,
+        1791897488490943892
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-compression.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-compression.txt",
+      "bytes": 5259,
+      "sha256": "19211d67c920cadd7019c9b8f02f2edbafa9aae97585e40ca4a3c96b84d9470c",
+      "original_metadata": [
+        5259,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032756,
+        1791897488442943541
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-compression.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-compression.vt",
+      "bytes": 137321,
+      "sha256": "2f3099fc3b650938a96216045554d52556aa576032cc2ddb820357bbb0f12204",
+      "original_metadata": [
+        137321,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032757,
+        1791897488442943541
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart-again.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart-again.cells.json",
+      "bytes": 645250,
+      "sha256": "7e96a8727f939a66ff3c2b798554297bc53a91e9a8b0412ad13178c8c0a8647f",
+      "original_metadata": [
+        645250,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032775,
+        1791897511719113589
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart-again.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart-again.png",
+      "bytes": 76836,
+      "sha256": "59683e5e504f5298ffd2052211de4fa6a76c68dcbc083dbaaabeb72bf6499b9e",
+      "original_metadata": [
+        76836,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032774,
+        1791897511435111514
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart-again.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart-again.render.json",
+      "bytes": 194877,
+      "sha256": "7d6b03c8b6cb70ca28d68b00bdf0f3c3dfdb781a15d26ad0557e80d00624ac5b",
+      "original_metadata": [
+        194877,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032778,
+        1791897511755113852
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart-again.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart-again.txt",
+      "bytes": 5259,
+      "sha256": "cc114d70d4e91dd5ea52390a15ec4ccbeaa3a217f0a2bacb94be10206f16564e",
+      "original_metadata": [
+        5259,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032776,
+        1791897511719113589
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart-again.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart-again.vt",
+      "bytes": 198229,
+      "sha256": "09d7671edcccb236529572b775a0a0d70e615776a7b8373f34e21d6d20b3ec41",
+      "original_metadata": [
+        198229,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032777,
+        1791897511719113589
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart.cells.json",
+      "bytes": 645244,
+      "sha256": "45bc625384775e22858bcb2e2656822f452008443156a5a034b2204b9e689bfb",
+      "original_metadata": [
+        645244,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032750,
+        1791897482342898975
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart.png",
+      "bytes": 76836,
+      "sha256": "59683e5e504f5298ffd2052211de4fa6a76c68dcbc083dbaaabeb72bf6499b9e",
+      "original_metadata": [
+        76836,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032749,
+        1791897481958896169
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart.render.json",
+      "bytes": 194877,
+      "sha256": "7d6b03c8b6cb70ca28d68b00bdf0f3c3dfdb781a15d26ad0557e80d00624ac5b",
+      "original_metadata": [
+        194877,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032753,
+        1791897482378899238
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart.txt",
+      "bytes": 5259,
+      "sha256": "cc114d70d4e91dd5ea52390a15ec4ccbeaa3a217f0a2bacb94be10206f16564e",
+      "original_metadata": [
+        5259,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032751,
+        1791897482342898975
+      ]
+    },
+    "acquisition/oc/durable/120x40/undo-restart.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undo-restart.vt",
+      "bytes": 133879,
+      "sha256": "16c0eff53690224048b4e6552db6b3eb97bf23854385e8ec19b604c450e9afa5",
+      "original_metadata": [
+        133879,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032752,
+        1791897482342898975
+      ]
+    },
+    "acquisition/oc/durable/120x40/undone-dcp.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undone-dcp.cells.json",
+      "bytes": 646758,
+      "sha256": "78fc7351851fddb64208f35afc0dc1d8dfebbd0e007b52f4188f12debeba8d03",
+      "original_metadata": [
+        646758,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032760,
+        1791897495626996026
+      ]
+    },
+    "acquisition/oc/durable/120x40/undone-dcp.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undone-dcp.png",
+      "bytes": 81313,
+      "sha256": "7723530e522aba47f17440fa91e8fa48ddf9ae1cca8d296e53082cac44fa5f0c",
+      "original_metadata": [
+        81313,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032759,
+        1791897495266993396
+      ]
+    },
+    "acquisition/oc/durable/120x40/undone-dcp.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undone-dcp.render.json",
+      "bytes": 204663,
+      "sha256": "c921e422d79723556892ce322af98be4a4305d94758de3e3317a01363b469233",
+      "original_metadata": [
+        204663,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032763,
+        1791897495686996464
+      ]
+    },
+    "acquisition/oc/durable/120x40/undone-dcp.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undone-dcp.txt",
+      "bytes": 5163,
+      "sha256": "4719c6fe67c85016e4ab47a0c482f92956df8548216528d408e61ef7ade289eb",
+      "original_metadata": [
+        5163,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032761,
+        1791897495626996026
+      ]
+    },
+    "acquisition/oc/durable/120x40/undone-dcp.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40/undone-dcp.vt",
+      "bytes": 155744,
+      "sha256": "6290d349795f3bfa763a10d57868ccf567808cbb12697e02d04b93578ace0fa8",
+      "original_metadata": [
+        155744,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032762,
+        1791897495626996026
+      ]
+    },
+    "acquisition/oc/durable/tooling.package-lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/tooling.package-lock.json",
+      "bytes": 2436,
+      "sha256": "3a51953684903f9d5b7ca8a02e677b2e2a763a5fe99dc4b7f0e59ed95d91e399",
+      "original_metadata": [
+        2436,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032625,
+        1791897437246569489
+      ]
+    },
+    "acquisition/oc/recompression/capture.lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/capture.lock.json",
+      "bytes": 6005,
+      "sha256": "3b2a6b9b83d8434e6f9d5c9b97cad0e9094fddc969f2cfa3d6cd4ac801646f84",
+      "original_metadata": [
+        6005,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032522,
+        1791897436054560779
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bottom.cells.json",
+      "bytes": 645349,
+      "sha256": "d854cd648f463d68adc3033a73afd29d27aa842c18dd87f8d5bd99000b907ca6",
+      "original_metadata": [
+        645349,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032680,
+        1791897431182525180
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bottom.png",
+      "bytes": 70949,
+      "sha256": "d80519472fa9e1bd9a7bb6bc4d07760bc7a9a34b39c6ae0b83d18cecb342b756",
+      "original_metadata": [
+        70949,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032679,
+        1791897430918523252
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bottom.render.json",
+      "bytes": 194858,
+      "sha256": "c6384c76a24bc75b59cefd453c20c78ad521a32972c54be4ad9b42464f990c28",
+      "original_metadata": [
+        194858,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032683,
+        1791897431222525473
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bottom.txt",
+      "bytes": 5365,
+      "sha256": "459d5d770a6899b4e2470c623b667496e88d41a05e6dd0961f1633f4db0b2c43",
+      "original_metadata": [
+        5365,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032681,
+        1791897431186525210
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bottom.vt",
+      "bytes": 12472,
+      "sha256": "9e4d040a5c0b9ebaee963dadc3477ea6bfdf2e9471a01dcb2d41cca32207c449",
+      "original_metadata": [
+        12472,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032682,
+        1791897431186525210
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bridge-spec.json",
+      "bytes": 614,
+      "sha256": "9a3b9f0cc27e935638160602de4528c7dc4dad6185d98ced2f3b05b5e1422367",
+      "original_metadata": [
+        614,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032677,
+        1791897427682499607
+      ]
+    },
+    "acquisition/oc/recompression/120x40/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032686,
+        1791897431326526233
+      ]
+    },
+    "acquisition/oc/recompression/120x40/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/inputs.json",
+      "bytes": 87,
+      "sha256": "7b131399e0d8f97fcbe7cb28f78539990271e72bf6ffc2f4b647182b45773517",
+      "original_metadata": [
+        87,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032685,
+        1791897431326526233
+      ]
+    },
+    "acquisition/oc/recompression/120x40/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/protocol.json",
+      "bytes": 3687,
+      "sha256": "aa16f93ede32187fd45f31438a912495d9792e8ca4de2b2bf15acc69bf785043",
+      "original_metadata": [
+        3687,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032684,
+        1791897431326526233
+      ]
+    },
+    "acquisition/oc/recompression/120x40/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40/raw.vt",
+      "bytes": 12540,
+      "sha256": "8cdaa14e0aed067b56af47352d16fb11ae62ee4c84722a15b045ad2fcbdbc5c8",
+      "original_metadata": [
+        12540,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032678,
+        1791897431230525532
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bottom.cells.json",
+      "bytes": 1031451,
+      "sha256": "748967d7eb85ed256a44397ec49eb27899d0ea5572e13293df1f36cd49b83c73",
+      "original_metadata": [
+        1031451,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032691,
+        1791897435862559377
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bottom.png",
+      "bytes": 86443,
+      "sha256": "89ad31ba4e5a0b5ed357cc460a7c1371eb7a5d4578fc2361ce396cd7b8234ecd",
+      "original_metadata": [
+        86443,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032690,
+        1791897435414556103
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bottom.render.json",
+      "bytes": 226676,
+      "sha256": "9c20e862b518ce22e0504583990b857b4287cfcab58e6bc03844370d23138834",
+      "original_metadata": [
+        226676,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032694,
+        1791897435906559698
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bottom.txt",
+      "bytes": 8339,
+      "sha256": "890594e98c9e2a2d248c980893d1bc667e9de33b009c4a1a679532efbff68770",
+      "original_metadata": [
+        8339,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032692,
+        1791897435866559406
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bottom.vt",
+      "bytes": 17437,
+      "sha256": "2f4325f9c6cb601071659fc3009b17a970450acec233de5571bba03c8a03cc48",
+      "original_metadata": [
+        17437,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032693,
+        1791897435866559406
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bridge-spec.json",
+      "bytes": 614,
+      "sha256": "c42c7d025c415a089e41086286775d63954df3c53174a850eaf0abdb3263877a",
+      "original_metadata": [
+        614,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032688,
+        1791897431334526291
+      ]
+    },
+    "acquisition/oc/recompression/160x48/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032697,
+        1791897436006560428
+      ]
+    },
+    "acquisition/oc/recompression/160x48/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/inputs.json",
+      "bytes": 87,
+      "sha256": "736edb90d4cea1410e3cd2c12f56ba17a02623fb6e7180b9b05eeb64cca63bca",
+      "original_metadata": [
+        87,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032696,
+        1791897436006560428
+      ]
+    },
+    "acquisition/oc/recompression/160x48/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/protocol.json",
+      "bytes": 3687,
+      "sha256": "aa16f93ede32187fd45f31438a912495d9792e8ca4de2b2bf15acc69bf785043",
+      "original_metadata": [
+        3687,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032695,
+        1791897436006560428
+      ]
+    },
+    "acquisition/oc/recompression/160x48/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48/raw.vt",
+      "bytes": 17505,
+      "sha256": "478d323101542be28f9a6799b87ec5cc0170676583c849a3ecf469dde79d82d5",
+      "original_metadata": [
+        17505,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032689,
+        1791897435910559727
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bottom.cells.json",
+      "bytes": 259009,
+      "sha256": "bc1f25802968fc71a52dd9913d5a6586fa31cb6f3f4e47c76347cbd6b5455c4c",
+      "original_metadata": [
+        259009,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032669,
+        1791897427534498526
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bottom.png",
+      "bytes": 38305,
+      "sha256": "17da1445b845f7f708f44674d9ef89addec92312e6c1c1ee2c295c5d68250c27",
+      "original_metadata": [
+        38305,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032668,
+        1791897427410497620
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bottom.render.json",
+      "bytes": 124297,
+      "sha256": "7c1683628b43d3e9207071f3117badd9b60846a25a7b6db8a871d0e8e01a7e48",
+      "original_metadata": [
+        124297,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032672,
+        1791897427558498701
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bottom.txt",
+      "bytes": 2243,
+      "sha256": "a9e09834615b070929add6dd4b2176678638ccca441696a6a48d3b6779350ef4",
+      "original_metadata": [
+        2243,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032670,
+        1791897427534498526
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bottom.vt",
+      "bytes": 6131,
+      "sha256": "e2644dfc0a28ab2f4222b50879b8e17433e3124a10aa18db79b140a784fb7e57",
+      "original_metadata": [
+        6131,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032671,
+        1791897427534498526
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bridge-spec.json",
+      "bytes": 612,
+      "sha256": "18071b66de55b37906065df56be216512970b5af16daedba70d9fc652d11e873",
+      "original_metadata": [
+        612,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032665,
+        1791897425066480492
+      ]
+    },
+    "acquisition/oc/recompression/80x24/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032675,
+        1791897427662499460
+      ]
+    },
+    "acquisition/oc/recompression/80x24/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/inputs.json",
+      "bytes": 87,
+      "sha256": "3fe5b79c0ca323fa840ae2274dff2f80f14095cf5f845632d03906eea5478710",
+      "original_metadata": [
+        87,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032674,
+        1791897427662499460
+      ]
+    },
+    "acquisition/oc/recompression/80x24/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/protocol.json",
+      "bytes": 3687,
+      "sha256": "aa16f93ede32187fd45f31438a912495d9792e8ca4de2b2bf15acc69bf785043",
+      "original_metadata": [
+        3687,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032673,
+        1791897427662499460
+      ]
+    },
+    "acquisition/oc/recompression/80x24/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24/raw.vt",
+      "bytes": 6199,
+      "sha256": "317ce67e7b77a9802e060ea4958c34a36b52926b9672f59f595a15958fdcf91c",
+      "original_metadata": [
+        6199,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032667,
+        1791897427562498730
+      ]
+    },
+    "acquisition/oc/recompression/tooling.package-lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/tooling.package-lock.json",
+      "bytes": 2436,
+      "sha256": "3a51953684903f9d5b7ca8a02e677b2e2a763a5fe99dc4b7f0e59ed95d91e399",
+      "original_metadata": [
+        2436,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032521,
+        1791897424598477073
+      ]
+    },
+    "acquisition/oracle/NOTICE.md": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/NOTICE.md",
+      "bytes": 542,
+      "sha256": "5f9e3c12c4665afee2fe1f4f7b148d99047183a53893cf24ee86dc83671e5fb0",
+      "original_metadata": [
+        542,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032963,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/executable/notification.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/executable/notification.ts",
+      "bytes": 10828,
+      "sha256": "4c1b1276400f408a2855a0bacb2db55d4f2c4f612d1f4ec71dc67c78e0d88f0b",
+      "original_metadata": [
+        10828,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032962,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/executable/services.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/executable/services.ts",
+      "bytes": 213,
+      "sha256": "4fd53de549832b725c15799ea2234652b61a56e3222c75e8f24a4ce2e31f994d",
+      "original_metadata": [
+        213,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032959,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/executable/state-utils.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/executable/state-utils.ts",
+      "bytes": 12344,
+      "sha256": "74b436f5e8ee517201096f5470a72cb573481852c20e956d26c070389469e311",
+      "original_metadata": [
+        12344,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032961,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/executable/utils.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/executable/utils.ts",
+      "bytes": 9656,
+      "sha256": "b19cd1ba916531f833776b828d5d28f2c44f61d050e003b66f01ab5f15045241",
+      "original_metadata": [
+        9656,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032960,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/goldens.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/goldens.json",
+      "bytes": 221836,
+      "sha256": "718cafbd33387d92cad7c103e259583ad618221d3ae790c1cbfedcf21d9c8c94",
+      "original_metadata": [
+        221836,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032969,
+        1791897976922427728
+      ]
+    },
+    "acquisition/oracle/imports-D05.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/imports-D05.json",
+      "bytes": 1157,
+      "sha256": "ea8eaea9cb4811c94ff71bcacf83705b1edfa66dcf78f8f7c622b2d41915ae8a",
+      "original_metadata": [
+        1157,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032964,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/imports-D06.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/imports-D06.json",
+      "bytes": 692,
+      "sha256": "f32b75184975859346152cc96448cb9a7d627d6f4c43bea09a4d24e99115f56e",
+      "original_metadata": [
+        692,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032965,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/imports-D10.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/imports-D10.json",
+      "bytes": 970,
+      "sha256": "be8d83dcbe857355a36dcc8b6b616805f3a7ace5a59669ff93e327940cb5841a",
+      "original_metadata": [
+        970,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032966,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/owner-association.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/owner-association.json",
+      "bytes": 3030,
+      "sha256": "bd119594e828da3f957319898ef6bd6dca4496b4cbeb542ba9a59a361edbf4a7",
+      "original_metadata": [
+        3030,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032968,
+        1791897976922427728
+      ]
+    },
+    "acquisition/oracle/result.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/result.json",
+      "bytes": 3558,
+      "sha256": "35cbf172c0f1cc2de57017d5dcdebacab07cfc8d8401de2c8456f94b9cd809f7",
+      "original_metadata": [
+        3558,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032970,
+        1791897976922427728
+      ]
+    },
+    "acquisition/oracle/source-manifest.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/source-manifest.json",
+      "bytes": 6263,
+      "sha256": "22050075c07348a38c03f03f565c1973f14fb422bed5786b09f730e3fc1f40d4",
+      "original_metadata": [
+        6263,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032967,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/sources/LICENSE": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/LICENSE",
+      "bytes": 32387,
+      "sha256": "ce3fb82d9ee80a1cb0e548f9b0560ead52378ee2b4e826fd9459b4acf7075d89",
+      "original_metadata": [
+        32387,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032948,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__compress__range.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__compress__range.ts",
+      "bytes": 7265,
+      "sha256": "043fba72da4262c26c5c360dddbbbf123a8148a892b96c15495286fd04e69c97",
+      "original_metadata": [
+        7265,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032945,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__compress__state.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__compress__state.ts",
+      "bytes": 8602,
+      "sha256": "ea109d2ae177cb3386d635b0955ce8b65274906a02f20c259e1195ac51769185",
+      "original_metadata": [
+        8602,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032954,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__config.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__config.ts",
+      "bytes": 33287,
+      "sha256": "b505a347324507f13f6a2e63d5971e950351be0dce2309ce7e37702e029c6c90",
+      "original_metadata": [
+        33287,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032955,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__state__utils.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__state__utils.ts",
+      "bytes": 12487,
+      "sha256": "47e1d1693698f31be16371b7172658d0b446469be0608ed2c1aceabf98e5eaf2",
+      "original_metadata": [
+        12487,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032950,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__token-utils.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__token-utils.ts",
+      "bytes": 5058,
+      "sha256": "8206128a441226c0e67f0836646103bbfde616bd7ae15ea5005574fc201def8e",
+      "original_metadata": [
+        5058,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032943,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__ui__notification.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__ui__notification.ts",
+      "bytes": 10995,
+      "sha256": "626a8978c1386ea206ae1600642a0c268e00f6db85b30670049dd2d33ffb319b",
+      "original_metadata": [
+        10995,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032951,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/lib__ui__utils.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/lib__ui__utils.ts",
+      "bytes": 9732,
+      "sha256": "3a7f92b604906530d7494511d07330db3c2b6d8ad695c8cea3bca2b819fec7cb",
+      "original_metadata": [
+        9732,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032947,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/oc__LICENSE": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/oc__LICENSE",
+      "bytes": 1065,
+      "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+      "original_metadata": [
+        1065,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032949,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/oc__packages__cli__src__commands__handlers__session__import.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/oc__packages__cli__src__commands__handlers__session__import.ts",
+      "bytes": 2647,
+      "sha256": "85efea7895832852186ef9fce6476580e9898eeb3de4da9666e7868b4b0b9450",
+      "original_metadata": [
+        2647,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032952,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/oc__packages__schema__src__session-message.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/oc__packages__schema__src__session-message.ts",
+      "bytes": 11926,
+      "sha256": "9b5cfce6c69bb4987771bdbbb36f6af09c76c5d166ca9da764b052f7c92a4e1a",
+      "original_metadata": [
+        11926,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032957,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/sources/oc__packages__schema__src__session-transfer.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/oc__packages__schema__src__session-transfer.ts",
+      "bytes": 406,
+      "sha256": "b7de525457c97b02afbd03604a1fcd82adb65c75ccfa39686c8746a005638f5a",
+      "original_metadata": [
+        406,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032956,
+        1791897976886427471
+      ]
+    },
+    "acquisition/oracle/sources/oc__packages__tui__src__routes__session__index.tsx": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/oc__packages__tui__src__routes__session__index.tsx",
+      "bytes": 133351,
+      "sha256": "e4af9db141d101d47a61d4ca761f9c1b38e375288442490ce609732450283734",
+      "original_metadata": [
+        133351,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032946,
+        1791897976882427444
+      ]
+    },
+    "acquisition/oracle/sources/package.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources/package.json",
+      "bytes": 2568,
+      "sha256": "8659a083229316d42833506878d8dadde740485d83e4ecef9e224a220cc318d5",
+      "original_metadata": [
+        2568,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032953,
+        1791897976882427444
+      ]
+    },
+    "acquisition/dcp-pair-check-vis38-durable-011-r2.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-pair-check-vis38-durable-011-r2.json",
+      "bytes": 43785,
+      "sha256": "4a39d9e01e3cb8c964d338ca3bf069ceab68d432735dc501c8b94e1133d6c2c1",
+      "original_metadata": [
+        43785,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032976,
+        1791898039706876133
+      ]
+    },
+    "acquisition/upstream/recompression/capture.lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/capture.lock.json",
+      "bytes": 13318,
+      "sha256": "8650e841ec149431ba71c5490440e6f54188d00e52ab8c5b3f053a9f4f0d1df0",
+      "original_metadata": [
+        13318,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032975,
+        1791897997118571865
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bottom.cells.json",
+      "bytes": 645355,
+      "sha256": "a37722985fe0ad1c2a3eda05edc92eb5b8fa483edf94592291e28825ec58fdc0",
+      "original_metadata": [
+        645355,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033038,
+        1791897989190515271
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bottom.png",
+      "bytes": 70949,
+      "sha256": "d80519472fa9e1bd9a7bb6bc4d07760bc7a9a34b39c6ae0b83d18cecb342b756",
+      "original_metadata": [
+        70949,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033037,
+        1791897988946513530
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bottom.render.json",
+      "bytes": 194858,
+      "sha256": "c6384c76a24bc75b59cefd453c20c78ad521a32972c54be4ad9b42464f990c28",
+      "original_metadata": [
+        194858,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033041,
+        1791897989218515471
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bottom.txt",
+      "bytes": 5365,
+      "sha256": "459d5d770a6899b4e2470c623b667496e88d41a05e6dd0961f1633f4db0b2c43",
+      "original_metadata": [
+        5365,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033039,
+        1791897989194515300
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bottom.vt",
+      "bytes": 23424,
+      "sha256": "2e0a565f19e018939c63c3c1262ce83c5092e2fccd3904c0cfe593162f29c92b",
+      "original_metadata": [
+        23424,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033040,
+        1791897989194515300
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bridge-spec.json",
+      "bytes": 586,
+      "sha256": "6f3244bc42332b997ff46c7e3993b9299f10d38b7b37d0f35155b4b69c6cafe9",
+      "original_metadata": [
+        586,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033035,
+        1791897983486474564
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033044,
+        1791897989766519383
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/inputs.json",
+      "bytes": 1827,
+      "sha256": "ae8b7358b2fa5cb038d48b2a9ef302dc432e411d808dadad8864db46031c6178",
+      "original_metadata": [
+        1827,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033043,
+        1791897989766519383
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/protocol.json",
+      "bytes": 222705,
+      "sha256": "c442860ec989bd948ff4e4155ab005578930f3dd779aaf6e7daa9486870ee566",
+      "original_metadata": [
+        222705,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033042,
+        1791897989766519383
+      ]
+    },
+    "acquisition/upstream/recompression/120x40/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40/raw.vt",
+      "bytes": 25061,
+      "sha256": "7ad274fe34354c813c3b2165ff65a285a614e39f50e7cabc62811949f96709a4",
+      "original_metadata": [
+        25061,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033036,
+        1791897989342516356
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bottom.cells.json",
+      "bytes": 1031457,
+      "sha256": "5aaf076f2a55e0adf64071a4ff01adfe38fcd97949aba2767f8fabe5b9673cb8",
+      "original_metadata": [
+        1031457,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033050,
+        1791897996554567838
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bottom.png",
+      "bytes": 86443,
+      "sha256": "89ad31ba4e5a0b5ed357cc460a7c1371eb7a5d4578fc2361ce396cd7b8234ecd",
+      "original_metadata": [
+        86443,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033048,
+        1791897996130564811
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bottom.render.json",
+      "bytes": 226676,
+      "sha256": "9c20e862b518ce22e0504583990b857b4287cfcab58e6bc03844370d23138834",
+      "original_metadata": [
+        226676,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033053,
+        1791897996590568095
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bottom.txt",
+      "bytes": 8339,
+      "sha256": "890594e98c9e2a2d248c980893d1bc667e9de33b009c4a1a679532efbff68770",
+      "original_metadata": [
+        8339,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033051,
+        1791897996558567867
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bottom.vt",
+      "bytes": 21753,
+      "sha256": "1ccedac4e67ba023cb5ae70a6386d2397b58151e66417ee2435005f080db2f7b",
+      "original_metadata": [
+        21753,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033052,
+        1791897996558567867
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bridge-spec.json",
+      "bytes": 586,
+      "sha256": "25c0e105c1cc38e6b259a6c98adf6e71777623e0285b898212d89310929e6968",
+      "original_metadata": [
+        586,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033046,
+        1791897989774519440
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033056,
+        1791897997070571522
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/inputs.json",
+      "bytes": 1827,
+      "sha256": "4380818bd59bae8c3ab789fff5c96ca0cb9980ba8f42b456cd80c119bf69355a",
+      "original_metadata": [
+        1827,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033055,
+        1791897997070571522
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/protocol.json",
+      "bytes": 222705,
+      "sha256": "d56de4dc23463a5d9554f4c2f53843d8c070e6d5c691dd131cf1c8771bf6cb65",
+      "original_metadata": [
+        222705,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033054,
+        1791897997070571522
+      ]
+    },
+    "acquisition/upstream/recompression/160x48/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48/raw.vt",
+      "bytes": 23390,
+      "sha256": "47d2d1ad069e07a8f3268b5511b60c21c64902f83a47113fa58f8328909a2ab0",
+      "original_metadata": [
+        23390,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033047,
+        1791897996738569152
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bottom.cells.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bottom.cells.json",
+      "bytes": 259015,
+      "sha256": "a5667214f2465acaaf59f3fe9053052a4859370c47ab9af5c3c1317e76857b1b",
+      "original_metadata": [
+        259015,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033027,
+        1791897983138472081
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bottom.png": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bottom.png",
+      "bytes": 38305,
+      "sha256": "17da1445b845f7f708f44674d9ef89addec92312e6c1c1ee2c295c5d68250c27",
+      "original_metadata": [
+        38305,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033026,
+        1791897983014471195
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bottom.render.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bottom.render.json",
+      "bytes": 124297,
+      "sha256": "7c1683628b43d3e9207071f3117badd9b60846a25a7b6db8a871d0e8e01a7e48",
+      "original_metadata": [
+        124297,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033030,
+        1791897983158472223
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bottom.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bottom.txt",
+      "bytes": 2243,
+      "sha256": "a9e09834615b070929add6dd4b2176678638ccca441696a6a48d3b6779350ef4",
+      "original_metadata": [
+        2243,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033028,
+        1791897983138472081
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bottom.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bottom.vt",
+      "bytes": 12004,
+      "sha256": "b1e8cf88aaa093920857adb582f3b5319c1a9f27b6f7f3fd84ad50c2225bf22e",
+      "original_metadata": [
+        12004,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033029,
+        1791897983138472081
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bridge-spec.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bridge-spec.json",
+      "bytes": 584,
+      "sha256": "738d897d34eeb01c5caca778a2b50551868ccc372d2c217e10a4145bf362190b",
+      "original_metadata": [
+        584,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033017,
+        1791897978674440228
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/bridge.stderr.txt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/bridge.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033033,
+        1791897983478474507
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/inputs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/inputs.json",
+      "bytes": 1827,
+      "sha256": "ab3e679e1a146e393cc654cc3e5c19c8c5381f15640acc1c90995a6b1d99293a",
+      "original_metadata": [
+        1827,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033032,
+        1791897983478474507
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/protocol.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/protocol.json",
+      "bytes": 222704,
+      "sha256": "43621f73590f4eccd94cc96eedf9c46c619ded55393620025350e15896a79d1e",
+      "original_metadata": [
+        222704,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033031,
+        1791897983478474507
+      ]
+    },
+    "acquisition/upstream/recompression/80x24/raw.vt": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24/raw.vt",
+      "bytes": 13641,
+      "sha256": "f96f044d14856eb4212fbd7e5fa375e4692efcbf067a71ef3a93e3a59bb5897a",
+      "original_metadata": [
+        13641,
+        33204,
+        1003,
+        1003,
+        65027,
+        3033025,
+        1791897983286473137
+      ]
+    },
+    "acquisition/upstream/recompression/tooling.package-lock.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/tooling.package-lock.json",
+      "bytes": 2436,
+      "sha256": "3a51953684903f9d5b7ca8a02e677b2e2a763a5fe99dc4b7f0e59ed95d91e399",
+      "original_metadata": [
+        2436,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032974,
+        1791897978094436091
+      ]
+    },
+    "acquisition/producer/archive_failed_capture.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/archive_failed_capture.py",
+      "bytes": 11782,
+      "sha256": "b161676d9642420a641e99a1096322e04ee365f9cf981204333e411cf52838dd",
+      "original_metadata": [
+        11782,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032458,
+        1791897420838449598
+      ]
+    },
+    "acquisition/producer/dcp_README.md": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_README.md",
+      "bytes": 14420,
+      "sha256": "32baeb6b5cabe941acdd851f8bf1abd44ee6da4a6422cb508d8df9497b9e3e81",
+      "original_metadata": [
+        14420,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032460,
+        1791897420838449598
+      ]
+    },
+    "acquisition/producer/dcp_check_reference.mjs": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_check_reference.mjs",
+      "bytes": 8066,
+      "sha256": "106b7277ef478e10d9dcbd8f52c23c8d892c3d44fb638ca17ba5bbaebfa87af6",
+      "original_metadata": [
+        8066,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032461,
+        1791897420838449598
+      ]
+    },
+    "acquisition/producer/dcp_display_audit.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_display_audit.py",
+      "bytes": 15954,
+      "sha256": "86b516c6fc93c50e7a4c1b1b5eb5cb56d6f1b2da8b541f22abe88535012b78a4",
+      "original_metadata": [
+        15954,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032462,
+        1791897420838449598
+      ]
+    },
+    "acquisition/producer/dcp_display_fixture.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_display_fixture.py",
+      "bytes": 12741,
+      "sha256": "971e955fc944ad58a530b7f40ee0b53e4fbcb90a94f449220fed76a535dfc776",
+      "original_metadata": [
+        12741,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032463,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_from_native.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_from_native.ts",
+      "bytes": 14880,
+      "sha256": "de799a484cf2c745898e02514fdd8147aa2e486628bfb8704c452fdf17ba32f3",
+      "original_metadata": [
+        14880,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032464,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_native_bridge.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_native_bridge.py",
+      "bytes": 4445,
+      "sha256": "5fddc89b10d13876f0e735bbaefcb575f1f0be4813cc9441f746a119a4da1ab1",
+      "original_metadata": [
+        4445,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032465,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_native_qualify.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_native_qualify.py",
+      "bytes": 40595,
+      "sha256": "0767f16a80ec7b41379f5c6624ac61f9a64cfc154d93dc2ec1fcf118301a98fe",
+      "original_metadata": [
+        40595,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032466,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_oracle.ts": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_oracle.ts",
+      "bytes": 17250,
+      "sha256": "7f8df9453b6364353eefa4970d1218e7f9a9dc8d26804642394a59300a1ea5e9",
+      "original_metadata": [
+        17250,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032467,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_pair_audit.mjs": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_pair_audit.mjs",
+      "bytes": 9855,
+      "sha256": "21ec6d77dad139bf4dc3f221296a7fc0dd07fdb56ce79c6e3f579e9c624e1e4d",
+      "original_metadata": [
+        9855,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032468,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_reference_bridge.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_reference_bridge.py",
+      "bytes": 11669,
+      "sha256": "11e9f50920a57e76c2ab6be9562f7b5e77688d2575e6058803c91fe8005b5f2a",
+      "original_metadata": [
+        11669,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032469,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/dcp_reference_capture.mjs": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/dcp_reference_capture.mjs",
+      "bytes": 21214,
+      "sha256": "0e91fa3f4cf7e3b6c8fb5220ee3272c139434c49de9e264f06c2ecd8f5ec5ca4",
+      "original_metadata": [
+        21214,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032470,
+        1791897420842449627
+      ]
+    },
+    "acquisition/producer/test_archive_failed_capture.py": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer/test_archive_failed_capture.py",
+      "bytes": 9045,
+      "sha256": "e83f2440bd503d806601f901cd3f0c4bae06d1420b0c15f7fcfa39de2f0efd0e",
+      "original_metadata": [
+        9045,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032459,
+        1791897420838449598
+      ]
+    },
+    "acquisition/producer-identity.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer-identity.json",
+      "bytes": 80968,
+      "sha256": "b27841befd2da7296e1dd28b8ca97ae12aa509cc97174163c14f52dfe2f37a96",
+      "original_metadata": [
+        80968,
+        33204,
+        1003,
+        1003,
+        65027,
+        3032471,
+        1791897422206459594
+      ]
+    },
+    "runtime-1/home/config/opencode/cli.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/config/opencode/cli.json",
+      "bytes": 282,
+      "sha256": "9a2a8ed0c3284ce5cfce32951071a381c3a1578eca242edf4b5bbcee6c39ae33",
+      "original_metadata": [
+        282,
+        33204,
+        1003,
+        1003,
+        65027,
+        10591501,
+        1791897422586462370
+      ]
+    },
+    "runtime-1/home/config/opencode/opencode.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/config/opencode/opencode.json",
+      "bytes": 431,
+      "sha256": "7de9a328835dd6eaec716c9504a68bf08278c710bc7401fec1e7017f74f55abc",
+      "original_metadata": [
+        431,
+        33204,
+        1003,
+        1003,
+        65027,
+        10590953,
+        1791897422586462370
+      ]
+    },
+    "runtime-1/home/data/oc/oc.lock": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/oc.lock",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_metadata": [
+        0,
+        33204,
+        1003,
+        1003,
+        65027,
+        10591506,
+        1791897422602462487
+      ]
+    },
+    "runtime-1/home/data/oc/oc.sqlite": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/oc.sqlite",
+      "bytes": 839680,
+      "sha256": "25508a5f1b2fafbf2e9fd2b19e14cadc494864ad8c1413931f0b90e3a43758ec",
+      "original_metadata": [
+        839680,
+        33152,
+        1003,
+        1003,
+        65027,
+        10591507,
+        1791897485354920981
+      ]
+    },
+    "runtime-1/home/data/oc/oc.sqlite-shm": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/oc.sqlite-shm",
+      "bytes": 32768,
+      "sha256": "b2a69a6b01bfcc97808e45a04cbc54b4eab39b13ce84e79e3d78c52a6183dbdf",
+      "original_metadata": [
+        32768,
+        33152,
+        1003,
+        1003,
+        65027,
+        10591509,
+        1791897545771362348
+      ]
+    },
+    "runtime-1/home/data/oc/oc.sqlite-wal": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/oc.sqlite-wal",
+      "bytes": 4185952,
+      "sha256": "e2f6c2a41d4e1876db299635a10561660c9bc37fcfdb891f6eb39a055f6f5efb",
+      "original_metadata": [
+        4185952,
+        33152,
+        1003,
+        1003,
+        65027,
+        10591508,
+        1791897545767362319
+      ]
+    },
+    "runtime-1/home/state/oc/startup-trace.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/state/oc/startup-trace.log",
+      "bytes": 1438,
+      "sha256": "4df54194d273a2c93bc38165be412dce9fe19d035be4f18619b6d3fa2dde2610",
+      "original_metadata": [
+        1438,
+        33152,
+        1003,
+        1003,
+        65027,
+        10591503,
+        1791897550067393731
+      ]
+    },
+    "runtime-1/project/dcp.jsonc": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/project/dcp.jsonc",
+      "bytes": 328,
+      "sha256": "50644d23a5d2cfcb003270070f9f2e733c41fa9a62f1b1cad2444103e237cda8",
+      "original_metadata": [
+        328,
+        33204,
+        1003,
+        1003,
+        65027,
+        10590954,
+        1791897436250562211
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/config/opencode/cli.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/config/opencode/cli.json",
+      "bytes": 282,
+      "sha256": "9a2a8ed0c3284ce5cfce32951071a381c3a1578eca242edf4b5bbcee6c39ae33",
+      "original_metadata": [
+        282,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818537,
+        1791897983738476362
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/config/opencode/opencode.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/config/opencode/opencode.json",
+      "bytes": 422,
+      "sha256": "30b35f14c89c307dd6574e1f60cce765496dfbb081b6bf50bd6e41a8ee9029db",
+      "original_metadata": [
+        422,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818536,
+        1791897983738476362
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/data/opencode/log/opencode.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/log/opencode.log",
+      "bytes": 8213,
+      "sha256": "45a79aff278e5f449682b4f23d80bbfa325daaa6d9dd9cdc5052039ee598a094",
+      "original_metadata": [
+        8213,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818541,
+        1791897989398516757
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/data/opencode/opencode.db": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/opencode.db",
+      "bytes": 315392,
+      "sha256": "b8d0c1c70fd1d92a6c56b8a146ad7a7635dd7bb26f6704e51141e1230a37ed89",
+      "original_metadata": [
+        315392,
+        33188,
+        1003,
+        1003,
+        65027,
+        10818543,
+        1791897984630482727
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/session.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/session.json",
+      "bytes": 63855,
+      "sha256": "0b555c6cc6d118c44dedca89ea82e099c06a96eee63623335b9fd91be1ff117f",
+      "original_metadata": [
+        63855,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818538,
+        1791897983738476362
+      ]
+    },
+    "runtime-5/native-recompression-120x40/home/state/opencode/latest/tui/tabs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode/latest/tui/tabs.json",
+      "bytes": 262,
+      "sha256": "38022c1cff3ca2a2298e2187edd645e3ee234ddea073d15e113bbff24f2de3c6",
+      "original_metadata": [
+        262,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818569,
+        1791897986442495659
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/config/opencode/cli.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/config/opencode/cli.json",
+      "bytes": 282,
+      "sha256": "9a2a8ed0c3284ce5cfce32951071a381c3a1578eca242edf4b5bbcee6c39ae33",
+      "original_metadata": [
+        282,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818573,
+        1791897990042521353
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/config/opencode/opencode.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/config/opencode/opencode.json",
+      "bytes": 422,
+      "sha256": "ca1d54292f7e91a98868fb1fd93c1ff86654c5800b9c190165916552613185f6",
+      "original_metadata": [
+        422,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818572,
+        1791897990042521353
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/data/opencode/log/opencode.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/log/opencode.log",
+      "bytes": 8213,
+      "sha256": "d7d82f774bc04757169ef54b3465e3c9934cf6836c56a19ea33536832d78ce4f",
+      "original_metadata": [
+        8213,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818577,
+        1791897996798569580
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/data/opencode/opencode.db": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/opencode.db",
+      "bytes": 315392,
+      "sha256": "0baa85d6d691c7243a013b8260f11bc1c13284b60987e909fcfc4f807e3f86b5",
+      "original_metadata": [
+        315392,
+        33188,
+        1003,
+        1003,
+        65027,
+        10818578,
+        1791897990814526863
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/session.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/session.json",
+      "bytes": 63855,
+      "sha256": "0b555c6cc6d118c44dedca89ea82e099c06a96eee63623335b9fd91be1ff117f",
+      "original_metadata": [
+        63855,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818574,
+        1791897990042521353
+      ]
+    },
+    "runtime-5/native-recompression-160x48/home/state/opencode/latest/tui/tabs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode/latest/tui/tabs.json",
+      "bytes": 262,
+      "sha256": "38022c1cff3ca2a2298e2187edd645e3ee234ddea073d15e113bbff24f2de3c6",
+      "original_metadata": [
+        262,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818599,
+        1791897992638539883
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/config/opencode/cli.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/config/opencode/cli.json",
+      "bytes": 282,
+      "sha256": "9a2a8ed0c3284ce5cfce32951071a381c3a1578eca242edf4b5bbcee6c39ae33",
+      "original_metadata": [
+        282,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818512,
+        1791897978938442112
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/config/opencode/opencode.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/config/opencode/opencode.json",
+      "bytes": 422,
+      "sha256": "e9878bcf914de5ae09e4701428e703852e378114d51a47542c860b6c211871c6",
+      "original_metadata": [
+        422,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818510,
+        1791897978938442112
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/data/opencode/log/opencode.log": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/log/opencode.log",
+      "bytes": 8211,
+      "sha256": "943aaea58d7d60b89f9baf4448b6c8de5b2f331cea731a96262661e2995a2fa1",
+      "original_metadata": [
+        8211,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818517,
+        1791897983346473565
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/data/opencode/opencode.db": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/opencode.db",
+      "bytes": 315392,
+      "sha256": "a247242de0ef14da379c3bdbc259a852be9334f0ce253ef8001e9ba05b01dbd4",
+      "original_metadata": [
+        315392,
+        33188,
+        1003,
+        1003,
+        65027,
+        10818518,
+        1791897979738447820
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/session.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/session.json",
+      "bytes": 63855,
+      "sha256": "0b555c6cc6d118c44dedca89ea82e099c06a96eee63623335b9fd91be1ff117f",
+      "original_metadata": [
+        63855,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818514,
+        1791897978942442140
+      ]
+    },
+    "runtime-5/native-recompression-80x24/home/state/opencode/latest/tui/tabs.json": {
+      "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode/latest/tui/tabs.json",
+      "bytes": 262,
+      "sha256": "38022c1cff3ca2a2298e2187edd645e3ee234ddea073d15e113bbff24f2de3c6",
+      "original_metadata": [
+        262,
+        33204,
+        1003,
+        1003,
+        65027,
+        10818550,
+        1791897981234458494
+      ]
+    }
+  },
+  "original_directories": {
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032456,
+      1791898039702876105
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-display-vis38-durable-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032971,
+      1791897977042428584
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-native-vis38-durable-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032472,
+      1791897550735398610
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032630,
+      1791897550227394900
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-120x40": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032824,
+      1791897545375359456
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-160x48": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032835,
+      1791897550167394461
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened/native-branch-reopened-80x24": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032797,
+      1791897541675332427
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032530,
+      1791897532915268434
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-durable/native-durable-120x40": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032700,
+      1791897532839267878
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032489,
+      1791897436054560779
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-120x40": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032676,
+      1791897431326526233
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-160x48": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032687,
+      1791897436006560428
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-nativecapture-dcp-native-vis38-durable-011-recompression/native-recompression-80x24": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032664,
+      1791897427662499460
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032941,
+      1791897976922427728
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/executable": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032958,
+      1791897976886427471
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-oracle-vis38-durable-011/sources": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032942,
+      1791897976886427471
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032973,
+      1791897997118571865
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-120x40": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3033034,
+      1791897989766519383
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-160x48": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3033045,
+      1791897997070571522
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/dcp-reference-vis38-durable-011/native-recompression-80x24": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3033016,
+      1791897983478474507
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011/producer": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      3032457,
+      1791897420842449627
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583939,
+      1791897422582462342
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583944,
+      1791897422582462342
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/cache": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583952,
+      1791897422582462342
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/config": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583945,
+      1791897422582462342
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/config/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583948,
+      1791897422586462370
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10583950,
+      1791897422602462487
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc": [
+      4096,
+      16832,
+      1003,
+      1003,
+      65027,
+      10591504,
+      1791897422846464270
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/blobs": [
+      4096,
+      16832,
+      1003,
+      1003,
+      65027,
+      10591505,
+      1791897422602462487
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/data/oc/tool-output": [
+      4096,
+      16832,
+      1003,
+      1003,
+      65027,
+      10591510,
+      1791897422710463276
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/state": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10590949,
+      1791897422598462458
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/home/state/oc": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10591502,
+      1791897422598462458
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011/project": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10590952,
+      1791897422586462370
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened-13475c40522c": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10815233,
+      1791897533287271151
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened-13475c40522c/browser-home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10815234,
+      1791897533287271151
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-durable-d3362b60b1c7": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10591513,
+      1791897436694565456
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-durable-d3362b60b1c7/browser-home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10591514,
+      1791897436694565456
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-recompression-ada7648ff70c": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10591511,
+      1791897423950472338
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-recompression-ada7648ff70c/browser-home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10591512,
+      1791897423950472338
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10815236,
+      1791897990038521324
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/browser-home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10815237,
+      1791897977690433208
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818523,
+      1791897983734476333
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818528,
+      1791897983738476362
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/cache": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818531,
+      1791897983834477048
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/cache/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818546,
+      1791897983834477048
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/cache/opencode/bin": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818552,
+      1791897983834477048
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/config": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818529,
+      1791897983734476333
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/config/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818530,
+      1791897983738476362
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818534,
+      1791897986338494917
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818539,
+      1791897989398516757
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/log": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818540,
+      1791897985410488294
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/repos": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818551,
+      1791897983834477048
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/shell": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818555,
+      1791897984410481158
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opencode/shell/f498a83844c28800b3f5c0bac2f6e406ad0ebb25": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818556,
+      1791897984410481158
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opentui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818561,
+      1791897986338494917
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opentui/tree-sitter": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818562,
+      1791897986342494945
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opentui/tree-sitter/languages": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818563,
+      1791897986338494917
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/data/opentui/tree-sitter/queries": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818565,
+      1791897986342494945
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818535,
+      1791897983834477048
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818544,
+      1791897986082493089
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode/latest": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818558,
+      1791897986138493489
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode/latest/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818560,
+      1791897986446495687
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode/latest/tui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818559,
+      1791897986442495659
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/home/state/opencode/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818557,
+      1791897985758490777
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-120x40/project": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818524,
+      1791897983734476333
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818553,
+      1791897990038521324
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818564,
+      1791897990042521353
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/cache": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818568,
+      1791897990126521952
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/cache/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818581,
+      1791897990126521952
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/cache/opencode/bin": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818582,
+      1791897990126521952
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/config": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818566,
+      1791897990038521324
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/config/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818567,
+      1791897990042521353
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818570,
+      1791897992634539854
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818575,
+      1791897996790569523
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/log": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818576,
+      1791897991602532488
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/repos": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818580,
+      1791897990126521952
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/shell": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818585,
+      1791897990650525692
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opencode/shell/f498a83844c28800b3f5c0bac2f6e406ad0ebb25": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818586,
+      1791897990650525692
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opentui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818595,
+      1791897992634539854
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opentui/tree-sitter": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818596,
+      1791897992638539883
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opentui/tree-sitter/languages": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818597,
+      1791897992634539854
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/data/opentui/tree-sitter/queries": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818598,
+      1791897992638539883
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818571,
+      1791897990126521952
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818579,
+      1791897992394538141
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode/latest": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818588,
+      1791897992446538513
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode/latest/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818590,
+      1791897992638539883
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode/latest/tui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818589,
+      1791897992638539883
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/home/state/opencode/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818587,
+      1791897991970535115
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-160x48/project": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818554,
+      1791897990038521324
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10815239,
+      1791897978934442083
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818504,
+      1791897978942442140
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/cache": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818507,
+      1791897979054442940
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/cache/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818520,
+      1791897979054442940
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/cache/opencode/bin": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818522,
+      1791897979054442940
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/config": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818505,
+      1791897978934442083
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/config/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818506,
+      1791897978938442112
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818508,
+      1791897981214458351
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818515,
+      1791897983342473536
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/log": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818516,
+      1791897980458452957
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/repos": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818521,
+      1791897979054442940
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/shell": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818525,
+      1791897979578446678
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opencode/shell/f498a83844c28800b3f5c0bac2f6e406ad0ebb25": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818526,
+      1791897979578446678
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opentui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818545,
+      1791897981214458351
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opentui/tree-sitter": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818547,
+      1791897981214458351
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opentui/tree-sitter/languages": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818548,
+      1791897981214458351
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/data/opentui/tree-sitter/queries": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818549,
+      1791897981214458351
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818509,
+      1791897979054442940
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818519,
+      1791897980858455811
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode/latest": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818532,
+      1791897980950456467
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode/latest/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818542,
+      1791897981250458608
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode/latest/tui": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818533,
+      1791897981238458523
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/home/state/opencode/locks": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818527,
+      1791897980702454698
+    ],
+    "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944/native-recompression-80x24/project": [
+      4096,
+      16893,
+      1003,
+      1003,
+      65027,
+      10818503,
+      1791897978934442083
+    ]
+  },
+  "source_roots": {
+    "acquisition": "/home/opencode/.cache/opencode-tmp/opencode/vis38-durable-current-011",
+    "runtime-1": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-native-vis38-durable-011",
+    "runtime-2": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-branch-reopened-13475c40522c",
+    "runtime-3": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-durable-d3362b60b1c7",
+    "runtime-4": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-nativecapture-dcp-native-vis38-durable-011-recompression-ada7648ff70c",
+    "runtime-5": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/runs/dcp-reference-vis38-durable-011-25c38708f944"
+  },
+  "helper_sha256": "a809006333f4d4322332b2ab95e2c8a5131e1bdb1469bfebe50cc1864d58718b",
+  "command": [
+    "python3",
+    "-B",
+    "/home/opencode/ai/oc/evidence/tui/vis36-vis38-durable-retain.py",
+    "pack",
+    "011"
+  ],
+  "memory": {
+    "VmPeak_bytes": 287776768,
+    "VmSize_bytes": 91541504,
+    "VmHWM_bytes": 272986112,
+    "VmRSS_bytes": 77451264
+  }
+}

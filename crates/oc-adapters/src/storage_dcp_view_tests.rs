@@ -107,6 +107,45 @@ fn compress(
 }
 
 #[test]
+fn standalone_bar_uses_current_branch_coverage_without_legacy_members() {
+    let tmp = tempfile::tempdir().unwrap();
+    let db = Db::open(tmp.path()).unwrap();
+    db.create_bound_session("s", "/project").unwrap();
+    db.apply_dcp_schema().unwrap();
+    complete(&db, "s", "first", "first closed fact");
+    complete(&db, "s", "second", "second closed fact");
+    db.append_message("s", "user", "unfinished tail").unwrap();
+    let raw = db.read_history_full("s").unwrap();
+    let conn = db.conn.lock().unwrap();
+    conn.execute(
+        "INSERT INTO compression_blocks(id,session_id,topic,summary,start_msg,end_msg,created_at,hot) VALUES('b0001','s','first','short',?1,?2,'fixture',?3)",
+        params![raw[0].0, raw[1].0, r#"{"version":1,"active":true,"standalone":true,"protected":[],"legacy_protected":[],"logs":[]}"#],
+    ).unwrap();
+    for message in &raw[..4] {
+        conn.execute(
+            "INSERT INTO dcp_coverage VALUES('s','message',?1)",
+            [&message.0],
+        )
+        .unwrap();
+    }
+    let recent = serde_json::to_string(&[&raw[2].0, &raw[3].0]).unwrap();
+    let bar = Db::dcp_bar(&conn, "s", &recent).unwrap();
+    assert_eq!(bar, "░".repeat(20) + &"⣿".repeat(20) + &"█".repeat(10));
+    assert_eq!(
+        conn.query_row("SELECT count(*) FROM compression_members", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
+    drop(conn);
+    assert_eq!(
+        db.read_history_full("s").unwrap(),
+        raw,
+        "category query must preserve RAW"
+    );
+}
+
+#[test]
 fn snapshots_restore_restart_fork_and_new_branch_without_tail_accounting() {
     let tmp = tempfile::tempdir().unwrap();
     let db = Db::open(tmp.path()).unwrap();

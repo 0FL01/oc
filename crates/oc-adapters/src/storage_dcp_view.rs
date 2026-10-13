@@ -989,7 +989,10 @@ impl Db {
             return Ok("░".repeat(50));
         }
         let mut bar = String::new();
-        let mut stmt = conn.prepare_cached("SELECT CASE WHEN m.id IN (SELECT value FROM json_each(?3)) THEN '⣿' WHEN EXISTS(SELECT 1 FROM compression_members cm JOIN compression_blocks cb ON cb.id=cm.block_id WHERE cm.message_id=m.id AND cb.session_id=?1) OR m.seq<=COALESCE((SELECT seq FROM messages WHERE session_id=?1 AND id=(SELECT up_to_msg FROM prune_marks WHERE session_id=?1)),0) THEN '░' ELSE '█' END FROM conversation_messages m WHERE session_id=?1 ORDER BY seq LIMIT 1 OFFSET ?2")?;
+        // Standalone ranges deliberately have no legacy membership rows. The
+        // compact coverage owner is restored with the conversation revision;
+        // its indexed identity lookup also includes earlier standalone runs.
+        let mut stmt = conn.prepare_cached("SELECT CASE WHEN m.id IN (SELECT value FROM json_each(?3)) THEN '⣿' WHEN EXISTS(SELECT 1 FROM dcp_coverage c WHERE c.session_id=?1 AND c.kind='message' AND c.identity=m.id) OR EXISTS(SELECT 1 FROM compression_members cm JOIN compression_blocks cb ON cb.id=cm.block_id WHERE cm.message_id=m.id AND cb.session_id=?1) OR m.seq<=COALESCE((SELECT seq FROM messages WHERE session_id=?1 AND id=(SELECT up_to_msg FROM prune_marks WHERE session_id=?1)),0) THEN '░' ELSE '█' END FROM conversation_messages m WHERE session_id=?1 ORDER BY seq LIMIT 1 OFFSET ?2")?;
         for cell in 0..50i64 {
             let position = ((cell + 1) * total + 49) / 50 - 1;
             let category: String =

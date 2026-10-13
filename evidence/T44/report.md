@@ -1521,3 +1521,45 @@ Docs59tasks178specs/progressPASS/T44active142/allforeignSTATEfieldsincludingT59
 preserved. ReadonlydeliverysealsPASS/current715actualELFs/originalDIRmetadata/
 priorproofs+helpers/newarchives+allgatebytes/caps. Postbundleallocation1072787456/
 1073741824headroom954368BEFOREfinalfactualaddition;postpushrecountauthoritative.
+
+## 2026-10-13 — VIS38 committed DCP durable branch / current release
+
+T44 ACTIVE_NOT_PASS. Actual owner004 exposed standalone coverage omitted by the
+50-position categorical bar; minimal existing indexed current-branch coverage
+fix and RAW/zero-legacy-member regression: RED101/1 → four targeted view tests PASS.
+New complete workspace1874/0/11/46, strictClippy/fmt/debug locked+ordinary/help/
+release locked/help, rootPython71 and ACTUALrequiredrelease9 PASS. All interrupted
+and failed checks/episodes retained; no deadline/acceptance/baseline relaxation.
+Fresh native011 three real compressions/restart, public session switch/reopen,
+Undo/Redo/new branch:14boundedoffline loopbackrequests, ZERO restoration/display
+provider/tool/compression replay; one explicit branch request;14RAW→16RAW preserved,
+three immutable operations unchanged, current ordinals1,2/accounting restored,
+abandoned third card excluded/noRedo. Final branch reopened all3sizes read-only.
+Actual pinned native→Original→pair audit:3whole bottom pairs14400styledcells,
+ZEROdifferences/all3cursorsequal/all3PNGbytesequal/1941888pixelsZEROdifferences.
+Independent successful28fullframes128640cells17342976pixels/14boundedobservations;
+no crop/mask/tolerance/normalization/goldens/reencoding/old capture replay.
+Source715ced0ae5ba472051f8a61e7e0378249cc4d81194368b6088fc79c061af9ffbf6a;
+actual debug1bf21826a0f311c88aff4ab0725c15077455baf307ff9da521dd95e55d2bb3e6,
+release665e9d4043677a7ca0a611b6a6df039cc8ef997782bb3d764a57377fad82b476;
+Original2670273/ELF2b082unchanged; acquisition3afeseparatefromdeliveryHEAD.
+Recorded target disappearance008→009 with no cause attribution; owned rebuilds
+recovered sameELFs/allbaselineproofs preserved/no unknown external effect replay.
+OnlyactualFAILEDtool-regression002 existing losslessPAXarchiver literal/fixture:
+310files3DIR37962964logical1550360encoded/SHA303ef34ac3f268dc220ed56c4631dee32bab1d8be0afb5c1441737af34c0f48d;
+reserve16MiB/independent everybyte+path modeUIDGIDmtimensDIR inverse PASS; qualified006
+and PASS-only model episodes untouched. Safe allocation1072787456→1035657216B.
+Complete11episodearchives959members135565443logical/current011293members40604937
+logical4exactPNGaliases1428568encoded/SHA955d9473212254a527e3e6347cb5a80793d13c1506735f0dea2d9bfd7a1139c0;
+allnative state/SQLite/browser/protocol/programs/failures retained/manual memoryAND
+durable singleXZUSTAR inverse/169priorproof seals18059files221DIR+helpers PASS.
+InverseVmPeak287776768/HWM272986112<hardAS384; caps1GiB/16MiB/128MiB/2000/dict16/
+decoder32/allprefixesPLUSvis36 unchanged; TMP separate/no offload/oldproof deletion.
+Receipt evidence/tui/vis36-vis38-durable.md; full gate/program/timeout bundle and
+read-only pre-stage/post-push seals retained. Actual checkpoint143 ACTIVE_NOT_PASS.
+Continue fullVIS38 failure/cancel/no-gain/protected/nested/control/publicDTO/paging/
+resource qualification and EVERYfrozenR1–R6/VIS01–VIS45/supplement/finalcurrentR6V09.
+Completedgatearchive191members5760843logical772184encoded/SHA0b14dedaa62fa3ae22cdb5f504c577221e20790d7150ce72351adebba9c7a0e8;
+inventory948667127926af433c11b99ef4eee67443daf7032c4812011d4f1c615e351512,
+separate exactcodeccommand/output retained/nonrecursive. Postbundle allocation
+1041903616/1073741824headroom31838208 BEFOREfactualaddition; finalrecount governs.

@@ -21,7 +21,9 @@ args = parser.parse_args()
 repo = Path(__file__).resolve().parents[2]
 native, oracle, output = args.native.resolve(), args.oracle.resolve(), args.output.resolve()
 parent = repo / 'evidence/tui/recovery-v00'
-assert native.parent == oracle.parent == output.parent == parent
+assert native.parent == oracle.parent == output.parent
+assert output.parent == parent or (output.parent.parent == Path('/home/opencode/.cache/opencode-tmp/opencode')
+    and re.fullmatch(r'vis38-durable-current-[0-9]{3}', output.parent.name))
 assert re.fullmatch(r'dcp-display[a-z0-9-]+', output.name)
 
 

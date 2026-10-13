@@ -9,6 +9,7 @@ from pathlib import Path
 import pty
 import select
 import signal
+import sqlite3
 import struct
 import subprocess
 import sys
@@ -25,6 +26,25 @@ env = {**source['env'], 'TERM': 'xterm-256color', 'COLORTERM': 'truecolor', 'SHE
 
 def emit(value):
     print(json.dumps(value, ensure_ascii=False), flush=True)
+
+
+def observe(label):
+    lifecycle = source['durable_lifecycle']
+    database = Path(lifecycle['database']).resolve()
+    assert database.is_relative_to(Path(source['env']['XDG_DATA_HOME']).resolve())
+    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+        connection.row_factory = sqlite3.Row
+        tables = {r[0] for r in connection.execute("SELECT name FROM sqlite_master WHERE type IN ('table','view')")}
+        wanted = ('messages', 'conversation_messages', 'tool_operations', 'conversation_tools',
+                  'compression_blocks', 'compression_members', 'dcp_run_views', 'dcp_accounting',
+                  'dcp_coverage', 'dcp_run_identity', 'conversation_state', 'conversation_redo',
+                  'conversation_points', 'conversation_exclusions', 'conversation_contexts',
+                  'conversation_revision', 'conversation_objects', 'conversation_versions', 'sessions')
+        data = {name: [dict(r) for r in connection.execute(f'SELECT * FROM "{name}" LIMIT 101')]
+                for name in wanted if name in tables}
+        assert all(len(value) <= 100 for value in data.values()), 'Bounded lifecycle observation cap exceeded'
+    emit({'kind': 'owner_snapshot', 'label': label, 'at_ns': time.monotonic_ns(),
+          'database': str(database), 'read_only': True, 'limit': 100, 'data': data})
 
 
 master, slave = pty.openpty()
@@ -66,6 +86,8 @@ try:
                     os.write(master, base64.b64decode(value['data']))
                 elif value['kind'] == 'stop':
                     forced = True
+                elif value['kind'] == 'observe':
+                    observe(value['label'])
             if forced:
                 break
 finally:
