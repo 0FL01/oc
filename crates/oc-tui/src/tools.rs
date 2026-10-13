@@ -1107,7 +1107,12 @@ pub(crate) fn shell_expandable(card: &ToolCard, width: u16) -> bool {
 }
 
 fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) -> Vec<Line> {
-    let frame = BlockFrame::new(theme, width);
+    let mut frame = BlockFrame::new(theme, width);
+    if patch.failed {
+        // BlockTool's layout padding inherits the canvas foreground; the
+        // failed header and actual error detail have independent text roles.
+        frame.padding = ratatui::style::Style::default().bg(frame.bg);
+    }
     let muted = frame.body_style();
     let error = ratatui::style::Style::default()
         .fg(theme.error())
@@ -1226,10 +1231,13 @@ fn patch_block(patch: &PatchRender, card: &ToolCard, theme: &Theme, width: u16) 
             out.push(frame.row(&[Span::styled(line.to_string(), muted)]));
         }
     }
-    if patch.failed {
+    if patch.failed && card.output_preview.lines().any(|line| !line.is_empty()) {
+        // Pinned BlockTool separates the header and real error child by one
+        // row; ApplyPatch keeps the header red but uses muted error detail.
+        out.push(frame.row(&[]));
         for line in card.output_preview.lines() {
             if !line.is_empty() {
-                out.push(frame.row(&[Span::styled(line.to_string(), error)]));
+                out.push(frame.row(&[Span::styled(line.to_string(), muted)]));
             }
         }
     }
@@ -2063,18 +2071,20 @@ mod tests {
             serde_json::json!({"patchText": patch}),
             Some("error: partial op 1 (b.txt): context mismatch"),
         );
-        let (rows, buffer) = render(&failed, 60, 5);
+        let (rows, buffer) = render(&failed, 60, 6);
         assert_eq!(
             rows,
             vec![
                 String::new(),
                 "┃".to_string(),
                 "┃  # Patch failed".to_string(),
+                "┃".to_string(),
                 "┃  error: partial op 1 (b.txt): context mismatch".to_string(),
                 "┃".to_string(),
             ]
         );
         assert_eq!(buffer[(3, 2)].fg, theme.error());
+        assert_eq!(buffer[(3, 4)].fg, theme.text_muted());
     }
 
     #[test]

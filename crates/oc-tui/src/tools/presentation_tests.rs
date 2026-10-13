@@ -95,6 +95,125 @@ fn operation(name: &str, output: &str, presentation: Option<Presentation>) -> To
 }
 
 #[test]
+fn vis35_failed_patch_detail_uses_child_gap_muted_text_and_unstyled_padding() {
+    use crate::{
+        history::HistoryRow,
+        messages::{MarkdownCache, transcript_with_expansion, visible_transcript_expanded},
+    };
+    use ratatui::{Terminal, backend::TestBackend, style::Color, widgets::Paragraph};
+    use std::cell::RefCell;
+
+    let theme = Theme::dark();
+    let raw = "error: denied apply_patch\nrequest metadata retained Ω界";
+    let paint = |lines: Vec<Line>, width| {
+        let mut terminal = Terminal::new(TestBackend::new(width, 80)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Paragraph::new(styled::Lines::from(lines).into_text())
+                        .style(ratatui::style::Style::default().fg(Color::White)),
+                    frame.area(),
+                );
+            })
+            .unwrap();
+        terminal.backend().buffer().clone()
+    };
+    for state in ["failed", "unknown"] {
+        let mut row = operation("apply_patch", raw, None);
+        row.state = state.into();
+        row.input = Some(serde_json::json!({"patchText": "*** Begin Patch\n*** Add File: never-created.txt\n+not confirmed\n*** End Patch"}).to_string());
+        let before = row.clone();
+        let card = card_from_row(&row);
+        assert_eq!(card.output_preview, raw);
+        let header = if state == "unknown" {
+            "# Patch outcome unknown"
+        } else {
+            "# Patch failed"
+        };
+        let block = tool_block(&card, theme, 80);
+        assert_eq!(block.len(), 6);
+        assert_eq!(block[1].plain_text().trim_end(), format!("┃  {header}"));
+        assert_eq!(block[2].plain_text().trim_end(), "┃");
+        assert_eq!(
+            block[3].plain_text().trim_end(),
+            format!("┃  {}", raw.lines().next().unwrap())
+        );
+        let buffer = paint(block, 80);
+        assert_eq!(buffer[(3, 1)].fg, theme.error());
+        assert_eq!(buffer[(3, 3)].fg, theme.text_muted());
+        assert_eq!(buffer[(3, 4)].fg, theme.text_muted());
+        for y in 0..6 {
+            for x in [1, 2] {
+                assert_eq!(buffer[(x, y)].symbol(), " ");
+                assert_eq!(buffer[(x, y)].fg, Color::White);
+                assert_eq!(buffer[(x, y)].bg, theme.background_raised());
+            }
+        }
+        let rows = [HistoryRow {
+            seq: 1,
+            message_id: None,
+            role: "tool".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: Vec::new(),
+            reasoning: None,
+            child_notice: None,
+            shell_notice: None,
+            meta: None,
+            tool: Some(card),
+        }];
+        let cache = RefCell::new(MarkdownCache::default());
+        for width in [43, 80] {
+            for expanded in [false, true] {
+                let full = transcript_with_expansion(
+                    &rows,
+                    theme,
+                    width,
+                    width,
+                    |_| theme.text(),
+                    Some(&cache),
+                    &|_| expanded,
+                );
+                let full = styled::wrap_lines(&full, usize::from(width));
+                let (visible, total) = visible_transcript_expanded(
+                    &rows,
+                    theme,
+                    (width, width),
+                    (80, 0, None),
+                    |_| theme.text(),
+                    &cache,
+                    &|_| expanded,
+                );
+                assert_eq!(total, visible.len());
+                assert_eq!(paint(visible[1..].to_vec(), width), paint(full, width));
+                let text = visible
+                    .iter()
+                    .map(Line::plain_text)
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert!(text.contains(header) && text.contains("error: denied apply_patch"));
+                assert!(!text.contains("# Created") && !text.contains("Request preview"));
+            }
+        }
+        assert_eq!(
+            row, before,
+            "presentation cannot mutate the recorded operation"
+        );
+        row.output = Some(String::new());
+        row.output_bytes = 0;
+        assert_eq!(
+            tool_block(&card_from_row(&row), theme, 80).len(),
+            3,
+            "no phantom detail gap without actual detail"
+        );
+        assert_eq!(before.output.as_deref(), Some(raw));
+        assert_eq!(before.input, row.input);
+        assert_eq!(before.op, row.op);
+    }
+}
+
+#[test]
 fn vis37_answered_questions_use_metadata_order_block_spacing_and_semantic_roles() {
     use oc_core::question::{QuestionInput, QuestionResult};
     use ratatui::{Terminal, backend::TestBackend, widgets::Paragraph};

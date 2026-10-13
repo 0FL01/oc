@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T03:50:47+00:00
+State updated: 2026-10-13T05:01:21+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,47 +14,44 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. HealthySettingsprojectionqualified: omitONLYProviderrequest
-Ready/catalogReady/noDiagnostic summary; retaintypedDTO andallpending/failed/
-unavailable/Ready-with-diagnostic detailroutes. No policy/RAW/schema/config/APIchange.
-SourcecheckedShellobservation: frozenownerfee0123/R4VIS16REQUIRESno generatedexit0/
-emptyplaceholder/phantomseparator; existingoverrideunchanged, notmissingfeature.
-Current7138687688a5ebd2b20868bcf6b0bc5b85de43e4df489650bece9e33670a41178bb;
-native48f538eb92153fc40b9160e11941ebe20f4ef766adf4e74cb265b8e398e1c6b6.
+T44 ACTIVE_NOT_PASS. VIS35 failedPatchlayout/semanticroles qualified. Actualpinned
+TUIBlockToolgap1/ApplyPatchmutedchild: nativefailedheaderremainsred/unknownlabel,
+background-onlypadding/1childgapONLYrealnonemptydetail/mutedactualRAWbody. NoRAW
+copytranslation/effects/schema/policy/config/API/goldenchange. Frozenfee0123Shell
+successsuppression remainsunchanged. Source713
+1b0e54c58b2a63148da9e17a72f44cec992012deed371925cac6b8a9f1d9b678;
+nativec35570f3bce21a882a697471e45736d4de3ccca389ce1b9126b828aea0394feb.
 
 ## Checks
 
-Actualunithealthypaint/issueclasses/detail/retirement/draft,owner7/errorACK/mode/
-filter/twoEscapes preserved. Firstworkspace1864/3/11 failuresdeterministicsharedPTY
-Ready-rowexpectation; correctedONLYReadywaittoabsence,nonReady/deadlinesunchanged.
-All5readinessPTYpassed; finalworkspace1867/0/11oldignore46targets/TUI533/PTY58,
-strictClippy/fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/
-Python70 PASS. Allfailedattempts preserved; docs/progress/diffchecked.
-Fresh008wide121/small79 four38behaviorPASS/18valid18complete16main2title8calls11RO/
-2natural0/nogrants/rootchildOnce/mixedDeny/savePrompt/CLIrelaunch effects intact.
-422files39736502logicalB/4exactsame-sidePNGaliases/2249636Barchive manualsingleXZ
-USTAREVERYbyte/meta/current713ELFs/helpers/127priorproofbyteMETA/recount PASS.
-32wholepairs64PNGs128000cells17264640pixels33934celldiff4029488pixeldiff28of32cursors;
-ALL64wholecomparisonsDIFFERENT. FourCOMPLETE600cellmodals/query/caretsequal;
-14healthySettingsframessummaryabsent, NOTmask/wholeparity. Receipt
-evidence/tui/vis36-settings-healthy-qualified.md; fullcommandgatebundle retained.
+ActualRED5vs6rows→15patchtestsPASS; full/cached43/80expansionchoiceswholepaint/
+height/everyrowfieldimmutability/unknown/emptydetailnoPhantomguarded. Current
+workspace1868/0/11oldignore46targets/TUI534/PTY58;strictClippy/fmt/lockedordinary
+debugbuildhelp/lockedreleasebuildhelp/actualrelease9/rootPython70 PASS. Allfailed
+retainercountliteralpreflightbytespreserved,noarchivewrites; correctedmeasurepack
+audit/manualinversePASS. Fresh009wide121/small79 EACHorigin38behaviorPASS/18valid
+18complete16main2title8calls11RO2natural0/nogrants/rootchildmixedDeny/relaunchfreshroot.
+422files39682090logicalB/4exactsame-sideencodedPNGaliases/2188228Bproof EVERYbyte/DIR
+meta/current713actualELFs/helpers/131priorproofbyteMETA/manualsingleXZUSTARinverse
+and fullrecountPASS. 32fullpairs64PNGs128000cells17264640pixels26523celldiff3263365
+pixeldiff28of32cursors/four600cellSettingsmodalsEQUAL; twoPatchheader/gapgeometry/
+detailstyle/allpaddingEQUAL. Receipt evidence/tui/vis36-patch-failure-qualified.md.
 
 ## Risks
 
-No wholeVIS36/VIS42/R6/V09/T44PASS. 007flag/data immutablehistoricalafterPTYsourcefix;
-producer905separatefromdeliveryHEAD. SQLROnotCoreEvent/syscallproof,typedordering
-separate. No replay/mask/tolerance/clockcursorfake/PNGreencode. OwnactualFAILED
-model009110files3dirmeta losslessPAXinverse/FAILEDpointer/3MiBreserve/5709824B reclaimed
-onlyverifiedduplicate;003007PASSbehaviorDIFFERENTsafe. Post008reportallocation
-1069527040/headroom4214784beforehumanreceipt/gates; finalrecountauthoritative,
-additivevis36scope/same1GiB16/128MiB2000/dict16decoder32/hardAS384/noqualifieddelete/
-offload/capraise. FullSettingsinventory andothercard/transcriptdifferencesremain.
+ALL64wholecomparisonsDIFFERENT; no fullVIS35/VIS36/R6/V09/T44PASS. Differentnative
+error:deniedapply_patch/donorPermissiondeniededitcopiesremainunmasked/immutable.
+SQLROnotCoreEvent/syscallproof, typedownerorderingseparate. Oldsource008flags/data
+historicalunchanged/producer89f8separatefromHEAD/no replay/mask/crop/tolerance/time
+orcursorfake. Postreportowned1072017408/headroom1724416 BEFOREdelivery; finalactual
+recountauthoritative, ADDvis36allprefix1GiB/16MiBfileencoded128MiBTARlogical2000/
+dict16decoder32/hardAS384capsunchanged/noqualifieddelete/offload/reencode/capraise.
 
 ## Next
 
-Exactreview/ordinarycommit/pushmajor. SourceverifyobservedfailedPatchdetailgap/
-mutedrole viaactualpinnedTUI/typedoutput, preservingdenialcopy/RAW/Shelloverride;
-thenALLremainingR1–R6/VIS01–45/supplements/finalcurrent-sourceR6/V09. No localfinish.
+Exactreview/ordinarycommit/pushmajor. Source-checksampledSubagentcompletediconFG
+beforeanyfix(no provenrootcauseyet), then ALL frozenR1–R6/VIS01–VIS45/supplements
+and finalcurrent-sourceR6/V09. Do notfinishonregionalPatchqualification.
 
 
 Ready (до 5): T58, T59

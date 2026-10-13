@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "fb34723d55cf09ea12d45bc8faa8ede04b3740e0821e913a746bf9ffaf6e3688",
+  "archive_bytes": 55408,
+  "tar_sha256": "137da1742584377ec0cbf3ac6e5446b394285000e08b677668865a6761a27710",
+  "tar_bytes": 307200,
+  "inventory": {
+    "members": 61,
+    "logical_bytes": 255489,
+    "member_inventory_sha256": "5442002fb3223dd77c05f61fc8cb0033ce91b29fde47bfc9ebebba44d7965173",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis35-patch-failure-after": 0,
+    "vis35-patch-failure-audit": 0,
+    "vis35-patch-failure-before": 0,
+    "vis35-patch-failure-clippy": 0,
+    "vis35-patch-failure-debug-help": 0,
+    "vis35-patch-failure-debug-locked": 0,
+    "vis35-patch-failure-debug-ordinary": 0,
+    "vis35-patch-failure-docs-final": 0,
+    "vis35-patch-failure-fmt": 0,
+    "vis35-patch-failure-green": 0,
+    "vis35-patch-failure-measure-qualified": 0,
+    "vis35-patch-failure-measure": 1,
+    "vis35-patch-failure-observation": 0,
+    "vis35-patch-failure-pack": 0,
+    "vis35-patch-failure-progress-final": 0,
+    "vis35-patch-failure-python-qualified": 0,
+    "vis35-patch-failure-python": 0,
+    "vis35-patch-failure-red": 101,
+    "vis35-patch-failure-release-aud32": 0,
+    "vis35-patch-failure-release-build": 0,
+    "vis35-patch-failure-release-dcp-archive": 0,
+    "vis35-patch-failure-release-help": 0,
+    "vis35-patch-failure-release-pacing": 0,
+    "vis35-patch-failure-release-panic": 0,
+    "vis35-patch-failure-release-s07": 0,
+    "vis35-patch-failure-release-startup": 0,
+    "vis35-patch-failure-release-term01": 0,
+    "vis35-patch-failure-targets": 0,
+    "vis35-patch-failure-workspace": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "1b0e54c58b2a63148da9e17a72f44cec992012deed371925cac6b8a9f1d9b678",
+    "changed_inputs": [
+      "crates/oc-tui/src/tools.rs",
+      "crates/oc-tui/src/tools/presentation_tests.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484379704,
+        "sha256": "c35570f3bce21a882a697471e45736d4de3ccca389ce1b9126b828aea0394feb",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "613a1783cf295122090875c79f1d1ea13f22f9114ff15fe0a9659a34436818bd",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 55370,
+        "uncompressed_bytes": 307200,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "137da1742584377ec0cbf3ac6e5446b394285000e08b677668865a6761a27710"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 55384
+  }
+}
