@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "2155eb0f63db3b07789bc7bf62e12194001587cefe9b72c913ea661e5750f18a",
+  "archive_bytes": 57904,
+  "tar_sha256": "5cc54df76c892e80db18e769f2afe874d3c6cb07e969ab06d70aaab40df58778",
+  "tar_bytes": 317440,
+  "inventory": {
+    "members": 69,
+    "logical_bytes": 263330,
+    "member_inventory_sha256": "e2b1c44fb5baf8027ca99bc9bb571e114dd6e9b567845b7eeb98b8411a33da1a",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis39-subagent-gap-after-complete": 0,
+    "vis39-subagent-gap-after": 1,
+    "vis39-subagent-gap-audit": 0,
+    "vis39-subagent-gap-before": 0,
+    "vis39-subagent-gap-clippy": 0,
+    "vis39-subagent-gap-debug-help": 0,
+    "vis39-subagent-gap-debug-locked": 0,
+    "vis39-subagent-gap-debug-ordinary": 0,
+    "vis39-subagent-gap-docs-final": 0,
+    "vis39-subagent-gap-fmt": 0,
+    "vis39-subagent-gap-green-complete": 0,
+    "vis39-subagent-gap-green": 101,
+    "vis39-subagent-gap-measure": 0,
+    "vis39-subagent-gap-pack": 0,
+    "vis39-subagent-gap-progress-final": 0,
+    "vis39-subagent-gap-python": 0,
+    "vis39-subagent-gap-red": 101,
+    "vis39-subagent-gap-release-aud32": 0,
+    "vis39-subagent-gap-release-build": 0,
+    "vis39-subagent-gap-release-dcp-archive": 0,
+    "vis39-subagent-gap-release-help": 0,
+    "vis39-subagent-gap-release-pacing": 0,
+    "vis39-subagent-gap-release-panic": 0,
+    "vis39-subagent-gap-release-s07": 0,
+    "vis39-subagent-gap-release-startup": 0,
+    "vis39-subagent-gap-release-term01": 0,
+    "vis39-subagent-gap-workspace": 0,
+    "vis39-subagent-model019-after": 0,
+    "vis39-subagent-model019-archive": 0,
+    "vis39-subagent-model019-before": 0,
+    "vis39-subagent-model019-preflight": 0,
+    "vis39-subagent-style-observation": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "cab6b76afc047dbeef6d195a26d00c8e6a555cf13ec2c7ffc547ff5434b188b2",
+    "changed_inputs": [
+      "crates/oc-tui/src/tools.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484379312,
+        "sha256": "9a3486ca8f968b836f26c11cdbbff7257f69136c0409c9175d91e9855797ef93",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "8cb145bc5f53120349e4e05533bf8ec91334bf73e2dae50a0e9dbd65949c884f",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 57866,
+        "uncompressed_bytes": 317440,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "5cc54df76c892e80db18e769f2afe874d3c6cb07e969ab06d70aaab40df58778"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 57880
+  }
+}

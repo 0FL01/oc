@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T05:01:21+00:00
+State updated: 2026-10-13T06:12:09+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,44 +14,45 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. VIS35 failedPatchlayout/semanticroles qualified. Actualpinned
-TUIBlockToolgap1/ApplyPatchmutedchild: nativefailedheaderremainsred/unknownlabel,
-background-onlypadding/1childgapONLYrealnonemptydetail/mutedactualRAWbody. NoRAW
-copytranslation/effects/schema/policy/config/API/goldenchange. Frozenfee0123Shell
-successsuppression remainsunchanged. Source713
-1b0e54c58b2a63148da9e17a72f44cec992012deed371925cac6b8a9f1d9b678;
-nativec35570f3bce21a882a697471e45736d4de3ccca389ce1b9126b828aea0394feb.
+T44 ACTIVE_NOT_PASS. VIS39 Subagenticon/layoutspace narrowrole qualified.
+Actual009glyphx5mutedBOTH, x6layoutspaceNativemuted/Originalcanvaswhite, nottheme
+orclock. Styledglyph/plainspace/styledlabel includingfallback, continuationplain;
+RAW/childidentity/error/unknown/expansionunchanged. Existinginlinegolden RED→GREEN,
+no newtesttarget/API/schema/policy/configchange. Source713
+cab6b76afc047dbeef6d195a26d00c8e6a555cf13ec2c7ffc547ff5434b188b2;
+native9a3486ca8f968b836f26c11cdbbff7257f69136c0409c9175d91e9855797ef93.
 
 ## Checks
 
-ActualRED5vs6rows→15patchtestsPASS; full/cached43/80expansionchoiceswholepaint/
-height/everyrowfieldimmutability/unknown/emptydetailnoPhantomguarded. Current
-workspace1868/0/11oldignore46targets/TUI534/PTY58;strictClippy/fmt/lockedordinary
-debugbuildhelp/lockedreleasebuildhelp/actualrelease9/rootPython70 PASS. Allfailed
-retainercountliteralpreflightbytespreserved,noarchivewrites; correctedmeasurepack
-audit/manualinversePASS. Fresh009wide121/small79 EACHorigin38behaviorPASS/18valid
-18complete16main2title8calls11RO2natural0/nogrants/rootchildmixedDeny/relaunchfreshroot.
-422files39682090logicalB/4exactsame-sideencodedPNGaliases/2188228Bproof EVERYbyte/DIR
-meta/current713actualELFs/helpers/131priorproofbyteMETA/manualsingleXZUSTARinverse
-and fullrecountPASS. 32fullpairs64PNGs128000cells17264640pixels26523celldiff3263365
-pixeldiff28of32cursors/four600cellSettingsmodalsEQUAL; twoPatchheader/gapgeometry/
-detailstyle/allpaddingEQUAL. Receipt evidence/tui/vis36-patch-failure-qualified.md.
+FourSubagent/rootPython70/strictClippy PASS. Currentworkspace1868/0/11oldignore
+46targets/TUI534/PTY58;fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/
+ACTUALrelease9 PASS. AllRED/observerlocatorfailures retained, sealedBEFORE/program
+immutable/exclusiveone-locatorrefiner/no sourcecapturemetricchange.
+Fresh010wide121/small79 BOTHorigins38behaviorPASS/18valid18complete16main2title/
+8calls11RO2natural0/nogrants/rootchildOnce/mixedDeny/relaunchFRESHadmittedroot.
+422originals39600707logicalB/4same-sideoriginalPNGaliases/2211652Barchive manual
+singleXZ/canonicalUSTAR EVERYbyte/DIRmeta/current713ELFs/helpers/137priorproof
+byteMETA/fullrecount PASS;VmPeak192487424/HWM136802304underAS384. 32pairs64PNGs/
+128000cells17264640pixels26544celldiff3264294pixeldiff28of32cursors. TwoSubagent
+fullheaders/twofailedPatchroles/fourCOMPLETE600cellmodals EQUAL;ALL64wholeD.
+Receipt evidence/tui/vis36-subagent-gap-qualified.md; completecommandbundle retained.
 
 ## Risks
 
-ALL64wholecomparisonsDIFFERENT; no fullVIS35/VIS36/R6/V09/T44PASS. Differentnative
-error:deniedapply_patch/donorPermissiondeniededitcopiesremainunmasked/immutable.
-SQLROnotCoreEvent/syscallproof, typedownerorderingseparate. Oldsource008flags/data
-historicalunchanged/producer89f8separatefromHEAD/no replay/mask/crop/tolerance/time
-orcursorfake. Postreportowned1072017408/headroom1724416 BEFOREdelivery; finalactual
-recountauthoritative, ADDvis36allprefix1GiB/16MiBfileencoded128MiBTARlogical2000/
-dict16decoder32/hardAS384capsunchanged/noqualifieddelete/offload/reencode/capraise.
+No wholeVIS39/VIS36/R6V09/T44PASS. Old009flags/helper/dataimmutablehistorical;
+producer70adseparatefromdeliveryHEAD/SQLROnotCoreEventsyscallproof. Frozenfee0123
+ShellsuccessoverrideanddifferentRAWdenialcopyunchanged/unmasked. OwnFAILEDmodel019
+103files19461881logicalB3DIRmeta/PAXinverse/FAILEDpointer/3MiBreserve,19005440
+allocatedB reclaimedonlyverifiedprivatecopy. Model010018PASSbehaviorDIFFERENTsafe.
+Pre-deliveryowned1055657984/headroom18083840 of1GiB; finalactualrecountauthoritative.
+Capsallunchanged16MiBfileencoded128MiBTARlogical2000/dict16decoder32/hardAS384/
+allprefixesplusvis36/noqualifieddelete/offload/reencode/capraise/TMPseparate.
 
 ## Next
 
-Exactreview/ordinarycommit/pushmajor. Source-checksampledSubagentcompletediconFG
-beforeanyfix(no provenrootcauseyet), then ALL frozenR1–R6/VIS01–VIS45/supplements
-and finalcurrent-sourceR6/V09. Do notfinishonregionalPatchqualification.
+Reviewedordinarycommit/pushmajor. ExistingordinaryPromptactualpairedapproval
+previews/explicitOnceeffects at79/121, then ALL remainingfrozenR1–R6/VIS01–VIS45/
+supplements/finalcurrentR6V09. Do notfinishonlocalrolequalification.
 
 
 Ready (до 5): T58, T59

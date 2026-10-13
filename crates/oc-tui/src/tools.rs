@@ -1350,10 +1350,13 @@ pub(crate) fn subagent_block_expanded(
                 let mut spans = vec![
                     Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING)),
                     if index == 0 {
-                        Span::styled(format!("{icon} "), style)
+                        Span::styled(icon, style)
                     } else {
-                        Span::plain(" ".repeat(TOOL_ICON_WIDTH))
+                        Span::plain(" ".repeat(TOOL_ICON_WIDTH - 1))
                     },
+                    // The pinned width-two icon box styles only the glyph;
+                    // its remaining layout cell does not inherit its roles.
+                    Span::plain(" "),
                 ];
                 spans.extend(line.spans().iter().cloned());
                 Line::new(spans)
@@ -1361,10 +1364,11 @@ pub(crate) fn subagent_block_expanded(
             .collect::<Vec<_>>()
     } else {
         styled::wrap_line(
-            &Line::new(vec![Span::styled(
-                format!("{icon} {}", label.plain_text()),
-                style,
-            )]),
+            &Line::new(vec![
+                Span::styled(icon, style),
+                Span::plain(" "),
+                Span::styled(label.plain_text(), style),
+            ]),
             width as usize,
         )
     };
@@ -2418,6 +2422,11 @@ mod tests {
         );
         assert_eq!(buffer[(3, 1)].symbol(), "✓");
         assert_eq!(buffer[(3, 1)].fg, theme.text_muted());
+        assert_eq!(buffer[(4, 1)].symbol(), " ");
+        // This TestBackend's canvas is Reset; the real shell canvas supplies
+        // white. The icon-box layout cell must inherit, not borrow muted.
+        assert_eq!(buffer[(4, 1)].fg, ratatui::style::Color::Reset);
+        assert!(buffer[(4, 1)].modifier.is_empty());
         assert!(
             completed.child_job.is_none(),
             "legacy result prose is not authority"
