@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T06:12:09+00:00
+State updated: 2026-10-13T07:11:12+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,45 +14,43 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. VIS39 Subagenticon/layoutspace narrowrole qualified.
-Actual009glyphx5mutedBOTH, x6layoutspaceNativemuted/Originalcanvaswhite, nottheme
-orclock. Styledglyph/plainspace/styledlabel includingfallback, continuationplain;
-RAW/childidentity/error/unknown/expansionunchanged. Existinginlinegolden RED→GREEN,
-no newtesttarget/API/schema/policy/configchange. Source713
-cab6b76afc047dbeef6d195a26d00c8e6a555cf13ec2c7ffc547ff5434b188b2;
-native9a3486ca8f968b836f26c11cdbbff7257f69136c0409c9175d91e9855797ef93.
+T44 ACTIVE_NOT_PASS. Actual ordinary Prompt acquisition121/79 and completebyte
+retention qualified, notwholeVIS36/R6V09. No Rust/fixture/policy/RAW/schema/auth/env/
+config/productionchanges. SharedstrictVIS36builderextractionkeepsauto guards;
+source713cab6b76afc047dbeef6d195a26d00c8e6a555cf13ec2c7ffc547ff5434b188b2/
+native9a3486ca8f968b836f26c11cdbbff7257f69136c0409c9175d91e9855797ef93 unchanged.
 
 ## Checks
 
-FourSubagent/rootPython70/strictClippy PASS. Currentworkspace1868/0/11oldignore
-46targets/TUI534/PTY58;fmt/lockedordinarydebugbuildhelp/lockedreleasebuildhelp/
-ACTUALrelease9 PASS. AllRED/observerlocatorfailures retained, sealedBEFORE/program
-immutable/exclusiveone-locatorrefiner/no sourcecapturemetricchange.
-Fresh010wide121/small79 BOTHorigins38behaviorPASS/18valid18complete16main2title/
-8calls11RO2natural0/nogrants/rootchildOnce/mixedDeny/relaunchFRESHadmittedroot.
-422originals39600707logicalB/4same-sideoriginalPNGaliases/2211652Barchive manual
-singleXZ/canonicalUSTAR EVERYbyte/DIRmeta/current713ELFs/helpers/137priorproof
-byteMETA/fullrecount PASS;VmPeak192487424/HWM136802304underAS384. 32pairs64PNGs/
-128000cells17264640pixels26544celldiff3264294pixeldiff28of32cursors. TwoSubagent
-fullheaders/twofailedPatchroles/fourCOMPLETE600cellmodals EQUAL;ALL64wholeD.
-Receipt evidence/tui/vis36-subagent-gap-qualified.md; completecommandbundle retained.
+NewrootPython71/docs/progress/diffPASS. Previousactualworkspace1868/0/11all46/
+strictClippyfmt/debugreleasehelps/actualrelease9applytoidenticalRustELFs,notnewruns.
+Bothorigins/profile112behaviorPASS/51wholeframes/26valid26complete24main2title/
+14calls34RO2natural0. Pendingpause/parkedHome/OnceRejectAlways/persistentgrant/
+restart/mixedDeny/MCP/childfeedback/readShell/globURL/Settingsmodefacts retained.
+Wide634files80629031logicalB3642052Barchive;small634files65643248logicalB3007408B.
+Per-profileunchanged128MiBguard/no omission. Everybyte/DIRmeta/sourceELFs/helpers/
+141priorproofbyteMETA/manualsingleXZUSTARinverse/fullrecountPASS. 102pairs204PNGs/
+408000cells55031040pixels182786cell9960403pixeldiff86of102cursors,ONEwholegrid/
+ONEwholePNGpairEQUAL. Wide102D/small100D2E(total202D2E,noBLOCKED).
+Receipt evidence/tui/vis36-prompt-qualified.md. VmPeak278667264/HWM228798464<AS384.
 
 ## Risks
 
-No wholeVIS39/VIS36/R6V09/T44PASS. Old009flags/helper/dataimmutablehistorical;
-producer70adseparatefromdeliveryHEAD/SQLROnotCoreEventsyscallproof. Frozenfee0123
-ShellsuccessoverrideanddifferentRAWdenialcopyunchanged/unmasked. OwnFAILEDmodel019
-103files19461881logicalB3DIRmeta/PAXinverse/FAILEDpointer/3MiBreserve,19005440
-allocatedB reclaimedonlyverifiedprivatecopy. Model010018PASSbehaviorDIFFERENTsafe.
-Pre-deliveryowned1055657984/headroom18083840 of1GiB; finalactualrecountauthoritative.
-Capsallunchanged16MiBfileencoded128MiBTARlogical2000/dict16decoder32/hardAS384/
-allprefixesplusvis36/noqualifieddelete/offload/reencode/capraise/TMPseparate.
+No globalVIS36/R6V09/T44PASS. All51stagesfullstyledPNGcursor retained,no cropmask/
+tolerance/golden/cursorclockfake. NativeAlwaysapply_patch/approval.txt vsOriginal
+edit/*nottranslated;SQLno_startedproducerheuristicNOTCoreEvent/syscalltrace.
+Beforepost-save telemetryfailureknown/sealedinventoryseparatelyverifiedNOreplay/
+overwrite;allobserverfailuresretained. Pre-deliveryowned1063464960/headroom10276864
+of1GiB,finalactualrecountauthoritative. All16MiBfileencoded/128MiBTARlogical/2000/
+dict16decoder32/hardAS384/allprefixes+vis36unchanged/TMPseparate/nooffload/deletion.
+FrozenShellfee0123/RAWdenialcopyintact;producerfc2fseparatefromdeliveryHEAD.
 
 ## Next
 
-Reviewedordinarycommit/pushmajor. ExistingordinaryPromptactualpairedapproval
-previews/explicitOnceeffects at79/121, then ALL remainingfrozenR1–R6/VIS01–VIS45/
-supplements/finalcurrentR6V09. Do notfinishonlocalrolequalification.
+Reviewedordinarycommit/pushmajor. Sourceverifybusy-tabhovervisualglyphindependent
+fromcloseeligibilityperVIS41/VIS44;NOchangingbusy/permission/Location/lifecycle
+actionguards. ThenALLremainingfrozenR1–R6/VIS01–45/supplements/finalcurrentR6V09.
+Do notfinishonordinaryPromptlocalqualification.
 
 
 Ready (до 5): T58, T59

@@ -1003,6 +1003,11 @@ def check_vis36_auto_build(lock, manifest, commands, attempt, profile=None):
     profile = profile or next(iter(profiles[attempt]))
     require(profile in profiles[attempt], "fixed VIS36 acquisition profile")
     columns = profiles[attempt][profile]
+    check_vis36_permission_build(lock, manifest, commands, columns, "auto-cli",
+                                 TEMP / ("vis36-mode-current-" + attempt) / profile)
+
+
+def check_vis36_permission_build(lock, manifest, commands, columns, mode, output):
     argv = commands[0]["argv"]
     require(commands[0].get("role") == "capture runner invocation" and len(argv) >= 2 and
             argv[1] == str(REPO / "scripts/tui_capture/capture.mjs") and len(argv[2:]) % 2 == 0,
@@ -1012,8 +1017,8 @@ def check_vis36_auto_build(lock, manifest, commands, attempt, profile=None):
     expected = {"--reference": str(TEMP / "t44-reference/package/bin/opencode"),
                 "--oc": str(REPO / "target/debug/oc"), "--build-oc": "true", "--geometry": "true",
                 "--sample": "short", "--sidebar": "hide", "--permission": "true",
-                "--permission-mode": "auto-cli", "--columns": str(columns), "--rows": "40",
-                "--output": str(TEMP / ("vis36-mode-current-" + attempt) / profile)}
+                "--permission-mode": mode, "--columns": str(columns), "--rows": "40",
+                "--output": str(output)}
     require(len(options) == len(pairs) and options == expected and
             lock["oc"]["executable_path"] == options["--oc"] and
             lock["upstream"]["executable_path"] == options["--reference"] and
@@ -1122,6 +1127,102 @@ def vis36_auto_checks(files, current_only=False, current_attempt="004"):
                         "scope": "CLI_AUTO_BEHAVIOR_ONLY" if current else "FAILED_DIAGNOSTIC",
                         "sides": sides, "comparisons": dict(collections.Counter(item["status"] for item in lock["attempts"]))})
     return reports
+
+
+VIS36_PROMPT_STAGES = ("home once-ask once-newhome once-returned-ask once-fullscreen once-inline once-completed "
+    "reject-ask reject-completed always-ask always-selected always-completed restart-home restart-completed "
+    "mixed-completed mcp-ask mcp-fullscreen mcp-inline mcp-completed childroot-ask childroot-fullscreen "
+    "childroot-inline child-feedback child-feedback-draft childroot-completed read-ask read-fullscreen read-inline "
+    "read-completed shell-ask shell-fullscreen shell-inline shell-completed glob-ask glob-fullscreen glob-inline "
+    "glob-completed url-ask url-fullscreen url-inline url-completed settings-prompt settings-autoaccept "
+    "settings-auto-first-escape autoonce-completed settings-palette-filtered settings-auto-reopen "
+    "settings-restored-prompt settings-prompt-first-escape promptagain-ask promptagain-rejected").split()
+
+
+def vis36_prompt_roots(profile):
+    require(profile in ("wide", "small"), "fixed Prompt profile")
+    root = TEMP / "vis36-prompt-current-001"
+    return {"current": root / ("prompt-" + profile + "-r1"), "current-logs": root,
+            "current-driver": TEMP / "vis36-prompt-capture-r1.py"}
+
+
+def check_vis36_prompt_build(lock, manifest, commands, profile):
+    roots = vis36_prompt_roots(profile)
+    check_vis36_permission_build(lock, manifest, commands, {"wide": 121, "small": 79}[profile],
+                                 "prompt", roots["current"])
+
+
+def check_vis36_prompt_facts(checks, protocol, side):
+    require(checks.get("origin") == side and checks.get("status") == "PASS" and
+            len(checks["checks"]) == 112, "complete actual Prompt lifecycle")
+    stage = lambda name: next(item for item in checks["checks"] if item.get("stage") == name)
+    for case in ("once", "reject", "always", "mcp", "childroot", "read", "shell", "glob", "url"):
+        proof = stage(case + "-pause-proof")
+        require(proof.get("files_unchanged") is True and proof.get("no_extra_provider_requests") is True and
+                proof.get("no_started") is True, "producer held-request/file snapshot proof, not a CoreEvent trace")
+    require(stage("once-newhome-pause-proof").get("files_unchanged") is True and
+            stage("once-newhome-pause-proof").get("no_extra_provider_requests") is True,
+            "parked approval remains pending without effects")
+    require(stage("once-proof")["files_unchanged"] is False and stage("once-proof")["grants"] == [] and
+            stage("reject-proof")["files_unchanged"] is True and stage("reject-proof")["grants"] == [],
+            "explicit Once effect and rejection without a grant")
+    grants = stage("always-proof")["grants"]
+    require(stage("always-proof")["files_unchanged"] is False and len(grants) == 1 and
+            all(stage(name)["effect_pass"] is True and stage(name)["grants"] == grants
+                for name in ("restart-proof", "mixed-proof")), "one actual durable Always grant, mixed Deny preserved")
+    require(stage("mcp-pause-proof")["mcp_call_count"] == 0 and stage("mcp-proof")["mcp_call_count"] == 1 and
+            stage("mcp-proof")["files_unchanged"] is True and stage("childroot-proof")["files_unchanged"] is True and
+            stage("childroot-proof")["mcp_call_count"] == 1 and stage("childroot-proof")["provider_requests"] == 2,
+            "actual explicit MCP and child feedback outcomes")
+    feedback = stage("child-feedback-visibility-proof")
+    require(feedback["expected"] == feedback["visible"] == "VIS36-FEEDBACK: do not read; continue with this correction.",
+            "actual owned correction text")
+    require(stage("read-proof")["files_unchanged"] is True and stage("read-proof")["shell_effect"] is False and
+            stage("shell-proof")["shell_effect"] is True and stage("shell-proof")["files_unchanged"] is False and
+            all(stage(name)["files_unchanged"] is True for name in ("glob-proof", "url-proof")) and
+            stage("autoonce-proof")["files_unchanged"] is True and stage("autoonce-proof")["no_saved_grants"] is True,
+            "actual read/Shell effects, rejected glob/URL, no new auto grant")
+    snapshots = [item["snapshot"] for item in checks["checks"] if "snapshot" in item]
+    require(len(snapshots) == 34 and snapshots == [i for i in protocol if i.get("kind") == "permission_snapshot"] and
+            stage("settings-auto-config")["snapshot"]["cli"]["session"]["permissions"] == "autoaccept" and
+            stage("settings-final-config")["snapshot"]["cli"]["session"]["permissions"] == "prompt",
+            "actual read-only snapshots and saved mode transitions")
+    providers = [i for i in protocol if i.get("kind") == "provider"]
+    mains = [i for i in providers if i.get("operation") == "patch"]
+    cases = {name: 2 for name in ("once", "always", "restart", "mixed", "mcp", "childroot", "childread", "read", "shell", "autoonce")}
+    cases.update({name: 1 for name in ("reject", "glob", "url", "promptagain")})
+    require(len(providers) == 26 and len(mains) == 24 and
+            all(i.get("valid") is True and i["request"].get("model") == "gpt-fixture-model-1" for i in providers) and
+            collections.Counter(i["case"] for i in mains) == cases and
+            len([i for i in protocol if i.get("kind") == "provider_completed"]) == 26 and
+            collections.Counter(i["case"] for i in protocol if i.get("kind") == "fixture_tool_call") ==
+            {name: 1 for name in cases}, "exact admitted requests and all fourteen real calls")
+    exits = [i for i in protocol if i.get("kind") == "exit"]
+    require([i.get("generation") for i in exits] == [0, 1] and
+            all(i.get("code") == 0 and i.get("termination") == "natural" for i in exits), "both actual natural exits")
+    return dict(provider_requests=26, provider_completions=26, main_requests=24, title_requests=2,
+                tool_calls=14, readonly_snapshots=34, natural_exits=2)
+
+
+def vis36_prompt_checks(files, profile):
+    read = lambda name: json.loads(files["current/" + name])
+    lock, manifest = read("capture.lock.json"), read("source-manifest.json")
+    check_source_manifest(lock, manifest, 713)
+    check_current_source(manifest)
+    check_vis36_prompt_build(lock, manifest, read("commands.json"), profile)
+    require(len(lock["captures"]) == 102 and len(lock["attempts"]) == 102 and
+            [i["scenario"] for i in lock["attempts"] if i["mode"] == "grid"] ==
+            ["permission-" + s for s in VIS36_PROMPT_STAGES], "every actual full Prompt frame and comparison")
+    sides = {}
+    for side in ("oc", "upstream"):
+        with Path(lock[side]["executable_path"]).open("rb") as stream:
+            require(hashlib.file_digest(stream, "sha256").hexdigest() == lock[side]["executable_sha256"], "actual current executables")
+        checks = read(side + "/permission-checks.json")
+        require(checks == lock["permission"][side], "exact actual Prompt checks")
+        sides[side] = {"status": checks["status"], **check_vis36_prompt_facts(checks, read(side + "/protocol.json"), side)}
+    return [dict(episode="current-" + profile, captures=102, current_source=True,
+                 scope="PROMPT_BEHAVIOR_ONLY_NOT_PIXEL_PASS", sides=sides,
+                 comparisons=dict(collections.Counter(i["status"] for i in lock["attempts"])))]
 
 
 def producer_checks(files, source_count=704, inventory_stages=None, require_hover=False, require_tail=False, temporal_only=False, temporal_profile=None, require_mcp_label=False, require_shell_wrap=False, require_shell_style=False):
@@ -1305,13 +1406,15 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap", "vis36-prompt-wide", "vis36-prompt-small", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap"):
+    if args.campaign in ("vis36-prompt-wide", "vis36-prompt-small"):
+        ROOTS = vis36_prompt_roots(args.campaign.removeprefix("vis36-prompt-"))
+    elif args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap"):
         ROOTS = vis36_auto_roots(args.campaign != "vis36-auto", "010" if args.campaign == "vis36-subagent-gap" else "009" if args.campaign == "vis36-patch-failure" else "008" if args.campaign == "vis36-settings-clean-r8" else "007" if args.campaign == "vis36-settings-clean" else "006" if args.campaign == "vis36-dialog-r6" else "005" if args.campaign == "vis36-dialog" else "004")
     elif args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
         ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
@@ -1396,6 +1499,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
+        if args.campaign in ("vis36-prompt-wide", "vis36-prompt-small"):
+            return vis36_prompt_checks(files, args.campaign.removeprefix("vis36-prompt-"))
         if args.campaign in ("vis36-auto", "vis36-settings", "vis36-dialog", "vis36-dialog-r6", "vis36-settings-clean", "vis36-settings-clean-r8", "vis36-patch-failure", "vis36-subagent-gap"):
             return vis36_auto_checks(files, args.campaign != "vis36-auto", "010" if args.campaign == "vis36-subagent-gap" else "009" if args.campaign == "vis36-patch-failure" else "008" if args.campaign == "vis36-settings-clean-r8" else "007" if args.campaign == "vis36-settings-clean" else "006" if args.campaign == "vis36-dialog-r6" else "005" if args.campaign == "vis36-dialog" else "004")
         if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):

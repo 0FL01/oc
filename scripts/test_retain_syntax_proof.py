@@ -9,6 +9,39 @@ import retain_syntax_proof as proof
 
 
 class SyntaxProofRetentionTests(unittest.TestCase):
+    def test_prompt_profiles_keep_exact_mode_paths_seals_and_all_auto_guards(self):
+        hashes = {name: "a" * 64 for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",
+                  "permission_fixture.py", "permission_mcp.py", "apply_patch_fixture.py", "apply_patch_admission.mjs")}
+        manifest = {"scripts/tui_capture/" + name: value for name, value in hashes.items()}
+        for profile, columns in (("wide", 121), ("small", 79)):
+            roots = proof.vis36_prompt_roots(profile)
+            self.assertEqual(set(roots), {"current", "current-logs", "current-driver"})
+            self.assertEqual(roots["current"], proof.TEMP / "vis36-prompt-current-001" / ("prompt-" + profile + "-r1"))
+            native, original = str(proof.REPO / "target/debug/oc"), str(proof.TEMP / "t44-reference/package/bin/opencode")
+            lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
+                    "upstream": {"executable_path": original}, "runner_hashes": hashes,
+                    "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
+                    "profile": {"columns": columns, "rows": 40}}
+            argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original,
+                    "--oc", native, "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
+                    "--permission", "true", "--permission-mode", "prompt", "--columns", str(columns), "--rows", "40",
+                    "--output", str(roots["current"])]
+            commands = [{"role": "capture runner invocation", "argv": argv}, {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
+            proof.check_vis36_prompt_build(lock, manifest, commands, profile)
+            for addition in (["--permission-mode", "auto-cli"], ["--output", "/foreign"], ["--rows", "24"]):
+                bad = json.loads(json.dumps(commands))
+                bad[0]["argv"] += addition
+                with self.assertRaises(ValueError):
+                    proof.check_vis36_prompt_build(lock, manifest, bad, profile)
+            with self.assertRaises(ValueError):
+                proof.check_vis36_prompt_build(lock, manifest, commands + commands[1:], profile)
+            with self.assertRaises(ValueError):
+                proof.check_vis36_auto_build(lock, manifest, commands, "001")
+            with self.assertRaises(ValueError):
+                proof.check_vis36_prompt_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, profile)
+        with self.assertRaises(ValueError):
+            proof.vis36_prompt_roots("tall")
+
     def test_vis36_auto_builder_preserves_failed_roots_and_rejects_cross_mode_or_duplicate_build(self):
         hashes = {name: "a" * 64 for name in ("capture.mjs", "frontend.js", "bridge.py", "permission.mjs",
                   "permission_fixture.py", "permission_mcp.py", "apply_patch_fixture.py", "apply_patch_admission.mjs")}
