@@ -664,7 +664,7 @@ fn v07a_binary_refuses_discovered_external_root_before_any_effect() {
             "model": format!("fixture/{MODEL}"),
             "provider": {"fixture": {"options": {"baseURL": fixture.endpoint,
                 "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}},
-            "mcp": {"trap": {"type": "local", "command": ["node", "trap"]}},
+            "mcp": {"trap": {"type": "local", "codemode": false, "command": ["node", "trap"]}},
             "command": {"trap": "node trap"}
         })
         .to_string(),

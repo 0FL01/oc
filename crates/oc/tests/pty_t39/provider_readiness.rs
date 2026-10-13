@@ -273,7 +273,7 @@ for line in sys.stdin:
             time.sleep(0.01)
         print(json.dumps({'jsonrpc':'2.0','id':request['id'],'error':{'code':-32603,'message':'UI07_NEVER_RENDER_CONFIG_ENV_AUTH_62c4'}}), flush=True)
 "#).unwrap();
-    config["mcp"] = json!({"vis42": {"type":"local","enabled":true,"timeout":10000,
+    config["mcp"] = json!({"vis42": {"type":"local", "codemode": false,"enabled":true,"timeout":10000,
         "command":["/usr/bin/python3",script,pid_file,release]}});
     publish(&fixture, &config);
     let mut pty = PtySession::spawn_sized(fixture.clone(), "vis42-clean", None, 120, 40);

@@ -861,7 +861,7 @@ impl Fixture {
         let mut permissions = json!({"*":"deny", "read":"allow", "apply_patch":"allow", "bash":{"cargo test":"allow"}, "compress":"allow", SEARCH_TOOL:"allow"});
         // Catalogs are admitted; all calls still pass the counted short-search guard.
         permissions["crw_*"] = json!("allow");
-        let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "url":entry["url"], "headers":entry["headers"], "oauth":false, "enabled":true, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
+        let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "codemode": false, "url":entry["url"], "headers":entry["headers"], "oauth":false, "enabled":true, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
         let config = json!({"model": self.model, "permissions":permissions, "dcp":{"enabled":true},
             "provider": {provider: {"npm":"@ai-sdk/openai", "options":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":mcp});
         let config_dir = self.config_dir.as_ref().expect("private config");
@@ -895,7 +895,7 @@ impl Fixture {
         let mcp_section = match &mcp {
             Some(server) => {
                 permissions[SEARCH_TOOL] = json!("allow");
-                json!({SEARCH_SERVER: {"type": "remote", "url": server.url,
+                json!({SEARCH_SERVER: {"type": "remote", "codemode": false, "url": server.url,
                                        "enabled": true, "oauth": false,
                                        "headers": {"Authorization": "Bearer dry-run"},
                                        "timeout": 3000}})

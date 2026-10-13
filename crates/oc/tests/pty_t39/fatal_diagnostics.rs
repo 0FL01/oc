@@ -236,7 +236,7 @@ fn cfg10_native_fatal_lock_trust_policy_recovery_and_caps_are_non_success() {
             .map(|index| {
                 (
                     format!("{CANARY}-{index}"),
-                    json!({"type":"remote","url":url}),
+                    json!({"type":"remote", "codemode": false,"url":url}),
                 )
             })
             .collect(),

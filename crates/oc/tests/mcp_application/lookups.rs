@@ -67,7 +67,7 @@ async fn mcp11_native_core_remote_drop_cancels_exact_id_quarantines_body_and_clo
     let f = Fixture::new();
     f.write_config(
         &responses,
-        json!({"peer":{"type":"remote","url":mcp.url,"oauth":false}}),
+        json!({"peer":{"type":"remote", "codemode": false,"url":mcp.url,"oauth":false}}),
         json!({"mcp_lookup":"allow","read":"allow"}),
     );
     let (app, guard) = app(&f).await;
@@ -141,7 +141,7 @@ async fn mcp11_native_core_failed_lookup_cancellation_is_fatal_not_usable_empty_
     let f = Fixture::new();
     f.write_config(
         &responses,
-        json!({"peer":{"type":"remote","url":mcp.url,"oauth":false}}),
+        json!({"peer":{"type":"remote", "codemode": false,"url":mcp.url,"oauth":false}}),
         json!({"mcp_lookup":"allow","read":"allow"}),
     );
     let (app, guard) = app(&f).await;

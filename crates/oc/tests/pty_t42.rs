@@ -113,7 +113,7 @@ impl Fixture {
             serde_json::json!({
                 "command": {"bcmd": {"description": "B command",
                                      "template": "B command payload for $1"}},
-                "mcp": {"t42mcp": {"type": "remote", "url": mcp.url,
+                "mcp": {"t42mcp": {"type": "remote", "codemode": false, "url": mcp.url,
                                    "enabled": true, "oauth": false,
                                    "headers": {"Authorization": "Bearer t42-not-a-secret"},
                                    "timeout": 3000}}

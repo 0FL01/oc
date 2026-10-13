@@ -157,7 +157,7 @@ fn setup(f: &Fixture) -> PathBuf {
     )
     .unwrap();
     std::fs::set_permissions(&trap, std::fs::Permissions::from_mode(0o700)).unwrap();
-    cfg["mcp"] = json!({"chrome-devtools":{"type":"local", "command":[trap,"-y","chrome-devtools-mcp@latest"],
+    cfg["mcp"] = json!({"chrome-devtools":{"type":"local", "codemode": false, "command":[trap,"-y","chrome-devtools-mcp@latest"],
         "enabled":false,"environment":{"R4A_AUTH": CANARY},"cwd":"missing-disabled-directory","timeout":5000}});
     std::fs::write(&path, cfg.to_string()).unwrap();
     std::fs::write(

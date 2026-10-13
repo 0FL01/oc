@@ -497,7 +497,7 @@ impl Fixture {
                     "models": {MODEL: {"name": "Golden fixture",
                                       "limit": {"context": 200_000, "output": 8_000}}}
                 }},
-                "mcp": {"codex_web": {"type": "remote", "url": mcp.url,
+                "mcp": {"codex_web": {"type": "remote", "codemode": false, "url": mcp.url,
                                       "enabled": true, "oauth": false,
                                       "headers": {"Authorization": "Bearer golden-token"},
                                       "timeout": 3000}}

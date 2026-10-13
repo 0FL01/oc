@@ -18,7 +18,7 @@ fn lifecycle_entry(
             value.to_string()
         }
     };
-    json!({"type":"local", "enabled":enabled, "command":[
+    json!({"type":"local", "codemode": false, "enabled":enabled, "command":[
         "/usr/bin/python3", concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/mcp10-lifecycle.py"),
         fixture.project.join(format!("{label}.json")), format!("peer-{label}"), gate(initialize), gate(catalog), fixture.project
     ],"environment":{"MCP10_CANARY":"mcp10-activated-canary"}})
@@ -94,11 +94,11 @@ fn mcp10_initial_connections_run_before_any_prompt_and_slow_neighbor_does_not_bl
     fixture.write_config(
         &responses,
         json!({
-            "a_slow": {"type":"remote","url":slow.url,"oauth":false},
-            "healthy": {"type":"remote","url":healthy.url,"oauth":false},
-            "disabled": {"type":"local","enabled":false,"command":["never-execute"]},
-            "failed": {"type":"remote","url":healthy.url,"oauth":true}
-            ,"pretend_connected": {"type":"remote","url":auth.url,"oauth":false}
+            "a_slow": {"type":"remote", "codemode": false,"url":slow.url,"oauth":false},
+            "healthy": {"type":"remote", "codemode": false,"url":healthy.url,"oauth":false},
+            "disabled": {"type":"local", "codemode": false,"enabled":false,"command":["never-execute"]},
+            "failed": {"type":"remote", "codemode": false,"url":healthy.url,"oauth":true}
+            ,"pretend_connected": {"type":"remote", "codemode": false,"url":auth.url,"oauth":false}
         }),
         json!({"healthy__ping":"allow"}),
     );

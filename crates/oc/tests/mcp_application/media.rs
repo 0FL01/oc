@@ -128,7 +128,7 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
     fixture.write_config(
         &responses,
         json!({"media":{
-            "type":"local","command":["/usr/bin/python3",script,report],
+            "type":"local", "codemode": false,"command":["/usr/bin/python3",script,report],
             "environment":{"MCP_MEDIA_CANARY":"mcp-media-private-canary"},"timeout":3000
         }}),
         json!({"media__mcp_media_mixed":"allow"}),

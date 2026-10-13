@@ -1084,7 +1084,7 @@ impl Drop for Process {
 
 fn remote_entry(server: &FakeMcp, header_name: &str, bearer: &str) -> Value {
     json!({
-        "type": "remote",
+        "type": "remote", "codemode": false,
         "url": server.url,
         "enabled": true,
         "oauth": false,
@@ -1161,7 +1161,7 @@ fn aud22_binary_rejects_conflicting_authorization_duplicates_before_network() {
     fixture.write_config(
         &responses,
         json!({"codex_web": {
-            "type": "remote",
+            "type": "remote", "codemode": false,
             "url": mcp.url,
             "headers": {
                 "Authorization": "Bearer upper",
@@ -1343,13 +1343,13 @@ fn aud24_binary_routes_collision_names_to_exact_original_server_and_tool() {
         &responses,
         json!({
             "a": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [server_a.to_string_lossy()],
                 "enabled": true,
                 "timeout": 3000,
             },
             "a__b": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [server_a_b.to_string_lossy()],
                 "enabled": true,
                 "timeout": 3000,
@@ -1422,7 +1422,7 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     fixture.write_config(
         &responses,
         json!({"results": {
-            "type": "local",
+            "type": "local", "codemode": false,
             "command": [server.to_string_lossy()],
             "enabled": true,
             "timeout": 3000,
@@ -1972,13 +1972,13 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
         &responses,
         json!({
             "counted": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [stdio.to_string_lossy()],
                 "enabled": true,
                 "timeout": 3000,
             },
             "chrome-devtools": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [trap.to_string_lossy(), "-y", "chrome-devtools-mcp@latest"],
                 "enabled": false,
             },
@@ -2062,12 +2062,12 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
         &responses,
         json!({
             "counted": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [stdio.to_string_lossy()],
                 "enabled": false,
             },
             "chrome-devtools": {
-                "type": "local",
+                "type": "local", "codemode": false,
                 "command": [trap.to_string_lossy(), "-y", "chrome-devtools-mcp@latest"],
                 "enabled": false,
             },
@@ -2158,7 +2158,7 @@ done
     );
     fixture.write_config(
         &responses,
-        json!({"probe":{"type":"local","command":[server.to_string_lossy()],"enabled":true}}),
+        json!({"probe":{"type":"local", "codemode": false,"command":[server.to_string_lossy()],"enabled":true}}),
         json!({"probe__ping":"allow","probe__fail":"allow"}),
     );
 
@@ -2492,7 +2492,7 @@ fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
     write_stalled_catalog_refresh(&server, &log, &release);
     fixture.write_config(
         &responses,
-        json!({"stall": {"type":"local", "command":[server], "enabled":true, "timeout":10000}}),
+        json!({"stall": {"type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000}}),
         json!({}),
     );
     let session = "s06-pending";
@@ -2615,7 +2615,7 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"local", "command":[server], "enabled":true, "timeout":10000
+            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000
         }}),
         if manual_compress {
             json!({"compress":"allow"})
@@ -2904,8 +2904,7 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let mcp = FakeMcp::start("anonymous", "", &["search"]);
     let fixture = Fixture::new();
-    let entry =
-        json!({"type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000});
+    let entry = json!({"type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000});
     fixture.write_config(&responses, json!({"anonymous":entry}), json!({}));
     let mut process = fixture.spawn_run("v01-anonymous");
     assert!(
@@ -3106,7 +3105,7 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     fixture.write_config(
         &responses,
         json!({"anonymous": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
         }}),
         json!({}),
     );
@@ -3166,7 +3165,7 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
         }}),
         json!({"stall__ping":"allow"}),
     );
@@ -3269,7 +3268,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
         }}),
         json!({"stall__ping":"allow"}),
     );
@@ -3289,7 +3288,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     fs::write(
         c.join("opencode.json"),
         json!({"mcp":{"stall":{
-        "type":"local", "command":[local], "enabled":true, "timeout":3000
+        "type":"local", "codemode": false, "command":[local], "enabled":true, "timeout":3000
     }}, "permissions":{"stall__ping":"allow"}})
         .to_string(),
     )
@@ -3535,7 +3534,7 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
         }}),
         json!({"stall__ping":"allow"}),
     );
@@ -3596,7 +3595,7 @@ fn v07b_remote_unverified_result(tool: &str) {
     fixture.write_config(
         &responses,
         json!({"effects": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
         }}),
         json!({format!("effects__{tool}"):"allow"}),
     );
@@ -3690,7 +3689,7 @@ fn v07b_remote_definitive_is_error_remains_failed_and_reusable() {
     fixture.write_config(
         &responses,
         json!({"effects": {
-            "type":"remote", "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
+            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
         }}),
         json!({format!("effects__{tool}"):"allow"}),
     );
@@ -3791,7 +3790,7 @@ for line in sys.stdin:
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"local", "command":[server], "enabled":true, "timeout":10000
+            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000
         }}),
         json!({"stall__ping":"allow"}),
     );
@@ -3915,7 +3914,7 @@ fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
     fixture.write_config(
         &responses,
         json!({"results": {
-            "type":"local", "command":[server], "enabled":true, "timeout":3000
+            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":3000
         }}),
         json!({"results__is_error":"allow"}),
     );
@@ -4027,7 +4026,7 @@ for line in sys.stdin:
     fixture.write_config(
         &responses,
         json!({"stall": {
-            "type":"local", "command":[server], "enabled":true, "timeout":3000
+            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":3000
         }}),
         json!({"stall__ping":"allow"}),
     );

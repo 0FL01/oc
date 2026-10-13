@@ -18,7 +18,7 @@ fn mcp09_disabled_chrome_environment_timeout_opens_first_tui_zero_spawn() {
         fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
     }
     fixture.write_config(&responses, json!({"chrome-devtools": {
-        "type":"local", "command":[bin.join("npx"),"-y","chrome-devtools-mcp@latest"],
+        "type":"local", "codemode": false, "command":[bin.join("npx"),"-y","chrome-devtools-mcp@latest"],
         "enabled":false,"environment":{"npm_config_offline":"true","CREDENTIAL":"{file:missing}"},
         "cwd":"missing-disabled-directory", "timeout":5000
     }}), json!({}));
@@ -59,7 +59,7 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
     let project_config = fixture.project.join("opencode.json");
     fs::write(
         &project_config,
-        json!({"mcp":{"trap":{"type":"local","command":["mcp09-denied-executable"]}}}).to_string(),
+        json!({"mcp":{"trap":{"type":"local", "codemode": false,"command":["mcp09-denied-executable"]}}}).to_string(),
     )
     .unwrap();
     let before = [
@@ -129,7 +129,7 @@ fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
             &fixture.project
         };
         let mut entry = json!({
-            "type":"local", "command":["mcp09-server",report,expected_cwd,if global {"global"} else {"project"},"steady","two words",""],
+            "type":"local", "codemode": false, "command":["mcp09-server",report,expected_cwd,if global {"global"} else {"project"},"steady","two words",""],
             "disabled":false,"codemode":false,
             "environment":{"PATH":bin,"MCP09_OVERLAY":"{env:OVERLAY_SOURCE}"},
             "timeout":{"startup":3000,"catalog":1000,"execution":1000}
@@ -260,13 +260,13 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
     .unwrap();
     fs::set_permissions(&trap, fs::Permissions::from_mode(0o700)).unwrap();
     fixture.write_config(&responses, json!({"timeout":{"startup":1500},"servers":{
-        "codex_web":{"type":"remote","url":mcp.url,"headers":{"Authorization":"Bearer mcp-key"},"oauth":false},
-        "malformed":{"type":"local","command":[trap],"environment":{"X":["malformed-value-CANARY"]},"disabled":true},
-        "oauth":{"type":"remote","url":mcp.url,"oauth":{"client_secret":"oauth-value-CANARY"}},
+        "codex_web":{"type":"remote", "codemode": false,"url":mcp.url,"headers":{"Authorization":"Bearer mcp-key"},"oauth":false},
+        "malformed":{"type":"local", "codemode": false,"command":[trap],"environment":{"X":["malformed-value-CANARY"]},"disabled":true},
+        "oauth":{"type":"remote", "codemode": false,"url":mcp.url,"oauth":{"client_secret":"oauth-value-CANARY"}},
         "malformed-value-CANARY":null,
         "oauth-value-CANARY":null,
-        "codemode":{"type":"local","command":[trap],"codemode":true},
-        "modern":{"type":"remote","url":mcp.url,"protocol":"auto"}
+        "codemode":{"type":"local","command":[trap],"codemode":true,"disabled":true},
+        "modern":{"type":"remote", "codemode": false,"url":mcp.url,"protocol":"auto"}
     }}), json!({"codex_web__search":"allow"}));
     let path = fixture.home.join("config/opencode/opencode.json");
     let before = fs::read(&path).unwrap();
