@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "codec": "USTAR/single-XZ full original logs; independent manual inverse",
+  "archive_sha256": "dc4afa7440bd63b48465b339c06e6ec9fd20e1761eba899f39c8ecf4c977d7dd",
+  "archive_bytes": 56980,
+  "tar_sha256": "ad3247aba058c8f9471bd3c951c4bc3f0a84966e9382d26953b6a2fb4d7bf0e4",
+  "tar_bytes": 317440,
+  "inventory": {
+    "members": 67,
+    "logical_bytes": 258724,
+    "member_inventory_sha256": "7aa348c74be690af3b5cb98e5b71f89ca0ad065e6b210183ebd539b11ae0b773",
+    "same_side_png_aliases": 0
+  },
+  "labels": {
+    "vis36-settings-after": 0,
+    "vis36-settings-audit": 0,
+    "vis36-settings-before": 0,
+    "vis36-settings-clippy": 0,
+    "vis36-settings-debug-help": 0,
+    "vis36-settings-debug-locked": 0,
+    "vis36-settings-debug-ordinary": 0,
+    "vis36-settings-docs-final": 0,
+    "vis36-settings-filter-green": 0,
+    "vis36-settings-filter-red": 101,
+    "vis36-settings-fmt": 0,
+    "vis36-settings-measure": 0,
+    "vis36-settings-model006-after": 0,
+    "vis36-settings-model006-archive": 0,
+    "vis36-settings-model006-before": 0,
+    "vis36-settings-model006-preflight": 0,
+    "vis36-settings-owner-qualified": 0,
+    "vis36-settings-owner": 101,
+    "vis36-settings-pack": 0,
+    "vis36-settings-progress-final": 0,
+    "vis36-settings-python-qualified": 0,
+    "vis36-settings-python": 0,
+    "vis36-settings-release-aud32": 0,
+    "vis36-settings-release-dcp-archive": 0,
+    "vis36-settings-release-help": 0,
+    "vis36-settings-release-pacing": 0,
+    "vis36-settings-release-panic": 0,
+    "vis36-settings-release-s07": 0,
+    "vis36-settings-release-startup": 0,
+    "vis36-settings-release-term01": 0,
+    "vis36-settings-release": 0,
+    "vis36-settings-workspace": 0
+  },
+  "current_source": {
+    "source_manifest_sha256": "cf12d8212bce7376843892f5b3598b4053e1f2e2dcdf13efd733b4d85e5e8272",
+    "changed_inputs": [
+      "crates/oc-tui/src/app/input.rs",
+      "crates/oc-tui/src/app/tests/input.rs",
+      "crates/oc/src/approval_tests.rs"
+    ],
+    "elf": {
+      "oc": {
+        "path": "/home/opencode/ai/oc/target/debug/oc",
+        "bytes": 484373008,
+        "sha256": "e48b61c11bb6667f8725bddd10dc5ab0cb4a48a164f465d602f82bfad59d38ba",
+        "elf_type": 3,
+        "machine": 62
+      },
+      "upstream": {
+        "path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+        "bytes": 200529376,
+        "sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+        "elf_type": 2,
+        "machine": 62
+      }
+    }
+  },
+  "helper_sha256": "0ffbc841de81855aa3bbd44a79e7cef8363f6e57170df1ebbd595696f6d61a03",
+  "xz": {
+    "blocks": [
+      {
+        "offset": 12,
+        "header_bytes": 12,
+        "unpadded_bytes": 56943,
+        "uncompressed_bytes": 317440,
+        "dictionary_bytes": 16777216,
+        "check_sha256": "ad3247aba058c8f9471bd3c951c4bc3f0a84966e9382d26953b6a2fb4d7bf0e4"
+      }
+    ],
+    "single_stream": true,
+    "sha256_check": true,
+    "footer_index_and_header_crcs": true,
+    "no_trailing_bytes": true,
+    "max_dictionary_bytes": 16777216,
+    "decoder_memlimit_bytes": 33554432,
+    "index_bytes": 12,
+    "index_offset": 56956
+  }
+}

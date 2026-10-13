@@ -973,11 +973,11 @@ def vis37_form_checks(files, current_only=False, current_attempt="004"):
     return reports
 
 
-def vis36_auto_roots():
-    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
+def vis36_auto_roots(current_only=False):
+    profiles = {"004": "cli-wide-r4"} if current_only else {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
     roots = {}
     for attempt, profile in profiles.items():
-        period = "current" if attempt == "003" else "failed-" + attempt
+        period = "current" if attempt in ("003", "004") else "failed-" + attempt
         roots[period] = TEMP / ("vis36-mode-current-" + attempt) / profile
         roots[period + "-logs"] = TEMP / ("vis36-mode-current-" + attempt)
         roots[period + "-driver"] = TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py")
@@ -985,7 +985,7 @@ def vis36_auto_roots():
 
 
 def check_vis36_auto_build(lock, manifest, commands, attempt):
-    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3"}
+    profiles = {"001": "cli-wide", "002": "cli-wide-r2", "003": "cli-wide-r3", "004": "cli-wide-r4"}
     require(attempt in profiles, "fixed VIS36 auto acquisition")
     argv = commands[0]["argv"]
     require(commands[0].get("role") == "capture runner invocation" and len(argv) >= 2 and
@@ -1057,17 +1057,18 @@ def check_vis36_auto_facts(checks, protocol, side, fixture_model="gpt-fixture-mo
             "title_requests": 2, "tool_calls": 8, "readonly_snapshots": 11, "natural_exits": 2}
 
 
-def vis36_auto_checks(files):
+def vis36_auto_checks(files, current_only=False):
     reports = []
-    for prefix, attempt in (("failed-001", "001"), ("failed-002", "002"), ("current", "003")):
+    episodes = (("current", "004"),) if current_only else (("failed-001", "001"), ("failed-002", "002"), ("current", "003"))
+    for prefix, attempt in episodes:
         read = lambda relative: json.loads(files[prefix + "/" + relative])
         lock, manifest = read("capture.lock.json"), read("source-manifest.json")
         check_source_manifest(lock, manifest, 713)
         check_vis36_auto_build(lock, manifest, read("commands.json"), attempt)
-        require(len(lock["captures"]) == {"001": 18, "002": 4, "003": 32}[attempt] and
-                len(lock["attempts"]) == {"001": 34, "002": 9, "003": 32}[attempt],
+        require(len(lock["captures"]) == {"001": 18, "002": 4, "003": 32, "004": 32}[attempt] and
+                len(lock["attempts"]) == {"001": 34, "002": 9, "003": 32, "004": 32}[attempt],
                 "all failed and current whole frames retained")
-        current = attempt == "003"
+        current = attempt == ("004" if current_only else "003")
         if current:
             check_current_source(manifest)
             for side in ("oc", "upstream"):
@@ -1285,14 +1286,14 @@ def main():
     global ROOTS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("measure", "pack", "audit"))
-    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
+    parser.add_argument("--campaign", choices=("syntax", "write", "write-r2", "write-r3", "wrap", "root", "root-diagnostics", "hover", "raster", "caret", "mcp-label", "shell-wrap", "shell-wrap-r2", "shell-wrap-r3", "shell-wrap-diagnostics", "middle-tabs", "rail-width", "compact-layout", "compact-controls-r3", "compact-controls-diagnostics", "vis12", "vis12-wrap", "vis36-auto", "vis36-settings", "vis37", "vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12", *TEMPORAL_PROFILES), default="syntax")
     args = parser.parse_args()
     source_count = 704
     inventory_stages = None
     temporal_profile = args.campaign if args.campaign in TEMPORAL_PROFILES else None
     temporal_only = args.campaign == "caret" or temporal_profile is not None
-    if args.campaign == "vis36-auto":
-        ROOTS = vis36_auto_roots()
+    if args.campaign in ("vis36-auto", "vis36-settings"):
+        ROOTS = vis36_auto_roots(args.campaign == "vis36-settings")
     elif args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
         ROOTS = vis37_form_roots(args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
     elif args.campaign == "vis37":
@@ -1376,8 +1377,8 @@ def main():
     tail_campaign = args.campaign == "raster" or label_campaign
     hover_campaign = args.campaign == "hover" or tail_campaign
     def checks(files):
-        if args.campaign == "vis36-auto":
-            return vis36_auto_checks(files)
+        if args.campaign in ("vis36-auto", "vis36-settings"):
+            return vis36_auto_checks(files, args.campaign == "vis36-settings")
         if args.campaign in ("vis37-form", "vis37-form-r4", "vis37-form-r5", "vis37-form-r6", "vis37-form-r7", "vis37-form-r8", "vis37-form-r9", "vis37-form-r10", "vis37-form-r11", "vis37-form-r12"):
             return vis37_form_checks(files, args.campaign != "vis37-form", {"vis37-form-r5": "005", "vis37-form-r6": "006", "vis37-form-r7": "007", "vis37-form-r8": "008", "vis37-form-r9": "009", "vis37-form-r10": "010", "vis37-form-r11": "011", "vis37-form-r12": "012"}.get(args.campaign, "004"))
         if args.campaign == "vis37":

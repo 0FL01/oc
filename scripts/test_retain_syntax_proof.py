@@ -16,10 +16,13 @@ class SyntaxProofRetentionTests(unittest.TestCase):
         native, original = str(proof.REPO / "target/debug/oc"), str(proof.TEMP / "t44-reference/package/bin/opencode")
         roots = proof.vis36_auto_roots()
         self.assertEqual(len(roots), 9)
-        for attempt, profile in (("001", "cli-wide"), ("002", "cli-wide-r2"), ("003", "cli-wide-r3")):
-            period = "current" if attempt == "003" else "failed-" + attempt
-            self.assertEqual(roots[period], proof.TEMP / ("vis36-mode-current-" + attempt) / profile)
-            self.assertEqual(roots[period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
+        current = proof.vis36_auto_roots(True)
+        self.assertEqual(set(current), {"current", "current-logs", "current-driver"})
+        for attempt, profile in (("001", "cli-wide"), ("002", "cli-wide-r2"), ("003", "cli-wide-r3"), ("004", "cli-wide-r4")):
+            period = "current" if attempt in ("003", "004") else "failed-" + attempt
+            selected = current if attempt == "004" else roots
+            self.assertEqual(selected[period], proof.TEMP / ("vis36-mode-current-" + attempt) / profile)
+            self.assertEqual(selected[period + "-driver"], proof.TEMP / ("vis36-mode-capture-r" + str(int(attempt)) + ".py"))
             lock = {"oc": {"executable_path": native, "build_command": ["cargo", "build", "--locked"]},
                     "upstream": {"executable_path": original}, "runner_hashes": hashes,
                     "sources": {"upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"},
@@ -27,7 +30,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             argv = ["node", str(proof.REPO / "scripts/tui_capture/capture.mjs"), "--reference", original, "--oc", native,
                     "--build-oc", "true", "--geometry", "true", "--sample", "short", "--sidebar", "hide",
                     "--permission", "true", "--permission-mode", "auto-cli", "--columns", "121", "--rows", "40",
-                    "--output", str(roots[period])]
+                    "--output", str(selected[period])]
             commands = [{"role": "capture runner invocation", "argv": argv},
                         {"argv": ["cargo", "build", "--locked"], "exit_code": 0}]
             proof.check_vis36_auto_build(lock, manifest, commands, attempt)
@@ -39,7 +42,7 @@ class SyntaxProofRetentionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 proof.check_vis36_auto_build(lock, manifest, commands + commands[1:], attempt)
             with self.assertRaises(ValueError):
-                proof.check_vis36_auto_build(lock, manifest, commands, "004")
+                proof.check_vis36_auto_build(lock, manifest, commands, "005")
             with self.assertRaises(ValueError):
                 proof.check_vis36_auto_build(lock, {**manifest, "scripts/tui_capture/permission_fixture.py": "b" * 64}, commands, attempt)
 

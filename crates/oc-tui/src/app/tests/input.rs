@@ -184,6 +184,48 @@ async fn vis37_visible_modal_keeps_input_ownership_when_question_arrives() {
 }
 
 #[tokio::test]
+async fn vis36_settings_mode_ack_keeps_filter_selection_and_search_caret() {
+    use ratatui::{Terminal, backend::TestBackend};
+
+    let mut state = fresh_state("vis36-settings-filter").await;
+    state.handle_paste("untouched composer Ω界");
+    state.panel = TuiPanel::Settings;
+    state.handle_paste("Permissions");
+    let mut terminal = Terminal::new(TestBackend::new(121, 40)).unwrap();
+    terminal
+        .draw(|frame| crate::views::render_frame(frame, &state))
+        .unwrap();
+    let caret = terminal.get_cursor_position().unwrap();
+    let selected = state.modal_options()[state.select.cursor].value.clone();
+    assert_eq!(selected, "permissions");
+    assert_eq!(state.select.query, "Permissions");
+
+    for auto_once in [true, false] {
+        assert!(matches!(
+            state.handle_panel_key(KeyAction::Enter).intent,
+            Some(PanelIntent::SetPermissionMode { auto_once: next }) if next == auto_once
+        ));
+        // The application ACK updates the saved value; DialogSelect retains
+        // its independent filter and focused option, as the pinned Settings does.
+        state.chrome.permissions_auto = auto_once;
+        state.permission_mode_applied();
+        assert_eq!(state.panel, TuiPanel::Settings);
+        assert_eq!(state.select.query, "Permissions");
+        assert_eq!(state.modal_options()[state.select.cursor].value, selected);
+        assert_eq!(
+            state.modal_options()[state.select.cursor].footer,
+            if auto_once { "auto accept" } else { "prompt" }
+        );
+        terminal
+            .draw(|frame| crate::views::render_frame(frame, &state))
+            .unwrap();
+        assert_eq!(terminal.get_cursor_position().unwrap(), caret);
+        assert_eq!(state.input(), "untouched composer Ω界");
+        assert!(!state.has_pending_submission());
+    }
+}
+
+#[tokio::test]
 async fn cfg10_diagnostic_details_copy_and_investigation_never_touch_prompt_or_submit() {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use oc_core::queries::{

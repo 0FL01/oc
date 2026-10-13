@@ -1189,3 +1189,42 @@ legacy-reader printed prior-prefix quota is not current allocation. Same1GiB/16M
 Next actual Settings filter reset after modeACK; preserve query/selection and acquire
 current paired pixels/cursor. Continue ALL frozen R1–R6/VIS01–45/supplements and final
 current-sourceR6/V09; checked major commit/push, no finish on local behavioral PASS.
+
+## 2026-10-13 — VIS36 Settings query survives permission-mode ACK
+
+Receipt: `evidence/tui/vis36-settings-qualified.md`; T44 remains ACTIVE_NOT_PASS.
+Pinned DialogConfig updates the setting without clearing DialogSelect filter.
+Actual RED reproduced native Permissions→empty Search after ownerACK. Existing
+select owner now syncs cursor, not reset; public API/businesspolicy/RAW/guards intact.
+New whole-frame typed test retains query/selection/caret/value/Unicode draft for
+Autoaccept and Prompt. Old owner assertion alone contradicted pinned semantics;
+updated filtered-row and separate first-Escape-clear/second-Escape-close checks.
+Two targeted TUI/seven actual owner/Python70/strictClippy PASS; all failures retained.
+
+Fresh004 both38behaviorPASS,32wholePNGs/32strictcomparisons ALLDIFFERENT. Each18valid
+18complete16main2title/8calls11ROsnapshots2naturalexit0/zeroAlwaysgrants/rootchildOnce/
+mixedDeny/actualpatchShellread/relaunch CLIpriority verified. Relaunch is fresh root,
+not same-root restart; SQLiteRO notCoreEvent/syscallproof. Query glyph styles equal;
+one-column odd-width dialog offset remains separate and visible. Whole16pairs77440
+cells10444800pixels20318celldiff2395128pixeldiff9of16cursorsagree; no pixelPASS claim.
+
+212files22071995logicalB/2same-sideoriginalPNGaliases retained1261404B;
+archive`ae2e5454ca6d689bed736985caa492f80e91cde8647257b9afed1f61583e8785`.
+ManualsingleXZUSTAR EVERYoriginal inverse/metadata/current713actualELFs/111priorproof
+byteMETA/helpers/fullindependentrecount PASS. IndependentVmPeak156418048<384MiB.
+Source713`cf12d8212bce7376843892f5b3598b4053e1f2e2dcdf13efd733b4d85e5e8272`;
+native`e48b61c11bb6667f8725bddd10dc5ab0cb4a48a164f465d602f82bfad59d38ba`.
+Capturedproducera8d7 separate fromdeliveryHEAD; historical003 flags/data immutable.
+
+Actualcurrentworkspace1865/0/11unchangedignore46targets/TUI531/PTY58,strictClippy/fmt/
+lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/Python70 PASS. Complete
+RED/old-owner-expectation failure/success command bytes retained with independent
+manual inverse in gatebundle; no baseline/timeout/ignore/validation weakening.
+Own untrackedactualFAILEDmodel00669files3dirmeta losslesslyarchived/PAXinverse/
+FAILEDpointer/3MiBreserve; only verified redundant private copy removed, notproof.
+5632000allocatedB reclaimed; model003PASSbehaviorDIFFERENT nottreatedasFAILED.
+Post004report allocation1069088768/headroom4653056 BEFOREdeliveryreceipt/gatebundle;
+finalactualrecount authoritative/additivevis36scope. Same1GiB/16MiB/128MiB/2000/
+dict16decoder32/hardAS384, noqualifieddeletion/offload/reencoding/capraise.
+Next odd-width dialog geometry via existingowner; all frozen R1–R6/VIS01–45/
+supplements and finalcurrent-sourceR6/V09 still required. No finish on this slice.

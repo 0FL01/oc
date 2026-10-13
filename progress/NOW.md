@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T00:00:49+00:00
+State updated: 2026-10-13T00:46:05+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,44 +14,44 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-T44 ACTIVE_NOT_PASS. VIS36 CLI aliases/atomic effective approval consumer qualified.
-Hidden yolo/dangerously-skip-permissions use same global auto bool. Settings saved
-Prompt and process CLI override publish in one existing owner command/save-first;
-FIFO barrier RED→GREEN, no temporary Prompt consumer. Existing APIs/security/RAW/
-Deny/preimage/child binding unchanged. Source713 d3d02ec520b6f7f5cf9511244ead95ef15e12e1e1ff1bf46157f8a96011dbefe;
-native34e06ce943f45c4c067903b0ddd2469168f1fd245562860666afdc7506aa5a1c.
+T44 ACTIVE_NOT_PASS. VIS36 Settings filter after modeACK fixed/qualified.
+Pinned DialogConfig retains query; native select owner now syncs cursor, notreset.
+PublicAPI/approvalbusinesspolicy/RAW/schema/config/security unchanged. New wholeframe
+test retains query/selection/caret/value/Unicode draft. Old owner expectation alone
+corrected to pinned semantics, firstEscape clears filter/secondEscape closes.
+Source713 cf12d8212bce7376843892f5b3598b4053e1f2e2dcdf13efd733b4d85e5e8272;
+nativee48b61c11bb6667f8725bddd10dc5ab0cb4a48a164f465d602f82bfad59d38ba.
 
 ## Checks
 
-Seven typed owner cases/current pending/new/rootchild/Prompt restore/errorACK/
-reload/cancel; actualaliases Ask/Deny/help/config-only refusal and QuestionRequired.
-Currentworkspace1864/0/11 unchangedignore46targets/TUI530/PTY58; strictClippy/fmt/
-lockedordinarydebugbuildhelp/lockedreleasebuildhelp/release9/Python70 PASS.
-Current003 BOTH38behaviorPASS, each18valid18complete16main2title/8calls11ROsnapshots/
-2naturalexit0/zeroAlwaysgrants/rootchildSettingsrelaunch. Actual fresh root on restart.
-363files36387917B/6same-sideoriginalPNGaliases/1799324B archive retained with all
-failed001002 bytes/effects. ManualsingleXZUSTAR/sourceELFs/105priorproofbyteMETA
-inverse and independentfull16pairs32PNGs77440cells10444800pixels PASS;14122cells
-1495640pixelsdifferent/11of16cursorsmatch/ALL32strictDIFFERENT. FullVIS36NOTPASS.
-Receipt evidence/tui/vis36-auto-qualified.md; completefailed/successcommandbundle.
+2VIS36TUI/sevenactualowner/Python70/strictClippy PASS; RED/oldassert failure retained.
+Currentworkspace1865/0/11unchangedignore46targets/TUI531/PTY58; fmt/lockedordinary
+debugbuildhelp/lockedreleasebuildhelp/actualrelease9 PASS. Docs/progress/diff checked.
+Fresh004 BOTH38behaviorPASS/eacheighteenvalid18complete16main2title8calls11ROsnapshots
+2naturalexit0/nogrants/rootchildOnce/mixedDeny/relaunch effects. Freshrootonrelaunch.
+212files22071995B/2same-sideoriginalPNGaliases/1261404Barchive manualsingleXZUSTAR
+EVERYbyte inverse/sourceELFs/111priorproofbyteMETA/recount PASS. Full16pairs32PNGs
+77440cells10444800pixels20318celldiff2395128pixeldiff9of16cursorsmatch/ALL32DIFFERENT.
+Receipt evidence/tui/vis36-settings-qualified.md; full command gatebundle retained.
 
 ## Risks
 
-No current-sourceR6/V09/T44PASS. Historical012flags/proofs unchanged. SQLite RO
-snapshots notCoreEvent/syscallproof; actual typed owner ordering separate. Recorded
-producer601006 separate fromdeliveryHEAD. Fixturestrictadmissionfailures preserved,
-no schema injection/model allowlist or paid generation. Observer38/37naturalstages/
-queriedtables/firstEscape refinements recorded, no omitted metric/state.
-Additivevis36-prefix currentallocation1073123328/headroom618496 BEFOREdelivery;
-legacyreaderprintedoldscopequotaNOTcurrent. Same1GiB/16MiBfileencoded128MiBTARlogical/
-2000members/dict16decoder32hardAS384; noqualifieddeletion/offload/reencoding/capraise.
+No wholeVIS36/R6/V09/T44PASS. Historical003flags/oldproofs unchanged; capturedproducer
+a8d7 separate fromdeliveryHEAD. Queryglyphstyles equal, odd-width dialogonecolumn
+offset stillvisible; notallSettingsdiffs attributedtofilter. SQLiteRO notCoreEvent/
+syscallproof; realtypedowner ordering separate. No oldepisode replay/mask/tolerance.
+OwnactualFAILEDmodel00669files3dirmeta losslessPAXinverse/FAILEDpointer/reserve passed;
+5632000allocatedB reclaimed onlyverifiedduplicate. model003PASSbehaviorDIFFERENT safe.
+Post004report actualallocation1069088768/headroom4653056 BEFOREreceipt/gatebundle,
+finalrecount authoritative/additivevis36scope. Same1GiB/16MiBfileencoded128MiBTAR/
+logical2000members/dict16decoder32/hardAS384/noqualifieddeletion/offload/capraise.
 
 ## Next
 
-Review exact stage/ordinarycommit/push major slice. Fix actualSettings query reset
-after modeACK using existingselect owner; preservequery/selection and qualifypaired
-frames/cursor without attributing allSettingsdiffs tothatgap. Continue every frozen
-R1–R6/VIS01–45/supplement; finalcurrent-sourceR6/V09andfullclosure stillrequired.
+Exactreview/ordinarycommit/push major slice. Sourceverify/fixodd-widthDialogSelect
+centering with sharedowner/fullframes/cursor; preserve currentfilterpriority/draft.
+Continue ALL frozenR1–R6/VIS01–45/supplements; finalcurrent-sourceR6/V09/fullclosure
+mandatory. Do not finish on local behavioral PASS.
 
 
 Ready (до 5): T58, T59

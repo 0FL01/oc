@@ -1118,10 +1118,10 @@ impl TuiState {
         }
     }
 
-    /// Owner ACK returns Settings to its unfiltered main list.
+    /// Owner ACK changes the saved value, not DialogSelect's filter or focus.
     pub fn permission_mode_applied(&mut self) {
         if self.panel == TuiPanel::Settings {
-            self.select.reset();
+            self.sync_modal_cursor();
         }
     }
 

@@ -498,6 +498,14 @@ async fn prepared_patch_geometry_cache_busy_add_rejection_and_palette_are_real()
         .unwrap();
     assert_eq!(state.modal_options()[0].footer, "auto accept");
     assert!(app.catalog().await.unwrap().chrome.permissions_auto);
+    for width in [79, 80, 120, 121] {
+        let rows = oc_tui::views::render_test(&state, width, 40);
+        assert!(rows[13].contains("permission"));
+        assert!(rows[16].contains("Permissions") && rows[16].contains("auto accept"));
+    }
+    assert_eq!(state.modal_options().len(), 1);
+    state.handle_panel_key(KeyAction::Cancel);
+    assert_eq!(state.panel(), &TuiPanel::Settings);
     assert!(oc_tui::views::render_test(&state, 80, 40)[13].contains("Search"));
     state.handle_panel_key(KeyAction::Cancel);
     assert_eq!(state.panel(), &TuiPanel::None);
