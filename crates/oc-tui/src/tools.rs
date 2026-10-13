@@ -1646,22 +1646,27 @@ pub(crate) fn generic_block_expanded(
     } else {
         (width as usize).saturating_sub(padding).max(1)
     };
-    let mut rows =
-        styled::wrap_line_limited(&Line::styled(label, label_style), available, usize::MAX)
-            .iter()
-            .enumerate()
-            .map(|(index, line)| {
-                let mut spans = vec![Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING))];
-                if index == 0 {
-                    spans.push(Span::styled(icon, style));
-                    spans.push(Span::plain(" "));
-                } else {
-                    spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH)));
-                }
-                spans.extend_from_slice(line.spans());
-                Line::new(spans)
-            })
-            .collect::<Vec<_>>();
+    // InlineToolRow's word-wrapped text owns a fitting source separator at the
+    // previous row's end; unoccupied canvas cells keep their own default style.
+    let mut rows = styled::wrap_source_space_line_limited(
+        &Line::styled(label, label_style),
+        available,
+        usize::MAX,
+    )
+    .iter()
+    .enumerate()
+    .map(|(index, line)| {
+        let mut spans = vec![Span::plain(" ".repeat(crate::messages::MESSAGE_PADDING))];
+        if index == 0 {
+            spans.push(Span::styled(icon, style));
+            spans.push(Span::plain(" "));
+        } else {
+            spans.push(Span::plain(" ".repeat(TOOL_ICON_WIDTH)));
+        }
+        spans.extend_from_slice(line.spans());
+        Line::new(spans)
+    })
+    .collect::<Vec<_>>();
     if !expanded {
         return rows;
     }

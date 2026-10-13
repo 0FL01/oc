@@ -1593,3 +1593,77 @@ ordinaryELF/help distinction. Checkpoint144 T44 ACTIVE, allT59/foreignfields int
 Read-only pre-stage/post-push source/ELF/alloriginal/DIR/prior/newarchive/gates/quota
 checks govern final delivery. CONTINUE full frozenR1–R6/VIS01–45/supplements/
 finalcurrentR6V09; no finish, task switch or acceptance reduction.
+
+## 2026-10-13 — Generic/MCP source-space wrap correction; interrupted delivery
+
+Base bf0cfecd7. Exact Prompt007 source separator diagnosed through pinned
+GenericTool/InlineToolRow and OpenTUI0.5.10 fitting-whitespace chunk semantics.
+Generic header now reuses source-space wrapping; full painted TestBackend buffers,
+cached/uncached/indexed/page totals and RAW identity regression RED11/1 → GREEN12/0.
+One retained intermediate test geometry mistake77vs75; no coordinate paint hack
+or aggregate retention/security/permission/Shell/busy-close weakening.
+Fresh full Prompt008 two profiles51states each: allfour112behaviorchecks,
+26valid26complete24main2title14calls34RO2naturalexit0 per side/profile.
+Historical independent102pairs408000cells55031040pixels ALLgrid/PNG DIFFERENT,
+86cursors equal; complete wide26–27/small25–27 summary rows now equal everyfield.
+Observed full workspace1875/0/11/all46, affectedcrate537/0, strictClippy/fmt,
+debuglocked+ordinary/help/releaselocked/help/Python71/actualrelease9 returned0.
+Initial external1200000ms observer interruption preserved, childexitUNKNOWN;
+unchanged serial suite completed with longer outer observer allowance.
+Unexpected concurrent Cargo.lock/adaptersCargo.toml and11newcodemode source files
+changed source715captured36501a6b… to726observed6a6ccf93… during gate episode.
+Read-only current-source observer correctly refused; gate source attribution
+unsealed, no current-source/R6V09 PASS. Build/stage/commit/push stopped, foreignwork
+untouched. Capturedebug84a8bc86… distinct from laterobserved974619b2…;
+capturetime oldrelease dbac351c… distinct from later4c8e6fec…; Original2b082 intact.
+Full634member/profile archives+gates use independent manualXZUSTAR everybyte/meta/
+alias/DIR inverse;209priorproofs21867originalfiles509DIRs+helpers preserved.
+All quotas/caps unchanged, no cleanup/offload. Receipt evidence/tui/vis36-wrap.md.
+Checkpoint145 ACTIVE, T59/allunrelatedtasks unchanged. Slice UNCOMMITTED/UNPUSHED;
+parent re-establishes sole ownership, resolves foreignwork and requalifies actual
+source before ordinary exact reviewed delivery, then full frozen mission continues.
+
+## 2026-10-14 — Resume on committed Code Mode base; current offline gates
+
+Runtime base is 51aa7a6be, with the inherited reviewed Generic source-separator
+patch intact. Dedicated opencode account, default three build jobs/two test
+threads, private approved TMPDIR. No foreign source reset or runner/config/env
+changes. Current workspace: 1900 passed, zero failed, 12 existing opt-in ignored,
+46 completed targets. Targeted presentation suite 12/0; initial outer120s run
+expired after compilation with the remaining test unfinished, unchanged600s
+observer completed. Current strict workspace Clippy, fmt, locked debug/release
+builds and both help invocations PASS; Python71/0, docs/progress structure and
+diff whitespace checks PASS. Release9 rebuilt-binary/resource gates are running
+serially with owned records in .local/evidence/t44-resume-20261014; not yet PASS.
+
+Current Code Mode default exposed a real acquisition-fixture blocker: Native
+VIS36 asked for a direct MCP name but omitted codemode:false. Extended the
+existing six-cell origin/mode fixture regression: three Native failures, all
+Original modes unchanged; literal direct-mode opt-out restores GREEN1/0. No
+runtime default, exposure/security or real effects changed.
+
+Independent read-only analysis finds no second isolated Generic-header render
+bug in retained Prompt008. Remaining MCP frame differences include real wall
+clock duration and different edit/apply_patch denied operations. Whole frames
+remain DIFFERENT, not VIS36/T44 PASS. A bounded developer-clock experiment is
+retained under approved scratch t44-clock-probe-SdDQWE: both actual unchanged
+binaries exit0 after real local fake Responses generations (four total HTTP
+requests, no tools/paid API), frozen Original user/completion timestamps equal
+1791849600000 and Native stored display.duration_ms equals0. Physical20s parent
+watchdog stays real. This establishes clock feasibility only: no new paired
+capture or temporal/resource qualification is claimed. The shim is not in the
+product or registered capture runner. Actual Home version0.1.0 versus Original
+2.0.12 and independently chosen hint values are visible diagnostics; not renderer
+constants to overwrite and not waived pixel differences.
+
+All old receipts/leaves/producers/proofs remain historical and unchanged. The
+old historical helper correctly refuses current task fields after T60 was added;
+its frozen assertions were not weakened. T44 stays ACTIVE, no finish/acceptance
+reduction; full R1–R6/VIS01–45/current paired evidence and final delivery remain.
+
+Follow-up after checkpoint146: all seven serial release gate commands returned0;
+independent log-summary readback confirms 9 passed, zero failed/ignored (startup2,
+panic1, VIS31 2, S07 1, VIS38 1, AUD32 1, TERM01 1). No test count/cap/deadline was
+raised. Actual Git HEAD remains51aa7a6be; reviewed runtime/source diff unchanged.
+This closes current offline/rebuilt-binary regression checks for this slice, not
+whole-frame T44 qualification or overall GOAL delivery.

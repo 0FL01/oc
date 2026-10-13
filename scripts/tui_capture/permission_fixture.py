@@ -50,7 +50,7 @@ def configure(spec, home, project, config, cli):
     else:
         config['permissions'] = {'*':'ask','subagent':'allow','apply_patch':{'*':'deny','approval.txt':'ask','denied.txt':'deny'}}
         config['agent'] = {'vis36-child':{'mode':'subagent','prompt':'Isolated VIS36 child; follow the supplied task.'}}
-        config['mcp'] = {'vis36':{'type':'local','command':['/usr/bin/python3',str(home/'vis36-mcp.py')],'enabled':True}}
+        config['mcp'] = {'vis36':{'type':'local','command':['/usr/bin/python3',str(home/'vis36-mcp.py')],'enabled':True,'codemode':False}}
     (home/'vis36-mcp.py').write_text((__import__('pathlib').Path(__file__).parent/'permission_mcp.py').read_text())
     cli['session']['permissions'] = 'autoaccept' if spec.get('permission_mode') == 'auto-config' else 'prompt'
     if spec.get('permission_mode') in ('auto-config','auto-cli'):

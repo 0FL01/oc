@@ -962,6 +962,156 @@ fn generic_denial_and_capture_state_remain_distinct_from_failures_and_view_loss(
 }
 
 #[test]
+fn generic_summary_paints_only_fitting_source_wrap_separators() {
+    use crate::{
+        history::HistoryRow,
+        messages::{MarkdownCache, transcript_with_expansion, visible_transcript_expanded},
+    };
+    use oc_core::tool_output::McpLabel;
+    use ratatui::{Terminal, backend::TestBackend, style::Color, widgets::Paragraph};
+    use std::cell::RefCell;
+
+    let theme = Theme::dark();
+    let mut row = operation(
+        "vis36__echo",
+        "bounded real output",
+        Some(Presentation::label(McpLabel {
+            text: "vis36_echo".into(),
+            limited: false,
+        })),
+    );
+    row.input = Some(
+        serde_json::json!({"message": format!("bounded real call {}", "wrap words ".repeat(12))})
+            .to_string(),
+    );
+    let original = row.clone();
+    let card = card_from_row(&row);
+    let ToolRender::Inline(inline) = &card.render else {
+        panic!("Generic MCP")
+    };
+    let paint = |lines: Vec<Line>, width| {
+        let mut terminal = Terminal::new(TestBackend::new(width, 80)).unwrap();
+        terminal
+            .draw(|frame| {
+                frame.render_widget(
+                    Paragraph::new(styled::Lines::from(lines).into_text()).style(
+                        ratatui::style::Style::default()
+                            .fg(Color::White)
+                            .bg(theme.background()),
+                    ),
+                    frame.area(),
+                );
+            })
+            .unwrap();
+        terminal.backend().buffer().clone()
+    };
+    // Literal source glyph boundaries from the pinned Original Prompt007 full
+    // grids (121/79 columns, two-cell outer margins). OpenTUI's word wrapper
+    // keeps a fitting separator, but drops one overflowing an exactly full row.
+    // Expectations do not use the native wrapper or recolor canvas whitespace.
+    for (width, labels) in [
+        (
+            117,
+            vec![
+                "vis36_echo [message=bounded real call wrap words wrap words wrap words wrap words wrap words wrap words wrap ",
+                "words wrap words wrap words wrap words wrap words wrap words ]",
+            ],
+        ),
+        (
+            75,
+            vec![
+                "vis36_echo [message=bounded real call wrap words wrap words wrap words",
+                "wrap words wrap words wrap words wrap words wrap words wrap words wrap",
+                "words wrap words wrap words ]",
+            ],
+        ),
+    ] {
+        let source_style = ratatui::style::Style::default().fg(theme.text_muted());
+        let expected = labels
+            .iter()
+            .enumerate()
+            .map(|(index, label)| {
+                let mut spans = vec![Span::plain("   ")];
+                if index == 0 {
+                    spans.extend([Span::styled("✓", source_style), Span::plain(" ")]);
+                } else {
+                    spans.push(Span::plain("  "));
+                }
+                spans.push(Span::styled(*label, source_style));
+                Line::new(spans)
+            })
+            .collect::<Vec<_>>();
+        let block = generic_block_expanded(inline, &card, theme, width, false);
+        assert_eq!(block.len(), expected.len());
+        assert_eq!(paint(block, width), paint(expected.clone(), width));
+
+        let rows = [HistoryRow {
+            message_id: None,
+            seq: 1,
+            role: "tool".into(),
+            text: String::new(),
+            agent: None,
+            agent_color_index: None,
+            chips: Vec::new(),
+            reasoning: None,
+            child_notice: None,
+            shell_notice: None,
+            meta: None,
+            tool: Some(card.clone()),
+        }];
+        let cache = RefCell::new(MarkdownCache::default());
+        for cached in [None, Some(&cache)] {
+            let full = transcript_with_expansion(
+                &rows,
+                theme,
+                width,
+                width,
+                |_| theme.text(),
+                cached,
+                &|_| false,
+            );
+            let mut expected_full = vec![Line::plain("")];
+            expected_full.extend(expected.clone());
+            assert_eq!(paint(full, width), paint(expected_full, width));
+        }
+        let (visible, total) = visible_transcript_expanded(
+            &rows,
+            theme,
+            (width, width),
+            (80, 0, None),
+            |_| theme.text(),
+            &cache,
+            &|_| false,
+        );
+        assert_eq!(total, expected.len() + 2);
+        assert_eq!(
+            paint(visible[2..].to_vec(), width),
+            paint(expected.clone(), width)
+        );
+        for offset in 0..expected.len() {
+            let (page, page_total) = visible_transcript_expanded(
+                &rows,
+                theme,
+                (width, width),
+                (1, offset, None),
+                |_| theme.text(),
+                &cache,
+                &|_| false,
+            );
+            assert_eq!(page_total, total);
+            assert_eq!(
+                paint(page, width),
+                paint(vec![expected[expected.len() - 1 - offset].clone()], width)
+            );
+        }
+    }
+    assert_eq!(
+        row, original,
+        "paint leaves RAW, wire identity and operation unchanged"
+    );
+}
+
+#[test]
 fn generic_parameters_body_and_click_extents_match_full_and_indexed_projection() {
     use crate::{
         history::HistoryRow,

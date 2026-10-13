@@ -1141,8 +1141,8 @@ VIS36_PROMPT_STAGES = ("home once-ask once-newhome once-returned-ask once-fullsc
 
 def vis36_prompt_roots(profile, attempt="001"):
     require(profile in ("wide", "small"), "fixed Prompt profile")
-    require(attempt in ("001", "002", "003", "004", "005", "006", "007"), "fixed Prompt attempt")
-    revision = {"001": "r1", "002": "r2", "003": "r3", "004": "r4", "005": "r5", "006": "r6", "007": "r7"}[attempt]
+    require(attempt in ("001", "002", "003", "004", "005", "006", "007", "008"), "fixed Prompt attempt")
+    revision = {"001": "r1", "002": "r2", "003": "r3", "004": "r4", "005": "r5", "006": "r6", "007": "r7", "008": "r8"}[attempt]
     root = TEMP / ("vis36-prompt-current-" + attempt)
     return {"current": root / ("prompt-" + profile + "-" + revision), "current-logs": root,
             "current-driver": TEMP / ("vis36-prompt-capture-" + revision + ".py")}
@@ -1212,7 +1212,7 @@ def vis36_prompt_checks(files, profile, attempt="001"):
     # Prompt004 adds two owner test modules. Exact acquisition membership and
     # every current source byte are still checked below; older campaigns retain
     # their frozen count.
-    check_source_manifest(lock, manifest, 715 if attempt in ("004", "005", "006", "007") else 713)
+    check_source_manifest(lock, manifest, 715 if attempt in ("004", "005", "006", "007", "008") else 713)
     check_current_source(manifest)
     check_vis36_prompt_build(lock, manifest, read("commands.json"), profile, attempt)
     require(len(lock["captures"]) == 102 and len(lock["attempts"]) == 102 and

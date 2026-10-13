@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-13T18:33:32+00:00
+State updated: 2026-10-13T22:05:34+00:00
 Active: T44
 
 Сверить Git status/diff до выполнения команд.
@@ -14,38 +14,41 @@ Full frozen R1-R6/VIS01-VIS45 and supplements remain in spec, T44_CONTRACT_AMEND
 
 ## Result
 
-Generic/MCP primitive summary corrected at the structured presentation owner,
-with existing finite aggregate retention bounds. Long Unicode/key/value/fifth
-primitive/cached-indexed-click/RAW regression and trailing-space RED both fixed.
-Receipt: evidence/tui/vis36-generic-summary.md; immutable Prompt006 intermediate
-and final full Prompt007. T44 remains ACTIVE_NOT_PASS.
+Resumed T44 on actual committed Code Mode HEAD51aa7a6be; inherited Generic wrap
+patch retained and reviewed. Fixed only VIS36 fixture Native direct-MCP opt-out,
+with existing origin/mode regression REDthreeNative failures → GREEN1/0. No
+product defaults/policy/caps or old proof flags changed. T44 ACTIVE_NOT_PASS.
 
 ## Checks
 
-Current serial workspace1874/0/11/all46, affectedcrate536/0, targeted11/0,
-strictClippy/fmt/debug locked+ordinary/help/release locked/help/Python71/actual
-requiredrelease9 PASS. Final102fullpairs408000cells55031040pixels ALLgrid/PNG
-DIFFERENT;86cursors equal; named y27 full summary row equal bothprofiles.
-Every634original perprofile/metadata/DIR/manualXZUSTAR inverse;195priorproofs/
-19208legacyfiles495DIRs+helpers unchanged. Ordinary debug e1c86b/release dbac351
-distinct from immutable acquisitionrelease b813; actualOriginal2b082 unchanged.
+Workspace1900/0/12opt-inIgnored/all46 targets completed. Presentation12/0;
+Python71/0; fmt/strictworkspaceClippy/lockeddebug+release/help/docs/journal/diff
+checks PASS. Rebuilt release9 gates currently serial background, records under
+.local/evidence/t44-resume-20261014; do not infer completion. Code/runtime source
+is unchanged from reviewed inherited wrap slice during Rust gates; Python fixture
+fix separately verified. No current paired capture PASS.
 
 ## Risks
 
-Six failed complete workspace attempts, one interruption and five failed
-observers retained; final serial PASS does not prove host timing stability.
-Wide summary wrap-blank x115FG and other approval/chrome/detail/cursor/full-frame
-gaps persist. All caps/validation/redaction/RAW/grants/recheck/busyclose/Shell
-guards preserved; no paid API, old-effect replay, deletion/offload or cap raise.
-Old current-source flags are historical, never rewritten/promoted.
+Old Prompt008 all102 grids/PNGs DIFFERENT, old historical helper frozen before
+T60; do not repin/relax or qualify current source from it. Actual elapsed time,
+different denied edit/apply_patch, Home0.1.0/2.0.12 and random hint values are not
+proven common rendering faults. No arbitrary source/model/version paint rewrite.
+Other coordinator processes existed but HEAD/actual tracked source remained
+stable at every observed boundary; do not kill unknown PIDs or share mutations.
+Mandatory paid campaign and operator-auth constraints from prior task receipts
+remain; no new campaign/reset/refund or live credential search.
 
 ## Next
 
-Reviewed ordinary own-branch commit/push with independent pre-stage/post-push
-source/actualELF/all originals/DIR/prior proofs/new archives/gates/actualquota
-checks; return sole mutation ownership. Parent CONTINUES full frozen
-R1–R6/VIS01–VIS45/supplements/finalcurrentR6V09. Keep T44 active checkpoint144;
-preserve T59 and unrelated fields; no finish, blocker status or task switch.
+Receive background rebuilt-release9 result; inspect actual records, source/diff
+and preserve exact delivery. Integrate/prove an explicit developer-only clock
+fixture only if it supplies equivalent states with real external watchdog and
+complete provenance; scratch experiment t44-clock-probe-SdDQWE established only
+same zero elapsed DTOs through both unchanged actual binaries/local Responses.
+All probes retained, no new visual/temporal PASS. Then continue full frozen T44
+and independent approved plans at a safe journal handoff. Preserve unrelated task
+states/user data; no finish until the complete contract and current evidence pass.
 
 
 Ready (до 5): T58, T59, T60
