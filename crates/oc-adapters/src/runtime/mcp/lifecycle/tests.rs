@@ -1,5 +1,177 @@
 use super::*;
 
+fn pending_scope(owner: &McpOwner) -> Scope {
+    Scope {
+        shared: owner.shared.clone(),
+        config: Generation::default(),
+        project: std::path::PathBuf::from("fixture"),
+        env: BTreeMap::new(),
+        activation: None,
+        nodes: BTreeMap::from([(
+            "peer".into(),
+            Node {
+                incarnation: Arc::new(()),
+                row: McpServerSnapshot {
+                    id: "mcp-peer".into(),
+                    name: "peer".into(),
+                    configured_enabled: true,
+                    status: McpStatus::Pending,
+                    pending_action: Some(McpAction::Connect),
+                    tools: 0,
+                    diagnostic: None,
+                    actions: Vec::new(),
+                },
+                source: "native fixture".into(),
+                desired: true,
+                cancel: Some(Arc::new(AtomicBool::new(false))),
+                closing: false,
+                catalogs: [None, None, None],
+                catalog_pending: [false; 3],
+            },
+        )]),
+        generation: McpGeneration::empty(2, owner.shared.wake.clone()),
+        work: JoinSet::new(),
+        retiring: Vec::new(),
+        requests: Vec::new(),
+        lookups: Vec::new(),
+        fatal: None,
+        stopping: false,
+    }
+}
+
+#[test]
+fn hot02_retired_completions_cannot_mutate_replacement_or_hide_cleanup_failure() {
+    let owner = McpOwner::new("fixture", 2);
+    let mut scope = pending_scope(&owner);
+    let current = scope.nodes["peer"].incarnation.clone();
+    let cancel = scope.nodes["peer"].cancel.as_ref().unwrap().clone();
+    let before = scope.nodes["peer"].row.clone();
+    let retired = Arc::new(());
+    for result in [
+        Ok(WorkResult::Refreshed(Vec::new())),
+        Ok(WorkResult::Closed),
+        Err(RuntimeError::McpAttach {
+            server: "peer".into(),
+            stage: "tools-list",
+            safe_code: "transport",
+            retryable: true,
+        }),
+    ] {
+        scope.complete(Completed {
+            server: "peer".into(),
+            incarnation: retired.clone(),
+            refresh: false,
+            result,
+        });
+        assert_eq!(scope.nodes["peer"].row, before);
+        assert!(
+            scope.nodes["peer"]
+                .cancel
+                .as_ref()
+                .is_some_and(|value| Arc::ptr_eq(value, &cancel)),
+            "retired completion consumed the replacement's cancellation/ownership"
+        );
+        assert!(Arc::ptr_eq(&scope.nodes["peer"].incarnation, &current));
+        assert!(!cancel.load(Ordering::SeqCst));
+        assert!(scope.generation.degraded.is_empty());
+    }
+    // Cleanup is not optional just because its connection is no longer current.
+    scope.complete(Completed {
+        server: "peer".into(),
+        incarnation: retired,
+        refresh: false,
+        result: Err(RuntimeError::McpShutdown),
+    });
+    assert_eq!(scope.fatal, Some(RuntimeError::McpShutdown));
+    assert!(scope.stopping);
+    assert!(matches!(
+        owner.request_view(),
+        Err(RuntimeError::McpShutdown)
+    ));
+}
+
+#[tokio::test]
+async fn hot02_late_connected_client_is_hidden_leased_then_reaped_without_touching_replacement() {
+    const STDIO: &str = r#"
+import json, os, pathlib, sys
+pathlib.Path('mcp.pid').write_text(str(os.getpid()))
+for line in sys.stdin:
+    message = json.loads(line)
+    if 'id' not in message: continue
+    result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{}},'serverInfo':{'name':'late','version':'1'}} if message['method'] == 'initialize' else {'tools':[{'name':'old','inputSchema':{'type':'object'}}]}
+    print(json.dumps({'jsonrpc':'2.0','id':message['id'],'result':result}), flush=True)
+"#;
+    let project = tempfile::tempdir().unwrap();
+    let entry = crate::config::McpEntry {
+        kind: "local".into(),
+        command: vec![
+            "/usr/bin/python3".into(),
+            "-u".into(),
+            "-c".into(),
+            STDIO.into(),
+        ],
+        cwd: Some(project.path().to_string_lossy().into_owned()),
+        resource_admitted: true,
+        ..Default::default()
+    };
+    let old = connect_one(
+        "peer",
+        &entry,
+        project.path(),
+        &BTreeMap::new(),
+        &[],
+        &AtomicBool::new(false),
+    )
+    .await
+    .unwrap();
+    let pid: u32 = std::fs::read_to_string(project.path().join("mcp.pid"))
+        .unwrap()
+        .parse()
+        .unwrap();
+    let owner = McpOwner::new("fixture", 2);
+    let mut scope = pending_scope(&owner);
+    let current = scope.nodes["peer"].incarnation.clone();
+    let before = scope.nodes["peer"].row.clone();
+    let mut held = McpGeneration::empty(1, owner.shared.wake.clone());
+    held.servers.push(old.clone());
+    scope.complete(Completed {
+        server: "peer".into(),
+        incarnation: Arc::new(()),
+        refresh: false,
+        result: Ok(WorkResult::Connected(old)),
+    });
+    let hidden = scope.generation.servers.is_empty() && scope.generation.entries.is_empty();
+    let leased = scope.retiring.len() == 1 && scope.work.is_empty();
+    drop(held);
+    scope.drain_retiring();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while let Some(result) = scope.work.join_next().await {
+            scope.complete(result.unwrap());
+        }
+    })
+    .await
+    .unwrap();
+    let unchanged = scope.nodes["peer"].row == before
+        && Arc::ptr_eq(&scope.nodes["peer"].incarnation, &current)
+        && scope.nodes["peer"].cancel.is_some();
+    scope.begin_stop();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while let Some(result) = scope.work.join_next().await {
+            scope.complete(result.unwrap());
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
+    assert!(scope.retiring.is_empty());
+    assert!(hidden, "late success exposed the retired client's registry");
+    assert!(
+        leased,
+        "late success bypassed its existing physical/batch lease"
+    );
+    assert!(unchanged, "old cleanup rewrote the replacement incarnation");
+}
+
 #[test]
 fn completion_warning_union_is_typed_and_exact_binding_scoped() {
     let owner = Arc::new(McpOwner::new("old-location", 7));

@@ -166,6 +166,7 @@ impl Scope {
             node.catalog_pending[slot] = true;
         }
         let client = client.client.clone();
+        let incarnation = node.incarnation.clone();
         let connection = Arc::downgrade(&client);
         let server = server.clone();
         let wake = self.shared.wake.clone();
@@ -192,6 +193,7 @@ impl Scope {
             wake.notify_one();
             Completed {
                 server,
+                incarnation,
                 refresh: false,
                 result: Ok(WorkResult::Lookup(Box::new(LookupCompleted {
                     query,

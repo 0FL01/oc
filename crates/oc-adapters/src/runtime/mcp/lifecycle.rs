@@ -73,6 +73,10 @@ enum Command {
 }
 
 struct Node {
+    /// Retained by every worker for this exact physical connection attempt.
+    /// An old result keeps its allocation alive, so an address cannot be reused
+    /// as a later incarnation while that result can still be delivered.
+    incarnation: Arc<()>,
     row: McpServerSnapshot,
     source: String,
     desired: bool,
@@ -91,6 +95,7 @@ enum WorkResult {
 
 struct Completed {
     server: String,
+    incarnation: Arc<()>,
     refresh: bool,
     result: Result<WorkResult, RuntimeError>,
 }
@@ -105,7 +110,7 @@ struct Scope {
     nodes: BTreeMap<String, Node>,
     generation: McpGeneration,
     work: JoinSet<Completed>,
-    retiring: Vec<(String, Arc<AttachedServer>)>,
+    retiring: Vec<(String, Arc<()>, Arc<AttachedServer>)>,
     requests: Vec<RequestAck>,
     lookups: Vec<LookupActive>,
     fatal: Option<RuntimeError>,
@@ -297,6 +302,7 @@ impl McpOwner {
             nodes.insert(
                 server.clone(),
                 Node {
+                    incarnation: Arc::new(()),
                     row: McpServerSnapshot {
                         id: format!(
                             "mcp-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -578,7 +584,10 @@ impl Scope {
 
     fn connect(&mut self, server: &str, entry: crate::config::McpEntry) {
         let cancel = Arc::new(AtomicBool::new(false));
-        self.nodes.get_mut(server).expect("MCP node").cancel = Some(cancel.clone());
+        let incarnation = Arc::new(());
+        let node = self.nodes.get_mut(server).expect("MCP node");
+        node.incarnation = incarnation.clone();
+        node.cancel = Some(cancel.clone());
         let server = server.to_string();
         let project = self.project.clone();
         let env = self.env.clone();
@@ -591,6 +600,7 @@ impl Scope {
                 .map(WorkResult::Connected);
             Completed {
                 server,
+                incarnation,
                 refresh: false,
                 result,
             }
@@ -686,7 +696,8 @@ impl Scope {
         {
             node.closing = true;
             let entry = self.generation.servers.remove(index);
-            self.retiring.push((server.to_string(), entry.client));
+            self.retiring
+                .push((server.to_string(), node.incarnation.clone(), entry.client));
         } else if node.cancel.is_none() {
             node.row.pending_action = None;
             node.row.status = McpStatus::Disabled;
@@ -695,12 +706,13 @@ impl Scope {
 
     fn drain_retiring(&mut self) {
         let mut waiting = Vec::new();
-        for (server, client) in self.retiring.drain(..) {
+        for (server, incarnation, client) in self.retiring.drain(..) {
             match Arc::try_unwrap(client) {
                 Ok(client) => {
                     self.work.spawn(async move {
                         Completed {
                             server,
+                            incarnation,
                             refresh: false,
                             result: close_client(client)
                                 .await
@@ -709,7 +721,7 @@ impl Scope {
                         }
                     });
                 }
-                Err(client) => waiting.push((server, client)),
+                Err(client) => waiting.push((server, incarnation, client)),
             }
         }
         self.retiring = waiting;
@@ -758,6 +770,34 @@ impl Scope {
             other => other,
         };
         let server = completed.server;
+        if self
+            .nodes
+            .get(&server)
+            .is_none_or(|node| !Arc::ptr_eq(&node.incarnation, &completed.incarnation))
+        {
+            match completed.result {
+                Ok(WorkResult::Connected(client)) => {
+                    // A late successful connect still owns a real process/socket.
+                    // Retire and join it; never expose it under the replacement.
+                    self.retiring
+                        .push((server, completed.incarnation, client.client));
+                }
+                Err(
+                    RuntimeError::McpShutdown
+                    | RuntimeError::McpAttach {
+                        stage: "cleanup", ..
+                    },
+                ) => {
+                    self.generation.cleanup_error.store(true, Ordering::SeqCst);
+                    self.fatal = Some(RuntimeError::McpShutdown);
+                    self.begin_stop();
+                }
+                _ => {}
+            }
+            self.drain_retiring();
+            self.release_requests();
+            return;
+        }
         let node = self.nodes.get_mut(&server).expect("MCP completion scope");
         node.cancel = None;
         // A relist's lease may finish before its result is consumed. A close
@@ -794,7 +834,8 @@ impl Scope {
             }
             Ok(WorkResult::Connected(client)) => {
                 node.closing = true;
-                self.retiring.push((server.clone(), client.client));
+                self.retiring
+                    .push((server.clone(), completed.incarnation.clone(), client.client));
             }
             Ok(WorkResult::Refreshed(registry)) => {
                 if let Some(client) = self
@@ -897,6 +938,7 @@ impl Scope {
             let client = server.client.clone();
             let id = server.server_id.clone();
             let cancel = Arc::new(AtomicBool::new(false));
+            let incarnation = node.incarnation.clone();
             node.cancel = Some(cancel.clone());
             self.work.spawn(async move {
                 let result = list_registry(&id, &client, &cancel).await;
@@ -905,6 +947,7 @@ impl Scope {
                 }
                 Completed {
                     server: id,
+                    incarnation,
                     refresh: true,
                     result: result.map(WorkResult::Refreshed),
                 }
