@@ -103,6 +103,7 @@ fn admission_message(path: &str, failure: AdmissionFailure) -> String {
 
 /// Immutable context of one `execute` invocation shared by its host requests.
 struct Invocation<'a, 'p> {
+    issuing: &'a ExecutionGeneration,
     call: &'a crate::tools::ToolCall,
     session: &'a str,
     turn: &'a str,
@@ -136,6 +137,7 @@ impl Runtime<'_> {
     ) -> Result<(), String> {
         let permitted = self
             .admit_tool(
+                inv.issuing,
                 inv.session,
                 inv.turn,
                 inv.op,
@@ -236,6 +238,7 @@ impl Runtime<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn execute_code_mode(
         &self,
+        issuing: &ExecutionGeneration,
         call: &crate::tools::ToolCall,
         session: &str,
         turn: &str,
@@ -255,6 +258,7 @@ impl Runtime<'_> {
         };
         let (_, catalog) = mcp_tool_defs(attached, policy);
         let inv = Invocation {
+            issuing,
             call,
             session,
             turn,

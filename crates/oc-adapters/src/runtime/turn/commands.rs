@@ -36,6 +36,7 @@ impl Runtime<'_> {
 
     pub(super) async fn admit_command(
         &self,
+        published: &ExecutionGeneration,
         params: &TurnParams<'_>,
         lane: &TurnLane,
         attached: &McpGeneration,
@@ -45,12 +46,7 @@ impl Runtime<'_> {
         let Some(child) = &command.child else {
             return Ok(None);
         };
-        let workspace = self
-            .current
-            .read()
-            .expect("generation lock")
-            .workspace
-            .clone();
+        let workspace = &published.workspace;
         let mut catalog = workspace
             .subagents
             .clone()
@@ -107,7 +103,6 @@ impl Runtime<'_> {
             provider: child_provider(target.provider, &params.provider),
             cancel: params.cancel,
         };
-        let published = self.current.read().expect("generation lock").clone();
         let base = models::select_model(target.catalog, &model.id).map_err(failed)?;
         let fallback = published
             .config
@@ -158,6 +153,7 @@ impl Runtime<'_> {
             roots: Some(self.roots.clone()),
         };
         self.admit_tool(
+            published,
             &params.session,
             &request.call_id,
             &request.call_id,

@@ -135,7 +135,12 @@ fn seed_instructions(runtime: &Runtime<'_>, turn: &str, text: &str) -> String {
     let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
         .with_root(&runtime.roots.project);
     let (revision, sources) = runtime
-        .instruction_sources("s", &policy, &AtomicBool::new(false))
+        .instruction_sources(
+            &runtime.current.read().unwrap(),
+            "s",
+            &policy,
+            &AtomicBool::new(false),
+        )
         .unwrap();
     runtime
         .db

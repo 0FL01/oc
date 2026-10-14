@@ -77,6 +77,7 @@ impl Runtime<'_> {
         };
         let permitted = self
             .admit_tool(
+                &published,
                 params.session,
                 &operation,
                 &operation,

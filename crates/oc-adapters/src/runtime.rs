@@ -1410,9 +1410,7 @@ impl<'a> Runtime<'a> {
         reply: oc_core::question::QuestionReply,
     ) -> Result<(), oc_core::question::QuestionReplyError> {
         use oc_core::question::QuestionReplyError;
-        if reply.binding.generation != self.generation_id()
-            || reply.binding.location != self.location
-        {
+        if reply.binding.location != self.location {
             if let Some(source) = self.child_jobs.source_for(&reply.binding) {
                 return source.reply_question(reply);
             }
@@ -1453,9 +1451,9 @@ impl<'a> Runtime<'a> {
             .ok_or_else(|| {
                 RuntimeError::InvalidArgs("stale or mismatched approval reply".into())
             })?;
-        if request.binding.generation != self.generation_id()
-            || request.binding.location != self.location
-        {
+        // The exact live waiter (including its issuing generation) was matched
+        // above. Publishing a newer view does not revoke that operation.
+        if request.binding.location != self.location {
             if let Some(source) = self.child_jobs.source_for(&reply.binding) {
                 return source.reply_approval(reply);
             }
@@ -1519,11 +1517,11 @@ impl<'a> Runtime<'a> {
 
     fn preflight_compression(
         &self,
+        published: &ExecutionGeneration,
         session: &str,
         call: &crate::tools::ToolCall,
         request_available: bool,
     ) -> Result<crate::dcp::CompressionPlan, String> {
-        let published = self.current.read().expect("generation lock").clone();
         let config = &published.dcp_config;
         if !request_available {
             return Err("compress excluded by issuing request".into());
@@ -1541,7 +1539,7 @@ impl<'a> Runtime<'a> {
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.session_compression_lane(session, &published)?;
         let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
-        self.compression_availability_with_policy(session, &policy)
+        self.compression_availability_with_policy(&published, session, &policy)
     }
 
     /// Current query resolves the requested session's profile without rebinding
@@ -1561,6 +1559,7 @@ impl<'a> Runtime<'a> {
             rules.narrow(&lane.permissions, permissions, profile_rules);
         }
         self.compression_availability_with_policy(
+            &published,
             session,
             &RuntimePolicy::with_rules(&lane.permissions, &rules),
         )
@@ -1568,10 +1567,10 @@ impl<'a> Runtime<'a> {
 
     fn compression_availability_with_policy(
         &self,
+        published: &ExecutionGeneration,
         session: &str,
         policy: &RuntimePolicy<'_>,
     ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
         let config = &published.dcp_config;
         let permission = effective_compress_permission(config, policy);
         let child = self.db.session_meta(session)?.parent_id.is_some();
@@ -1681,6 +1680,30 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::TurnActive);
         }
         Ok(ActiveLease(&self.active))
+    }
+
+    /// Publication numbers attribute work; the active turn, placement and move
+    /// identity fence settlement. Storage retains first-settlement/CAS authority.
+    fn check_issued_turn(&self, log: &TurnLog, session: &str) -> Result<(), RuntimeError> {
+        self.open_session(session)?;
+        let child_operation = log.display["owning_operation"]
+            .as_str()
+            .filter(|operation| *operation != log.turn_id);
+        if (!self.active.load(Ordering::Acquire) && child_operation.is_none())
+            || !self
+                .db
+                .active_turn(&log.turn_id, session, child_operation)?
+            || log.display["location"]
+                .as_str()
+                .is_some_and(|location| location != self.location)
+            || log.display["move_epoch"].as_i64().unwrap_or(0)
+                != self.db.session_move_epoch(session)?
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "issuing turn is no longer active".into(),
+            ));
+        }
+        Ok(())
     }
 
     /// Close the current Location/config generation's MCP resources.

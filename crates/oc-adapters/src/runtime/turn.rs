@@ -928,6 +928,7 @@ impl<'a> Runtime<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn admit_tool<'p>(
         &self,
+        issuing: &ExecutionGeneration,
         session: &str,
         turn: &str,
         op: &str,
@@ -954,12 +955,8 @@ impl<'a> Runtime<'a> {
                 }
             })
             .collect();
-        let compression_permission = (call.name == COMPRESS_TOOL).then(|| {
-            effective_compress_permission(
-                &self.current.read().expect("generation lock").dcp_config,
-                policy,
-            )
-        });
+        let compression_permission = (call.name == COMPRESS_TOOL)
+            .then(|| effective_compress_permission(&issuing.dcp_config, policy));
         let effect = |resource: &str| {
             compression_permission.unwrap_or_else(|| policy.effect(&call.name, resource))
         };
@@ -999,7 +996,7 @@ impl<'a> Runtime<'a> {
             }
         }
         let mut compression_plan = if call.name == COMPRESS_TOOL && renewal.is_none() {
-            Some(self.preflight_compression(session, call, compress_available)?)
+            Some(self.preflight_compression(issuing, session, call, compress_available)?)
         } else {
             None
         };
@@ -1082,7 +1079,7 @@ impl<'a> Runtime<'a> {
                     operation: op.into(),
                     input_digest: digest.clone(),
                     location: self.location.clone(),
-                    generation: self.generation_id(),
+                    generation: issuing.id,
                     agent,
                     agent_digest,
                 },
@@ -1119,7 +1116,8 @@ impl<'a> Runtime<'a> {
             return Err("approval prerequisites changed".into());
         }
         if let Some(plan) = &compression_plan {
-            let rechecked = self.preflight_compression(session, call, compress_available)?;
+            let rechecked =
+                self.preflight_compression(issuing, session, call, compress_available)?;
             if !plan.same_approval_selection(&rechecked) {
                 return Err("approval compression plan changed".into());
             }
@@ -1400,7 +1398,7 @@ impl<'a> Runtime<'a> {
         let mut fixed_input = self.request_fixed_input(lane);
         fixed_input.extend(mcp_instruction_input(attached, &policy));
         let (instruction_revision, instruction_sources) =
-            self.instruction_sources(&params.session, &policy, params.cancel)?;
+            self.instruction_sources(&published, &params.session, &policy, params.cancel)?;
         let prior_instruction_facts = self.db.instruction_view(&params.session)?.1;
         let prior_instruction_input = prior_instruction_facts
             .iter()
@@ -1553,8 +1551,15 @@ impl<'a> Runtime<'a> {
             return Ok(TurnExecution::Admitted);
         }
         let command_admission = if let Some(command) = command {
-            self.admit_command(&params, lane, attached, fresh_selection.is_some(), command)
-                .await?
+            self.admit_command(
+                &published,
+                &params,
+                lane,
+                attached,
+                fresh_selection.is_some(),
+                command,
+            )
+            .await?
         } else {
             None
         };
@@ -3150,6 +3155,7 @@ impl<'a> Runtime<'a> {
                 .checkpoint_turn(&turn_id, &turn_log.to_json().to_string())?;
             let executed = self
                 .execute_units(
+                    &published,
                     &turn_id,
                     &params.session,
                     &units,
@@ -3565,16 +3571,13 @@ impl<'a> Runtime<'a> {
         format!("{parent}-sub-{}-{seq}", next_turn_id(parent, millis()))
     }
 
-    /// Commit durable records under a freshness check, then report.
-    ///
-    /// The assistant message and turn log persist only under the
-    /// still-current generation (DCP08: no half-applied projection).
+    /// Commit durable records under the issuing execution's authority, then report.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn commit_turn(
         &self,
         turn_log: &TurnLog,
         turn_id: String,
-        _session: &str,
+        session: &str,
         status: TurnStatus,
         text: String,
         rounds: u32,
@@ -3583,16 +3586,9 @@ impl<'a> Runtime<'a> {
         context_usage: Option<(u64, u64)>,
         calls: Vec<CallRecord>,
         nudge_hint: Option<String>,
-        published: &PublishedGeneration,
+        _published: &PublishedGeneration,
     ) -> Result<TurnReport, RuntimeError> {
-        if self.generation_id() != published.id {
-            self.db
-                .finish_turn(&turn_id, TurnStatus::Interrupted.as_str(), None)?;
-            return Err(RuntimeError::StaleGeneration {
-                want: published.id,
-                got: self.generation_id(),
-            });
-        }
+        self.check_issued_turn(turn_log, session)?;
         let assistant =
             (status == TurnStatus::Completed && !text.is_empty()).then_some(text.as_str());
         let mut turn_log = turn_log.clone();
@@ -3634,6 +3630,7 @@ impl<'a> Runtime<'a> {
     #[allow(clippy::too_many_arguments)]
     async fn execute_units(
         &self,
+        issuing: &ExecutionGeneration,
         turn_id: &str,
         session: &str,
         units: &[Assembled],
@@ -3657,7 +3654,8 @@ impl<'a> Runtime<'a> {
         request_tools: &[ToolDef],
         lane: &TurnLane,
     ) -> Result<(Vec<CallRecord>, bool, bool), RuntimeError> {
-        let captured_output = self.current.read().expect("generation lock").clone();
+        let captured_output = issuing;
+        self.check_issued_turn(turn_log, session)?;
         let output_secrets = super::mcp::mcp_redactions(&captured_output.config, &self.parent_env);
         let mut records = Vec::new();
         let mut projection_changed = false;
@@ -3681,6 +3679,7 @@ impl<'a> Runtime<'a> {
             if child_end > i {
                 let (child_records, rejected) = self
                     .execute_foreground_children(
+                        issuing,
                         turn_id,
                         session,
                         &units[i..child_end],
@@ -3798,15 +3797,9 @@ impl<'a> Runtime<'a> {
                         "opencode_session_rename" | "opencode_session_move"
                     ) =>
                 {
-                    self.rename_target(session, call).and_then(|()| {
-                        if turn_log.display["config_generation"].as_u64()
-                            == Some(self.generation_id())
-                        {
-                            Ok(())
-                        } else {
-                            Err("stale session generation".into())
-                        }
-                    })
+                    self.check_issued_turn(turn_log, session)
+                        .map_err(|error| error.to_string())
+                        .and_then(|()| self.rename_target(session, call))
                 }
                 _ => Ok(()),
             };
@@ -3915,6 +3908,7 @@ impl<'a> Runtime<'a> {
                             };
                             match self
                                 .admit_tool(
+                                    issuing,
                                     session,
                                     turn_id,
                                     &op,
@@ -3971,6 +3965,7 @@ impl<'a> Runtime<'a> {
                                 };
                                 match self
                                     .admit_tool(
+                                        issuing,
                                         session,
                                         turn_id,
                                         &op,
@@ -4014,6 +4009,7 @@ impl<'a> Runtime<'a> {
                         && (!is_builtin(&call.name) || self.validate_tool_call(call).is_ok()) =>
                 {
                     self.admit_tool(
+                        issuing,
                         session,
                         turn_id,
                         &op,
@@ -4041,14 +4037,10 @@ impl<'a> Runtime<'a> {
                     call.name.as_str(),
                     "opencode_session_rename" | "opencode_session_move"
                 )
-                && let Err(error) = self.rename_target(session, call).and_then(|()| {
-                    if turn_log.display["config_generation"].as_u64() == Some(self.generation_id())
-                    {
-                        Ok(())
-                    } else {
-                        Err("stale session generation".into())
-                    }
-                })
+                && let Err(error) = self
+                    .check_issued_turn(turn_log, session)
+                    .map_err(|error| error.to_string())
+                    .and_then(|()| self.rename_target(session, call))
             {
                 admission = Err(error.into());
             }
@@ -4309,12 +4301,7 @@ impl<'a> Runtime<'a> {
                 && let Assembled::Call(call) = unit
                 && call.name == COMPRESS_TOOL
             {
-                let config = self
-                    .current
-                    .read()
-                    .expect("generation lock")
-                    .dcp_config
-                    .clone();
+                let config = &issuing.dcp_config;
                 let prepared = invocation_policy
                     .permit
                     .as_ref()
@@ -4325,7 +4312,7 @@ impl<'a> Runtime<'a> {
                     .lock()
                     .expect("compression commit lock");
                 let refreshed = self
-                    .preflight_compression(session, call, true)
+                    .preflight_compression(issuing, session, call, true)
                     .map_err(|reason| crate::dcp::DcpError::InvalidArgs { reason })
                     .and_then(|plan| {
                         if prepared.same_approval_selection(&plan) {
@@ -4336,13 +4323,8 @@ impl<'a> Runtime<'a> {
                     });
                 match refreshed {
                     Ok(mut plan) => {
-                        let measured = self.measure_dcp_plan(
-                            session,
-                            &mut plan,
-                            Some(turn_log),
-                            lane,
-                            &config,
-                        );
+                        let measured =
+                            self.measure_dcp_plan(session, &mut plan, Some(turn_log), lane, config);
                         let (strategy_delta, candidate_tool_projection) = match measured {
                             Ok(value) => value,
                             Err(error) => {
@@ -4560,7 +4542,7 @@ impl<'a> Runtime<'a> {
                         }
                     }
                     Assembled::Call(call) if call.name == "opencode_models" => {
-                        let published = self.current.read().expect("generation lock").clone();
+                        let published = issuing;
                         let secrets =
                             super::mcp::mcp_redactions(&published.config, &self.parent_env);
                         let public = if crate::models::lookup::wants_public(
@@ -4687,7 +4669,7 @@ impl<'a> Runtime<'a> {
                                         Sha256::digest(call.arguments.to_string())
                                     ),
                                     location: self.location.clone(),
-                                    generation: self.generation_id(),
+                                    generation: issuing.id,
                                     agent: turn_log.display["agent"].as_str().map(str::to_owned),
                                     agent_digest: turn_log.agent_digest.clone(),
                                 },
@@ -4924,7 +4906,7 @@ impl<'a> Runtime<'a> {
                                 turn: turn_id.into(),
                                 operation: op.clone(),
                                 location: self.location.clone(),
-                                generation: self.generation_id(),
+                                generation: issuing.id,
                                 output_limits: captured_output.config.tool_output,
                                 output_source: crate::config::mcp::safe_source_id(
                                     captured_output
@@ -4990,6 +4972,7 @@ impl<'a> Runtime<'a> {
                     }
                     Assembled::Call(call) if call.name == super::code_mode::EXECUTE_TOOL => {
                         self.execute_code_mode(
+                            issuing,
                             call,
                             session,
                             turn_id,
@@ -5022,9 +5005,8 @@ impl<'a> Runtime<'a> {
                 }
             };
             // One publication boundary BEFORE provider/TurnLog/outcome copies.
-            // Reload is safe-boundary only; busy model switches do not alter this
-            // captured config generation or re-limit historical facts.
-            let published = &captured_output;
+            // A newer publication cannot re-limit this issued batch or history.
+            let published = captured_output;
             let source = crate::config::mcp::safe_source_id(
                 published
                     .config
@@ -5165,27 +5147,14 @@ impl<'a> Runtime<'a> {
                 && state == "completed"
                 && !cancel.load(Ordering::Acquire)
             {
-                let instruction_generation = turn_log.display["config_generation"]
-                    .as_u64()
-                    .ok_or(RuntimeError::Storage)?;
-                if instruction_generation != self.generation_id() {
-                    return Err(RuntimeError::StaleGeneration {
-                        want: instruction_generation,
-                        got: self.generation_id(),
-                    });
-                }
-                let roots = self
-                    .current
-                    .read()
-                    .expect("generation lock")
-                    .workspace
-                    .instruction_roots
-                    .clone();
+                self.check_issued_turn(turn_log, session)?;
+                let instruction_generation = issuing.id;
+                let roots = &issuing.workspace.instruction_roots;
                 let (revision, facts) = self.db.instruction_view(session)?;
                 let mut desired = facts.into_iter().map(|f| f.source).collect::<Vec<_>>();
                 let path = read_path.as_deref().expect("validated read path");
                 let admitted = crate::instructions::after_read(
-                    &roots,
+                    roots,
                     &self.files,
                     path,
                     read_directory,
@@ -5209,12 +5178,7 @@ impl<'a> Runtime<'a> {
                     }
                 }
                 let index = turn_log.input.len();
-                if turn_log.display["config_generation"].as_u64() != Some(self.generation_id()) {
-                    return Err(RuntimeError::StaleGeneration {
-                        want: turn_log.display["config_generation"].as_u64().unwrap_or(0),
-                        got: self.generation_id(),
-                    });
-                }
+                self.check_issued_turn(turn_log, session)?;
                 self.db.checkpoint_instructions(
                     turn_id,
                     turn_log,

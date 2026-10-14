@@ -16,20 +16,15 @@ impl Runtime<'_> {
 
     pub(super) fn instruction_sources(
         &self,
+        published: &ExecutionGeneration,
         session: &str,
         policy: &RuntimePolicy<'_>,
         cancel: &AtomicBool,
     ) -> Result<(u64, Vec<Source>), RuntimeError> {
         let (revision, previous) = self.db.instruction_view(session)?;
-        let roots = self
-            .current
-            .read()
-            .expect("generation lock")
-            .workspace
-            .instruction_roots
-            .clone();
+        let roots = &published.workspace.instruction_roots;
         let mut sources = Vec::new();
-        for root in &roots {
+        for root in roots {
             let Some(baseline) = &root.baseline else {
                 continue;
             };
@@ -37,7 +32,7 @@ impl Runtime<'_> {
                 continue;
             }
             let mut source = baseline.as_ref().clone();
-            source.generation = self.generation_id();
+            source.generation = published.id;
             if !sources.iter().any(|s: &Source| s.path == source.path) {
                 sources.push(source);
             }
@@ -57,7 +52,7 @@ impl Runtime<'_> {
                         root,
                         path,
                         Origin::Nested,
-                        self.generation_id(),
+                        published.id,
                         &self.roots.data,
                         policy,
                         cancel,

@@ -9,6 +9,7 @@ impl Runtime<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn execute_foreground_children(
         &self,
+        published: &ExecutionGeneration,
         turn: &str,
         session: &str,
         units: &[Assembled],
@@ -25,7 +26,6 @@ impl Runtime<'_> {
         request_tools: &[ToolDef],
         mut rejected: bool,
     ) -> Result<(Vec<CallRecord>, bool), RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
         let secrets = super::super::mcp::mcp_redactions(&published.config, &self.parent_env);
         let mut admitted = Vec::new();
         let mut admissions = Vec::new();
@@ -42,6 +42,7 @@ impl Runtime<'_> {
                 Err(AdmissionFailure::Invalid(error.to_string()))
             } else {
                 self.admit_tool(
+                    published,
                     session,
                     turn,
                     &op,

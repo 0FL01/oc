@@ -98,6 +98,9 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
         respond(&mut socket, Protocol::Responses, false).await; // no usage
     };
     let continuation = Box::pin(async {
+        // This fixture enters the private continuation path directly. Production
+        // recovery holds the execution lease before reaching this boundary.
+        let _lease = runtime.begin_active().unwrap();
         runtime
             .run_turn_admitted(
                 parameters(&models, &provider, &cancel),

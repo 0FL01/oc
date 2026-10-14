@@ -2602,6 +2602,21 @@ impl Db {
         Ok(())
     }
 
+    /// Check live durable turn ownership without reading or resurrecting its journal.
+    pub(crate) fn active_turn(
+        &self,
+        turn: &str,
+        session: &str,
+        child_operation: Option<&str>,
+    ) -> Result<bool, StorageError> {
+        Ok(self.conn.lock().expect("db mutex").query_row(
+            "SELECT EXISTS(SELECT 1 FROM turns WHERE id=?1 AND session_id=?2 AND status='started')
+                AND (?3 IS NULL OR EXISTS(SELECT 1 FROM child_jobs WHERE operation_id=?3 AND child_id=?2 AND child_turn=?1 AND state='running'))",
+            params![turn, session, child_operation],
+            |row| row.get(0),
+        )?)
+    }
+
     /// Persist a completed generation before dispatch, without finishing its turn.
     pub(crate) fn checkpoint_turn(&self, turn: &str, result: &str) -> Result<(), StorageError> {
         let conn = self.conn.lock().expect("db mutex");
