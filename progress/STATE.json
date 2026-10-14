@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-13T22:05:34+00:00",
-  "current": "T44",
+  "updated_at": "2026-10-14T08:19:40+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -312,9 +312,9 @@
       "reopen_reason": null
     },
     "T44": {
-      "status": "active",
-      "last_seq": 146,
-      "latest": "progress/M9/T44/0146.md",
+      "status": "blocked",
+      "last_seq": 147,
+      "latest": "progress/M9/T44/0147.md",
       "evidence": null,
       "reopen_reason": null
     },
@@ -403,10 +403,10 @@
       "reopen_reason": null
     },
     "T58": {
-      "status": "todo",
-      "last_seq": 0,
-      "latest": null,
-      "evidence": null,
+      "status": "done",
+      "last_seq": 1,
+      "latest": "progress/M8/T58/0001.md",
+      "evidence": "evidence/T58/report.md",
       "reopen_reason": null
     },
     "T59": {
@@ -431,5 +431,5 @@
       "reopen_reason": null
     }
   },
-  "last_checkpoint_task": "T44"
+  "last_checkpoint_task": "T58"
 }

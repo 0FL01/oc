@@ -1,9 +1,9 @@
 # Goal: встроенный customize-opencode — конфигурационный ранбук native oc
 
-Status: active — утверждённый контракт; T58 todo, implementation NOT_STARTED.
+Status: complete — T58/R1–R3 verified; implementation `650fa99ac`.
 Source: запрос владельца 2026-10-08 на встроенный skill-мануал, параллельный аудит
 плана и разрешение «вноси это в план правок работ и коммит пуш на текущей ветке».
-Last updated: 2026-10-08
+Last updated: 2026-10-14
 Task: T58 / M8; единственный новый detailed acceptance — SKILL01.
 
 ## Objective
@@ -19,9 +19,13 @@ Evidence. Work on the smallest unresolved outcome. Do not add requirements from
 reviews, tests, tools, speculative risks, or optional source text. Finish when every
 required outcome is resolved and affected constraints remain satisfied.
 
-Текущая доставка — только план. Не запускать T58, не переключать active T44 и не
-создавать runtime/acceptance PASS. Исполнение — на следующем согласованном безопасном
-handoff через обычный journal workflow; завершение всей T44/T45 не является dependency.
+Исполнение активировано 2026-10-14 текущим явным запросом владельца продолжить и
+реализовать все утверждённые планы GOAL. Безопасный journal handoff после локального
+T44 commit68d3ca653 и зелёных текущих offline/release gates: обязательный push T44
+заблокирован отсутствием write authentication у dedicated non-root account (SSH
+и HTTPS проверены). T44 не завершена, её полный контракт сохранён; завершение всей
+T44/T45 не является dependency T58. На момент активации runtime/acceptance PASS T58
+не заявлялся; результаты реализации ниже не закрывают T44 или весь GOAL.
 
 ## Frozen Contract
 
@@ -36,8 +40,9 @@ handoff через обычный journal workflow; завершение все�
     provenance, diagnostics и caps; automatic context не содержит body.
   - Primary evidence: реальный `defs::register_builtins` unit suite и existing-target
     `configured_workspace` fake-provider binary roundtrip по SKILL01.
-  - Status: pending.
-  - Evidence: NOT_RUN; будущий factual report — `evidence/T58/report.md`.
+  - Status: verified.
+  - Evidence: `650fa99ac`; три owner и три actual-binary SKILL01 cases, все green
+    в current-source workspace1906/0. [Factual report](../../evidence/T58/report.md).
 - R2: компактный самостоятельный ранбук именно native-конфигурации.
   - Source: «этот скилл используется как ранбук (мануал) для конфигурации опенкода
     с помощью агента»; утверждённый исправленный план, часть 2.
@@ -47,8 +52,9 @@ handoff через обычный journal workflow; завершение все�
     При стандартных tool-output limits body приходит полностью.
   - Primary evidence: reviewed asset/примеры против native consumers и полный matching
     `function_call_output` в бинарном сценарии R1, не оценка LLM-текста.
-  - Status: pending.
-  - Evidence: NOT_RUN; asset пока не создан.
+  - Status: verified.
+  - Evidence: reviewed standalone asset15,695bytes/293lines against native consumers;
+    real-binary matching complete output and stricter-user-limit proof. См. report.
 - R3: краткая связанная документация без дублирования мануала.
   - Source: «а потом задокументировать в AGENTS.md кратко со ссылкой»;
     утверждённый исправленный план, части 2 и 5.
@@ -56,8 +62,9 @@ handoff через обычный journal workflow; завершение все�
     поставки ссылается на asset. `docs/CONFIG.md` связан с ним; непосредственно
     используемые противоречащие рекомендации исправлены точечно.
   - Primary evidence: reviewed docs diff, существующие локальные ссылки и docs/journal gates.
-  - Status: pending.
-  - Evidence: регистрация плана не доказывает поставку мануала или завершение R3.
+  - Status: verified.
+  - Evidence: reviewed AGENTS/CONFIG links and narrow corrections in `650fa99ac`;
+    docs/journal checks and existing Python29/0 regressions green. См. report.
 
 ### Constraints and non-goals
 
@@ -112,16 +119,20 @@ bundled manual в том же изменении; основные инстру�
 
 ## Current Checkpoint / State
 
-- План утверждён и зарегистрирован; R1–R3 pending, SKILL01 NOT_RUN, T58 todo.
+- R1–R3 verified: builtin asset, ordinary registration/override/policy/output pipeline
+  и краткие docs delivered в reviewed implementation `650fa99ac`.
 - Dependency только T13; T30 дополнительно зависит от T58. TOOL11/CFG07/UI06/E2E05/
   AUD17 и root/child preview scenarios остаются у существующих owners/regressions.
-- Active T44 и все прежние state/leaf references сохраняются. Pending-ссылка в
-  `AGENTS.md` — только навигация, не shipped skill и не task finish.
-- Первый implementation checkpoint: компактный asset и обычная builtin registration,
-  replacement-safe count guard, ближайшие owner tests. Никаких runtime-изменений сейчас.
+- Current-source workspace1906/0/12existingopt-inignored, affected adapters1006/0,
+  targeted builtin9/0 и configured_workspace18/0; fmt/strictClippy/locked build/help
+  green. Docs/journal/Python checks green; commands и scope — в factual report.
+- T44 остаётся незавершённой, её paired-visual/live/delivery gates не waived.
+  BLOCKED_REMOTE сохраняется: dedicated-account SSH/HTTPS write auth недоступен;
+  unchanged push retry и credential fallback не выполнялись. Локальная поставка сохранена.
 
 ## Completion
 
-Не завершено: R1–R3 pending. После green relevant/final gates factual report должен
-связать reviewed implementation commit, команды и SKILL01 evidence, затем обычный
-`finish`. Docs/journal validation и commit/push плана не являются implementation PASS.
+Closure check 2026-10-14: все frozen R1–R3 verified, current-source required gates
+green, diff остаётся в envelope; caps/authority/history/request capture не ослаблены.
+`evidence/T58/report.md` связывает reviewed code commit и реально выполненные проверки.
+Задача complete; общий GOAL, T44/T45/T57 и remote delivery имеют отдельные статусы.

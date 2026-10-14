@@ -14,7 +14,7 @@ Plan: ../../roadmap/M8.md
 - [T55](T55/INDEX.md) [done] — Responses completed-output compatibility and current real tool E2E; latest: 0003.md.
 - [T56](T56/INDEX.md) [done] — Native session-local interactive PTYs для Terminals; latest: 0001.md.
 - [T57](T57/INDEX.md) [blocked] — Codex/ChatGPT browser и headless OAuth, ordinary OpenAI API key и auth consumers; latest: 0001.md.
-- [T58](T58/INDEX.md) [todo] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: нет.
+- [T58](T58/INDEX.md) [done] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: 0001.md.
 - [T59](T59/INDEX.md) [todo] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: нет.
 - [T60](T60/INDEX.md) [todo] — Code Mode execute на нативном Rust-интерпретаторе; latest: нет.
 - [T61](T61/INDEX.md) [todo] — Hot reload и native shared service; latest: нет.
