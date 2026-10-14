@@ -420,12 +420,31 @@ fn permission_rank(level: Permission) -> u8 {
     }
 }
 
-struct Collector {
-    defs: LoadedDefs,
-    total_bytes: usize,
+/// The loader's actual supported filesystem input shapes. Observation never
+/// authorizes reads and carries no definition body or inferred template paths.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum InputKind {
+    File,
+    AgentTree,
+    MarkdownDirectory,
+    Skills,
+    SkillDirectory,
 }
 
-impl Collector {
+pub(crate) type InputObserver<'a> = dyn Fn(&Path, &File, InputKind) + 'a;
+
+struct Collector<'a> {
+    defs: LoadedDefs,
+    total_bytes: usize,
+    observe: Option<&'a InputObserver<'a>>,
+}
+
+impl Collector<'_> {
+    fn observed(&self, path: &Path, file: &File, kind: InputKind) {
+        if let Some(observe) = self.observe {
+            observe(path, file, kind);
+        }
+    }
     fn note_order(&mut self, kind: &str, id: &str, origin: &str) {
         let prefix = format!("{kind}.{id}@");
         if !self.defs.order.iter().any(|seen| seen.starts_with(&prefix)) {
@@ -549,15 +568,22 @@ pub fn merge_definition_root(defs: &mut LoadedDefs, root: &DefRoot) {
             origin: root.origin.clone(),
         },
         &dir,
+        None,
     );
 }
 
 /// Merge a root previously admitted by composition, using its pinned fd.
-pub(crate) fn merge_definition_root_admitted(defs: &mut LoadedDefs, root: &DefRoot, dir: &File) {
+pub(crate) fn merge_definition_root_admitted(
+    defs: &mut LoadedDefs,
+    root: &DefRoot,
+    dir: &File,
+    observe: Option<&InputObserver<'_>>,
+) {
     let total_bytes = existing_definition_bytes(defs);
     let mut out = Collector {
         defs: std::mem::take(defs),
         total_bytes,
+        observe,
     };
     load_root(&mut out, root, dir);
     *defs = out.defs;
@@ -892,6 +918,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
     let mut out = Collector {
         defs: std::mem::take(defs),
         total_bytes,
+        observe: None,
     };
     let root = DefRoot {
         dir: PathBuf::new(),
@@ -1147,7 +1174,7 @@ fn open_admitted(root: &DefRoot, dir: &File, candidate: &Path, flags: i32) -> io
     admitted_fs::open_beneath(dir, relative, flags)
 }
 
-fn load_root(out: &mut Collector, root: &DefRoot, dir: &File) {
+fn load_root(out: &mut Collector<'_>, root: &DefRoot, dir: &File) {
     load_kind(out, root, dir, "skill", &["skill", "skills"]);
     load_kind(
         out,
@@ -1159,7 +1186,7 @@ fn load_root(out: &mut Collector, root: &DefRoot, dir: &File) {
     load_kind(out, root, dir, "command", &["command", "commands"]);
 }
 
-fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, subs: &[&str]) {
+fn load_kind(out: &mut Collector<'_>, root: &DefRoot, admitted: &File, kind: &str, subs: &[&str]) {
     for sub in subs {
         let dir = root.dir.join(sub);
         if kind == "agent" {
@@ -1199,6 +1226,15 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
                 continue;
             }
         };
+        out.observed(
+            &dir,
+            &pinned,
+            if kind == "skill" {
+                InputKind::Skills
+            } else {
+                InputKind::MarkdownDirectory
+            },
+        );
         // read_dir reopens only this pinned descriptor, never the pathname that
         // may be concurrently replaced with an external symlink.
         let entries = match std::fs::read_dir(format!("/proc/self/fd/{}", pinned.as_raw_fd())) {
@@ -1250,7 +1286,7 @@ fn load_kind(out: &mut Collector, root: &DefRoot, admitted: &File, kind: &str, s
 // check stops in-root symlink cycles without suppressing independent aliases.
 #[allow(clippy::too_many_arguments)]
 fn collect_agent_paths(
-    out: &mut Collector,
+    out: &mut Collector<'_>,
     root: &DefRoot,
     admitted: &File,
     base: &Path,
@@ -1279,6 +1315,15 @@ fn collect_agent_paths(
             return;
         }
     };
+    out.observed(
+        &path,
+        &pinned,
+        if recursive {
+            InputKind::AgentTree
+        } else {
+            InputKind::MarkdownDirectory
+        },
+    );
     let meta = match pinned.metadata() {
         Ok(meta) => meta,
         Err(_) => return,
@@ -1359,7 +1404,7 @@ fn collect_agent_paths(
 }
 
 fn insert_skill_text(
-    out: &mut Collector,
+    out: &mut Collector<'_>,
     root: &DefRoot,
     id: String,
     hint: String,
@@ -1431,7 +1476,7 @@ struct AgentInput {
     supplied: std::collections::BTreeSet<String>,
 }
 
-fn insert_agent(out: &mut Collector, root: &DefRoot, mut input: AgentInput, path: &Path) {
+fn insert_agent(out: &mut Collector<'_>, root: &DefRoot, mut input: AgentInput, path: &Path) {
     if input.disabled {
         if let Some(previous) = out.defs.agents.remove(&input.id) {
             out.total_bytes = out.total_bytes.saturating_sub(previous.body.len());
@@ -1541,7 +1586,7 @@ struct CommandInput {
     subtask: Option<bool>,
 }
 
-fn insert_command(out: &mut Collector, root: &DefRoot, input: CommandInput, path: &Path) {
+fn insert_command(out: &mut Collector<'_>, root: &DefRoot, input: CommandInput, path: &Path) {
     if out.defs.commands.len() >= MAX_DEFS_PER_KIND && !out.defs.commands.contains_key(&input.id) {
         out.defs
             .diagnostics
@@ -1633,7 +1678,7 @@ fn agent_mode(mode: Option<String>) -> Result<Option<String>, String> {
 }
 
 fn load_entry(
-    out: &mut Collector,
+    out: &mut Collector<'_>,
     root: &DefRoot,
     admitted: &File,
     kind: &str,
@@ -1664,6 +1709,7 @@ fn load_entry(
                 if !name.ends_with(".md") {
                     return;
                 }
+                out.observed(&path, &entry, InputKind::File);
                 let id = name.trim_end_matches(".md").to_string();
                 if !valid_id(&id) {
                     out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
@@ -1688,6 +1734,7 @@ fn load_entry(
                 out.defs.diagnostics.push(diag(&path, kind, "invalid id"));
                 return;
             }
+            out.observed(&path, &entry, InputKind::SkillDirectory);
             let file = path.join("SKILL.md");
             let admitted_file = match open_admitted(root, admitted, &file, libc::O_RDONLY) {
                 // A directory without `SKILL.md` is silently skipped
@@ -1701,6 +1748,7 @@ fn load_entry(
                 }
                 Ok(file) => file,
             };
+            out.observed(&file, &admitted_file, InputKind::File);
             let text = match read_plain(admitted_file) {
                 Ok(text) => text,
                 Err((reason, code)) => {
@@ -1739,6 +1787,7 @@ fn load_entry(
                     return;
                 }
             };
+            out.observed(&path, &admitted_file, InputKind::File);
             let text = match read_plain(admitted_file) {
                 Ok(text) => text,
                 Err((reason, code)) => {

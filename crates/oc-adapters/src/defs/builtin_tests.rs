@@ -218,7 +218,11 @@ fn skill01_capacity_allows_replacement_but_not_new_ids_or_byte_budget_bypass() {
     let total_bytes = defs.skills.values().map(|s| s.body.len()).sum::<usize>()
         + defs.agents.values().map(|a| a.body.len()).sum::<usize>()
         + defs.commands.values().map(|c| c.body.len()).sum::<usize>();
-    let mut out = Collector { defs, total_bytes };
+    let mut out = Collector {
+        defs,
+        total_bytes,
+        observe: None,
+    };
     let root = DefRoot {
         dir: PathBuf::from("native-skill-fixture"),
         origin: "project".into(),

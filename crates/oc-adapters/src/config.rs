@@ -906,23 +906,7 @@ pub(crate) fn read_trusted_file_rooted(
     const FILE_CAP: usize = 64 * 1024;
 
     let refused = || file_refused(source);
-    let mut relative = PathBuf::from(source_directory);
-    let mut has_name = false;
-    for part in Path::new(path).components() {
-        match part {
-            Component::Normal(part) => {
-                relative.push(part);
-                has_name = true;
-            }
-            Component::CurDir => {}
-            Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
-                return Err(refused());
-            }
-        }
-    }
-    if !has_name {
-        return Err(refused());
-    }
+    let relative = file_relative(path, source, source_directory)?;
     let mut file = crate::admitted_fs::open_beneath_no_symlinks(root, &relative, libc::O_RDONLY)
         .map_err(|_| refused())?;
     let meta = file.metadata().map_err(|_| refused())?;
@@ -950,6 +934,32 @@ pub(crate) fn read_trusted_file_rooted(
         field: "file".to_string(),
         reason: "file reference is not UTF-8".to_string(),
     })
+}
+
+fn file_relative(
+    path: &str,
+    source: &str,
+    source_directory: &Path,
+) -> Result<PathBuf, ConfigError> {
+    let refused = || file_refused(source);
+    let mut relative = PathBuf::from(source_directory);
+    let mut has_name = false;
+    for part in Path::new(path).components() {
+        match part {
+            Component::Normal(part) => {
+                relative.push(part);
+                has_name = true;
+            }
+            Component::CurDir => {}
+            Component::Prefix(_) | Component::RootDir | Component::ParentDir => {
+                return Err(refused());
+            }
+        }
+    }
+    if !has_name {
+        return Err(refused());
+    }
+    Ok(relative)
 }
 
 /// One source fragment in low→high precedence order.
@@ -988,6 +998,7 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
     env: &BTreeMap<String, String>,
     enabled_providers: Option<&HashSet<String>>,
     roots: &BTreeMap<String, (&File, PathBuf)>,
+    observe: Option<&dyn Fn(&Path)>,
 ) -> Result<
     (Generation, Option<oc_core::queries::TerminalCopyMode>),
     oc_core::queries::ServiceDiagnostic,
@@ -998,6 +1009,17 @@ pub(crate) fn assemble_admitted_with_terminal_copy(
         enabled_providers,
         &|path, source| {
             let (root, directory) = roots.get(source).ok_or_else(|| file_refused(source))?;
+            // Observe only the actual admitted reader, never inert templates. A
+            // valid missing dependency still needs creation/recovery observation.
+            let relative = file_relative(path, source, Path::new(""))?;
+            if let Some(observe) = observe {
+                observe(
+                    &Path::new(source)
+                        .parent()
+                        .unwrap_or(Path::new(""))
+                        .join(relative),
+                );
+            }
             read_trusted_file_rooted(path, source, root, directory)
         },
         false,

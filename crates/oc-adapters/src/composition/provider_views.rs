@@ -210,7 +210,7 @@ impl Composition {
 
     /// Freeze only connection views. Reassembling normalized provider inputs does
     /// not publish policy, activate MCP, read new config files or open another Db.
-    pub(crate) fn admit_provider_views(&mut self) {
+    pub(crate) fn admit_provider_views(&mut self) -> Result<(), LoadFailure> {
         let mut ids: BTreeSet<_> = self.generation.providers.keys().cloned().collect();
         if self.generation.public_go_enabled {
             ids.insert(crate::models_dev::PROVIDER.into());
@@ -224,6 +224,7 @@ impl Composition {
             .iter()
             .map(|(source, (root, directory))| (source.clone(), (root, directory.clone())))
             .collect();
+        let observed = std::cell::RefCell::new(&mut self.watch_inputs);
         for id in ids {
             if id == self.catalog.provider {
                 continue;
@@ -233,6 +234,7 @@ impl Composition {
                 &self.parent_env,
                 Some(&HashSet::from([id.clone()])),
                 &roots,
+                Some(&|path| observed.borrow_mut().file(path)),
             );
             let entry = match admitted {
                 Ok((generation, _)) => match generation.providers.get(&id) {
@@ -298,6 +300,8 @@ impl Composition {
                 },
             );
         }
+        observed.borrow().validate()?;
+        Ok(())
     }
 
     pub(crate) async fn resolve_provider_views(

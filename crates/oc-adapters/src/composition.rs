@@ -26,11 +26,14 @@ pub(crate) mod go_catalog;
 pub(crate) mod openai_catalog;
 mod provider_readiness;
 mod provider_views;
+mod watch_inputs;
 pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
 pub(crate) use provider_readiness::ProviderState;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
+    /// Finite loader observations; not filesystem read or trust capabilities.
+    pub(crate) watch_inputs: watch_inputs::WatchInputs,
     /// Consumer state projected by the application owner, independent of selection.
     pub(crate) approval_consumer_mode: std::sync::atomic::AtomicU8,
     pub(crate) question_consumer: AtomicBool,
@@ -204,7 +207,7 @@ pub(crate) async fn load_local_with_env(
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
     let mut composition = load_stages(project, parent_env, false).await?;
-    composition.admit_provider_views();
+    composition.admit_provider_views()?;
     Ok(composition)
 }
 
@@ -216,7 +219,7 @@ pub(crate) async fn load_reload_local_with_env(
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
     let mut composition = load_stages(project, parent_env, true).await?;
-    composition.admit_provider_views();
+    composition.admit_provider_views()?;
     Ok(composition)
 }
 
@@ -685,6 +688,14 @@ async fn load_stages(
         sources,
         source_authority,
     } = admit_sources(project, &parent_env)?;
+    let watch_inputs =
+        std::cell::RefCell::new(watch_inputs::WatchInputs::admitted(&roots, &admitted_roots));
+    for source in &sources {
+        watch_inputs.borrow_mut().file(Path::new(&source.path));
+    }
+    let observe_definition =
+        |path: &Path, file: &File, kind| watch_inputs.borrow_mut().opened(path, file, kind);
+    let observe_dependency = |path: &Path| watch_inputs.borrow_mut().file(path);
     let source_roots = source_roots(&admitted_roots, &source_authority);
     let DcpAdmission {
         config: dcp_config,
@@ -737,6 +748,7 @@ async fn load_stages(
                     origin: global.to_string_lossy().into_owned(),
                 },
                 &admitted.dir,
+                Some(&observe_definition),
             );
         }
     }
@@ -756,6 +768,7 @@ async fn load_stages(
                 origin: local_defs.to_string_lossy().into_owned(),
             },
             &admitted.dir,
+            Some(&observe_definition),
         );
     }
 
@@ -777,6 +790,7 @@ async fn load_stages(
             // later requests must not mix in files from a failed reload.
             let file = root.path.join("AGENTS.md");
             let baseline = if let Some(admitted) = admit_instruction(&file, &root.path)? {
+                watch_inputs.borrow_mut().file(&admitted);
                 let text = read_instruction(root, &admitted);
                 let baseline = text.as_ref().ok().map(|text| {
                     std::sync::Arc::new(crate::instructions::Source::baseline(
@@ -959,6 +973,7 @@ async fn load_stages(
         &parent_env,
         Some(&selected_providers),
         &source_roots,
+        Some(&observe_dependency),
     )
     .map_err(LoadFailure::Configuration)?;
     if reload
@@ -1496,7 +1511,9 @@ async fn load_stages(
     tui_chrome.dialog_shortcuts = conversation_keybinds.dialog_shortcuts();
     tui_chrome.prompt_history_shortcuts = conversation_keybinds.prompt_history_shortcuts();
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
+    watch_inputs.borrow().validate()?;
     Ok(Composition {
+        watch_inputs: watch_inputs.into_inner(),
         provider_views: BTreeMap::new(),
         custom_revisions: BTreeMap::new(),
         mcp_activation: std::sync::Arc::new(McpActivation {
@@ -2453,6 +2470,7 @@ mod tests {
             &BTreeMap::new(),
             Some(&HashSet::from(["fixture".into()])),
             &roots,
+            None,
         );
         let error = generation.expect_err("replaced ancestor must fail closed");
         assert_eq!(error.code, oc_core::queries::ServiceCode::TrustRefused);
@@ -2461,10 +2479,15 @@ mod tests {
         // The same root capability can still serve a valid nested reference.
         std::fs::remove_file(project.join("branch")).unwrap();
         std::fs::rename(project.join("branch-old"), project.join("branch")).unwrap();
-        let generation =
-            config::assemble_admitted_with_terminal_copy(&sources, &BTreeMap::new(), None, &roots)
-                .unwrap()
-                .0;
+        let generation = config::assemble_admitted_with_terminal_copy(
+            &sources,
+            &BTreeMap::new(),
+            None,
+            &roots,
+            None,
+        )
+        .unwrap()
+        .0;
         assert_eq!(
             generation.providers["fixture"].options.api_key,
             "local-fixture-key"
