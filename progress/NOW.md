@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T22:02:20+00:00
+State updated: 2026-10-14T22:30:02+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,40 +14,37 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: R1/R2 partial, R3–R5 pending. Source e64e825a2 adds same-supervisor
-desired MCP reconciliation and leased, latest-only replacement. No watcher or daemon
-and no public busy config publication are claimed.
+T61 IN_PROGRESS: R1/R2 partial, R3–R5 pending. Source bdafd9d19 adds finite
+admitted loader observations; no running watcher/coordinator or busy reload is claimed.
 
 ## Checks
 
-- Real stdio clients prove unchanged reuse, captured old tool/lookup completion,
-  replacement only after reap, pending initialize routing, stale controls, manual
-  disconnect preservation and quarantine shared through an empty publication.
-- Eight leased clients plus twelve edits keep physical connecting/live/retiring≤8;
-  only the latest eight replacements launch. Aggregate catalog overflow remains fatal;
-  invalid desired counts preserve the existing state. Every fixture process is reaped.
-- Current strict workspace all-target clippy and workspace tests pass: 1957 passed,
-  0 failed, 12 existing opt-in ignored, 46 result records. Ten hot02 owner cases pass.
-  Fmt, docs and diff checks pass. Logs .local/evidence/t61-mcp-reconcile-*.log.
-- AUD32 exposed stack RSS growth with independent service wakeups. Heap-pinned actor
-  execution/empty-inventory fast path retain its unchanged64MiB bound: three measured
-  peaks 63492/63208/63240KiB, then final workspace PASS. No test or stack-size relaxation.
-  Empty shutdown no-op fixes the original title watchdog regression without test edits.
+- Two actual-loader/descriptor cases pass: known missing roots are not created;
+  lexical/canonical sources, recursive definition aliases, missing skill files and
+  selected/unselected provider dependencies are retained. Disabled templates, refused
+  traversal, dotenv and client-only CLI inputs remain outside server watch scope.
+- Captured env substitution remains exact without storing its values in topology;
+  a raced lexical replacement cannot redirect descriptor-derived canonical observation.
+- Duplicates are free; 4096-target/1MiB path bounds fail with safe typed diagnostics.
+- Current strict adapter all-target clippy and adapter tests pass: 1051 passed,
+  0 failed, 5 existing opt-in ignored, 19 result records. Fmt/docs/diff checks pass.
+  Logs .local/evidence/t61-watch-inputs-*.log. Earlier 1957 workspace belongs to e64e825a2.
 
 ## Risks
 
-Application reload still builds a replacement runtime; its complete atomic candidate
-pipeline is pending. Low-level runtime reload remains idle-only. Poisoned-owner lifetime
-and initial preparation across MCP awaits need consolidation before public busy reload.
-No release rebuild/current live/paired visual/HOT01–HOT04 completion claim. No push/auth
-retry, live-env/credential extraction, paid call, schema/dependency/store or new framework.
-T44 remote blocker and separate VIS46 handoff are unchanged.
+No actual notify allocation, failed-candidate observation handoff, nested-instruction
+or explicit-activation watch integration yet. Application reload still replaces its
+runtime. Poisoned-owner lifetime and initial capture/MCP leases need consolidation.
+No release rebuild/current live/paired visual/HOT01–HOT04 completion claim. No push,
+auth retry, live env/credential read, paid request, dependency/schema/store/framework.
+T44 remote blocker and separate VIS46 handoff remain unchanged.
 
 ## Next
 
-Implement finite admitted watch metadata/dependencies and the single watch/manual
-coordinator with staged application publication. Finish remaining MCP quarantine and
-initial capture integration, then R3–R5. Do not mark T61 or the overall goal ready.
+Finish initial MCP capture and request/full-batch lease release before enabling busy
+publication: an initial view held for the full task would block service replacement
+before its next request. Implement actual watcher/re-arm and one staged watch/manual
+pipeline, then R3–R5. A read-only notify usage scout is independent; do not duplicate it.
 
 
 Ready (до 5): нет

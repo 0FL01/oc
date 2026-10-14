@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, and same-supervisor desired reconciliation `e64e825a2`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, and finite admitted source observations `bdafd9d19`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -321,7 +321,8 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
    `a9be5d0d4` rejects malformed mandatory replacements before optional effects;
     `823273e04` fences MCP worker results/cleanup by physical incarnation;
     `e64e825a2` reconciles desired clients on that supervisor with leased retirement.
-    Next integrate admitted watch metadata and the application candidate path, then complete
+     `bdafd9d19` retains finite loader observations. Next integrate the actual watcher
+     and application candidate path, then complete
    staged publication, checking initial preparation across MCP awaits before enabling
    busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
@@ -409,7 +410,7 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   quarantine also applies to low-level reload. The public low-level reload remains idle-only;
   application reload still replaces its runtime. Poisoned-owner retirement, complete
   atomic application publication and source watches are not claimed complete.
-- Current `e64e825a2` gates: strict workspace all-target clippy; workspace tests 1957
+- Earlier `e64e825a2` gates: strict workspace all-target clippy; workspace tests 1957
   passed / 0 failed / 12 existing opt-in ignored, 46 result records; ten `hot02_` owner
   cases; fmt/docs/diff checks pass. Actual debug MCP/PTY/title/memory regressions are in
   that workspace run. Logs `.local/evidence/t61-mcp-reconcile-*.log`.
@@ -419,9 +420,25 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   63492/63208/63240KiB and the final workspace gate pass. No test/bound/stack increase;
   temporary memory diagnostics were removed. Empty supervisor shutdown no longer emits
   a spurious post-terminal service event; the original title watchdog test passes.
-- Next: finite admitted watch topology/dependencies, one watch/manual coordinator and
-  complete candidate publication; consolidate remaining quarantine/retirement lifetime
-  and initial preparation across MCP awaits before public busy adoption. R3–R5 remain.
+- Current `bdafd9d19` loader evidence: known missing native config/DCP/instruction inputs,
+  supported definition shapes, lexical/canonical aliases and actual admitted substitution
+  dependencies are retained without bodies or environment values. Unselected provider
+  admission contributes used and valid missing references; disabled templates, refused
+  parent traversal, dotenv discovery and client-only CLI files do not extend this scope.
+  Canonical definition targets come from pinned descriptors, not a raced lexical reopen.
+  Topology is independently bounded at4096 targets/1MiB path bytes with typed failure.
+- Current gates: two `hot02_watch_` owner cases pass; strict adapter all-target clippy,
+  adapter tests 1051 passed / 0 failed / 5 existing opt-in ignored (19 result records),
+  fmt/docs/diff checks pass. Logs `.local/evidence/t61-watch-inputs-*.log`. No watcher,
+  kernel watch allocation, completed candidate coordinator or new active publication is
+  claimed. The full workspace above belongs to the earlier source, not this slice.
+- Next: actual watcher/re-arm and single watch/manual coordinator, including observations
+  from failed candidates and later admitted nested instructions/explicit activation.
+  Complete atomic application publication and remaining quarantine/retirement lifetime.
+  Before public busy adoption, reconcile initial capture across MCP awaits and release
+  the initial full-turn MCP view at its request/batch boundary: retaining it for a whole
+  task would prevent a changed service from reaping before the next same-task request.
+  R3–R5 remain pending.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
