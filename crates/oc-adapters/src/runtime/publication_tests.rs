@@ -89,6 +89,178 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
 }
 
 #[test]
+fn hot01_profile_history_keeps_closed_pairs_and_each_request_origin() {
+    use oc_core::queries::{ModelRef, RequestIdentity, RequestProfile};
+    use serde_json::json;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    owner.create_session("profiles").unwrap();
+    let accepted = db
+        .accept_turn(
+            "profile-turn",
+            "profiles",
+            "task",
+            "task",
+            &ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+        )
+        .unwrap();
+    let binding = ResponsesConfig {
+        base_url: "https://example.test/v1".into(),
+        api_key: "synthetic".into(),
+        timeout: None,
+        chunk_timeout_ms: 1000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: false,
+        headers: BTreeMap::new(),
+        set_cache_key: false,
+        wire: Default::default(),
+    }
+    .provenance("fixture", "m")
+    .unwrap();
+    let mut log = TurnLog::new("profile-turn", "m", "fixture");
+    log.user_message = Some(accepted.user_message);
+    log.binding = Some(binding.clone());
+    log.agent_digest = Some("profile-a".into());
+    log.input.push(InputItem::message(InputRole::User, "task"));
+    for (index, digest) in [(1, "profile-a"), (2, "profile-b")] {
+        log.requests.push(RequestIdentity {
+            config_generation: Some(index),
+            profile: Some(RequestProfile {
+                agent_digest: Some(digest.into()),
+            }),
+            binding: Some(binding.clone()),
+            model: ModelRef {
+                provider: "fixture".into(),
+                id: "m".into(),
+                variant: None,
+            },
+            model_label: "m".into(),
+            span: format!("span-{index}"),
+            input_start: log.input.len(),
+            context_limit: 1000,
+            input_limit: 1000,
+            output_limit: 100,
+            estimated_input: 1,
+            dcp_min_context: 1,
+            dcp_max_context: 1000,
+            tool_fingerprint: "tools".into(),
+            context_fingerprint: "context".into(),
+        });
+        log.input.extend([
+            InputItem::ProviderOutput(json!({"type":"reasoning","id":format!("opaque-{index}"),"encrypted_content":format!("OPAQUE_PROFILE_{index}"),"summary":[{"text":format!("public-{index}")}]})),
+            InputItem::ProviderOutput(json!({"type":"function_call","id":format!("opaque-call-{index}"),"call_id":format!("call-{index}"),"name":"read","arguments":"{}"})),
+            InputItem::FunctionCallOutput { call_id: format!("call-{index}"), output: format!("SETTLED_PROFILE_{index}") },
+        ]);
+    }
+    let original = log.to_json();
+    assert_eq!(log.active_agent_digest(), Some("profile-b"));
+    let profile = RequestProfile {
+        agent_digest: Some("profile-b".into()),
+    };
+    let assert_projection = |input: &[InputItem]| {
+        let raw = serde_json::to_string(input).unwrap();
+        assert!(
+            raw.contains("SETTLED_PROFILE_1") && raw.contains("SETTLED_PROFILE_2"),
+            "{raw}"
+        );
+        assert!(
+            raw.contains("OPAQUE_PROFILE_2") && !raw.contains("OPAQUE_PROFILE_1"),
+            "{raw}"
+        );
+        assert_eq!(
+            input.iter().filter(|i| i.call_output().is_some()).count(),
+            2
+        );
+        assert_eq!(
+            input
+                .iter()
+                .filter(
+                    |i| matches!(i, InputItem::ProviderOutput(v) if v["type"] == "function_call")
+                )
+                .count(),
+            2
+        );
+    };
+    assert_projection(&log.input_for_bound("m", "fixture", Some(&binding), Some(&profile)));
+    let mut default_profile = log.clone();
+    default_profile.requests.last_mut().unwrap().profile = Some(RequestProfile::default());
+    assert_eq!(default_profile.active_agent_digest(), None);
+    assert_projection(&default_profile.input_for_bound(
+        "m",
+        "fixture",
+        Some(&binding),
+        Some(&RequestProfile::default()),
+    ));
+    let mut legacy = original.clone();
+    for receipt in legacy["requests"].as_array_mut().unwrap() {
+        receipt.as_object_mut().unwrap().remove("profile");
+    }
+    let legacy = TurnLog::from_json(&legacy).unwrap();
+    assert_eq!(legacy.active_agent_digest(), Some("profile-a"));
+    let legacy_input = legacy.input_for_bound("m", "fixture", Some(&binding), Some(&profile));
+    assert!(
+        !serde_json::to_string(&legacy_input)
+            .unwrap()
+            .contains("OPAQUE_PROFILE_")
+    );
+    assert_eq!(
+        legacy_input
+            .iter()
+            .filter(|i| i.call_output().is_some())
+            .count(),
+        2
+    );
+    let selected = log.selected_closed_groups(|_| true).unwrap();
+    assert_projection(&selected.input_for_bound("m", "fixture", Some(&binding), Some(&profile)));
+    let hot = TurnLog::from_json(
+        &log.current_working_checkpoint("LATEST_HOT", log.closed_counts(), |_| true)
+            .unwrap(),
+    )
+    .unwrap();
+    assert_projection(&hot.input_for_bound("m", "fixture", Some(&binding), Some(&profile)));
+    assert_eq!(log.to_json(), original);
+    db.finish_turn("profile-turn", "completed", Some(&original.to_string()))
+        .unwrap();
+    let projection = owner.active_projection("profiles").unwrap();
+    assert_projection(
+        &owner
+            .wire_history_bound(
+                "profiles",
+                &projection.projected,
+                &projection.blocks,
+                "m",
+                "fixture",
+                Some("profile-b"),
+                projection.after_seq,
+                Some(&binding),
+            )
+            .unwrap(),
+    );
+    assert_projection(
+        &owner
+            .wire_history_view(
+                "profiles",
+                &projection.projected,
+                &projection.blocks,
+                "m",
+                "fixture",
+                Some("profile-b"),
+                projection.after_seq,
+                Some(&binding),
+                false,
+            )
+            .unwrap(),
+    );
+    assert!(db.list_tool_ops("profiles").unwrap().is_empty());
+}
+
+#[test]
 fn hot01_child_source_publication_is_shared_but_launch_authority_is_not() {
     use serde_json::json;
     let project = tempfile::tempdir().unwrap();
@@ -493,6 +665,10 @@ async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals(
             .await
             .unwrap();
             assert_eq!(pending.binding.generation, generation);
+            assert_eq!(
+                pending.binding.agent_digest.as_deref(),
+                Some(if generation == 1 { "g1" } else { "g2" })
+            );
             assert_ne!(pending.binding.session, "s");
             moved
                 .reply_approval(ApprovalReply {
@@ -837,7 +1013,12 @@ fn hot01_issuing_turn_fence_rejects_foreign_settled_and_moved_work() {
 async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling_back() {
     use serde_json::json;
 
-    for retire_variant in [false, true] {
+    for (retire_model, retire_variant, retire_agent) in [
+        (false, false, false),
+        (true, false, false),
+        (false, true, false),
+        (false, false, true),
+    ] {
         let project = tempfile::tempdir().unwrap();
         let data = tempfile::tempdir().unwrap();
         std::fs::write(
@@ -848,6 +1029,7 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
         let db = Db::open(data.path()).unwrap();
         db.create_bound_session("s", "work").unwrap();
         let owner = binding_replay_tests::owner(&db, project.path());
+        owner.update_execution(|view| view.workspace.agent_id = Some("exact-profile".into()));
         let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let provider = ResponsesConfig {
@@ -878,6 +1060,9 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
         } else {
             json!({"precise":{"reasoningEffort":"g2-exact"}})
         };
+        if retire_model {
+            next_catalog.models.clear();
+        }
         let mut next_provider = provider.clone();
         next_provider.base_url = format!("http://{}/g2", second.local_addr().unwrap());
         next_provider.api_key = "synthetic G2".into();
@@ -901,12 +1086,12 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
                 true,
             )
             .await;
-            if retire_variant {
+            if retire_model || retire_variant || retire_agent {
                 assert!(
                     tokio::time::timeout(Duration::from_millis(250), second.accept())
                         .await
                         .is_err(),
-                    "removed exact variant must not dispatch a default or sibling"
+                    "removed exact choice must not dispatch a default or sibling"
                 );
             } else {
                 let (mut socket, request) = tokio::time::timeout(
@@ -962,6 +1147,20 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
                 view.workspace.fixed_input =
                     vec![InputItem::message(InputRole::Developer, "G2_ROUTE_PROMPT")];
                 view.request_provider = Some(next_provider);
+                if retire_agent {
+                    use oc_core::queries::{
+                        ServiceAction, ServiceCode, ServiceDiagnostic, ServiceKind, ServiceStage,
+                    };
+                    view.workspace.profile_issue = Some(ServiceDiagnostic {
+                        kind: ServiceKind::Selection,
+                        service: "selection".into(),
+                        source: "fixture".into(),
+                        field: vec!["selection".into(), "agent".into()],
+                        stage: ServiceStage::Admission,
+                        code: ServiceCode::AgentUnavailable,
+                        action: ServiceAction::SelectAgent,
+                    });
+                }
             });
             release.send(()).unwrap();
         };
@@ -970,10 +1169,14 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
         })
         .await
         .unwrap();
-        if retire_variant {
+        if retire_model || retire_variant || retire_agent {
             assert!(
                 result.is_err(),
-                "an unavailable exact variant must remain unavailable"
+                "an unavailable exact choice must remain unavailable"
+            );
+            assert_eq!(
+                owner.current.read().unwrap().workspace.agent_id.as_deref(),
+                Some("exact-profile")
             );
         } else {
             let report = result.unwrap();

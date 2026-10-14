@@ -21,6 +21,7 @@ fn closed(db: &Db) -> TurnLog {
         .unwrap();
     let receipt = RequestIdentity {
         config_generation: None,
+        profile: None,
         binding: None,
         model: ModelRef {
             provider: "p".into(),
@@ -198,7 +199,7 @@ fn go04_sql_hot_raw_fork_and_reopen_keep_original_wire_binding() {
         assert_eq!(projected.requests, log.requests);
         assert_eq!(projected.spans, log.spans);
         assert_eq!(
-            projected.input_for_bound("A", "p", Some(&binding)),
+            projected.input_for_bound("A", "p", Some(&binding), None),
             log.input
         );
         let (segment, hot) = log

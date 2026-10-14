@@ -1252,6 +1252,7 @@ impl<'a> Runtime<'a> {
             &params.provider,
         )?;
         let published = self.current.read().expect("generation lock").clone();
+        self.admit_primary_profile(&published)?;
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
         let fallback = published
@@ -1369,6 +1370,7 @@ impl<'a> Runtime<'a> {
             params
                 .provider
                 .for_selection(&selection.id, params.variant.as_deref()),
+            &lane.request_profile(),
         )?;
         let workspace = published.workspace.clone();
         let mut effort_event_seq = self
@@ -1517,7 +1519,12 @@ impl<'a> Runtime<'a> {
         }
         tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
         let prompt_input = if let Some(log) = &resume {
-            log.input_for_bound(&selection.id, &params.catalog.provider, Some(&binding))
+            log.input_for_bound(
+                &selection.id,
+                &params.catalog.provider,
+                Some(&binding),
+                Some(&lane.request_profile()),
+            )
         } else {
             vec![InputItem::message(InputRole::User, &params.prompt)]
         };
@@ -1896,6 +1903,7 @@ impl<'a> Runtime<'a> {
                 published.clone()
             };
             let current_lane = if primary_request {
+                self.admit_primary_profile(&published)?;
                 let mut current = self.primary_lane(&published);
                 current.manual_compression = lane.manual_compression;
                 current
@@ -2033,6 +2041,7 @@ impl<'a> Runtime<'a> {
                 &params.catalog.provider,
                 &selection.id,
                 request_provider.for_selection(&selection.id, variant.as_deref()),
+                &lane.request_profile(),
             )?;
             if prepared_model != selection.id
                 || prepared_binding != binding
@@ -2240,6 +2249,7 @@ impl<'a> Runtime<'a> {
                 &params.catalog.provider,
                 &instruction_facts,
                 Some(&binding),
+                Some(&lane.request_profile()),
             );
             let mut projected_continuation =
                 dcp_continuation(&history, &current_instruction_input, &tool_projection);
@@ -2393,6 +2403,7 @@ impl<'a> Runtime<'a> {
                                 &selection.id,
                                 &params.catalog.provider,
                                 Some(&binding),
+                                Some(&lane.request_profile()),
                             )
                             .iter(),
                     )
@@ -2569,6 +2580,7 @@ impl<'a> Runtime<'a> {
                 retry_resuming = false;
                 let receipt = oc_core::queries::RequestIdentity {
                     config_generation: Some(published.id),
+                    profile: Some(lane.request_profile()),
                     binding: Some(binding.clone()),
                     model: oc_core::queries::ModelRef {
                         provider: params.catalog.provider.clone(),
@@ -2971,6 +2983,7 @@ impl<'a> Runtime<'a> {
                                                         &selection.id,
                                                         &params.catalog.provider,
                                                         Some(&binding),
+                                                        Some(&lane.request_profile()),
                                                     )
                                                     .iter(),
                                             )
@@ -4120,7 +4133,7 @@ impl<'a> Runtime<'a> {
                                     policy,
                                     cancel,
                                     turn_log.display["agent"].as_str().map(str::to_string),
-                                    turn_log.agent_digest.clone(),
+                                    turn_log.active_agent_digest().map(str::to_owned),
                                     false,
                                 )
                                 .await
@@ -4177,7 +4190,7 @@ impl<'a> Runtime<'a> {
                                         policy,
                                         cancel,
                                         turn_log.display["agent"].as_str().map(str::to_string),
-                                        turn_log.agent_digest.clone(),
+                                        turn_log.active_agent_digest().map(str::to_owned),
                                         request_tools.iter().any(|tool| tool.name == COMPRESS_TOOL),
                                     )
                                     .await
@@ -4221,7 +4234,7 @@ impl<'a> Runtime<'a> {
                         policy,
                         cancel,
                         turn_log.display["agent"].as_str().map(str::to_string),
-                        turn_log.agent_digest.clone(),
+                        turn_log.active_agent_digest().map(str::to_owned),
                         request_tools.iter().any(|tool| tool.name == COMPRESS_TOOL),
                     )
                     .await
@@ -4874,7 +4887,7 @@ impl<'a> Runtime<'a> {
                                     location: self.location.clone(),
                                     generation: issuing.id,
                                     agent: turn_log.display["agent"].as_str().map(str::to_owned),
-                                    agent_digest: turn_log.agent_digest.clone(),
+                                    agent_digest: turn_log.active_agent_digest().map(str::to_owned),
                                 },
                                 input: input.clone(),
                             };
@@ -5119,7 +5132,7 @@ impl<'a> Runtime<'a> {
                                         .map_or("native defaults", String::as_str),
                                 ),
                                 agent: turn_log.display["agent"].as_str().map(str::to_owned),
-                                agent_digest: turn_log.agent_digest.clone(),
+                                agent_digest: turn_log.active_agent_digest().map(str::to_owned),
                                 model: turn_log.requests.last().map_or_else(
                                     || turn_log.model.clone(),
                                     |request| request.model.id.clone(),
@@ -5185,7 +5198,7 @@ impl<'a> Runtime<'a> {
                             attached,
                             cancel,
                             turn_log.display["agent"].as_str().map(str::to_string),
-                            turn_log.agent_digest.clone(),
+                            turn_log.active_agent_digest().map(str::to_owned),
                         )
                         .await
                     }

@@ -433,6 +433,9 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         wait(lambda: selected(root) is None, 'exit clears selected ID')
         assert view.child.poll() is None
         assert REQUESTS == [], 'manual PTYs must not accept model/title/tool work'
+        # The durable selected-ID ACK can precede the frontend inventory event.
+        # Explicitly return input ownership to the prompt before submitting it.
+        view.leader(b'\x1b[D')
         # Actual parent delegates; open the REAL held child, then activate New in
         # its lower composer. Closing returns to parent BEFORE captured dispatch.
         view.command('DELEGATE_TERM01')

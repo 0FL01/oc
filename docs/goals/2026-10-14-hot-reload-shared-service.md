@@ -256,6 +256,11 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
    `oc-adapters/src/runtime.rs` (`PublishedGeneration`/`TurnParams`/`TurnLane`),
    `runtime/{turn,context,instructions,children}.rs`, `runtime_compaction.rs`,
    `tools.rs` (`TurnLog`), existing history/storage-instruction owners. HOT01.
+   R1 envelope clarification (2026-10-14): optional profile provenance also belongs in
+   existing `oc-core/src/compaction.rs` operation JSON and `storage_compaction.rs` reads.
+   Native checkpoints persist only model/wire today, so unchanged wire cannot prove
+   the producing profile. This is the minimal fence for the required explicit
+   unsupported boundary, not a new table, schema, store or checkpoint retry path.
 2. **Reload + MCP.** `composition.rs`/config/defs admission verdict and finite topology,
    `application.rs` with a coarse `application/reload.rs` owner slice,
    `runtime/mcp{,/lifecycle}.rs`; workspace/adapter manifests + Cargo.lock for `notify`.

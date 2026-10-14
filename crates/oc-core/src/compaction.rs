@@ -42,6 +42,9 @@ pub struct CompactionSnapshot {
     /// Producing request scope in the existing JSON record (legacy absent).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<crate::queries::ModelRef>,
+    /// Profile that produced a native checkpoint; absent in legacy operations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<crate::queries::RequestProfile>,
     #[serde(default)]
     pub anchor: CompactionAnchor,
     pub id: String,

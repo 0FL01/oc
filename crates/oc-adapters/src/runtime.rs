@@ -946,6 +946,7 @@ struct RuntimeWorkspace {
     fixed_input: Vec<InputItem>,
     skills: SkillSnapshot,
     agent_digest: Option<String>,
+    profile_issue: Option<oc_core::queries::ServiceDiagnostic>,
     agent_permissions: BTreeMap<String, Permission>,
     agent_permission_rules: crate::permissions::PermissionRules,
     agent_request: crate::provider::RequestOverlay,
@@ -997,6 +998,14 @@ struct TurnLane {
     /// Captured profile overlay; configuration, never persisted with the lane.
     #[serde(skip)]
     request: crate::provider::RequestOverlay,
+}
+
+impl TurnLane {
+    fn request_profile(&self) -> oc_core::queries::RequestProfile {
+        oc_core::queries::RequestProfile {
+            agent_digest: self.agent_digest.clone(),
+        }
+    }
 }
 
 /// Created only by the explicit application command owner, never prompt text.
@@ -1948,6 +1957,22 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
+    pub(crate) fn publish_profile_issue(
+        &self,
+        issue: Option<oc_core::queries::ServiceDiagnostic>,
+    ) -> Result<(), RuntimeError> {
+        let _active = self.begin_active()?;
+        self.update_execution(|view| view.workspace.profile_issue = issue);
+        Ok(())
+    }
+
+    fn admit_primary_profile(&self, published: &ExecutionGeneration) -> Result<(), RuntimeError> {
+        if let Some(issue) = &published.workspace.profile_issue {
+            return Err(RuntimeError::InvalidArgs(issue.to_string()));
+        }
+        Ok(())
+    }
+
     /// Publish fixed instructions, primary prompt/policy and pinned skills together.
     #[allow(clippy::too_many_arguments)]
     pub fn publish_workspace(
@@ -1999,6 +2024,7 @@ impl<'a> Runtime<'a> {
         workspace.fixed_input = fixed_input;
         workspace.skills = skills;
         workspace.agent_digest = agent_digest;
+        workspace.profile_issue = None;
         workspace.agent_permissions = agent_permissions;
         workspace.agent_permission_rules = agent_permission_rules;
         workspace.agent_request = agent_request;

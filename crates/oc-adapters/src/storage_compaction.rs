@@ -145,6 +145,16 @@ impl Db {
         raw.map(|raw| serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict))
             .transpose()
     }
+
+    pub(crate) fn checkpoint_profile(
+        &self,
+        session: &str,
+    ) -> Result<Option<oc_core::queries::RequestProfile>, StorageError> {
+        let conn = self.conn.lock().expect("db mutex");
+        let raw: Option<String> = conn.query_row("SELECT c.snapshot ->> '$.profile' FROM session_checkpoint p JOIN session_compactions c ON c.id=p.operation_id WHERE p.session_id=?1", [session], |row| row.get(0)).optional()?.flatten();
+        raw.map(|raw| serde_json::from_str(&raw).map_err(|_| StorageError::CompressionConflict))
+            .transpose()
+    }
     /// Whole exchanges only: always keep the latest exchange if an older prefix exists.
     pub(crate) fn compaction_boundary(
         &self,
@@ -472,6 +482,7 @@ mod tests {
             .unwrap();
         let snapshot = CompactionSnapshot {
             model: None,
+            profile: None,
             anchor: CompactionAnchor::default(),
             id: "compact".into(),
             session: "s".into(),

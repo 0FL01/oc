@@ -377,6 +377,10 @@ pub struct RequestIdentity {
     /// never an execution lease or restart authorization.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub config_generation: Option<u64>,
+    /// Issuing profile, absent in legacy receipts. An explicit empty/default
+    /// profile is distinct from missing historical provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<RequestProfile>,
     /// Immutable wire/deployment/auth scope, absent in legacy journals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub binding: Option<WireProvenance>,
@@ -393,6 +397,12 @@ pub struct RequestIdentity {
     pub dcp_max_context: u64,
     pub tool_fingerprint: String,
     pub context_fingerprint: String,
+}
+
+/// Profile compatibility for opaque request output, not execution authority.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RequestProfile {
+    pub agent_digest: Option<String>,
 }
 
 /// Finite durable wire discriminator. Only an absent field means legacy Responses;

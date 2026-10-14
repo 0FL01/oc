@@ -161,6 +161,7 @@ mod tests {
     fn snapshot(state: CompactionState) -> CompactionSnapshot {
         CompactionSnapshot {
             model: None,
+            profile: None,
             anchor: CompactionAnchor::default(),
             id: "checkpoint".into(),
             session: "session".into(),

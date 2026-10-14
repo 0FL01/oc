@@ -8,6 +8,7 @@ use oc_core::{
 fn checkpoint(db: &Db, session: &str, id: &str, boundary: &str) -> CompactionSnapshot {
     let snapshot = CompactionSnapshot {
         model: None,
+        profile: None,
         anchor: CompactionAnchor::default(),
         id: id.into(),
         session: session.into(),
@@ -123,6 +124,7 @@ fn checkpoint_panel_summary_uses_remaining_projection_and_rolls_back_atomically(
 fn checkpoint_snapshot(session: &str) -> CompactionSnapshot {
     CompactionSnapshot {
         model: None,
+        profile: None,
         anchor: CompactionAnchor::default(),
         id: "unused".into(),
         session: session.into(),

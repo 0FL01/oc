@@ -814,6 +814,7 @@ async fn vis34_manual_admission_event_race_parked_view_and_read_failure_keep_rec
     assert_eq!(requested, session);
     let queued = CompactionSnapshot {
         model: None,
+        profile: None,
         anchor: CompactionAnchor::default(),
         id: "op".into(),
         session: session.0.clone(),
@@ -899,6 +900,7 @@ async fn vis34_palette_enter_coalesced_admission_closes_only_on_success_and_pres
         state.restore_prompt("/compact".into());
         let queued = CompactionSnapshot {
             model: None,
+            profile: None,
             anchor: CompactionAnchor::default(),
             id: "already-queued".into(),
             session: session.0.clone(),

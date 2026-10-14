@@ -65,7 +65,12 @@ impl PreparedCheckpoint {
     ) -> Result<serde_json::Value, RuntimeError> {
         let model = snapshot.model.as_ref().ok_or(RuntimeError::Storage)?;
         let mut input = if let Some(log) = current {
-            log.input_for_bound(&model.id, &model.provider, Some(&self.binding))
+            log.input_for_bound(
+                &model.id,
+                &model.provider,
+                Some(&self.binding),
+                snapshot.profile.as_ref(),
+            )
         } else {
             vec![InputItem::message(InputRole::Developer, &snapshot.summary)]
         };
@@ -91,7 +96,12 @@ impl PreparedCheckpoint {
                 input.extend(
                     crate::tools::TurnLog::from_json(fact)
                         .map_err(|_| RuntimeError::Storage)?
-                        .input_for_bound(&model.id, &model.provider, Some(&self.binding)),
+                        .input_for_bound(
+                            &model.id,
+                            &model.provider,
+                            Some(&self.binding),
+                            snapshot.profile.as_ref(),
+                        ),
                 );
             }
         }
@@ -241,6 +251,7 @@ impl Runtime<'_> {
         provider_id: &str,
         model: &str,
         provider: &ResponsesConfig,
+        profile: &oc_core::queries::RequestProfile,
     ) -> Result<(), RuntimeError> {
         if let Some((_, _, Some(route), Some(_))) = self.db.checkpoint_record(session)?
             && let Some(origin) = self.db.checkpoint_model(session)?
@@ -262,10 +273,21 @@ impl Runtime<'_> {
                 .is_none()
                 || route
                     != crate::compaction::route_identity(provider_id, model, provider)
-                        .map_err(|_| RuntimeError::Provider)?)
+                        .map_err(|_| RuntimeError::Provider)?
+                || !self.db.checkpoint_profile(session)?.as_ref().map_or_else(
+                    || {
+                        profile.agent_digest.is_none()
+                            || profile.agent_digest.as_deref()
+                                == Some(
+                                    crate::defs::agent_digest(&crate::defs::builtin_build())
+                                        .as_str(),
+                                )
+                    },
+                    |origin| origin == profile,
+                ))
         {
             return Err(RuntimeError::InvalidArgs(
-                "provider checkpoint route unsupported; restore an earlier conversation point"
+                "provider checkpoint route/profile unsupported; restore an earlier conversation point"
                     .into(),
             ));
         }
@@ -301,6 +323,7 @@ impl Runtime<'_> {
         }
         let snapshot = CompactionSnapshot {
             model: None,
+            profile: None,
             anchor: self.db.compaction_anchor(session)?,
             id: next_turn_id("compaction", millis()),
             session: session.into(),
@@ -674,7 +697,14 @@ impl Runtime<'_> {
         let binding = provider
             .provenance(&catalog.provider, model)
             .map_err(|_| RuntimeError::Provider)?;
-        self.validate_checkpoint_route(session, &catalog.provider, model, provider)?;
+        let profile = if let Some(launch) = &self.child_launch {
+            self.child_request_lane(published, launch)?
+                .request_profile()
+        } else {
+            self.primary_lane(published).request_profile()
+        };
+        self.validate_checkpoint_route(session, &catalog.provider, model, provider, &profile)?;
+        snapshot.profile = Some(profile.clone());
         snapshot.model = Some(oc_core::queries::ModelRef {
             provider: catalog.provider.clone(),
             id: model.to_string(),
@@ -775,15 +805,16 @@ impl Runtime<'_> {
                 .map_or(context.projected.as_slice(), |index| {
                     &context.projected[..index]
                 });
-            let mut history = self.wire_history_bound(
+            let mut history = self.wire_history_view(
                 session,
                 prior,
                 &context.blocks,
                 model,
                 &catalog.provider,
-                Some("__compaction__"),
+                profile.agent_digest.as_deref(),
                 context.after_seq,
                 Some(&binding),
+                false,
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
@@ -808,7 +839,12 @@ impl Runtime<'_> {
                 super::context::dcp_call_identities(&logs, None)?,
             );
             apply_dcp_projection(&mut history, &marks);
-            history.extend(prefix.input_for_bound(model, &catalog.provider, Some(&binding)));
+            history.extend(prefix.input_for_bound(
+                model,
+                &catalog.provider,
+                Some(&binding),
+                Some(&profile),
+            ));
             (
                 log.user_message.clone().ok_or(RuntimeError::Storage)?,
                 history,
@@ -889,15 +925,16 @@ impl Runtime<'_> {
                     prefix.push(row);
                 }
             }
-            let mut history = self.wire_history_bound(
+            let mut history = self.wire_history_view(
                 session,
                 &prefix,
                 &context.blocks,
                 model,
                 &catalog.provider,
-                Some("__compaction__"),
+                profile.agent_digest.as_deref(),
                 context.after_seq,
                 Some(&binding),
+                false,
             )?;
             let offset_history = if recover_native {
                 let source_logs =
@@ -908,15 +945,16 @@ impl Runtime<'_> {
                     .session_checkpoint(session)?
                     .map(|(seq, _)| seq)
                     .unwrap_or(0);
-                self.wire_history_bound(
+                self.wire_history_view(
                     session,
                     &prefix,
                     &context.blocks,
                     model,
                     &catalog.provider,
-                    Some("__compaction__"),
+                    profile.agent_digest.as_deref(),
                     after,
                     Some(&binding),
+                    false,
                 )?
             } else {
                 let source_logs =

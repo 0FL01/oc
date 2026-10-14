@@ -1292,7 +1292,7 @@ impl<'a> Runtime<'a> {
             })
             .unwrap_or(self.db.dcp_wire_route(session)?.unwrap_or_default());
         let digest = current
-            .map(|log| log.agent_digest.as_deref())
+            .map(|log| log.active_agent_digest())
             .unwrap_or(lane.agent_digest.as_deref());
         let binding = current.and_then(|log| {
             log.requests
@@ -1322,7 +1322,13 @@ impl<'a> Runtime<'a> {
         let instruction_facts = self.db.instruction_view(session)?.1;
         let current_instruction_input = current
             .map(|log| {
-                log.instruction_input_for_bound(&model, &provider, &instruction_facts, binding)
+                log.instruction_input_for_bound(
+                    &model,
+                    &provider,
+                    &instruction_facts,
+                    binding,
+                    Some(&lane.request_profile()),
+                )
             })
             .unwrap_or_default();
         let current_input = current_instruction_input.as_slice();
@@ -1555,6 +1561,34 @@ impl<'a> Runtime<'a> {
         after_seq: i64,
         binding: Option<&oc_core::queries::WireProvenance>,
     ) -> Result<Vec<InputItem>, RuntimeError> {
+        self.wire_history_view(
+            session,
+            projected,
+            blocks,
+            model,
+            provider,
+            agent_digest,
+            after_seq,
+            binding,
+            true,
+        )
+    }
+
+    /// Summarization uses retained conversational data only, not reconstructed
+    /// instruction sources. Both consumers still enforce each issuing profile.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn wire_history_view(
+        &self,
+        session: &str,
+        projected: &[(String, String, String)],
+        blocks: &[crate::dcp::CompressionBlock],
+        model: &str,
+        provider: &str,
+        agent_digest: Option<&str>,
+        after_seq: i64,
+        binding: Option<&oc_core::queries::WireProvenance>,
+        project_instructions: bool,
+    ) -> Result<Vec<InputItem>, RuntimeError> {
         let mut turns = BTreeMap::new();
         let mut changed_lane_prompts = BTreeMap::new();
         let mut represented = std::collections::BTreeSet::new();
@@ -1613,18 +1647,11 @@ impl<'a> Runtime<'a> {
             let changed_location = moved
                 && (log.display["move_epoch"].as_i64().unwrap_or(0) != move_epoch
                     || log.display["location"].as_str() != Some(self.location.as_str()));
-            if changed_location
-                || (agent_digest != Some("__compaction__")
-                    && (log.agent_digest.as_deref() != agent_digest
-                    // Pre-Build native sessions used the same empty default
-                    // agent lane without a digest. Adopt only the unchanged
-                    // builtin profile, preserving genuine tool/opaque pairs.
-                    && !(log.agent_digest.is_none() && agent_digest == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str()))))
-            {
-                // Location or agent behavior changed: start a fresh causality lane
-                // from public messages, but retain the originally expanded user
-                // prompt for an uncompressed anchor. Never re-expand an invocation
-                // using the current workspace's potentially changed commands.
+            if changed_location {
+                // A move starts a fresh public-message lane, retaining an
+                // uncompressed anchor's original command expansion. Never expand
+                // it using the new workspace. Same-Location profile changes below
+                // instead keep closed pairs and neutralize only foreign opaque.
                 if let Some(prompt) = prompt.filter(|prompt| !prompt.is_empty()) {
                     changed_lane_prompts.insert(anchor, prompt);
                 }
@@ -1641,10 +1668,19 @@ impl<'a> Runtime<'a> {
                 .iter()
                 .filter_map(|item| item.call_output().map(|(id, _)| id.to_owned()))
                 .collect();
-            let instruction_input = if agent_digest == Some("__compaction__") {
-                log.input_for_bound(model, provider, binding)
+            let profile = oc_core::queries::RequestProfile {
+                agent_digest: agent_digest.map(str::to_owned),
+            };
+            let instruction_input = if project_instructions {
+                log.instruction_input_for_bound(
+                    model,
+                    provider,
+                    &instruction_facts,
+                    binding,
+                    Some(&profile),
+                )
             } else {
-                log.instruction_input_for_bound(model, provider, &instruction_facts, binding)
+                log.input_for_bound(model, provider, binding, Some(&profile))
             };
             let mut input = instruction_input
                 .into_iter()

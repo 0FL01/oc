@@ -48,7 +48,7 @@ fn go04_full_binding_authority_is_required_for_opaque_replay() {
         assert!(!raw.to_string().contains("SECRET_BINDING_KEY"));
         let reopened = TurnLog::from_json(&raw).unwrap();
         assert_eq!(
-            reopened.input_for_bound("catalog-model", "p", Some(&binding)),
+            reopened.input_for_bound("catalog-model", "p", Some(&binding), None),
             log.input
         );
         let mut mismatches = vec![None];
@@ -76,7 +76,7 @@ fn go04_full_binding_authority_is_required_for_opaque_replay() {
             mismatches.push(Some(other));
         }
         for other in mismatches {
-            let input = reopened.input_for_bound("catalog-model", "p", other.as_ref());
+            let input = reopened.input_for_bound("catalog-model", "p", other.as_ref(), None);
             let projected = serde_json::to_string(&input).unwrap();
             assert!(
                 !projected.contains("OPAQUE_CANARY")
@@ -101,9 +101,14 @@ fn go04_full_binding_authority_is_required_for_opaque_replay() {
         let legacy = TurnLog::from_json(&legacy).unwrap();
         assert_eq!(legacy.protocol, NativeProtocol::Responses);
         assert!(
-            !serde_json::to_string(&legacy.input_for_bound("catalog-model", "p", Some(&binding)))
-                .unwrap()
-                .contains("OPAQUE_CANARY")
+            !serde_json::to_string(&legacy.input_for_bound(
+                "catalog-model",
+                "p",
+                Some(&binding),
+                None
+            ))
+            .unwrap()
+            .contains("OPAQUE_CANARY")
         );
         let mut invalid = raw;
         invalid["protocol"] = "unknown-wire".into();
@@ -122,6 +127,7 @@ fn go04_receipt_origins_and_hot_selection_preserve_binding_not_current_choice() 
     for (index, binding) in [(1, &a), (2, &b)] {
         log.requests.push(oc_core::queries::RequestIdentity {
             config_generation: None,
+            profile: None,
             binding: Some(binding.clone()),
             model: oc_core::queries::ModelRef {
                 provider: "p".into(),
@@ -144,12 +150,12 @@ fn go04_receipt_origins_and_hot_selection_preserve_binding_not_current_choice() 
     }
     let raw = log.to_json();
     assert!(
-        serde_json::to_string(&log.input_for_bound("catalog", "p", Some(&a)))
+        serde_json::to_string(&log.input_for_bound("catalog", "p", Some(&a), None))
             .unwrap()
             .contains("opaque-1")
     );
     assert!(
-        !serde_json::to_string(&log.input_for_bound("catalog", "p", Some(&a)))
+        !serde_json::to_string(&log.input_for_bound("catalog", "p", Some(&a), None))
             .unwrap()
             .contains("opaque-2")
     );

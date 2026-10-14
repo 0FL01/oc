@@ -3,6 +3,243 @@ use std::os::unix::process::CommandExt as _;
 use std::task::Poll;
 
 #[tokio::test]
+async fn hot01_child_recovery_uses_saved_provenance_not_the_current_counter() {
+    use crate::provider::protocol::Protocol;
+    use crate::runtime::tests::binding_replay_tests::{owner, request, respond};
+    use oc_core::domain::SessionId;
+    use serde_json::json;
+    for refusal in [
+        None,
+        Some("configuration"),
+        Some("credentials"),
+        Some("missing-fence"),
+        Some("unknown-effect"),
+    ] {
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = ResponsesConfig {
+            base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+            api_key: "synthetic recovery key".into(),
+            timeout: None,
+            chunk_timeout_ms: 3000,
+            connect_timeout: std::time::Duration::from_secs(1),
+            allow_private: true,
+            headers: BTreeMap::new(),
+            set_cache_key: false,
+            wire: Default::default(),
+        };
+        let catalog = ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "m".into(),
+                json!({"limit":{"context":500000,"output":1000}}),
+            )]),
+        };
+        let agent = SubagentAgent {
+            id: "helper".into(),
+            description: "helper".into(),
+            primary: false,
+            model: None,
+            variant: None,
+            prompt: "RECOVERY_PROFILE".into(),
+            permissions: BTreeMap::new(),
+            permission_rules: Default::default(),
+            hidden: false,
+            digest: Some("helper-profile".into()),
+            request: Default::default(),
+            color: None,
+        };
+        {
+            let db = Db::open(data.path()).unwrap();
+            let runtime = owner(&db, project.path());
+            runtime.create_session("parent").unwrap();
+            db.accept_turn(
+                "parent-turn",
+                "parent",
+                "delegate",
+                "delegate",
+                &oc_core::queries::ModelRef {
+                    provider: "fixture".into(),
+                    id: "m".into(),
+                    variant: None,
+                },
+            )
+            .unwrap();
+            db.finish_turn("parent-turn", "completed", None).unwrap();
+            runtime
+                .publish_subagents(Some(SubagentCatalog {
+                    agents: BTreeMap::from([("helper".into(), agent.clone())]),
+                    depth_limit: 4,
+                }))
+                .unwrap();
+            let identity = ChildJob {
+                parent: SessionId("parent".into()),
+                child: SessionId("child".into()),
+                operation: "resume-launch".into(),
+                generation: 77,
+                location: "work".into(),
+                agent: "helper".into(),
+                model: "fixture/m".into(),
+                description: "work".into(),
+                delivery_id: "child-delivery:resume-launch".into(),
+                state: ChildState::Admitted,
+                background: true,
+                turn: None,
+                result: None,
+                message_id: None,
+            };
+            db.record_tool_intent(
+                &identity.operation,
+                "parent",
+                None,
+                "subagent",
+                "{\"background\":true}",
+            )
+            .unwrap();
+            db.record_tool_outcome(&identity.operation, "completed", Some("child accepted"))
+                .unwrap();
+            let published = runtime.current.read().unwrap().clone();
+            let mut fence = json!({
+                "version":1, "identity":identity, "parent_turn":"parent-turn", "lane":runtime.primary_lane(&published),
+                "generation_fingerprint":runtime.child_recovery_fingerprint(),
+                "launch_source":db.child_launch_fingerprint(&identity.operation).unwrap(),
+                "route":crate::compaction::route_identity("fixture", "m", &provider).unwrap(),
+            });
+            // Legacy fences need not contain launch_sources. The existing exact
+            // launch/source/route/turn guards remain authoritative after reopen.
+            fence["fingerprint"] = crate::compaction::fingerprint(&fence).into();
+            if refusal == Some("missing-fence") {
+                db.admit_fresh_child_job(&identity).unwrap();
+            } else {
+                db.admit_recoverable_child_job(&identity, true, &fence)
+                    .unwrap();
+            }
+            let accepted = db
+                .accept_turn(
+                    "child-turn",
+                    "child",
+                    "own task",
+                    "own task",
+                    &oc_core::queries::ModelRef {
+                        provider: "fixture".into(),
+                        id: "m".into(),
+                        variant: None,
+                    },
+                )
+                .unwrap();
+            db.start_child_job(&identity.operation, "child-turn")
+                .unwrap();
+            let mut log = TurnLog::new("child-turn", "m", "fixture");
+            log.user_message = Some(accepted.user_message);
+            log.agent_digest = agent.digest.clone();
+            log.display = json!({"location":"work","move_epoch":0,"config_generation":77,"owning_operation":identity.operation,"agent":"helper"});
+            log.input
+                .push(InputItem::message(InputRole::User, "own task"));
+            db.checkpoint_turn("child-turn", &log.to_json().to_string())
+                .unwrap();
+            if refusal == Some("unknown-effect") {
+                db.record_tool_intent(
+                    "uncertain-effect",
+                    "child",
+                    Some("child-turn"),
+                    "shell",
+                    "{\"command\":\"must not replay\"}",
+                )
+                .unwrap();
+            }
+            runtime.shutdown_mcp().await.unwrap();
+        }
+        let db = Db::open(data.path()).unwrap();
+        db.recover_child_jobs().unwrap();
+        db.recover_interrupted_tools().unwrap();
+        let runtime = owner(&db, project.path());
+        runtime
+            .publish_subagents(Some(SubagentCatalog {
+                agents: BTreeMap::from([("helper".into(), agent)]),
+                depth_limit: 4,
+            }))
+            .unwrap();
+        assert_ne!(runtime.generation_id(), 77);
+        if refusal == Some("configuration") {
+            runtime.update_execution(|view| {
+                view.generation
+                    .config
+                    .permissions
+                    .insert("read".into(), Permission::Deny);
+            });
+        }
+        let mut restored_provider = provider.clone();
+        if refusal == Some("credentials") {
+            restored_provider.api_key = "different admitted key".into();
+        }
+        runtime
+            .recover_background_children(&catalog, &restored_provider)
+            .await
+            .unwrap();
+        if refusal.is_none() {
+            assert_ne!(
+                db.child_jobs("parent").unwrap()[0].state,
+                ChildState::Unknown
+            );
+            let (mut socket, input) =
+                tokio::time::timeout(std::time::Duration::from_secs(3), request(&listener))
+                    .await
+                    .unwrap();
+            assert!(
+                input.to_string().contains("own task")
+                    && input.to_string().contains("RECOVERY_PROFILE")
+            );
+            respond(&mut socket, Protocol::Responses, false).await;
+            tokio::time::timeout(std::time::Duration::from_secs(3), async {
+                while db.child_jobs("parent").unwrap()[0].state != ChildState::Completed {
+                    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                }
+            })
+            .await
+            .unwrap();
+            let job = &db.child_jobs("parent").unwrap()[0];
+            assert_eq!(job.generation, 77, "launch attribution is immutable");
+            let log = TurnLog::from_json(
+                &serde_json::from_str(&db.turn_result("child-turn").unwrap().1.unwrap()).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(log.requests.len(), 1);
+            assert_eq!(
+                log.requests[0].config_generation,
+                Some(runtime.generation_id())
+            );
+            assert_eq!(
+                db.read_history_page("child", 100, None)
+                    .unwrap()
+                    .iter()
+                    .filter(|row| row.1 == "user")
+                    .count(),
+                1
+            );
+        } else {
+            assert_eq!(
+                db.child_jobs("parent").unwrap()[0].state,
+                ChildState::Unknown
+            );
+            assert_eq!(db.turn_result("child-turn").unwrap().0, "unknown");
+        }
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), listener.accept())
+                .await
+                .is_err(),
+            "no extra or refused recovery dispatch"
+        );
+        assert_eq!(
+            db.list_tool_ops("child").unwrap().len(),
+            usize::from(refusal == Some("unknown-effect"))
+        );
+        runtime.child_jobs.shutdown().await.unwrap();
+        runtime.shutdown_mcp().await.unwrap();
+    }
+}
+
+#[tokio::test]
 async fn term01_terminal_creation_uses_retained_child_source_not_moved_parent() {
     use oc_core::queries::{TerminalAction, TerminalSize};
     let dir = tempfile::tempdir().unwrap();

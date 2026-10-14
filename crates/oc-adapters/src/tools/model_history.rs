@@ -3,7 +3,7 @@ use super::*;
 
 impl TurnLog {
     pub(crate) fn input_for(&self, model: &str, provider: &str) -> Vec<crate::provider::InputItem> {
-        self.input_for_bound(model, provider, None)
+        self.input_for_bound(model, provider, None, None)
     }
 
     pub(crate) fn input_for_bound(
@@ -11,14 +11,17 @@ impl TurnLog {
         model: &str,
         provider: &str,
         binding: Option<&oc_core::queries::WireProvenance>,
+        profile: Option<&oc_core::queries::RequestProfile>,
     ) -> Vec<crate::provider::InputItem> {
         let mut input = self
             .working
             .as_ref()
             .and_then(|w| Self::from_json(w).ok())
-            .map_or_else(Vec::new, |w| w.input_for_bound(model, provider, binding));
+            .map_or_else(Vec::new, |w| {
+                w.input_for_bound(model, provider, binding, profile)
+            });
         input.extend(self.input.iter().enumerate().filter_map(|(index, item)| {
-            self.compatible_item(index, item, model, provider, binding)
+            self.compatible_item(index, item, model, provider, binding, profile)
         }));
         input
     }
@@ -29,21 +32,33 @@ impl TurnLog {
         provider: &str,
         facts: &[crate::instructions::Fact],
         binding: Option<&oc_core::queries::WireProvenance>,
+        profile: Option<&oc_core::queries::RequestProfile>,
     ) -> Vec<crate::provider::InputItem> {
         let mut input = self
             .working
             .as_ref()
             .and_then(|w| Self::from_json(w).ok())
             .map_or_else(Vec::new, |w| {
-                w.instruction_input_for_bound(model, provider, facts, binding)
+                w.instruction_input_for_bound(model, provider, facts, binding, profile)
             });
         input.extend(crate::instructions::project_items(
             &self.input,
             &self.instruction_references,
             facts,
-            |index, item| self.compatible_item(index, item, model, provider, binding),
+            |index, item| self.compatible_item(index, item, model, provider, binding, profile),
         ));
         input
+    }
+
+    /// The latest issued receipt owns the current batch, even when its profile
+    /// differs from the turn's original display attribution.
+    pub(crate) fn active_agent_digest(&self) -> Option<&str> {
+        self.requests
+            .last()
+            .and_then(|r| r.profile.as_ref())
+            .map_or(self.agent_digest.as_deref(), |profile| {
+                profile.agent_digest.as_deref()
+            })
     }
 
     fn compatible_item(
@@ -53,6 +68,7 @@ impl TurnLog {
         model: &str,
         provider: &str,
         binding: Option<&oc_core::queries::WireProvenance>,
+        profile: Option<&oc_core::queries::RequestProfile>,
     ) -> Option<crate::provider::InputItem> {
         let origin = self
             .requests
@@ -71,7 +87,20 @@ impl TurnLog {
                 },
             )
         });
-        if compatible {
+        let compatible_profile = profile.is_none_or(|profile| {
+            origin.and_then(|r| r.profile.as_ref()).map_or_else(
+                || {
+                    self.agent_digest == profile.agent_digest
+                        // Pre-Build sessions used the unchanged empty builtin
+                        // lane without a digest; do not generalize to custom profiles.
+                        || (self.agent_digest.is_none()
+                            && profile.agent_digest.as_deref()
+                                == Some(crate::defs::agent_digest(&crate::defs::builtin_build()).as_str()))
+                },
+                |origin| origin == profile,
+            )
+        });
+        if compatible && compatible_profile {
             return Some(item.clone());
         }
         neutral(item)

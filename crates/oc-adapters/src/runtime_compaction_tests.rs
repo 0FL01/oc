@@ -995,7 +995,13 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
     }
     assert!(
         runtime
-            .validate_checkpoint_route("s", "fixture", "another-model", &provider)
+            .validate_checkpoint_route(
+                "s",
+                "fixture",
+                "another-model",
+                &provider,
+                &Default::default()
+            )
             .is_ok()
     );
     let changed = runtime
@@ -1021,7 +1027,7 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
         .insert("X-Tenant".into(), "another-tenant-secret".into());
     assert!(
         runtime
-            .validate_checkpoint_route("s", "fixture", "m", &different)
+            .validate_checkpoint_route("s", "fixture", "m", &different, &Default::default())
             .is_err()
     );
     let cancel = AtomicBool::new(false);
@@ -1049,7 +1055,7 @@ async fn compaction_native_opaque_route_checkpoint_without_summary_body() {
     different.base_url = "http://different-route/v1".into();
     assert!(
         runtime
-            .validate_checkpoint_route("s", "fixture", "m", &different)
+            .validate_checkpoint_route("s", "fixture", "m", &different, &Default::default())
             .is_err()
     );
 }
@@ -1139,14 +1145,65 @@ async fn go04_native_checkpoint_requires_captured_variant_and_explicit_origin() 
     );
     assert!(
         owner
-            .validate_checkpoint_route("s", "fixture", "m", &selected)
+            .validate_checkpoint_route("s", "fixture", "m", &selected, &Default::default())
             .is_ok()
     );
     assert!(
         owner
-            .validate_checkpoint_route("s", "fixture", "m", &provider)
+            .validate_checkpoint_route("s", "fixture", "m", &provider, &Default::default())
             .is_err()
     );
+    assert_eq!(
+        db.checkpoint_profile("s").unwrap(),
+        Some(Default::default())
+    );
+    let changed_profile = oc_core::queries::RequestProfile {
+        agent_digest: Some("changed-profile".into()),
+    };
+    assert!(
+        owner
+            .validate_checkpoint_route("s", "fixture", "m", &selected, &changed_profile)
+            .is_err()
+    );
+    owner
+        .publish_workspace(
+            Some("changed profile"),
+            "",
+            vec![],
+            BTreeMap::new(),
+            changed_profile.agent_digest.clone(),
+            Some("changed-profile".into()),
+            None,
+            BTreeMap::new(),
+            Default::default(),
+            Default::default(),
+        )
+        .unwrap();
+    let history_before = db.read_history_page("s", 100, None).unwrap();
+    let cancel = AtomicBool::new(false);
+    let refusal = owner
+        .run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "do not strip and retry the checkpoint".into(),
+            invocation: None,
+            catalog: &models,
+            model_id: "m".into(),
+            variant: Some("high".into()),
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &cancel,
+        })
+        .await
+        .unwrap_err();
+    assert!(
+        refusal.to_string().contains("checkpoint") && refusal.to_string().contains("unsupported")
+    );
+    assert_eq!(db.checkpoint_record("s").unwrap(), Some(record.clone()));
+    assert_eq!(
+        db.read_history_page("s", 100, None).unwrap(),
+        history_before
+    );
+    assert!(db.list_tool_ops("s").unwrap().is_empty());
     let binding = selected.provenance("fixture", "m").unwrap();
     let active = owner.active_projection("s").unwrap();
     let input = owner
@@ -1167,6 +1224,17 @@ async fn go04_native_checkpoint_requires_captured_variant_and_explicit_origin() 
             .contains("opaque provider bytes")
     );
     let conn = rusqlite::Connection::open(db.root().join("oc.sqlite")).unwrap();
+    conn.execute("UPDATE session_compactions SET snapshot=json_remove(snapshot,'$.profile') WHERE session_id='s'", []).unwrap();
+    assert!(
+        owner
+            .validate_checkpoint_route("s", "fixture", "m", &selected, &Default::default())
+            .is_ok()
+    );
+    assert!(
+        owner
+            .validate_checkpoint_route("s", "fixture", "m", &selected, &changed_profile)
+            .is_err()
+    );
     conn.execute("UPDATE session_compactions SET snapshot=json_remove(snapshot,'$.model') WHERE session_id='s'", []).unwrap();
     let input = owner
         .wire_history_bound(

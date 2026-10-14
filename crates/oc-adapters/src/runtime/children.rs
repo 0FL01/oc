@@ -898,10 +898,10 @@ impl Runtime<'_> {
     ) -> Result<(), RuntimeError> {
         for identity in self.db.child_recovery_candidates()? {
             let recovered = async {
-                if !identity.background
-                    || identity.location != self.location
-                    || identity.generation != self.generation_id()
-                {
+                // A process-local publication counter can reset on restart.
+                // Exact launch/turn identity, persisted source/ancestor and wire
+                // fingerprints below authorize recovery, never that counter.
+                if !identity.background || identity.location != self.location {
                     return Err(RuntimeError::Storage);
                 }
                 let mut fence = self.db.child_recovery_fence(&identity)?;

@@ -2526,6 +2526,14 @@ fn publish_workspace(
             .unwrap_or_default(),
         commands::permission_rules(composition, effective, agent),
         agent.map(|agent| agent.request.clone()).unwrap_or_default(),
+    )?;
+    runtime.publish_profile_issue(
+        effective
+            .selection_issue(composition)
+            .filter(|issue| {
+                issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
+            })
+            .map(|issue| issue.diagnostic),
     )
 }
 
