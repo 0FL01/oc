@@ -96,11 +96,20 @@ impl ResolvedAuth {
 }
 
 /// Admitted normalized endpoint/auth scope. Construction performs authority checks.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct AuthScope {
     namespace: String,
     go: bool,
     openai: bool,
+}
+
+impl std::fmt::Debug for AuthScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthScope")
+            .field("go", &self.go)
+            .field("openai", &self.openai)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -174,6 +183,34 @@ impl AuthScope {
 
     pub fn namespace(&self) -> &str {
         &self.namespace
+    }
+
+    /// User-created connections cannot inherit accounts of a file-configured ID.
+    /// The tag is authority, not a convention inferred from a provider name.
+    pub(crate) fn custom(provider: &str, base_url: &str) -> Result<Self, AuthError> {
+        let scope = Self::admit(provider, base_url)?;
+        let (_, endpoint): (String, String) =
+            serde_json::from_str(scope.namespace()).map_err(|_| AuthError::Authority)?;
+        Ok(Self {
+            namespace: serde_json::to_string(&("custom", provider, endpoint))
+                .map_err(|_| AuthError::Authority)?,
+            go: false,
+            openai: false,
+        })
+    }
+
+    pub(crate) fn for_binding(
+        provider: &str,
+        base_url: &str,
+        custom: Option<&Self>,
+    ) -> Result<Self, AuthError> {
+        if let Some(captured) = custom {
+            if *captured != Self::custom(provider, base_url)? {
+                return Err(AuthError::Authority);
+            }
+            return Ok(captured.clone());
+        }
+        Self::admit(provider, base_url)
     }
 
     pub(crate) fn is_openai(&self) -> bool {

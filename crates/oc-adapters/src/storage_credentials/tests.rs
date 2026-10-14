@@ -6,6 +6,22 @@ fn key(value: &str) -> CredentialMaterial {
 }
 
 #[test]
+fn conn01_same_owner_has_additive_connection_schema() {
+    let root = tempfile::tempdir().unwrap();
+    let db = Db::open(root.path()).unwrap();
+    let conn = db.conn.lock().unwrap();
+    assert_eq!(
+        conn.query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='custom_provider_connections'",
+            [],
+            |row| row.get::<_, i64>(0),
+        ).unwrap(),
+        1,
+        "custom connections must share the existing locked SQLite owner",
+    );
+}
+
+#[test]
 fn go01_credentials_atomic_lifecycle_reopen_and_secret_safe_projection() {
     let root = tempfile::tempdir().unwrap();
     let db = Db::open(root.path()).unwrap();

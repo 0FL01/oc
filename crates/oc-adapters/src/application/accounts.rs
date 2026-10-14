@@ -26,8 +26,13 @@ pub(super) fn scope(c: &Composition, provider: &str) -> Result<crate::auth::Auth
         .map_err(|_| CoreError::Application("provider connection unavailable".into()))?;
         &entry.options.base_url
     };
-    crate::auth::AuthScope::admit(provider, base)
-        .map_err(|_| CoreError::Application("provider connection unavailable".into()))
+    crate::auth::AuthScope::for_binding(
+        provider,
+        base,
+        c.provider_for(provider)
+            .and_then(|p| p.wire.custom_scope.as_ref()),
+    )
+    .map_err(|_| CoreError::Application("provider connection unavailable".into()))
 }
 
 pub(super) fn connections(c: &Composition) -> Vec<oc_core::queries::ProviderConnection> {
@@ -94,6 +99,8 @@ pub(super) async fn apply(
             }
         };
         result.map_err(|error| query_storage_error(db, error))?;
+        c.attach_custom_connections(db)
+            .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;
         c.refresh_credentials(db)
             .await
             .map_err(|composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d))?;

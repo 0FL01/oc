@@ -176,6 +176,16 @@ Endpoint authority: `oc-adapters/src/endpoint.rs` captures origin/prefix/source 
 generation and configured discovery share its DNS pin and peer guard. Private boundary,
 redirect/no-forwarding and anonymous discovery tests: `endpoint/tests.rs`.
 
+T59 custom connections: `storage_provider_connections.rs` adds metadata/catalog revision
+storage to the same `Db`; `storage_credentials.rs` shares transaction-aware key insertion.
+`composition/custom_connections.rs` applies raw configured-ID reservations and provider
+filters before tagged custom auth resolution. `custom_discovery.rs` owns GET-only custom
+envelopes/pagination without changing the OpenProxy oracle. `application/provider_connections.rs`
+is the custom/probe slot within `provider_catalog.rs::ProviderWork`; only the idle actor
+commits its captured revision. `composition/catalog.rs` reads saved snapshots without a
+second writer or custom endpoint request. Nearest tests are the owners' `tests.rs`, filter
+`conn0`; typed actions and masked input live in core `queries/accounts.rs`.
+
 T53 unchosen startup stays in `composition.rs` and application selection admission;
 `CatalogSnapshot::selected_model()` is the optional composer query, with empty
 legacy display id only for absence. Tests: `application/configless_tests.rs`,

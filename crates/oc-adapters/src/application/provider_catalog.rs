@@ -11,12 +11,14 @@ pub(super) struct ProviderWork {
     public_task:
         Option<JoinHandle<Result<crate::discovery::DiscoveryOutcome, composition::LoadFailure>>>,
     public_provider: &'static str,
+    pub(super) custom: super::provider_connections::Work,
 }
 
 pub(super) enum CatalogOutcome {
     Selected(crate::discovery::DiscoveryOutcome),
     Public(crate::discovery::DiscoveryOutcome),
     OpenAi(crate::discovery::DiscoveryOutcome),
+    Custom(Result<crate::custom_discovery::CustomCatalog, crate::discovery::DiscoveryError>),
 }
 
 impl ProviderWork {
@@ -34,7 +36,11 @@ impl ProviderWork {
             let id = composition.catalog.provider.clone();
             let models = composition.generation.providers[&id].models.clone();
             Some(tokio::spawn(refresh_public(db, id, models)))
-        } else if composition.provider_state.catalog_status == ProviderStatus::Pending {
+        } else if composition.provider_state.catalog_status == ProviderStatus::Pending
+            && !composition
+                .custom_revisions
+                .contains_key(&composition.catalog.provider)
+        {
             let provider = composition.provider.clone();
             let models = composition.catalog.models.clone();
             Some(tokio::spawn(Composition::discover_provider(
@@ -60,15 +66,29 @@ impl ProviderWork {
             let models = view.entry.models.clone();
             tokio::spawn(refresh_public(db, public_provider.into(), models))
         });
+        let mut custom = super::provider_connections::Work::default();
+        let selected_custom = composition
+            .custom_revisions
+            .contains_key(&composition.catalog.provider)
+            && composition.provider_state.catalog_status == ProviderStatus::Pending;
+        let requested_custom =
+            requested.filter(|id| composition.custom_revisions.contains_key(*id));
+        if let Some(id) = requested_custom
+            .or_else(|| selected_custom.then_some(composition.catalog.provider.as_str()))
+        {
+            // The map only contains admitted bindings. No unrequested endpoint sweep.
+            let _ = custom.start_refresh(composition, id);
+        }
         Self {
             task,
             public_task,
             public_provider,
+            custom,
         }
     }
 
     pub(super) fn pending(&self) -> bool {
-        self.task.is_some() || self.public_task.is_some()
+        self.task.is_some() || self.public_task.is_some() || self.custom.pending()
     }
 
     pub(super) fn selected_pending(&self) -> bool {
@@ -99,6 +119,7 @@ impl ProviderWork {
         tokio::select! {
             result = wait_task(&mut self.task) => result.map(CatalogOutcome::Selected),
             result = wait_task(&mut self.public_task) => result.map(|o| if openai { CatalogOutcome::OpenAi(o) } else { CatalogOutcome::Public(o) }),
+            result = self.custom.wait(), if self.custom.pending() => result.map(CatalogOutcome::Custom),
         }
     }
 
@@ -107,7 +128,7 @@ impl ProviderWork {
         for task in tasks.iter().flatten() {
             task.abort();
         }
-        let mut failure = None;
+        let mut failure = self.custom.stop().await.err();
         for task in tasks.into_iter().flatten() {
             match task.await {
                 // This owns only a read-only GET. Retired metadata is discarded;
@@ -153,7 +174,9 @@ async fn refresh_public(
     Ok(composition::go_catalog::outcome(read))
 }
 
-fn worker_failure(stage: oc_core::queries::ServiceStage) -> oc_core::queries::ServiceDiagnostic {
+pub(super) fn worker_failure(
+    stage: oc_core::queries::ServiceStage,
+) -> oc_core::queries::ServiceDiagnostic {
     let mut diagnostic = crate::config::diagnostic::failure(
         "native provider worker",
         &["provider", "models"],

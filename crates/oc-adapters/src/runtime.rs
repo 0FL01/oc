@@ -1253,6 +1253,27 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
+    /// Narrow idle connection/catalog publication, retaining generation and resource owners.
+    pub(crate) fn publish_custom_provider(
+        &self,
+        id: &str,
+        generation: &Generation,
+    ) -> Result<(), RuntimeError> {
+        let _lease = self.begin_active()?;
+        let entry = generation
+            .providers
+            .get(id)
+            .ok_or_else(|| RuntimeError::InvalidArgs("custom provider unavailable".into()))?;
+        let mut current = self.current.write().expect("generation lock");
+        let mut next = current.config.clone();
+        next.providers.insert(id.into(), entry.clone());
+        *current = Arc::new(PublishedGeneration {
+            id: current.id,
+            config: next,
+        });
+        Ok(())
+    }
+
     /// One shared admission for root/profile/child lanes and direct runtime callers.
     pub(crate) fn admit_provider_variant(
         &self,

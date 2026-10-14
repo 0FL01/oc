@@ -18,6 +18,7 @@ use oc_core::queries::{
     ServiceDiagnostic, ServiceKind, ServiceStage, StartupNotice,
 };
 mod catalog;
+pub(crate) mod custom_connections;
 
 #[cfg(test)]
 mod controls_tests;
@@ -52,6 +53,7 @@ pub struct Composition {
     pub(crate) provider_state: ProviderState,
     pub(crate) go_catalog: Option<std::sync::Arc<crate::models_dev::GoCatalog>>,
     pub(crate) provider_views: BTreeMap<String, provider_views::ProviderView>,
+    pub(crate) custom_revisions: BTreeMap<String, i64>,
     /// Canonical admitted project boundary.
     pub project: PathBuf,
     /// Environment snapshot for substitutions and child processes.
@@ -1456,6 +1458,7 @@ async fn load_stages(
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     Ok(Composition {
         provider_views: BTreeMap::new(),
+        custom_revisions: BTreeMap::new(),
         mcp_activation: std::sync::Arc::new(McpActivation {
             sources: sources.clone(),
             global: global.as_ref().and_then(|root| root.canonicalize().ok()),

@@ -112,12 +112,43 @@ pub(crate) struct CredentialSnapshot {
     pub material: CredentialMaterial,
 }
 
-fn metadata(value: &str, limit: usize) -> bool {
+pub(super) fn metadata(value: &str, limit: usize) -> bool {
     !value.trim().is_empty() && value.len() <= limit && !value.chars().any(char::is_control)
 }
 
-fn credential_error(_: rusqlite::Error) -> StorageError {
+pub(super) fn credential_error(_: rusqlite::Error) -> StorageError {
     StorageError::CredentialStorage
+}
+
+/// The caller owns the transaction and advances the in-memory epoch only after commit.
+pub(super) fn insert_credential(
+    tx: &rusqlite::Transaction<'_>,
+    namespace: &str,
+    label: &str,
+    material: &CredentialMaterial,
+    raw: &str,
+) -> Result<AccountSummary, StorageError> {
+    let id: String = tx
+        .query_row("SELECT lower(hex(randomblob(16)))", [], |r| r.get(0))
+        .map_err(credential_error)?;
+    let created_at = tool_output::timestamp();
+    tx.execute(
+        "UPDATE credential_accounts SET active=0,selection_revision=selection_revision+1 WHERE provider_namespace=?1 AND active=1",
+        [namespace],
+    ).map_err(credential_error)?;
+    tx.execute("INSERT INTO credential_accounts(id,provider_namespace,label,tagged_value_json,active,created_at) VALUES(?1,?2,?3,?4,1,?5)", params![id,namespace,label,raw,created_at]).map_err(credential_error)?;
+    Ok(AccountSummary {
+        id,
+        provider_namespace: namespace.into(),
+        label: label.into(),
+        kind: material.kind(),
+        method_id: match material {
+            CredentialMaterial::OAuth { method_id, .. } => method_id.clone(),
+            CredentialMaterial::Key { .. } => None,
+        },
+        active: true,
+        created_at,
+    })
 }
 
 impl Db {
@@ -214,30 +245,11 @@ impl Db {
         let tx = conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(credential_error)?;
-        let id: String = tx
-            .query_row("SELECT lower(hex(randomblob(16)))", [], |r| r.get(0))
-            .map_err(credential_error)?;
-        let created_at = tool_output::timestamp();
-        tx.execute(
-            "UPDATE credential_accounts SET active=0,selection_revision=selection_revision+1 WHERE provider_namespace=?1 AND active=1",
-            [namespace],
-        )
-        .map_err(credential_error)?;
-        tx.execute("INSERT INTO credential_accounts(id,provider_namespace,label,tagged_value_json,active,created_at) VALUES(?1,?2,?3,?4,1,?5)", params![id,namespace,label,raw,created_at]).map_err(credential_error)?;
+        let account = insert_credential(&tx, namespace, label, &material, &raw)?;
+        Db::invalidate_custom_binding(&tx, namespace)?;
         tx.commit().map_err(credential_error)?;
         epochs.insert(namespace.into(), next_epoch);
-        Ok(Some(AccountSummary {
-            id,
-            provider_namespace: namespace.into(),
-            label: label.into(),
-            kind: material.kind(),
-            method_id: match material {
-                CredentialMaterial::OAuth { method_id, .. } => method_id,
-                CredentialMaterial::Key { .. } => None,
-            },
-            active: true,
-            created_at,
-        }))
+        Ok(Some(account))
     }
 
     /// Metadata-only listing. JSON extraction avoids reading token material into DTOs.
@@ -413,6 +425,9 @@ impl Db {
                 params![namespace, id],
             )
             .map_err(credential_error)?;
+        }
+        if selection_changed {
+            Db::invalidate_custom_binding(&tx, namespace)?;
         }
         tx.commit().map_err(credential_error)?;
         if selection_changed {

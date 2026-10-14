@@ -1483,7 +1483,8 @@ only after their owner modules/tests are created:
 
 ```sh
 cargo test -p oc-adapters --locked custom_discovery::tests::
-cargo test -p oc-adapters --locked storage_provider_connections::tests::
+cargo test -p oc-adapters --locked storage::provider_connections::tests::
+cargo test -p oc-adapters --locked application::provider_connections::tests::
 cargo test -p oc-adapters --locked application::provider_catalog::tests::
 cargo test -p oc-tui --locked accounts
 cargo test -p oc --test pty_t39 --locked

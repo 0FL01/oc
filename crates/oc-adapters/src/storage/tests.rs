@@ -1047,8 +1047,11 @@ fn child_schema_migration_is_idempotent_across_reopen() {
     };
     let db = Db::open(&root).expect("reopen");
     assert_eq!(session_columns(&db), fresh, "reopen keeps the schema");
-    // T50 shell, T45 child and T53/T57 credentials/T56 terminals do not change sessions.
-    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13]);
+    // T50 shell, T45 child, T53/T57 credentials, T56 terminals and T59 connections leave sessions intact.
+    assert_eq!(
+        migrations(&db),
+        vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14]
+    );
     let conn = db.conn.lock().expect("db mutex");
     let applied: String = conn
         .query_row(
@@ -1077,7 +1080,10 @@ fn child_schema_upgrades_legacy_database_to_same_schema() {
         .expect("legacy schema");
     }
     let db = Db::open(&root).expect("open legacy");
-    assert_eq!(migrations(&db), vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13]);
+    assert_eq!(
+        migrations(&db),
+        vec![1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14]
+    );
     let legacy = db.session_meta("legacy").expect("legacy meta");
     assert_eq!(
         legacy,

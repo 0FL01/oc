@@ -81,6 +81,9 @@ pub(crate) async fn prepare(
         .await
         .map_err(|_| "move destination admission failed")?;
     composition
+        .attach_custom_connections(db)
+        .map_err(|_| "move destination connection admission failed")?;
+    composition
         .resolve_credentials(db)
         .await
         .map_err(|_| "move destination auth admission failed")?;

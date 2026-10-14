@@ -55,6 +55,7 @@ mod mcp_lookup;
 #[path = "application/plugin_tests.rs"]
 mod plugin_tests;
 mod provider_catalog;
+mod provider_connections;
 #[cfg(test)]
 #[path = "application/provider_tests.rs"]
 mod provider_tests;
@@ -655,6 +656,9 @@ async fn spawn_stages(
             ));
         }
     };
+    composition
+        .attach_custom_connections(&db)
+        .map_err(SpawnIssue::configuration)?;
     composition
         .resolve_credentials(&db)
         .await
@@ -1423,6 +1427,10 @@ enum WorkerOutcome {
     /// Inbox closed or an explicit shutdown was requested.
     Stop,
     ProviderCatalog(Result<provider_catalog::CatalogOutcome, oc_core::queries::ServiceDiagnostic>),
+    CustomProvider {
+        action: oc_core::queries::CustomProviderAction,
+        ack: oneshot::Sender<Result<oc_core::queries::CustomProviderReply, CoreError>>,
+    },
     PickerOpen {
         path: String,
         session: SessionId,
@@ -1682,14 +1690,32 @@ async fn start_worker_inner(
             }
         };
         match outcome {
+            WorkerOutcome::CustomProvider { action, ack } => {
+                provider_work
+                    .custom
+                    .apply(&db, &runtime, &mut composition, action, ack, &events)
+                    .await;
+            }
             WorkerOutcome::Accounts {
                 provider,
                 action,
                 ack,
             } => {
                 let changed = action.is_some() || provider == "openai";
-                let result =
+                let custom_refresh = (action.is_some()
+                    && composition.custom_revisions.contains_key(&provider))
+                .then(|| provider.clone());
+                if action.is_some() {
+                    provider_work.custom.stop().await?;
+                }
+                let mut result =
                     accounts::apply(&db, &runtime, &mut composition, provider, action).await;
+                if result.is_ok()
+                    && let Some(provider) = custom_refresh
+                    && let Err(error) = provider_work.custom.start_refresh(&composition, &provider)
+                {
+                    result = Err(error);
+                }
                 if changed && result.is_ok() {
                     let _ = events.send(CoreEvent::ProviderChanged);
                 }
@@ -1865,6 +1891,12 @@ async fn start_worker_inner(
                     }
                     provider_catalog::CatalogOutcome::OpenAi(outcome) => {
                         composition.accept_public_view_for(crate::models_dev::OPENAI, outcome)
+                    }
+                    provider_catalog::CatalogOutcome::Custom(outcome) => {
+                        provider_work
+                            .custom
+                            .finish(&db, &runtime, &mut composition, outcome)
+                            .await?
                     }
                 };
                 // The sole public source fetch contains both slices. Publish
@@ -2381,6 +2413,9 @@ async fn switch_target<'a>(
 > {
     let mut composition = composition::load_local_with_env(Path::new(path), env)
         .await
+        .map_err(SpawnIssue::configuration)?;
+    composition
+        .attach_custom_connections(db)
         .map_err(SpawnIssue::configuration)?;
     composition
         .resolve_credentials(db)
@@ -3597,6 +3632,9 @@ async fn query(
         InboxMsg::ProviderConnections { ack } => {
             let _ = ack.send(Ok(accounts::connections(composition)));
         }
+        InboxMsg::CustomProvider { ack, .. } => {
+            let _ = ack.send(Err(CoreError::TurnBusy));
+        }
         InboxMsg::SessionSelection {
             session,
             home,
@@ -4292,6 +4330,7 @@ async fn worker(
         if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
             || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if composition.public_provider(provider)))
             && !provider_work.pending()
+            && !provider_work.custom.has_probe()
         {
             let requested = match &message {
                 InboxMsg::ProviderCatalog { provider, .. } => Some(provider.as_str()),
@@ -4349,6 +4388,9 @@ async fn worker(
                 .cancel(&session.0);
         }
         match message {
+            InboxMsg::CustomProvider { action, ack } => {
+                return Ok(WorkerOutcome::CustomProvider { action, ack });
+            }
             InboxMsg::ProviderAccounts {
                 provider,
                 action,

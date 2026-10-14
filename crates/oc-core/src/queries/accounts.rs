@@ -63,3 +63,58 @@ pub enum AccountAction {
     Rename { id: String, label: String },
     Remove { id: String, confirmed: bool },
 }
+
+/// Explicit endpoint onboarding, not configuration text or an executable extension.
+#[derive(Clone, PartialEq, Eq)]
+pub struct CustomProviderInput {
+    pub name: String,
+    pub base_url: String,
+    pub auth: CustomProviderAuth,
+}
+
+impl std::fmt::Debug for CustomProviderInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CustomProviderInput")
+            .field("endpoint", &"[user supplied]")
+            .field("auth", &self.auth)
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CustomProviderAuth {
+    Key(KeyInput),
+    Anonymous,
+}
+
+/// Probe work is cancellable and has no persistent effect. Save consumes its exact receipt.
+#[derive(Debug, Clone)]
+pub enum CustomProviderAction {
+    Probe {
+        input: CustomProviderInput,
+        cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    },
+    Save {
+        revision: u64,
+        protocol: super::NativeProtocol,
+    },
+    Cancel {
+        revision: u64,
+    },
+    Refresh {
+        provider: String,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CustomProviderReply {
+    Probed {
+        revision: u64,
+        model_count: usize,
+        suggested: Option<super::NativeProtocol>,
+        diagnostic: Option<super::ServiceDiagnostic>,
+    },
+    Saved(ProviderConnection),
+    Cancelled,
+    Refreshing,
+}

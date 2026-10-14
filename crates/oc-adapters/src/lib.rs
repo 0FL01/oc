@@ -12,6 +12,7 @@ mod cli_permissions;
 pub mod codemode;
 pub mod composition;
 pub mod config;
+mod custom_discovery;
 pub mod dcp;
 pub mod dcp_auto;
 pub mod defs;

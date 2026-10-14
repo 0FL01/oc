@@ -34,6 +34,8 @@ mod conversation;
 mod credentials;
 #[path = "storage_effort.rs"]
 mod effort;
+#[path = "storage_provider_connections.rs"]
+pub(crate) mod provider_connections;
 pub use credentials::{AccountSummary, CredentialKind, CredentialMaterial, OAuthAccountMetadata};
 #[path = "storage_dcp_view.rs"]
 mod dcp_view;
@@ -566,6 +568,7 @@ impl Db {
         Self::tool_output_schema(&conn)?;
         Self::apply_turn_history_schema(&conn)?;
         Self::credentials_schema(&conn)?;
+        Self::custom_provider_schema(&conn)?;
         Self::terminals_schema(&conn)?;
         let output_path = root.join("tool-output");
         match fs::create_dir(&output_path) {

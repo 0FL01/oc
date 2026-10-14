@@ -1,4 +1,92 @@
 use super::*;
+
+#[tokio::test]
+async fn conn05_saved_custom_catalog_is_read_only_complete_empty_and_revision_aware() {
+    struct NoNetwork;
+    impl discovery::DiscoveryClient for NoNetwork {
+        async fn get(
+            &self,
+            _: &str,
+            _: &reqwest::header::HeaderMap,
+            _: Duration,
+        ) -> Result<(u16, Vec<u8>), discovery::DiscoveryError> {
+            panic!("saved custom listing must not probe any endpoint");
+        }
+    }
+    use crate::storage::provider_connections::CatalogState;
+    use oc_core::queries::{CustomProviderAuth, CustomProviderInput, NativeProtocol};
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::write(
+        project.join("opencode.json"),
+        r#"{"disabled_providers":["openai","opencode-go"]}"#,
+    )
+    .unwrap();
+    let data = root.path().join("data");
+    let db = crate::storage::Db::open(&data).unwrap();
+    let row = db
+        .create_custom_provider(
+            &CustomProviderInput {
+                name: "Cached".into(),
+                base_url: "https://custom.invalid/never-contact".into(),
+                auth: CustomProviderAuth::Anonymous,
+            },
+            NativeProtocol::Chat,
+            |_| true,
+        )
+        .unwrap();
+    let models = BTreeMap::from([("exact/id".into(), serde_json::json!({"name":"Saved name"}))]);
+    db.save_custom_catalog(&row.id, row.revision, &models, CatalogState::Ready)
+        .unwrap();
+    // The same writer remains live: this reader must not acquire another root lock.
+    let listing = load_catalog_inner(
+        &project,
+        BTreeMap::new(),
+        None,
+        &NoNetwork,
+        false,
+        Some(&data),
+    )
+    .await
+    .unwrap();
+    assert!(listing.complete);
+    assert_eq!(listing.references, vec![format!("{}/exact/id", row.id)]);
+    db.save_custom_catalog(
+        &row.id,
+        row.revision,
+        &BTreeMap::new(),
+        CatalogState::Failed,
+    )
+    .unwrap();
+    let listing = load_catalog_inner(
+        &project,
+        BTreeMap::new(),
+        None,
+        &NoNetwork,
+        false,
+        Some(&data),
+    )
+    .await
+    .unwrap();
+    assert!(!listing.complete);
+    assert_eq!(listing.references.len(), 1);
+    db.save_custom_catalog(&row.id, row.revision, &BTreeMap::new(), CatalogState::Ready)
+        .unwrap();
+    let listing = load_catalog_inner(
+        &project,
+        BTreeMap::new(),
+        None,
+        &NoNetwork,
+        false,
+        Some(&data),
+    )
+    .await
+    .unwrap();
+    assert!(listing.complete);
+    assert!(listing.references.is_empty());
+    assert!(db.list_sessions().unwrap().is_empty());
+}
 use serde_json::json;
 
 fn fixture(config: serde_json::Value) -> (tempfile::TempDir, BTreeMap<String, String>) {
@@ -145,6 +233,7 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
         Some(&public),
         &Public,
         Db::openai_subscription_read_only(data.path()),
+        None,
     )
     .await
     .unwrap();
@@ -157,6 +246,7 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
         Some(&cold),
         &Public,
         Db::openai_subscription_read_only(data.path()),
+        None,
     )
     .await
     .unwrap();
@@ -169,6 +259,7 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
         Some(&public),
         &Public,
         Db::openai_subscription_read_only(data.path()),
+        None,
     )
     .await
     .unwrap();
@@ -260,7 +351,7 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
                 "local-only":{}, "remote/only":{"name":"Local Name"}}}
         }}),
     );
-    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false)
+    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false, None)
         .await
         .unwrap();
     assert!(listing.complete);
@@ -274,7 +365,7 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
     );
     assert_eq!(client.0.load(std::sync::atomic::Ordering::SeqCst), 1);
     let (root, env) = fixture(json!({"disabled_providers":["opencode-go"]}));
-    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false)
+    let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false, None)
         .await
         .unwrap();
     assert!(listing.complete && listing.references.is_empty());

@@ -35,8 +35,12 @@ async fn resolve_binding_inner(
         .take(fields.len().saturating_sub(1))
         .chain(std::iter::once("baseURL"))
         .collect::<Vec<_>>();
-    let scope = crate::auth::AuthScope::admit(id, &request.base_url)
-        .map_err(|_| invalid(source, &authority_fields))?;
+    let scope = crate::auth::AuthScope::for_binding(
+        id,
+        &request.base_url,
+        request.wire.custom_scope.as_ref(),
+    )
+    .map_err(|_| invalid(source, &authority_fields))?;
     let competing = request.headers.keys().any(|name| {
         name.eq_ignore_ascii_case("authorization") || name.eq_ignore_ascii_case("x-api-key")
     });
@@ -394,13 +398,18 @@ impl Composition {
                 .filter(|value| !value.is_empty())
                 .collect();
         }
-        self.provider_state = ProviderState::new(
-            id,
-            source,
-            self.provider.auth_ready(),
-            id == discovery::PROVIDER_ID,
-        )
-        .with_auth_policy(self.provider.wire.auth_policy);
+        if self.provider.wire.custom_scope.is_some() {
+            self.provider_state
+                .set_auth(self.provider.auth_ready(), self.provider.wire.auth_policy);
+        } else {
+            self.provider_state = ProviderState::new(
+                id,
+                source,
+                self.provider.auth_ready(),
+                id == discovery::PROVIDER_ID,
+            )
+            .with_auth_policy(self.provider.wire.auth_policy);
+        }
         self.tui_chrome.provider =
             Some(self.selected_provider_readiness(&self.model_id, self.variant.as_deref()));
         Ok(())

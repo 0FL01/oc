@@ -57,7 +57,7 @@ pub async fn load_catalog_cached(
             },
         )?;
     let subscription = data.is_some_and(crate::storage::Db::openai_subscription_read_only);
-    load_catalog_inner(project, env, Some(&public), &client, subscription)
+    load_catalog_inner(project, env, Some(&public), &client, subscription, data)
         .await
         .map_err(|failure| match failure {
             LoadFailure::Configuration(diagnostic) => diagnostic,
@@ -70,7 +70,7 @@ async fn load_catalog_with_env(
     env: BTreeMap<String, String>,
 ) -> Result<CatalogListing, LoadFailure> {
     let client = discovery::ReqwestDiscoveryClient::new(Duration::from_secs(10)).unwrap();
-    load_catalog_inner(project, env, None, &client, false).await
+    load_catalog_inner(project, env, None, &client, false, None).await
 }
 
 async fn load_catalog_inner(
@@ -79,6 +79,7 @@ async fn load_catalog_inner(
     public: Option<&crate::models_dev::GoCatalog>,
     client: &impl discovery::DiscoveryClient,
     subscription: bool,
+    data: Option<&Path>,
 ) -> Result<CatalogListing, LoadFailure> {
     let admitted = admit_sources(project, &env)?;
     admit_dcp(&admitted.sources, &admitted.admitted_roots)?;
@@ -237,6 +238,54 @@ async fn load_catalog_inner(
             if id == crate::models_dev::OPENAI {
                 super::openai_catalog::transform(&mut entry.models, subscription);
             }
+        }
+    }
+    if let Some(data) = data {
+        let saved = crate::storage::Db::saved_custom_providers(data).map_err(|_| {
+            failure(
+                super::custom_connections::SOURCE,
+                &["connections"],
+                ServiceStage::ModelCatalog,
+                ServiceCode::StorageUnavailable,
+            )
+        })?;
+        let reserved = super::custom_connections::reserved(&admitted.sources);
+        for row in saved {
+            if !include(&row.id) || reserved.contains(&row.id) {
+                continue;
+            }
+            use crate::storage::provider_connections::CatalogState;
+            if row.state != CatalogState::Ready || row.catalog_revision != Some(row.revision) {
+                complete = false;
+                diagnostics.push(
+                    match failure(
+                        super::custom_connections::SOURCE,
+                        &["provider", "models"],
+                        ServiceStage::ModelCatalog,
+                        match row.state {
+                            CatalogState::Unauthorized => ServiceCode::Unauthorized,
+                            CatalogState::Forbidden => ServiceCode::Forbidden,
+                            _ => ServiceCode::InvalidCatalog,
+                        },
+                    ) {
+                        LoadFailure::Configuration(d) => d,
+                    },
+                );
+            }
+            generation.provenance.insert(
+                format!("provider.{}", row.id),
+                super::custom_connections::SOURCE.into(),
+            );
+            generation.providers.insert(
+                row.id,
+                config::ProviderEntry {
+                    npm: None,
+                    name: Some(row.name),
+                    env: Vec::new(),
+                    options: Default::default(),
+                    models: row.models,
+                },
+            );
         }
     }
     Ok(CatalogListing {

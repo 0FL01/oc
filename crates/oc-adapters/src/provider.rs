@@ -439,6 +439,7 @@ pub struct WireBinding {
     pub(crate) provider_state: Option<crate::composition::ProviderState>,
     pub(crate) providers: BTreeMap<String, CapturedProvider>,
     pub(crate) auth_input: Option<AuthInput>,
+    pub(crate) custom_scope: Option<crate::auth::AuthScope>,
     pub(crate) openai: Option<crate::auth::OpenAiBinding>,
     pub(crate) transport: Option<websocket::Transport>,
     pub(crate) channels: Option<websocket::Channels>,
@@ -564,6 +565,8 @@ impl ResponsesConfig {
         let policy = format!("{:?}", self.wire.auth_policy);
         let auth_scope = if let Some(binding) = &self.wire.openai {
             crate::compaction::fingerprint(&(policy, &binding.scope, &headers))
+        } else if let Some(scope) = &self.wire.custom_scope {
+            crate::compaction::fingerprint(&(policy, scope.namespace(), &headers))
         } else {
             // Preserve existing Go/custom receipt identity byte-for-byte.
             crate::compaction::fingerprint(&(policy, &headers))

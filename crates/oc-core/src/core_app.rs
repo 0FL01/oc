@@ -474,6 +474,10 @@ pub enum InboxMsg {
     ProviderConnections {
         ack: oneshot::Sender<Result<Vec<crate::queries::ProviderConnection>, CoreError>>,
     },
+    CustomProvider {
+        action: crate::queries::CustomProviderAction,
+        ack: oneshot::Sender<Result<crate::queries::CustomProviderReply, CoreError>>,
+    },
     ProviderAccounts {
         provider: String,
         action: Option<crate::queries::AccountAction>,
@@ -1876,6 +1880,19 @@ impl CoreApp {
         result.await.map_err(|_| CoreError::Shutdown)?
     }
 
+    /// Probe, confirm or refresh one custom connection without frontend persistence.
+    pub async fn custom_provider(
+        &self,
+        action: crate::queries::CustomProviderAction,
+    ) -> Result<crate::queries::CustomProviderReply, CoreError> {
+        let (ack, result) = oneshot::channel();
+        self.inbox
+            .send(InboxMsg::CustomProvider { action, ack })
+            .await
+            .map_err(|_| CoreError::Shutdown)?;
+        result.await.map_err(|_| CoreError::Shutdown)?
+    }
+
     /// Read or mutate scoped accounts through the existing application owner.
     pub async fn provider_accounts(
         &self,
@@ -2490,6 +2507,9 @@ fn scripted_unsupported(message: InboxMsg) {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ProviderAccounts { ack, .. } => {
+            let _ = ack.send(Err(error()));
+        }
+        InboxMsg::CustomProvider { ack, .. } => {
             let _ = ack.send(Err(error()));
         }
         InboxMsg::ProviderConnections { ack } => {
