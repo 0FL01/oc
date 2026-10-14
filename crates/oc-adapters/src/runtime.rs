@@ -966,6 +966,9 @@ struct ExecutionGeneration {
     dcp_config: DcpConfig,
     dcp_protected: ProtectedSpec,
     provider_state: Option<crate::composition::ProviderState>,
+    /// Existing finite executable provider captures, published by the native
+    /// composition owner. None preserves the standalone TurnParams contract.
+    request_provider: Option<ResponsesConfig>,
 }
 
 impl std::ops::Deref for ExecutionGeneration {
@@ -1216,6 +1219,7 @@ impl<'a> Runtime<'a> {
                 dcp_config,
                 dcp_protected: ProtectedSpec::default(),
                 provider_state: None,
+                request_provider: None,
             })),
             active: AtomicBool::new(false),
             protected,
@@ -1249,9 +1253,13 @@ impl<'a> Runtime<'a> {
     pub(crate) fn publish_provider_state(
         &self,
         state: crate::composition::ProviderState,
+        provider: Option<ResponsesConfig>,
     ) -> Result<(), RuntimeError> {
         let _lease = self.begin_active()?;
-        self.update_execution(|view| view.provider_state = Some(state));
+        self.update_execution(|view| {
+            view.provider_state = Some(state);
+            view.request_provider = provider;
+        });
         Ok(())
     }
 
@@ -1299,9 +1307,20 @@ impl<'a> Runtime<'a> {
         variant: Option<&str>,
         provider: &ResponsesConfig,
     ) -> Result<(), RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
+        self.admit_provider_variant_in(&published, catalog, model, variant, provider)
+    }
+
+    fn admit_provider_variant_in(
+        &self,
+        published: &ExecutionGeneration,
+        catalog: &ModelCatalog,
+        model: &str,
+        variant: Option<&str>,
+        provider: &ResponsesConfig,
+    ) -> Result<(), RuntimeError> {
         let selected = provider.for_selection(model, variant);
         let captured_selection = !std::ptr::eq(selected, provider);
-        let published = self.current.read().expect("generation lock").clone();
         let admitted = provider
             .wire
             .provider_state

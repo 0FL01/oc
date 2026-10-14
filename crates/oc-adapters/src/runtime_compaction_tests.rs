@@ -369,6 +369,168 @@ fn compaction_config_native_legacy_and_unsupported_prune() {
 }
 
 #[tokio::test]
+async fn hot01_summary_retry_and_correction_keep_the_operation_then_primary_adopts_latest() {
+    let data = tempfile::tempdir().unwrap();
+    let project = tempfile::tempdir().unwrap();
+    std::fs::write(project.path().join("note.txt"), "G1_PROTECTED_SETTLED_READ").unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    seed(&db, "old", &"OLD_SUMMARY_SOURCE ".repeat(1000));
+    let mut generation = Generation::default();
+    generation.compaction.buffer = 0;
+    generation
+        .permissions
+        .insert("read".into(), Permission::Allow);
+    let runtime = runtime(&db, project.path(), generation);
+    let mut protection = runtime.current.read().unwrap().dcp_config.clone();
+    protection.protected_tools = vec!["read".into()];
+    runtime.reload_dcp(protection).unwrap();
+    let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = config(&first);
+    let catalog = catalog();
+    let mut next_provider = config(&second);
+    next_provider.wire.providers.insert(
+        "fixture".into(),
+        crate::provider::CapturedProvider {
+            catalog: catalog.clone(),
+            config: next_provider.clone(),
+        },
+    );
+    let (held, received) = tokio::sync::oneshot::channel();
+    let (release, released) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = read_request(&first).await;
+        respond(
+            &mut socket,
+            &format!(
+                "data: {}\n\n",
+                serde_json::json!({
+                    "type":"response.completed","response":{"status":"completed","output":[{
+                        "type":"function_call","id":"read","call_id":"read","name":"read",
+                        "arguments":"{\"path\":\"note.txt\"}"
+                    }]}
+                })
+            ),
+        )
+        .await;
+        let (mut socket, request) = read_request(&first).await;
+        assert!(
+            request["input"]
+                .to_string()
+                .contains("G1_PROTECTED_SETTLED_READ")
+        );
+        respond(&mut socket, "data: {\"type\":\"response.failed\",\"response\":{\"error\":{\"code\":\"context_length_exceeded\"}}}\n\n").await;
+        let (mut socket, summary) = read_request(&first).await;
+        assert_eq!(summary["tools"], serde_json::json!([]));
+        assert!(summary["input"].to_string().contains("OLD_SUMMARY_SOURCE"));
+        held.send(()).unwrap();
+        released.await.unwrap();
+        socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
+        drop(socket);
+        let (mut socket, retry) = read_request(&first).await;
+        assert_eq!(
+            retry, summary,
+            "summary transport retry is the same admitted request"
+        );
+        respond(&mut socket, &sse("missing template")).await;
+        let (mut socket, correction) = read_request(&first).await;
+        assert_eq!(
+            &correction["input"].as_array().unwrap()[..3],
+            summary["input"].as_array().unwrap()
+        );
+        assert!(
+            correction["input"]
+                .to_string()
+                .contains("required summary template")
+        );
+        assert!(!correction.to_string().contains("G2_AFTER_SUMMARY"));
+        respond(&mut socket, &sse("## Objective\nResume latest work.")).await;
+        let (mut socket, primary) = read_request(&second).await;
+        let input = primary["input"].to_string();
+        assert!(input.contains("G2_AFTER_SUMMARY") && input.contains("Resume latest work."));
+        assert!(
+            input.contains("G1_PROTECTED_SETTLED_READ"),
+            "the summary must install G1's protected closed group: {input}"
+        );
+        assert!(!input.contains("OLD_SUMMARY_SOURCE") && !input.contains("missing template"));
+        assert!(
+            primary["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|tool| tool["name"] != "read")
+        );
+        assert_eq!(
+            primary["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|item| item["type"] == "function_call_output")
+                .count(),
+            1
+        );
+        respond(&mut socket, &sse("latest primary completed")).await;
+    });
+    let cancel = AtomicBool::new(false);
+    let turn = runtime.run_turn(TurnParams {
+        session: "s".into(),
+        prompt: "read once and continue".into(),
+        invocation: None,
+        catalog: &catalog,
+        model_id: "m".into(),
+        variant: None,
+        max_output: 1024,
+        provider,
+        cancel: &cancel,
+    });
+    let publication = async {
+        received.await.unwrap();
+        runtime.update_execution(|view| {
+            view.generation.id = 2;
+            view.generation.config.compaction.auto = false;
+            view.generation
+                .config
+                .permissions
+                .insert("read".into(), Permission::Deny);
+            view.dcp_config.enabled = false;
+            view.dcp_config.protected_tools.clear();
+            view.dcp_config.dedup_protected_tools.clear();
+            view.dcp_config.purge_protected_tools.clear();
+            view.dcp_config.protect_tags = false;
+            view.workspace.fixed_input =
+                vec![InputItem::message(InputRole::Developer, "G2_AFTER_SUMMARY")];
+            view.request_provider = Some(next_provider);
+        });
+        release.send(()).unwrap();
+    };
+    let (report, ()) = tokio::time::timeout(Duration::from_secs(10), async {
+        tokio::join!(turn, publication)
+    })
+    .await
+    .unwrap();
+    let report = report.unwrap();
+    peer.await.unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(db.list_tool_ops("s").unwrap().len(), 1);
+    assert_eq!(
+        db.compaction_history("s")
+            .unwrap()
+            .iter()
+            .filter(|row| row.state == CompactionState::Completed)
+            .count(),
+        1
+    );
+    let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(
+        log["requests"].as_array().unwrap().last().unwrap()["config_generation"],
+        2
+    );
+    runtime.shutdown_mcp().await.unwrap();
+}
+
+#[tokio::test]
 async fn compaction_auto_threshold_and_known_overflow_keep_tool_effect_once() {
     let mut plain_cadence = None;
     for (overflow, auto) in [(false, true), (true, true), (false, false), (true, false)] {

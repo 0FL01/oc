@@ -395,7 +395,9 @@ impl Runtime<'_> {
         provider: &ResponsesConfig,
         caller_cancel: Option<&AtomicBool>,
     ) -> Result<bool, RuntimeError> {
+        let published = self.current.read().expect("generation lock").clone();
         self.deliver_compaction_hot(
+            &published,
             session,
             catalog,
             model,
@@ -410,6 +412,7 @@ impl Runtime<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn deliver_compaction_hot(
         &self,
+        published: &ExecutionGeneration,
         session: &str,
         catalog: &ModelCatalog,
         model: &str,
@@ -427,7 +430,9 @@ impl Runtime<'_> {
         {
             return Ok(false);
         }
-        if let Err(error) = self.admit_provider_variant(catalog, model, variant, provider) {
+        if let Err(error) =
+            self.admit_provider_variant_in(published, catalog, model, variant, provider)
+        {
             self.refuse_compaction_with_error(session, error.to_string())?;
             return Err(error);
         }
@@ -478,6 +483,7 @@ impl Runtime<'_> {
         }
         let result = {
             let summary = self.summarize_session(
+                published,
                 session,
                 catalog,
                 model,
@@ -509,12 +515,7 @@ impl Runtime<'_> {
             Ok(Some(prepared)) => {
                 snapshot.state = CompactionState::Completed;
                 if let Some((log, counts, notice_seq)) = current.as_mut() {
-                    let config = self
-                        .current
-                        .read()
-                        .expect("generation lock")
-                        .dcp_config
-                        .clone();
+                    let config = &published.dcp_config;
                     let live_calls = self.db.live_shell_call_ids(&log.turn_id)?;
                     let working = log
                         .current_working_checkpoint(&snapshot.summary, *counts, |group| {
@@ -541,7 +542,7 @@ impl Runtime<'_> {
                                         || super::context::dcp_call_has_protected_path(
                                             name,
                                             v["arguments"].as_str().unwrap_or_default(),
-                                            &config,
+                                            config,
                                         )
                                 } else if config.protect_tags {
                                     let text = serde_json::to_string(item).unwrap_or_default();
@@ -644,6 +645,7 @@ impl Runtime<'_> {
     #[allow(clippy::too_many_arguments)]
     async fn summarize_session(
         &self,
+        published: &ExecutionGeneration,
         session: &str,
         catalog: &ModelCatalog,
         model: &str,
@@ -678,7 +680,7 @@ impl Runtime<'_> {
             id: model.to_string(),
             variant: variant.map(str::to_owned),
         });
-        let config = self.current.read().expect("generation lock").config.clone();
+        let config = &published.config;
         let fallback = config
             .providers
             .get(&catalog.provider)
@@ -727,12 +729,7 @@ impl Runtime<'_> {
                     .session_checkpoint(session)?
                     .map_or(0, |(seq, _)| seq),
             );
-            let dcp = self
-                .current
-                .read()
-                .expect("generation lock")
-                .dcp_config
-                .clone();
+            let dcp = &published.dcp_config;
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
                 || !dcp.protected_file_patterns.is_empty()
@@ -790,10 +787,7 @@ impl Runtime<'_> {
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
-            retained_selection = self.select_history_facts(
-                &logs,
-                &self.current.read().expect("generation lock").dcp_config,
-            )?;
+            retained_selection = self.select_history_facts(&logs, &published.dcp_config)?;
             retained_selection.extend(self.selected_message_facts(
                 session,
                 prior,
@@ -838,12 +832,7 @@ impl Runtime<'_> {
             else {
                 return Ok(None);
             };
-            let dcp = self
-                .current
-                .read()
-                .expect("generation lock")
-                .dcp_config
-                .clone();
+            let dcp = &published.dcp_config;
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
                 || !dcp.protected_file_patterns.is_empty()
@@ -913,7 +902,7 @@ impl Runtime<'_> {
             let offset_history = if recover_native {
                 let source_logs =
                     self.projected_wire_logs(session, context.after_seq, &prefix, &context.blocks)?;
-                retained_selection = self.select_history_facts(&source_logs, &dcp)?;
+                retained_selection = self.select_history_facts(&source_logs, dcp)?;
                 let after = self
                     .db
                     .session_checkpoint(session)?
@@ -932,7 +921,7 @@ impl Runtime<'_> {
             } else {
                 let source_logs =
                     self.projected_wire_logs(session, context.after_seq, &prefix, &context.blocks)?;
-                retained_selection = self.select_history_facts(&source_logs, &dcp)?;
+                retained_selection = self.select_history_facts(&source_logs, dcp)?;
                 history.clone()
             };
             retained_selection.extend(self.selected_message_facts(

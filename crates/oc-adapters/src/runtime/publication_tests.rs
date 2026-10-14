@@ -44,9 +44,10 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
         })
         .unwrap();
     owner
-        .publish_provider_state(crate::composition::ProviderState::new(
-            "fixture", "G2", false, false,
-        ))
+        .publish_provider_state(
+            crate::composition::ProviderState::new("fixture", "G2", false, false),
+            None,
+        )
         .unwrap();
     let still_issuing = owner.primary_lane(&captured);
     assert_eq!(still_issuing.fixed_input, issuing.fixed_input);
@@ -178,12 +179,24 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
         let (mut socket, request) = binding_replay_tests::request(&listener).await;
         let input = request["input"].to_string();
         assert!(
+            input.contains("G2_FRESH_PRIMARY"),
+            "fresh preparation: {input}"
+        );
+        assert!(
+            request["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|tool| tool["name"] != "read"),
+            "G2 policy must apply only to the fresh request"
+        );
+        assert!(
             input.contains("G1 retained final line"),
             "issued output budget, not the new one: {input}"
         );
         assert!(
-            input.contains("G1_NESTED_SOURCE"),
-            "issued instruction roots: {input}"
+            input.contains("no longer apply") && !input.contains("G1_NESTED_SOURCE"),
+            "fresh roots reconcile the latest instruction state without resurrecting old bodies: {input}"
         );
         assert!(
             input.contains("G1_METADATA") && !input.contains("G2_METADATA"),
@@ -225,6 +238,11 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
                 .unwrap()
                 .models = BTreeMap::from([("G2_METADATA".into(), json!({}))]);
             view.workspace.instruction_roots.clear();
+            view.workspace.fixed_input = vec![InputItem::message(InputRole::Developer, "G2_FRESH_PRIMARY")];
+            view.generation.config.permissions.insert("read".into(), Permission::Deny);
+            view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
+                &json!({"permission":{"read":"deny","opencode_session_rename":"allow","opencode_models":"allow","question":"allow"}}),
+            ).unwrap();
         });
         release.send(()).unwrap();
         let request = tokio::time::timeout(Duration::from_secs(4), async {
@@ -276,6 +294,16 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
         .await
         .unwrap();
         assert_eq!(request.binding.generation, issued.id);
+        let facts = db.instruction_view("s").unwrap().1;
+        assert!(
+            facts.iter().any(|fact| fact.source.generation == issued.id
+                && fact
+                    .source
+                    .content
+                    .as_deref()
+                    .is_some_and(|body| body.contains("G1_NESTED_SOURCE"))),
+            "the old read must admit its instructions before the fresh request can remove them"
+        );
         let mut reply = QuestionReply {
             id: request.id,
             binding: request.binding,
@@ -355,4 +383,162 @@ fn hot01_issuing_turn_fence_rejects_foreign_settled_and_moved_work() {
     assert!(owner.check_issued_turn(&log, "s").is_err());
     drop(lease);
     assert!(db.list_tool_ops("s").unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling_back() {
+    use serde_json::json;
+
+    for retire_variant in [false, true] {
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        std::fs::write(
+            project.path().join("note.txt"),
+            "G1 settled first\nG1 settled last\n",
+        )
+        .unwrap();
+        let db = Db::open(data.path()).unwrap();
+        db.create_bound_session("s", "work").unwrap();
+        let owner = binding_replay_tests::owner(&db, project.path());
+        let first = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let second = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = ResponsesConfig {
+            base_url: format!("http://{}/g1", first.local_addr().unwrap()),
+            api_key: "synthetic G1".into(),
+            timeout: None,
+            chunk_timeout_ms: 3000,
+            connect_timeout: Duration::from_secs(1),
+            allow_private: true,
+            headers: BTreeMap::new(),
+            set_cache_key: false,
+            wire: Default::default(),
+        };
+        let catalog = ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "m".into(),
+                json!({
+                    "limit":{"context":500000,"output":8000},
+                    "variants":{"precise":{"reasoningEffort":"g1-exact"}}
+                }),
+            )]),
+        };
+        let mut next_catalog = catalog.clone();
+        next_catalog.models.get_mut("m").unwrap()["limit"]["context"] = 100000.into();
+        next_catalog.models.get_mut("m").unwrap()["variants"] = if retire_variant {
+            json!({})
+        } else {
+            json!({"precise":{"reasoningEffort":"g2-exact"}})
+        };
+        let mut next_provider = provider.clone();
+        next_provider.base_url = format!("http://{}/g2", second.local_addr().unwrap());
+        next_provider.api_key = "synthetic G2".into();
+        next_provider.wire.providers.insert(
+            "fixture".into(),
+            crate::provider::CapturedProvider {
+                catalog: next_catalog,
+                config: next_provider.clone(),
+            },
+        );
+        let (received, held) = tokio::sync::oneshot::channel();
+        let (release, released) = tokio::sync::oneshot::channel();
+        let peer = tokio::spawn(async move {
+            let (mut socket, request) = binding_replay_tests::request(&first).await;
+            assert_eq!(request["reasoning"]["effort"], "g1-exact");
+            received.send(()).unwrap();
+            released.await.unwrap();
+            binding_replay_tests::respond(
+                &mut socket,
+                crate::provider::protocol::Protocol::Responses,
+                true,
+            )
+            .await;
+            if retire_variant {
+                assert!(
+                    tokio::time::timeout(Duration::from_millis(250), second.accept())
+                        .await
+                        .is_err(),
+                    "removed exact variant must not dispatch a default or sibling"
+                );
+            } else {
+                let (mut socket, request) = tokio::time::timeout(
+                    Duration::from_secs(3),
+                    binding_replay_tests::request(&second),
+                )
+                .await
+                .unwrap();
+                assert_eq!(request["model"], "m");
+                assert_eq!(request["reasoning"]["effort"], "g2-exact");
+                let input = request["input"].to_string();
+                assert!(input.contains("G2_ROUTE_PROMPT") && input.contains("G1 settled last"));
+                assert!(
+                    input.contains("settled-call") && !input.contains("OPAQUE_CANARY"),
+                    "compatible settled pairs survive, foreign opaque does not: {input}"
+                );
+                assert!(
+                    request["tools"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .all(|tool| tool["name"] != "read")
+                );
+                binding_replay_tests::respond(
+                    &mut socket,
+                    crate::provider::protocol::Protocol::Responses,
+                    false,
+                )
+                .await;
+            }
+        });
+        let cancel = AtomicBool::new(false);
+        let turn = owner.run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "read once then continue".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: Some("precise".into()),
+            max_output: 1000,
+            provider,
+            cancel: &cancel,
+        });
+        let publication = async {
+            held.await.unwrap();
+            owner.update_execution(|view| {
+                view.generation.id = 2;
+                view.generation
+                    .config
+                    .permissions
+                    .insert("read".into(), Permission::Deny);
+                view.generation.config.tool_output.max_lines = 1;
+                view.workspace.fixed_input =
+                    vec![InputItem::message(InputRole::Developer, "G2_ROUTE_PROMPT")];
+                view.request_provider = Some(next_provider);
+            });
+            release.send(()).unwrap();
+        };
+        let (result, ()) = tokio::time::timeout(Duration::from_secs(8), async {
+            tokio::join!(turn, publication)
+        })
+        .await
+        .unwrap();
+        if retire_variant {
+            assert!(
+                result.is_err(),
+                "an unavailable exact variant must remain unavailable"
+            );
+        } else {
+            let report = result.unwrap();
+            assert_eq!(report.status, TurnStatus::Completed);
+            let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+            let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+            assert_eq!(log["requests"][0]["config_generation"], 1);
+            assert_eq!(log["requests"][1]["config_generation"], 2);
+            assert_eq!(log["requests"][1]["context_limit"], 100000);
+        }
+        assert_eq!(db.list_tool_ops("s").unwrap().len(), 1);
+        assert_eq!(db.list_tool_ops("s").unwrap()[0].state, "completed");
+        peer.await.unwrap();
+        owner.shutdown_mcp().await.unwrap();
+    }
 }

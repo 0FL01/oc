@@ -20,6 +20,7 @@ fn closed(db: &Db) -> TurnLog {
         )
         .unwrap();
     let receipt = RequestIdentity {
+        config_generation: None,
         binding: None,
         model: ModelRef {
             provider: "p".into(),

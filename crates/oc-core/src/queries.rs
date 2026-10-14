@@ -373,6 +373,10 @@ pub struct AssistantSpan {
 /// input/schema provenance receipts, not promises of provider cache reuse.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequestIdentity {
+    /// Issuing source publication, absent in legacy journals. Attribution only;
+    /// never an execution lease or restart authorization.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub config_generation: Option<u64>,
     /// Immutable wire/deployment/auth scope, absent in legacy journals.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub binding: Option<WireProvenance>,

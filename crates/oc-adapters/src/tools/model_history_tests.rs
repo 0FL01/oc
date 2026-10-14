@@ -121,6 +121,7 @@ fn go04_receipt_origins_and_hot_selection_preserve_binding_not_current_choice() 
     log.input = vec![InputItem::message(InputRole::User, "task")];
     for (index, binding) in [(1, &a), (2, &b)] {
         log.requests.push(oc_core::queries::RequestIdentity {
+            config_generation: None,
             binding: Some(binding.clone()),
             model: oc_core::queries::ModelRef {
                 provider: "p".into(),

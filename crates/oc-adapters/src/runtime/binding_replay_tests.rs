@@ -134,8 +134,14 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
                 json!({"limit":{"context":500000,"output":2048}}),
             )]),
         };
+        let (before_retry, retry_held) = tokio::sync::oneshot::channel();
+        let (retry_release, retry_released) = tokio::sync::oneshot::channel();
+        let (before_partial, partial_held) = tokio::sync::oneshot::channel();
+        let (partial_release, partial_released) = tokio::sync::oneshot::channel();
         let peer = tokio::spawn(async move {
             let (mut socket, first) = request(&listener).await;
+            before_retry.send(()).unwrap();
+            retry_released.await.unwrap();
             socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.unwrap();
             drop(socket);
             let (mut socket, retry) = request(&listener).await;
@@ -147,6 +153,9 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
             drop(socket);
             let (mut socket, followup) = request(&listener).await;
             assert!(followup.to_string().contains("SETTLED_NOTE"));
+            assert!(followup.to_string().contains("G2_FRESH_RETRY_BOUNDARY"));
+            before_partial.send(()).unwrap();
+            partial_released.await.unwrap();
             let partial = match protocol {
                 Protocol::Chat => vec![json!({"choices":[{"index":0,"delta":{
                     "content":"RECORDED_PARTIAL", "tool_calls":[{"index":0,"id":"unsettled-call","type":"function",
@@ -166,26 +175,57 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
             let text = continued.to_string();
             assert!(text.contains("RECORDED_PARTIAL") && text.contains("SETTLED_NOTE"));
             assert!(!text.contains("unsettled-call"));
+            assert!(
+                text.contains("G3_FRESH_PARTIAL_BOUNDARY")
+                    && !text.contains("G2_FRESH_RETRY_BOUNDARY")
+            );
             respond(&mut socket, protocol, false).await;
         });
         let db = Db::open(data.path()).unwrap();
         let runtime = owner(&db, project.path());
         runtime.create_session("retry").unwrap();
         let cancel = AtomicBool::new(false);
-        let report = runtime
-            .run_turn(TurnParams {
-                session: "retry".into(),
-                prompt: "read the note".into(),
-                invocation: None,
-                catalog: &models,
-                model_id: "m".into(),
-                variant: None,
-                max_output: 1000,
-                provider: provider.clone(),
-                cancel: &cancel,
-            })
-            .await
-            .unwrap();
+        let turn = runtime.run_turn(TurnParams {
+            session: "retry".into(),
+            prompt: "read the note".into(),
+            invocation: None,
+            catalog: &models,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &cancel,
+        });
+        let publication = async {
+            retry_held.await.unwrap();
+            runtime.update_execution(|view| {
+                view.generation.id = 2;
+                view.workspace.fixed_input = vec![InputItem::message(
+                    InputRole::Developer,
+                    "G2_FRESH_RETRY_BOUNDARY",
+                )];
+            });
+            retry_release.send(()).unwrap();
+            partial_held.await.unwrap();
+            runtime.update_execution(|view| {
+                view.generation.id = 3;
+                view.workspace.fixed_input = vec![InputItem::message(
+                    InputRole::Developer,
+                    "G3_FRESH_PARTIAL_BOUNDARY",
+                )];
+                view.generation
+                    .config
+                    .permissions
+                    .insert("read".into(), Permission::Deny);
+            });
+            partial_release.send(()).unwrap();
+        };
+        let (report, ()) = tokio::time::timeout(Duration::from_secs(10), async {
+            tokio::join!(turn, publication)
+        })
+        .await
+        .unwrap();
+        let report = report.unwrap();
         assert_eq!(report.status, TurnStatus::Completed);
         assert_eq!(report.calls.len(), 1);
         assert_eq!(db.list_tool_ops("retry").unwrap().len(), 1);
@@ -193,6 +233,15 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
         let original = db.turn_result(&report.turn_id).unwrap().1.unwrap();
         let log: Value = serde_json::from_str(&original).unwrap();
         assert_eq!(log["requests"].as_array().unwrap().len(), 4);
+        assert_eq!(
+            log["requests"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|request| request["config_generation"].as_u64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![1, 1, 2, 3]
+        );
         let failed = log["spans"]
             .as_array()
             .unwrap()

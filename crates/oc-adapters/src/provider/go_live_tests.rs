@@ -505,7 +505,10 @@ async fn go06_bounded_native_go_live() {
     )
     .unwrap();
     runtime
-        .publish_provider_state(composition.provider_state.clone())
+        .publish_provider_state(
+            composition.provider_state.clone(),
+            composition.request_provider(&composition.catalog.provider),
+        )
         .unwrap();
     for (index, model) in choices.iter().enumerate() {
         let already = update(&ledger_path, |ledger| {

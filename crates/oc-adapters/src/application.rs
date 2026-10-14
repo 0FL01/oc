@@ -1353,7 +1353,10 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
     .map_err(|error| runtime_issue(&source, &["runtime"], &error))?;
     runtime.set_mcp_activation(composition.mcp_activation.clone());
     runtime
-        .publish_provider_state(composition.provider_state.clone())
+        .publish_provider_state(
+            composition.provider_state.clone(),
+            composition.request_provider(&composition.catalog.provider),
+        )
         .map_err(|error| runtime_issue(&source, &["provider"], &error))?;
     runtime
         .publish_dcp_protection(composition.dcp_protected.clone())
@@ -1909,7 +1912,10 @@ async fn start_worker_inner(
                 // current cache projections without creating another GET.
                 changed |= composition.attach_public_catalog(&db).await;
                 runtime
-                    .publish_provider_state(composition.provider_state.clone())
+                    .publish_provider_state(
+                        composition.provider_state.clone(),
+                        composition.request_provider(&composition.catalog.provider),
+                    )
                     .map_err(|error| {
                         runtime_issue(runtime.location(), &["provider"], &error).diagnostic
                     })?;
@@ -2134,7 +2140,10 @@ async fn start_worker_inner(
                                     same_binding,
                                 );
                                 runtime
-                                    .publish_provider_state(composition.provider_state.clone())
+                                    .publish_provider_state(
+                                        composition.provider_state.clone(),
+                                        composition.request_provider(&composition.catalog.provider),
+                                    )
                                     .map_err(|error| {
                                         runtime_issue(runtime.location(), &["provider"], &error)
                                             .diagnostic

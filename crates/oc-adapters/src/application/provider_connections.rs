@@ -229,11 +229,12 @@ impl Work {
                 } else {
                     self.start_refresh(composition, &provider).and_then(|()| {
                         composition.custom_refresh_pending(&provider);
-                        if composition.catalog.provider == provider {
-                            runtime
-                                .publish_provider_state(composition.provider_state.clone())
-                                .map_err(runtime_error)?;
-                        }
+                        runtime
+                            .publish_provider_state(
+                                composition.provider_state.clone(),
+                                composition.request_provider(&composition.catalog.provider),
+                            )
+                            .map_err(runtime_error)?;
                         let _ = events.send(CoreEvent::ProviderChanged);
                         Ok(CustomProviderReply::Refreshing)
                     })
@@ -292,6 +293,12 @@ impl Work {
                     )?;
                     runtime
                         .publish_custom_provider(&reply.provider, &composition.generation)
+                        .map_err(runtime_error)?;
+                    runtime
+                        .publish_provider_state(
+                            composition.provider_state.clone(),
+                            composition.request_provider(&composition.catalog.provider),
+                        )
                         .map_err(runtime_error)?;
                     Ok(CustomProviderReply::Saved(reply))
                 }
