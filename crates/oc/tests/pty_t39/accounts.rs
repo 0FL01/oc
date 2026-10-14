@@ -15,10 +15,10 @@ fn paste(pty: &mut PtySession, text: &str) {
 
 fn connect_go(pty: &mut PtySession) {
     pty.send(b"/connect\r");
-    wait_screen_row(pty, "Choose provider connection", DEADLINE);
+    wait_screen_row(pty, "Search providers:", DEADLINE);
     wait_screen_row(pty, "opencode-go)", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(pty, "Account label", DEADLINE);
+    wait_screen_row(pty, "API key (masked)", DEADLINE);
 }
 
 fn close(pty: &mut PtySession) {
@@ -62,18 +62,12 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     let mut pty = PtySession::spawn(fixture.clone(), "go05-connect", None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    wait_screen_row(&pty, "Account label", DEADLINE);
-    paste(&mut pty, "Cancelled");
-    pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, CANCELLED);
     wait_screen_row(&pty, "••••", DEADLINE);
     pty.send(b"\x1b");
     dismissed(&pty, "Connect / accounts");
     connect_go(&mut pty);
-    wait_screen_row(&pty, "Account label", DEADLINE);
-    paste(&mut pty, "First account");
-    pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     wait_screen_row(&pty, "••••", DEADLINE);
@@ -84,25 +78,27 @@ fn go05_actual_configless_connect_mask_cancel_ack_accounts_and_restart() {
     pty.send(b"\x1b");
     dismissed(&pty, "Select model");
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "First account [active]", DEADLINE);
+    wait_screen_row(&pty, "default [active]", DEADLINE);
     wait_screen_row(&pty, "Effective auth: Stored", DEADLINE);
+    pty.send(b"\x1b[B"); // Add account is the shared first row.
     pty.send(b"r");
     wait_screen_row(&pty, "Rename account", DEADLINE);
     paste(&mut pty, " renamed");
     pty.send(b"\r");
-    wait_screen_row(&pty, "First account renamed [active]", DEADLINE);
+    wait_screen_row(&pty, "default renamed [active]", DEADLINE);
     close(&mut pty);
     let db = Db::open(&fixture.data_dir()).unwrap();
     let scope = AuthScope::admit("opencode-go", GO_BASE_URL).unwrap();
     let rows = db.credential_accounts(scope.namespace()).unwrap();
     assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].label, "First account renamed");
+    assert_eq!(rows[0].label, "default renamed");
     assert!(db.session_meta("go05-connect").unwrap().model.is_none());
     drop(db);
     let mut restarted = PtySession::spawn(fixture.clone(), "go05-connect", None);
     restarted.wait_visible(READY, DEADLINE);
     restarted.send(b"/accounts\r");
-    wait_screen_row(&restarted, "First account renamed [active]", DEADLINE);
+    wait_screen_row(&restarted, "default renamed [active]", DEADLINE);
+    restarted.send(b"\x1b[B");
     restarted.send(b"d");
     wait_screen_row(&restarted, "confirm removal", DEADLINE);
     restarted.send(b"d");
@@ -145,9 +141,6 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     let mut pty = PtySession::spawn(fixture.clone(), "go05-custom-connect", None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    wait_screen_row(&pty, "Account label", DEADLINE);
-    paste(&mut pty, "Go from custom");
-    pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     pty.send(b"\r");
@@ -162,9 +155,10 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
     // The connect ACK changed only Go credentials, not the current connection/model.
     pty.send(b"\x1b");
     dismissed(&pty, "Connect / accounts");
-    connect_go(&mut pty);
-    wait_screen_row(&pty, "Account label", DEADLINE);
-    paste(&mut pty, "Explicit Go choice");
+    pty.send(b"/connect\r");
+    wait_screen_row(&pty, "Search providers:", DEADLINE);
+    pty.send(b"\r");
+    wait_screen_row(&pty, "Add account", DEADLINE);
     pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
@@ -236,8 +230,6 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     let mut pty = PtySession::spawn(fixture.clone(), session, None);
     pty.wait_visible(READY, DEADLINE);
     connect_go(&mut pty);
-    paste(&mut pty, "Go bootstrap account");
-    pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, GO_KEY);
     pty.send(b"\r");
@@ -287,13 +279,10 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
         );
     }
     pty.send(b"/connect\r");
-    wait_screen_row(&pty, "Choose provider connection", DEADLINE);
+    wait_screen_row(&pty, "Search providers:", DEADLINE);
     wait_screen_row(&pty, "(fixture)", DEADLINE);
     pty.send(b"\r");
-    wait_screen_row(&pty, "Account label", DEADLINE);
     wait_screen_row(&pty, "Provider: fixture", DEADLINE);
-    paste(&mut pty, "Executable local account");
-    pty.send(b"\r");
     wait_screen_row(&pty, "API key (masked)", DEADLINE);
     paste(&mut pty, KEY);
     pty.send(b"\r");
@@ -314,7 +303,7 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     vis28_wait_gone(&pty);
     fixture.vis28_continue.store(true, Ordering::Relaxed);
     pty.send(b"/accounts\r");
-    wait_screen_row(&pty, "Executable local account [active]", DEADLINE);
+    wait_screen_row(&pty, "default [active]", DEADLINE);
     close(&mut pty);
     let history = persisted(&fixture.data_dir(), session);
     assert!(

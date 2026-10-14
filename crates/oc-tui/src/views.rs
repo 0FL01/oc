@@ -201,9 +201,7 @@ pub fn panel_lines(state: &TuiState) -> Vec<String> {
                 if let Some(error) = picker.last_error() {
                     out.push(format!("note: {error}"));
                 }
-                if let Some(id) = picker.cursor_id() {
-                    out.extend(picker.model_details(&id));
-                }
+                out.extend(state.model_picker_details());
                 out
             }
             None => vec!["model | loading catalog…".to_string()],

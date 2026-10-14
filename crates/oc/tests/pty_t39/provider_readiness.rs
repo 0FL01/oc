@@ -9,6 +9,9 @@ use std::collections::BTreeMap;
 const CANARY: &str = "UI07_NEVER_RENDER_CONFIG_ENV_AUTH_62c4";
 const DYNAMIC: &str = "ui07-arbitrary-native-id-62c4";
 
+#[path = "provider_readiness/custom_connections.rs"]
+mod custom_connections;
+
 /// Owned fake GET barriers never stall the listener or a healthy Responses route.
 pub(super) struct CatalogControl {
     status: AtomicUsize,

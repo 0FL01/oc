@@ -12,6 +12,8 @@ pub(super) struct ComposerSelection {
     caller: u64,
     binding: Option<SelectionBinding>,
     picker_binding: Option<SelectionBinding>,
+    picker_readiness: Option<oc_core::queries::ProviderReadiness>,
+    picker_custom: bool,
     drafts: BTreeMap<Option<String>, ModelRef>,
     committed: Option<ModelRef>,
     revision: u64,
@@ -32,6 +34,8 @@ impl Default for ComposerSelection {
             caller: CALLER.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             binding: None,
             picker_binding: None,
+            picker_readiness: None,
+            picker_custom: false,
             drafts: Default::default(),
             committed: None,
             revision: 0,
@@ -67,6 +71,8 @@ impl TuiState {
     }
 
     pub(super) fn bind_picker(&mut self, snapshot: &CatalogSnapshot) {
+        self.model_selection.picker_readiness = snapshot.chrome.provider.clone();
+        self.model_selection.picker_custom = snapshot.chrome.custom_connection;
         self.model_selection.picker_binding = Some(SelectionBinding {
             location: snapshot.chrome.location.clone(),
             generation: snapshot.chrome.selection_generation,
@@ -77,6 +83,44 @@ impl TuiState {
                 .as_ref()
                 .and_then(|binding| binding.agent_id.clone()),
         });
+    }
+
+    pub fn custom_picker_binding(&self) -> Option<&SelectionBinding> {
+        (self.panel == TuiPanel::Model && self.model_selection.picker_custom)
+            .then_some(self.model_selection.picker_binding.as_ref())
+            .flatten()
+            .filter(|binding| {
+                binding.location == self.chrome.location
+                    && binding.generation == self.chrome.selection_generation
+            })
+    }
+
+    pub(crate) fn model_picker_details(&self) -> Vec<String> {
+        let mut lines = self
+            .picker
+            .as_ref()
+            .and_then(|picker| picker.cursor_id().map(|id| picker.model_details(&id)))
+            .unwrap_or_default();
+        if self.custom_picker_binding().is_some() {
+            if let Some(readiness) = &self.model_selection.picker_readiness {
+                let status = if readiness.catalog_status == oc_core::queries::ProviderStatus::Ready
+                    && self
+                        .picker
+                        .as_ref()
+                        .is_none_or(|picker| picker.options().is_empty())
+                {
+                    "empty"
+                } else {
+                    readiness.catalog_status.as_str()
+                };
+                lines.push(format!("Catalog: {status}"));
+                if let Some(diagnostic) = &readiness.diagnostic {
+                    lines.push(format!("Catalog/request: {:?}", diagnostic.code));
+                }
+            }
+            lines.push("← Retry GET · → Accounts / change key".into());
+        }
+        lines
     }
     /// A new same-Location composer may remember an actually committed choice;
     /// another session's uncommitted picker draft never crosses this boundary.

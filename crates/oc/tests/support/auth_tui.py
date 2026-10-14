@@ -99,7 +99,7 @@ class View:
         raise AssertionError('missing public mouse row: '+text)
 
     def connect(self):
-        self.command('connect'); self.see('Choose provider connection')
+        self.command('connect'); self.see('Search providers:')
         self.click('OpenAI (openai)'); self.see('Provider: openai')
 
     def methods(self):
@@ -116,9 +116,10 @@ class View:
 
     def quit(self):
         # One Esc unmounts auth; idle Home's following Esc is native quit.
-        if any('Connect / accounts' in row for row in self.screen()):
+        titles = ('Connect / accounts', 'Connect an integration', 'Connect a custom provider')
+        if any(any(title in row for title in titles) for row in self.screen()):
             self.send(b'\x1b')
-            wait(lambda: not any('Connect / accounts' in row for row in self.screen()), 'auth surface unmounted')
+            wait(lambda: not any(any(title in row for title in titles) for row in self.screen()), 'auth surface unmounted')
         self.send(b'\x1b')
         def exited():
             self.drain(); return self.proc.poll() is not None

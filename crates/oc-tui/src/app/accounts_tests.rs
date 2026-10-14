@@ -20,12 +20,157 @@ async fn choose_go(state: &mut TuiState) {
     state.apply_provider_connections(Ok(vec![ProviderConnection {
         provider: "opencode-go".into(),
         name: "OpenCode Go".into(),
+        source: AccountAuthSource::Missing,
     }]));
     let choice = state.handle_key(KeyAction::Enter).await;
     assert!(
-        matches!(choice.intent, Some(PanelIntent::ProviderAccounts { provider, action: None })
+        matches!(choice.intent, Some(PanelIntent::ProviderAccounts { provider, action: None, .. })
         if provider == "opencode-go")
     );
+    state.apply_provider_accounts(Ok(ProviderAccounts {
+        provider: "opencode-go".into(),
+        effective: AccountAuthSource::Missing,
+        accounts: Vec::new(),
+    }));
+    apply_key_method(state);
+}
+
+fn apply_key_method(state: &mut TuiState) {
+    let (provider, revision) = state.account_methods_request().expect("method discovery");
+    state.apply_auth_methods(&provider, revision, Ok(vec![AuthMethod::Key]));
+}
+
+async fn custom_form(state: &mut TuiState) {
+    state.run_command(CommandAction::OpenConnect);
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    assert!(
+        state.custom_provider_revision().is_none(),
+        "wait for the provider-list ACK"
+    );
+    state.apply_provider_connections(Ok(Vec::new()));
+    state.handle_key(KeyAction::Enter).await;
+    state.handle_paste("My LAN endpoint");
+    state.handle_key(KeyAction::Enter).await;
+    state.handle_paste("http://127.0.0.1:8765/literal-prefix");
+    state.handle_key(KeyAction::Enter).await;
+}
+
+#[tokio::test]
+async fn conn04_custom_key_probe_api_confirmation_retry_and_save_are_revision_scoped() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("custom-ui".into()));
+    state.handle_paste("UNCHANGED_DRAFT");
+    custom_form(&mut state).await;
+    state.handle_key(KeyAction::Enter).await; // explicit Key
+    state.handle_paste("CUSTOM_KEY_CANARY");
+    for (width, height) in [(100, 30), (64, 24)] {
+        let frame = crate::views::render_test(&state, width, height).join("\n");
+        assert!(frame.contains("API key (masked)") && frame.contains('•'));
+        assert!(!frame.contains("CUSTOM_KEY_CANARY"));
+    }
+    let submitted = state.handle_key(KeyAction::Enter).await;
+    assert!(!format!("{submitted:?} {:?}", state.accounts).contains("CUSTOM_KEY_CANARY"));
+    let Some(PanelIntent::ProbeCustomProvider { revision, input }) = submitted.intent else {
+        panic!("missing typed probe");
+    };
+    assert_eq!(input.name, "My LAN endpoint");
+    assert_eq!(input.base_url, "http://127.0.0.1:8765/literal-prefix");
+    let CustomProviderAuth::Key(key) = input.auth else {
+        panic!("not Key")
+    };
+    assert_eq!(key.into_secret(), "CUSTOM_KEY_CANARY");
+    assert!(state.accounts.key.is_empty());
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    let cancel = state.custom_provider_cancel(revision).unwrap();
+    let probed = |receipt| {
+        Ok(CustomProviderReply::Probed {
+            revision: receipt,
+            model_count: 2,
+            suggested: None,
+            diagnostic: None,
+        })
+    };
+    state.apply_custom_provider(revision + 1, probed(40));
+    assert!(state.account_lines().join(" ").contains("Checking GET"));
+    state.apply_custom_provider(revision, probed(41));
+    assert!(
+        state
+            .account_lines()
+            .join(" ")
+            .contains("Confirm generation API")
+    );
+    assert!(state.captured_model_commit().is_none());
+    let retry = state.handle_key(KeyAction::Char('r')).await;
+    assert!(
+        matches!(retry.intent, Some(PanelIntent::RetryCustomProvider { revision: current, receipt: 41 }) if current == revision)
+    );
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    state.apply_custom_provider(revision, probed(42));
+    state.handle_key(KeyAction::Down).await;
+    let save = state.handle_key(KeyAction::Enter).await;
+    assert!(
+        matches!(save.intent, Some(PanelIntent::SaveCustomProvider { revision: current, receipt: 42, protocol: NativeProtocol::Chat }) if current == revision)
+    );
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
+    assert_eq!(
+        state.apply_custom_provider(
+            revision,
+            Ok(CustomProviderReply::Saved(ProviderConnection {
+                provider: "custom-exact".into(),
+                name: "My LAN endpoint".into(),
+                source: AccountAuthSource::Stored,
+            }))
+        ),
+        Some("custom-exact".into())
+    );
+    assert_eq!(state.panel(), &TuiPanel::Model);
+    assert!(cancel.load(std::sync::atomic::Ordering::SeqCst));
+    assert!(state.captured_model_commit().is_none());
+    assert_eq!(state.input(), "UNCHANGED_DRAFT");
+}
+
+#[tokio::test]
+async fn conn04_custom_anonymous_cancel_edit_and_unmount_retire_the_exact_probe() {
+    let (app, _, _) = CoreApp::channel(8);
+    let mut state = TuiState::new(app, SessionId("custom-cancel".into()));
+    custom_form(&mut state).await;
+    state.handle_key(KeyAction::Down).await;
+    let probe = state.handle_key(KeyAction::Enter).await;
+    let Some(PanelIntent::ProbeCustomProvider { revision, input }) = probe.intent else {
+        panic!("missing anonymous probe")
+    };
+    assert_eq!(input.auth, CustomProviderAuth::Anonymous);
+    let cancel = state.custom_provider_cancel(revision).unwrap();
+    state.apply_custom_provider(
+        revision,
+        Ok(CustomProviderReply::Probed {
+            revision: 12,
+            model_count: 0,
+            suggested: Some(NativeProtocol::Messages),
+            diagnostic: None,
+        }),
+    );
+    state.handle_key(KeyAction::Char('e')).await;
+    assert!(cancel.load(std::sync::atomic::Ordering::SeqCst));
+    let next = state.custom_provider_revision().unwrap();
+    assert_ne!(revision, next);
+    state.apply_custom_provider(
+        revision,
+        Ok(CustomProviderReply::Saved(ProviderConnection {
+            provider: "late".into(),
+            name: "Late".into(),
+            source: AccountAuthSource::Anonymous,
+        })),
+    );
+    assert_eq!(state.panel(), &TuiPanel::Accounts);
+    state.handle_key(KeyAction::Down).await;
+    state.handle_key(KeyAction::Enter).await;
+    let cancel = state.custom_provider_cancel(next).unwrap();
+    state.retire_auth_surface();
+    assert!(cancel.load(std::sync::atomic::Ordering::SeqCst));
+    assert_eq!(state.panel(), &TuiPanel::None);
+    assert!(state.custom_provider_revision().is_none());
+    assert!(state.captured_model_commit().is_none());
 }
 
 #[tokio::test]
@@ -36,12 +181,11 @@ async fn go05_masked_connect_moves_secret_once_and_ack_never_commits_selection()
     let open = state.run_command(CommandAction::OpenConnect);
     assert!(matches!(
         open.intent,
-        Some(PanelIntent::LoadProviderConnections)
+        Some(PanelIntent::LoadProviderConnections { .. })
     ));
     choose_go(&mut state).await;
-    state.apply_provider_accounts(Ok(snapshot()));
-    state.handle_paste("Added");
-    state.handle_key(KeyAction::Enter).await;
+    assert!(state.account_lines().join(" ").contains("API key (masked)"));
+    assert!(!state.account_lines().join(" ").contains("Account label"));
     state.handle_paste("KEY_CANARY_MUST_NOT_RENDER");
     let lines = state.account_lines().join("\n");
     assert!(lines.contains('•') && !lines.contains("KEY_CANARY"));
@@ -52,13 +196,14 @@ async fn go05_masked_connect_moves_secret_once_and_ack_never_commits_selection()
     assert!(state.accounts.key.is_empty());
     assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
     let Some(PanelIntent::ProviderAccounts {
-        action: Some(AccountAction::AddKey { key, .. }),
+        action: Some(AccountAction::AddKey { key, label }),
         ..
     }) = outcome.intent
     else {
         panic!("missing typed secret intent")
     };
     assert_eq!(key.into_secret(), "KEY_CANARY_MUST_NOT_RENDER");
+    assert_eq!(label, "default");
     assert!(state.apply_provider_accounts(Ok(snapshot())));
     assert_eq!(state.panel(), &TuiPanel::Model);
     assert_eq!(state.input(), "UNCHANGED_DRAFT");
@@ -73,14 +218,15 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     state.input = "DRAFT".into();
     state.run_command(CommandAction::OpenConnect);
     choose_go(&mut state).await;
-    state.handle_paste("Label");
-    state.handle_key(KeyAction::Enter).await;
     state.handle_paste("CANCELLED_KEY_CANARY");
     state.handle_key(KeyAction::Cancel).await;
     assert!(state.accounts.key.is_empty());
     assert_eq!(state.input(), "DRAFT");
     state.run_command(CommandAction::OpenAccounts);
-    state.apply_provider_accounts(Ok(snapshot()));
+    let mut inactive = snapshot();
+    inactive.accounts[0].active = false;
+    state.apply_provider_accounts(Ok(inactive));
+    state.handle_key(KeyAction::Down).await;
     assert!(matches!(
         state.handle_key(KeyAction::Enter).await.intent,
         Some(PanelIntent::ProviderAccounts {
@@ -89,6 +235,7 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
         })
     ));
     state.apply_provider_accounts(Ok(snapshot()));
+    assert!(state.handle_key(KeyAction::Enter).await.intent.is_none());
     state.handle_key(KeyAction::Char('r')).await;
     state.handle_paste(" renamed");
     assert!(matches!(state.handle_key(KeyAction::Enter).await.intent,
@@ -116,8 +263,7 @@ async fn go05_accounts_cancel_error_rename_activation_and_confirmation_are_isola
     assert!(state.account_lines().join(" ").contains("refused"));
     assert_eq!(state.input(), "DRAFT");
     state.handle_key(KeyAction::Char('a')).await;
-    state.handle_paste("Retry");
-    state.handle_key(KeyAction::Enter).await;
+    apply_key_method(&mut state);
     state.handle_paste("REJECTED_KEY_CANARY");
     state.handle_key(KeyAction::Enter).await;
     assert!(!state.apply_provider_accounts(Err(())));
@@ -132,8 +278,6 @@ async fn go05_priority_overlay_retires_secret_without_forwarding_its_input() {
     let mut state = TuiState::new(app, SessionId("accounts".into()));
     state.run_command(CommandAction::OpenConnect);
     choose_go(&mut state).await;
-    state.handle_paste("Label");
-    state.handle_key(KeyAction::Enter).await;
     state.handle_paste("EPHEMERAL_CANARY");
     let question = oc_core::question::QuestionRequest {
         id: 1,
@@ -178,21 +322,33 @@ async fn go05_provider_choice_is_explicit_and_never_receives_secret_paste() {
         ProviderConnection {
             provider: "opencode-go".into(),
             name: "OpenCode Go".into(),
+            source: AccountAuthSource::Environment,
         },
         ProviderConnection {
             provider: "custom".into(),
             name: "Local connection".into(),
+            source: AccountAuthSource::Configured,
         },
     ]));
-    state.handle_paste("PASTE_CANARY");
+    let providers = state.account_lines().join(" ");
+    assert!(providers.contains("Popular") && providers.contains("Services"));
+    assert!(providers.contains("✓ OpenCode Go") && providers.contains("Environment"));
+    state.handle_paste("Local");
     assert!(state.accounts.key.is_empty() && state.accounts.label.is_empty());
-    state.handle_key(KeyAction::Down).await;
+    assert_eq!(state.accounts.search, "Local");
+    assert!(!state.account_lines().join(" ").contains("OpenCode Go"));
     let chosen = state.handle_key(KeyAction::Enter).await;
     assert!(
-        matches!(chosen.intent, Some(PanelIntent::ProviderAccounts { provider, action: None }) if provider == "custom")
+        matches!(chosen.intent, Some(PanelIntent::ProviderAccounts { provider, action: None, .. }) if provider == "custom")
     );
     assert_eq!(state.input(), "DRAFT");
-    assert!(state.account_lines().join(" ").contains("Account label"));
+    state.apply_provider_accounts(Ok(ProviderAccounts {
+        provider: "custom".into(),
+        effective: AccountAuthSource::Missing,
+        accounts: Vec::new(),
+    }));
+    apply_key_method(&mut state);
+    assert!(state.account_lines().join(" ").contains("API key (masked)"));
     state.handle_key(KeyAction::Cancel).await;
     state.run_command(CommandAction::OpenConnect);
     state.apply_provider_connections(Err(()));
@@ -213,6 +369,7 @@ async fn choose_openai(state: &mut TuiState) {
     state.apply_provider_connections(Ok(vec![ProviderConnection {
         provider: "openai".into(),
         name: "OpenAI".into(),
+        source: AccountAuthSource::Missing,
     }]));
     state.handle_key(KeyAction::Enter).await;
 }
@@ -418,9 +575,8 @@ async fn auth05_openai_existing_accounts_add_first_and_failed_auth_close_retire_
     state.apply_provider_accounts(Ok(openai_snapshot(vec![])));
     let (provider, revision) = state.account_methods_request().unwrap();
     state.apply_auth_methods(&provider, revision, Ok(vec![AuthMethod::Key]));
-    state.handle_paste("Key account");
-    state.handle_key(KeyAction::Enter).await;
     state.handle_paste("KEY_FORM_CANARY");
+    assert!(!state.accounts.key.is_empty());
     assert!(!state.account_lines().join(" ").contains("KEY_FORM_CANARY"));
     state.handle_key(KeyAction::Cancel).await;
     assert!(state.accounts.key.is_empty());

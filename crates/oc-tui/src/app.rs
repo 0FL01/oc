@@ -161,7 +161,25 @@ pub enum PanelIntent {
         /// Lower composer activation closes/navigates before the captured action.
         close_composer: bool,
     },
-    LoadProviderConnections,
+    LoadProviderConnections {
+        revision: u64,
+    },
+    ProbeCustomProvider {
+        revision: u64,
+        input: oc_core::queries::CustomProviderInput,
+    },
+    RetryCustomProvider {
+        revision: u64,
+        receipt: u64,
+    },
+    SaveCustomProvider {
+        revision: u64,
+        receipt: u64,
+        protocol: oc_core::queries::NativeProtocol,
+    },
+    RefreshCustomProvider {
+        binding: oc_core::queries::SelectionBinding,
+    },
     SetPermissionMode {
         auto_once: bool,
     },
@@ -202,6 +220,7 @@ pub enum PanelIntent {
     LoadCatalog,
     ProviderAccounts {
         provider: String,
+        revision: u64,
         action: Option<oc_core::queries::AccountAction>,
     },
     /// Rebuild the current Location without replacing the session or draft.

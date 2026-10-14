@@ -71,8 +71,10 @@ impl ProviderWork {
             .custom_revisions
             .contains_key(&composition.catalog.provider)
             && composition.provider_state.catalog_status == ProviderStatus::Pending;
-        let requested_custom =
-            requested.filter(|id| composition.custom_revisions.contains_key(*id));
+        let requested_custom = requested.filter(|id| {
+            composition.custom_revisions.contains_key(*id)
+                && composition.readiness_for(id, "", None).catalog_status == ProviderStatus::Pending
+        });
         if let Some(id) = requested_custom
             .or_else(|| selected_custom.then_some(composition.catalog.provider.as_str()))
         {

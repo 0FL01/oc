@@ -184,7 +184,11 @@ envelopes/pagination without changing the OpenProxy oracle. `application/provide
 is the custom/probe slot within `provider_catalog.rs::ProviderWork`; only the idle actor
 commits its captured revision. `composition/catalog.rs` reads saved snapshots without a
 second writer or custom endpoint request. Nearest tests are the owners' `tests.rs`, filter
-`conn0`; typed actions and masked input live in core `queries/accounts.rs`.
+`conn0`; typed actions and redacted input live in core `queries/accounts.rs`.
+`oc/src/tui_cmd/connect_controls.rs` joins revision-scoped connection/probe ACKs
+inside the existing auth controls; `oc-tui/src/app/accounts.rs` owns masked forms.
+Actual native onboarding/repair/restart and read-only CLI: existing `pty_t39` target,
+`provider_readiness/custom_connections.rs` (no test loopback authority).
 
 T53 unchosen startup stays in `composition.rs` and application selection admission;
 `CatalogSnapshot::selected_model()` is the optional composer query, with empty

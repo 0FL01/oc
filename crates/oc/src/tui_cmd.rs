@@ -38,6 +38,7 @@ use oc_tui::views::{cursor_color, render_frame};
 
 mod auth_controls;
 mod child_controls;
+mod connect_controls;
 mod terminal_controls;
 
 /// Qualification probe (T26): when set, panic right after entering the
@@ -2320,7 +2321,7 @@ async fn apply_owned_intent(
             | PanelIntent::LoadAuthMethods { .. }
             | PanelIntent::OpenAuthorization
             | PanelIntent::CopyAuthorization
-            | PanelIntent::LoadProviderConnections
+            | PanelIntent::LoadProviderConnections { .. }
             | PanelIntent::ProviderAccounts { action: None, .. }
     );
     if loop_state.conversation_job.is_some() && !terminal_control && !auth_control {
@@ -2372,14 +2373,39 @@ async fn apply_owned_intent(
                 .apply_tab_rail_width(Some(width))
                 .map_err(|e| e.to_string())?;
         }
-        PanelIntent::LoadAuthMethods { provider, revision } => {
-            let methods = app.auth_methods(provider.clone()).await.map_err(|_| ());
-            state.apply_auth_methods(&provider, revision, methods);
+        connection @ (PanelIntent::LoadProviderConnections { .. }
+        | PanelIntent::LoadAuthMethods { .. }
+        | PanelIntent::ProviderAccounts { .. }
+        | PanelIntent::ProbeCustomProvider { .. }
+        | PanelIntent::RetryCustomProvider { .. }
+        | PanelIntent::SaveCustomProvider { .. }) => {
+            loop_state.authentication.connect(app, state, connection)?;
         }
         PanelIntent::BeginAuthentication(request) => {
             if state.auth_request() == Some(&request) {
                 loop_state.authentication.sync(app, state).await;
             }
+        }
+        PanelIntent::RefreshCustomProvider { binding } => {
+            if state.custom_picker_binding() != Some(&binding) {
+                return Ok(());
+            }
+            let current = app.catalog().await.map_err(|e| e.to_string())?;
+            if current.chrome.location != binding.location
+                || current.chrome.selection_generation != binding.generation
+            {
+                return Ok(());
+            }
+            app.custom_provider(oc_core::queries::CustomProviderAction::Refresh {
+                provider: binding.provider.clone(),
+            })
+            .await
+            .map_err(|e| e.to_string())?;
+            let snapshot = app
+                .provider_catalog(binding.provider)
+                .await
+                .map_err(|e| e.to_string())?;
+            state.apply_picker_catalog(snapshot);
         }
         PanelIntent::OpenAuthorization => loop_state.authentication.open(state),
         PanelIntent::CopyAuthorization => {
@@ -2409,24 +2435,6 @@ async fn apply_owned_intent(
                 }
             }
             terminal_controls::apply(app, state, loop_state, session, action).await;
-        }
-        PanelIntent::LoadProviderConnections => {
-            state.apply_provider_connections(app.provider_connections().await.map_err(|_| ()));
-        }
-        PanelIntent::ProviderAccounts { provider, action } => {
-            let result = app.provider_accounts(provider.clone(), action).await;
-            if state.apply_provider_accounts(result.map_err(|_| ())) {
-                // Storage ACK precedes the picker; no model is committed here.
-                let snapshot = app
-                    .provider_catalog(provider)
-                    .await
-                    .map_err(|e| e.to_string())?;
-                state.apply_picker_catalog(snapshot);
-            }
-            if let Some((provider, revision)) = state.account_methods_request() {
-                let methods = app.auth_methods(provider.clone()).await.map_err(|_| ());
-                state.apply_auth_methods(&provider, revision, methods);
-            }
         }
         PanelIntent::LoadChildren => child_controls::refresh(app, state).await?,
         PanelIntent::OpenChild { selected } => {

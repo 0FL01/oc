@@ -13,6 +13,7 @@ async fn starting(app: CoreApp) -> (TuiState, AuthRequest) {
     state.apply_provider_connections(Ok(vec![ProviderConnection {
         provider: "openai".into(),
         name: "OpenAI".into(),
+        source: oc_core::queries::AccountAuthSource::Missing,
     }]));
     state.handle_key(KeyAction::Enter).await;
     state.apply_provider_accounts(Ok(ProviderAccounts {

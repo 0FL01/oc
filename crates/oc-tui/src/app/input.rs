@@ -3647,6 +3647,18 @@ impl TuiState {
         if self.panel == TuiPanel::None && self.questions.active().is_some() {
             return self.questions.key(action);
         }
+        if matches!(action, KeyAction::Left | KeyAction::Right)
+            && let Some(binding) = self.custom_picker_binding().cloned()
+        {
+            return if action == KeyAction::Left {
+                KeyOutcome {
+                    intent: Some(PanelIntent::RefreshCustomProvider { binding }),
+                    ..Default::default()
+                }
+            } else {
+                self.open_provider_accounts(binding.provider)
+            };
+        }
         if self.panel == TuiPanel::Mcps && self.mcp_detail.is_some() {
             return self.mcp_detail_key(action);
         }

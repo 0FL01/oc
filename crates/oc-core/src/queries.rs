@@ -675,6 +675,9 @@ pub struct TuiChrome {
     pub plugins: PluginInventory,
     /// Owner facts for this exact selection; ready means request-admissible, not connected.
     pub provider: Option<ProviderReadiness>,
+    /// The catalog belongs to an admitted native custom connection; permits
+    /// presentation of explicit refresh/account controls, not endpoint authority.
+    pub custom_connection: bool,
     /// Unavailable saved agent/model/variant; absent when the exact choice is admitted.
     pub selection: Option<SelectionReadiness>,
     /// Canonical application Location, unknown in mock workers.

@@ -5,6 +5,8 @@
 pub struct ProviderConnection {
     pub provider: String,
     pub name: String,
+    /// Effective credential origin, not a selectable login method.
+    pub source: AccountAuthSource,
 }
 
 /// Ephemeral key input. Deliberately not serializable and always redacted.
@@ -93,6 +95,10 @@ pub enum CustomProviderAction {
     Probe {
         input: CustomProviderInput,
         cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    },
+    /// Reuse only the matching ephemeral probe input; no key returns to the UI.
+    Retry {
+        revision: u64,
     },
     Save {
         revision: u64,

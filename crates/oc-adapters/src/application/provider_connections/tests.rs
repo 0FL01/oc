@@ -14,6 +14,104 @@ fn configless(root: &Path) -> std::path::PathBuf {
     project
 }
 
+#[tokio::test]
+async fn conn05_invalid_replacement_joins_old_probe_without_storage_effects() {
+    let root = tempfile::tempdir().unwrap();
+    let project = configless(root.path());
+    let data = root.path().join("data");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/held", listener.local_addr().unwrap());
+    let (held, accepted) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut buffer = [0; 4096];
+        let read = stream.read(&mut buffer).await.unwrap();
+        assert!(read > 0);
+        held.send(()).unwrap();
+        let read = tokio::time::timeout(Duration::from_secs(3), stream.read(&mut buffer))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(read, 0, "replacement must abort and join the old GET");
+    });
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let old = app.clone();
+    let pending = tokio::spawn(async move {
+        old.custom_provider(CustomProviderAction::Probe {
+            input: CustomProviderInput {
+                name: "Old form".into(),
+                base_url: base,
+                auth: CustomProviderAuth::Key(KeyInput::new("EPHEMERAL_OLD_KEY".into())),
+            },
+            cancel: Arc::new(AtomicBool::new(false)),
+        })
+        .await
+    });
+    tokio::time::timeout(Duration::from_secs(3), accepted)
+        .await
+        .unwrap()
+        .unwrap();
+    let refused = app
+        .custom_provider(CustomProviderAction::Probe {
+            input: CustomProviderInput {
+                name: String::new(),
+                base_url: "not a URL".into(),
+                auth: CustomProviderAuth::Anonymous,
+            },
+            cancel: Arc::new(AtomicBool::new(false)),
+        })
+        .await;
+    assert!(refused.is_err());
+    assert!(
+        tokio::time::timeout(Duration::from_secs(3), pending)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_err()
+    );
+    peer.await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert!(
+        Db::open(&data)
+            .unwrap()
+            .custom_providers()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
+async fn conn05_failed_probe_join_retires_captured_input_and_ack() {
+    let (ack, reply) = tokio::sync::oneshot::channel();
+    let mut work = Work {
+        task: Some(tokio::spawn(async { panic!("fixture probe task failure") })),
+        capture: Some(Capture::Probe {
+            revision: 1,
+            input: CustomProviderInput {
+                name: "Ephemeral".into(),
+                base_url: "http://127.0.0.1/held".into(),
+                auth: CustomProviderAuth::Key(KeyInput::new("EPHEMERAL_KEY".into())),
+            },
+            cancel: Arc::new(AtomicBool::new(false)),
+            result: None,
+            ack: Some(ack),
+        }),
+    };
+    tokio::time::timeout(Duration::from_secs(1), async {
+        while !work.task.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(work.stop().await.is_err());
+    assert!(!work.pending() && !work.has_probe());
+    assert!(reply.await.unwrap().is_err());
+}
+
 async fn response(stream: &mut tokio::net::TcpStream, body: serde_json::Value) -> String {
     let mut bytes = Vec::new();
     let mut buffer = [0; 4096];
@@ -215,10 +313,118 @@ async fn conn05_cancel_held_probe_is_joined_and_late_save_cannot_create_rows() {
             .is_err()
     );
     peer.await.unwrap();
+    assert!(
+        app.custom_provider(CustomProviderAction::Save {
+            revision: u64::MAX,
+            protocol: NativeProtocol::Responses,
+        })
+        .await
+        .is_err()
+    );
     app.shutdown().await.unwrap();
     guard.join().await.unwrap();
     let db = Db::open(&data).unwrap();
     assert!(db.custom_providers().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn conn04_retry_reuses_owned_input_and_expires_the_old_form_receipt() {
+    let root = tempfile::tempdir().unwrap();
+    let project = configless(root.path());
+    let data = root.path().join("data");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/retry-prefix", listener.local_addr().unwrap());
+    let peer = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let request = response(
+                &mut stream,
+                serde_json::json!({"object":"list","data":[{"id":"retry-exact"}]}),
+            )
+            .await;
+            assert!(request.starts_with("GET /retry-prefix/models "));
+            assert!(
+                request
+                    .to_ascii_lowercase()
+                    .contains("authorization: bearer retry_key_canary")
+            );
+        }
+    });
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let CustomProviderReply::Probed {
+        revision: first, ..
+    } = app
+        .custom_provider(CustomProviderAction::Probe {
+            input: CustomProviderInput {
+                name: "Retry".into(),
+                base_url: base,
+                auth: CustomProviderAuth::Key(KeyInput::new("RETRY_KEY_CANARY".into())),
+            },
+            cancel: Arc::new(AtomicBool::new(false)),
+        })
+        .await
+        .unwrap()
+    else {
+        panic!("not probe")
+    };
+    let CustomProviderReply::Probed {
+        revision: second, ..
+    } = app
+        .custom_provider(CustomProviderAction::Retry { revision: first })
+        .await
+        .unwrap()
+    else {
+        panic!("not retry")
+    };
+    assert_ne!(first, second);
+    assert!(
+        app.custom_provider(CustomProviderAction::Save {
+            revision: first,
+            protocol: NativeProtocol::Responses
+        })
+        .await
+        .is_err()
+    );
+    assert_eq!(
+        app.custom_provider(CustomProviderAction::Cancel { revision: first })
+            .await
+            .unwrap(),
+        CustomProviderReply::Cancelled
+    );
+    let CustomProviderReply::Saved(saved) = app
+        .custom_provider(CustomProviderAction::Save {
+            revision: second,
+            protocol: NativeProtocol::Chat,
+        })
+        .await
+        .unwrap()
+    else {
+        panic!("not save")
+    };
+    assert_eq!(saved.source, oc_core::queries::AccountAuthSource::Stored);
+    assert_eq!(
+        app.provider_catalog(saved.provider.clone())
+            .await
+            .unwrap()
+            .models[0]
+            .id,
+        "retry-exact"
+    );
+    assert_eq!(
+        app.provider_accounts(saved.provider, None)
+            .await
+            .unwrap()
+            .accounts[0]
+            .label,
+        "default"
+    );
+    peer.await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let db = Db::open(&data).unwrap();
+    assert_eq!(db.custom_providers().unwrap().len(), 1);
 }
 
 #[tokio::test]

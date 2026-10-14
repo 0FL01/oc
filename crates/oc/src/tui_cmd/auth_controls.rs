@@ -21,6 +21,7 @@ struct Active {
 
 #[derive(Default)]
 pub(super) struct Controls {
+    connections: super::connect_controls::Controls,
     cleanup_failed: bool,
     cancelling: bool,
     seen: Option<AuthRequest>,
@@ -38,14 +39,24 @@ pub(super) struct Controls {
 
 impl Controls {
     pub(super) fn pending(&self) -> bool {
-        self.job.is_some() || self.opener.is_some()
+        self.job.is_some() || self.opener.is_some() || self.connections.pending()
     }
     pub(super) fn ready(&self) -> bool {
         self.job.as_ref().is_some_and(|(_, j)| j.is_finished())
             || self.opener.as_ref().is_some_and(|(_, j)| j.is_finished())
+            || self.connections.ready()
     }
     pub(super) fn deadline(&self) -> Option<Instant> {
         self.poll_at
+    }
+
+    pub(super) fn connect(
+        &mut self,
+        app: &CoreApp,
+        state: &mut TuiState,
+        intent: PanelIntent,
+    ) -> Result<(), String> {
+        self.connections.start(app, state, intent)
     }
 
     fn cancel(&mut self, app: &CoreApp) {
@@ -69,7 +80,7 @@ impl Controls {
     }
 
     pub(super) async fn sync(&mut self, app: &CoreApp, state: &mut TuiState) -> bool {
-        let mut changed = false;
+        let mut changed = self.connections.sync(app, state).await;
         if self.opener.as_ref().is_some_and(|(_, j)| j.is_finished()) {
             let (request, job) = self.opener.take().expect("finished auth opener");
             let result = job.await.unwrap_or(Err("browser opening unavailable"));
@@ -242,6 +253,7 @@ impl Controls {
     }
 
     pub(super) async fn shutdown(&mut self, app: &CoreApp) -> Result<(), String> {
+        self.connections.shutdown(app).await?;
         // Do not abort Begin: its owned attempt ID must be acknowledged before cancel.
         if let Some((request, job)) = self.job.take() {
             match job

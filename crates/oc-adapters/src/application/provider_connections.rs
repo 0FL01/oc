@@ -120,20 +120,24 @@ impl Work {
     }
 
     pub(super) async fn stop(&mut self) -> Result<(), oc_core::queries::ServiceDiagnostic> {
-        if let Some(task) = self.task.take() {
+        let cleanup = if let Some(task) = self.task.take() {
             task.abort();
             if let Err(error) = task.await
                 && !error.is_cancelled()
             {
-                return Err(super::provider_catalog::worker_failure(
+                Err(super::provider_catalog::worker_failure(
                     oc_core::queries::ServiceStage::Cleanup,
-                ));
+                ))
+            } else {
+                Ok(())
             }
-        }
+        } else {
+            Ok(())
+        };
         if let Some(Capture::Probe { ack: Some(ack), .. }) = self.capture.take() {
             let _ = ack.send(Err(app_error("custom connection cancelled")));
         }
-        Ok(())
+        cleanup
     }
 
     pub(super) async fn apply(
@@ -149,8 +153,29 @@ impl Work {
             let _ = ack.send(Err(CoreError::TurnBusy));
             return;
         }
+        let action = match action {
+            CustomProviderAction::Retry { revision } => {
+                let valid = !self.pending()
+                    && matches!(&self.capture, Some(Capture::Probe { revision: current, cancel, result: Some(_), .. }) if *current == revision && !cancel.load(Ordering::SeqCst));
+                if !valid {
+                    let _ = ack.send(Err(app_error("custom form expired")));
+                    return;
+                }
+                let Some(Capture::Probe { input, cancel, .. }) = self.capture.take() else {
+                    unreachable!()
+                };
+                CustomProviderAction::Probe { input, cancel }
+            }
+            action => action,
+        };
         match action {
             CustomProviderAction::Probe { input, cancel } => {
+                // Replacing a form retires its old input/GET even when the new
+                // candidate is invalid. Never strand an older receipt/key.
+                if let Err(d) = self.stop().await {
+                    let _ = ack.send(Err(CoreError::Diagnostic(d)));
+                    return;
+                }
                 if !composition.custom_creation_admitted() {
                     let _ = ack.send(Err(app_error(
                         "provider whitelist forbids a new custom connection",
@@ -159,10 +184,6 @@ impl Work {
                 }
                 if let Err(error) = crate::storage::provider_connections::admit_input(&input) {
                     let _ = ack.send(Err(query_storage_error(db, error)));
-                    return;
-                }
-                if let Err(d) = self.stop().await {
-                    let _ = ack.send(Err(CoreError::Diagnostic(d)));
                     return;
                 }
                 static NEXT: AtomicU64 = AtomicU64::new(1);
@@ -196,7 +217,9 @@ impl Work {
                         .map_err(CoreError::Diagnostic)
                         .map(|_| CustomProviderReply::Cancelled)
                 } else {
-                    Err(app_error("custom form expired"))
+                    // Closing an already retired form is idempotent, but can
+                    // never clear another form's captured input.
+                    Ok(CustomProviderReply::Cancelled)
                 };
                 let _ = ack.send(result);
             }
@@ -204,8 +227,16 @@ impl Work {
                 let result = if self.has_probe() {
                     Err(CoreError::TurnBusy)
                 } else {
-                    self.start_refresh(composition, &provider)
-                        .map(|_| CustomProviderReply::Refreshing)
+                    self.start_refresh(composition, &provider).and_then(|()| {
+                        composition.custom_refresh_pending(&provider);
+                        if composition.catalog.provider == provider {
+                            runtime
+                                .publish_provider_state(composition.provider_state.clone())
+                                .map_err(runtime_error)?;
+                        }
+                        let _ = events.send(CoreEvent::ProviderChanged);
+                        Ok(CustomProviderReply::Refreshing)
+                    })
                 };
                 let _ = ack.send(result);
             }
@@ -244,6 +275,14 @@ impl Work {
                     let reply = ProviderConnection {
                         provider: row.id.clone(),
                         name: row.name.clone(),
+                        source: match row.auth {
+                            crate::auth::AuthPolicy::Key | crate::auth::AuthPolicy::OAuth => {
+                                oc_core::queries::AccountAuthSource::Stored
+                            }
+                            crate::auth::AuthPolicy::None => {
+                                oc_core::queries::AccountAuthSource::Anonymous
+                            }
+                        },
                     };
                     composition.upsert_custom_connection(row).map_err(
                         |composition::LoadFailure::Configuration(d)| CoreError::Diagnostic(d),
@@ -262,6 +301,7 @@ impl Work {
                 }
                 let _ = ack.send(saved);
             }
+            CustomProviderAction::Retry { .. } => unreachable!("retry captured above"),
         }
     }
 

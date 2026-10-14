@@ -846,7 +846,7 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         DialogFrame::paint(frame, rect, Theme::dark());
         if rect.width >= 8 && rect.height >= 4 {
             frame.render_widget(
-                Paragraph::new("Connect / accounts"),
+                Paragraph::new(state.account_title()),
                 Rect::new(rect.x + 2, rect.y + 1, rect.width - 4, 1),
             );
             frame.render_widget(
@@ -896,17 +896,8 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         title
     };
     let action = (state.panel() == &TuiPanel::Mcps).then(|| state.mcp_footer_action());
-    let model_details = (state.panel() == &TuiPanel::Model).then(|| {
-        state
-            .picker
-            .as_ref()
-            .and_then(|picker| {
-                picker
-                    .cursor_id()
-                    .map(|id| picker.model_details(&id).join("\n"))
-            })
-            .unwrap_or_default()
-    });
+    let model_details =
+        (state.panel() == &TuiPanel::Model).then(|| state.model_picker_details().join("\n"));
     state.select.render(
         frame,
         title,

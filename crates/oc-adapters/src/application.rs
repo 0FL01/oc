@@ -1221,6 +1221,8 @@ impl Effective {
                     .collect();
                 chrome.permissions_auto = composition.permission_preference.load(Ordering::SeqCst);
                 chrome.provider = Some(readiness);
+                chrome.custom_connection =
+                    composition.custom_revisions.contains_key(&catalog.provider);
                 chrome.service_diagnostics.retain(|diagnostic| {
                     diagnostic.kind != oc_core::queries::ServiceKind::Provider
                 });
@@ -3634,7 +3636,7 @@ async fn query(
             let _ = ack.send(result);
         }
         InboxMsg::ProviderConnections { ack } => {
-            let _ = ack.send(Ok(accounts::connections(composition)));
+            let _ = ack.send(accounts::connections(db, composition));
         }
         InboxMsg::CustomProvider { ack, .. } => {
             let _ = ack.send(Err(CoreError::TurnBusy));

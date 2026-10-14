@@ -23,6 +23,18 @@ pub(super) fn reserved(sources: &[config::Source]) -> BTreeSet<String> {
 }
 
 impl Composition {
+    pub(crate) fn custom_refresh_pending(&mut self, id: &str) {
+        if !self.custom_revisions.contains_key(id) {
+            return;
+        }
+        // A pending read does not clear a known auth rejection for this binding.
+        if self.catalog.provider == id {
+            self.provider_state.catalog_status = oc_core::queries::ProviderStatus::Pending;
+        } else if let Some(view) = self.provider_views.get_mut(id) {
+            view.state.catalog_status = oc_core::queries::ProviderStatus::Pending;
+        }
+    }
+
     pub(crate) fn custom_creation_admitted(&self) -> bool {
         matches!(
             catalog::provider_filters(&self.mcp_activation.sources),

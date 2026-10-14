@@ -1,8 +1,9 @@
 //! One ephemeral secret input, separate from composer, editor undo and copying.
 use super::*;
 use oc_core::queries::{
-    AccountAction, AuthAttempt, AuthAttemptState, AuthMethod, KeyInput, OAuthMethod,
-    ProviderAccounts, ProviderConnection,
+    AccountAction, AccountAuthSource, AuthAttempt, AuthAttemptState, AuthMethod,
+    CustomProviderAuth, CustomProviderInput, CustomProviderReply, KeyInput, NativeProtocol,
+    OAuthMethod, ProviderAccounts, ProviderConnection,
 };
 
 /// Correlates a mounted auth surface, never its URL/code/token, with owned work.
@@ -23,6 +24,7 @@ pub(super) struct AccountsView {
     provider: String,
     snapshot: Option<ProviderAccounts>,
     connections: Vec<ProviderConnection>,
+    search: String,
     cursor: usize,
     form: Form,
     label: String,
@@ -38,6 +40,51 @@ pub(super) struct AccountsView {
     auth: Option<AuthRequest>,
     attempt: Option<AuthAttempt>,
     mouse_down: Option<AccountHit>,
+    custom_name: String,
+    custom_base: String,
+    custom_cancel: Option<ProbeCancellation>,
+    custom_receipt: Option<u64>,
+    custom_models: usize,
+    custom_diagnostic: Option<oc_core::queries::ServiceDiagnostic>,
+}
+
+impl AccountsView {
+    fn providers(&self) -> Vec<&ProviderConnection> {
+        let search = self.search.to_lowercase();
+        self.connections
+            .iter()
+            .filter(|c| {
+                c.name.to_lowercase().contains(&search)
+                    || c.provider.to_lowercase().contains(&search)
+            })
+            .collect()
+    }
+
+    fn can_add(&self) -> bool {
+        !self
+            .snapshot
+            .as_ref()
+            .is_some_and(|s| s.effective == AccountAuthSource::Anonymous)
+    }
+
+    fn input(&mut self) -> Option<(&mut String, usize)> {
+        match self.form {
+            Form::Providers => Some((&mut self.search, 256)),
+            Form::Key | Form::CustomKey => Some((&mut self.key, 16 * 1024)),
+            Form::CustomName => Some((&mut self.custom_name, 128)),
+            Form::CustomBase => Some((&mut self.custom_base, 4096)),
+            Form::Rename(_) => Some((&mut self.label, 128)),
+            _ => None,
+        }
+    }
+}
+
+struct ProbeCancellation(std::sync::Arc<std::sync::atomic::AtomicBool>);
+
+impl Drop for ProbeCancellation {
+    fn drop(&mut self) {
+        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
 }
 
 // Never make ephemeral secret material available to Debug or serialization.
@@ -54,11 +101,17 @@ enum Form {
     #[default]
     List,
     Providers,
-    Label,
     Key,
     Methods,
     OAuth,
     Rename(String),
+    CustomName,
+    CustomBase,
+    CustomAuth,
+    CustomKey,
+    CustomProbe,
+    CustomApi,
+    CustomSaving,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -79,15 +132,19 @@ impl TuiState {
             form: if connect { Form::Providers } else { Form::List },
             revision: revision(),
             connecting: connect,
+            pending: true,
             ..Default::default()
         };
         self.panel = TuiPanel::Accounts;
         KeyOutcome {
             intent: Some(if connect {
-                PanelIntent::LoadProviderConnections
+                PanelIntent::LoadProviderConnections {
+                    revision: self.accounts.revision,
+                }
             } else {
                 PanelIntent::ProviderAccounts {
                     provider: self.accounts.provider.clone(),
+                    revision: self.accounts.revision,
                     action: None,
                 }
             }),
@@ -100,13 +157,40 @@ impl TuiState {
         *self.accounts = AccountsView::default();
     }
 
+    pub(super) fn open_provider_accounts(&mut self, provider: String) -> KeyOutcome {
+        self.clear_accounts();
+        self.accounts.provider = provider.clone();
+        self.accounts.revision = revision();
+        self.accounts.pending = true;
+        self.panel = TuiPanel::Accounts;
+        KeyOutcome {
+            intent: Some(PanelIntent::ProviderAccounts {
+                provider,
+                revision: self.accounts.revision,
+                action: None,
+            }),
+            ..Default::default()
+        }
+    }
+
+    pub(crate) fn account_title(&self) -> &'static str {
+        if self.accounts.form == Form::Providers {
+            "Connect an integration"
+        } else if self.custom_provider_revision().is_some() {
+            "Connect a custom provider"
+        } else {
+            "Connect / accounts"
+        }
+    }
+
     pub fn apply_provider_connections(&mut self, result: Result<Vec<ProviderConnection>, ()>) {
         if self.panel != TuiPanel::Accounts || self.accounts.form != Form::Providers {
             return;
         }
+        self.accounts.failed = result.is_err();
+        self.accounts.pending = false;
         self.accounts.connections = result.unwrap_or_default();
         self.accounts.cursor = 0;
-        self.accounts.failed = self.accounts.connections.is_empty();
     }
 
     /// Owner acknowledgement contains safe metadata only. The submitted key was
@@ -131,7 +215,9 @@ impl TuiState {
                     self.push_transient_note("Disconnected OpenAI", NoteVariant::Success);
                     return false;
                 }
-                if self.accounts.connecting && snapshot.provider == "openai" {
+                let anonymous =
+                    self.accounts.connecting && snapshot.effective == AccountAuthSource::Anonymous;
+                if self.accounts.connecting {
                     self.accounts.form = if snapshot.accounts.is_empty() {
                         Form::Methods
                     } else {
@@ -142,7 +228,7 @@ impl TuiState {
                 }
                 self.accounts.snapshot = Some(snapshot);
                 self.accounts.failed = false;
-                if adding {
+                if adding || anonymous {
                     self.clear_accounts();
                     self.panel = TuiPanel::Model;
                     self.select.reset();
@@ -162,6 +248,113 @@ impl TuiState {
             .then(|| (self.accounts.provider.clone(), self.accounts.revision))
     }
 
+    pub fn account_surface_revision(&self) -> Option<u64> {
+        (self.panel == TuiPanel::Accounts).then_some(self.accounts.revision)
+    }
+
+    pub fn custom_provider_revision(&self) -> Option<u64> {
+        (self.panel == TuiPanel::Accounts
+            && matches!(
+                self.accounts.form,
+                Form::CustomName
+                    | Form::CustomBase
+                    | Form::CustomAuth
+                    | Form::CustomKey
+                    | Form::CustomProbe
+                    | Form::CustomApi
+                    | Form::CustomSaving
+            ))
+        .then_some(self.accounts.revision)
+    }
+
+    pub fn custom_provider_cancel(
+        &self,
+        revision: u64,
+    ) -> Option<std::sync::Arc<std::sync::atomic::AtomicBool>> {
+        (self.custom_provider_revision() == Some(revision))
+            .then(|| {
+                self.accounts
+                    .custom_cancel
+                    .as_ref()
+                    .map(|cancel| cancel.0.clone())
+            })
+            .flatten()
+    }
+
+    fn probe_custom_provider(&mut self, auth: CustomProviderAuth) -> KeyOutcome {
+        self.accounts.custom_cancel = Some(ProbeCancellation(std::sync::Arc::new(
+            std::sync::atomic::AtomicBool::new(false),
+        )));
+        self.accounts.form = Form::CustomProbe;
+        self.accounts.pending = true;
+        self.accounts.failed = false;
+        self.accounts.custom_receipt = None;
+        KeyOutcome {
+            intent: Some(PanelIntent::ProbeCustomProvider {
+                revision: self.accounts.revision,
+                input: CustomProviderInput {
+                    name: self.accounts.custom_name.clone(),
+                    base_url: self.accounts.custom_base.clone(),
+                    auth,
+                },
+            }),
+            ..Default::default()
+        }
+    }
+
+    /// Only the exact mounted form can accept a probe or durable save receipt.
+    pub fn apply_custom_provider(
+        &mut self,
+        revision: u64,
+        result: Result<CustomProviderReply, ()>,
+    ) -> Option<String> {
+        if self.custom_provider_revision() != Some(revision) {
+            return None;
+        }
+        let saving = self.accounts.form == Form::CustomSaving;
+        self.accounts.pending = false;
+        match result {
+            Ok(CustomProviderReply::Probed {
+                revision,
+                model_count,
+                suggested,
+                diagnostic,
+            }) if self.accounts.form == Form::CustomProbe => {
+                self.accounts.custom_receipt = Some(revision);
+                self.accounts.custom_models = model_count;
+                self.accounts.failed = diagnostic.is_some();
+                self.accounts.custom_diagnostic = diagnostic;
+                self.accounts.cursor = match suggested {
+                    Some(NativeProtocol::Messages) => 2,
+                    Some(NativeProtocol::Chat) => 1,
+                    _ => 0,
+                };
+                self.accounts.form = Form::CustomApi;
+            }
+            Ok(CustomProviderReply::Saved(connection)) if saving => {
+                self.clear_accounts();
+                self.panel = TuiPanel::Model;
+                self.select.reset();
+                return Some(connection.provider);
+            }
+            _ if saving => {
+                self.close_panel();
+                self.push_transient_note(
+                    "Connection save not acknowledged; inspect /connect before retrying",
+                    NoteVariant::Error,
+                );
+            }
+            _ => {
+                self.accounts.key.clear();
+                self.accounts.custom_receipt = None;
+                self.accounts.failed = true;
+                self.accounts.form = Form::CustomAuth;
+                self.accounts.cursor = 0;
+            }
+        }
+        None
+    }
+
     pub fn apply_auth_methods(
         &mut self,
         provider: &str,
@@ -174,8 +367,21 @@ impl TuiState {
         self.accounts.methods = result.unwrap_or_default();
         self.accounts.failed = self.accounts.methods.is_empty();
         self.accounts.cursor = 0;
-        if self.accounts.methods.as_slice() == [AuthMethod::Key] {
-            self.accounts.form = Form::Label;
+        if let [method] = self.accounts.methods.as_slice() {
+            match *method {
+                AuthMethod::Key => {
+                    self.accounts.label = "default".into();
+                    self.accounts.form = Form::Key;
+                }
+                AuthMethod::OAuth(method) => {
+                    self.accounts.form = Form::OAuth;
+                    self.accounts.auth = Some(AuthRequest {
+                        revision,
+                        provider: provider.into(),
+                        method,
+                    });
+                }
+            }
         }
     }
 
@@ -187,7 +393,7 @@ impl TuiState {
 
     /// A parked view is unmounted: discard its active URL/code immediately.
     pub fn retire_auth_surface(&mut self) {
-        if self.auth_request().is_some() {
+        if self.auth_request().is_some() || self.custom_provider_revision().is_some() {
             self.close_panel();
         }
     }
@@ -243,7 +449,7 @@ impl TuiState {
             let start = self.accounts.cursor.saturating_sub(3);
             let (offset, visible, count) = match self.accounts.form {
                 Form::Providers => {
-                    let count = self.accounts.connections.len();
+                    let count = self.accounts.providers().len() + 1;
                     (header + 1, count.saturating_sub(start).min(8), count)
                 }
                 Form::Methods => {
@@ -256,7 +462,7 @@ impl TuiState {
                         .snapshot
                         .as_ref()
                         .map_or(0, |s| s.accounts.len());
-                    let add = usize::from(self.accounts.provider == "openai");
+                    let add = usize::from(self.accounts.can_add());
                     (
                         header,
                         count.saturating_sub(start).min(8) + add,
@@ -270,7 +476,7 @@ impl TuiState {
                 .filter(|row| *row < visible && !self.accounts.pending)
                 .map(|row| match self.accounts.form {
                     Form::Providers => row + start,
-                    Form::List if self.accounts.provider == "openai" && row == 0 => 0,
+                    Form::List if self.accounts.can_add() && row == 0 => 0,
                     Form::List => row + start,
                     _ => row,
                 })
@@ -323,11 +529,10 @@ impl TuiState {
     }
 
     fn choose_account_method(&mut self) -> KeyOutcome {
-        self.accounts.form = if self.accounts.provider == "openai" {
-            Form::Methods
-        } else {
-            Form::Label
-        };
+        if !self.accounts.can_add() {
+            return KeyOutcome::default();
+        }
+        self.accounts.form = Form::Methods;
         self.accounts.methods.clear();
         self.accounts.label.clear();
         self.accounts.cursor = 0;
@@ -342,28 +547,17 @@ impl TuiState {
     }
 
     pub(super) fn paste_accounts(&mut self, text: &str) -> KeyOutcome {
-        if self.accounts.pending
-            || !matches!(
-                self.accounts.form,
-                Form::Label | Form::Key | Form::Rename(_)
-            )
-        {
+        if self.accounts.pending {
             return KeyOutcome::default();
         }
-        let value = if self.accounts.form == Form::Key {
-            &mut self.accounts.key
-        } else if self.accounts.form != Form::List {
-            &mut self.accounts.label
-        } else {
+        let Some((value, cap)) = self.accounts.input() else {
             return KeyOutcome::default();
-        };
-        let cap = if self.accounts.form == Form::Key {
-            16 * 1024
-        } else {
-            128
         };
         if !text.chars().any(char::is_control) && value.len().saturating_add(text.len()) <= cap {
             value.push_str(text);
+        }
+        if self.accounts.form == Form::Providers {
+            self.accounts.cursor = 0;
         }
         KeyOutcome::default()
     }
@@ -384,8 +578,8 @@ impl TuiState {
         }
         let mut request = None;
         let action = match (&self.accounts.form, action) {
-            (Form::List | Form::Providers | Form::Methods, KeyAction::Char('j')) => KeyAction::Down,
-            (Form::List | Form::Providers | Form::Methods, KeyAction::Char('k')) => KeyAction::Up,
+            (Form::List | Form::Methods, KeyAction::Char('j')) => KeyAction::Down,
+            (Form::List | Form::Methods, KeyAction::Char('k')) => KeyAction::Up,
             (_, action) => action,
         };
         match (&self.accounts.form, &action) {
@@ -394,20 +588,26 @@ impl TuiState {
                     .accounts
                     .cursor
                     .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
-                    .min(self.accounts.connections.len().saturating_sub(1));
+                    .min(self.accounts.providers().len());
             }
             (Form::Providers, KeyAction::Enter) => {
-                if let Some(connection) = self.accounts.connections.get(self.accounts.cursor) {
+                if let Some(connection) = self.accounts.providers().get(self.accounts.cursor) {
                     self.accounts.provider = connection.provider.clone();
-                    self.accounts.form = Form::Label;
+                    self.accounts.form = Form::List;
                     self.accounts.cursor = 0;
+                    self.accounts.pending = true;
                     return KeyOutcome {
                         intent: Some(PanelIntent::ProviderAccounts {
                             provider: self.accounts.provider.clone(),
+                            revision: self.accounts.revision,
                             action: None,
                         }),
                         ..Default::default()
                     };
+                } else {
+                    self.clear_accounts();
+                    self.accounts.form = Form::CustomName;
+                    self.accounts.revision = revision();
                 }
             }
             (Form::Methods, KeyAction::Up | KeyAction::Down) => {
@@ -419,7 +619,10 @@ impl TuiState {
             }
             (Form::Methods, KeyAction::Enter) => {
                 match self.accounts.methods.get(self.accounts.cursor).copied() {
-                    Some(AuthMethod::Key) => self.accounts.form = Form::Label,
+                    Some(AuthMethod::Key) => {
+                        self.accounts.label = "default".into();
+                        self.accounts.form = Form::Key;
+                    }
                     Some(AuthMethod::OAuth(method)) => {
                         self.accounts.form = Form::OAuth;
                         self.accounts.revision = revision();
@@ -449,9 +652,6 @@ impl TuiState {
                     ..Default::default()
                 };
             }
-            (Form::Label, KeyAction::Enter) if !self.accounts.label.trim().is_empty() => {
-                self.accounts.form = Form::Key;
-            }
             (Form::Key, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
                 request = Some(AccountAction::AddKey {
                     label: std::mem::take(&mut self.accounts.label).trim().into(),
@@ -476,7 +676,7 @@ impl TuiState {
                     .snapshot
                     .as_ref()
                     .map_or(0, |s| s.accounts.len())
-                    + usize::from(self.accounts.provider == "openai");
+                    + usize::from(self.accounts.can_add());
                 self.accounts.cursor = self
                     .accounts
                     .cursor
@@ -492,7 +692,7 @@ impl TuiState {
                 | KeyAction::Rename
                 | KeyAction::DeleteOrQuit,
             ) => {
-                if self.accounts.provider == "openai" && self.accounts.cursor == 0 {
+                if self.accounts.can_add() && self.accounts.cursor == 0 {
                     if action == KeyAction::Enter {
                         return self.choose_account_method();
                     }
@@ -500,10 +700,10 @@ impl TuiState {
                 }
                 if let Some(account) = self.accounts.snapshot.as_ref().and_then(|s| {
                     s.accounts
-                        .get(self.accounts.cursor - usize::from(self.accounts.provider == "openai"))
+                        .get(self.accounts.cursor - usize::from(self.accounts.can_add()))
                 }) {
                     if action == KeyAction::Enter {
-                        if self.accounts.provider == "openai" && account.active {
+                        if account.active {
                             return KeyOutcome::default();
                         }
                         request = Some(AccountAction::Activate {
@@ -524,24 +724,87 @@ impl TuiState {
                     }
                 }
             }
-            (_, KeyAction::Char(c))
-                if matches!(
-                    self.accounts.form,
-                    Form::Label | Form::Key | Form::Rename(_)
-                ) && !c.is_control() =>
+            (Form::CustomName, KeyAction::Enter)
+                if !self.accounts.custom_name.trim().is_empty() =>
             {
+                self.accounts.form = Form::CustomBase;
+            }
+            (Form::CustomBase, KeyAction::Enter) if !self.accounts.custom_base.is_empty() => {
+                self.accounts.form = Form::CustomAuth;
+                self.accounts.cursor = 0;
+            }
+            (Form::CustomAuth | Form::CustomApi, KeyAction::Up | KeyAction::Down) => {
+                let max = if self.accounts.form == Form::CustomAuth {
+                    1
+                } else {
+                    2
+                };
+                self.accounts.cursor = self
+                    .accounts
+                    .cursor
+                    .saturating_add_signed(if action == KeyAction::Up { -1 } else { 1 })
+                    .min(max);
+            }
+            (Form::CustomAuth, KeyAction::Enter) => {
+                if self.accounts.cursor == 0 {
+                    self.accounts.form = Form::CustomKey;
+                } else {
+                    return self.probe_custom_provider(CustomProviderAuth::Anonymous);
+                }
+            }
+            (Form::CustomKey, KeyAction::Enter) if !self.accounts.key.trim().is_empty() => {
+                let key = KeyInput::new(std::mem::take(&mut self.accounts.key));
+                return self.probe_custom_provider(CustomProviderAuth::Key(key));
+            }
+            (Form::CustomApi, KeyAction::Enter) if self.accounts.custom_receipt.is_some() => {
+                self.accounts.pending = true;
+                self.accounts.form = Form::CustomSaving;
+                return KeyOutcome {
+                    intent: Some(PanelIntent::SaveCustomProvider {
+                        revision: self.accounts.revision,
+                        receipt: self.accounts.custom_receipt.expect("checked receipt"),
+                        protocol: [
+                            NativeProtocol::Responses,
+                            NativeProtocol::Chat,
+                            NativeProtocol::Messages,
+                        ][self.accounts.cursor],
+                    }),
+                    ..Default::default()
+                };
+            }
+            (Form::CustomApi, KeyAction::Char('r')) if self.accounts.custom_receipt.is_some() => {
+                self.accounts.pending = true;
+                self.accounts.form = Form::CustomProbe;
+                return KeyOutcome {
+                    intent: Some(PanelIntent::RetryCustomProvider {
+                        revision: self.accounts.revision,
+                        receipt: self
+                            .accounts
+                            .custom_receipt
+                            .take()
+                            .expect("checked receipt"),
+                    }),
+                    ..Default::default()
+                };
+            }
+            (Form::CustomApi, KeyAction::Char('e')) => {
+                if let Some(cancel) = self.accounts.custom_cancel.take() {
+                    cancel.0.store(true, std::sync::atomic::Ordering::SeqCst);
+                }
+                self.accounts.custom_receipt = None;
+                self.accounts.revision = revision();
+                self.accounts.form = Form::CustomAuth;
+                self.accounts.cursor = 0;
+            }
+            (_, KeyAction::Char(c)) if !c.is_control() => {
                 return self.paste_accounts(&c.to_string());
             }
-            (_, KeyAction::Backspace)
-                if matches!(
-                    self.accounts.form,
-                    Form::Label | Form::Key | Form::Rename(_)
-                ) =>
-            {
-                if self.accounts.form == Form::Key {
-                    self.accounts.key.pop();
-                } else {
-                    self.accounts.label.pop();
+            (_, KeyAction::Backspace) => {
+                if let Some((value, _)) = self.accounts.input() {
+                    value.pop();
+                }
+                if self.accounts.form == Form::Providers {
+                    self.accounts.cursor = 0;
                 }
             }
             _ => {}
@@ -553,6 +816,7 @@ impl TuiState {
         KeyOutcome {
             intent: request.map(|action| PanelIntent::ProviderAccounts {
                 provider: self.accounts.provider.clone(),
+                revision: self.accounts.revision,
                 action: Some(action),
             }),
             ..Default::default()
@@ -562,6 +826,61 @@ impl TuiState {
     /// Rendering gets masked glyphs, never a reference to the key.
     pub(crate) fn account_lines(&self) -> Vec<String> {
         let view = &self.accounts;
+        if self.custom_provider_revision().is_some() {
+            let mut lines = vec!["Custom provider".into()];
+            match view.form {
+                Form::CustomName => {
+                    lines.push("Display name".into());
+                    lines.push(view.custom_name.clone());
+                }
+                Form::CustomBase => {
+                    lines.push("Literal API base URL (prefix is preserved)".into());
+                    lines.push(view.custom_base.clone());
+                }
+                Form::CustomAuth => {
+                    if view.failed {
+                        lines.push("Connection operation refused; secret input cleared".into());
+                    }
+                    lines.push("Choose authentication".into());
+                    for (index, label) in ["API key", "No authentication (explicit)"]
+                        .iter()
+                        .enumerate()
+                    {
+                        lines.push(format!(
+                            "{} {label}",
+                            if view.cursor == index { ">" } else { " " }
+                        ));
+                    }
+                }
+                Form::CustomKey => {
+                    lines.push("API key (masked)".into());
+                    lines.push("•".repeat(view.key.chars().count().min(48)));
+                }
+                Form::CustomProbe => lines.push("Checking GET /models…".into()),
+                Form::CustomApi => {
+                    if let Some(diagnostic) = &view.custom_diagnostic {
+                        lines.push(format!("Discovery unavailable: {:?}", diagnostic.code));
+                    } else {
+                        lines.push(format!("Catalog: {} models", view.custom_models));
+                    }
+                    lines.push("Confirm generation API (catalog is not generation proof)".into());
+                    for (index, label) in ["Responses", "Chat Completions", "Messages"]
+                        .iter()
+                        .enumerate()
+                    {
+                        lines.push(format!(
+                            "{} {label}",
+                            if view.cursor == index { ">" } else { " " }
+                        ));
+                    }
+                    lines.push("enter save · r retry GET · e change authentication".into());
+                }
+                Form::CustomSaving => lines.push("Saving connection…".into()),
+                _ => unreachable!("custom surface checked"),
+            }
+            lines.push("esc cancel".into());
+            return lines;
+        }
         if view.form == Form::OAuth {
             let mut lines = vec![
                 view.auth
@@ -603,7 +922,7 @@ impl TuiState {
             lines.push("Account operation refused; secret input cleared".into());
         }
         if view.pending {
-            lines.push("Saving…".into());
+            lines.push("Working…".into());
             return lines;
         }
         match &view.form {
@@ -619,25 +938,39 @@ impl TuiState {
             }
             Form::OAuth => unreachable!("active auth surface rendered separately"),
             Form::Providers => {
-                lines.push("Choose provider connection".into());
+                lines.push(format!("Search providers: {}", view.search));
                 for (index, connection) in view
-                    .connections
-                    .iter()
+                    .providers()
+                    .into_iter()
+                    .map(Some)
+                    .chain(std::iter::once(None))
                     .enumerate()
                     .skip(view.cursor.saturating_sub(3))
                     .take(8)
                 {
-                    lines.push(format!(
-                        "{} {} ({})",
-                        if index == view.cursor { ">" } else { " " },
-                        connection.name,
-                        connection.provider
-                    ));
+                    let cursor = if index == view.cursor { ">" } else { " " };
+                    if let Some(connection) = connection {
+                        let category =
+                            if matches!(connection.provider.as_str(), "opencode-go" | "openai") {
+                                "Popular"
+                            } else {
+                                "Services"
+                            };
+                        let connected = !matches!(
+                            connection.source,
+                            AccountAuthSource::Missing | AccountAuthSource::UnsupportedOAuth
+                        );
+                        lines.push(format!(
+                            "{cursor} {category} · {}{} ({}) [{:?}]",
+                            if connected { "✓ " } else { "" },
+                            connection.name,
+                            connection.provider,
+                            connection.source
+                        ));
+                    } else {
+                        lines.push(format!("{cursor} Services · Custom provider…"));
+                    }
                 }
-            }
-            Form::Label => {
-                lines.push("Account label".into());
-                lines.push(view.label.clone());
             }
             Form::Key => {
                 lines.push("API key (masked)".into());
@@ -648,7 +981,7 @@ impl TuiState {
                 lines.push(view.label.clone());
             }
             Form::List => {
-                if view.provider == "openai" {
+                if view.can_add() {
                     lines.push(format!(
                         "{} Add account",
                         if view.cursor == 0 { ">" } else { " " }
@@ -664,7 +997,7 @@ impl TuiState {
                     {
                         lines.push(format!(
                             "{} {}{} ({:?})",
-                            if index + usize::from(view.provider == "openai") == view.cursor {
+                            if index + usize::from(view.can_add()) == view.cursor {
                                 ">"
                             } else {
                                 " "
@@ -680,6 +1013,13 @@ impl TuiState {
                 }
                 lines.push("a add · enter activate · r rename · d remove".into());
             }
+            Form::CustomName
+            | Form::CustomBase
+            | Form::CustomAuth
+            | Form::CustomKey
+            | Form::CustomProbe
+            | Form::CustomApi
+            | Form::CustomSaving => unreachable!("custom surface rendered above"),
         }
         lines.push("enter continue · esc cancel".into());
         lines

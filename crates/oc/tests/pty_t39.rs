@@ -763,14 +763,34 @@ impl PtySession {
         cols: u16,
         rows: u16,
     ) -> Self {
+        Self::spawn_connection(fixture, Some(session), metrics, cols, rows, true)
+    }
+
+    fn spawn_custom(fixture: Arc<Fixture>, session: Option<&str>) -> Self {
+        Self::spawn_connection(fixture, session, None, 80, 24, false)
+    }
+
+    fn spawn_connection(
+        fixture: Arc<Fixture>,
+        session: Option<&str>,
+        metrics: Option<&Path>,
+        cols: u16,
+        rows: u16,
+        legacy_loopback: bool,
+    ) -> Self {
         let (master, slave) = openpty_pair(cols, rows);
         let mut cmd = fixture.command();
+        if !legacy_loopback {
+            cmd.env_remove("OC_TEST_ALLOW_LOOPBACK");
+        }
         cmd.arg("tui")
-            .args(["--session", session])
             .env("TERM", "xterm-256color")
             .stdin(Stdio::from(dup_fd(&slave)))
             .stdout(Stdio::from(dup_fd(&slave)))
             .stderr(Stdio::from(dup_fd(&slave)));
+        if let Some(session) = session {
+            cmd.args(["--session", session]);
+        }
         if let Some(path) = metrics {
             cmd.env("OC_TUI_TEST_METRICS", path);
         }

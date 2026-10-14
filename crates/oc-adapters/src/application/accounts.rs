@@ -35,7 +35,10 @@ pub(super) fn scope(c: &Composition, provider: &str) -> Result<crate::auth::Auth
     .map_err(|_| CoreError::Application("provider connection unavailable".into()))
 }
 
-pub(super) fn connections(c: &Composition) -> Vec<oc_core::queries::ProviderConnection> {
+pub(super) fn connections(
+    db: &Db,
+    c: &Composition,
+) -> Result<Vec<oc_core::queries::ProviderConnection>, CoreError> {
     let mut ids = c.provider_views.keys().cloned().collect::<Vec<_>>();
     ids.push(c.catalog.provider.clone());
     ids.sort();
@@ -54,7 +57,12 @@ pub(super) fn connections(c: &Composition) -> Vec<oc_core::queries::ProviderConn
                 .and_then(|e| e.name.as_deref())
                 .unwrap_or(&provider)
                 .to_owned();
-            oc_core::queries::ProviderConnection { provider, name }
+            let source = read(db, c, provider.clone())?.effective;
+            Ok(oc_core::queries::ProviderConnection {
+                provider,
+                name,
+                source,
+            })
         })
         .collect()
 }
