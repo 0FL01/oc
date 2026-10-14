@@ -43,7 +43,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
   - Status: in_progress.
-  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186`/`85cbd3afc`/`78b3bf95a` below; composed HOT01 pending.
+  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186`/`85cbd3afc`/`78b3bf95a`/`322455183` below; composed HOT01 pending.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
     команды reload и runtime connect/disconnect из требования владельца.
@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, and finite admitted source observations `bdafd9d19`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted source observations `bdafd9d19` and cancellation-safe source/MCP commit `322455183`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -322,7 +322,10 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
     `823273e04` fences MCP worker results/cleanup by physical incarnation;
     `e64e825a2` reconciles desired clients on that supervisor with leased retirement.
      `bdafd9d19` retains finite loader observations; `78b3bf95a` fixes initial capture
-     across MCP awaits and releases physical clients at the issued batch boundary.
+      across MCP awaits and releases physical clients at the issued batch boundary.
+      `322455183` makes the supervisor own an accepted source/MCP commit even when its
+      caller loses the ACK; expected-view CAS precedes retirement, and fresh captures
+      share the short commit gate. This is not yet the application candidate builder.
      Next integrate the actual watcher and complete atomic application candidate path
      before enabling busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
@@ -441,16 +444,28 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   awaits. Retiring the exact model during that await refuses before user acceptance
   or provider dispatch. Child admission/previews use current services intersected with
   all launch ceilings; initial degradation reporting retains no physical clients.
-- Current gates: eleven `hot01_` owner cases; strict workspace all-target clippy;
+- Earlier `78b3bf95a` gates: eleven `hot01_` owner cases; strict workspace all-target clippy;
   workspace tests 1961 passed / 0 failed / 12 existing opt-in ignored (46 result records);
   fmt/docs/diff checks pass. Logs `.local/evidence/t61-mcp-batch-lease-*.log`. The red
   case proved a whole-task initial lease prevented same-task physical replacement.
   No public busy reload, actual watcher, shared host or client settings is claimed.
+- Current `322455183` evidence: an accepted low-level reload commits execution and MCP
+  even if its caller never polls the ACK and is dropped. A same-id superseding source
+  refuses before any replacement process starts. Root, child and quoted-child fresh
+  preparation capture source/service leases together before further awaits; protected
+  source reads, discovery and network work are outside the short commit gate. MCP
+  activation descriptors now belong to the same immutable execution source.
+  The real held G1 MCP batch uses this commit path, finishes once, and the next requests
+  retain its outcomes while adopting G2 prompt/profile and latest-only replacement tools.
+- Current gates: fourteen `hot02_` and eleven `hot01_` owner cases; strict workspace
+  all-target clippy; workspace tests1963 passed/0 failed/12 existing opt-in ignored,
+  46 result records. Fmt/docs/diff checks pass. Logs `.local/evidence/t61-atomic-source-*.log`.
+  The red lost-ACK case left execution at1 while MCP was2; no test/cap was weakened.
 - Next: actual watcher/re-arm and single watch/manual coordinator, including observations
   from failed candidates and later admitted nested instructions/explicit activation.
   Complete atomic application publication and remaining quarantine/retirement lifetime.
-  Before public busy adoption, coordinate execution/MCP source commit so preparation
-  cannot observe a half-published candidate. Dynamic MCP notification adoption and
+  Wire the complete application candidate into the qualified source/MCP commit before
+  public busy adoption. Dynamic MCP notification adoption and
   poisoned-owner/late-quarantine lifetime remain part of that integration.
   R3–R5 remain pending.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
