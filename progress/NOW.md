@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T17:09:25+00:00
+State updated: 2026-10-14T18:20:06+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,41 +14,43 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 remains IN_PROGRESS: R1 partial, R2–R5 pending. Source 82ce7796b follows
-8fc15275e/fb39d88a6. Fresh primary preparation captures current executable provider,
-config/workspace/DCP/readiness and exact saved choice; issued G1 batches remain G1.
-Pre-output physical retry reuses the entire prepared request. One summary operation
-pins source/config/protection through retry, correction and HOT installation. Optional
-receipt config_generation is attribution only, with legacy decoding preserved.
+T61 IN_PROGRESS: R1 partial, R2–R5 pending. Source 581b2b186 follows 82ce7796b.
+Children share only the source Location publication handle, with independent execution,
+nudge and compaction state. Fresh child preparation intersects current policy/profile
+with immutable launch and ancestor ceilings, including resource rules, missing-action
+Deny, service/credential domains and depth. Issued batches retain their original view.
+Quoted-context preflight receives a coherent captured view before admission effects.
 
 ## Checks
 
-- Actual held request: G1 output/approval/question/instruction admission, then G2
-  policy/prompt/root reconciliation without a new user prompt; hot01_ four cases pass.
-- Actual endpoint and exact effort change preserves one settled pair, neutralizes
-  incompatible opaque history; removed exact variant dispatches no fallback.
-- Existing Chat/Messages retry matrix publishes G2/G3: identical G1 pre-output retry,
-  fresh G2 after batch, fresh G3 after durable partial, one tool effect; passes.
-- Actual summary retry/correction stays G1, installs its protected group, next primary
-  uses G2: one owner case passes.
-- cargo test --locked -p oc-core: 36 passed, 0 failed.
-- cargo test --locked -p oc-adapters: 1035 passed, 0 failed, 5 existing opt-in ignored,
-  19 result records. Strict adapter all-target clippy, fmt and diff checks pass.
-- Logs .local/evidence/t61-fresh-*.log and t61-summary-publication-owner.log.
+- Actual delegated child barrier: G1 stream/read/approval, then G2 prompt with original
+  Ask/Deny and no newly granted shell; both G1/G2 replies route through the retained
+  source from another parent view, duplicate replies refuse. Two settled reads only.
+- Owner case: shared source but independent active lease, removed profile refusal,
+  provider/credential/MCP replacement rejection, inherited grandchild ceilings and
+  depth, with no session/network effects. MCP timeout/routing changes keep the domain.
+- Red missing-native-action Allow versus Deny fixed; existing denied-skill metadata
+  exposure fixed by narrowing before prompt generation. Original assertions retained.
+- cargo test --locked -p oc-adapters: 1037 passed, 0 failed, 5 existing opt-in ignored,
+  19 result records. Strict adapter all-target clippy, fmt and docs/diff checks pass.
+- Logs .local/evidence/t61-child-*.log. No ignored tests, caps or deadlines relaxed.
 
 ## Risks
 
-Not full HOT01: child sharing/launch ceiling and per-request profile/history completion
-remain. No watcher/MCP diff/daemon/IPC/client settings or public busy reload enabled.
-No final workspace/debug/release/live/paired visual qualification for T61. No secrets,
-new registry/dependency/store or authority from a generation counter. Existing
-BLOCKED_REMOTE and T44/VIS46 separate handoff unchanged; no push/auth retry.
+Not full HOT01: per-request profile/history compatibility, exact primary-profile
+removal and provenance-based recovery completion remain. Source-counter recovery
+checks are not yet the final T61 contract. New ancestor fingerprints fail closed
+when restart cannot reconstruct the original service/credential ceiling. Changed
+static credentials/profile headers cannot widen a running child; new authority needs
+a new launch. No public busy reload, watcher/MCP diff, shared host/IPC/client settings
+or final workspace/debug/release qualification. Existing remote auth blocker and
+T44/VIS46 handoff unchanged; no push/auth retry, secrets or live API call.
 
 ## Next
 
-Continue R1 with child source-Location publication sharing and immutable launch ceiling,
-then profile/history compatibility and composed HOT01; proceed R2–R5 only within the
-frozen contract. No overall READY or completion of T44/T45/T57.
+Finish R1 profile/history/recovery compatibility and composed HOT01 without enabling
+public hot reload early, then R2–R5 within the frozen contract. No overall READY or
+completion of T44/T45/T57.
 
 
 Ready (до 5): нет

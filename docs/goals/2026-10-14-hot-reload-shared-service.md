@@ -43,7 +43,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
   - Status: in_progress.
-  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b` below; full HOT01 pending.
+  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186` below; full HOT01 pending.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
     команды reload и runtime connect/disconnect из требования владельца.
@@ -294,10 +294,10 @@ client settings: `packages/cli/src/config/config.ts`, `packages/tui/src/config/{
 Native registration baseline: explicit idle-only `reload_location`/`switch_target`,
 no watcher/daemon, fixed-generation MCP supervisor и independent execution captures.
 T61 groundwork now captures config/workspace/DCP/readiness and finite executable
-provider views together. Fresh primary requests adopt the current publication;
-prepared retries and one summary operation stay pinned. Child source sharing and
-launch-ceiling intersection remain pending. Request-boundary updates alone are not
-complete reload.
+provider views together. Fresh primary/child requests adopt the source publication;
+prepared retries and one summary operation stay pinned. Children retain immutable
+launch/ancestor ceilings while sharing only their source handle. Per-request profile/
+history completion and composed HOT01 remain; request boundaries alone are not reload.
 `CoreApp` — local bounded channels, не сериализуемый transport; queues имеют global
 consumer flags, source-specific recovery привязан к initial runtime. CLI bypasses
 `Db::open`, broad TUI refresh/static dark/mode-only cache keys требуют указанных швов.
@@ -309,8 +309,9 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
 - Closes next: R1; `8fc15275e` consolidates the immutable execution view; `fb39d88a6`
   carries it through issued batches/admission/Code Mode/output/instruction execution.
   `82ce7796b` adopts fresh primary publications and pins prepared retries/summary.
-  Next implement child source sharing and immutable launch-ceiling intersection,
-  then finish per-request profile/history compatibility and composed HOT01 evidence.
+  `581b2b186` shares child source publications within immutable launch/ancestor ceilings.
+  Next finish per-request profile/history compatibility, exact removed primary profile
+  admission and provenance-based recovery, then compose HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
@@ -332,14 +333,24 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   admits G3, preserving partial text and the single settled tool, never partial args.
   Summary barrier proves transport retry and template correction stay on G1's route,
   transcript and protected-group installation, then the next primary uses G2.
-- Current gates: `cargo test --locked -p oc-adapters` 1035 passed / 0 failed / 5
-  existing opt-in ignored (19 result records); `cargo test --locked -p oc-core` 36/0;
-  strict adapter all-target clippy and workspace fmt check pass. Logs
-  `.local/evidence/t61-fresh-{primary-owner,retry-owner,adapters,core,clippy}.log`,
-  `.local/evidence/t61-summary-publication-owner.log`; original fresh-boundary red
-  `.local/evidence/t61-fresh-primary-red.log` demonstrates missing G2 fixed input.
-  Public generation API and idle reload guards remain unchanged. Tests use the private
-  publication seam; no watcher/daemon/full HOT01 or shared-child adoption claim.
+- Child evidence at `581b2b186`: actual delegated G1 stream/read/approval completes
+  after G2 publication; the same child's next request uses G2 prompt but retains G1
+  resource Deny, Ask and closed native-tool authority. Exact G1/G2 approval replies route
+  through the retained source even from another parent view; duplicate replies refuse.
+  Source handle is shared, active/nudge/compaction state remains independent. Nested
+  delegation cannot discard ancestor provider/MCP/credential/profile/depth ceilings;
+  persisted ancestor fingerprints prevent restart reconstruction from broader sources.
+  Changed static credential material or profile headers require new child authority;
+  timeout/Code Mode routing changes alone do not authorize a new MCP domain.
+- Current gates on `581b2b186`: `cargo test --locked -p oc-adapters` 1037 passed / 0
+  failed / 5 existing opt-in ignored (19 result records), including both new child cases
+  and all 41 existing subagent cases; strict adapter all-target clippy and fmt check pass.
+  Logs `.local/evidence/t61-child-{adapters,clippy,fmt,owner}.log`. The red child-ceiling
+  test proved missing-action widening; the existing skill-preview regression exposed
+  prompt construction before full narrowing, both fixed without weakening assertions.
+  Previous core 36/0 and primary/retry/summary evidence remains in `t61-fresh-*.log` and
+  `t61-summary-publication-owner.log`. Public generation API and idle reload guards
+  remain unchanged; tests use private publication, not watcher/daemon/full HOT01 proof.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
