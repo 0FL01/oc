@@ -4,7 +4,7 @@ Status: active — frozen contract; T61 active, implementation IN_PROGRESS.
 Source: требование владельца о reload без перезапуска, «паритет с донором»;
 явный выбор «Также shared service»; согласованный после параллельного read-only
 аудита минимальный план; 2026-10-14: «Вноси правки в план работ и коммит пуш на текущей ветке».
-Last updated: 2026-10-14
+Last updated: 2026-10-15
 Task: T61 / M8; detailed acceptance HOT01–HOT04 только T61.
 
 ## Objective
@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4` and physical MCP incarnation fences `823273e04`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, and same-supervisor desired reconciliation `e64e825a2`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -319,8 +319,9 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
    `85cbd3afc` qualifies profile history, exact unavailable choices, native checkpoint
    refusal and child restart across a publication-counter reset. R2 groundwork
    `a9be5d0d4` rejects malformed mandatory replacements before optional effects;
-   `823273e04` fences MCP worker results/cleanup by physical incarnation. Next integrate
-   admitted watch metadata and same-owner desired-config reconciliation, then complete
+    `823273e04` fences MCP worker results/cleanup by physical incarnation;
+    `e64e825a2` reconciles desired clients on that supervisor with leased retirement.
+    Next integrate admitted watch metadata and the application candidate path, then complete
    staged publication, checking initial preparation across MCP awaits before enabling
    busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
@@ -367,7 +368,7 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   under current generation1 with matching launch/source/route/profile proof and one
   provider dispatch. Configuration/key mismatch, absent fence and unknown effect remain
   Unknown with zero replay. Exact selected-job/turn launch generation fences are retained.
-- Current gates on `85cbd3afc`: `cargo test --workspace --locked` 1947 passed / 0 failed /
+- Earlier profile/recovery gates on `85cbd3afc`: `cargo test --workspace --locked` 1947 passed / 0 failed /
   12 existing opt-in ignored (46 result records); strict workspace all-target clippy and
   fmt pass. Nine `hot01_` owner cases, native-checkpoint profile, instruction lifecycle
   and actual TERM01 binary case pass. Logs `.local/evidence/t61-profile-*.log`.
@@ -386,15 +387,41 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   close and ordinary failure cannot consume a replacement's cancellation or state;
   late cleanup failure remains fatal. A real late stdio client is hidden from the new
   catalog, retained by an old request lease, then explicitly closed/reaped without
-  mutating the replacement. This is a reconcile prerequisite, not a desired-config API.
-- Current R2 slice gates: adapter tests 1043 passed / 0 failed / 5 existing opt-in
+   mutating the replacement. This prerequisite was extended by `e64e825a2` below.
+- Earlier R2 prerequisite gates: adapter tests 1043 passed / 0 failed / 5 existing opt-in
   ignored (19 result records); strict adapter all-target clippy and fmt pass. Four
   `hot02_` owner cases and all four actual `mcp_application` lifecycle cases pass.
   Logs `.local/evidence/t61-reload-verdict-*.log` and `t61-mcp-incarnation-*.log`.
   Red cases proved malformed replacement publication and stale completion consuming
   new ownership. No caps, deadlines, tests or assertions were relaxed. Whole candidate
-  publication, source watches, persistent reconcile, shared service and client settings
-  remain incomplete; the prior workspace gate above belongs to `85cbd3afc`.
+  publication, source watches, shared service and client settings remained incomplete.
+- Current R2 owner evidence at `e64e825a2`: desired reconciliation preserves the owner
+  instance and unchanged client Arcs; view-only Code Mode changes also survive a held
+  initialize. Changed/removed clients disappear from new catalogs but an old issued
+  tool/lookup completes on its own client/binding. Replacement waits for confirmed reap;
+  repeated edits launch only the latest desired client. An eight-client leased workload
+  plus twelve edits retains at most eight physical instances, not queued generations.
+  Automatic no-op preserves manual disconnect; old controls refuse. Aggregate catalog
+  overflow remains fatal before exposure, and failed desired-count admission changes no
+  live state. Late old-lease quarantine survives replacement and an empty publication.
+- Exact admitted MCP source inputs guard an interrupted execution/MCP publication;
+  a different counter with equal inputs is not itself a refusal. Existing runtime remote
+  quarantine also applies to low-level reload. The public low-level reload remains idle-only;
+  application reload still replaces its runtime. Poisoned-owner retirement, complete
+  atomic application publication and source watches are not claimed complete.
+- Current `e64e825a2` gates: strict workspace all-target clippy; workspace tests 1957
+  passed / 0 failed / 12 existing opt-in ignored, 46 result records; ten `hot02_` owner
+  cases; fmt/docs/diff checks pass. Actual debug MCP/PTY/title/memory regressions are in
+  that workspace run. Logs `.local/evidence/t61-mcp-reconcile-*.log`.
+  AUD32 initially caught excess worker-stack RSS after service scheduling changed.
+  Heap-pinning the existing actor execution operation and avoiding an empty MCP request
+  roundtrip restored the unchanged64MiB bound: three measured large-archive peaks
+  63492/63208/63240KiB and the final workspace gate pass. No test/bound/stack increase;
+  temporary memory diagnostics were removed. Empty supervisor shutdown no longer emits
+  a spurious post-terminal service event; the original title watchdog test passes.
+- Next: finite admitted watch topology/dependencies, one watch/manual coordinator and
+  complete candidate publication; consolidate remaining quarantine/retirement lifetime
+  and initial preparation across MCP awaits before public busy adoption. R3–R5 remain.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
