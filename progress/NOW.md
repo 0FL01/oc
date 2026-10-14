@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T16:33:28+00:00
+State updated: 2026-10-14T17:09:25+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,32 +14,41 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-- T61 remains active; source fb39d88a6 pins issued tool batches to their immutable execution publication.
-- Reproduced G1 approval attribution changing to G2 while the provider response was held, then fixed the actual owner path.
-- Read/rename/model lookup/question finish on G1 with captured output and instruction roots; newer publication numbers no longer revoke the valid batch.
-- Exact live waiters and real active turn/child/Location/move/path/instruction-CAS ownership remain required.
-- No fresh same-task G2 adoption, child launch-ceiling/shared-source, full HOT01, watcher or daemon completion claim.
+T61 remains IN_PROGRESS: R1 partial, R2–R5 pending. Source 82ce7796b follows
+8fc15275e/fb39d88a6. Fresh primary preparation captures current executable provider,
+config/workspace/DCP/readiness and exact saved choice; issued G1 batches remain G1.
+Pre-output physical retry reuses the entire prepared request. One summary operation
+pins source/config/protection through retry, correction and HOT installation. Optional
+receipt config_generation is attribution only, with legacy decoding preserved.
 
 ## Checks
 
-- cargo test --locked -p oc-adapters: 1033 passed / 0 failed / 5 existing opt-in ignored; 19 result records.
-- cargo test --locked -p oc-adapters --lib hot01_: 3 passed / 0 failed.
-- cargo test --locked -p oc-adapters --lib resumed_provider_checkpoint_keeps_reported_context: 1 passed / 0 failed.
-- cargo clippy --locked -p oc-adapters --all-targets -- -D warnings; cargo fmt --all -- --check; git diff --check: PASS.
-- Logs: .local/evidence/t61-issued-{batch-red,owner,recovery,adapters,clippy,fmt}.log.
+- Actual held request: G1 output/approval/question/instruction admission, then G2
+  policy/prompt/root reconciliation without a new user prompt; hot01_ four cases pass.
+- Actual endpoint and exact effort change preserves one settled pair, neutralizes
+  incompatible opaque history; removed exact variant dispatches no fallback.
+- Existing Chat/Messages retry matrix publishes G2/G3: identical G1 pre-output retry,
+  fresh G2 after batch, fresh G3 after durable partial, one tool effect; passes.
+- Actual summary retry/correction stays G1, installs its protected group, next primary
+  uses G2: one owner case passes.
+- cargo test --locked -p oc-core: 36 passed, 0 failed.
+- cargo test --locked -p oc-adapters: 1035 passed, 0 failed, 5 existing opt-in ignored,
+  19 result records. Strict adapter all-target clippy, fmt and diff checks pass.
+- Logs .local/evidence/t61-fresh-*.log and t61-summary-publication-owner.log.
 
 ## Risks
 
-- Root preparation still captures a whole-turn view; child snapshots remain deliberately frozen until immutable launch-ceiling adoption is implemented.
-- Retry/summary/history provenance and all HOT02–HOT04 service/settings qualification remain pending.
-- One private recovery test bypassed the public execution entry; its fixture now holds the same lease as production, without weakening expectations.
-- No paid/live request, env/credential read, push/auth retry, foreign staging or overall READY claim.
-- T44 remote write-auth blocker and separate VIS46 handoff unchanged.
+Not full HOT01: child sharing/launch ceiling and per-request profile/history completion
+remain. No watcher/MCP diff/daemon/IPC/client settings or public busy reload enabled.
+No final workspace/debug/release/live/paired visual qualification for T61. No secrets,
+new registry/dependency/store or authority from a generation counter. Existing
+BLOCKED_REMOTE and T44/VIS46 separate handoff unchanged; no push/auth retry.
 
 ## Next
 
-- Implement coherent current publication admission at each fresh primary request boundary, preserving prepared attempts, partial settlement and summary pinning.
-- Share only source-Location publication with children and intersect latest authority with immutable launch ceilings before enabling public hot reload.
+Continue R1 with child source-Location publication sharing and immutable launch ceiling,
+then profile/history compatibility and composed HOT01; proceed R2–R5 only within the
+frozen contract. No overall READY or completion of T44/T45/T57.
 
 
 Ready (до 5): нет

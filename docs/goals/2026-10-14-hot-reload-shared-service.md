@@ -43,7 +43,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
   - Status: in_progress.
-  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6` below; full HOT01 pending.
+  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b` below; full HOT01 pending.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
     команды reload и runtime connect/disconnect из требования владельца.
@@ -293,9 +293,11 @@ client settings: `packages/cli/src/config/config.ts`, `packages/tui/src/config/{
 
 Native registration baseline: explicit idle-only `reload_location`/`switch_target`,
 no watcher/daemon, fixed-generation MCP supervisor и independent execution captures.
-T61 groundwork now captures config/workspace/DCP/readiness together; child source
-sharing and fresh adoption remain pending. Request-boundary MCP/model updates alone
-are not complete reload.
+T61 groundwork now captures config/workspace/DCP/readiness and finite executable
+provider views together. Fresh primary requests adopt the current publication;
+prepared retries and one summary operation stay pinned. Child source sharing and
+launch-ceiling intersection remain pending. Request-boundary updates alone are not
+complete reload.
 `CoreApp` — local bounded channels, не сериализуемый transport; queues имеют global
 consumer flags, source-specific recovery привязан к initial runtime. CLI bypasses
 `Db::open`, broad TUI refresh/static dark/mode-only cache keys требуют указанных швов.
@@ -306,7 +308,9 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
 
 - Closes next: R1; `8fc15275e` consolidates the immutable execution view; `fb39d88a6`
   carries it through issued batches/admission/Code Mode/output/instruction execution.
-  Next implement fresh preparation/child/retry/summary adoption and provenance.
+  `82ce7796b` adopts fresh primary publications and pins prepared retries/summary.
+  Next implement child source sharing and immutable launch-ceiling intersection,
+  then finish per-request profile/history compatibility and composed HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
@@ -317,13 +321,25 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   rename and durable settlement finish without latest-counter rejection. Exact live
   waiter, active turn/child operation, Location/move, path/preimage and instruction CAS
   remain authority. Wrong/duplicate replies and foreign/settled/moved work refuse.
-- `cargo test --locked -p oc-adapters`: 1033 passed / 0 failed / 5 existing opt-in ignored
-  (19 result records); strict adapter all-target clippy and workspace fmt check pass.
-  Logs `.local/evidence/t61-issued-{owner,recovery,adapters,clippy,fmt}.log`; red barrier
-  `.local/evidence/t61-issued-batch-red.log`. Existing private recovery fixture now
-  acquires its real execution lease, preserving all measurement/no-replay assertions.
-  Public generation API and idle reload guards remain unchanged. The held test uses
-  the private publication seam; no watcher/daemon/full HOT01 or fresh-G2 adoption claim.
+- Fresh-primary evidence at `82ce7796b`: after the held G1 batch, G2 fixed input,
+  permissions, reconciled instruction roots and exact provider/catalog/effort are
+  admitted without another prompt. Removed exact variant refuses before dispatch;
+  settled calls/results survive route change, incompatible opaque output does not.
+  Optional `RequestIdentity.config_generation` records attribution without authorizing
+  execution or changing legacy receipt decoding. No second provider registry/store.
+- Existing Chat/Messages retry case now publishes during held attempts: pre-output
+  retry is byte-identical G1; settled batch admits G2; durable partial continuation
+  admits G3, preserving partial text and the single settled tool, never partial args.
+  Summary barrier proves transport retry and template correction stay on G1's route,
+  transcript and protected-group installation, then the next primary uses G2.
+- Current gates: `cargo test --locked -p oc-adapters` 1035 passed / 0 failed / 5
+  existing opt-in ignored (19 result records); `cargo test --locked -p oc-core` 36/0;
+  strict adapter all-target clippy and workspace fmt check pass. Logs
+  `.local/evidence/t61-fresh-{primary-owner,retry-owner,adapters,core,clippy}.log`,
+  `.local/evidence/t61-summary-publication-owner.log`; original fresh-boundary red
+  `.local/evidence/t61-fresh-primary-red.log` demonstrates missing G2 fixed input.
+  Public generation API and idle reload guards remain unchanged. Tests use the private
+  publication seam; no watcher/daemon/full HOT01 or shared-child adoption claim.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
