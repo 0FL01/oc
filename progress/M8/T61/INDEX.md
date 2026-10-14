@@ -10,3 +10,4 @@ Spec: ../../../docs/goals/2026-10-14-hot-reload-shared-service.md
 - [0003](0003.md)
 - [0004](0004.md)
 - [0005](0005.md)
+- [0006](0006.md)

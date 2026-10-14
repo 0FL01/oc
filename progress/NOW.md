@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T19:50:12+00:00
+State updated: 2026-10-14T20:35:36+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,42 +14,38 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: R1 owner slices qualified, composed HOT01 and R2–R5 remain.
-Source 85cbd3afc adds optional per-request and native-checkpoint profile provenance.
-Compatible closed pairs survive profile changes, foreign opaque state is neutralized,
-and removed exact model/variant/agent choices refuse before the next dispatch.
-Child recovery uses saved launch/source/route proof, not the current counter.
+T61 IN_PROGRESS: R1/R2 partial, R3–R5 pending. Source a9be5d0d4 makes mandatory
+reload admission whole-candidate, without changing startup fault isolation.
+Source 823273e04 adds exact physical MCP worker/retirement incarnation fences.
+Neither source enables public busy publication, a watcher or same-owner reconcile.
 
 ## Checks
 
-- Actual SQLite reopen: launch generation77 resumes on current generation1, preserving
-  launch attribution and issuing exactly one request. Config/key mismatch, absent fence
-  and unknown effects remain Unknown without replay. Existing selected-job fences stay.
-- Mixed-profile receipts, selected HOT and explicit default versus legacy absent profile
-  preserve settled pairs without rewriting RAW. G2 child approvals carry G2 profile.
-- Native checkpoint with changed profile explicitly refuses before dispatch, without
-  stripping its record or accepting another task. Legacy/default decoding stays valid.
-- cargo test --workspace --locked: 1947 passed, 0 failed, 12 existing opt-in ignored,
-  46 result records. Strict workspace all-target clippy, fmt, docs/diff checks pass.
-- Nine hot01 owner cases pass. Existing PRM01 found summary instruction contamination;
-  fixed data-only projection without weakening assertions. Actual TERM01 passes after
-  explicitly returning input ownership from the retired PTY before submission.
-- Logs .local/evidence/t61-profile-*.log and t61-recovery-counter-{red,green}.log.
+- Real application reload rejects malformed nonselected definition before new MCP
+  launch, retains old catalog/skills, then recovers from corrected atomic replacement.
+- Invalid skills/commands/profiles/instructions/native config reject reload; disabled
+  file templates stay inert and optional unsupported integrations stay failed inventory.
+- Stale relist/close/failure cannot consume replacement cancellation or metadata;
+  obsolete cleanup failure remains fatal. Real late stdio success stays hidden,
+  waits for its old request lease, then closes and its process is reaped.
+- Current adapter tests: 1043 passed, 0 failed, 5 existing opt-in ignored, 19 records.
+  Four hot02 owner cases and four actual mcp_application lifecycle cases pass.
+  Strict adapter all-target clippy, fmt and diff checks pass. Logs:
+  .local/evidence/t61-reload-verdict-*.log and t61-mcp-incarnation-*.log.
 
 ## Risks
 
-No public busy reload, watcher/MCP diff, shared host/IPC/client settings or final rebuilt
-release qualification yet. Native checkpoint profile cannot be translated silently;
-unknown custom legacy origin fails closed. Child restart still requires matching saved
-source/ancestor proof; this is not permission to reconstruct broader authority.
-No ignored tests, caps, deadlines or assertions relaxed. Remote auth blocker and T44/VIS46
-handoff unchanged; no push/auth retry, credentials or live API call.
+Composed HOT01/HOT02 are still pending. Existing reload remains idle-only and replaces
+the runtime; source admission alone is not the automatic reload pipeline. No new caps,
+dependencies, schema/store, retry engine or ignored tests. No push/auth retry, live env,
+credential extraction, live API call or T44/VIS46 status change. Remote blocker intact.
 
 ## Next
 
-Integrate R2 complete candidate publication and persistent MCP/watch ownership, checking
-initial request preparation across MCP awaits before public active publication. Compose
-HOT01 with that public boundary, then R3–R5. No T44/T45/T57 or overall READY claim.
+Implement finite admitted watch metadata and same-owner desired MCP reconciliation,
+then atomic complete execution publication and the single watch/manual coordinator.
+Check initial request capture across MCP awaits before public active publication.
+Continue R3–R5 afterwards; no overall READY or full HOT01–HOT04 qualification claim.
 
 
 Ready (до 5): нет

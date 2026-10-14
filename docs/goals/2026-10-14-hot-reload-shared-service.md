@@ -54,8 +54,8 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
     Explicit reload forces discovery/recreation всех loaded Location; truthful receipts.
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
-  - Status: pending.
-  - Evidence: NOT_RUN; no runtime PASS от doc validation.
+  - Status: in_progress.
+  - Evidence: partial mandatory reload admission `a9be5d0d4` and physical MCP incarnation fences `823273e04`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -317,13 +317,16 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   `82ce7796b` adopts fresh primary publications and pins prepared retries/summary.
   `581b2b186` shares child source publications within immutable launch/ancestor ceilings.
    `85cbd3afc` qualifies profile history, exact unavailable choices, native checkpoint
-   refusal and child restart across a publication-counter reset. Next integrate complete
-   staged publication and MCP/watch ownership (R2), checking initial preparation across
-   MCP awaits before enabling busy publication, then compose public HOT01 evidence.
+   refusal and child restart across a publication-counter reset. R2 groundwork
+   `a9be5d0d4` rejects malformed mandatory replacements before optional effects;
+   `823273e04` fences MCP worker results/cleanup by physical incarnation. Next integrate
+   admitted watch metadata and same-owner desired-config reconciliation, then complete
+   staged publication, checking initial preparation across MCP awaits before enabling
+   busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
-- Current: R1 in_progress; R2–R5 pending, HOT01–HOT04 not yet qualified. T59 complete;
+- Current: R1/R2 in_progress; R3–R5 pending, HOT01–HOT04 not yet qualified. T59 complete;
   T44/T45/T57/live/visual statuses and historical PASS remain independent.
 - Current owner evidence: held G1 provider response after G2 publication keeps G1
   approval/question bindings, read output budget, model lookup and after-read roots;
@@ -373,7 +376,25 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   with a data-only, profile-compatible projection, keeping its original assertions.
   TERM01 explicitly returns input ownership from the retired PTY before model submission;
   its original effect/resource/terminal assertions remain. Public idle reload guards
-  remain unchanged; no watcher/daemon/settings or full HOT01–HOT04 delivery claim.
+   remain unchanged; no watcher/daemon/settings or full HOT01–HOT04 delivery claim.
+- Current R2 owner evidence at `a9be5d0d4`/`823273e04`: a malformed nonselected
+  definition rejects the whole replacement before MCP launch, preserving the catalog
+  and skills. Corrected atomic config replacement recovers. Invalid skills/commands/
+  profiles/instructions/native settings reject reload, while existing startup fault
+  isolation and disabled/unsupported optional inventory remain unchanged.
+- Every physical MCP attempt has a retained internal incarnation token. Late relist,
+  close and ordinary failure cannot consume a replacement's cancellation or state;
+  late cleanup failure remains fatal. A real late stdio client is hidden from the new
+  catalog, retained by an old request lease, then explicitly closed/reaped without
+  mutating the replacement. This is a reconcile prerequisite, not a desired-config API.
+- Current R2 slice gates: adapter tests 1043 passed / 0 failed / 5 existing opt-in
+  ignored (19 result records); strict adapter all-target clippy and fmt pass. Four
+  `hot02_` owner cases and all four actual `mcp_application` lifecycle cases pass.
+  Logs `.local/evidence/t61-reload-verdict-*.log` and `t61-mcp-incarnation-*.log`.
+  Red cases proved malformed replacement publication and stale completion consuming
+  new ownership. No caps, deadlines, tests or assertions were relaxed. Whole candidate
+  publication, source watches, persistent reconcile, shared service and client settings
+  remain incomplete; the prior workspace gate above belongs to `85cbd3afc`.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
