@@ -160,13 +160,13 @@ async fn search(cx: &Cx, args: &[Value]) -> R<Value> {
 /// Calls a host tool by path from the `tools` tree.
 pub(super) async fn tool_call(cx: &Cx, path: &[JsStr], args: Vec<Value>) -> R<Value> {
     cx.tick()?;
-    let segments: Vec<&str> = path.iter().flat_map(|s| s.split('.')).collect();
+    let segments: Vec<String> = path.iter().map(ToString::to_string).collect();
     let name = segments.join(".");
-    if cx.host.catalog.get(&name).is_none() {
+    let Some(tool) = cx.host.catalog.get(&segments) else {
         if name == "search" {
             return search(cx, &args).await;
         }
-        if cx.host.catalog.is_namespace(&name) {
+        if cx.host.catalog.is_namespace(&segments) {
             return Err(diagnostic_error(
                 cx,
                 "UnknownTool",
@@ -180,7 +180,7 @@ pub(super) async fn tool_call(cx: &Cx, path: &[JsStr], args: Vec<Value>) -> R<Va
             format!("Unknown tool '{name}'."),
             &["The tool may have been removed or renamed. Use search to find available tools."],
         ));
-    }
+    };
     let input = match single_input(cx, &name, &args)? {
         Some(value) if !matches!(value, Value::Undefined) => json::to_host(cx, value).await?,
         _ => Json::Object(Default::default()),
@@ -199,7 +199,7 @@ pub(super) async fn tool_call(cx: &Cx, path: &[JsStr], args: Vec<Value>) -> R<Va
         .host
         .sender
         .send(HostRequest::Tool {
-            path: name.clone(),
+            path: tool.path.clone(),
             input,
             reply,
         })

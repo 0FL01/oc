@@ -4,6 +4,8 @@
 use super::*;
 
 const SERVER: &str = r#"import json, sys
+tool_name = sys.argv[2] if len(sys.argv) > 2 else 'add'
+offset = int(sys.argv[3]) if len(sys.argv) > 3 else 0
 for line in sys.stdin:
     r = json.loads(line)
     method = r.get('method')
@@ -11,14 +13,14 @@ for line in sys.stdin:
         result = {'protocolVersion': '2025-11-25', 'capabilities': {'tools': {}}, 'serverInfo': {'name': 'fixture', 'version': '1'}}
     elif method == 'tools/list':
         result = {'tools': [
-            {'name': 'add', 'description': 'Add two numbers', 'inputSchema': {'type': 'object', 'properties': {'a': {'type': 'number'}, 'b': {'type': 'number'}}, 'required': ['a', 'b']}},
+            {'name': tool_name, 'description': 'Add two numbers', 'inputSchema': {'type': 'object', 'properties': {'a': {'type': 'number'}, 'b': {'type': 'number'}}, 'required': ['a', 'b']}},
             {'name': 'mark', 'description': 'Append a marker', 'inputSchema': {'type': 'object'}},
         ]}
     elif method == 'tools/call':
         params = r['params']
         args = params.get('arguments') or {}
-        if params['name'] == 'add':
-            total = args['a'] + args['b']
+        if params['name'] == tool_name:
+            total = args['a'] + args['b'] + offset
             result = {'content': [{'type': 'text', 'text': str(total)}], 'structuredContent': {'sum': total}, 'isError': False}
         else:
             with open(sys.argv[1], 'a') as f: f.write('M\n')
@@ -155,6 +157,84 @@ async fn code_mode_routes_mcp_tools_through_execute() {
     let ops = harness.db.list_tool_ops("s").unwrap();
     assert_eq!(ops.len(), 1);
     assert!(ops[0].op.ends_with("exec-1"));
+}
+
+#[tokio::test]
+async fn code_mode_keeps_literal_mcp_path_segments_distinct() {
+    let (harness, generation) = make_harness(permissions(Permission::Allow));
+    let mut generation = fixture_generation(&harness, generation, None);
+    let template = generation.mcp.remove("fixture").unwrap();
+    for (server, tool, offset) in [("fixture", "v1.add", "100"), ("fixture.v1", "add", "0")] {
+        let mut entry = template.clone();
+        entry.command.extend([tool.to_string(), offset.to_string()]);
+        generation.mcp.insert(server.into(), entry);
+        let mapped = oc_adapters::mcp_remote::map_registry(
+            server,
+            vec![(tool.into(), None, serde_json::json!({"type": "object"}))],
+        )
+        .unwrap();
+        generation
+            .permissions
+            .insert(mapped[0].namespaced.clone(), Permission::Allow);
+    }
+    let runtime = runtime_of(&harness, generation, Vec::new());
+    runtime.create_session("s").unwrap();
+    wait_initial_mcp(&runtime).await;
+    let code = "const left = await tools.fixture['v1.add']({a:2,b:3});
+                const right = await tools['fixture.v1'].add({a:2,b:3});
+                let aliasRejected = false;
+                try { await tools.fixture.v1.add({a:2,b:3}) } catch (e) { aliasRejected = true }
+                return [left.sum, right.sum, aliasRejected, Object.keys(tools),
+                        Object.keys(tools.fixture), search({namespace:'fixture.v1'}).items.map(i => i.path)]";
+    let (base, _, requests) = Fake::start_recording(
+        vec![
+            sse_tool_call("exec-paths", "execute", &serde_json::json!({"code": code}))
+                + &sse_completed(),
+            sse_completed(),
+        ],
+        Duration::ZERO,
+    );
+    let report = runtime
+        .run_turn(params(
+            "s",
+            "literal paths",
+            &harness,
+            provider_of(&base),
+            &NO_CANCEL,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert_eq!(report.calls[0].state, "completed");
+    let requests = requests.lock().unwrap();
+    let output: serde_json::Value =
+        serde_json::from_str(&call_output(&requests[1], "exec-paths")).unwrap();
+    assert_eq!(
+        output,
+        serde_json::json!([
+            105,
+            5,
+            true,
+            ["fixture", "fixture.v1"],
+            ["mark", "v1.add"],
+            ["tools[\"fixture.v1\"].add", "tools[\"fixture.v1\"].mark"]
+        ])
+    );
+    let execute = requests[0]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "execute")
+        .unwrap();
+    let description = execute["description"].as_str().unwrap();
+    assert!(
+        description.contains("tools.fixture[\"v1.add\"]"),
+        "{description}"
+    );
+    assert!(
+        description.contains("tools[\"fixture.v1\"].add"),
+        "{description}"
+    );
 }
 
 #[tokio::test]

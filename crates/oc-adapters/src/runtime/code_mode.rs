@@ -18,10 +18,6 @@ use crate::codemode::{
 /// Model-facing name of the Code Mode tool.
 pub(crate) const EXECUTE_TOOL: &str = codemode::TOOL_NAME;
 
-fn catalog_path(entry: &mcp_remote::RegistryEntry) -> String {
-    format!("{}.{}", entry.server, entry.tool)
-}
-
 /// Splits permitted MCP tools into direct provider definitions and the Code Mode catalog.
 pub(super) fn mcp_tool_defs(
     attached: &McpGeneration,
@@ -35,12 +31,15 @@ pub(super) fn mcp_tool_defs(
         .filter(|entry| policy.tool_visible(&entry.namespaced))
     {
         if attached.code_mode_server(&entry.server) {
-            nested.push(CodeModeTool {
-                path: catalog_path(entry),
-                description: entry.description.clone().unwrap_or_default(),
-                input_schema: entry.input_schema.clone(),
-                output_schema: None,
-            });
+            nested.push((
+                CodeModeTool {
+                    path: entry.namespaced.clone(),
+                    description: entry.description.clone().unwrap_or_default(),
+                    input_schema: entry.input_schema.clone(),
+                    output_schema: None,
+                },
+                vec![entry.server.clone(), entry.tool.clone()],
+            ));
         } else {
             direct.push(ToolDef {
                 name: entry.namespaced.clone(),
@@ -52,7 +51,7 @@ pub(super) fn mcp_tool_defs(
             });
         }
     }
-    (direct, Catalog::new(nested, Vec::new()))
+    (direct, Catalog::with_paths(nested, Vec::new()))
 }
 
 /// Request tool definitions for MCP: direct tools plus `execute` when the catalog is non-empty
@@ -161,13 +160,16 @@ impl Runtime<'_> {
         path: &str,
         input: Json,
     ) -> Result<Json, String> {
-        let Some(entry) = inv.attached.entries.iter().find(|entry| {
-            catalog_path(entry) == path && inv.attached.code_mode_server(&entry.server)
-        }) else {
+        let Some(entry) =
+            inv.attached.entries.iter().find(|entry| {
+                entry.namespaced == path && inv.attached.code_mode_server(&entry.server)
+            })
+        else {
             return Err(format!("Unknown tool '{path}'."));
         };
         let nested = inv.nested_call(&entry.namespaced, input);
-        self.admit_nested(inv, &nested, path).await?;
+        let display = format!("{}.{}", entry.server, entry.tool);
+        self.admit_nested(inv, &nested, &display).await?;
         let mut native = None;
         let (state, text) = self
             .execute_mcp(

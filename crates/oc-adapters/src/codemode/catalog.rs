@@ -19,6 +19,9 @@ pub struct CodeModeTool {
 #[derive(Debug, Clone)]
 struct Entry {
     tool: CodeModeTool,
+    segments: Vec<String>,
+    path_text: String,
+    expression: String,
     signature: String,
     path_words: Vec<String>,
     search_text: String,
@@ -57,8 +60,12 @@ fn render_key(name: &str) -> String {
 
 /// `tools.a.b` with bracket notation for non-identifier segments.
 pub fn tool_expression(path: &str) -> String {
+    segments_expression(path.split('.'))
+}
+
+fn segments_expression<'a>(segments: impl IntoIterator<Item = &'a str>) -> String {
     let mut out = String::from("tools");
-    for segment in path.split('.') {
+    for segment in segments {
         if is_identifier(segment) {
             out.push('.');
             out.push_str(segment);
@@ -504,7 +511,7 @@ pub fn schema_to_typescript(schema: &Json, pretty: bool) -> String {
     render.render(schema, 0, &BTreeSet::new())
 }
 
-fn signature(tool: &CodeModeTool) -> String {
+fn signature(tool: &CodeModeTool, expression: &str) -> String {
     let compact = schema_to_typescript(&tool.input_schema, false);
     let input = if compact == "{}" {
         "()".to_string()
@@ -518,7 +525,7 @@ fn signature(tool: &CodeModeTool) -> String {
         Some(schema) => schema_to_typescript(schema, true),
         None => "unknown".to_string(),
     };
-    format!("{}{input}: Promise<{output}>", tool_expression(&tool.path))
+    format!("{expression}{input}: Promise<{output}>")
 }
 
 fn input_property_text(schema: &Json) -> Vec<String> {
@@ -578,20 +585,39 @@ fn namespace_line(namespace: &NamespaceSummary) -> String {
 impl Catalog {
     /// Builds a catalog. The last tool for a duplicate path wins; entries are sorted by path.
     pub fn new(tools: Vec<CodeModeTool>, namespace_descriptions: Vec<(String, String)>) -> Catalog {
-        let mut by_path: BTreeMap<String, CodeModeTool> = BTreeMap::new();
-        for tool in tools {
-            if tool.path.split('.').any(str::is_empty) {
+        Self::with_paths(
+            tools
+                .into_iter()
+                .map(|tool| {
+                    let segments = tool.path.split('.').map(str::to_string).collect();
+                    (tool, segments)
+                })
+                .collect(),
+            namespace_descriptions,
+        )
+    }
+
+    /// The runtime retains literal MCP segments and uses `tool.path` only as its host key.
+    pub(crate) fn with_paths(
+        tools: Vec<(CodeModeTool, Vec<String>)>,
+        namespace_descriptions: Vec<(String, String)>,
+    ) -> Catalog {
+        let mut by_path: BTreeMap<Vec<String>, CodeModeTool> = BTreeMap::new();
+        for (tool, segments) in tools {
+            if segments.is_empty() || segments.iter().any(String::is_empty) {
                 continue;
             }
-            by_path.insert(tool.path.clone(), tool);
+            by_path.insert(segments, tool);
         }
         let namespaces: BTreeMap<String, String> = namespace_descriptions.into_iter().collect();
-        let entries = by_path
-            .into_values()
-            .map(|tool| {
-                let mut parts = vec![tool.path.clone(), tool.description.clone()];
+        let mut entries: Vec<Entry> = by_path
+            .into_iter()
+            .map(|(segments, tool)| {
+                let path_text = segments.join(".");
+                let expression = segments_expression(segments.iter().map(String::as_str));
+                let mut parts = vec![path_text.clone(), tool.description.clone()];
                 let mut prefix = String::new();
-                for segment in tool.path.split('.') {
+                for segment in &segments {
                     if !prefix.is_empty() {
                         prefix.push('.');
                     }
@@ -602,13 +628,21 @@ impl Catalog {
                 }
                 parts.extend(input_property_text(&tool.input_schema));
                 Entry {
-                    signature: signature(&tool),
-                    path_words: tokenize(&tool.path),
+                    signature: signature(&tool, &expression),
+                    path_words: tokenize(&path_text),
                     search_text: parts.join("\n").to_lowercase(),
+                    segments,
+                    path_text,
+                    expression,
                     tool,
                 }
             })
             .collect();
+        entries.sort_by(|a, b| {
+            a.path_text
+                .cmp(&b.path_text)
+                .then_with(|| a.segments.cmp(&b.segments))
+        });
         Catalog {
             entries,
             namespaces,
@@ -627,41 +661,31 @@ impl Catalog {
         self.entries.iter().map(|e| &e.tool)
     }
 
-    pub(crate) fn get(&self, path: &str) -> Option<&CodeModeTool> {
+    pub(crate) fn get(&self, path: &[String]) -> Option<&CodeModeTool> {
         self.entries
             .iter()
-            .find(|e| e.tool.path == path)
+            .find(|e| e.segments == path)
             .map(|e| &e.tool)
     }
 
     /// Whether `prefix` names a namespace that contains tools.
-    pub(crate) fn is_namespace(&self, prefix: &str) -> bool {
+    pub(crate) fn is_namespace(&self, prefix: &[String]) -> bool {
         prefix.is_empty()
-            || self.entries.iter().any(|e| {
-                e.tool.path.len() > prefix.len()
-                    && e.tool.path.starts_with(prefix)
-                    && e.tool.path.as_bytes()[prefix.len()] == b'.'
-            })
+            || self
+                .entries
+                .iter()
+                .any(|e| e.segments.len() > prefix.len() && e.segments.starts_with(prefix))
     }
 
     /// Child names below a namespace path, as `Object.keys(tools.ns)` shows them.
-    pub(crate) fn children(&self, prefix: &str) -> Vec<String> {
+    pub(crate) fn children(&self, prefix: &[String]) -> Vec<String> {
         let mut out: Vec<String> = Vec::new();
         for entry in &self.entries {
-            let rest = if prefix.is_empty() {
-                Some(entry.tool.path.as_str())
-            } else {
-                entry
-                    .tool
-                    .path
-                    .strip_prefix(prefix)
-                    .and_then(|r| r.strip_prefix('.'))
-            };
-            if let Some(rest) = rest {
-                let child = rest.split('.').next().unwrap_or(rest).to_string();
-                if !out.contains(&child) {
-                    out.push(child);
-                }
+            if entry.segments.starts_with(prefix)
+                && let Some(child) = entry.segments.get(prefix.len())
+                && !out.contains(child)
+            {
+                out.push(child.clone());
             }
         }
         out
@@ -682,13 +706,7 @@ impl Catalog {
         }
         let mut groups: BTreeMap<String, Vec<&Entry>> = BTreeMap::new();
         for entry in &self.entries {
-            let head = entry
-                .tool
-                .path
-                .split('.')
-                .next()
-                .unwrap_or(&entry.tool.path)
-                .to_string();
+            let head = entry.segments[0].clone();
             groups.entry(head).or_default().push(entry);
         }
         let mut namespaces: Vec<Ns> = groups
@@ -716,7 +734,7 @@ impl Catalog {
                             format!(" // {description}")
                         };
                         (
-                            entry.tool.path.clone(),
+                            entry.path_text.clone(),
                             format!("  - {}{suffix}", entry.signature),
                         )
                     })
@@ -836,7 +854,10 @@ impl Catalog {
             .iter()
             .filter(|e| match namespace {
                 None => true,
-                Some(ns) => e.tool.path == ns || e.tool.path.starts_with(&format!("{ns}.")),
+                Some(ns) => {
+                    e.tool.path == ns
+                        || (1..e.segments.len()).any(|n| e.segments[..n].join(".") == ns)
+                }
             })
             .collect();
         let trimmed = query.trim();
@@ -846,7 +867,11 @@ impl Catalog {
         } else {
             scoped
                 .iter()
-                .find(|e| e.tool.path == path_query || tool_expression(&e.tool.path) == trimmed)
+                .find(|e| {
+                    e.tool.path == path_query
+                        || e.expression == trimmed
+                        || e.expression.strip_prefix("tools.") == Some(path_query)
+                })
                 .copied()
         };
         let terms: Vec<Vec<String>> = tokenize(query).iter().map(|t| term_forms(t)).collect();
@@ -856,7 +881,7 @@ impl Catalog {
                 let mut scored: Vec<(usize, &Entry)> = scoped
                     .iter()
                     .map(|entry| {
-                        let path = entry.tool.path.to_lowercase();
+                        let path = entry.path_text.to_lowercase();
                         let description = entry.tool.description.to_lowercase();
                         let score = terms.iter().fold(0, |total, forms| {
                             let any = |f: &dyn Fn(&str) -> bool| forms.iter().any(|form| f(form));
@@ -889,7 +914,7 @@ impl Catalog {
                     .collect();
                 scored.sort_by(|a, b| {
                     b.0.cmp(&a.0)
-                        .then_with(|| a.1.tool.path.cmp(&b.1.tool.path))
+                        .then_with(|| a.1.path_text.cmp(&b.1.path_text))
                 });
                 scored.into_iter().map(|(_, e)| e).collect()
             }
@@ -901,7 +926,7 @@ impl Catalog {
             .take(limit)
             .map(|e| {
                 json!({
-                    "path": tool_expression(&e.tool.path),
+                    "path": e.expression,
                     "description": e.tool.description,
                     "signature": e.signature,
                 })

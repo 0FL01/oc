@@ -1134,11 +1134,11 @@ impl Cx {
         let data = obj.borrow();
         let mut out = Vec::new();
         if let Kind::Function(Func::Tool(path)) = &data.kind {
-            let prefix: Vec<&str> = path.iter().map(|s| s.as_str()).collect();
+            let prefix: Vec<String> = path.iter().map(ToString::to_string).collect();
             return self
                 .host
                 .catalog
-                .children(&prefix.join("."))
+                .children(&prefix)
                 .into_iter()
                 .map(|name| PropKey::Str(name.into()))
                 .collect();
