@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-10-14T11:32:54+00:00",
-  "current": "T59",
+  "updated_at": "2026-10-14T15:37:27+00:00",
+  "current": null,
   "tasks": {
     "T00": {
       "status": "done",
@@ -410,10 +410,10 @@
       "reopen_reason": null
     },
     "T59": {
-      "status": "active",
-      "last_seq": 2,
-      "latest": "progress/M8/T59/0002.md",
-      "evidence": null,
+      "status": "done",
+      "last_seq": 3,
+      "latest": "progress/M8/T59/0003.md",
+      "evidence": "evidence/T59/report.md",
       "reopen_reason": null
     },
     "T60": {
