@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T10:05:24+00:00
+State updated: 2026-10-14T11:32:54+00:00
 Active: T59
 
 Сверить Git status/diff до выполнения команд.
@@ -14,46 +14,45 @@ Owner-approved 2026-10-12 additive R1-R5: familiar OC2 provider/search/accounts/
 
 ## Result
 
-T59 active, not complete. Native owner slice committed as 2747f9203 (base 0d59c8e92):
-typed CoreApp probe/save/cancel/refresh, additive same-Db custom table/migration 14,
-atomic connection plus default key (anonymous has no account), tagged endpoint scope,
-config-ID reservations/filters and startup/switch/move attachment. Bounded custom
-OpenAI/Anthropic GET discovery reuses captured native transport; no generation detection.
-ProviderWork owns one cancellable custom/probe slot; Save consumes its receipt once.
-Narrow idle publication retains generation/selection; oc models reads sanitized saved
-metadata without a custom GET, credential material or second writer.
+- T59 remains active, not done. Source `d700a4e63` follows native owner `2747f9203`
+  and typed model metadata `0912c06b8`; R3 verified, R1/R2/R4/R5 in progress.
+- Familiar provider search/source markers, default-label masked key and existing
+  OAuth methods share the accounts owner. Custom name/literal base/key-or-anonymous,
+  GET probe, explicit API confirmation and single-use Save precede filtered models.
+- Binary connection jobs live inside existing auth controls, remain asynchronous,
+  and join late/cancelled form work. Secrets leave the UI once; revisions guard ACKs.
+- Custom picker has genuine pending/failed/empty/ready and explicit Retry/account
+  repair. Ready saved reads do not start a GET/ProviderChanged feedback loop.
 
 ## Checks
 
-- cargo test --locked -p oc-adapters --lib: 738 passed, 0 failed, 1 existing ignored.
-- cargo clippy --locked -p oc-adapters --all-targets -- -D warnings: PASS.
-- cargo fmt --all -- --check and git diff --check: PASS.
-- New owner cases cover schema/reopen/rollback/scopes/filters, rich/ID-only/null/false/
-  empty metadata, auth candidates, twelve-page progress, partial/duplicate rejection,
-  retry/cancel/bytes/rows/secrets, actor responsiveness/single-use ACK/restart, unchanged
-  selection/epoch, and saved complete/failed/empty read-only listing under the live writer.
-- Initial full library run exposed the two exact migration-list expectations; updated
-  them only to include the contract's additive migration 14. Both targeted migration
-  tests then passed and the full library rerun is green. No tests disabled or relaxed.
-- Logs: .local/evidence/t59-adapters-lib-slice1.log, t59-clippy-slice1.log,
-  t59-migration-green.log and earlier bounded t59-* diagnostics.
+- Current `cargo test --locked -p oc-adapters --lib`: 743 passed, 0 failed,
+  1 existing ignored; TUI lib540/0; oc binary unit118/0.
+- Existing pty_t39 actual debug binary: new conn04 tests2/0, legacy accounts3/0.
+  Zero-provider Home/history/pre-effect refusal; masked cancel; no rows/POST before
+  Save/submit; explicit model/exact effort; restart; held old-key GET join; revision2;
+  CLI ready/failed/empty under writer lock with unchanged preferences/GET counters.
+- These custom PTYs remove OC_TEST_ALLOW_LOOPBACK; only the admitted native custom
+  scope authorizes the local endpoint. No real API or paid detection request.
+- Strict oc-adapters/oc-tui/oc all-target clippy, fmt and reviewed diff PASS.
+  Logs `.local/evidence/t59-connect-*`; auth_tui.py syntax parsed successfully.
 
 ## Risks
 
-R1/R2/R5 remain in progress; R3/R4 pending. No T59 DONE, workspace-final, binary,
-paired visual or live credential/server qualification is claimed. UI wizard and typed
-capability projection are not yet present; held key/Location/prepared-request guards
-need their planned owner/binary evidence. T44/T45/T57 remain separate unresolved tasks.
-Existing remote write-auth blocker is unchanged; no push/auth retry or secret/env read.
-Inherited untracked TUI/evidence trees were preserved and never staged.
+- Release/full-target/workspace final acceptance has not run for T59. No GOAL READY,
+  current-binary live campaign or donor pixel-parity claim; T44/VIS45 remains owner.
+- Transport total monotonic deadline/progress and held Location/move/prepared-request/
+  unchanged-MCP qualification remain original required work, not new scope.
+- Separate T44 remote write-auth blocker is unchanged; no push/credential retry.
+- Concurrent docs-only commit f3a92b599 adds the separate T44/VIS46 plan. It is
+  preserved in history, not authored or qualified by T59; no foreign dirty files remain.
 
 ## Next
 
-Implement typed modalities/partial flags/variant-known snapshot and image admission,
-then the familiar connect/default-label/custom wizard plus ACK-to-filtered-picker flow.
-Complete held revision/Location/runtime and actual CLI/debug/release PTY qualification,
-run final required workspace/docs/journal gates, write factual evidence/T59/report.md,
-and only then finish T59. T61 stays ready and inactive until T59 is closed.
+- Finish CONN02/CONN05 owner evidence and any directly demonstrated contract gaps.
+- Run full mandatory debug pty_t39 and rebuilt release custom PTYs, then final
+  workspace fmt/strict clippy/locked tests/build/help and journal/docs tests.
+- Only then create evidence/T59/report.md and finish T59. T61 is the next ready task.
 
 
 Ready (до 5): T61

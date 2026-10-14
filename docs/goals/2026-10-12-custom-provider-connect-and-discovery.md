@@ -44,8 +44,9 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN01 existing storage/composition owner tests, reopen и
     actual-binary restart из CONN04; rollback, config collision и foreign-key negatives.
   - Status: in_progress.
-  - Evidence: `2747f9203`, CONN01 storage/composition/actor tests and reopen PASS;
-    actual-binary restart/Location-move qualification remains pending.
+  - Evidence: `2747f9203` storage/composition/actor tests; `d700a4e63` actual debug
+    binary zero-provider onboarding and restart PASS without a test loopback grant.
+    Location switch/session-move qualification remains pending.
 - R2: bounded read-only обнаружение каталога и честный выбор native API.
   - Source: «сам фетчит и ловит какие там апи эндпоинты есть»; выбранное владельцем
     «Подтвердить тип API» при неоднозначности, без платной генерации для detection.
@@ -59,8 +60,9 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN02 fake GET transport/parser/pagination/clock/security;
     CONN04 endpoint counters подтверждают ноль generation POST до явного submit.
   - Status: in_progress.
-  - Evidence: `2747f9203`, CONN02 deterministic GET/parser/auth/pagination/limits
-    PASS; final transport/consumer and actual-binary qualification remains pending.
+  - Evidence: `2747f9203` deterministic GET/parser/auth/pagination/limits;
+    `d700a4e63` debug PTY explicit API and zero generation requests before submit PASS.
+    Final transport/deadline/progress qualification remains pending.
 - R3: modalities и reasoning effort доходят до picker без выдуманных capabilities.
   - Source: «модальности и effort тоже берёт — это ... нужно обязательно учесть»;
     выбранное владельцем «Показывать неизвестное» для ID-only catalogs.
@@ -71,8 +73,11 @@ seams потребляются без whole-task/live/visual done-dependencies. 
     только явно supported, exact selected effort доходит до существующего wire.
   - Primary evidence: CONN03 parser → core snapshot → TUI reconstruction/picker
     fixtures плюс captured effort на трёх native wires; legacy DISC/VAR01 regressions.
-  - Status: pending.
-  - Evidence: NOT_RUN; metadata не обещает поддержку PDF/audio/video/image generation.
+  - Status: verified.
+  - Evidence: `0912c06b8` typed core→snapshot→picker reconstruction and actual
+    narrow/wide rendering; parser-fed exact effort on all three native wires PASS.
+    `d700a4e63` actual debug Responses request retains `exact-effort`; metadata
+    does not promise PDF/audio/video/image generation.
 - R4: знакомый OC2 connect/accounts/auth → models и рабочий zero-model startup.
   - Source: «нам надо повторить его паттерн авторизации ... не шугать ... форка»;
     требование запустить приложение без добавленных providers/models.
@@ -88,8 +93,10 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN04 TUI owner tests и existing `pty_t39` actual debug/release
     binary zero-provider → connect → discovery → explicit model → fake request → restart.
     Shared auth presentation остаётся T44/VIS45, не второй visual owner.
-  - Status: pending.
-  - Evidence: NOT_RUN; native-only golden не доказывает OC2 visual parity.
+  - Status: in_progress.
+  - Evidence: `d700a4e63` masked default-label accounts/custom forms, revision-scoped
+    async ACK/cancel/retry and actual debug PTY onboarding/repair/restart PASS;
+    release/full-target qualification remains pending. No OC2 visual parity claim.
 - R5: новые каталоги публикуются coherent, без stale credentials/selection/reload effects.
   - Source: немедленно показать fetched models; согласованный narrow publication plan;
     существующие captured request, read-only CLI и one-owner invariants.
@@ -102,9 +109,10 @@ seams потребляются без whole-task/live/visual done-dependencies. 
   - Primary evidence: CONN05 barrier-held actor/runtime results и read-only CLI/cache
     effect counters, held prepared request и next-request/reopen assertions.
   - Status: in_progress.
-  - Evidence: `2747f9203`, single-use save/cancel, preserved generation/selection,
-    saved-cache read-only/empty/incomplete and storage revision fences PASS;
-    held key/Location/prepared-request consumer qualification remains pending.
+  - Evidence: `2747f9203` generation/selection and storage fences; `d700a4e63`
+    held old-key GET abort+join, binding/catalog revision2, single-flight retry,
+    actual CLI under writer lock (ready/failed/empty, unchanged prefs/GET counters)
+    PASS. Held Location/prepared-request/MCP consumer qualification remains pending.
 
 ### Constraints and non-goals
 
@@ -238,23 +246,28 @@ validation или стирания сохранённого key. Повторн�
 ## Current Checkpoint / State
 
 - T59 started 2026-10-14 after the committed T58/T60 closeouts and the existing
-  T44 scheduling handoff. R1/R2/R5 in progress; R3/R4 pending. First native owner
-  slice committed as `2747f9203`; this is not T59 completion.
+  T44 scheduling handoff. R3 verified; R1/R2/R4/R5 in progress. Source slices:
+  `2747f9203` native owner, `0912c06b8` metadata and `d700a4e63` connect/repair UI.
+  This is not T59 completion.
 - Новый task — новая user-requested поставка, не дефект/reopen завершённого T53.
   Native config-defined connections и `/connect` account storage уже существуют;
-  typed custom persistence/discovery/actor commands now exist; arbitrary endpoint
-  wizard and typed capability picker projection are not yet implemented.
+  typed persistence/discovery, masked native endpoint wizard, capability picker,
+  scoped async form ownership and explicit retry/account repair now exist.
 - T44 remains suspended with its existing mission/evidence and separate remote
   write-auth blocker intact. Registration/docs validation are not runtime/visual PASS.
-- Verified checkpoint: additive SQLite migration 14, tagged custom scope/literal
-  endpoint, atomic default key/anonymous creation and rollback; bounded custom GET
-  discovery, same-owner probe/save/refresh slot, revision-aware saved CLI projection.
-  `cargo test --locked -p oc-adapters --lib`: 738 passed / 0 failed / 1 existing ignored;
-  strict affected-crate all-target clippy and fmt PASS. Logs `.local/evidence/t59-*`.
-- Next: typed modality/partial-capability/variant-known snapshots and image guard,
-  then ordinary connect/custom UI with actual debug/release PTY qualification.
-  Add the required held key/Location/prepared-request and CLI binary evidence;
-  run final workspace gates before the factual `evidence/T59/report.md` and finish.
+- Latest source checks: adapters lib743 passed/0 failed/1 existing ignored,
+  TUI lib540/0, binary unit118/0; new actual debug PTY2/0 plus existing accounts
+  PTY3/0; strict affected crates/all-target clippy, fmt and diff checks PASS.
+  Logs `.local/evidence/t59-connect-*-slice.log`, `t59-connect-pty-*.log`.
+- Actual debug evidence: zero-provider Home/history and pre-effect refusal; cancelled
+  masked form/probe-before-save has zero durable rows; ACK precedes explicit model/
+  effort commit and fake generation; saved binding/selection/history survive restart.
+  Failed GET retains the key; explicit retry and key replacement join the held old
+  GET; valid empty is complete. Ready reads do not form a GET/ProviderChanged loop.
+- Next: finish original transport total-deadline/progress and held Location/move/
+  prepared-request/MCP qualification. Run mandatory full debug PTY and rebuilt
+  release native PTY, final workspace gates, then factual `evidence/T59/report.md`
+  and finish. No paid/live campaign or fresh paired visual claim.
 
 ## Material Decisions
 
