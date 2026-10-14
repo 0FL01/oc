@@ -61,6 +61,91 @@ async fn connected(owner: &McpOwner, names: &[&str]) {
 }
 
 #[tokio::test]
+async fn hot02_accepted_source_commit_survives_a_lost_reload_ack() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = crate::storage::Db::open(data.path()).unwrap();
+    let runtime = crate::runtime::tests::binding_replay_tests::owner(&db, project.path());
+    let owner = runtime.mcp_owner();
+    let initial = runtime.current.read().unwrap().clone();
+    let mut next = runtime.current.read().unwrap().config.clone();
+    next.mcp.insert(
+        "new-disabled".into(),
+        crate::config::McpEntry {
+            kind: "local".into(),
+            enabled: false,
+            command: vec!["/bin/false".into()],
+            ..Default::default()
+        },
+    );
+    let mut reload = Box::pin(runtime.reload(next.clone()));
+    assert!(futures_util::poll!(reload.as_mut()).is_pending());
+    tokio::time::timeout(Duration::from_secs(2), async {
+        while owner.snapshot().binding.generation != 2 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    // The supervisor accepted the command, but the caller never polls its ACK.
+    // Capture before shutdown and assert after joining every owned resource.
+    drop(reload);
+    let actual = runtime.current.read().unwrap().clone();
+    let services = owner.request_view().unwrap();
+    let child = runtime.owned_child_snapshot();
+    let (child_source, child_services) = child.fresh_request_view().unwrap();
+    runtime.shutdown_mcp().await.unwrap();
+    assert_eq!(
+        actual.id, 2,
+        "accepted MCP publication left execution behind"
+    );
+    assert_eq!(actual.config, next);
+    assert_eq!(services.admitted.as_ref(), &actual.config.mcp);
+    assert_eq!(child_source.id, 2);
+    assert_eq!(child_services.admitted.as_ref(), &child_source.config.mcp);
+    assert_eq!(initial.id, 1);
+    assert!(initial.config.mcp.is_empty());
+    assert_eq!(db.list_sessions().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn hot02_superseded_commit_is_refused_before_any_replacement_effect() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = crate::storage::Db::open(data.path()).unwrap();
+    let runtime = crate::runtime::tests::binding_replay_tests::owner(&db, project.path());
+    let supervisor = runtime.mcp_owner();
+    let mut next = runtime.current.read().unwrap().config.clone();
+    next.mcp.insert(
+        "peer".into(),
+        reconcile_entry(project.path(), "never-started"),
+    );
+    let mut reload = Box::pin(runtime.reload(next));
+    assert!(futures_util::poll!(reload.as_mut()).is_pending());
+    // Simulate a different admitted source update while this candidate waits in
+    // the existing supervisor inbox. Same id is insufficient freshness proof.
+    runtime.update_execution(|view| {
+        view.workspace.agent_digest = Some("NEWER_SAME_ID_PROFILE".into());
+    });
+    let result = tokio::time::timeout(Duration::from_secs(2), reload)
+        .await
+        .unwrap();
+    let snapshot = supervisor.snapshot();
+    let source = runtime.current.read().unwrap().clone();
+    runtime.shutdown_mcp().await.unwrap();
+    assert!(result.is_err());
+    assert_eq!(snapshot.binding.generation, 1);
+    assert!(snapshot.servers.is_empty());
+    assert!(source.config.mcp.is_empty());
+    assert_eq!(
+        source.workspace.agent_digest.as_deref(),
+        Some("NEWER_SAME_ID_PROFILE")
+    );
+    assert!(!project.path().join("starts").exists());
+    assert_eq!(db.list_sessions().unwrap().len(), 0);
+}
+
+#[tokio::test]
 async fn hot01_initial_lane_is_captured_after_the_mcp_request_await() {
     use crate::runtime::tests::binding_replay_tests;
     for retire_model in [false, true] {
@@ -218,7 +303,7 @@ async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batc
     // A Code Mode edit changes only the new immutable view, not either client.
     config.mcp.get_mut("peer").unwrap().codemode = Some(false);
     owner
-        .reconcile(config.clone(), 2, None, false)
+        .reconcile(config.clone(), 2, None, false, None)
         .await
         .unwrap();
     let routing = owner.request_view().unwrap();
@@ -240,7 +325,7 @@ async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batc
             .mcp
             .insert("peer".into(), reconcile_entry(project.path(), label));
         owner
-            .reconcile(config.clone(), publication, None, false)
+            .reconcile(config.clone(), publication, None, false, None)
             .await
             .unwrap();
         let next = owner.request_view().unwrap();
@@ -346,7 +431,7 @@ async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batc
     })
     .await
     .unwrap();
-    owner.reconcile(config, 5, None, false).await.unwrap();
+    owner.reconcile(config, 5, None, false, None).await.unwrap();
     assert!(
         !owner
             .request_view()
@@ -366,7 +451,7 @@ async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batc
     // This is the exact flag a late old-call lease sets; no physical remote
     // request is issued by this stdio fixture. Empty publication cannot reset it.
     owner
-        .reconcile(Generation::default(), 6, None, false)
+        .reconcile(Generation::default(), 6, None, false, None)
         .await
         .unwrap();
     late_unknown.store(true, Ordering::SeqCst);
@@ -420,7 +505,12 @@ async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edi
         "one_too_many".into(),
         reconcile_entry(project.path(), "forbidden"),
     );
-    assert!(owner.reconcile(oversized, 2, None, false).await.is_err());
+    assert!(
+        owner
+            .reconcile(oversized, 2, None, false, None)
+            .await
+            .is_err()
+    );
     assert_eq!(
         owner.snapshot(),
         before,
@@ -433,6 +523,7 @@ async fn hot02_reconcile_bounds_connecting_live_and_retiring_across_repeated_edi
                 publication,
                 None,
                 false,
+                None,
             )
             .await
             .unwrap();
@@ -489,7 +580,7 @@ async fn hot02_reload_keeps_the_location_supervisor_instance() {
     // publication, before the execution publication was committed. Counters
     // alone neither grant nor deny the next request's MCP authority.
     owner
-        .reconcile(Generation::default(), id + 1, None, false)
+        .reconcile(Generation::default(), id + 1, None, false, None)
         .await
         .unwrap();
     assert!(runtime.request_mcp(&AtomicBool::new(false)).await.is_ok());
@@ -508,6 +599,7 @@ async fn hot02_reload_keeps_the_location_supervisor_instance() {
             id + 1,
             None,
             false,
+            None,
         )
         .await
         .unwrap();
@@ -569,7 +661,7 @@ async fn hot02_pending_connection_adopts_latest_routing_without_reconnecting() {
     .await
     .unwrap();
     config.mcp.get_mut("peer").unwrap().codemode = Some(false);
-    owner.reconcile(config, 2, None, false).await.unwrap();
+    owner.reconcile(config, 2, None, false, None).await.unwrap();
     std::fs::write(project.path().join("initialize-release"), "release").unwrap();
     connected(&owner, &["peer"]).await;
     let view = owner.request_view().unwrap();
@@ -628,7 +720,7 @@ async fn hot02_reconcile_preserves_issued_lookup_and_joins_removed_connection() 
     .await
     .unwrap();
     owner
-        .reconcile(Generation::default(), 2, None, false)
+        .reconcile(Generation::default(), 2, None, false, None)
         .await
         .unwrap();
     assert!(

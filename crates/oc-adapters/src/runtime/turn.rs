@@ -521,7 +521,9 @@ impl TurnSubagent<'_, '_> {
             &target.catalog.provider,
             &child_provider(target.provider, self.provider),
         );
-        let published = child.current.read().expect("generation").clone();
+        let (published, attached) = child
+            .fresh_request_view()
+            .map_err(|error| failed(error.to_string()))?;
         let launch = child.child_launch.as_ref().expect("child ceiling");
         let lane = child
             .child_request_lane(&published, launch)
@@ -570,9 +572,6 @@ impl TurnSubagent<'_, '_> {
             provider,
             cancel: self.cancel,
         };
-        let attached = child
-            .mcp_view_in(&published)
-            .map_err(|error| failed(error.to_string()))?;
         let proof = Box::pin(child.run_turn_admitted(
             published.clone(),
             params,
@@ -1921,10 +1920,10 @@ impl<'a> Runtime<'a> {
             }
             // Capture once per fresh preparation. This Arc and its lane survive
             // the physical attempt and every issued tool, including approval waits.
-            let published = if primary_request || self.child_launch.is_some() {
-                self.current.read().expect("generation lock").clone()
+            let (published, current_mcp) = if primary_request || self.child_launch.is_some() {
+                self.fresh_request_view()?
             } else {
-                published.clone()
+                (published.clone(), self.mcp_view_in(&published)?)
             };
             let current_lane = if primary_request {
                 self.admit_primary_profile(&published)?;
@@ -2142,7 +2141,6 @@ impl<'a> Runtime<'a> {
             // the next provider request. Its clients, schemas, guidance and
             // execution context then stay leased through that request's tools.
             // Notification relists still occur at the outer turn boundary.
-            let current_mcp = self.mcp_view_in(&published)?;
             let attached = current_mcp.as_ref();
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .with_root(&self.roots.project)
@@ -3499,8 +3497,7 @@ impl<'a> Runtime<'a> {
         // The parent request's clone is not a whole-child physical lease. Fresh
         // child admission uses latest source metadata intersected with launch authority.
         drop(attached);
-        let published = self.current.read().expect("generation").clone();
-        let attached = self.mcp_view_in(&published)?;
+        let (published, attached) = self.fresh_request_view()?;
         let lane = if let Some(launch) = &self.child_launch {
             self.child_request_lane(&published, launch)?
         } else {

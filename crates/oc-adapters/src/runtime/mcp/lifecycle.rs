@@ -64,10 +64,11 @@ impl Drop for RequestWait<'_> {
 
 enum Command {
     Reconcile {
-        config: Generation,
+        config: Box<Generation>,
         publication: u64,
         activation: Option<Arc<crate::composition::McpActivation>>,
         force: bool,
+        commit: Option<crate::runtime::publication::Commit>,
         ack: ReconcileAck,
     },
     Control {
@@ -1085,8 +1086,8 @@ impl Scope {
                     self.release_requests();
                 },
                 command = controls.recv(), if !self.stopping => match command {
-                    Some(Command::Reconcile { config, publication, activation, force, ack }) => {
-                        let result = self.reconcile(config, publication, activation, force);
+                    Some(Command::Reconcile { config, publication, activation, force, commit, ack }) => {
+                        let result = self.reconcile(*config, publication, activation, force, commit);
                         let _ = ack.send(result);
                     },
                     Some(Command::Control { control, ack }) => self.control(control, ack),

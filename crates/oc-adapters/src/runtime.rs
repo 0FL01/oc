@@ -970,6 +970,7 @@ struct ExecutionGeneration {
     /// Existing finite executable provider captures, published by the native
     /// composition owner. None preserves the standalone TurnParams contract.
     request_provider: Option<ResponsesConfig>,
+    mcp_activation: Option<Arc<crate::composition::McpActivation>>,
 }
 
 impl std::ops::Deref for ExecutionGeneration {
@@ -1099,6 +1100,7 @@ pub struct Runtime<'a> {
     location: String,
     // A child retains its source Location handle, not the parent's later route.
     current: Arc<RwLock<Arc<ExecutionGeneration>>>,
+    publication_commit: Arc<Mutex<()>>,
     child_launch: Option<Arc<children::LaunchCeiling>>,
     active: AtomicBool,
     protected: ProtectedGlobs,
@@ -1114,7 +1116,6 @@ pub struct Runtime<'a> {
     compression_commit: Arc<Mutex<()>>,
     stats: Mutex<crate::dcp_auto::DcpStats>,
     mcp_generation: RwLock<Arc<mcp::McpOwner>>,
-    mcp_activation: RwLock<Option<Arc<crate::composition::McpActivation>>>,
     mcp_unsafe_retry: AtomicBool,
     mcp_cleanup_failed: AtomicBool,
     subagent_seq: AtomicU64,
@@ -1187,6 +1188,8 @@ mod tests;
 #[cfg(test)]
 mod media_tests;
 
+mod publication;
+
 impl<'a> Runtime<'a> {
     /// Build a runtime over one Location and an initial generation.
     #[allow(clippy::too_many_arguments)]
@@ -1231,7 +1234,9 @@ impl<'a> Runtime<'a> {
                 dcp_protected: ProtectedSpec::default(),
                 provider_state: None,
                 request_provider: None,
+                mcp_activation: None,
             }))),
+            publication_commit: Arc::new(Mutex::new(())),
             child_launch: None,
             active: AtomicBool::new(false),
             protected,
@@ -1245,7 +1250,6 @@ impl<'a> Runtime<'a> {
             compression_commit: Arc::new(Mutex::new(())),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(Arc::new(mcp::McpOwner::new(location, 1))),
-            mcp_activation: RwLock::new(None),
             mcp_unsafe_retry: AtomicBool::new(false),
             mcp_cleanup_failed: AtomicBool::new(false),
             subagent_seq: AtomicU64::new(0),
@@ -1258,6 +1262,7 @@ impl<'a> Runtime<'a> {
     }
 
     fn update_execution(&self, update: impl FnOnce(&mut ExecutionGeneration)) {
+        let _commit = self.publication_commit.lock().expect("publication commit");
         let mut current = self.current.write().expect("generation lock");
         update(Arc::make_mut(&mut current));
     }
@@ -1281,6 +1286,7 @@ impl<'a> Runtime<'a> {
         generation: &Generation,
     ) -> Result<(), RuntimeError> {
         let _lease = self.begin_active()?;
+        let _commit = self.publication_commit.lock().expect("publication commit");
         let mut current = self.current.write().expect("generation lock");
         let mut next = current.config.clone();
         for (id, entry) in &generation.providers {
@@ -1304,6 +1310,7 @@ impl<'a> Runtime<'a> {
             .providers
             .get(id)
             .ok_or_else(|| RuntimeError::InvalidArgs("custom provider unavailable".into()))?;
+        let _commit = self.publication_commit.lock().expect("publication commit");
         let mut current = self.current.write().expect("generation lock");
         let mut next = current.config.clone();
         next.providers.insert(id.into(), entry.clone());
@@ -1689,23 +1696,23 @@ impl<'a> Runtime<'a> {
         self.start_mcp()?;
         // This low-level replacement has no newly pinned source descriptors.
         // Application reload builds a complete Composition/runtime instead.
-        let id = self.generation_id() + 1;
+        let expected = self.current.read().expect("generation lock").clone();
+        let id = expected.id.checked_add(1).ok_or(RuntimeError::Storage)?;
+        let mut candidate = expected.as_ref().clone();
+        candidate.generation = PublishedGeneration {
+            id,
+            config: generation.clone(),
+        };
+        candidate.mcp_activation = None;
         self.mcp_owner()
             .reconcile(
-                self.quarantined_mcp_config(generation.clone()),
+                self.quarantined_mcp_config(generation),
                 id,
                 None,
                 true,
+                Some(self.source_commit(expected, candidate)),
             )
             .await?;
-        self.mcp_activation.write().expect("MCP activation").take();
-        {
-            let mut current = self.current.write().expect("generation lock");
-            Arc::make_mut(&mut current).generation = PublishedGeneration {
-                id,
-                config: generation,
-            };
-        }
         Ok(id)
     }
 
@@ -1789,13 +1796,13 @@ impl<'a> Runtime<'a> {
         if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
             return Err(RuntimeError::McpShutdown);
         }
-        let config = self
-            .quarantined_mcp_config(self.current.read().expect("generation lock").config.clone());
+        let published = self.current.read().expect("generation lock").clone();
+        let config = self.quarantined_mcp_config(published.config.clone());
         self.mcp_owner().start(
             config,
             self.roots.project.clone(),
             self.parent_env.clone(),
-            self.mcp_activation.read().expect("MCP activation").clone(),
+            published.mcp_activation.clone(),
         )
     }
 
@@ -1879,7 +1886,7 @@ impl<'a> Runtime<'a> {
     }
 
     pub(crate) fn set_mcp_activation(&self, activation: Arc<crate::composition::McpActivation>) {
-        *self.mcp_activation.write().expect("MCP activation") = Some(activation);
+        self.update_execution(|view| view.mcp_activation = Some(activation));
     }
 
     async fn retire_poisoned_mcp(&self) -> Result<(), RuntimeError> {
@@ -1923,16 +1930,8 @@ impl<'a> Runtime<'a> {
                 retryable: false,
             });
         }
-        let attached = self.mcp_owner().request(cancel).await?;
-        let current = self.current.read().expect("generation lock");
-        if attached.admitted.as_ref() != &current.config.mcp {
-            // An interrupted publication cannot graft another desired MCP
-            // authority onto this execution view. An unrelated counter change
-            // with identical admitted inputs is not itself a refusal.
-            return Err(RuntimeError::InvalidArgs(
-                "MCP source publication is not admitted; reload configuration".into(),
-            ));
-        }
+        self.mcp_owner().request(cancel).await?;
+        let (_, attached) = self.fresh_request_view()?;
         Ok(attached)
     }
 
@@ -1942,14 +1941,8 @@ impl<'a> Runtime<'a> {
         &self,
         cancel: &AtomicBool,
     ) -> Result<(Arc<ExecutionGeneration>, Arc<McpGeneration>), RuntimeError> {
-        let attached = self.request_mcp(cancel).await?;
-        let published = self.current.read().expect("generation lock").clone();
-        if attached.admitted.as_ref() != &published.config.mcp {
-            return Err(RuntimeError::InvalidArgs(
-                "MCP source publication is not admitted; reload configuration".into(),
-            ));
-        }
-        Ok((published, attached))
+        self.request_mcp(cancel).await?;
+        self.fresh_request_view()
     }
 
     /// One fresh request takes only clients admitted by its coherent source view
@@ -2056,6 +2049,7 @@ impl<'a> Runtime<'a> {
         } else {
             Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
         };
+        let _commit = self.publication_commit.lock().expect("publication commit");
         let shared_sources = !self
             .current
             .read()

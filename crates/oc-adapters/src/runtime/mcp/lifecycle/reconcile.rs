@@ -9,6 +9,7 @@ impl McpOwner {
         publication: u64,
         activation: Option<Arc<crate::composition::McpActivation>>,
         force: bool,
+        commit: Option<crate::runtime::publication::Commit>,
     ) -> Result<McpSnapshot, RuntimeError> {
         if let Some(error) = self.fatal() {
             return Err(error);
@@ -22,10 +23,11 @@ impl McpOwner {
         let (ack, reply) = oneshot::channel();
         sender
             .send(Command::Reconcile {
-                config,
+                config: Box::new(config),
                 publication,
                 activation,
                 force,
+                commit,
                 ack,
             })
             .await
@@ -41,6 +43,7 @@ impl Scope {
         publication: u64,
         activation: Option<Arc<crate::composition::McpActivation>>,
         force: bool,
+        commit: Option<crate::runtime::publication::Commit>,
     ) -> Result<McpSnapshot, RuntimeError> {
         if self.stopping || self.shared.stop.load(Ordering::SeqCst) {
             return Err(RuntimeError::McpShutdown);
@@ -68,6 +71,15 @@ impl Scope {
         }
         // Admission and all fallible source reads precede retirement. The source
         // coordinator supplies only fully validated, still-current candidates.
+        // No source/read guard spans those reads or any connection handshake.
+        let _gate = commit
+            .as_ref()
+            .map(|commit| commit.gate.lock().expect("publication commit"));
+        if commit.as_ref().is_some_and(|commit| !commit.admitted()) {
+            return Err(RuntimeError::InvalidArgs(
+                "source candidate was superseded".into(),
+            ));
+        }
         let names: Vec<_> = self.nodes.keys().cloned().collect();
         for server in names {
             let next = config.mcp.get(&server);
@@ -133,6 +145,9 @@ impl Scope {
             self.fatal = Some(error.clone());
             self.begin_stop();
             return Err(error);
+        }
+        if let Some(commit) = &commit {
+            commit.publish();
         }
         Ok(self
             .shared

@@ -1080,6 +1080,7 @@ impl Runtime<'_> {
             db: Database::Owned(self.db.shared_handle()),
             location: self.location.clone(),
             current: self.current.clone(),
+            publication_commit: self.publication_commit.clone(),
             child_launch: None,
             active: AtomicBool::new(false),
             protected: self.protected.clone(),
@@ -1093,9 +1094,6 @@ impl Runtime<'_> {
             compression_commit: self.compression_commit.clone(),
             stats: Mutex::new(DcpStats::default()),
             mcp_generation: RwLock::new(self.mcp_generation.read().expect("mcp").clone()),
-            mcp_activation: RwLock::new(
-                self.mcp_activation.read().expect("mcp activation").clone(),
-            ),
             mcp_unsafe_retry: AtomicBool::new(self.mcp_unsafe_retry.load(Ordering::Acquire)),
             mcp_cleanup_failed: AtomicBool::new(self.mcp_cleanup_failed.load(Ordering::Acquire)),
             subagent_seq: AtomicU64::new(0),

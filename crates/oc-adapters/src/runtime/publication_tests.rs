@@ -102,6 +102,7 @@ for line in sys.stdin:
         socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
         let (mut socket, request) = binding_replay_tests::request(&listener).await;
         assert!(request["input"].to_string().contains("RESULT_FROM_FIRST"));
+        assert!(request["input"].to_string().contains("ATOMIC_G2_FRESH"));
         followup.send(()).unwrap();
         if ready.await.unwrap() {
             binding_replay_tests::respond(
@@ -115,6 +116,7 @@ for line in sys.stdin:
             assert!(tools.iter().any(|tool| tool["name"] == "peer__second"));
             assert!(tools.iter().all(|tool| tool["name"] != "peer__first"));
             assert!(request["input"].to_string().contains("SETTLED_LOCAL_NOTE"));
+            assert!(request["input"].to_string().contains("ATOMIC_G2_FRESH"));
             binding_replay_tests::respond(
                 &mut socket,
                 crate::provider::protocol::Protocol::Responses,
@@ -145,16 +147,26 @@ for line in sys.stdin:
     });
     let publication = async {
         held.await.unwrap();
-        let mut next = owner.current.read().unwrap().config.clone();
-        next.mcp.insert("peer".into(), entry("second"));
+        let previous = owner.current.read().unwrap().clone();
+        let mut next = previous.as_ref().clone();
+        next.generation.id = 2;
+        next.generation
+            .config
+            .mcp
+            .insert("peer".into(), entry("second"));
+        next.workspace.fixed_input =
+            vec![InputItem::message(InputRole::Developer, "ATOMIC_G2_FRESH")];
+        next.workspace.agent_digest = Some("G2_ATOMIC_PROFILE".into());
         supervisor
-            .reconcile(next.clone(), 2, None, false)
+            .reconcile(
+                next.config.clone(),
+                2,
+                None,
+                false,
+                Some(owner.source_commit(previous, next)),
+            )
             .await
             .unwrap();
-        owner.update_execution(|view| {
-            view.generation.id = 2;
-            view.generation.config = next;
-        });
         release.send(()).unwrap();
         next_request.await.unwrap();
         let progressed = tokio::time::timeout(Duration::from_secs(2), async {
