@@ -15,6 +15,178 @@ fn configless(root: &Path) -> std::path::PathBuf {
 }
 
 #[tokio::test]
+async fn conn05_location_switch_joins_old_saved_refresh_and_attaches_scoped_key_before_selection() {
+    use crate::storage::provider_connections::CatalogState;
+    use oc_core::queries::{AccountAuthSource, ProviderStatus};
+    let root = tempfile::tempdir().unwrap();
+    let project = configless(root.path());
+    let target = root.path().join("target");
+    std::fs::create_dir(&target).unwrap();
+    let data = root.path().join("data");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/switch-prefix", listener.local_addr().unwrap());
+    let row = {
+        let db = Db::open(&data).unwrap();
+        let row = db
+            .create_custom_provider(
+                &CustomProviderInput {
+                    name: "Saved across Locations".into(),
+                    base_url: base,
+                    auth: CustomProviderAuth::Key(KeyInput::new("LOCATION_KEY_CANARY".into())),
+                },
+                NativeProtocol::Chat,
+                |_| true,
+            )
+            .unwrap();
+        db.save_custom_catalog(
+            &row.id,
+            row.revision,
+            &BTreeMap::from([(
+                "saved/exact".into(),
+                serde_json::json!({"name":"Saved before refresh"}),
+            )]),
+            CatalogState::Ready,
+        )
+        .unwrap();
+        row
+    };
+    std::fs::write(
+        target.join("opencode.json"),
+        serde_json::json!({
+            "disabled_providers":["opencode-go","openai"],
+            "model":format!("{}/saved/exact", row.id)
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let (arrived, held) = oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut buffer = [0; 4096];
+        let count = stream.read(&mut buffer).await.unwrap();
+        let headers = String::from_utf8_lossy(&buffer[..count]).to_ascii_lowercase();
+        assert!(headers.starts_with("get /switch-prefix/models "));
+        assert!(headers.contains("authorization: bearer location_key_canary"));
+        arrived.send(()).unwrap();
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(3), stream.read(&mut buffer))
+                .await
+                .unwrap()
+                .unwrap(),
+            0
+        );
+        listener
+    });
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let initial = app.catalog().await.unwrap();
+    app.custom_provider(CustomProviderAction::Refresh {
+        provider: row.id.clone(),
+    })
+    .await
+    .unwrap();
+    tokio::time::timeout(Duration::from_secs(3), held)
+        .await
+        .unwrap()
+        .unwrap();
+    // The saved provider is not the source selection, and its held HTTP does not own the actor.
+    assert_eq!(
+        app.catalog().await.unwrap().selected_model(),
+        initial.selected_model()
+    );
+    let switched = app
+        .switch_location_home(target.to_string_lossy().into_owned())
+        .await
+        .unwrap();
+    let listener = peer.await.unwrap();
+    assert_eq!(switched.catalog.provider, row.id);
+    assert_eq!(switched.catalog.model_id, "saved/exact");
+    assert_eq!(
+        switched.catalog.chrome.provider.as_ref().unwrap().status,
+        ProviderStatus::Ready
+    );
+    assert_eq!(
+        switched
+            .catalog
+            .chrome
+            .provider
+            .as_ref()
+            .unwrap()
+            .catalog_status,
+        ProviderStatus::Ready
+    );
+    assert_eq!(
+        switched.catalog.models[0].display_name,
+        "Saved before refresh"
+    );
+    assert_eq!(
+        app.provider_accounts(row.id.clone(), None)
+            .await
+            .unwrap()
+            .effective,
+        AccountAuthSource::Stored
+    );
+    let peer = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let request = response(&mut stream, serde_json::json!({"object":"list","data":[]})).await;
+        assert!(request.starts_with("GET /switch-prefix/models "));
+    });
+    app.custom_provider(CustomProviderAction::Refresh {
+        provider: row.id.clone(),
+    })
+    .await
+    .unwrap();
+    let retired = tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let snapshot = app.catalog().await.unwrap();
+            if snapshot.chrome.provider.as_ref().unwrap().catalog_status == ProviderStatus::Ready {
+                break snapshot;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    peer.await.unwrap();
+    assert!(retired.models.is_empty());
+    assert_eq!(
+        retired.model_id,
+        selection_identity("model", "saved/exact"),
+        "retirement retains the exact choice as its existing safe unavailable identity"
+    );
+    assert!(retired.chrome.selection.is_some());
+    assert_eq!(
+        retired.chrome.provider.as_ref().unwrap().status,
+        ProviderStatus::Unavailable
+    );
+    let restored = app
+        .switch_location_home(project.to_string_lossy().into_owned())
+        .await
+        .unwrap();
+    assert_eq!(restored.catalog.selected_model(), initial.selected_model());
+    assert!(
+        app.provider_catalog(row.id.clone())
+            .await
+            .unwrap()
+            .models
+            .is_empty()
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    let saved = Db::open(&data)
+        .unwrap()
+        .custom_providers()
+        .unwrap()
+        .pop()
+        .unwrap();
+    assert_eq!(saved.revision, 1);
+    assert_eq!(saved.catalog_revision, Some(1));
+    assert!(saved.models.is_empty());
+    assert_eq!(saved.state, CatalogState::Ready);
+}
+
+#[tokio::test]
 async fn conn05_invalid_replacement_joins_old_probe_without_storage_effects() {
     let root = tempfile::tempdir().unwrap();
     let project = configless(root.path());

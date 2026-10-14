@@ -171,6 +171,28 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
             .await
             .unwrap();
         arrival.await.unwrap();
+        for action in [
+            oc_core::queries::CustomProviderAction::Probe {
+                input: oc_core::queries::CustomProviderInput {
+                    name: "Must not publish during an issued request".into(),
+                    base_url: "http://127.0.0.1:1/never".into(),
+                    auth: oc_core::queries::CustomProviderAuth::Anonymous,
+                },
+                cancel: Arc::new(AtomicBool::new(false)),
+            },
+            oc_core::queries::CustomProviderAction::Save {
+                revision: u64::MAX,
+                protocol: oc_core::queries::NativeProtocol::Chat,
+            },
+            oc_core::queries::CustomProviderAction::Refresh {
+                provider: "custom-unissued".into(),
+            },
+        ] {
+            assert_eq!(
+                app.custom_provider(action).await,
+                Err(oc_core::session::CoreError::TurnBusy)
+            );
+        }
         assert_eq!(
             app.provider_accounts(
                 "fixture".into(),
@@ -294,6 +316,7 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
                 .any(|i| i["call_id"] == "b-call" && i["type"] == "function_call_output")
         );
         let db = Db::open(&data).unwrap();
+        assert!(db.custom_providers().unwrap().is_empty());
         let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
         assert_eq!(
             std::fs::read(project.join("background-provenance")).unwrap(),

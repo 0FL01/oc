@@ -160,6 +160,19 @@ async fn tool19_admitted_generation_recovery_rejects_changed_config_and_home_is_
     std::fs::write(&config,r#"{"model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}"#).unwrap();
     let db = Db::open(&data).unwrap();
     db.create_bound_session("root", "/source").unwrap();
+    let custom = db
+        .create_custom_provider(
+            &oc_core::queries::CustomProviderInput {
+                name: "Move destination service".into(),
+                base_url: "http://192.168.1.2/literal".into(),
+                auth: oc_core::queries::CustomProviderAuth::Key(oc_core::queries::KeyInput::new(
+                    "MOVE_CUSTOM_CANARY".into(),
+                )),
+            },
+            oc_core::queries::NativeProtocol::Messages,
+            |_| true,
+        )
+        .unwrap();
     let record = MoveRecord {
         operation: "move-op".into(),
         session: "root".into(),
@@ -171,6 +184,14 @@ async fn tool19_admitted_generation_recovery_rejects_changed_config_and_home_is_
     let prepared = crate::application::session_move::prepare(&db, record, BTreeMap::new())
         .await
         .unwrap();
+    let moved_provider = prepared.composition.provider_for(&custom.id).unwrap();
+    assert_eq!(moved_provider.api_key, "MOVE_CUSTOM_CANARY");
+    assert_eq!(
+        moved_provider.wire.protocol,
+        crate::provider::protocol::Protocol::Messages
+    );
+    assert!(moved_provider.wire.custom_scope.is_some());
+    assert!(!moved_provider.allow_private);
     let frozen = prepared.record.clone();
     assert!(
         crate::application::session_move::prepare(&db, frozen.clone(), BTreeMap::new())

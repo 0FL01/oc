@@ -2212,6 +2212,108 @@ async fn refused_reload_consumes_provider_facts_before_feedback_and_late_hint() 
 }
 
 #[tokio::test]
+async fn conn05_provider_publication_refreshes_mounted_parked_and_home_filtered_views() {
+    use oc_core::queries::{McpBinding, McpSnapshot};
+    let (app, mut inbox, _) = CoreApp::channel(8);
+    let mut old = catalog();
+    old.chrome.location = Some("/fixture".into());
+    let mut browse = old.clone();
+    browse.provider = "custom-exact".into();
+    browse.chrome.custom_connection = true;
+    let mut state = TuiState::new(app.clone(), SessionId("mounted".into()));
+    let mut parked = TuiState::new(app.clone(), SessionId("parked".into()));
+    let mut home = TuiState::new_home(app.clone());
+    for view in [&mut state, &mut parked, &mut home] {
+        view.apply_catalog(old.clone());
+        view.handle_key(KeyAction::Commands).await;
+        view.handle_paste("Switch model");
+        tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            view.handle_key(KeyAction::Enter),
+        )
+        .await
+        .unwrap();
+        assert_eq!(view.panel(), &TuiPanel::Model);
+        view.apply_picker_catalog(browse.clone());
+        assert_eq!(view.picker_provider_filter(), Some("custom-exact"));
+        view.restore_prompt("captured draft".into());
+    }
+    let mut deck = LoopState {
+        tabs: vec![Some(parked)],
+        home: Some(home),
+        ..Default::default()
+    };
+    let mut fresh = browse;
+    fresh.models = vec![oc_core::queries::ModelEntry {
+        id: "new/exact-model".into(),
+        display_name: "CONN05 supplied fresh metadata".into(),
+        ..Default::default()
+    }];
+    let worker = tokio::spawn(async move {
+        for expected in [Some("mounted"), Some("parked"), None] {
+            match (inbox.recv().await.unwrap(), expected) {
+                (InboxMsg::SessionSelection { session, ack, .. }, Some(expected)) => {
+                    assert_eq!(session.0, expected);
+                    ack.send(Ok(old.clone())).unwrap();
+                }
+                (InboxMsg::HomeSelection { ack, .. }, None) => {
+                    ack.send(Ok(old.clone())).unwrap();
+                }
+                _ => panic!("publication must query the original view owner"),
+            }
+            let InboxMsg::ProviderCatalog { provider, ack } = inbox.recv().await.unwrap() else {
+                panic!("filtered provider view")
+            };
+            assert_eq!(provider, "custom-exact");
+            ack.send(Ok(fresh.clone())).unwrap();
+        }
+        let InboxMsg::McpStatus { ack } = inbox.recv().await.unwrap() else {
+            panic!("surviving MCP facts")
+        };
+        ack.send(Ok(McpSnapshot {
+            binding: McpBinding {
+                location: "/fixture".into(),
+                generation: 1,
+                instance: 1,
+            },
+            revision: 1,
+            servers: vec![],
+        }))
+        .unwrap();
+        assert!(
+            inbox.try_recv().is_err(),
+            "metadata refresh must not issue a selection mutation"
+        );
+    });
+    tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        refresh_provider_views(&app, &mut state, &mut deck),
+    )
+    .await
+    .unwrap();
+    worker.await.unwrap();
+    for view in [
+        &state,
+        deck.tabs[0].as_ref().unwrap(),
+        deck.home.as_ref().unwrap(),
+    ] {
+        assert_eq!(view.input(), "captured draft");
+        assert_eq!(view.picker_provider_filter(), Some("custom-exact"));
+        assert!(
+            oc_tui::views::panel_lines(view)
+                .join("\n")
+                .contains("CONN05 supplied fresh metadata")
+        );
+    }
+    assert_eq!(state.attached_session().unwrap().0, "mounted");
+    assert_eq!(
+        deck.tabs[0].as_ref().unwrap().attached_session().unwrap().0,
+        "parked"
+    );
+    assert!(deck.home.as_ref().unwrap().attached_session().is_none());
+}
+
+#[tokio::test]
 async fn failed_selection_after_owner_reload_keeps_every_view_and_draft() {
     use oc_core::queries::{
         McpBinding, McpServerSnapshot, McpSnapshot, McpStatus, TerminalCopyMode,

@@ -5,7 +5,7 @@ use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT}
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[cfg(test)]
 mod tests;
@@ -14,6 +14,18 @@ pub(crate) struct CustomCatalog {
     pub(crate) models: BTreeMap<String, Value>,
     /// An OpenAI list is deliberately ambiguous. Only the Anthropic envelope is evidence.
     pub(crate) suggested: Option<NativeProtocol>,
+}
+
+// A wall-clock adjustment must not renew the shared pagination/retry budget.
+struct MonotonicClock(Instant);
+impl Clock for MonotonicClock {
+    fn now_ms(&self) -> u64 {
+        self.0.elapsed().as_millis().try_into().unwrap_or(u64::MAX)
+    }
+
+    async fn sleep_ms(&self, ms: u64) {
+        tokio::time::sleep(Duration::from_millis(ms)).await;
+    }
 }
 
 fn text(value: &Value, limit: usize) -> Result<&str, DiscoveryError> {
@@ -238,7 +250,7 @@ pub(crate) async fn probe(
     };
     let client = discovery::ReqwestDiscoveryClient::captured(&provider)?;
     discover(
-        &discovery::RealClock,
+        &MonotonicClock(Instant::now()),
         &client,
         &input.base_url,
         key.as_deref(),
@@ -261,7 +273,7 @@ pub(crate) async fn refresh_provider(
     };
     let client = discovery::ReqwestDiscoveryClient::captured(&provider)?;
     discover(
-        &discovery::RealClock,
+        &MonotonicClock(Instant::now()),
         &client,
         &provider.base_url,
         (provider.wire.auth_policy == crate::auth::AuthPolicy::Key)
@@ -374,6 +386,32 @@ pub(crate) async fn discover(
             return Err(DiscoveryError::InvalidResponse);
         }
         family = Some(anthropic);
+        let more = match value.get("has_more") {
+            None if !anthropic => false,
+            Some(Value::Bool(more)) => *more,
+            _ => return Err(DiscoveryError::InvalidResponse),
+        };
+        // OpenAI's list has no standard cursor contract. Never publish a known partial list.
+        if !anthropic && more {
+            return Err(DiscoveryError::InvalidResponse);
+        }
+        let next = if anthropic {
+            value
+                .get("last_id")
+                .filter(|value| !value.is_null())
+                .map(|value| text(value, 4096))
+                .transpose()?
+        } else {
+            None
+        };
+        if next.is_some_and(|next| {
+            rows.last()
+                .and_then(|row| row.get("id"))
+                .and_then(Value::as_str)
+                != Some(next)
+        }) {
+            return Err(DiscoveryError::InvalidResponse);
+        }
         for row in rows {
             if models.len() >= discovery::DISCOVERY_ROWS_CAP {
                 return Err(DiscoveryError::InvalidResponse);
@@ -383,7 +421,7 @@ pub(crate) async fn discover(
                 return Err(DiscoveryError::InvalidResponse);
             }
         }
-        if !anthropic || value.get("has_more").and_then(Value::as_bool) == Some(false) {
+        if !more {
             let encoded =
                 serde_json::to_string(&models).map_err(|_| DiscoveryError::InvalidResponse)?;
             if encoded.len() > discovery::DISCOVERY_BODY_CAP
@@ -391,27 +429,22 @@ pub(crate) async fn discover(
             {
                 return Err(DiscoveryError::InvalidResponse);
             }
+            if cancel.load(Ordering::Relaxed) {
+                return Err(DiscoveryError::Cancelled);
+            }
+            if clock.now_ms() >= deadline {
+                return Err(DiscoveryError::Network);
+            }
             return Ok(CustomCatalog {
                 models,
                 suggested: anthropic.then_some(NativeProtocol::Messages),
             });
         }
-        if value.get("has_more").and_then(Value::as_bool) != Some(true) || rows.is_empty() {
+        if rows.is_empty() {
             return Err(DiscoveryError::InvalidResponse);
         }
-        let next = text(
-            value
-                .get("last_id")
-                .ok_or(DiscoveryError::InvalidResponse)?,
-            4096,
-        )?;
-        if rows
-            .last()
-            .and_then(|row| row.get("id"))
-            .and_then(Value::as_str)
-            != Some(next)
-            || !cursors.insert(next.to_owned())
-        {
+        let next = next.ok_or(DiscoveryError::InvalidResponse)?;
+        if !cursors.insert(next.to_owned()) {
             return Err(DiscoveryError::InvalidResponse);
         }
         cursor = Some(next.into());

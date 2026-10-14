@@ -47,6 +47,27 @@ impl DiscoveryClient for Client {
     }
 }
 
+struct TimedClient<'a> {
+    clock: &'a ClockFake,
+    inner: Client,
+    elapsed: Mutex<std::collections::VecDeque<u64>>,
+    timeouts: Mutex<Vec<Duration>>,
+}
+impl DiscoveryClient for TimedClient<'_> {
+    async fn get(
+        &self,
+        url: &str,
+        headers: &HeaderMap,
+        timeout: Duration,
+    ) -> Result<(u16, Vec<u8>), DiscoveryError> {
+        self.timeouts.lock().unwrap().push(timeout);
+        let elapsed = self.elapsed.lock().unwrap().pop_front().unwrap();
+        assert!(u128::from(elapsed) <= timeout.as_millis());
+        self.clock.0.fetch_add(elapsed, Ordering::Relaxed);
+        self.inner.get(url, headers, timeout).await
+    }
+}
+
 async fn run(client: &Client, key: Option<&str>) -> Result<CustomCatalog, DiscoveryError> {
     discover(
         &ClockFake::default(),
@@ -143,6 +164,10 @@ async fn conn02_empty_complete_partial_duplicate_progress_and_no_page_count_assu
     .unwrap();
     assert!(empty.models.is_empty());
     for response in [
+        json!({"object":"list","data":[{"id":"a"}],"has_more":true,"last_id":"a"}),
+        json!({"object":"list","data":[],"has_more":"false"}),
+        json!({"data":[{"id":"a"}],"has_more":false,"last_id":"wrong"}),
+        json!({"data":[],"has_more":false,"last_id":"a"}),
         json!({"data":[{"id":"a"}],"has_more":true,"last_id":"wrong"}),
         json!({"data":[],"has_more":true,"last_id":"a"}),
         json!({"object":"list","data":[{"id":"same"},{"id":"same"}]}),
@@ -235,4 +260,80 @@ async fn conn02_retry_clock_cancel_total_bytes_rows_and_secret_refusal() {
         .await
         .is_err()
     );
+}
+
+#[tokio::test]
+async fn conn02_one_total_deadline_covers_pages_auth_candidates_and_retry_delays() {
+    for first in [
+        (
+            200,
+            json!({"data":[{"id":"a"}],"has_more":true,"last_id":"a"}),
+        ),
+        (401, json!({})),
+    ] {
+        let clock = ClockFake::default();
+        let client = TimedClient {
+            clock: &clock,
+            inner: Client::new(vec![
+                first,
+                (503, json!({})),
+                (
+                    200,
+                    json!({"data":[{"id":"b"}],"has_more":false,"last_id":"b"}),
+                ),
+            ]),
+            elapsed: Mutex::new([14_000, 14_000, 1_750].into()),
+            timeouts: Mutex::new(Vec::new()),
+        };
+        assert!(matches!(
+            discover(
+                &clock,
+                &client,
+                "https://custom.invalid/literal",
+                Some("KEY_DEADLINE_CANARY"),
+                None,
+                &AtomicBool::new(false)
+            )
+            .await,
+            Err(DiscoveryError::Network)
+        ));
+        assert_eq!(clock.now_ms(), discovery::TOTAL_TIMEOUT_MS);
+        assert_eq!(client.inner.requests.lock().unwrap().len(), 3);
+        assert_eq!(
+            *client.timeouts.lock().unwrap(),
+            [15_000, 15_000, 1_750].map(Duration::from_millis)
+        );
+    }
+    let clock = ClockFake::default();
+    let client = TimedClient {
+        clock: &clock,
+        inner: Client::new(vec![
+            (
+                200,
+                json!({"data":[{"id":"a"}],"has_more":true,"last_id":"a"}),
+            ),
+            (
+                200,
+                json!({"data":[{"id":"b"}],"has_more":false,"last_id":"b"}),
+            ),
+        ]),
+        elapsed: Mutex::new([15_000, 14_999].into()),
+        timeouts: Mutex::new(Vec::new()),
+    };
+    assert_eq!(
+        discover(
+            &clock,
+            &client,
+            "https://custom.invalid/literal",
+            None,
+            Some(NativeProtocol::Messages),
+            &AtomicBool::new(false)
+        )
+        .await
+        .unwrap()
+        .models
+        .len(),
+        2
+    );
+    assert_eq!(clock.now_ms(), discovery::TOTAL_TIMEOUT_MS - 1);
 }

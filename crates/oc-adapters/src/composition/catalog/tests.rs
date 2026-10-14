@@ -37,6 +37,17 @@ async fn conn05_saved_custom_catalog_is_read_only_complete_empty_and_revision_aw
         )
         .unwrap();
     let models = BTreeMap::from([("exact/id".into(), serde_json::json!({"name":"Saved name"}))]);
+    let missing = load_catalog_inner(
+        &project,
+        BTreeMap::new(),
+        None,
+        &NoNetwork,
+        false,
+        Some(&data),
+    )
+    .await
+    .unwrap();
+    assert!(!missing.complete && missing.references.is_empty());
     db.save_custom_catalog(&row.id, row.revision, &models, CatalogState::Ready)
         .unwrap();
     // The same writer remains live: this reader must not acquire another root lock.
@@ -52,6 +63,27 @@ async fn conn05_saved_custom_catalog_is_read_only_complete_empty_and_revision_aw
     .unwrap();
     assert!(listing.complete);
     assert_eq!(listing.references, vec![format!("{}/exact/id", row.id)]);
+    // A valid serialized catalog can still belong to a different binding revision.
+    let sql = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    sql.execute(
+        "UPDATE custom_provider_connections SET catalog_revision=2 WHERE id=?1",
+        [&row.id],
+    )
+    .unwrap();
+    let stale = load_catalog_inner(
+        &project,
+        BTreeMap::new(),
+        None,
+        &NoNetwork,
+        false,
+        Some(&data),
+    )
+    .await
+    .unwrap();
+    assert!(!stale.complete);
+    assert_eq!(stale.references, listing.references);
+    db.save_custom_catalog(&row.id, row.revision, &models, CatalogState::Ready)
+        .unwrap();
     db.save_custom_catalog(
         &row.id,
         row.revision,

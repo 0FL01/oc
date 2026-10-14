@@ -194,11 +194,17 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
         try:
             view.paste('draft-kept-界'); before_selection = selections()
             for label,key in [('Zulu','FIRST_KEY_CANARY'),('Alpha','SECOND_KEY_CANARY')]:
-                view.methods(); view.send(b'jj\r'); view.see('Account label'); view.paste(label); view.send(b'\r')
+                view.methods(); view.send(b'jj\r')
                 view.see('API key (masked)'); view.paste(key); view.see('•••••'); view.send(b'\r')
                 view.see('OpenAI collision'); view.see('OpenAI ordinary')
                 wait(lambda: len(accounts())==(1 if label=='Zulu' else 2), 'durable key acknowledgement')
                 assert selections()==before_selection, 'account acknowledgement cannot commit model or retarget collision'
+                view.send(b'\x1b'); view.see('draft-kept-界')
+                view.connect(); view.see('default [active]')
+                assert any(name=='default' and active for _,name,active in accounts()), 'key connects with the default label before optional Rename'
+                view.click('default [active]'); view.send(b'r'); view.see('Rename account')
+                view.send(b'\x7f'*7); view.paste(label); view.send(b'\r'); view.see(label+' [active]')
+                assert selections()==before_selection, 'optional Rename cannot commit a model'
                 view.send(b'\x1b'); view.see('draft-kept-界')
             view.connect(); view.see('Add account'); view.see('Alpha [active]'); view.see('Zulu')
             view.send(b'jj\r'); wait(lambda: accounts()==[(accounts()[0][0],'Alpha',0),(accounts()[1][0],'Zulu',1)], 'explicit activation')

@@ -15,6 +15,70 @@ mod identity_tests {
     }
 }
 
+#[tokio::test]
+async fn conn05_custom_publication_keeps_captured_generation_policy_and_mcp_lease() {
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    owner.start_mcp().unwrap();
+    let cancel = AtomicBool::new(false);
+    let captured_mcp = owner.request_mcp(&cancel).await.unwrap();
+    let mcp_owner = owner.mcp_owner();
+    let captured = owner.current.read().unwrap().clone();
+    let captured_config = captured.config.clone();
+    let id = "custom-00000000000000000000000000000001";
+    let mut proposed = Generation::default();
+    proposed.permissions.insert("read".into(), Permission::Deny);
+    proposed.providers.insert(
+        id.into(),
+        crate::config::ProviderEntry {
+            npm: Some("@ai-sdk/openai-compatible".into()),
+            name: Some("New native connection".into()),
+            env: Vec::new(),
+            options: Default::default(),
+            models: BTreeMap::from([("exact/new".into(), serde_json::json!({"name":"New model"}))]),
+        },
+    );
+    // An issued execution owns its captured request/tools; connection publication is idle-only.
+    let active = owner.begin_active().unwrap();
+    assert!(matches!(
+        owner.publish_custom_provider(id, &proposed),
+        Err(RuntimeError::TurnActive)
+    ));
+    assert!(Arc::ptr_eq(&captured, &owner.current.read().unwrap()));
+    drop(active);
+    owner.publish_custom_provider(id, &proposed).unwrap();
+    let next = owner.current.read().unwrap().clone();
+    assert_eq!(next.id, captured.id);
+    let mut expected = captured_config.clone();
+    expected
+        .providers
+        .insert(id.into(), proposed.providers[id].clone());
+    assert_eq!(
+        next.config, expected,
+        "only the intended provider entry is published"
+    );
+    assert_eq!(
+        captured.config, captured_config,
+        "previous request view remains immutable"
+    );
+    assert!(!captured.config.providers.contains_key(id));
+    assert!(next.config.providers[id].models.contains_key("exact/new"));
+    assert!(Arc::ptr_eq(&mcp_owner, &owner.mcp_owner()));
+    // A new Command::Request may publish another ephemeral view normally. Check
+    // this connection publication itself, without issuing that separate command.
+    let next_mcp = owner.mcp_owner().request_view().unwrap();
+    assert!(
+        Arc::ptr_eq(&captured_mcp, &next_mcp),
+        "unrelated attached MCP view is not rebuilt"
+    );
+    assert!(db.list_sessions().unwrap().is_empty());
+    drop(captured_mcp);
+    drop(next_mcp);
+    owner.shutdown_mcp().await.unwrap();
+}
+
 #[path = "controls_tests.rs"]
 mod controls_tests;
 
