@@ -43,7 +43,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
   - Status: in_progress.
-  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186`/`85cbd3afc` below; composed HOT01 pending.
+  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186`/`85cbd3afc`/`78b3bf95a` below; composed HOT01 pending.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
     команды reload и runtime connect/disconnect из требования владельца.
@@ -321,10 +321,10 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
    `a9be5d0d4` rejects malformed mandatory replacements before optional effects;
     `823273e04` fences MCP worker results/cleanup by physical incarnation;
     `e64e825a2` reconciles desired clients on that supervisor with leased retirement.
-     `bdafd9d19` retains finite loader observations. Next integrate the actual watcher
-     and application candidate path, then complete
-   staged publication, checking initial preparation across MCP awaits before enabling
-   busy publication and composing public HOT01 evidence.
+     `bdafd9d19` retains finite loader observations; `78b3bf95a` fixes initial capture
+     across MCP awaits and releases physical clients at the issued batch boundary.
+     Next integrate the actual watcher and complete atomic application candidate path
+     before enabling busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
@@ -427,17 +427,31 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   parent traversal, dotenv discovery and client-only CLI files do not extend this scope.
   Canonical definition targets come from pinned descriptors, not a raced lexical reopen.
   Topology is independently bounded at4096 targets/1MiB path bytes with typed failure.
-- Current gates: two `hot02_watch_` owner cases pass; strict adapter all-target clippy,
+- Earlier `bdafd9d19` gates: two `hot02_watch_` owner cases pass; strict adapter all-target clippy,
   adapter tests 1051 passed / 0 failed / 5 existing opt-in ignored (19 result records),
   fmt/docs/diff checks pass. Logs `.local/evidence/t61-watch-inputs-*.log`. No watcher,
   kernel watch allocation, completed candidate coordinator or new active publication is
   claimed. The full workspace above belongs to the earlier source, not this slice.
+- Current `78b3bf95a` evidence: one actual MCP call issued on G1 finishes after desired
+  G2 retirement; its settled result reaches the next same-task request. While that
+  follow-up is held, the old stdio PID is reaped and its latest replacement connects
+  on the same supervisor. The following request advertises only the new catalog,
+  retaining the settled local result; two effects execute exactly once, receipts [1,2,2].
+  Initial lane/profile and finite provider catalog are captured coherently after MCP
+  awaits. Retiring the exact model during that await refuses before user acceptance
+  or provider dispatch. Child admission/previews use current services intersected with
+  all launch ceilings; initial degradation reporting retains no physical clients.
+- Current gates: eleven `hot01_` owner cases; strict workspace all-target clippy;
+  workspace tests 1961 passed / 0 failed / 12 existing opt-in ignored (46 result records);
+  fmt/docs/diff checks pass. Logs `.local/evidence/t61-mcp-batch-lease-*.log`. The red
+  case proved a whole-task initial lease prevented same-task physical replacement.
+  No public busy reload, actual watcher, shared host or client settings is claimed.
 - Next: actual watcher/re-arm and single watch/manual coordinator, including observations
   from failed candidates and later admitted nested instructions/explicit activation.
   Complete atomic application publication and remaining quarantine/retirement lifetime.
-  Before public busy adoption, reconcile initial capture across MCP awaits and release
-  the initial full-turn MCP view at its request/batch boundary: retaining it for a whole
-  task would prevent a changed service from reaping before the next same-task request.
+  Before public busy adoption, coordinate execution/MCP source commit so preparation
+  cannot observe a half-published candidate. Dynamic MCP notification adoption and
+  poisoned-owner/late-quarantine lifetime remain part of that integration.
   R3–R5 remain pending.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.

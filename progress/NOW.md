@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T22:30:02+00:00
+State updated: 2026-10-14T23:07:50+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,37 +14,40 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: R1/R2 partial, R3–R5 pending. Source bdafd9d19 adds finite
-admitted loader observations; no running watcher/coordinator or busy reload is claimed.
+T61 IN_PROGRESS: source78b3bf95a closes the initial MCP capture/full-task lease gap.
+R1/R2 remain partial; R3–R5 and public HOT01–HOT04 delivery remain pending.
 
 ## Checks
 
-- Two actual-loader/descriptor cases pass: known missing roots are not created;
-  lexical/canonical sources, recursive definition aliases, missing skill files and
-  selected/unselected provider dependencies are retained. Disabled templates, refused
-  traversal, dotenv and client-only CLI inputs remain outside server watch scope.
-- Captured env substitution remains exact without storing its values in topology;
-  a raced lexical replacement cannot redirect descriptor-derived canonical observation.
-- Duplicates are free; 4096-target/1MiB path bounds fail with safe typed diagnostics.
-- Current strict adapter all-target clippy and adapter tests pass: 1051 passed,
-  0 failed, 5 existing opt-in ignored, 19 result records. Fmt/docs/diff checks pass.
-  Logs .local/evidence/t61-watch-inputs-*.log. Earlier 1957 workspace belongs to e64e825a2.
+- Real provider/stdio barrier: issued G1 MCP call completes after G2 retirement;
+  its settled result reaches the next request. While that request is held, old PID
+  is reaped and the latest replacement connects on the SAME supervisor. Next request
+  advertises new-only tools, retains local result, receipts [1,2,2], exactly two effects.
+  Both PIDs are joined, including the deliberately failing pre-fix path.
+- Single-threaded initial request ACK barrier: new profile/catalog is adopted coherently
+  after the MCP await. Exact model retirement refuses before user acceptance/HTTP.
+- Initial leases move into admission and are released before fresh preparation;
+  physical leases remain pinned through each prepared retry and complete issued batch.
+  Child admission/previews retain launch/ancestor ceilings, not an old physical view.
+- Current eleven hot01 owner cases pass. Strict workspace all-target clippy and
+  locked workspace tests pass:1961 passed/0 failed/12 existing opt-in ignored,
+  46 result records. Fmt/docs/diff checks pass. Logs t61-mcp-batch-lease-*.log.
 
 ## Risks
 
-No actual notify allocation, failed-candidate observation handoff, nested-instruction
-or explicit-activation watch integration yet. Application reload still replaces its
-runtime. Poisoned-owner lifetime and initial capture/MCP leases need consolidation.
-No release rebuild/current live/paired visual/HOT01–HOT04 completion claim. No push,
-auth retry, live env/credential read, paid request, dependency/schema/store/framework.
-T44 remote blocker and separate VIS46 handoff remain unchanged.
+No public busy reload, actual watcher, atomic application pipeline, shared host,
+client settings, release rebuild/current live or paired visual/HOT completion claim.
+Notify 8.2 usage scout completed read-only; its Linux Drop is not a joined worker,
+so watcher lifecycle must be established before selecting that implementation.
+No push/auth retry, live env/credential read or paid request. T44 remote blocker/VIS46
+separate handoff unchanged; source metadata slice bdafd9d19 remains qualified.
 
 ## Next
 
-Finish initial MCP capture and request/full-batch lease release before enabling busy
-publication: an initial view held for the full task would block service replacement
-before its next request. Implement actual watcher/re-arm and one staged watch/manual
-pipeline, then R3–R5. A read-only notify usage scout is independent; do not duplicate it.
+Actual watcher/re-arm plus one staged watch/manual pipeline, including failed-candidate
+and later nested/activation observations. Atomically coordinate execution/MCP source
+commit; finish notification adoption and poisoned-owner/shared quarantine lifetime.
+Then R3–R5. No completed source slice is a whole-task finish or product READY.
 
 
 Ready (до 5): нет
