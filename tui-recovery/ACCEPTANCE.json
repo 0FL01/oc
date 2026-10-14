@@ -741,6 +741,16 @@
       "mandatory": true,
       "execution_status": "NOT_RUN",
       "evidence": []
+    },
+    {
+      "id": "VIS46",
+      "step": "V06",
+      "title": "Code Mode execute inline nested calls and execute detail dialog",
+      "expected": "Follow T44_CONTRACT_AMENDMENT.md Code Mode execute parity — VIS46 (2026-10-14). Additive bounded redacted Presentation.execute facts (ordered runtime nested calls tool/fetch, running/completed/error, primitive-summarizable input, calls_limited, error, elapsed_ms) plus disposable coalesced ToolCallProgress snapshots under the one execute op; final facts in ToolCallFinished and durable row so live equals replay/reopen/restart without re-execution. Legacy rows keep the Generic card. Inline parent spinner/check/red cross + execute, child rows › or red cross + `tool [k=v, …]` primitive-only collapsed truncated, child click toggles key/value view, failed parent collapsed ≤4-line error toggle; non-error parent mouse-up without selection opens execute dialog: header status Receiving code…/Running/Failed/Completed · duration and esc, TypeScript Code, Output JSON line-numbered syntax or wrapped text with Warnings/Logs split, ≤70% height scroll/PgUp/PgDn/horizontal pan, c copy code/o copy output with clickable hints, esc back, follows live progress. Nested admission/approval/MCP/webfetch guards (CM07/CM08) unchanged; denied nested calls visible as error rows. Owner tests, rebuilt debug/release PTY fake provider/MCP, then running pinned-original/native full paired styled-cell/PNG/cursor frames at representative profiles. Declared differences: runtime run-time duration, no donor files attachments. No native-only golden/OCR parity. T44 PAUSED until explicit resume, T60 DONE and historical VIS01–VIS45 statuses untouched, new mandatory case pending/NOT_RUN.",
+      "sources": ["U02", "U49", "U52", "U133", "U134", "U135", "U136", "U137"],
+      "mandatory": true,
+      "execution_status": "NOT_RUN",
+      "evidence": []
     }
   ]
 }

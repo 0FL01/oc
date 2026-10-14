@@ -977,3 +977,25 @@ Superseded узко daemon exclusion и whole-turn **same-Location config** pinn
 security/history/DCP/retry/cleanup/AGPL и mandatory live/visual owners сохраняются.
 Новых scheduler/store/framework/paid campaigns нет. T61 todo/NOT_STARTED, HOT01–HOT04
 NOT_RUN; эта плановая доставка не start/resume/finish других задач и не runtime PASS.
+
+## Owner amendment (2026-10-14 — Code Mode `execute` TUI parity; pending)
+
+Владелец по OCR работающего OC2 (строки вложенных вызовов в agent turn и окно
+`execute` по клику) утвердил план и commit/push: «вноси правки в план работ и коммит пуш».
+Owner выбран T44 → [VIS46](tui-recovery/T44_CONTRACT_AMENDMENT.md#code-mode-execute-parity--vis46-2026-10-14),
+live progress как у донора.
+
+- Producer: аддитивные bounded/redacted `Presentation.execute` facts (упорядоченные
+  runtime-вызовы `tool`/`fetch`, running/completed/error, input, limited, error,
+  run time) и disposable `ToolCallProgress` snapshot под одной операцией `execute`.
+  Финальные facts пишутся в durable row: live = replay/reopen/restart без
+  переисполнения. Admission/approval/MCP/webfetch guards CM07/CM08 не меняются.
+- TUI:
+  - Строки: parent `execute` и child `› tool [k=v, …]`.
+  - Окно: статус/`Completed · Nms`, Code (TS), Output (JSON line numbers или текст,
+    Warnings/Logs), scroll/pan, `c`/`o` copy, `esc back`.
+  - Paired styled-cell/PNG/cursor qualification. Legacy rows остаются Generic card.
+
+Узко superseded только declared difference T60 «generic карточка показывает код и
+результат». T60 DONE и CM01–CM08 evidence не переписываются. VIS46 mandatory NOT_RUN;
+реализация после finish T59 и явного start/resume T44; эта доставка не меняет статусов.

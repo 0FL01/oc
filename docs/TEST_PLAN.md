@@ -1796,3 +1796,39 @@ codemode`; integration: `cargo test -p oc-adapters --test runtime code_mode`.
 
 Live CM check (bounded OpenProxy request using `execute` over a configured MCP server)
 stays NOT_RUN until actually executed under the runbook envelope.
+
+## Code Mode execute TUI parity — T44/VIS46 (approved 2026-10-14; pending)
+
+Contract: [T44 amendment](../tui-recovery/T44_CONTRACT_AMENDMENT.md#code-mode-execute-parity--vis46-2026-10-14);
+sources U133–U137. Starts after T59 finish and explicit `progress.py start T44`; it does not
+re-open T60 and does not repeat CM01–CM08 at the TUI layer.
+
+1. **Producer facts and progress:**
+   - oc-core: serde back-compat for presentations without `execute`, and caps/limited flag.
+   - `cargo test -p oc-adapters --test runtime code_mode`: one real execute with two MCP
+     calls and a `fetch`. Assert ordered calls, status and redacted inputs in
+     `ToolCallFinished` and in the durable row.
+   - Progress snapshots go running→completed under one op.
+   - A failing call gives an `error` row and parent `failed`; a denied/Ask-without-consumer
+     call gives an `error` row with zero effect.
+2. **oc-tui owner tests:**
+   - Child summary: primitive-only, whitespace collapse, truncation.
+   - Parent icons/spinner and child icons for running/completed/error; child key/value
+     toggle; failed-parent ≤4-line collapse toggle.
+   - Mouse-up opens the dialog only for a non-error parent with no active selection.
+   - Dialog: header status and `Locale.duration` format; TypeScript code; JSON line
+     numbers vs wrapped text with the Warnings/Logs split; ↑/↓/PgUp/PgDn/←/→; `c`/`o`
+     payloads through the bounded clipboard; esc restores focus/draft; follows progress;
+     legacy row stays the Generic card; replay = live.
+3. **Rebuilt debug/release PTY**, fake provider plus fake MCP:
+   execute → live child rows → dialog while running → completed → copy → esc → restart/reopen,
+   showing identical rows/dialog from the durable row with zero re-execution.
+4. **Paired qualification:** run pinned OC2 and native side by side and capture full
+   styled-cell/PNG/cursor frames at existing narrow/wide profiles:
+   - running, completed single and multi-call, child expanded, failed parent collapsed/expanded;
+   - dialog with JSON output, text+Logs, scrolled/panned.
+
+   Declared differences: run-time duration, no donor `files`. No OCR, native golden or
+   masked comparison counts as parity.
+
+VIS46 mandatory NOT_RUN; plan delivery changes no execution status.

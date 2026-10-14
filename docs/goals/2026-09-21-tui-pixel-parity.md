@@ -172,6 +172,13 @@ or qualification; VIS34 remains open until its backend and paired UI gates pass.
   - Evidence: iterations 3a+3b (committed): `crates/oc-tui/src/messages.rs` renders user blocks with `┃`/raised background/chips, assistant markdown (paddingLeft 3, headings/lists/code fences with syntax colors/blockquotes), collapsed reasoning (`Thinking` → `Thought: … · duration`), and the `agent · model · dur · tok/s · interrupted` footer; additive DTOs `ReasoningDelta`/`TurnUsage`/`duration_ms` wired through the provider stream (2 adapter end-to-end tests). Tool cards: inline rows (read/glob/grep/webfetch/skill/generic with upstream labels and spinner), shell `$ cmd` with stdout/stderr/exit/truncation, apply_patch `# Created`/`← Patched`/`# Deleted` with diff hunks using `diff.text.*` roles, subagent card parsed from the real `<subagent …>` wrapper, pending/running/completed/error/cancelled states; additive `ToolCallStarted/Finished` events emitted after durable writes. Known R4 residual: committed history rows carry no tool cards after a page reload (live turns only).
 
 - R5: Interaction parity — keybindings, command palette, dialogs (session list, model, agent, MCP servers, help, error details), input editor behavior (multi-line, paste, history), inline `/` autocomplete and `@` mention overlays (owner amendment 2026-09-24), mouse text selection/copy, running-agent indicator in the lower-left prompt footer, and status hints match upstream.
+  - Code Mode `execute` parity (owner-approved 2026-10-14, VIS46): follow
+    [dedicated amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#code-mode-execute-parity--vis46-2026-10-14).
+    Runtime-recorded nested calls arrive as bounded producer facts with live progress.
+    Inline: parent `execute` and child `› tool [k=v, …]` rows. Mouse-up opens the
+    execute dialog: status/duration, TS Code, JSON/text Output with Warnings/Logs,
+    scroll/pan, `c`/`o` copy, `esc back`. Live = replay; full paired qualification.
+    Supersedes only the T60 generic-card difference. VIS46 NOT_RUN; T44 PAUSED.
   - OpenAI/Codex auth parity (owner-requested 2026-10-06, VIS45): follow
     [dedicated amendment](../../tui-recovery/T44_CONTRACT_AMENDMENT.md#codex-openai-auth-parity--vis45-2026-10-06).
     T57 owns real browser/device/key authorization, refresh and native auth consumers;
@@ -410,6 +417,7 @@ retained as history, not a current pause instruction or unresolved credential bl
 
 ## Material Decisions
 
+- 2026-10-14: owner approved, after OCR of OC2 inline nested-call rows and the execute window plus read-only RECON, plan commit/push of mandatory T44/VIS46 Code Mode execute parity with live progress like the donor (U133–U137). Producer facts/progress precede the TUI rows/dialog and paired qualification. Only the T60 generic-card declared difference is superseded; T60 DONE, active T59, PAUSED T44 and historical statuses are unchanged.
 - 2026-10-01: owner approves expanded child-TUI/Subagents/Shell/Terminals plan including native interactive PTY, not a decorative terminal tab. T45 supplies live child lifecycle/events, T50 owns shell inventory/live output/conversion and T56 owns PTY behavior/functional consumer; T44 VIS39 owns the entire paired segment and VIS14/VIS35 complete shared grammar/style rendering. Only child navigation/control refusal and the T56 terminal-manager exclusion are superseded; child authority, native no-daemon/no-credential-inheritance/unknown-effect safety remain. Existing statuses/historical evidence and PAUSED T44 are unchanged.
 
 - 2026-09-30: owner approved a detailed plan and commit/push for Shift+Tab agent-cycle and Tab binding findings. Extend existing T44/VIS06/VIS10/VIS17 and T45/R6, not a new task/gate. Preserve OC2 defaults; support explicit OC1-style overrides with focused-input priority, owner-backed selection and minimum catalog eligibility correction. U76/U77 distinguish binding declarations from actual editor capture; native override and paired reference results remain separate. Active T50, PAUSED T44 and historical execution/evidence statuses are unchanged.

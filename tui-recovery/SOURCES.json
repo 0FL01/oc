@@ -1470,6 +1470,51 @@
       "locator": "parse_failed_response cyber_policy branch; cyber_policy_message/fallback; responses_error_parser_tests.rs test module",
       "url": "https://github.com/openai/codex/blob/dab2cd60568dedac5b226e9fafdf1523474d5cb8/codex-rs/codex-api/src/sse/responses_error.rs",
       "purpose": "Supplemental structured Responses failed-event cyber_policy evidence only; RET01 keeps its own bounded observed-header authority, no new JSON-header retry inference or unrelated policy-code expansion"
+    },
+    {
+      "id": "U133",
+      "repository": "anomalyco/opencode",
+      "path": "packages/core/src/codemode/tool.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "ExecuteCall/ExecuteOutput 23–36; calls Ref + context.progress({toolCalls}) 79–137; progressHooks running→completed|error 141–174",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/core/src/codemode/tool.ts",
+      "purpose": "VIS46 producer shape: runtime-recorded nested toolCalls {tool,status,input?} including fetch, live progress and final metadata with error:true; not a separate durable tool op"
+    },
+    {
+      "id": "U134",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/index.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "execute dispatch 2461–2529; ExecuteCallView 3230–3281; Execute 3283–3318 (spinner/✓/✗ parent, › child rows, error collapse toggle, mouse-up DialogExecute)",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/index.tsx",
+      "purpose": "VIS46 inline execute parent/child rows, colors, click routing and dialog opening"
+    },
+    {
+      "id": "U135",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/tool-display.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "primitiveInputSummary, executeCalls, executeCallSummary 12–37",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/tool-display.ts",
+      "purpose": "VIS46 child summary `tool [k=v, …]`: primitive-only inputs, whitespace collapse, malformed metadata filtered"
+    },
+    {
+      "id": "U136",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/routes/session/dialog-execute.tsx",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "DialogExecute 19–178 (70% scroll height, status/duration header, Code TS syntax, Output JSON line numbers/Warnings/Logs split, keys ↑/↓/PgUp/PgDn/←/→/c/o, footer hints); output helpers 181–253",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/routes/session/dialog-execute.tsx",
+      "purpose": "VIS46 execute-specific detail dialog geometry, sections, live follow and copy/scroll interactions"
+    },
+    {
+      "id": "U137",
+      "repository": "anomalyco/opencode",
+      "path": "packages/tui/src/util/locale.ts",
+      "commit": "2670273ff17da96f85c5826ced57aa1b368754fa",
+      "locator": "duration 27–47; with packages/tui/src/util/collapse-tool-output.ts 3–23 error collapse",
+      "url": "https://github.com/anomalyco/opencode/blob/2670273ff17da96f85c5826ced57aa1b368754fa/packages/tui/src/util/locale.ts",
+      "purpose": "VIS46 `Completed · 499ms` duration format and ≤4-line width-budget parent error collapse"
     }
   ],
   "external_primary_sources": [

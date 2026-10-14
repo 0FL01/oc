@@ -2493,6 +2493,102 @@ sources; detailed profile/state/effect method — `docs/TEST_PLAN.md` AUTH/VIS45
 VIS45 execution_status NOT_RUN, evidence empty. Historical VIS01–VIS44 and current
 active T53/PAUSED T44 statuses remain unchanged.
 
+## Code Mode execute parity — VIS46 (2026-10-14)
+
+Owner request 2026-10-14 (OCR of the running OC2 agent turn and execute window), read-only
+RECON and approval: «вноси правки в план работ и коммит пуш». T60 delivered native
+`execute`, but its spec declared «generic карточка показывает код и результат»; that
+declared difference is narrowly superseded here. Owner chose T44 as owner and **live
+progress like the donor**. Plan delivery is docs only: not a T44 resume, not a T60 reopen.
+
+### RECON: gap
+
+- Native: `execute` falls into `InlineRender::Generic`
+  (`crates/oc-tui/src/tools.rs` `ToolRender::parse`). The collapsed row is `execute [code=…]`
+  and a click only toggles inline parameters/output. There is no execute dialog, no
+  c/o copy and no duration. `runtime/code_mode.rs` `execute_code_mode` returns only
+  `(state, output)`: nested calls, their status/inputs, error flag and run time do not
+  reach `Presentation`, `CoreEvent`, durable `ToolOpRow` or replay.
+- Donor producer U133 `packages/core/src/codemode/tool.ts`: `toolCalls=[{tool, status:
+  running|completed|error, input?}]`, recorded at runtime (not parsed from code). It
+  includes `fetch`, streams via `context.progress` and repeats in the final metadata
+  with `error:true` on failure.
+- Donor inline U134/U135 (`routes/session/index.tsx` `Execute`/`ExecuteCallView`,
+  `util/tool-display.ts`):
+  - Parent row: spinner while streaming/running, `✓` or red `✗`, then `execute`.
+  - One child row per call, in start order: `›` (red `✗` on error), then
+    `tool [k=v, …]`. Primitive inputs only, whitespace collapsed, one terminal-truncated
+    line. Muted text, hover `text.base`, error token.
+  - Clicking a child with input toggles its key/value view.
+  - Parent error: output collapsed to ≤4 lines plus a width budget (U137); clicking it
+    toggles the error text and does not open the dialog.
+  - Clicking a non-error parent (mouse-up, not during text selection) opens the dialog.
+- Donor dialog U136 `routes/session/dialog-execute.tsx` (execute-specific, xlarge, centered,
+  shared Dialog U02/U52):
+  - Header: `execute` plus `Receiving code…`/`Running`/`Failed`/`Completed · 499ms`
+    (`Locale.duration`, U137), and `esc`.
+  - **Code**: TypeScript syntax.
+  - **Output**: line numbers and JSON syntax for valid JSON starting with `{`/`[`.
+    A trailing `Warnings:`/`Logs:` section is split out as wrapped text; other text wraps.
+    Code/JSON lines do not wrap.
+  - Scroll area ≤70% of terminal height. ↑/↓/PgUp/PgDn scroll; ←/→ pan.
+  - `c copy code`, `o copy output`; the hints are clickable. `esc back` via the dialog stack.
+  - The dialog follows the live part while it runs.
+
+### Frozen behavior and boundaries
+
+- **Producer facts:** additive `Presentation.execute`.
+  - Ordered calls `{tool dotted path | fetch, status, bounded redacted input}`, plus
+    `calls_limited`, `error` and runtime `elapsed_ms`.
+  - `serde(default)`: legacy rows keep the current Generic card; no migration and no
+    reconstruction from code text.
+  - Bounds: fixed call/input caps inside `RECORD_BYTES`. Overflow is a truthful
+    limited flag, never silent loss. Inputs go through the existing tool-input redaction
+    owner; secrets and raw fetch bodies never appear.
+- **Live progress:** a disposable coalesced `CoreEvent::ToolCallProgress` replacement
+  snapshot by op, emitted on each nested start/finish under the one execute operation.
+  - Live only: never a durable op, card or approval surface.
+  - Nested calls still pass admit_tool/approval/MCP lease/webfetch guard (CM07/CM08)
+    unchanged.
+  - Final facts arrive with `ToolCallFinished` and the durable row: live = replay =
+    reopen = restart, with no re-execution and no present-day file read.
+- **TUI:** a dedicated `InlineRender::Execute` and a narrow execute dialog module.
+  - Reuses the vendored `typescript`/`json` grammars (`syntax.rs`), the existing
+    modal/Dialog geometry and the bounded clipboard path (MCP details `c` pattern).
+  - Denied/Ask-without-consumer nested calls show as `error` rows, not hidden.
+  - Cancelled execute keeps the calls observed so far.
+- **Declared differences:**
+  - Duration is the runtime run time, not part timestamps `ran ?? created`.
+  - Native resource-guard limits/diagnostics stay in the output text (T60).
+  - Donor `files` attachments are not ported: T60 has no file output.
+  - Anything else requires full paired parity.
+
+### Ordered slice after explicit resume and qualification
+
+1. After T59 finishes and `progress.py start T44`: producer facts plus progress, with
+   owner tests.
+   - oc-core: serde back-compat and bounds.
+   - `tests/runtime/code_mode.rs`: real execute with 2 MCP calls + fetch, showing order,
+     status, inputs and progress running→completed.
+   - Error call → `error` + parent `failed`; denied nested call → `error` row with no effect.
+2. Inline rows/click routing and the dialog, with the nearest oc-tui tests: summary
+   format/truncation, Running/Completed/Failed header and duration format, JSON vs
+   text vs Logs/Warnings split, scroll/pan, c/o payloads, esc focus restore and
+   replay = live.
+3. Rebuilt debug/release PTY with a fake provider and fake MCP:
+   execute → live child rows → click → dialog follows progress → c/o → esc →
+   restart/reopen shows identical rows and dialog from the durable row.
+4. Run pinned OC2 and native side by side with full paired styled-cell/PNG/cursor captures at
+   representative existing narrow/wide profiles:
+   - running, completed single and multi-call, child expanded, failed parent collapsed/expanded;
+   - dialog with JSON output, text+Logs output and a scrolled state.
+
+   Native-only goldens, OCR or source screenshots are not parity.
+
+Sources U133–U137 plus shared U02/U49/U52. Method — `docs/TEST_PLAN.md` VIS46 section.
+VIS46 is mandatory, execution_status NOT_RUN, evidence empty. T60 DONE/CM01–CM08 evidence,
+historical VIS01–VIS45 and active T59/PAUSED T44 statuses remain unchanged.
+
 ## Видимые upstream-функции вне native scope
 
 Полный визуальный контракт не даёт права тайком добавить OAuth вне явно approved
