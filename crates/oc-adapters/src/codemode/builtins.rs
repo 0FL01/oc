@@ -365,18 +365,13 @@ fn install_globals(cx: &Cx) {
         "clearInterval",
         "require",
         "eval",
-        "Function",
-        "process",
-        "Deno",
-        "Bun",
     ] {
         let message: &'static str = match name {
             "setTimeout" | "setInterval" | "setImmediate" | "clearTimeout" | "clearInterval" => {
                 "Timers are not available in Code Mode"
             }
             "require" => "Modules are not available in Code Mode",
-            "eval" | "Function" => "Dynamic code evaluation is not available in Code Mode",
-            _ => "Process and runtime APIs are not available in Code Mode",
+            _ => "Dynamic code evaluation is not available in Code Mode",
         };
         let func = cx.native(name, 0, move |cx, _, _| {
             Err(cx.throw(ErrorKind::Reference, message))
@@ -415,11 +410,12 @@ fn install_json(cx: &Cx) {
 
 fn push_log(cx: &Cx, line: String) {
     let mut logs = cx.logs.borrow_mut();
-    if logs.bytes + line.len() > cx.limits.max_log_bytes {
+    let bytes = line.len().saturating_add(1);
+    if bytes > cx.limits.max_log_bytes.saturating_sub(logs.bytes) {
         logs.dropped += 1;
         return;
     }
-    logs.bytes += line.len() + 1;
+    logs.bytes += bytes;
     logs.lines.push(line);
 }
 

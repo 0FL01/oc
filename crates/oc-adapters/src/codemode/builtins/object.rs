@@ -505,6 +505,16 @@ fn install_object(cx: &Cx) {
 
 fn install_function(cx: &Cx) {
     let proto = cx.protos.function.clone();
+    let blocked = || {
+        NativeImpl::Sync(Box::new(|cx, _, _| {
+            Err(cx.throw(
+                ErrorKind::Reference,
+                "Dynamic code evaluation is not available in Code Mode",
+            ))
+        }))
+    };
+    let ctor = cx.constructor("Function", 1, &proto, Some(blocked()), Some(blocked()));
+    cx.define_global("Function", Value::Obj(ctor));
     // Function.prototype is itself callable in JS; a plain object suffices here.
     cx.method_async(&proto, "call", 1, |cx, this, args| {
         Box::pin(async move {

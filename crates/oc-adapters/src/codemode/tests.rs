@@ -615,6 +615,64 @@ fn errors_are_reported_with_context() {
 }
 
 #[test]
+fn process_apis_are_unavailable() {
+    for code in [
+        "return process.env",
+        "process.exit(0)",
+        "return Bun.env",
+        "return Deno.env",
+    ] {
+        let diagnostic = error(code);
+        assert!(
+            diagnostic.message.starts_with("ReferenceError:"),
+            "{code}: {diagnostic:?}"
+        );
+        assert!(
+            diagnostic.message.contains("not available in Code Mode"),
+            "{code}: {diagnostic:?}"
+        );
+    }
+    // These names are unavailable host globals, not reserved user identifiers.
+    assert_eq!(
+        value("const process = { env: 'local' }; return process.env"),
+        json!("local")
+    );
+}
+
+#[test]
+fn dynamic_function_construction_is_unavailable() {
+    for code in [
+        "new Function('return 1')",
+        "Function('return 1')",
+        "new (Function.bind(null))('return 1')",
+    ] {
+        assert_eq!(
+            error(code).message,
+            "ReferenceError: Dynamic code evaluation is not available in Code Mode"
+        );
+    }
+    assert_eq!(
+        value("return Function.prototype.call.call((n) => n + 1, null, 2)"),
+        json!(3)
+    );
+}
+
+#[test]
+fn console_log_byte_limit_includes_line_separators() {
+    let run = run_with(
+        "console.log('é'); console.log(''); console.log('x'); return 1",
+        ExecuteLimits {
+            max_log_bytes: 3,
+            ..ExecuteLimits::default()
+        },
+        Arc::new(AtomicBool::new(false)),
+    );
+    assert_eq!(run.outcome.value, Ok(json!(1)));
+    assert_eq!(run.outcome.logs, vec!["é"]);
+    assert_eq!(run.outcome.logs_dropped, 2);
+}
+
+#[test]
 fn resource_guards_stop_runaway_programs() {
     let limited = run_with(
         "while (true) {}",

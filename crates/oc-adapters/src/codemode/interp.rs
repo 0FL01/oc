@@ -2171,7 +2171,13 @@ impl Cx {
             let args = ctx.args.borrow().clone();
             return Ok(self.array_value(args));
         }
-        Err(self.throw(ErrorKind::Reference, format!("{name} is not defined")))
+        let message = match name.as_str() {
+            "process" | "Deno" | "Bun" => {
+                "Process and runtime APIs are not available in Code Mode".to_string()
+            }
+            _ => format!("{name} is not defined"),
+        };
+        Err(self.throw(ErrorKind::Reference, message))
     }
 
     /// Appends a source line to a freshly created error that has none.
