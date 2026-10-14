@@ -1,11 +1,11 @@
 # Goal: custom provider через /connect с OC2 auth flow и discovery
 
-Status: active — утверждённый контракт; T59 todo, implementation NOT_STARTED.
+Status: active — утверждённый контракт; T59 active, implementation IN_PROGRESS.
 Source: запрос владельца 2026-10-12: название/base URL/API key через `/connect`,
 стандартные Responses/Chat/Messages, автоматический каталог с обязательными modalities
 и effort, запуск без providers/models; «нам надо повторить его паттерн авторизации»;
 после read-only RECON — «Вноси в план правок работ и коммит пуш на текущей ветке».
-Last updated: 2026-10-12
+Last updated: 2026-10-14
 Task: T59 / M8; detailed acceptance CONN01–CONN05 только T59.
 
 ## Objective
@@ -43,8 +43,9 @@ seams потребляются без whole-task/live/visual done-dependencies. 
     switch сохраняются; cancelled probe/form не создаёт connection или account.
   - Primary evidence: CONN01 existing storage/composition owner tests, reopen и
     actual-binary restart из CONN04; rollback, config collision и foreign-key negatives.
-  - Status: pending.
-  - Evidence: NOT_RUN; будущий factual report `evidence/T59/report.md`.
+  - Status: in_progress.
+  - Evidence: `2747f9203`, CONN01 storage/composition/actor tests and reopen PASS;
+    actual-binary restart/Location-move qualification remains pending.
 - R2: bounded read-only обнаружение каталога и честный выбор native API.
   - Source: «сам фетчит и ловит какие там апи эндпоинты есть»; выбранное владельцем
     «Подтвердить тип API» при неоднозначности, без платной генерации для detection.
@@ -57,8 +58,9 @@ seams потребляются без whole-task/live/visual done-dependencies. 
     действительно очищает remote set, не меняя legacy OpenProxy empty semantics.
   - Primary evidence: CONN02 fake GET transport/parser/pagination/clock/security;
     CONN04 endpoint counters подтверждают ноль generation POST до явного submit.
-  - Status: pending.
-  - Evidence: NOT_RUN; никакого live probe/auth в доставке плана.
+  - Status: in_progress.
+  - Evidence: `2747f9203`, CONN02 deterministic GET/parser/auth/pagination/limits
+    PASS; final transport/consumer and actual-binary qualification remains pending.
 - R3: modalities и reasoning effort доходят до picker без выдуманных capabilities.
   - Source: «модальности и effort тоже берёт — это ... нужно обязательно учесть»;
     выбранное владельцем «Показывать неизвестное» для ID-only catalogs.
@@ -99,8 +101,10 @@ seams потребляются без whole-task/live/visual done-dependencies. 
     credentials, второго Db owner или выбора модели; incomplete даёт nonzero.
   - Primary evidence: CONN05 barrier-held actor/runtime results и read-only CLI/cache
     effect counters, held prepared request и next-request/reopen assertions.
-  - Status: pending.
-  - Evidence: NOT_RUN; catalog listing не подтверждает credential/server readiness.
+  - Status: in_progress.
+  - Evidence: `2747f9203`, single-use save/cancel, preserved generation/selection,
+    saved-cache read-only/empty/incomplete and storage revision fences PASS;
+    held key/Location/prepared-request consumer qualification remains pending.
 
 ### Constraints and non-goals
 
@@ -233,15 +237,24 @@ validation или стирания сохранённого key. Повторн�
 
 ## Current Checkpoint / State
 
-- R1–R5 pending; CONN01–CONN05 NOT_RUN; T59 todo/implementation NOT_STARTED.
+- T59 started 2026-10-14 after the committed T58/T60 closeouts and the existing
+  T44 scheduling handoff. R1/R2/R5 in progress; R3/R4 pending. First native owner
+  slice committed as `2747f9203`; this is not T59 completion.
 - Новый task — новая user-requested поставка, не дефект/reopen завершённого T53.
   Native config-defined connections и `/connect` account storage уже существуют;
-  arbitrary endpoint wizard/general discovery и capability picker projection ещё нет.
-- Active T44, existing STATE statuses/latest leaves, dirty source/scripts и evidence
-  сохраняются. Регистрация и docs validation не становятся runtime/visual PASS.
-- Первый implementation checkpoint после safe scheduling handoff: typed create/probe
-  inputs, literal endpoint/custom AuthScope admission и atomic connection+key owner,
-  CONN01 unit/reopen evidence. Затем independent read-only discovery/metadata и consumers.
+  typed custom persistence/discovery/actor commands now exist; arbitrary endpoint
+  wizard and typed capability picker projection are not yet implemented.
+- T44 remains suspended with its existing mission/evidence and separate remote
+  write-auth blocker intact. Registration/docs validation are not runtime/visual PASS.
+- Verified checkpoint: additive SQLite migration 14, tagged custom scope/literal
+  endpoint, atomic default key/anonymous creation and rollback; bounded custom GET
+  discovery, same-owner probe/save/refresh slot, revision-aware saved CLI projection.
+  `cargo test --locked -p oc-adapters --lib`: 738 passed / 0 failed / 1 existing ignored;
+  strict affected-crate all-target clippy and fmt PASS. Logs `.local/evidence/t59-*`.
+- Next: typed modality/partial-capability/variant-known snapshots and image guard,
+  then ordinary connect/custom UI with actual debug/release PTY qualification.
+  Add the required held key/Location/prepared-request and CLI binary evidence;
+  run final workspace gates before the factual `evidence/T59/report.md` and finish.
 
 ## Material Decisions
 
@@ -254,7 +267,7 @@ validation или стирания сохранённого key. Повторн�
 
 ## Completion
 
-Не завершено: R1–R5 pending. Проверки плана и его commit/push — только доставка
+Не завершено: R1/R2/R5 in_progress, R3/R4 pending. Проверки плана и его commit/push — только доставка
 контракта. После реализации factual T59 report связывает current reviewed code commit,
 CONN01–CONN05/affected regressions/final gates и отдельно T44 visual/live statuses;
 обычный `finish` допустим только после доказательств всех required outcomes.
