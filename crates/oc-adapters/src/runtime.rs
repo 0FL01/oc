@@ -1088,7 +1088,9 @@ pub struct Runtime<'a> {
     native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
     db: children::Database<'a>,
     location: String,
-    current: RwLock<Arc<ExecutionGeneration>>,
+    // A child retains its source Location handle, not the parent's later route.
+    current: Arc<RwLock<Arc<ExecutionGeneration>>>,
+    child_launch: Option<Arc<children::LaunchCeiling>>,
     active: AtomicBool,
     protected: ProtectedGlobs,
     files: crate::files::Files,
@@ -1210,7 +1212,7 @@ impl<'a> Runtime<'a> {
             native_compaction: RwLock::new(None),
             db: children::Database::Borrowed(db),
             location: location.to_string(),
-            current: RwLock::new(Arc::new(ExecutionGeneration {
+            current: Arc::new(RwLock::new(Arc::new(ExecutionGeneration {
                 generation: PublishedGeneration {
                     id: 1,
                     config: generation,
@@ -1220,7 +1222,8 @@ impl<'a> Runtime<'a> {
                 dcp_protected: ProtectedSpec::default(),
                 provider_state: None,
                 request_provider: None,
-            })),
+            }))),
+            child_launch: None,
             active: AtomicBool::new(false),
             protected,
             files,

@@ -101,6 +101,7 @@ fn subagent_tool_def(
     home: Option<&str>,
     dcp: &DcpConfig,
     approval_consumer: bool,
+    ceiling: Option<&children::LaunchCeiling>,
 ) -> ToolDef {
     let mut description = String::from(
         "Spawns an agent in a child session to work on the specified task.\n\
@@ -135,8 +136,19 @@ fn subagent_tool_def(
                     Some(raw) => match provider.map_or_else(
                         || resolve_subagent_model(model_catalog, raw),
                         |provider| {
-                            resolve_child_target(model_catalog, provider, raw)
-                                .map(|(_, _, model)| model)
+                            let (catalog, provider, model) =
+                                resolve_child_target(model_catalog, provider, raw)?;
+                            if let Some(ceiling) = ceiling {
+                                ceiling
+                                    .admit_provider(
+                                        &catalog.provider,
+                                        &model.id,
+                                        model.variant.as_deref(),
+                                        provider,
+                                    )
+                                    .map_err(|error| error.to_string())?;
+                            }
+                            Ok(model)
                         },
                     ) {
                         Ok(resolved) => resolved.id,
@@ -340,6 +352,7 @@ fn child_provider(target: &ResponsesConfig, issuer: &ResponsesConfig) -> Respons
 
 /// Foreground child runner for one calling turn.
 struct TurnSubagent<'r, 'a> {
+    issuing: &'r ExecutionGeneration,
     turn_id: String,
     runtime: &'r Runtime<'a>,
     parent_session: String,
@@ -450,8 +463,24 @@ impl TurnSubagent<'_, '_> {
             ),
         };
         self.runtime
-            .admit_provider_variant(catalog, &model.id, model.variant.as_deref(), provider)
+            .admit_provider_variant_in(
+                self.issuing,
+                catalog,
+                &model.id,
+                model.variant.as_deref(),
+                provider,
+            )
             .map_err(|error| failed(error.to_string()))?;
+        if let Some(ceiling) = &self.runtime.child_launch {
+            ceiling
+                .admit_provider(
+                    &catalog.provider,
+                    &model.id,
+                    model.variant.as_deref(),
+                    provider,
+                )
+                .map_err(|error| failed(error.to_string()))?;
+        }
         let pack = self.context_pack(request).map_err(failed)?;
         Ok((
             agent,
@@ -484,22 +513,49 @@ impl TurnSubagent<'_, '_> {
                 agent.id
             ),
         };
-        let lane = self
-            .runtime
-            .child_lane(agent, self.parent_lane, &request.call_id);
-        let published = self
-            .runtime
-            .current
-            .read()
-            .expect("generation lock")
-            .clone();
-        let model = &target.model;
-        let base = models::select_model(target.catalog, &model.id)
+        let child = self.runtime.owned_child_for(
+            self.issuing,
+            agent,
+            self.parent_lane,
+            &request.call_id,
+            &target.catalog.provider,
+            &child_provider(target.provider, self.provider),
+        );
+        let published = child.current.read().expect("generation").clone();
+        let launch = child.child_launch.as_ref().expect("child ceiling");
+        let lane = child
+            .child_request_lane(&published, launch)
             .map_err(|error| failed(error.to_string()))?;
+        let source = published
+            .request_provider
+            .as_ref()
+            .unwrap_or(&launch.provider);
+        let capture = source.wire.providers.get(&target.catalog.provider);
+        let (catalog, provider) = if let Some(capture) = capture {
+            (&capture.catalog, child_provider(&capture.config, source))
+        } else if published.request_provider.is_none() {
+            (
+                target.catalog,
+                child_provider(target.provider, self.provider),
+            )
+        } else {
+            return Err(failed("selected child provider unavailable".into()));
+        };
+        let model = &target.model;
+        launch
+            .admit_provider(
+                &catalog.provider,
+                &model.id,
+                model.variant.as_deref(),
+                &provider,
+            )
+            .map_err(|error| failed(error.to_string()))?;
+        let base =
+            models::select_model(catalog, &model.id).map_err(|error| failed(error.to_string()))?;
         let fallback = published
             .config
             .providers
-            .get(&target.catalog.provider)
+            .get(&catalog.provider)
             .map(|provider| provider.options.native_fallback_limits)
             .unwrap_or_default();
         let budget = models::budget(&base, 0, fallback);
@@ -507,17 +563,19 @@ impl TurnSubagent<'_, '_> {
             session: child_session.to_string(),
             prompt: prompt.to_string(),
             invocation: None,
-            catalog: target.catalog,
+            catalog,
             model_id: model.id.clone(),
             variant: model.variant.clone(),
             max_output: 0,
-            provider: child_provider(target.provider, self.provider),
+            provider,
             cancel: self.cancel,
         };
-        let proof = Box::pin(self.runtime.run_turn_admitted(
+        let attached = launch.mcp_view(self.attached, &published.config);
+        let proof = Box::pin(child.run_turn_admitted(
+            published.clone(),
             params,
             &lane,
-            self.attached,
+            &attached,
             fresh.then_some(None),
             &mut |_, _| {},
             &mut |_, _| {},
@@ -625,7 +683,7 @@ impl TurnSubagent<'_, '_> {
                 child: oc_core::domain::SessionId(child_session),
                 delivery_id: format!("subagent-notice:{operation}"),
                 operation,
-                generation: self.runtime.generation_id(),
+                generation: self.issuing.id,
                 location: self.runtime.location.clone(),
                 agent: agent.id.clone(),
                 model: target.model.stored(&target.catalog.provider),
@@ -640,7 +698,14 @@ impl TurnSubagent<'_, '_> {
                 .runtime
                 .child_jobs
                 .launch(
-                    self.runtime.owned_child_snapshot(),
+                    self.runtime.owned_child_for(
+                        self.issuing,
+                        agent,
+                        self.parent_lane,
+                        &identity.operation,
+                        &target.catalog.provider,
+                        &child_provider(target.provider, self.provider),
+                    ),
                     self.turn_id.clone(),
                     agent.clone(),
                     self.parent_lane.clone(),
@@ -1199,6 +1264,7 @@ impl<'a> Runtime<'a> {
         // Keep the prepared-attempt state machine out of the caller's inline
         // future; direct callers use the same bounded stack as spawned lanes.
         let mut report = Box::pin(self.run_turn_admitted(
+            published.clone(),
             params,
             lane,
             attached,
@@ -1224,6 +1290,7 @@ impl<'a> Runtime<'a> {
     #[allow(clippy::too_many_arguments)]
     async fn run_turn_admitted(
         &self,
+        published: Arc<ExecutionGeneration>,
         params: TurnParams<'_>,
         lane: &TurnLane,
         attached: &McpGeneration,
@@ -1238,7 +1305,6 @@ impl<'a> Runtime<'a> {
         command: Option<&NativeCommand>,
         probe: bool,
     ) -> Result<TurnExecution, RuntimeError> {
-        let published = self.current.read().expect("generation lock").clone();
         if fresh_selection.is_some() {
             if params.session.trim().is_empty() {
                 return Err(RuntimeError::InvalidArgs("empty session id".into()));
@@ -1429,7 +1495,11 @@ impl<'a> Runtime<'a> {
         if compress_available && lane.manual_compression {
             fixed_input.push(InputItem::message(InputRole::Developer, "Explicit manual DCP compression admitted for this turn only. Use the compress tool on eligible closed anchors, then finish this bounded compression request."));
         }
-        let subagents = workspace.subagents.clone();
+        let subagents = self
+            .child_launch
+            .as_ref()
+            .map(|launch| launch.subagents(&published))
+            .unwrap_or_else(|| workspace.subagents.clone());
         if let Some(catalog) = &subagents
             && policy.tool_visible(SUBAGENT_TOOL)
         {
@@ -1442,6 +1512,7 @@ impl<'a> Runtime<'a> {
                 self.parent_env.get("HOME").map(String::as_str),
                 &dcp_config,
                 self.approvals.has_consumer(),
+                self.child_launch.as_deref(),
             ));
         }
         tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
@@ -1819,8 +1890,7 @@ impl<'a> Runtime<'a> {
             }
             // Capture once per fresh preparation. This Arc and its lane survive
             // the physical attempt and every issued tool, including approval waits.
-            // Child adoption additionally needs the immutable launch ceiling.
-            let published = if primary_request {
+            let published = if primary_request || self.child_launch.is_some() {
                 self.current.read().expect("generation lock").clone()
             } else {
                 published.clone()
@@ -1829,13 +1899,21 @@ impl<'a> Runtime<'a> {
                 let mut current = self.primary_lane(&published);
                 current.manual_compression = lane.manual_compression;
                 current
+            } else if let Some(launch) = &self.child_launch {
+                self.child_request_lane(&published, launch)?
             } else {
                 lane.clone()
             };
             let lane = &current_lane;
             let dcp_config = &published.dcp_config;
             let compaction_config = &published.config.compaction;
-            let subagents = &published.workspace.subagents;
+            let child_subagents = self
+                .child_launch
+                .as_ref()
+                .map(|launch| launch.subagents(&published));
+            let subagents = child_subagents
+                .as_ref()
+                .unwrap_or(&published.workspace.subagents);
             let source_provider = published
                 .request_provider
                 .as_ref()
@@ -1882,6 +1960,14 @@ impl<'a> Runtime<'a> {
                     "selected provider unavailable".into(),
                 ));
             };
+            if let Some(launch) = &self.child_launch {
+                launch.admit_provider(
+                    &choice.provider,
+                    &choice.id,
+                    choice.variant.as_deref(),
+                    &provider,
+                )?;
+            }
             let base = models::select_model(catalog, &choice.id)
                 .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
             let mut selection = models::select_variant(&base, choice.variant.as_deref())
@@ -2023,13 +2109,18 @@ impl<'a> Runtime<'a> {
             // the next provider request. Its clients, schemas, guidance and
             // execution context then stay leased through that request's tools.
             // Notification relists still occur at the outer turn boundary.
-            let current_mcp = if primary_request {
+            let current_mcp = if primary_request || self.child_launch.is_some() {
                 let view = self.mcp_owner().request_view()?;
                 (view.publication == attached.publication).then_some(view)
             } else {
                 None
             };
             let attached = current_mcp.as_deref().unwrap_or(attached);
+            let child_mcp = self
+                .child_launch
+                .as_ref()
+                .map(|launch| launch.mcp_view(attached, &published.config));
+            let attached = child_mcp.as_ref().unwrap_or(attached);
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .with_root(&self.roots.project)
                 .with_mcp(&attached.entries);
@@ -2087,6 +2178,7 @@ impl<'a> Runtime<'a> {
                     self.parent_env.get("HOME").map(String::as_str),
                     dcp_config,
                     self.approvals.has_consumer(),
+                    self.child_launch.as_deref(),
                 ));
             }
             tool_defs.extend(super::code_mode::mcp_request_tools(attached, &policy));
@@ -2102,6 +2194,7 @@ impl<'a> Runtime<'a> {
                 &variant,
             ));
             let runner = subagents.as_ref().map(|catalog| TurnSubagent {
+                issuing: &published,
                 turn_id: turn_id.clone(),
                 runtime: self,
                 parent_session: params.session.clone(),
@@ -3376,7 +3469,31 @@ impl<'a> Runtime<'a> {
         launch_started: Option<tokio::sync::oneshot::Sender<()>>,
         resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
-        let lane = self.child_lane(agent, parent_lane, owning_operation);
+        let published = self.current.read().expect("generation").clone();
+        let lane = if let Some(launch) = &self.child_launch {
+            self.child_request_lane(&published, launch)?
+        } else {
+            self.child_lane_in(&published, agent, parent_lane, owning_operation)
+        };
+        let source = published.request_provider.as_ref().unwrap_or(provider);
+        let capture = source.wire.providers.get(&catalog.provider);
+        let (catalog, provider) = if let Some(capture) = capture {
+            (&capture.catalog, child_provider(&capture.config, source))
+        } else if published.request_provider.is_none() {
+            (catalog, provider.clone())
+        } else {
+            return Err(RuntimeError::InvalidArgs(
+                "selected child provider unavailable".into(),
+            ));
+        };
+        if let Some(launch) = &self.child_launch {
+            launch.admit_provider(
+                &catalog.provider,
+                &model.id,
+                model.variant.as_deref(),
+                &provider,
+            )?;
+        }
         let params = TurnParams {
             session: session.to_string(),
             prompt,
@@ -3385,10 +3502,11 @@ impl<'a> Runtime<'a> {
             model_id: model.id.clone(),
             variant: model.variant.clone(),
             max_output,
-            provider: provider.clone(),
+            provider,
             cancel,
         };
         self.run_child_lane(
+            published.clone(),
             agent,
             owning_operation,
             &lane,
@@ -3407,12 +3525,18 @@ impl<'a> Runtime<'a> {
         parent_lane: &TurnLane,
         owning_operation: &str,
     ) -> TurnLane {
-        let workspace = self
-            .current
-            .read()
-            .expect("generation lock")
-            .workspace
-            .clone();
+        let published = self.current.read().expect("generation lock").clone();
+        self.child_lane_in(&published, agent, parent_lane, owning_operation)
+    }
+
+    pub(super) fn child_lane_in(
+        &self,
+        published: &ExecutionGeneration,
+        agent: &SubagentAgent,
+        parent_lane: &TurnLane,
+        owning_operation: &str,
+    ) -> TurnLane {
+        let workspace = &published.workspace;
         // Parent generation ∩ child agent rules: an agent rule can only make
         // the child lane stricter, never widen the caller's authority.
         let mut permissions = parent_lane.permissions.clone();
@@ -3470,6 +3594,7 @@ impl<'a> Runtime<'a> {
     #[allow(clippy::too_many_arguments)]
     async fn run_child_lane(
         &self,
+        published: Arc<ExecutionGeneration>,
         _agent: &SubagentAgent,
         owning_operation: &str,
         lane: &TurnLane,
@@ -3555,8 +3680,13 @@ impl<'a> Runtime<'a> {
                 );
             }
         };
-        let published = self.current.read().expect("generation").clone();
-        self.admit_provider_variant(catalog, &model.id, model.variant.as_deref(), &provider)?;
+        self.admit_provider_variant_in(
+            &published,
+            catalog,
+            &model.id,
+            model.variant.as_deref(),
+            &provider,
+        )?;
         let base = models::select_model(catalog, &model.id).map_err(|_| RuntimeError::Storage)?;
         let fallback = published
             .config
@@ -3566,6 +3696,7 @@ impl<'a> Runtime<'a> {
             .unwrap_or_default();
         let budget = models::budget(&base, max_output, fallback);
         let child = self.run_turn_admitted(
+            published.clone(),
             params,
             lane,
             attached,

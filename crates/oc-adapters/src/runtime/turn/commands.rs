@@ -73,6 +73,7 @@ impl Runtime<'_> {
             context_message_ids: Vec::new(),
         };
         let runner = TurnSubagent {
+            issuing: published,
             turn_id: String::new(),
             runtime: self,
             parent_session: params.session.clone(),
@@ -88,7 +89,7 @@ impl Runtime<'_> {
         };
         let (agent, target, _) = runner.resolve_request(&request).map_err(failed)?;
         let child_id = self.new_child_id(&params.session);
-        let child_lane = self.child_lane(agent, lane, &request.call_id);
+        let child_lane = self.child_lane_in(published, agent, lane, &request.call_id);
         let child_params = TurnParams {
             session: child_id.clone(),
             prompt: format!(
@@ -114,6 +115,7 @@ impl Runtime<'_> {
         // Exact same schema-inclusive preflight as execution; no turn/session,
         // provider dispatch, tool intent or selection transaction in probe mode.
         let proof = Box::pin(self.run_turn_admitted(
+            Arc::new(published.clone()),
             child_params,
             &child_lane,
             attached,
@@ -191,7 +193,7 @@ impl Runtime<'_> {
         log: &'x mut TurnLog,
         admission: CommandAdmission,
         events: &'x mut (dyn FnMut(&str, &ToolCallEvent) + Send),
-        published: &'x PublishedGeneration,
+        published: &'x ExecutionGeneration,
     ) -> std::pin::Pin<
         Box<dyn std::future::Future<Output = Result<TurnReport, RuntimeError>> + Send + 'x>,
     > {
@@ -228,6 +230,7 @@ impl Runtime<'_> {
                 },
             );
             let runner = TurnSubagent {
+                issuing: published,
                 turn_id: turn.clone(),
                 runtime: self,
                 parent_session: params.session.clone(),

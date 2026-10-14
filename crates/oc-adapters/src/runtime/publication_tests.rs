@@ -88,6 +88,454 @@ fn hot01_captured_publication_keeps_its_workspace_and_policy() {
     assert!(db.list_sessions().unwrap().is_empty());
 }
 
+#[test]
+fn hot01_child_source_publication_is_shared_but_launch_authority_is_not() {
+    use serde_json::json;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    let agent = SubagentAgent {
+        id: "worker".into(),
+        description: "worker".into(),
+        primary: false,
+        model: None,
+        variant: None,
+        prompt: "G1_CHILD_PROMPT".into(),
+        permissions: BTreeMap::from([("read".into(), Permission::Ask)]),
+        permission_rules: Default::default(),
+        hidden: false,
+        digest: Some("g1".into()),
+        request: Default::default(),
+        color: None,
+    };
+    owner
+        .publish_subagents(Some(SubagentCatalog {
+            agents: BTreeMap::from([("worker".into(), agent.clone())]),
+            depth_limit: 4,
+        }))
+        .unwrap();
+    owner.update_execution(|view| {
+        view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
+            &json!({"permission":{"read":{"*":"allow","locked.txt":"deny"}}}),
+        )
+        .unwrap();
+        view.generation.config.mcp.insert(
+            "service".into(),
+            serde_json::from_value(json!({"type":"remote","url":"https://example.test/launch"}))
+                .unwrap(),
+        );
+    });
+    let issued = owner.current.read().unwrap().clone();
+    let parent = owner.primary_lane(&issued);
+    let provider = ResponsesConfig {
+        base_url: "https://example.test/source".into(),
+        api_key: "SYNTHETIC_CHILD_KEY".into(),
+        timeout: None,
+        chunk_timeout_ms: 3000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: false,
+        headers: BTreeMap::new(),
+        set_cache_key: false,
+        wire: Default::default(),
+    };
+    let child = owner.owned_child_for(&issued, &agent, &parent, "child-op", "fixture", &provider);
+    let launch = child.child_launch.as_ref().unwrap();
+    assert!(Arc::ptr_eq(&owner.current, &child.current));
+    let root_lease = owner.begin_active().unwrap();
+    assert!(!child.active.load(Ordering::Acquire));
+    owner.update_execution(|view| {
+        view.generation.id = 2;
+        view.generation
+            .config
+            .permissions
+            .insert("shell".into(), Permission::Allow);
+        view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
+            &json!({"permission":{"read":"allow","shell":"allow"}}),
+        )
+        .unwrap();
+        let agent = view
+            .workspace
+            .subagents
+            .as_mut()
+            .unwrap()
+            .agents
+            .get_mut("worker")
+            .unwrap();
+        agent.prompt = "G2_CHILD_PROMPT".into();
+        agent.permissions.insert("read".into(), Permission::Allow);
+        agent.permissions.insert("shell".into(), Permission::Allow);
+        let mut introduced = agent.clone();
+        introduced.id = "introduced".into();
+        let catalog = view.workspace.subagents.as_mut().unwrap();
+        catalog.depth_limit = 99;
+        catalog.agents.insert(introduced.id.clone(), introduced);
+    });
+    let current = child.current.read().unwrap().clone();
+    let lane = child.child_request_lane(&current, launch).unwrap();
+    assert!(lane.fixed_input.iter().any(|item| {
+        serde_json::to_string(item)
+            .unwrap()
+            .contains("G2_CHILD_PROMPT")
+    }));
+    let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
+    assert_eq!(policy.effect("read", "note.txt"), Permission::Ask);
+    assert_eq!(policy.effect("read", "locked.txt"), Permission::Deny);
+    assert_eq!(policy.effect("shell", "echo unexpected"), Permission::Deny);
+    let nested_catalog = launch.subagents(&current).unwrap();
+    assert_eq!(nested_catalog.depth_limit, 4);
+    assert!(!nested_catalog.agents.contains_key("introduced"));
+    launch
+        .admit_provider("fixture", "m", None, &provider)
+        .unwrap();
+    let mut changed = provider.clone();
+    changed.base_url = "https://example.test/other".into();
+    assert!(
+        launch
+            .admit_provider("fixture", "m", None, &changed)
+            .is_err()
+    );
+    changed = provider.clone();
+    changed.api_key = "ANOTHER_CHILD_ACCOUNT".into();
+    assert!(
+        launch
+            .admit_provider("fixture", "m", None, &changed)
+            .is_err()
+    );
+    assert!(
+        launch
+            .admit_provider("foreign", "m", None, &provider)
+            .is_err()
+    );
+    let nested = child.owned_child_for(
+        &current,
+        &nested_catalog.agents["worker"],
+        &lane,
+        "grandchild-op",
+        "fixture",
+        &changed,
+    );
+    assert!(
+        nested
+            .child_launch
+            .as_ref()
+            .unwrap()
+            .admit_provider("fixture", "m", None, &changed)
+            .is_err(),
+        "a new delegation cannot discard an ancestor's credential ceiling"
+    );
+    let mut attached =
+        super::super::mcp::McpGeneration::empty(2, Arc::new(tokio::sync::Notify::new()));
+    attached.entries = crate::mcp_remote::map_registry(
+        "service",
+        vec![("lookup".into(), None, json!({"type":"object"}))],
+    )
+    .unwrap();
+    assert_eq!(
+        attached
+            .within_child(&current.config, &launch.published.config)
+            .entries
+            .len(),
+        1
+    );
+    let mut replacement = current.config.clone();
+    replacement.mcp.get_mut("service").unwrap().timeout = Some(500);
+    replacement.mcp.get_mut("service").unwrap().codemode = Some(false);
+    assert_eq!(
+        attached
+            .within_child(&replacement, &launch.published.config)
+            .entries
+            .len(),
+        1
+    );
+    replacement = current.config.clone();
+    replacement.mcp.get_mut("service").unwrap().url = Some("https://example.test/other".into());
+    assert!(
+        attached
+            .within_child(&replacement, &launch.published.config)
+            .entries
+            .is_empty()
+    );
+    let mut nested_source = current.as_ref().clone();
+    nested_source.generation.config = replacement.clone();
+    let nested = child.owned_child_for(
+        &nested_source,
+        &nested_catalog.agents["worker"],
+        &lane,
+        "grandchild-service-op",
+        "fixture",
+        &provider,
+    );
+    assert!(
+        nested
+            .child_launch
+            .as_ref()
+            .unwrap()
+            .mcp_view(&attached, &replacement)
+            .entries
+            .is_empty(),
+        "a same-name service replacement cannot be laundered through a grandchild"
+    );
+    replacement = current.config.clone();
+    replacement
+        .mcp
+        .get_mut("service")
+        .unwrap()
+        .headers
+        .insert("authorization".into(), "Bearer new-domain".into());
+    assert!(
+        attached
+            .within_child(&replacement, &launch.published.config)
+            .entries
+            .is_empty()
+    );
+    owner.update_execution(|view| {
+        view.workspace.subagents.as_mut().unwrap().agents.clear();
+    });
+    assert!(
+        child
+            .child_request_lane(&child.current.read().unwrap(), launch)
+            .is_err()
+    );
+    assert_eq!(launch.published.id, 1);
+    drop(root_lease);
+    assert!(db.list_sessions().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals() {
+    use oc_core::approval::{ApprovalDecision, ApprovalReply};
+    use serde_json::json;
+    use tokio::io::AsyncWriteExt as _;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    std::fs::write(
+        project.path().join("note.txt"),
+        "first\nsecond\nG1_CHILD_SETTLED_LAST\n",
+    )
+    .unwrap();
+    std::fs::write(project.path().join("locked.txt"), "NEVER_CHILD_AUTHORIZED").unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    let agent = SubagentAgent {
+        id: "worker".into(),
+        description: "worker".into(),
+        primary: false,
+        model: None,
+        variant: None,
+        prompt: "G1_CHILD_PROFILE".into(),
+        permissions: BTreeMap::from([("read".into(), Permission::Ask)]),
+        permission_rules: Default::default(),
+        hidden: false,
+        digest: Some("g1".into()),
+        request: Default::default(),
+        color: None,
+    };
+    owner
+        .publish_subagents(Some(SubagentCatalog {
+            agents: BTreeMap::from([("worker".into(), agent)]),
+            depth_limit: 4,
+        }))
+        .unwrap();
+    owner.update_execution(|view| {
+        view.generation
+            .config
+            .permissions
+            .insert("subagent".into(), Permission::Allow);
+        view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
+            &json!({"permission":{"subagent":"allow","read":{"*":"allow","locked.txt":"deny"}}}),
+        )
+        .unwrap();
+    });
+    let (events, _events) = tokio::sync::broadcast::channel(32);
+    owner.set_approval_events(&events);
+    owner.register_approval_consumer(false);
+    let mut moved = binding_replay_tests::owner(&db, project.path());
+    moved.location = "destination".into();
+    moved.inherit_application_owners(&owner);
+    assert!(!Arc::ptr_eq(&moved.current, &owner.current));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic child".into(),
+        timeout: None,
+        chunk_timeout_ms: 5000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        set_cache_key: false,
+        wire: Default::default(),
+    };
+    let catalog = ModelCatalog {
+        provider: "fixture".into(),
+        models: BTreeMap::from([(
+            "m".into(),
+            json!({"limit":{"context":500000,"output":8000}}),
+        )]),
+    };
+    let (received, held) = tokio::sync::oneshot::channel();
+    let (release, released) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, _) = binding_replay_tests::request(&listener).await;
+        let body = format!(
+            "data: {}\n\n",
+            json!({"type":"response.completed","response":{"status":"completed","output":[
+                {"type":"function_call","id":"delegate","call_id":"delegate","name":"subagent","status":"completed",
+                 "arguments":json!({"agent":"worker","description":"held child","prompt":"child task only"}).to_string()}
+            ]}})
+        );
+        socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        assert!(request["input"].to_string().contains("G1_CHILD_PROFILE"));
+        received.send(()).unwrap();
+        released.await.unwrap();
+        binding_replay_tests::respond(
+            &mut socket,
+            crate::provider::protocol::Protocol::Responses,
+            true,
+        )
+        .await;
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        let input = request["input"].to_string();
+        assert!(
+            input.contains("G2_CHILD_PROFILE") && input.contains("G1_CHILD_SETTLED_LAST"),
+            "{input}"
+        );
+        assert!(!input.contains("G1_CHILD_PROFILE"));
+        assert!(
+            request["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|tool| tool["name"] != "shell")
+        );
+        let calls = [
+            json!({"type":"function_call","id":"again","call_id":"again","name":"read","status":"completed","arguments":"{\"path\":\"note.txt\"}"}),
+            json!({"type":"function_call","id":"locked","call_id":"locked","name":"read","status":"completed","arguments":"{\"path\":\"locked.txt\"}"}),
+        ];
+        let body = format!(
+            "data: {}\n\n",
+            json!({"type":"response.completed","response":{"status":"completed","output":calls}})
+        );
+        socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        assert!(request["input"].to_string().contains("denied"));
+        assert!(
+            !request["input"]
+                .to_string()
+                .contains("NEVER_CHILD_AUTHORIZED")
+        );
+        binding_replay_tests::respond(
+            &mut socket,
+            crate::provider::protocol::Protocol::Responses,
+            false,
+        )
+        .await;
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        assert!(request["input"].to_string().contains("FINAL_PUBLIC"));
+        binding_replay_tests::respond(
+            &mut socket,
+            crate::provider::protocol::Protocol::Responses,
+            false,
+        )
+        .await;
+    });
+    let cancel = AtomicBool::new(false);
+    let turn = owner.run_turn(TurnParams {
+        session: "s".into(),
+        prompt: "delegate".into(),
+        invocation: None,
+        catalog: &catalog,
+        model_id: "m".into(),
+        variant: None,
+        max_output: 1000,
+        provider,
+        cancel: &cancel,
+    });
+    let publication = async {
+        held.await.unwrap();
+        owner.update_execution(|view| {
+            view.generation.id = 2;
+            view.generation.config.tool_output.max_lines = 1;
+            view.generation
+                .config
+                .permissions
+                .insert("shell".into(), Permission::Allow);
+            view.generation.config.permission_rules =
+                crate::permissions::PermissionRules::from_config(
+                    &json!({"permission":{"subagent":"allow","read":"allow","shell":"allow"}}),
+                )
+                .unwrap();
+            let agent = view
+                .workspace
+                .subagents
+                .as_mut()
+                .unwrap()
+                .agents
+                .get_mut("worker")
+                .unwrap();
+            agent.prompt = "G2_CHILD_PROFILE".into();
+            agent.digest = Some("g2".into());
+            agent.permissions.insert("read".into(), Permission::Allow);
+            agent.permissions.insert("shell".into(), Permission::Allow);
+        });
+        release.send(()).unwrap();
+        for generation in [1, 2] {
+            let pending = tokio::time::timeout(Duration::from_secs(4), async {
+                loop {
+                    if let Some(request) = owner.pending_approvals().into_iter().next() {
+                        break request;
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await
+            .unwrap();
+            assert_eq!(pending.binding.generation, generation);
+            assert_ne!(pending.binding.session, "s");
+            moved
+                .reply_approval(ApprovalReply {
+                    id: pending.id,
+                    binding: pending.binding.clone(),
+                    decision: ApprovalDecision::Once,
+                })
+                .unwrap();
+            assert!(
+                moved
+                    .reply_approval(ApprovalReply {
+                        id: pending.id,
+                        binding: pending.binding,
+                        decision: ApprovalDecision::Once
+                    })
+                    .is_err()
+            );
+        }
+    };
+    let (report, ()) = tokio::time::timeout(Duration::from_secs(10), async {
+        tokio::join!(turn, publication)
+    })
+    .await
+    .unwrap();
+    assert_eq!(report.unwrap().status, TurnStatus::Completed);
+    peer.await.unwrap();
+    let jobs = db.child_jobs("s").unwrap();
+    assert_eq!(jobs.len(), 1);
+    let child = &jobs[0];
+    let ops = db.list_tool_ops(&child.child.0).unwrap();
+    assert_eq!(ops.iter().filter(|op| op.state == "completed").count(), 2);
+    let raw = db
+        .turn_result(child.turn.as_deref().unwrap())
+        .unwrap()
+        .1
+        .unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(log["requests"][0]["config_generation"], 1);
+    assert_eq!(log["requests"][1]["config_generation"], 2);
+    owner.child_jobs.shutdown().await.unwrap();
+    owner.shutdown_mcp().await.unwrap();
+}
+
 #[tokio::test]
 async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
     use oc_core::approval::{ApprovalDecision, ApprovalReply};

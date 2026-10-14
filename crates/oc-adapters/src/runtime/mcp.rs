@@ -27,6 +27,37 @@ pub(super) struct McpGeneration {
 }
 
 impl McpGeneration {
+    /// An unchanged name is not an authority grant for a replaced endpoint,
+    /// command, resource admission or credential domain.
+    pub(super) fn within_child(&self, latest: &Generation, launch: &Generation) -> Self {
+        let allowed = |server: &str| {
+            let Some(old) = launch.mcp.get(server) else {
+                return false;
+            };
+            let Some(new) = latest.mcp.get(server) else {
+                return false;
+            };
+            old.enabled
+                && new.enabled
+                && old.failure.is_none()
+                && new.failure.is_none()
+                && old.kind == new.kind
+                && old.url == new.url
+                && old.oauth == new.oauth
+                && old.headers == new.headers
+                && old.command == new.command
+                && old.cwd == new.cwd
+                && old.environment == new.environment
+                && old.protocol == new.protocol
+                && old.inherit_credentials == new.inherit_credentials
+                && old.blocked_inherited_values == new.blocked_inherited_values
+                && old.resource_admitted == new.resource_admitted
+        };
+        let mut view = self.clone();
+        view.servers.retain(|server| allowed(&server.server_id));
+        view.entries.retain(|entry| allowed(&entry.server));
+        view
+    }
     /// Exact request-view lookup, never decoding a sanitized/hash/collision wire
     /// name. Full literal redaction precedes controls and UTF-8 clipping.
     pub(super) fn label(

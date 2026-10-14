@@ -207,6 +207,7 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         None,
         &DcpConfig::default(),
         false,
+        None,
     );
     let preview = preview.description;
     let capabilities = preview
@@ -232,6 +233,7 @@ fn preview_resolves_child_model_before_selecting_the_captured_file_family() {
         None,
         &DcpConfig::default(),
         false,
+        None,
     );
     assert!(preview.description.contains("preview unavailable"));
 }

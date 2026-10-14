@@ -38,6 +38,102 @@ struct Work {
     foreground_result: Arc<Mutex<Option<SubagentOutcome>>>,
 }
 
+/// Execution remains child-local. Only source publications are shared; this
+/// immutable authority cannot be replaced by a later profile or service name.
+pub(super) struct LaunchCeiling {
+    pub(super) published: Arc<ExecutionGeneration>,
+    pub(super) lane: TurnLane,
+    pub(super) provider: ResponsesConfig,
+    pub(super) provider_id: String,
+    agent: SubagentAgent,
+    parent: Option<Arc<LaunchCeiling>>,
+}
+
+impl LaunchCeiling {
+    pub(super) fn admit_provider(
+        &self,
+        provider_id: &str,
+        model: &str,
+        variant: Option<&str>,
+        provider: &ResponsesConfig,
+    ) -> Result<(), RuntimeError> {
+        if let Some(parent) = &self.parent {
+            parent.admit_provider(provider_id, model, variant, provider)?;
+        }
+        let original = self
+            .provider
+            .wire
+            .providers
+            .get(provider_id)
+            .map(|capture| &capture.config)
+            .or_else(|| (provider_id == self.provider_id).then_some(&self.provider))
+            .ok_or_else(|| {
+                RuntimeError::InvalidArgs("child provider outside launch authority".into())
+            })?;
+        let old = original
+            .for_selection(model, variant)
+            .provenance(provider_id, model)
+            .map_err(|_| RuntimeError::Provider)?;
+        let new = provider
+            .for_selection(model, variant)
+            .provenance(provider_id, model)
+            .map_err(|_| RuntimeError::Provider)?;
+        if old.provider != new.provider
+            || old.protocol != new.protocol
+            || old.deployment != new.deployment
+            || old.auth_scope != new.auth_scope
+        {
+            return Err(RuntimeError::InvalidArgs(
+                "child provider outside launch authority".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub(super) fn mcp_view(
+        &self,
+        attached: &mcp::McpGeneration,
+        latest: &Generation,
+    ) -> mcp::McpGeneration {
+        let view = attached.within_child(latest, &self.published.config);
+        if let Some(parent) = &self.parent {
+            parent.mcp_view(&view, latest)
+        } else {
+            view
+        }
+    }
+
+    fn allows_profile(&self, agent: &SubagentAgent) -> bool {
+        self.published
+            .workspace
+            .subagents
+            .as_ref()
+            .and_then(|catalog| catalog.agents.get(&agent.id))
+            .or_else(|| {
+                (self.published.workspace.subagents.is_none() && self.agent.id == agent.id)
+                    .then_some(&self.agent)
+            })
+            .is_some_and(|original| original.request.headers == agent.request.headers)
+            && self
+                .parent
+                .as_ref()
+                .is_none_or(|parent| parent.allows_profile(agent))
+    }
+
+    pub(super) fn subagents(&self, latest: &ExecutionGeneration) -> Option<SubagentCatalog> {
+        let mut catalog = latest.workspace.subagents.clone()?;
+        catalog.agents.retain(|_, agent| self.allows_profile(agent));
+        let mut source = Some(self);
+        while let Some(ceiling) = source {
+            if let Some(original) = &ceiling.published.workspace.subagents {
+                catalog.depth_limit = catalog.depth_limit.min(original.depth_limit);
+            }
+            source = ceiling.parent.as_deref();
+        }
+        Some(catalog)
+    }
+}
+
 struct WaitRelease(Arc<AtomicBool>);
 impl Drop for WaitRelease {
     fn drop(&mut self) {
@@ -498,7 +594,7 @@ impl Jobs {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn launch(
         self: &Arc<Self>,
-        runtime: Runtime<'static>,
+        mut runtime: Runtime<'static>,
         parent_turn: String,
         agent: SubagentAgent,
         parent_lane: TurnLane,
@@ -512,6 +608,18 @@ impl Jobs {
         fresh: bool,
         resume: Option<TurnLog>,
     ) -> Result<SubagentOutcome, ToolError> {
+        if runtime.child_launch.is_none() {
+            let published = runtime.current.read().expect("generation").clone();
+            runtime.capture_child_ceiling(
+                &published,
+                &agent,
+                &parent_lane,
+                &identity.operation,
+                &catalog.provider,
+                &provider,
+                None,
+            );
+        }
         self.reap().await.map_err(|_| ToolError::Failed {
             tool: SUBAGENT_TOOL.into(),
             reason: "child worker cleanup failed".into(),
@@ -527,9 +635,20 @@ impl Jobs {
                 });
             }
             if resume.is_none() {
+                let mut launch_sources = Vec::new();
+                let mut ancestor = runtime
+                    .child_launch
+                    .as_ref()
+                    .and_then(|launch| launch.parent.as_deref());
+                while let Some(launch) = ancestor {
+                    launch_sources
+                        .push(runtime.publication_recovery_fingerprint(&launch.published));
+                    ancestor = launch.parent.as_deref();
+                }
                 let mut fence = serde_json::json!({
                     "version":1,"identity":identity,"parent_turn":parent_turn,"lane":parent_lane,
                     "generation_fingerprint":runtime.child_recovery_fingerprint(),
+                    "launch_sources": launch_sources,
                     "launch_source":self.db.child_launch_fingerprint(&identity.operation).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child admission source missing".into()})?,
                     "route":crate::compaction::route_identity(&catalog.provider,&model.id,provider.for_selection(&model.id,model.variant.as_deref())).map_err(|_|ToolError::Failed {tool:SUBAGENT_TOOL.into(),reason:"child route invalid".into()})?,
                 });
@@ -687,7 +806,7 @@ impl Jobs {
             .values()
             .find(|job| {
                 job.identity.location == binding.location
-                    && job.identity.generation == binding.generation
+                    && job.completion.clone().now_or_never().is_none()
                     && self
                         .db
                         .shell_family_contains(&job.identity.child.0, &binding.session)
@@ -745,7 +864,15 @@ impl Runtime<'_> {
     /// Only digests leave the product configuration owner; no credentials are
     /// copied into the journal. Captured parent authority is checked separately.
     fn child_recovery_fingerprint(&self) -> String {
-        let current = self.current.read().expect("generation");
+        let current = self
+            .child_launch
+            .as_ref()
+            .map(|launch| launch.published.clone())
+            .unwrap_or_else(|| self.current.read().expect("generation").clone());
+        self.publication_recovery_fingerprint(&current)
+    }
+
+    fn publication_recovery_fingerprint(&self, current: &ExecutionGeneration) -> String {
         let workspace = &current.workspace;
         crate::compaction::fingerprint(&(
             &self.location,
@@ -802,6 +929,20 @@ impl Runtime<'_> {
                     || fence["generation_fingerprint"] != self.child_recovery_fingerprint()
                 {
                     return Err(RuntimeError::Storage);
+                }
+                // Do not reconstruct a grandchild's credential/service ceiling
+                // from a newer, broader source after restart. Only matching
+                // captured sources can be reconstructed; otherwise fail closed
+                // with the existing explicit-recovery outcome, never replay.
+                if let Some(sources) = fence.get("launch_sources") {
+                    let sources = sources.as_array().ok_or(RuntimeError::Storage)?;
+                    if sources.len() > 64
+                        || sources
+                            .iter()
+                            .any(|source| source != &fence["generation_fingerprint"])
+                    {
+                        return Err(RuntimeError::Storage);
+                    }
                 }
                 let parent_lane: TurnLane = serde_json::from_value(fence["lane"].clone())
                     .map_err(|_| RuntimeError::Storage)?;
@@ -922,7 +1063,7 @@ impl Runtime<'_> {
             self.shutdown_mcp().await
         }
     }
-    /// Freeze this lane, retaining the SAME storage/resource ownership lineage.
+    /// Retain the source publication handle and SAME storage/resource lineage.
     /// No new database, MCP connection, catalog discovery or authority grants.
     pub(super) fn owned_child_snapshot(&self) -> Runtime<'static> {
         Runtime {
@@ -938,7 +1079,8 @@ impl Runtime<'_> {
             ),
             db: Database::Owned(self.db.shared_handle()),
             location: self.location.clone(),
-            current: RwLock::new(self.current.read().expect("generation").clone()),
+            current: self.current.clone(),
+            child_launch: None,
             active: AtomicBool::new(false),
             protected: self.protected.clone(),
             files: self.files.clone(),
@@ -958,5 +1100,134 @@ impl Runtime<'_> {
             mcp_cleanup_failed: AtomicBool::new(self.mcp_cleanup_failed.load(Ordering::Acquire)),
             subagent_seq: AtomicU64::new(0),
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn capture_child_ceiling(
+        &mut self,
+        published: &ExecutionGeneration,
+        agent: &SubagentAgent,
+        parent_lane: &TurnLane,
+        operation: &str,
+        provider_id: &str,
+        provider: &ResponsesConfig,
+        parent: Option<Arc<LaunchCeiling>>,
+    ) {
+        self.child_launch = Some(Arc::new(LaunchCeiling {
+            published: Arc::new(published.clone()),
+            lane: self.child_lane_in(published, agent, parent_lane, operation),
+            provider: provider.clone(),
+            provider_id: provider_id.into(),
+            agent: agent.clone(),
+            parent,
+        }));
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn owned_child_for(
+        &self,
+        published: &ExecutionGeneration,
+        agent: &SubagentAgent,
+        parent_lane: &TurnLane,
+        operation: &str,
+        provider_id: &str,
+        provider: &ResponsesConfig,
+    ) -> Runtime<'static> {
+        let mut child = self.owned_child_snapshot();
+        child.capture_child_ceiling(
+            published,
+            agent,
+            parent_lane,
+            operation,
+            provider_id,
+            provider,
+            self.child_launch.clone(),
+        );
+        child
+    }
+
+    pub(super) fn child_request_lane(
+        &self,
+        published: &ExecutionGeneration,
+        launch: &LaunchCeiling,
+    ) -> Result<TurnLane, RuntimeError> {
+        let unavailable = || RuntimeError::InvalidArgs("child profile unavailable".into());
+        let agent = published
+            .workspace
+            .subagents
+            .as_ref()
+            .and_then(|catalog| catalog.agents.get(&launch.agent.id))
+            .or_else(|| {
+                (published.workspace.subagents.is_none()
+                    && launch.published.workspace.subagents.is_none())
+                .then_some(&launch.agent)
+            })
+            .ok_or_else(unavailable)?;
+        let command_primary = launch
+            .published
+            .workspace
+            .subagents
+            .as_ref()
+            .and_then(|catalog| catalog.agents.get(&launch.agent.id))
+            .is_some_and(|agent| agent.primary)
+            && !launch.agent.primary;
+        if agent.primary && !command_primary {
+            return Err(unavailable());
+        }
+        // Profile headers are part of the immutable credential ceiling. Body
+        // options and prompt metadata may change, never routing/auth headers.
+        if !launch.allows_profile(agent) {
+            return Err(RuntimeError::InvalidArgs(
+                "child profile outside launch authority".into(),
+            ));
+        }
+        let mut parent = launch.lane.clone();
+        parent.permissions = published.config.permissions.clone();
+        parent.permission_rules = published.config.permission_rules.clone();
+        parent.permission_rules.narrow(
+            &parent.permissions,
+            &launch.lane.permissions,
+            &launch.lane.permission_rules,
+        );
+        // Profile constraints are open (an omitted action imposes no rule), but
+        // the effective launch authority is closed for native tools. Preserve
+        // its missing-action Deny as well as its explicit resource constraints.
+        // Registered MCP has its separate admitted service-domain ceiling.
+        let ceiling =
+            RuntimePolicy::with_rules(&launch.lane.permissions, &launch.lane.permission_rules);
+        for tool in crate::tools::MODEL_TOOL_NAMES.iter().copied().chain([
+            crate::tools::SUBAGENT_TOOL,
+            "execute",
+            "bash",
+        ]) {
+            if !ceiling.tool_visible(tool) {
+                parent
+                    .permission_rules
+                    .module_permission(tool, Permission::Deny);
+            }
+        }
+        for (tool, level) in &launch.lane.permissions {
+            parent
+                .permissions
+                .entry(tool.clone())
+                .and_modify(|current| {
+                    if turn::permission_rank(*level) > turn::permission_rank(*current) {
+                        *current = *level;
+                    }
+                })
+                .or_insert(*level);
+        }
+        // Generate skill metadata only after every ceiling is installed, just
+        // like execution. Rebuilding the prompt first would advertise denied IDs.
+        Ok(self.child_lane_in(
+            published,
+            agent,
+            &parent,
+            launch
+                .lane
+                .owning_operation
+                .as_deref()
+                .expect("child operation"),
+        ))
     }
 }

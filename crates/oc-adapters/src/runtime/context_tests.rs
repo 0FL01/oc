@@ -103,6 +103,7 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
         let _lease = runtime.begin_active().unwrap();
         runtime
             .run_turn_admitted(
+                published.clone(),
                 parameters(&models, &provider, &cancel),
                 &lane,
                 &attached,
