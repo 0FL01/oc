@@ -45,7 +45,12 @@ impl Runtime<'_> {
         let Some(child) = &command.child else {
             return Ok(None);
         };
-        let workspace = self.workspace.read().expect("workspace lock").clone();
+        let workspace = self
+            .current
+            .read()
+            .expect("generation lock")
+            .workspace
+            .clone();
         let mut catalog = workspace
             .subagents
             .clone()

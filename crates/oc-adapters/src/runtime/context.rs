@@ -635,7 +635,12 @@ impl<'a> Runtime<'a> {
         context: &mut ActiveContext,
     ) -> Result<(), RuntimeError> {
         let spec = self.history_protection_spec(session)?;
-        let config = self.dcp_config.read().expect("dcp config").clone();
+        let config = self
+            .current
+            .read()
+            .expect("generation lock")
+            .dcp_config
+            .clone();
         for block in &mut context.blocks {
             let legacy = crate::dcp::select_legacy_protection(
                 &crate::dcp::legacy_protection(block).map_err(|_| RuntimeError::Storage)?,
@@ -690,7 +695,8 @@ impl<'a> Runtime<'a> {
         &self,
         session: &str,
     ) -> Result<ProtectedSpec, RuntimeError> {
-        let config = self.dcp_config.read().expect("dcp config");
+        let published = self.current.read().expect("generation lock").clone();
+        let config = &published.dcp_config;
         Ok(ProtectedSpec {
             protect_user_messages: config.protect_user_messages,
             protect_tags: config.protect_tags,
@@ -952,7 +958,7 @@ impl<'a> Runtime<'a> {
             .expect("compression commit lock");
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.session_compression_lane(session, &published)?;
-        let config = self.dcp_config.read().expect("dcp lock").clone();
+        let config = published.dcp_config.clone();
         {
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
             let permission = effective_compress_permission(&config, &policy);

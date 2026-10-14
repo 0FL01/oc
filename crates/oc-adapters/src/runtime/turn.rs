@@ -955,7 +955,10 @@ impl<'a> Runtime<'a> {
             })
             .collect();
         let compression_permission = (call.name == COMPRESS_TOOL).then(|| {
-            effective_compress_permission(&self.dcp_config.read().expect("dcp lock"), policy)
+            effective_compress_permission(
+                &self.current.read().expect("generation lock").dcp_config,
+                policy,
+            )
         });
         let effect = |resource: &str| {
             compression_permission.unwrap_or_else(|| policy.effect(&call.name, resource))
@@ -1303,7 +1306,7 @@ impl<'a> Runtime<'a> {
                 .provider
                 .for_selection(&selection.id, params.variant.as_deref()),
         )?;
-        let workspace = self.workspace.read().expect("workspace lock").clone();
+        let workspace = published.workspace.clone();
         let mut effort_event_seq = self
             .db
             .effort_facts(&params.session, 0)?
@@ -1341,7 +1344,7 @@ impl<'a> Runtime<'a> {
             )?;
             (projected, history, Some((after_seq, blocks)))
         };
-        let dcp_config = self.dcp_config.read().expect("dcp lock").clone();
+        let dcp_config = published.dcp_config.clone();
         let compression_policy =
             RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules);
         // Fresh acceptance has not created the root yet. A missing row here
@@ -3326,7 +3329,12 @@ impl<'a> Runtime<'a> {
         parent_lane: &TurnLane,
         owning_operation: &str,
     ) -> TurnLane {
-        let workspace = self.workspace.read().expect("workspace lock").clone();
+        let workspace = self
+            .current
+            .read()
+            .expect("generation lock")
+            .workspace
+            .clone();
         // Parent generation ∩ child agent rules: an agent rule can only make
         // the child lane stricter, never widen the caller's authority.
         let mut permissions = parent_lane.permissions.clone();
@@ -4301,7 +4309,12 @@ impl<'a> Runtime<'a> {
                 && let Assembled::Call(call) = unit
                 && call.name == COMPRESS_TOOL
             {
-                let config = self.dcp_config.read().expect("dcp lock").clone();
+                let config = self
+                    .current
+                    .read()
+                    .expect("generation lock")
+                    .dcp_config
+                    .clone();
                 let prepared = invocation_policy
                     .permit
                     .as_ref()
@@ -5162,9 +5175,10 @@ impl<'a> Runtime<'a> {
                     });
                 }
                 let roots = self
-                    .workspace
+                    .current
                     .read()
-                    .expect("workspace lock")
+                    .expect("generation lock")
+                    .workspace
                     .instruction_roots
                     .clone();
                 let (revision, facts) = self.db.instruction_view(session)?;

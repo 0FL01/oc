@@ -50,7 +50,7 @@ impl Runtime<'_> {
             .map_err(|_| RuntimeError::InvalidArgs("user shell selection unavailable".into()))?;
         let published = self.current.read().expect("generation lock").clone();
         let lane = self.primary_lane(&published);
-        let workspace = self.workspace.read().expect("workspace lock").clone();
+        let workspace = published.workspace.clone();
         let operation = format!("user-shell:{}", next_turn_id(params.session, millis()));
         let call = crate::tools::ToolCall {
             id: operation.clone(),

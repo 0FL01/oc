@@ -746,7 +746,7 @@ impl Runtime<'_> {
     /// copied into the journal. Captured parent authority is checked separately.
     fn child_recovery_fingerprint(&self) -> String {
         let current = self.current.read().expect("generation");
-        let workspace = self.workspace.read().expect("workspace");
+        let workspace = &current.workspace;
         crate::compaction::fingerprint(&(
             &self.location,
             &current.config.providers,
@@ -758,7 +758,7 @@ impl Runtime<'_> {
             &workspace.instructions,
             &workspace.skills_projection,
             &workspace.command_digest,
-            format!("{:?}", *self.dcp_config.read().expect("dcp")),
+            format!("{:?}", current.dcp_config),
         ))
     }
 
@@ -805,7 +805,7 @@ impl Runtime<'_> {
                 }
                 let parent_lane: TurnLane = serde_json::from_value(fence["lane"].clone())
                     .map_err(|_| RuntimeError::Storage)?;
-                let workspace = self.workspace.read().expect("workspace").clone();
+                let workspace = self.current.read().expect("generation").workspace.clone();
                 let command_primary = self.command_child_receipt(&fence, &identity)?;
                 let agent = workspace
                     .subagents
@@ -939,7 +939,6 @@ impl Runtime<'_> {
             db: Database::Owned(self.db.shared_handle()),
             location: self.location.clone(),
             current: RwLock::new(self.current.read().expect("generation").clone()),
-            provider_state: RwLock::new(self.provider_state.read().expect("provider").clone()),
             active: AtomicBool::new(false),
             protected: self.protected.clone(),
             files: self.files.clone(),
@@ -948,9 +947,6 @@ impl Runtime<'_> {
             roots: self.roots.clone(),
             webfetch_auth: self.webfetch_auth.clone(),
             webfetch_allow_private: self.webfetch_allow_private,
-            dcp_config: RwLock::new(self.dcp_config.read().expect("dcp").clone()),
-            dcp_protected: RwLock::new(self.dcp_protected.read().expect("dcp protection").clone()),
-            workspace: RwLock::new(self.workspace.read().expect("workspace").clone()),
             nudge_state: Mutex::default(),
             compression_commit: self.compression_commit.clone(),
             stats: Mutex::new(DcpStats::default()),

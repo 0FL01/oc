@@ -956,6 +956,26 @@ struct RuntimeWorkspace {
     command_digest: Option<String>,
 }
 
+/// Config, workspace, DCP and readiness share one immutable publication.
+/// The public generation receipt stays unchanged; internal request consumers also
+/// capture workspace/DCP/readiness instead of independently reading mutable locks.
+#[derive(Clone)]
+struct ExecutionGeneration {
+    generation: PublishedGeneration,
+    workspace: RuntimeWorkspace,
+    dcp_config: DcpConfig,
+    dcp_protected: ProtectedSpec,
+    provider_state: Option<crate::composition::ProviderState>,
+}
+
+impl std::ops::Deref for ExecutionGeneration {
+    type Target = PublishedGeneration;
+
+    fn deref(&self) -> &Self::Target {
+        &self.generation
+    }
+}
+
 /// Fixed developer input + central policy for one turn lane.
 ///
 /// The primary lane mirrors the published workspace. A child lane replaces
@@ -1065,8 +1085,7 @@ pub struct Runtime<'a> {
     native_compaction: RwLock<Option<Arc<dyn crate::compaction::NativeCompaction>>>,
     db: children::Database<'a>,
     location: String,
-    current: RwLock<Arc<PublishedGeneration>>,
-    provider_state: RwLock<Option<crate::composition::ProviderState>>,
+    current: RwLock<Arc<ExecutionGeneration>>,
     active: AtomicBool,
     protected: ProtectedGlobs,
     files: crate::files::Files,
@@ -1075,9 +1094,6 @@ pub struct Runtime<'a> {
     roots: ToolRoots,
     webfetch_auth: Option<String>,
     webfetch_allow_private: bool,
-    dcp_config: RwLock<crate::dcp_auto::DcpConfig>,
-    dcp_protected: RwLock<ProtectedSpec>,
-    workspace: RwLock<RuntimeWorkspace>,
     nudge_state: Mutex<BTreeMap<String, NudgeState>>,
     // Sibling runtimes share the durable block allocator. Hold only across the
     // synchronous refresh/measure/commit section, never provider IO or approval.
@@ -1191,11 +1207,16 @@ impl<'a> Runtime<'a> {
             native_compaction: RwLock::new(None),
             db: children::Database::Borrowed(db),
             location: location.to_string(),
-            current: RwLock::new(Arc::new(PublishedGeneration {
-                id: 1,
-                config: generation,
+            current: RwLock::new(Arc::new(ExecutionGeneration {
+                generation: PublishedGeneration {
+                    id: 1,
+                    config: generation,
+                },
+                workspace: RuntimeWorkspace::default(),
+                dcp_config,
+                dcp_protected: ProtectedSpec::default(),
+                provider_state: None,
             })),
-            provider_state: RwLock::new(None),
             active: AtomicBool::new(false),
             protected,
             files,
@@ -1204,9 +1225,6 @@ impl<'a> Runtime<'a> {
             roots,
             webfetch_auth,
             webfetch_allow_private,
-            dcp_config: RwLock::new(dcp_config),
-            dcp_protected: RwLock::new(ProtectedSpec::default()),
-            workspace: RwLock::new(RuntimeWorkspace::default()),
             nudge_state: Mutex::new(BTreeMap::new()),
             compression_commit: Arc::new(Mutex::new(())),
             stats: Mutex::new(DcpStats::default()),
@@ -1223,12 +1241,17 @@ impl<'a> Runtime<'a> {
         self.current.read().expect("generation lock").id
     }
 
+    fn update_execution(&self, update: impl FnOnce(&mut ExecutionGeneration)) {
+        let mut current = self.current.write().expect("generation lock");
+        update(Arc::make_mut(&mut current));
+    }
+
     pub(crate) fn publish_provider_state(
         &self,
         state: crate::composition::ProviderState,
     ) -> Result<(), RuntimeError> {
         let _lease = self.begin_active()?;
-        *self.provider_state.write().expect("provider state") = Some(state);
+        self.update_execution(|view| view.provider_state = Some(state));
         Ok(())
     }
 
@@ -1246,10 +1269,7 @@ impl<'a> Runtime<'a> {
                 target.options.redaction_material = entry.options.redaction_material.clone();
             }
         }
-        *current = Arc::new(PublishedGeneration {
-            id: current.id,
-            config: next,
-        });
+        Arc::make_mut(&mut current).generation.config = next;
         Ok(())
     }
 
@@ -1267,10 +1287,7 @@ impl<'a> Runtime<'a> {
         let mut current = self.current.write().expect("generation lock");
         let mut next = current.config.clone();
         next.providers.insert(id.into(), entry.clone());
-        *current = Arc::new(PublishedGeneration {
-            id: current.id,
-            config: next,
-        });
+        Arc::make_mut(&mut current).generation.config = next;
         Ok(())
     }
 
@@ -1289,7 +1306,7 @@ impl<'a> Runtime<'a> {
             .wire
             .provider_state
             .clone()
-            .or_else(|| self.provider_state.read().expect("provider state").clone());
+            .or_else(|| published.provider_state.clone());
         let availability_known = admitted.is_some();
         let mut state = admitted.unwrap_or_else(|| {
             // Standalone public constructors still obey a declared config
@@ -1506,18 +1523,14 @@ impl<'a> Runtime<'a> {
         call: &crate::tools::ToolCall,
         request_available: bool,
     ) -> Result<crate::dcp::CompressionPlan, String> {
-        let config = self.dcp_config.read().expect("dcp lock").clone();
+        let published = self.current.read().expect("generation lock").clone();
+        let config = &published.dcp_config;
         if !request_available {
             return Err("compress excluded by issuing request".into());
         }
         let (_, ranges) =
             crate::dcp::validate_range_args(&call.arguments).map_err(|e| e.to_string())?;
-        let spec = self
-            .dcp_protected
-            .read()
-            .expect("dcp protection lock")
-            .clone();
-        self.prepare_dcp_plan(session, &ranges, &spec, Some(&config))
+        self.prepare_dcp_plan(session, &ranges, &published.dcp_protected, Some(config))
             .map_err(|e| e.to_string())
     }
 
@@ -1558,11 +1571,12 @@ impl<'a> Runtime<'a> {
         session: &str,
         policy: &RuntimePolicy<'_>,
     ) -> Result<oc_core::dcp_view::DcpAvailability, RuntimeError> {
-        let config = self.dcp_config.read().expect("dcp lock");
-        let permission = effective_compress_permission(&config, policy);
+        let published = self.current.read().expect("generation lock").clone();
+        let config = &published.dcp_config;
+        let permission = effective_compress_permission(config, policy);
         let child = self.db.session_meta(session)?.parent_id.is_some();
-        let ordinary_refusal = self.compression_refusal(&config, permission, child, false);
-        let manual_refusal = self.compression_refusal(&config, permission, child, true);
+        let ordinary_refusal = self.compression_refusal(config, permission, child, false);
+        let manual_refusal = self.compression_refusal(config, permission, child, true);
         Ok(oc_core::dcp_view::DcpAvailability {
             ordinary_refusal,
             manual_refusal,
@@ -1589,7 +1603,13 @@ impl<'a> Runtime<'a> {
         session: &str,
     ) -> Result<ManualCompressionTrigger, RuntimeError> {
         self.open_session(session)?;
-        if !self.dcp_config.read().expect("dcp lock").commands_enabled {
+        if !self
+            .current
+            .read()
+            .expect("generation lock")
+            .dcp_config
+            .commands_enabled
+        {
             return Err(RuntimeError::Compress(
                 oc_core::dcp_view::DcpUnavailable::CommandsOff
                     .reason()
@@ -1606,7 +1626,13 @@ impl<'a> Runtime<'a> {
     }
 
     fn dcp_debug(&self, event: &'static str) {
-        if self.dcp_config.read().expect("dcp lock").debug {
+        if self
+            .current
+            .read()
+            .expect("generation lock")
+            .dcp_config
+            .debug
+        {
             crate::trace::log(
                 "dcp.debug",
                 &crate::dcp_auto::debug_line(event, &self.stats.lock().expect("stats lock")),
@@ -1637,10 +1663,10 @@ impl<'a> Runtime<'a> {
         let id = {
             let mut current = self.current.write().expect("generation lock");
             let id = current.id + 1;
-            *current = Arc::new(PublishedGeneration {
+            Arc::make_mut(&mut current).generation = PublishedGeneration {
                 id,
                 config: generation,
-            });
+            };
             id
         };
         self.replace_mcp_owner();
@@ -1851,7 +1877,7 @@ impl<'a> Runtime<'a> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        *self.dcp_config.write().expect("dcp lock") = config;
+        self.update_execution(|view| view.dcp_config = config);
         Ok(())
     }
 
@@ -1860,7 +1886,7 @@ impl<'a> Runtime<'a> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        *self.dcp_protected.write().expect("dcp protection lock") = spec;
+        self.update_execution(|view| view.dcp_protected = spec);
         Ok(())
     }
 
@@ -1873,7 +1899,7 @@ impl<'a> Runtime<'a> {
             return Err(RuntimeError::TurnActive);
         }
         let snapshot = SkillSnapshot::build(&files).0;
-        self.workspace.write().expect("workspace lock").skills = snapshot;
+        self.update_execution(|view| view.workspace.skills = snapshot);
         Ok(())
     }
 
@@ -1907,9 +1933,10 @@ impl<'a> Runtime<'a> {
             Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
         };
         let shared_sources = !self
-            .workspace
+            .current
             .read()
-            .expect("workspace lock")
+            .expect("generation lock")
+            .workspace
             .instruction_roots
             .is_empty();
         // The skills preview is appended per lane after its final policy.
@@ -1922,7 +1949,8 @@ impl<'a> Runtime<'a> {
             agent_permission_rules.expand_home(home);
         }
         agent_permission_rules.bind_plan_project(&self.roots.project);
-        let mut workspace = self.workspace.write().expect("workspace lock");
+        let mut current = self.current.write().expect("generation lock");
+        let workspace = &mut Arc::make_mut(&mut current).workspace;
         workspace.fixed_input = fixed_input;
         workspace.skills = skills;
         workspace.agent_digest = agent_digest;
@@ -1948,7 +1976,7 @@ impl<'a> Runtime<'a> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        self.workspace.write().expect("workspace lock").subagents = subagents;
+        self.update_execution(|view| view.workspace.subagents = subagents);
         Ok(())
     }
 
@@ -1957,10 +1985,7 @@ impl<'a> Runtime<'a> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        self.workspace
-            .write()
-            .expect("workspace lock")
-            .command_digest = Some(digest);
+        self.update_execution(|view| view.workspace.command_digest = Some(digest));
         Ok(())
     }
 
@@ -2004,9 +2029,10 @@ impl<'a> Runtime<'a> {
     /// Create a Location-scoped session (idempotent for the same Location).
     pub fn create_session(&self, id: &str) -> Result<(), RuntimeError> {
         let reminder = (self
-            .workspace
+            .current
             .read()
-            .expect("workspace lock")
+            .expect("generation lock")
+            .workspace
             .agent_id
             .as_deref()
             == Some("plan"))
@@ -2311,8 +2337,8 @@ impl<'a> Runtime<'a> {
     }
 
     /// Fixed input + policy of the primary (published) lane.
-    fn primary_lane(&self, published: &PublishedGeneration) -> TurnLane {
-        let workspace = self.workspace.read().expect("workspace lock");
+    fn primary_lane(&self, published: &ExecutionGeneration) -> TurnLane {
+        let workspace = &published.workspace;
         let permissions = published.config.permissions.clone();
         let mut permission_rules = published.config.permission_rules.clone();
         permission_rules.narrow(
@@ -2345,15 +2371,10 @@ impl<'a> Runtime<'a> {
     fn session_compression_lane(
         &self,
         session: &str,
-        published: &PublishedGeneration,
+        published: &ExecutionGeneration,
     ) -> Result<TurnLane, RuntimeError> {
         let mut lane = self.primary_lane(published);
-        let catalog = self
-            .workspace
-            .read()
-            .expect("workspace lock")
-            .subagents
-            .clone();
+        let catalog = published.workspace.subagents.clone();
         let mut current = self.db.session_meta(session)?;
         let mut profiles = Vec::new();
         let mut seen = std::collections::BTreeSet::new();

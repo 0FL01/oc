@@ -82,6 +82,9 @@ async fn conn05_custom_publication_keeps_captured_generation_policy_and_mcp_leas
 #[path = "controls_tests.rs"]
 mod controls_tests;
 
+#[path = "publication_tests.rs"]
+mod publication_tests;
+
 #[path = "binding_replay_tests.rs"]
 pub(super) mod binding_replay_tests;
 

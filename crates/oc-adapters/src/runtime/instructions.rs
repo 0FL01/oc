@@ -10,10 +10,7 @@ impl Runtime<'_> {
         if self.active.load(Ordering::Relaxed) {
             return Err(RuntimeError::TurnActive);
         }
-        self.workspace
-            .write()
-            .expect("workspace lock")
-            .instruction_roots = roots;
+        self.update_execution(|view| view.workspace.instruction_roots = roots);
         Ok(())
     }
 
@@ -25,9 +22,10 @@ impl Runtime<'_> {
     ) -> Result<(u64, Vec<Source>), RuntimeError> {
         let (revision, previous) = self.db.instruction_view(session)?;
         let roots = self
-            .workspace
+            .current
             .read()
-            .expect("workspace lock")
+            .expect("generation lock")
+            .workspace
             .instruction_roots
             .clone();
         let mut sources = Vec::new();

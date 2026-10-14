@@ -509,7 +509,12 @@ impl Runtime<'_> {
             Ok(Some(prepared)) => {
                 snapshot.state = CompactionState::Completed;
                 if let Some((log, counts, notice_seq)) = current.as_mut() {
-                    let config = self.dcp_config.read().expect("dcp config").clone();
+                    let config = self
+                        .current
+                        .read()
+                        .expect("generation lock")
+                        .dcp_config
+                        .clone();
                     let live_calls = self.db.live_shell_call_ids(&log.turn_id)?;
                     let working = log
                         .current_working_checkpoint(&snapshot.summary, *counts, |group| {
@@ -722,7 +727,12 @@ impl Runtime<'_> {
                     .session_checkpoint(session)?
                     .map_or(0, |(seq, _)| seq),
             );
-            let dcp = self.dcp_config.read().expect("dcp config").clone();
+            let dcp = self
+                .current
+                .read()
+                .expect("generation lock")
+                .dcp_config
+                .clone();
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
                 || !dcp.protected_file_patterns.is_empty()
@@ -780,8 +790,10 @@ impl Runtime<'_> {
             )?;
             let logs =
                 self.projected_wire_logs(session, context.after_seq, prior, &context.blocks)?;
-            retained_selection =
-                self.select_history_facts(&logs, &self.dcp_config.read().expect("dcp config"))?;
+            retained_selection = self.select_history_facts(
+                &logs,
+                &self.current.read().expect("generation lock").dcp_config,
+            )?;
             retained_selection.extend(self.selected_message_facts(
                 session,
                 prior,
@@ -826,7 +838,12 @@ impl Runtime<'_> {
             else {
                 return Ok(None);
             };
-            let dcp = self.dcp_config.read().expect("dcp config").clone();
+            let dcp = self
+                .current
+                .read()
+                .expect("generation lock")
+                .dcp_config
+                .clone();
             let retain_selection = dcp.protect_user_messages
                 || dcp.protect_tags
                 || !dcp.protected_file_patterns.is_empty()

@@ -54,11 +54,11 @@ fn repeated_standalone_renewal_releases_old_facts_and_preserves_literal_fork() {
         .permissions
         .insert("compress".into(), Permission::Allow);
     let runtime = runtime(&db, project.path(), generation);
-    runtime.dcp_config.write().unwrap().protect_tags = true;
+    runtime.update_execution(|view| view.dcp_config.protect_tags = true);
     let mut start = first;
     for cycle in 0..12 {
         let protected = cycle < 11;
-        runtime.dcp_config.write().unwrap().protect_tags = protected;
+        runtime.update_execution(|view| view.dcp_config.protect_tags = protected);
         let report=runtime.run_compress("s",&serde_json::json!({"topic":"renewal","content":[{"startId":start,"endId":end,"summary":format!("CONTROL_OBJECTIVE changed requirement path selected-{cycle} next move")}]}),&oc_core::context_plan::ProtectedSpec{protect_tags:protected,..Default::default()}).unwrap();
         start = report.blocks[0].clone();
         let active = runtime.active_projection("s").unwrap();
@@ -199,7 +199,7 @@ async fn compact_forget_selection_does_not_reassign_a_reused_call_mark() {
     let mut generation = Generation::default();
     generation.compaction.keep_tokens = 0;
     let runtime = runtime(&db, project.path(), generation);
-    runtime.dcp_config.write().unwrap().protect_user_messages = true;
+    runtime.update_execution(|view| view.dcp_config.protect_user_messages = true);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let provider = config(&listener);
     let responder = tokio::spawn(async move {
@@ -252,7 +252,7 @@ async fn compact_forget_selection_does_not_reassign_a_reused_call_mark() {
         .find_map(|v| v["legacy_protected"].as_array())
         .unwrap();
     assert_ne!(fact[0]["source_start"].as_str().unwrap(), first);
-    runtime.dcp_config.write().unwrap().protect_user_messages = false;
+    runtime.update_execution(|view| view.dcp_config.protect_user_messages = false);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let provider = config(&listener);
     let responder = tokio::spawn(async move {
