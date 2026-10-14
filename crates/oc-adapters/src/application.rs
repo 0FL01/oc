@@ -1956,6 +1956,7 @@ async fn start_worker_inner(
                     &mut sessions,
                     composition.parent_env.clone(),
                     true,
+                    false,
                 )
                 .await;
                 let (next, next_composition, mut next_effective, mut next_registry, _, _) =
@@ -2104,6 +2105,7 @@ async fn start_worker_inner(
                     &mut sessions,
                     composition.parent_env.clone(),
                     home,
+                    matches!(ack, SwitchAck::Reload(_)),
                 )
                 .await
                 {
@@ -2415,6 +2417,7 @@ async fn switch_target<'a>(
     sessions: &mut BTreeMap<String, String>,
     env: BTreeMap<String, String>,
     home: bool,
+    reload: bool,
 ) -> Result<
     (
         Runtime<'a>,
@@ -2426,9 +2429,12 @@ async fn switch_target<'a>(
     ),
     SpawnIssue,
 > {
-    let mut composition = composition::load_local_with_env(Path::new(path), env)
-        .await
-        .map_err(SpawnIssue::configuration)?;
+    let mut composition = if reload {
+        composition::load_reload_local_with_env(Path::new(path), env).await
+    } else {
+        composition::load_local_with_env(Path::new(path), env).await
+    }
+    .map_err(SpawnIssue::configuration)?;
     composition
         .attach_custom_connections(db)
         .map_err(SpawnIssue::configuration)?;

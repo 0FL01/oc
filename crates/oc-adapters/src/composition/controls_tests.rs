@@ -1,6 +1,93 @@
 use super::*;
 
 #[tokio::test]
+async fn hot02_reload_verdict_distinguishes_mandatory_inputs_from_optional_inventory() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path();
+    let path = project.join("opencode.json");
+    let original = serde_json::json!({
+        "model":"fixture/m", "disabled_providers":["opencode-go","openai"],
+        "provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}
+    });
+    std::fs::write(&path, original.to_string()).unwrap();
+    let definitions = project.join(".opencode");
+    for (subdir, name, bytes) in [
+        (
+            "skills",
+            "broken.md",
+            "---\ndescription: false\n---\nPRIVATE_CANARY",
+        ),
+        (
+            "commands",
+            "broken.md",
+            "---\nsubagent: []\n---\nPRIVATE_CANARY",
+        ),
+        (
+            "agents",
+            "broken.md",
+            "---\npermissions: []\n---\nPRIVATE_CANARY",
+        ),
+    ] {
+        let parent = definitions.join(subdir);
+        std::fs::create_dir_all(&parent).unwrap();
+        let file = parent.join(name);
+        std::fs::write(&file, bytes).unwrap();
+        // The existing startup fault-isolation contract is not changed by reload.
+        assert!(load_local_with_env(project, BTreeMap::new()).await.is_ok());
+        let error = load_reload_local_with_env(project, BTreeMap::new())
+            .await
+            .err()
+            .unwrap();
+        let LoadFailure::Configuration(diagnostic) = &error;
+        assert_eq!(diagnostic.kind, ServiceKind::Definition);
+        assert!(!error.to_string().contains("PRIVATE_CANARY"));
+        std::fs::remove_file(file).unwrap();
+    }
+    std::fs::write(project.join("AGENTS.md"), [0xff]).unwrap();
+    assert!(load_local_with_env(project, BTreeMap::new()).await.is_ok());
+    assert!(
+        load_reload_local_with_env(project, BTreeMap::new())
+            .await
+            .is_err()
+    );
+    std::fs::remove_file(project.join("AGENTS.md")).unwrap();
+    let mut invalid = original.clone();
+    invalid["compaction"] = serde_json::json!({"auto":"PRIVATE_CANARY"});
+    std::fs::write(&path, invalid.to_string()).unwrap();
+    assert!(load_local_with_env(project, BTreeMap::new()).await.is_ok());
+    let LoadFailure::Configuration(diagnostic) =
+        load_reload_local_with_env(project, BTreeMap::new())
+            .await
+            .err()
+            .unwrap();
+    assert_eq!(diagnostic.code, ServiceCode::InvalidConfig);
+    assert!(diagnostic.field.iter().any(|field| field == "compaction"));
+    assert!(!diagnostic.to_string().contains("PRIVATE_CANARY"));
+
+    // A disabled template remains inert; unsupported optional integrations remain
+    // failed inventory, not malformed mandatory native policy/definitions.
+    let mut optional = original;
+    optional["plugin"] = serde_json::json!(["unavailable-native-plugin"]);
+    optional["mcp"] = serde_json::json!({
+        "disabled":{"type":"local","enabled":false,"command":["{file:NEVER_READ}"]},
+        "unsupported":{"type":"remote","url":"https://example.invalid/mcp","oauth":true}
+    });
+    std::fs::write(&path, optional.to_string()).unwrap();
+    let accepted = load_reload_local_with_env(project, BTreeMap::new())
+        .await
+        .unwrap();
+    assert_eq!(
+        accepted.generation.mcp["disabled"].command,
+        ["{file:NEVER_READ}"]
+    );
+    assert!(accepted.generation.mcp["unsupported"].failure.is_some());
+    assert_eq!(
+        accepted.tui_chrome.plugins.entries[0].status,
+        PluginStatus::Failed
+    );
+}
+
+#[tokio::test]
 async fn dcp12_native_protection_source_arrays_replace_then_shared_scopes_union() {
     let root = tempfile::tempdir().unwrap();
     let project = root.path().join("project");

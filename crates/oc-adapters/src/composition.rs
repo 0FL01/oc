@@ -183,7 +183,7 @@ pub(crate) async fn load_with_env_diagnostic(
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
     let result = async {
-        let mut composition = load_stages(project, parent_env).await?;
+        let mut composition = load_stages(project, parent_env, false).await?;
         composition.refresh_provider().await?;
         Ok(composition)
     }
@@ -203,7 +203,19 @@ pub(crate) async fn load_local_with_env(
     project: &Path,
     parent_env: BTreeMap<String, String>,
 ) -> Result<Composition, LoadFailure> {
-    let mut composition = load_stages(project, parent_env).await?;
+    let mut composition = load_stages(project, parent_env, false).await?;
+    composition.admit_provider_views();
+    Ok(composition)
+}
+
+/// Reload is an all-or-nothing mandatory-input admission. Startup may display an
+/// unavailable optional definition; a malformed replacement may not retire the
+/// working generation, even when that particular definition is not selected.
+pub(crate) async fn load_reload_local_with_env(
+    project: &Path,
+    parent_env: BTreeMap<String, String>,
+) -> Result<Composition, LoadFailure> {
+    let mut composition = load_stages(project, parent_env, true).await?;
     composition.admit_provider_views();
     Ok(composition)
 }
@@ -663,6 +675,7 @@ fn admit_settings(
 async fn load_stages(
     project: &Path,
     parent_env: BTreeMap<String, String>,
+    reload: bool,
 ) -> Result<Composition, LoadFailure> {
     let AdmittedSources {
         project,
@@ -791,6 +804,16 @@ async fn load_stages(
         }
     }
     let (instructions, instruction_diagnostics) = defs::load_instruction_texts(&instruction_files);
+
+    if reload
+        && let Some(diagnostic) = loaded_defs
+            .diagnostics
+            .iter()
+            .chain(&instruction_diagnostics)
+            .next()
+    {
+        return Err(LoadFailure::Configuration(diagnostic.failure.clone()));
+    }
 
     // Resource truncation cannot establish absence or a complete profile's
     // overrides/policy. Refuse admission before any default fallback/selection.
@@ -938,6 +961,23 @@ async fn load_stages(
         &source_roots,
     )
     .map_err(LoadFailure::Configuration)?;
+    if reload
+        && let Some(note) = generation
+            .config_diagnostics
+            .iter()
+            .find(|note| note.kind == oc_core::queries::ConfigDiagnosticKind::Invalid)
+    {
+        let mut diagnostic = config::diagnostic::failure(
+            "native config",
+            &[],
+            ServiceStage::Config,
+            ServiceCode::InvalidConfig,
+            ServiceAction::ReviewConfiguration,
+        );
+        diagnostic.source = note.source.clone();
+        diagnostic.field = note.field.clone();
+        return Err(LoadFailure::Configuration(diagnostic));
+    }
     generation.providers.retain(|id, _| {
         !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id))
     });

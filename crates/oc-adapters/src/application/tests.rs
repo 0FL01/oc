@@ -835,6 +835,96 @@ mod reload_tests {
     }
 
     #[tokio::test]
+    async fn hot02_malformed_definition_rejects_the_whole_candidate_before_mcp_effects() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        let agents = project.join(".opencode/agents");
+        let skills = project.join(".opencode/skills");
+        std::fs::create_dir_all(&agents).unwrap();
+        std::fs::create_dir_all(&skills).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let original = config("old", "https://example.invalid/v1", true);
+        std::fs::write(&path, &original).unwrap();
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\nmode: subagent\n---\nG1 worker",
+        )
+        .unwrap();
+        std::fs::write(
+            skills.join("manual.md"),
+            "---\nname: manual\ndescription: G1 skill metadata\n---\nG1 skill body",
+        )
+        .unwrap();
+        std::fs::write(project.join("AGENTS.md"), "G1 instructions").unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let before = app.catalog().await.unwrap();
+        let before_skills = app.skills().await.unwrap();
+
+        let marker = project.join("rejected-mcp-started");
+        let mut changed: serde_json::Value = serde_json::from_str(&original).unwrap();
+        changed["tool_output"] = serde_json::json!({"max_lines":1});
+        changed["permissions"] = serde_json::json!({"read":"deny"});
+        changed["mcp"] = serde_json::json!({"rejected":{
+            "type":"local", "command":["/bin/sh","-c",format!("printf rejected > '{}'", marker.display())]
+        }});
+        std::fs::write(&path, changed.to_string()).unwrap();
+        std::fs::write(
+            skills.join("manual.md"),
+            "---\nname: manual\ndescription: G2 skill metadata\n---\nG2 skill body",
+        )
+        .unwrap();
+        std::fs::write(project.join("AGENTS.md"), "G2 instructions").unwrap();
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\ndescription: false\n---\nMALFORMED_CANARY",
+        )
+        .unwrap();
+
+        let rejected = app.reload_location().await;
+        let after = app.catalog().await.unwrap();
+        let after_skills = app.skills().await.unwrap();
+        changed.as_object_mut().unwrap().remove("mcp");
+        std::fs::write(
+            agents.join("worker.md"),
+            "---\nmode: subagent\n---\nG2 worker",
+        )
+        .unwrap();
+        let replacement = project.join("replacement.json");
+        std::fs::write(&replacement, changed.to_string()).unwrap();
+        std::fs::rename(replacement, &path).unwrap();
+        let recovered = app.reload_location().await;
+        let recovered_skills = app.skills().await.unwrap();
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        assert!(
+            rejected.is_err(),
+            "malformed mandatory definition was published"
+        );
+        assert_eq!(after, before);
+        assert_eq!(after_skills, before_skills);
+        assert!(
+            !marker.exists(),
+            "rejected candidate launched an MCP process"
+        );
+        assert!(
+            !rejected
+                .unwrap_err()
+                .to_string()
+                .contains("MALFORMED_CANARY")
+        );
+        let recovered = recovered.unwrap();
+        assert_eq!(recovered.catalog.model_id, before.model_id);
+        assert!(recovered.generation > before.chrome.selection_generation);
+        assert!(
+            recovered_skills
+                .iter()
+                .any(|skill| skill.id == "manual" && skill.description == "G2 skill metadata")
+        );
+    }
+
+    #[tokio::test]
     async fn canonical_effort_snapshot_ranks_effective_overrides_after_discovery_and_refresh() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
