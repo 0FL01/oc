@@ -61,6 +61,128 @@ async fn connected(owner: &McpOwner, names: &[&str]) {
 }
 
 #[tokio::test]
+async fn hot01_initial_lane_is_captured_after_the_mcp_request_await() {
+    use crate::runtime::tests::binding_replay_tests;
+    for retire_model in [false, true] {
+        let project = tempfile::tempdir().unwrap();
+        let data = tempfile::tempdir().unwrap();
+        let db = crate::storage::Db::open(data.path()).unwrap();
+        db.create_bound_session("s", "work").unwrap();
+        let runtime = binding_replay_tests::owner(&db, project.path());
+        runtime.update_execution(|view| {
+            view.generation
+                .config
+                .mcp
+                .insert("peer".into(), reconcile_entry(project.path(), "initial"));
+            view.workspace.agent_digest = Some("G1_PROFILE".into());
+        });
+        runtime.start_mcp().unwrap();
+        connected(&runtime.mcp_owner(), &["peer"]).await;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = crate::provider::ResponsesConfig {
+            base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+            api_key: "synthetic".into(),
+            timeout: None,
+            chunk_timeout_ms: 5000,
+            connect_timeout: Duration::from_secs(1),
+            allow_private: true,
+            headers: BTreeMap::new(),
+            set_cache_key: false,
+            wire: Default::default(),
+        };
+        let catalog = crate::models::ModelCatalog {
+            provider: "fixture".into(),
+            models: BTreeMap::from([(
+                "m".into(),
+                serde_json::json!({"limit":{"context":500000,"output":8000}}),
+            )]),
+        };
+        let cancel = AtomicBool::new(false);
+        let turn = runtime.run_turn(crate::runtime::TurnParams {
+            session: "s".into(),
+            prompt: "initial coherent preparation".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider: provider.clone(),
+            cancel: &cancel,
+        });
+        tokio::pin!(turn);
+        // This single-threaded fixture has not polled the supervisor's request ACK.
+        // No durable acceptance/provider socket is allowed before coherent admission.
+        assert!(futures_util::poll!(turn.as_mut()).is_pending());
+        assert_eq!(db.history_len("s").unwrap(), 0);
+        runtime.update_execution(|view| {
+            view.generation.id = 2;
+            view.workspace.agent_digest = Some("G2_PROFILE".into());
+            view.workspace.fixed_input = vec![crate::provider::InputItem::message(
+                crate::provider::InputRole::Developer,
+                "G2_INITIAL_LANE",
+            )];
+            let mut current_catalog = catalog.clone();
+            if retire_model {
+                current_catalog.models.clear();
+            }
+            let mut source = provider.clone();
+            source.wire.providers.insert(
+                "fixture".into(),
+                crate::provider::CapturedProvider {
+                    catalog: current_catalog,
+                    config: provider.clone(),
+                },
+            );
+            view.request_provider = Some(source);
+        });
+        let peer = async {
+            let (mut socket, request) = binding_replay_tests::request(&listener).await;
+            assert!(request["input"].to_string().contains("G2_INITIAL_LANE"));
+            binding_replay_tests::respond(
+                &mut socket,
+                crate::provider::protocol::Protocol::Responses,
+                false,
+            )
+            .await;
+        };
+        let report = if retire_model {
+            let result = tokio::time::timeout(Duration::from_secs(5), turn.as_mut())
+                .await
+                .unwrap();
+            assert!(
+                tokio::time::timeout(Duration::from_millis(100), listener.accept())
+                    .await
+                    .is_err()
+            );
+            result
+        } else {
+            tokio::time::timeout(Duration::from_secs(5), async {
+                tokio::join!(turn.as_mut(), peer)
+            })
+            .await
+            .unwrap()
+            .0
+        };
+        runtime.shutdown_mcp().await.unwrap();
+        if retire_model {
+            assert!(report.is_err());
+            assert_eq!(db.history_len("s").unwrap(), 0);
+        } else {
+            let report = report.unwrap();
+            let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+            let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+            assert_eq!(log["agent_digest"], "G2_PROFILE");
+            assert_eq!(log["display"]["config_generation"], 2);
+            assert_eq!(log["requests"][0]["profile"]["agent_digest"], "G2_PROFILE");
+        }
+        assert!(db.list_tool_ops("s").unwrap().is_empty());
+        let pid = std::fs::read_to_string(project.path().join("starts")).unwrap();
+        let pid = pid.trim().split_once(':').unwrap().1;
+        assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
+    }
+}
+
+#[tokio::test]
 async fn hot02_reconcile_reuses_clients_and_coalesces_replacement_until_old_batch_releases() {
     let project = tempfile::tempdir().unwrap();
     let owner = McpOwner::new("source", 1);
@@ -783,7 +905,7 @@ fn completion_warning_union_is_typed_and_exact_binding_scoped() {
     latest.degraded = vec![original.clone(), changed.clone()];
     owner.shared.publication.write().unwrap().request = Arc::new(latest);
     assert_eq!(
-        owner.completion_warnings(&binding, &initial),
+        owner.completion_warnings(&binding, &initial.degraded),
         [original.to_string(), changed.to_string()]
     );
     assert_eq!(
@@ -806,7 +928,7 @@ fn completion_warning_union_is_typed_and_exact_binding_scoped() {
         },
     ] {
         assert_eq!(
-            owner.completion_warnings(&mismatch, &initial),
+            owner.completion_warnings(&mismatch, &initial.degraded),
             [original.to_string()]
         );
     }
@@ -815,13 +937,13 @@ fn completion_warning_union_is_typed_and_exact_binding_scoped() {
     foreign.degraded = vec![changed];
     replacement.shared.publication.write().unwrap().request = Arc::new(foreign);
     assert_eq!(
-        replacement.completion_warnings(&binding, &initial),
+        replacement.completion_warnings(&binding, &initial.degraded),
         [original.to_string()],
         "same Location/generation but different owner instance mixed warnings"
     );
     // Diagnostic observation cannot clear or demote an existing fatal result.
     owner.shared.publication.write().unwrap().fatal = Some(RuntimeError::McpShutdown);
-    let _ = owner.completion_warnings(&binding, &initial);
+    let _ = owner.completion_warnings(&binding, &initial.degraded);
     assert!(matches!(
         owner.request_view(),
         Err(RuntimeError::McpShutdown)

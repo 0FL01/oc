@@ -1936,6 +1936,40 @@ impl<'a> Runtime<'a> {
         Ok(attached)
     }
 
+    /// Capture the complete initial lane only after asynchronous MCP preparation.
+    /// Equal admitted service inputs may span an unrelated publication counter.
+    async fn initial_request_view(
+        &self,
+        cancel: &AtomicBool,
+    ) -> Result<(Arc<ExecutionGeneration>, Arc<McpGeneration>), RuntimeError> {
+        let attached = self.request_mcp(cancel).await?;
+        let published = self.current.read().expect("generation lock").clone();
+        if attached.admitted.as_ref() != &published.config.mcp {
+            return Err(RuntimeError::InvalidArgs(
+                "MCP source publication is not admitted; reload configuration".into(),
+            ));
+        }
+        Ok((published, attached))
+    }
+
+    /// One fresh request takes only clients admitted by its coherent source view
+    /// and, for children, every immutable launch ceiling. No older view fallback.
+    fn mcp_view_in(
+        &self,
+        published: &ExecutionGeneration,
+    ) -> Result<Arc<McpGeneration>, RuntimeError> {
+        let view = self.mcp_owner().request_view()?;
+        if view.admitted.as_ref() != &published.config.mcp {
+            return Err(RuntimeError::InvalidArgs(
+                "MCP source publication is not admitted; reload configuration".into(),
+            ));
+        }
+        Ok(match &self.child_launch {
+            Some(launch) => Arc::new(launch.mcp_view(&view, &published.config)),
+            None => view,
+        })
+    }
+
     /// Owner-only status, read after shutdown has retired any poisoned MCP
     /// generation. The application carries it across Location runtimes.
     pub(crate) fn remote_retry_quarantined(&self) -> bool {
@@ -2244,7 +2278,7 @@ impl<'a> Runtime<'a> {
             params.variant.as_deref(),
             &params.provider,
         )?;
-        let published = self.current.read().expect("generation lock").clone();
+        let (published, attached) = self.initial_request_view(params.cancel).await?;
         let mut lane = self.primary_lane(&published);
         if let Some(trigger) = manual {
             if trigger.session != params.session || trigger.generation != published.id {
@@ -2260,11 +2294,11 @@ impl<'a> Runtime<'a> {
             }
             lane.manual_compression = true;
         }
-        let attached = self.request_mcp(params.cancel).await?;
         // request_mcp may replace a poisoned owner. Bind diagnostics only after
-        // it has returned the exact immutable lease for this turn.
+        // it has returned the exact initial request lease. Diagnostics retain no clients.
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
+        let initial_degradation = attached.degraded.clone();
         let parent = params.session.clone();
         let cancel = params.cancel;
         let result = self
@@ -2273,9 +2307,10 @@ impl<'a> Runtime<'a> {
                 &parent,
                 cancel,
                 self.run_turn_inner(
+                    published,
                     params,
                     &lane,
-                    &attached,
+                    attached,
                     None,
                     command,
                     &mut accepted,
@@ -2286,8 +2321,7 @@ impl<'a> Runtime<'a> {
                 ),
             )
             .await;
-        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);
-        drop(attached);
+        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &initial_degradation);
         self.retire_poisoned_mcp().await?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
         result.and_then(|mut report| {
@@ -2378,11 +2412,11 @@ impl<'a> Runtime<'a> {
             params.variant.as_deref(),
             &params.provider,
         )?;
-        let published = self.current.read().expect("generation lock").clone();
+        let (published, attached) = self.initial_request_view(params.cancel).await?;
         let lane = self.primary_lane(&published);
-        let attached = self.request_mcp(params.cancel).await?;
         let mcp_owner = self.mcp_owner();
         let mcp_binding = mcp_owner.snapshot().binding;
+        let initial_degradation = attached.degraded.clone();
         let parent = params.session.clone();
         let cancel = params.cancel;
         let result = self
@@ -2391,9 +2425,10 @@ impl<'a> Runtime<'a> {
                 &parent,
                 cancel,
                 self.run_turn_inner(
+                    published,
                     params,
                     &lane,
-                    &attached,
+                    attached,
                     Some(initial_selection),
                     command,
                     &mut accepted,
@@ -2404,10 +2439,9 @@ impl<'a> Runtime<'a> {
                 ),
             )
             .await;
-        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &attached);
+        let mcp_warnings = mcp_owner.completion_warnings(&mcp_binding, &initial_degradation);
         // A committed fresh root must remain observable through the acceptance
         // callback even if cleanup or display-metadata writes later fail.
-        drop(attached);
         let cleanup = self.retire_poisoned_mcp().await;
         cleanup?;
         let duration_ms = started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;

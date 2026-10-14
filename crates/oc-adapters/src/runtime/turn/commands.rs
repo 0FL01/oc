@@ -118,7 +118,7 @@ impl Runtime<'_> {
             Arc::new(published.clone()),
             child_params,
             &child_lane,
-            attached,
+            Arc::new(attached.clone()),
             Some(None),
             &mut |_, _| {},
             &mut |_, _| {},

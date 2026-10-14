@@ -1,5 +1,219 @@
 use super::*;
 
+#[tokio::test]
+async fn hot01_mcp_batch_releases_before_same_task_replacement_and_next_catalog() {
+    use serde_json::json;
+    use tokio::io::AsyncWriteExt as _;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    std::fs::write(project.path().join("note.txt"), "SETTLED_LOCAL_NOTE").unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    let script = r#"
+import json, os, pathlib, sys
+label = sys.argv[1]
+pathlib.Path(label + '.pid').write_text(str(os.getpid()))
+for line in sys.stdin:
+    message = json.loads(line)
+    if 'id' not in message: continue
+    if message['method'] == 'initialize': result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{}},'serverInfo':{'name':'lease-fixture','version':'1'}}
+    elif message['method'] == 'tools/list': result = {'tools':[{'name':label,'inputSchema':{'type':'object'}}]}
+    else: result = {'content':[{'type':'text','text':'RESULT_FROM_' + label.upper()}]}
+    print(json.dumps({'jsonrpc':'2.0','id':message['id'],'result':result}), flush=True)
+"#;
+    let entry = |label: &str| crate::config::McpEntry {
+        kind: "local".into(),
+        command: vec![
+            "/usr/bin/python3".into(),
+            "-u".into(),
+            "-c".into(),
+            script.into(),
+            label.into(),
+        ],
+        cwd: Some(project.path().to_string_lossy().into_owned()),
+        resource_admitted: true,
+        codemode: Some(false),
+        ..Default::default()
+    };
+    owner.update_execution(|view| {
+        view.generation
+            .config
+            .mcp
+            .insert("peer".into(), entry("first"));
+    });
+    owner.start_mcp().unwrap();
+    let supervisor = owner.mcp_owner();
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            if supervisor
+                .request_view()
+                .unwrap()
+                .entries
+                .iter()
+                .any(|entry| entry.tool == "first")
+            {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    let first_pid = std::fs::read_to_string(project.path().join("first.pid")).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic".into(),
+        timeout: None,
+        chunk_timeout_ms: 5000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        set_cache_key: false,
+        wire: Default::default(),
+    };
+    let catalog = ModelCatalog {
+        provider: "fixture".into(),
+        models: BTreeMap::from([(
+            "m".into(),
+            json!({"limit":{"context":500000,"output":8000}}),
+        )]),
+    };
+    let (entered, held) = tokio::sync::oneshot::channel();
+    let (release, released) = tokio::sync::oneshot::channel();
+    let (followup, next_request) = tokio::sync::oneshot::channel();
+    let (replacement, ready) = tokio::sync::oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        assert!(
+            request["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|tool| tool["name"] == "peer__first")
+        );
+        entered.send(()).unwrap();
+        released.await.unwrap();
+        let body = format!(
+            "data: {}\n\n",
+            json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"function_call","id":"old","call_id":"issued-old","name":"peer__first","arguments":"{}"}]}})
+        );
+        socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        let (mut socket, request) = binding_replay_tests::request(&listener).await;
+        assert!(request["input"].to_string().contains("RESULT_FROM_FIRST"));
+        followup.send(()).unwrap();
+        if ready.await.unwrap() {
+            binding_replay_tests::respond(
+                &mut socket,
+                crate::provider::protocol::Protocol::Responses,
+                true,
+            )
+            .await;
+            let (mut socket, request) = binding_replay_tests::request(&listener).await;
+            let tools = request["tools"].as_array().unwrap();
+            assert!(tools.iter().any(|tool| tool["name"] == "peer__second"));
+            assert!(tools.iter().all(|tool| tool["name"] != "peer__first"));
+            assert!(request["input"].to_string().contains("SETTLED_LOCAL_NOTE"));
+            binding_replay_tests::respond(
+                &mut socket,
+                crate::provider::protocol::Protocol::Responses,
+                false,
+            )
+            .await;
+        } else {
+            // Drain the turn even on the red path, then join every owned process.
+            binding_replay_tests::respond(
+                &mut socket,
+                crate::provider::protocol::Protocol::Responses,
+                false,
+            )
+            .await;
+        }
+    });
+    let cancel = AtomicBool::new(false);
+    let turn = owner.run_turn(TurnParams {
+        session: "s".into(),
+        prompt: "continue across service replacement".into(),
+        invocation: None,
+        catalog: &catalog,
+        model_id: "m".into(),
+        variant: None,
+        max_output: 1000,
+        provider,
+        cancel: &cancel,
+    });
+    let publication = async {
+        held.await.unwrap();
+        let mut next = owner.current.read().unwrap().config.clone();
+        next.mcp.insert("peer".into(), entry("second"));
+        supervisor
+            .reconcile(next.clone(), 2, None, false)
+            .await
+            .unwrap();
+        owner.update_execution(|view| {
+            view.generation.id = 2;
+            view.generation.config = next;
+        });
+        release.send(()).unwrap();
+        next_request.await.unwrap();
+        let progressed = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                if supervisor
+                    .request_view()
+                    .unwrap()
+                    .entries
+                    .iter()
+                    .any(|entry| entry.tool == "second")
+                {
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(2)).await;
+            }
+        })
+        .await
+        .is_ok();
+        if progressed {
+            assert!(!std::path::Path::new(&format!("/proc/{}", first_pid.trim())).exists());
+        }
+        replacement.send(progressed).unwrap();
+        progressed
+    };
+    let (report, progressed) = tokio::time::timeout(Duration::from_secs(10), async {
+        tokio::join!(turn, publication)
+    })
+    .await
+    .unwrap();
+    let peer = peer.await;
+    owner.shutdown_mcp().await.unwrap();
+    peer.unwrap();
+    assert!(
+        progressed,
+        "initial MCP view pinned the old physical client beyond its issued batch"
+    );
+    let report = report.unwrap();
+    assert_eq!(report.status, TurnStatus::Completed);
+    assert!(Arc::ptr_eq(&supervisor, &owner.mcp_owner()));
+    let ops = db.list_tool_ops("s").unwrap();
+    assert_eq!(ops.len(), 2);
+    assert!(ops.iter().all(|op| op.state == "completed"));
+    let raw = db.turn_result(&report.turn_id).unwrap().1.unwrap();
+    let log: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(
+        log["requests"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["config_generation"].as_u64().unwrap())
+            .collect::<Vec<_>>(),
+        [1, 2, 2]
+    );
+    for label in ["first", "second"] {
+        let pid = std::fs::read_to_string(project.path().join(format!("{label}.pid"))).unwrap();
+        assert!(!std::path::Path::new(&format!("/proc/{}", pid.trim())).exists());
+    }
+}
+
 fn workspace(owner: &Runtime<'_>, label: &str, permission: Permission) {
     owner
         .publish_workspace(

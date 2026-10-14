@@ -22,7 +22,7 @@ pub(super) struct McpGeneration {
     pub(super) admitted: Arc<BTreeMap<String, crate::config::McpEntry>>,
     servers: Vec<AttachedMcp>,
     pub(super) entries: Vec<mcp_remote::RegistryEntry>,
-    degraded: Vec<RuntimeError>,
+    pub(super) degraded: Vec<RuntimeError>,
     poisoned: Arc<AtomicBool>,
     remote_unknown: Arc<AtomicBool>,
     cleanup_error: Arc<AtomicBool>,

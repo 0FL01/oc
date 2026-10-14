@@ -694,7 +694,7 @@ impl Jobs {
                         0,
                         &catalog,
                         &provider,
-                        &attached,
+                        Arc::new(attached),
                         &token,
                         Some(started),
                         resume,

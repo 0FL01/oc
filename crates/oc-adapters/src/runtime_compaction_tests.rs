@@ -1469,6 +1469,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
     let cancel = AtomicBool::new(false);
     let result = runtime
         .run_turn_inner(
+            published,
             TurnParams {
                 session: "s".into(),
                 prompt: "continue".into(),
@@ -1481,7 +1482,7 @@ async fn compaction_schema_inclusive_irreducible_mcp_admission_spends_no_summary
                 cancel: &cancel,
             },
             &lane,
-            &attached,
+            Arc::new(attached),
             None,
             None,
             &mut |_, _| {},

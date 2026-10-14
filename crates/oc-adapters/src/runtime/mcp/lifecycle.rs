@@ -192,7 +192,7 @@ impl McpOwner {
     pub(in crate::runtime) fn completion_warnings(
         &self,
         binding: &McpBinding,
-        initial: &McpGeneration,
+        initial: &[RuntimeError],
     ) -> Vec<String> {
         let latest = {
             let publication = self.shared.publication.read().expect("MCP publication");
@@ -203,7 +203,7 @@ impl McpOwner {
             }
         };
         let mut warnings = Vec::new();
-        for error in initial.degraded.iter().chain(&latest) {
+        for error in initial.iter().chain(&latest) {
             if !warnings.contains(error) {
                 warnings.push(error.clone());
             }

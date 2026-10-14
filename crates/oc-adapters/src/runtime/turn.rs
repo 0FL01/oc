@@ -570,12 +570,14 @@ impl TurnSubagent<'_, '_> {
             provider,
             cancel: self.cancel,
         };
-        let attached = launch.mcp_view(self.attached, &published.config);
+        let attached = child
+            .mcp_view_in(&published)
+            .map_err(|error| failed(error.to_string()))?;
         let proof = Box::pin(child.run_turn_admitted(
             published.clone(),
             params,
             &lane,
-            &attached,
+            attached,
             fresh.then_some(None),
             &mut |_, _| {},
             &mut |_, _| {},
@@ -1234,9 +1236,10 @@ impl<'a> Runtime<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn run_turn_inner(
         &self,
+        published: Arc<ExecutionGeneration>,
         params: TurnParams<'_>,
         lane: &TurnLane,
-        attached: &McpGeneration,
+        attached: Arc<McpGeneration>,
         fresh_selection: Option<Option<(&str, &str)>>,
         command: Option<&NativeCommand>,
         accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
@@ -1245,13 +1248,30 @@ impl<'a> Runtime<'a> {
         reasoning_item_ended: &mut (dyn FnMut(&str) + Send),
         tool_event: &mut (dyn FnMut(&str, &ToolCallEvent) + Send),
     ) -> Result<TurnReport, RuntimeError> {
-        self.admit_provider_variant(
+        // Native application callers may have awaited MCP preparation since
+        // taking their catalog. Admit the exact choice against this same source
+        // view before creating a session, user message or turn.
+        let params = if let Some(source) = &published.request_provider {
+            let capture = source
+                .wire
+                .providers
+                .get(&params.catalog.provider)
+                .ok_or_else(|| RuntimeError::InvalidArgs("selected provider unavailable".into()))?;
+            TurnParams {
+                catalog: &capture.catalog,
+                provider: child_provider(&capture.config, source),
+                ..params
+            }
+        } else {
+            params
+        };
+        self.admit_provider_variant_in(
+            &published,
             params.catalog,
             &params.model_id,
             params.variant.as_deref(),
             &params.provider,
         )?;
-        let published = self.current.read().expect("generation lock").clone();
         self.admit_primary_profile(&published)?;
         let base = models::select_model(params.catalog, &params.model_id)
             .map_err(|e| RuntimeError::InvalidArgs(e.to_string()))?;
@@ -1294,7 +1314,7 @@ impl<'a> Runtime<'a> {
         published: Arc<ExecutionGeneration>,
         params: TurnParams<'_>,
         lane: &TurnLane,
-        attached: &McpGeneration,
+        initial_attached: Arc<McpGeneration>,
         fresh_selection: Option<Option<(&str, &str)>>,
         accepted: &mut (dyn FnMut(&str, Option<&oc_core::queries::ModelSwitchNotice>) + Send),
         text_delta: &mut (dyn FnMut(&str, &str) + Send),
@@ -1306,6 +1326,7 @@ impl<'a> Runtime<'a> {
         command: Option<&NativeCommand>,
         probe: bool,
     ) -> Result<TurnExecution, RuntimeError> {
+        let attached = initial_attached.as_ref();
         if fresh_selection.is_some() {
             if params.session.trim().is_empty() {
                 return Err(RuntimeError::InvalidArgs("empty session id".into()));
@@ -1826,6 +1847,9 @@ impl<'a> Runtime<'a> {
             .iter()
             .map(crate::instructions::Fact::input)
             .collect::<Vec<_>>();
+        // Initial admission no longer owns any physical clients. Each fresh
+        // preparation below takes its own lease through the complete issued batch.
+        drop(initial_attached);
         // Successful steps are accounting, never continuation admission.
         let mut rounds = turn_log.spans.iter().map(|s| s.step).max().unwrap_or(0);
         if resuming
@@ -2118,18 +2142,8 @@ impl<'a> Runtime<'a> {
             // the next provider request. Its clients, schemas, guidance and
             // execution context then stay leased through that request's tools.
             // Notification relists still occur at the outer turn boundary.
-            let current_mcp = if primary_request || self.child_launch.is_some() {
-                let view = self.mcp_owner().request_view()?;
-                (view.publication == attached.publication).then_some(view)
-            } else {
-                None
-            };
-            let attached = current_mcp.as_deref().unwrap_or(attached);
-            let child_mcp = self
-                .child_launch
-                .as_ref()
-                .map(|launch| launch.mcp_view(attached, &published.config));
-            let attached = child_mcp.as_ref().unwrap_or(attached);
+            let current_mcp = self.mcp_view_in(&published)?;
+            let attached = current_mcp.as_ref();
             let policy = RuntimePolicy::with_rules(&lane.permissions, &lane.permission_rules)
                 .with_root(&self.roots.project)
                 .with_mcp(&attached.entries);
@@ -3477,12 +3491,16 @@ impl<'a> Runtime<'a> {
         max_output: u64,
         catalog: &ModelCatalog,
         provider: &ResponsesConfig,
-        attached: &McpGeneration,
+        attached: Arc<McpGeneration>,
         cancel: &AtomicBool,
         launch_started: Option<tokio::sync::oneshot::Sender<()>>,
         resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
+        // The parent request's clone is not a whole-child physical lease. Fresh
+        // child admission uses latest source metadata intersected with launch authority.
+        drop(attached);
         let published = self.current.read().expect("generation").clone();
+        let attached = self.mcp_view_in(&published)?;
         let lane = if let Some(launch) = &self.child_launch {
             self.child_request_lane(&published, launch)?
         } else {
@@ -3613,7 +3631,7 @@ impl<'a> Runtime<'a> {
         lane: &TurnLane,
         params: TurnParams<'_>,
         model: &ResolvedModel,
-        attached: &McpGeneration,
+        attached: Arc<McpGeneration>,
         launch_started: Option<tokio::sync::oneshot::Sender<()>>,
         resume: Option<TurnLog>,
     ) -> Result<TurnReport, RuntimeError> {
