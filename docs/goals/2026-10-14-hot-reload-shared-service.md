@@ -1,6 +1,6 @@
 # Goal: hot reload и native shared service
 
-Status: active — frozen contract; T61 todo, implementation NOT_STARTED.
+Status: active — frozen contract; T61 active, implementation IN_PROGRESS.
 Source: требование владельца о reload без перезапуска, «паритет с донором»;
 явный выбор «Также shared service»; согласованный после параллельного read-only
 аудита минимальный план; 2026-10-14: «Вноси правки в план работ и коммит пуш на текущей ветке».
@@ -24,9 +24,9 @@ Evidence. Work on the smallest unresolved outcome. Do not add requirements from
 reviews, tests, tools, speculative risks, or optional source text. Finish when every
 required outcome is resolved and affected constraints remain satisfied.
 
-Сейчас только регистрация плана: не start T61, не переключать active task и не менять
-чужие source/progress/evidence. Перед реализацией сверить Git и выполнить обычный safe
-handoff. Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
+T61 started 2026-10-14 after verified T59 closeout `4120504d7`; Git was clean before
+activation. T44 scheduling/remote handoff and unrelated source/evidence are preserved.
+Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
 потребляются без новых whole-task/live/visual done-dependencies. T30 требует T61.
 
 ## Frozen Contract
@@ -42,7 +42,7 @@ handoff. Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 s
     Latest HOT, compatible closed groups, child launch ceiling и Location сохраняются.
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
-  - Status: pending.
+  - Status: in_progress.
   - Evidence: NOT_RUN; factual target `evidence/T61/report.md`.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
@@ -302,13 +302,19 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
 
 ## Current checkpoint and completion
 
-- Closes next: R1; сначала проверить current source/nearest tests и request-view seam,
-  только после explicit implementation handoff/start T61.
+- Closes next: R1; `8fc15275e` consolidates config/workspace/DCP/readiness in a private
+  immutable publication. Next pass that issuing view through tool/approval/output/
+  instruction execution, then implement fresh preparation/child/retry/summary adoption.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
-- Current: frozen R1–R5 pending, implementation/qualification NOT_STARTED/NOT_RUN.
-  Регистрация не меняет active task, T44/T45/T57/live/visual или historical PASS.
+- Current: R1 in_progress; R2–R5 pending, HOT01–HOT04 not yet qualified. T59 complete;
+  T44/T45/T57/live/visual statuses and historical PASS remain independent.
+- First slice evidence: an old publication read G2 profile text (reproduced red), now
+  retains G1 lane/skills/DCP/readiness while a fresh capture sees the update. Full
+  `cargo test --locked -p oc-adapters`: 1031 passed / 0 failed / 5 existing opt-in ignored;
+  strict adapter all-target clippy and workspace fmt check pass. Public generation API
+  and existing idle guards remain unchanged; no watcher/daemon or mid-turn reload yet.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.
