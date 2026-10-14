@@ -12,6 +12,49 @@ fn names(entry: &Value) -> Vec<&str> {
 }
 
 #[test]
+fn conn03_image_admission_keeps_full_axes_authoritative_over_partial_flags() {
+    for (entry, allowed) in [
+        (json!({}), false),
+        (json!({"modalities":{"input":null}}), false),
+        (
+            json!({"partial_capabilities":{"image_input":false,"pdf_input":true}}),
+            false,
+        ),
+        (json!({"partial_capabilities":{"image_input":true}}), true),
+        (
+            json!({"modalities":{"input":[]},"partial_capabilities":{"image_input":true}}),
+            false,
+        ),
+        (
+            json!({"modalities":{"input":["text"]},"partial_capabilities":{"image_input":true}}),
+            false,
+        ),
+        (
+            json!({"modalities":{"input":["text","image"]},"partial_capabilities":{"image_input":false}}),
+            true,
+        ),
+        (
+            json!({"capabilities":{"input":["text","image"],"tools":false}}),
+            true,
+        ),
+        (
+            json!({"modalities":{"input":["pdf","audio","video"]}}),
+            false,
+        ),
+    ] {
+        assert_eq!(capabilities(&entry).supports_image(), allowed, "{entry}");
+    }
+    let unknown = capabilities(&json!({"reasoning":null,"tool_call":false}));
+    assert_eq!(unknown.input, None);
+    assert_eq!(unknown.reasoning, None);
+    assert_eq!(unknown.tools, Some(false));
+    assert_eq!(
+        capabilities(&json!({"modalities":{"input":[]}})).input,
+        Some(Vec::new())
+    );
+}
+
+#[test]
 fn canonical_known_permutations_and_supported_subsets() {
     fn permutations(levels: &mut [&'static str], index: usize) {
         if index == levels.len() {

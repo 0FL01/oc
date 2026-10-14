@@ -3162,11 +3162,7 @@ impl<'a> Runtime<'a> {
                     &state_key,
                     &mut tool_projection,
                     tool_event,
-                    selection
-                        .entry
-                        .pointer("/modalities/input")
-                        .and_then(serde_json::Value::as_array)
-                        .is_some_and(|m| m.iter().any(|v| v == "image")),
+                    crate::models::capabilities(&selection.entry).supports_image(),
                     budget.input.saturating_sub(request_estimate),
                     ACTIVE_CONTEXT_BYTES_CAP.saturating_sub(read_context_bytes),
                     read_log_base,

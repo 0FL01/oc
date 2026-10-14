@@ -220,3 +220,118 @@ async fn conn05_cancel_held_probe_is_joined_and_late_save_cannot_create_rows() {
     let db = Db::open(&data).unwrap();
     assert!(db.custom_providers().unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn conn03_anonymous_catalog_projects_nullable_partial_full_and_effort_metadata() {
+    let root = tempfile::tempdir().unwrap();
+    let project = configless(root.path());
+    let data = root.path().join("data");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/catalog", listener.local_addr().unwrap());
+    let peer = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let request = response(&mut stream, serde_json::json!({"has_more":false,"data":[
+            {"id":"unknown", "capabilities":null,"max_input_tokens":null,"max_tokens":null},
+            {"id":"empty", "opencode":{"modalities":{"input":[],"output":[]},"reasoning":false,"tool_call":false,"variants":{}}},
+            {"id":"partial", "max_input_tokens":12000,"max_tokens":3000,"capabilities":{
+                "image_input":{"supported":false},"pdf_input":{"supported":true},"thinking":{"supported":true},
+                "effort":{"supported":true,"low":{"supported":true},"medium":{"supported":false},"max":{"supported":true}}
+            }},
+            {"id":"full", "opencode":{"modalities":{"input":["text","image"],"output":["text"]},"variants":{"precise":{"reasoningEffort":"supplied-exact"}}},
+                "capabilities":{"image_input":{"supported":false}}}
+        ]})).await;
+        assert!(request.starts_with("GET /catalog/models "));
+        let request = request.to_ascii_lowercase();
+        assert!(!request.contains("authorization:") && !request.contains("x-api-key:"));
+    });
+    let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
+        .await
+        .unwrap();
+    let CustomProviderReply::Probed {
+        revision,
+        suggested,
+        ..
+    } = app
+        .custom_provider(CustomProviderAction::Probe {
+            input: CustomProviderInput {
+                name: "Anonymous metadata".into(),
+                base_url: base,
+                auth: CustomProviderAuth::Anonymous,
+            },
+            cancel: Arc::new(AtomicBool::new(false)),
+        })
+        .await
+        .unwrap()
+    else {
+        panic!("probe receipt")
+    };
+    assert_eq!(suggested, Some(NativeProtocol::Messages));
+    let CustomProviderReply::Saved(connection) = app
+        .custom_provider(CustomProviderAction::Save {
+            revision,
+            protocol: NativeProtocol::Messages,
+        })
+        .await
+        .unwrap()
+    else {
+        panic!("save receipt")
+    };
+    let catalog = app
+        .provider_catalog(connection.provider.clone())
+        .await
+        .unwrap();
+    let entry = |id| catalog.models.iter().find(|m| m.id == id).unwrap();
+    assert!(!entry("unknown").variants_known);
+    assert_eq!(entry("unknown").capabilities, Default::default());
+    assert!(!entry("unknown").context_known && !entry("unknown").output_known);
+    let empty = entry("empty");
+    assert!(empty.variants_known && empty.variants.iter().all(|v| v.disabled));
+    assert_eq!(empty.capabilities.input, Some(Vec::new()));
+    assert_eq!(empty.capabilities.output, Some(Vec::new()));
+    assert_eq!(empty.capabilities.reasoning, Some(false));
+    assert_eq!(empty.capabilities.tools, Some(false));
+    let partial = entry("partial");
+    assert_eq!(partial.capabilities.input, None);
+    assert_eq!(partial.capabilities.output, None);
+    assert_eq!(
+        partial.capabilities.partial,
+        oc_core::queries::PartialModelCapabilities {
+            image_input: Some(false),
+            pdf_input: Some(true),
+            reasoning: Some(true),
+        }
+    );
+    assert_eq!(
+        partial
+            .variants
+            .iter()
+            .filter(|v| !v.disabled)
+            .map(|v| v.name.as_str())
+            .collect::<Vec<_>>(),
+        ["low", "max"]
+    );
+    assert_eq!(partial.output, 3000);
+    assert!(partial.output_known && !partial.context_known);
+    assert!(entry("full").capabilities.supports_image());
+    assert_eq!(
+        entry("full")
+            .variants
+            .iter()
+            .find(|v| v.name == "precise")
+            .unwrap()
+            .reasoning_effort
+            .as_deref(),
+        Some("supplied-exact")
+    );
+    assert!(
+        app.provider_accounts(connection.provider, None)
+            .await
+            .unwrap()
+            .accounts
+            .is_empty()
+    );
+    assert!(app.catalog().await.unwrap().selected_model().is_none());
+    peer.await.unwrap();
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+}

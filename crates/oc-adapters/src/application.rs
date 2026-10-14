@@ -1145,6 +1145,10 @@ impl Effective {
                             .map(str::to_string),
                     })
                     .collect(),
+                variants_known: spec
+                    .get("variants")
+                    .is_some_and(|v| v.is_object() || v.is_array()),
+                capabilities: crate::models::capabilities(spec),
                 context: spec
                     .pointer("/limit/context")
                     .and_then(serde_json::Value::as_u64)

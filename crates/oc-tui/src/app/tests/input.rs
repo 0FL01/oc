@@ -2735,7 +2735,9 @@ async fn v04_modal_search_scroll_focus_and_draft() {
         .draw(|f| crate::views::render_frame(f, &state))
         .unwrap();
     let modal = terminal.backend().buffer();
-    for y in [0, 1, 35, 39] {
+    // The model capability footer extends the dialog; probe the actual underlay,
+    // including both rows below that larger native metadata surface.
+    for y in [0, 1, 38, 39] {
         for x in 0..120 {
             assert_eq!(
                 base[(x, y)].symbol(),

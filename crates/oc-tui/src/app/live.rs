@@ -23,16 +23,25 @@ fn catalog_from_snapshot(snapshot: &CatalogSnapshot) -> ModelCatalog {
                 (variant.name.clone(), value)
             })
             .collect();
-        models.insert(
-            entry.id.clone(),
-            serde_json::json!({
-                "name": if entry.display_name.is_empty() { &entry.id } else { &entry.display_name },
-                "provider_name": if entry.provider_name.is_empty() { &snapshot.provider } else { &entry.provider_name },
-                "cost": entry.price.as_ref().map(|p|serde_json::json!({"input":p.input,"output":p.output})),
-                "limit": { "context": entry.context_known.then_some(entry.context), "output": entry.output_known.then_some(entry.output) },
-                "variants": variants,
-            }),
-        );
+        let mut model = serde_json::json!({
+            "name": if entry.display_name.is_empty() { &entry.id } else { &entry.display_name },
+            "provider_name": if entry.provider_name.is_empty() { &snapshot.provider } else { &entry.provider_name },
+            "cost": entry.price.as_ref().map(|p|serde_json::json!({"input":p.input,"output":p.output})),
+            "limit": { "context": entry.context_known.then_some(entry.context), "output": entry.output_known.then_some(entry.output) },
+            "modalities": {"input":entry.capabilities.input, "output":entry.capabilities.output},
+            "attachment": entry.capabilities.attachment,
+            "reasoning": entry.capabilities.reasoning,
+            "tool_call": entry.capabilities.tools,
+            "partial_capabilities": {
+                "image_input":entry.capabilities.partial.image_input,
+                "pdf_input":entry.capabilities.partial.pdf_input,
+                "reasoning":entry.capabilities.partial.reasoning,
+            },
+        });
+        if entry.variants_known {
+            model["variants"] = serde_json::Value::Object(variants);
+        }
+        models.insert(entry.id.clone(), model);
     }
     ModelCatalog {
         provider: snapshot.provider.clone(),

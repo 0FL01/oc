@@ -320,7 +320,11 @@ impl SelectList {
             rect,
             list_y: rect.y.saturating_add(5),
             list_height: list_height
-                .min(rect.height.saturating_sub(7) as usize)
+                .min(
+                    rect.height
+                        .saturating_sub(7 + footer_rows.saturating_sub(1))
+                        as usize,
+                )
                 .max(1),
             offset: self
                 .offset
@@ -429,8 +433,10 @@ impl SelectList {
             (Some(servers), Some(action))
         });
         let theme = Theme::dark();
-        let footer_rows =
-            action.map_or(u16::from(footer.is_some()), |a| a.rows(frame.area().width));
+        let footer_rows = action.map_or_else(
+            || footer.map_or(0, |text| text.lines().count().min(u16::MAX as usize) as u16),
+            |a| a.rows(frame.area().width),
+        );
         self.footer_rows.set(footer_rows);
         let action_focused = self.action_focused && action.is_some_and(|a| a.enabled);
         let sessions = title == "Sessions" || title.starts_with("Sessions for ");
@@ -815,14 +821,16 @@ impl SelectList {
                     Style::default().fg(muted),
                 );
             } else {
-                line(
-                    frame,
-                    area.x + 4,
-                    area.y + 6 + height as u16,
-                    area.width - 8,
-                    footer,
-                    Style::default().fg(muted),
-                );
+                for (index, text) in footer.lines().enumerate() {
+                    line(
+                        frame,
+                        area.x + 4,
+                        area.y + 6 + height as u16 + index as u16,
+                        area.width - 8,
+                        text,
+                        Style::default().fg(muted),
+                    );
+                }
             }
         }
         let cursor = ratatui::text::Line::raw(self.query.as_str())
@@ -888,12 +896,25 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
         title
     };
     let action = (state.panel() == &TuiPanel::Mcps).then(|| state.mcp_footer_action());
+    let model_details = (state.panel() == &TuiPanel::Model).then(|| {
+        state
+            .picker
+            .as_ref()
+            .and_then(|picker| {
+                picker
+                    .cursor_id()
+                    .map(|id| picker.model_details(&id).join("\n"))
+            })
+            .unwrap_or_default()
+    });
     state.select.render(
         frame,
         title,
         size,
         &state.modal_options(),
-        if state.panel() == &TuiPanel::Mcps {
+        if let Some(details) = &model_details {
+            Some(details.as_str())
+        } else if state.panel() == &TuiPanel::Mcps {
             Some(state.mcp_footer())
         } else if state.panel() == &TuiPanel::Settings {
             Some("←/→ change")

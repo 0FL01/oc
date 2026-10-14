@@ -509,6 +509,10 @@ pub struct ModelEntry {
     /// Declared variants in stable effective effort order, including disabled
     /// and reserved metadata. Available consumers omit those entries.
     pub variants: Vec<VariantEntry>,
+    /// False for missing/null metadata; true even for an explicitly empty list.
+    pub variants_known: bool,
+    /// Supplied metadata only, not inferred from the model name or client features.
+    pub capabilities: ModelCapabilities,
     /// Context limit (0 when undeclared).
     pub context: u64,
     /// Distinguishes an explicit context value from the legacy zero fallback.
@@ -517,6 +521,37 @@ pub struct ModelEntry {
     pub output: u64,
     /// Distinguishes an explicit output value from the legacy zero fallback.
     pub output_known: bool,
+}
+
+/// Full modality axes stay separate from partial server capability flags.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ModelCapabilities {
+    /// None is unknown; Some([]) is an explicitly empty axis.
+    pub input: Option<Vec<String>>,
+    pub output: Option<Vec<String>>,
+    pub attachment: Option<bool>,
+    pub reasoning: Option<bool>,
+    pub tools: Option<bool>,
+    pub partial: PartialModelCapabilities,
+}
+
+/// Partial declarations do not synthesize full input/output modality lists.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PartialModelCapabilities {
+    pub image_input: Option<bool>,
+    pub pdf_input: Option<bool>,
+    pub reasoning: Option<bool>,
+}
+
+impl ModelCapabilities {
+    /// Full input declarations are authoritative; unknown image support refuses.
+    pub fn supports_image(&self) -> bool {
+        self.input
+            .as_ref()
+            .map_or(self.partial.image_input == Some(true), |input| {
+                input.iter().any(|modality| modality == "image")
+            })
+    }
 }
 
 /// Decimal tariffs per million tokens (strings preserve configured precision).

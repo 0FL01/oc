@@ -360,14 +360,25 @@ async fn go03_chronological_effort_reaches_wire_and_messages_beta_is_conditional
                 },
                 InputItem::message(InputRole::User, "after"),
             ];
-            let variant = current.map(|value| crate::models::SelectedVariant {
-                name: "selected".into(),
-                reasoning_effort: Some(value.into()),
-            });
+            // CONN03 reuses this wire matrix: exact supplied custom metadata goes
+            // through the parser and the same allowlisted selection as the picker.
+            let models = crate::custom_discovery::sanitize_snapshot(&std::collections::BTreeMap::from([
+                ("catalog".into(), serde_json::json!({"variants":current.map(|effort| serde_json::json!({"selected":{"reasoningEffort":effort}}))})),
+            ])).unwrap();
+            let selected = crate::models::select_model(
+                &crate::models::ModelCatalog {
+                    provider: "custom-fixture".into(),
+                    models,
+                },
+                "catalog",
+            )
+            .unwrap();
+            let selected =
+                crate::models::select_variant(&selected, current.map(|_| "selected")).unwrap();
             stream_input_observed(
                 &config,
                 "catalog",
-                variant.as_ref(),
+                selected.variant.as_ref(),
                 &input,
                 &[],
                 32,

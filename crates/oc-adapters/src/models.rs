@@ -110,6 +110,39 @@ pub struct ModelCatalog {
     pub models: BTreeMap<String, serde_json::Value>,
 }
 
+/// One typed metadata projection shared by snapshots, picker details and image admission.
+pub fn capabilities(entry: &serde_json::Value) -> oc_core::queries::ModelCapabilities {
+    let modalities = |axis| {
+        entry
+            .pointer(&format!("/capabilities/{axis}"))
+            .or_else(|| entry.pointer(&format!("/modalities/{axis}")))
+            .and_then(serde_json::Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
+    };
+    let flag = |key| entry.get(key).and_then(serde_json::Value::as_bool);
+    let partial = |key| entry.get("partial_capabilities")?.get(key)?.as_bool();
+    oc_core::queries::ModelCapabilities {
+        input: modalities("input"),
+        output: modalities("output"),
+        attachment: flag("attachment"),
+        reasoning: flag("reasoning"),
+        tools: entry
+            .pointer("/capabilities/tools")
+            .and_then(serde_json::Value::as_bool)
+            .or_else(|| flag("tool_call")),
+        partial: oc_core::queries::PartialModelCapabilities {
+            image_input: partial("image_input"),
+            pdf_input: partial("pdf_input"),
+            reasoning: partial("reasoning"),
+        },
+    }
+}
+
 /// Validated variant selection.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectedVariant {

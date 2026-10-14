@@ -254,6 +254,82 @@ impl ModelPicker {
         self.catalog.models.get(id)?.get("name")?.as_str()
     }
 
+    /// Read-only details for the focused row; metadata is not a client feature grant.
+    pub(crate) fn model_details(&self, id: &str) -> Vec<String> {
+        let Some(spec) = self.catalog.models.get(id) else {
+            return Vec::new();
+        };
+        let caps = models::capabilities(spec);
+        let axis = |values: Option<&Vec<String>>| match values {
+            None => "unknown".into(),
+            Some(values) if values.is_empty() => "[]".into(),
+            Some(values) => values.join("/"),
+        };
+        let flag = |value| match value {
+            Some(true) => "supported",
+            Some(false) => "unsupported",
+            None => "unknown",
+        };
+        let variants = models::available_variants(spec)
+            .map(|(name, value)| {
+                let effort = value
+                    .get("settings")
+                    .unwrap_or(value)
+                    .get("reasoningEffort")
+                    .and_then(serde_json::Value::as_str);
+                effort
+                    .filter(|effort| *effort != name)
+                    .map_or_else(|| name.to_owned(), |effort| format!("{name}={effort}"))
+            })
+            .collect::<Vec<_>>();
+        let effort = if !spec
+            .get("variants")
+            .is_some_and(|v| v.is_object() || v.is_array())
+        {
+            "unknown".into()
+        } else if variants.is_empty() {
+            "none declared".into()
+        } else {
+            variants.join(", ")
+        };
+        let limit = |key| {
+            spec.pointer(key)
+                .and_then(serde_json::Value::as_u64)
+                .filter(|n| *n > 0)
+                .map_or_else(|| "unknown".into(), |n| n.to_string())
+        };
+        let mut lines = vec![
+            format!(
+                "In: {} · Out: {}",
+                axis(caps.input.as_ref()),
+                axis(caps.output.as_ref())
+            ),
+            format!(
+                "Reasoning: {} · Tools: {}",
+                flag(caps.reasoning),
+                flag(caps.tools)
+            ),
+            format!("Effort: {effort}"),
+            format!(
+                "Limits: ctx {} · output {}",
+                limit("/limit/context"),
+                limit("/limit/output")
+            ),
+        ];
+        for (label, value) in [
+            ("Attachment", caps.attachment),
+            ("Partial image input", caps.partial.image_input),
+            ("Partial PDF input", caps.partial.pdf_input),
+            ("Partial reasoning", caps.partial.reasoning),
+        ] {
+            if value.is_some() {
+                lines.push(format!("{label}: {}", flag(value)));
+            }
+        }
+        lines.push("Client media: image input only".into());
+        lines
+    }
+
     /// Human metadata for a browsed id; selection continues to use the exact id.
     pub fn display_label(&self, id: &str) -> String {
         let Some(spec) = self.catalog.models.get(id) else {
