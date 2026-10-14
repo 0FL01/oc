@@ -1,8 +1,13 @@
 # Конфигурация и пользовательский профиль
 
+Встроенный `skill({"id":"customize-opencode"})` возвращает самостоятельный
+[ранбук настройки native `oc`](../crates/oc-adapters/assets/skills/customize-opencode/SKILL.md).
+Рекомендации ранбука следуют работающим native consumers; upstream schema и Proposed
+примеры сами по себе не подтверждают поддержку.
+
 ## Разделение файлов
 
-Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.opencode`, ordered `AGENTS.md`, local skill/agent/command definitions, `dcp.jsonc/json`. CLI `cli.json/jsonc` — отдельный presentation domain, не runtime `opencode` config. Native код читает admitted G → Location → .opencode, JSON перед JSONC, с runtime fallbacks; project CLI layers — native extension, не donor global-only поведение. Client ownership/watch/inline overlay — pending T61 ниже. Native controls: `oc-rs.toml`. Никаких автоматических runtime-config rewrites, auto-install packages или credential migration; explicit permission-preference persistence остаётся узким отдельным owner action.
+Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.opencode`, ordered `AGENTS.md`, local skill/agent/command definitions, `dcp.jsonc/json`. CLI `cli.json/jsonc` — отдельный presentation domain, не runtime `opencode` config. Native код читает admitted G → Location → .opencode, JSON перед JSONC, с runtime fallbacks; project CLI layers — native extension, не donor global-only поведение. Client ownership/watch/inline overlay — pending T61 ниже. `oc-rs.toml` и `examples/oc-rs.toml` — Proposed reference, не рабочий application input. Никаких автоматических runtime-config rewrites, auto-install packages или credential migration; explicit permission-preference persistence остаётся узким отдельным owner action.
 
 В supplied примере provider snippet был фрагментом с лишними завершающими скобками/запятыми. `examples/opencode.jsonc` — заново собранный валидный полный пример, не побайтная копия; URL/keys остаются env references. Модели в основном примере не зафиксированы. Static модели из Q01 сохранены отдельно как fixture `examples/static-models.user.json` с отметкой «пользовательские metadata, не проверенные публичные спецификации».
 
@@ -22,7 +27,7 @@ Admitted `/reload` повторяет только существующий boun
 
 JSONC comments/trailing commas принимаются; диагностика показывает qualified opaque source и schema-only field, не исходный parser payload/path. Unsupported arbitrary plugin/provider package даёт safe field и capability code. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с typed cause. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
 
-DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins доступны в `oc config explain`, secrets и sensitive absolute paths redacted.
+DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins сохраняются в native generation; доступные безопасные diagnostics — в TUI Settings и service details, без secrets и sensitive absolute paths. Команд `oc config explain/check/validate` нет: использовать `oc --help`, `oc models` и профильные проверки.
 
 ## Service config/startup — native diagnostic contract
 
@@ -478,9 +483,9 @@ compaction/Revert/reopen, without stale content or mixed in-flight generations.
 Trust/canonical Location boundaries remain native differences from broader donor
 walks; this is not permission to read arbitrary ancestors/home directories.
 
-Automatic definitions читаются только из `G` и admitted `.opencode` roots: `{skill,skills}/<id>/SKILL.md`, `{agent,agents}/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Exact order/collisions закрепляются fixture, а не filesystem enumeration. T45/R6 admits recursive agent/agents IDs and one-level compatibility mode/modes per pinned importer; legacy-mode exclusion is superseded only for these profiles. Flat skill files, `.claude`/`.agents`, URL/remote/package skills и symlink escape remain unsupported.
+Automatic definitions читаются только из `G` и admitted `.opencode` roots: `{skill,skills}/<id>/SKILL.md` либо flat `{skill,skills}/<id>.md`, `{agent,agents}/<id>.md`, `{command,commands}/<id>.md`. Singular root обрабатывается перед plural в одной source directory; inline JSON/JSONC declaration — перед Markdown definitions этого root. Exact order/collisions закрепляются fixture, а не filesystem enumeration. T45/R6 admits recursive agent/agents IDs and one-level compatibility mode/modes per pinned importer; legacy-mode exclusion is superseded only for these profiles. `.claude`/`.agents`, URL/remote/package skills и symlink escape remain unsupported.
 
-Skill ID выводится из canonical directory ID; supported frontmatter — bounded `name`/`description`, body — instructions. Later source целиком заменяет duplicate ID с shadowing provenance. При построении generation body проверяется как regular no-follow file, bounded и snapshot-ится вместе с digest; model catalog получает только bounded id/name/description. После publication файл повторно не открывается.
+Skill ID выводится из directory ID либо stem flat Markdown-файла; supported frontmatter — bounded `name`/`description`, body — instructions. Later source целиком заменяет duplicate ID с shadowing provenance. При построении generation body проверяется как regular no-follow file, bounded и snapshot-ится вместе с digest; model catalog получает только bounded id/name/description. После publication файл повторно не открывается.
 
 Approved T45/R6 target replaces the old primary-only subset: Build/Plan/General/Explore,
 custom Markdown primary/subagent/all and typed system/model/variant/request/steps/color

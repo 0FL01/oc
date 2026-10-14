@@ -193,6 +193,20 @@ pub(crate) fn register_builtins(defs: &mut LoadedDefs) {
         defs.order.push(format!("agent.{}@builtin", agent.id));
         defs.agents.insert(agent.id.clone(), agent);
     }
+    let id = "customize-opencode";
+    let body = include_str!("../assets/skills/customize-opencode/SKILL.md");
+    let meta = parse_skill(id, body).expect("bundled native configuration skill");
+    defs.order.push(format!("skill.{id}@builtin"));
+    defs.skills.insert(
+        id.into(),
+        SkillDef {
+            id: id.into(),
+            name: meta.name,
+            description: meta.description,
+            body: body.into(),
+            origin: "builtin".into(),
+        },
+    );
 }
 
 fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
@@ -1352,7 +1366,7 @@ fn insert_skill_text(
     text: String,
     path: &Path,
 ) {
-    if out.defs.skills.len() >= MAX_DEFS_PER_KIND {
+    if out.defs.skills.len() >= MAX_DEFS_PER_KIND && !out.defs.skills.contains_key(&id) {
         out.defs.diagnostics.push(diag_code(
             path,
             "skill",
