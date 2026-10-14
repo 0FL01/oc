@@ -43,7 +43,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT01 held provider/tool/approval и child/retry/summary barriers,
     request/journal identity и effect counters; legacy/restart reads без replay.
   - Status: in_progress.
-  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186` below; full HOT01 pending.
+  - Evidence: partial owner slices `8fc15275e`/`fb39d88a6`/`82ce7796b`/`581b2b186`/`85cbd3afc` below; composed HOT01 pending.
 - R2: automatic и explicit reload, last-good и lease-aware MCP reconcile.
   - Source: наблюдаемые config/agents/commands/skills/native plugins; MCP config/tools;
     команды reload и runtime connect/disconnect из требования владельца.
@@ -301,8 +301,9 @@ no watcher/daemon, fixed-generation MCP supervisor и independent execution capt
 T61 groundwork now captures config/workspace/DCP/readiness and finite executable
 provider views together. Fresh primary/child requests adopt the source publication;
 prepared retries and one summary operation stay pinned. Children retain immutable
-launch/ancestor ceilings while sharing only their source handle. Per-request profile/
-history completion and composed HOT01 remain; request boundaries alone are not reload.
+launch/ancestor ceilings while sharing only their source handle. Per-request profile
+history and provenance-based restart are qualified at the owner boundary; composed
+HOT01 with public staged publication remains. Request boundaries alone are not reload.
 `CoreApp` — local bounded channels, не сериализуемый transport; queues имеют global
 consumer flags, source-specific recovery привязан к initial runtime. CLI bypasses
 `Db::open`, broad TUI refresh/static dark/mode-only cache keys требуют указанных швов.
@@ -315,8 +316,10 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   carries it through issued batches/admission/Code Mode/output/instruction execution.
   `82ce7796b` adopts fresh primary publications and pins prepared retries/summary.
   `581b2b186` shares child source publications within immutable launch/ancestor ceilings.
-  Next finish per-request profile/history compatibility, exact removed primary profile
-  admission and provenance-based recovery, then compose HOT01 evidence.
+   `85cbd3afc` qualifies profile history, exact unavailable choices, native checkpoint
+   refusal and child restart across a publication-counter reset. Next integrate complete
+   staged publication and MCP/watch ownership (R2), checking initial preparation across
+   MCP awaits before enabling busy publication, then compose public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
@@ -347,15 +350,30 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   persisted ancestor fingerprints prevent restart reconstruction from broader sources.
   Changed static credential material or profile headers require new child authority;
   timeout/Code Mode routing changes alone do not authorize a new MCP domain.
-- Current gates on `581b2b186`: `cargo test --locked -p oc-adapters` 1037 passed / 0
-  failed / 5 existing opt-in ignored (19 result records), including both new child cases
-  and all 41 existing subagent cases; strict adapter all-target clippy and fmt check pass.
-  Logs `.local/evidence/t61-child-{adapters,clippy,fmt,owner}.log`. The red child-ceiling
-  test proved missing-action widening; the existing skill-preview regression exposed
-  prompt construction before full narrowing, both fixed without weakening assertions.
-  Previous core 36/0 and primary/retry/summary evidence remains in `t61-fresh-*.log` and
-  `t61-summary-publication-owner.log`. Public generation API and idle reload guards
-  remain unchanged; tests use private publication, not watcher/daemon/full HOT01 proof.
+- Profile/recovery evidence at `85cbd3afc`: optional `RequestIdentity.profile` preserves
+  explicit default versus legacy absence; each retained request owns opaque compatibility.
+  Profile changes retain closed pairs and portable facts, including selected HOT groups,
+  without rewriting RAW or dropping a whole turn. Approval/question/output attribution
+  uses the latest issuing receipt, not the initial turn digest. Exact model/variant/agent
+  removals refuse before a next dispatch, preserving settled work and saved identity.
+- Native checkpoints record optional profile in existing operation JSON. Same wire with
+  an incompatible profile explicitly refuses without clearing the checkpoint or retrying.
+  Legacy/default operation decoding remains supported; unknown custom origin fails closed.
+  Summary input stays conversation-only and profile-compatible, never reconstructed AGENTS.
+- Restart evidence reopens the actual SQLite root: original child generation77 resumes
+  under current generation1 with matching launch/source/route/profile proof and one
+  provider dispatch. Configuration/key mismatch, absent fence and unknown effect remain
+  Unknown with zero replay. Exact selected-job/turn launch generation fences are retained.
+- Current gates on `85cbd3afc`: `cargo test --workspace --locked` 1947 passed / 0 failed /
+  12 existing opt-in ignored (46 result records); strict workspace all-target clippy and
+  fmt pass. Nine `hot01_` owner cases, native-checkpoint profile, instruction lifecycle
+  and actual TERM01 binary case pass. Logs `.local/evidence/t61-profile-*.log`.
+  Red cases proved whole-turn profile history loss and current-counter restart refusal.
+  Existing PRM01 caught summary instruction contamination during implementation; fixed
+  with a data-only, profile-compatible projection, keeping its original assertions.
+  TERM01 explicitly returns input ownership from the retired PTY before model submission;
+  its original effect/resource/terminal assertions remain. Public idle reload guards
+  remain unchanged; no watcher/daemon/settings or full HOT01–HOT04 delivery claim.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
   constraints/reviewed diff в envelope, factual report, затем обычный progress finish.
   Пока не выполнено; doc checks не дают runtime/visual PASS или overall READY.

@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T18:20:06+00:00
+State updated: 2026-10-14T19:50:12+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,43 +14,42 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: R1 partial, R2–R5 pending. Source 581b2b186 follows 82ce7796b.
-Children share only the source Location publication handle, with independent execution,
-nudge and compaction state. Fresh child preparation intersects current policy/profile
-with immutable launch and ancestor ceilings, including resource rules, missing-action
-Deny, service/credential domains and depth. Issued batches retain their original view.
-Quoted-context preflight receives a coherent captured view before admission effects.
+T61 IN_PROGRESS: R1 owner slices qualified, composed HOT01 and R2–R5 remain.
+Source 85cbd3afc adds optional per-request and native-checkpoint profile provenance.
+Compatible closed pairs survive profile changes, foreign opaque state is neutralized,
+and removed exact model/variant/agent choices refuse before the next dispatch.
+Child recovery uses saved launch/source/route proof, not the current counter.
 
 ## Checks
 
-- Actual delegated child barrier: G1 stream/read/approval, then G2 prompt with original
-  Ask/Deny and no newly granted shell; both G1/G2 replies route through the retained
-  source from another parent view, duplicate replies refuse. Two settled reads only.
-- Owner case: shared source but independent active lease, removed profile refusal,
-  provider/credential/MCP replacement rejection, inherited grandchild ceilings and
-  depth, with no session/network effects. MCP timeout/routing changes keep the domain.
-- Red missing-native-action Allow versus Deny fixed; existing denied-skill metadata
-  exposure fixed by narrowing before prompt generation. Original assertions retained.
-- cargo test --locked -p oc-adapters: 1037 passed, 0 failed, 5 existing opt-in ignored,
-  19 result records. Strict adapter all-target clippy, fmt and docs/diff checks pass.
-- Logs .local/evidence/t61-child-*.log. No ignored tests, caps or deadlines relaxed.
+- Actual SQLite reopen: launch generation77 resumes on current generation1, preserving
+  launch attribution and issuing exactly one request. Config/key mismatch, absent fence
+  and unknown effects remain Unknown without replay. Existing selected-job fences stay.
+- Mixed-profile receipts, selected HOT and explicit default versus legacy absent profile
+  preserve settled pairs without rewriting RAW. G2 child approvals carry G2 profile.
+- Native checkpoint with changed profile explicitly refuses before dispatch, without
+  stripping its record or accepting another task. Legacy/default decoding stays valid.
+- cargo test --workspace --locked: 1947 passed, 0 failed, 12 existing opt-in ignored,
+  46 result records. Strict workspace all-target clippy, fmt, docs/diff checks pass.
+- Nine hot01 owner cases pass. Existing PRM01 found summary instruction contamination;
+  fixed data-only projection without weakening assertions. Actual TERM01 passes after
+  explicitly returning input ownership from the retired PTY before submission.
+- Logs .local/evidence/t61-profile-*.log and t61-recovery-counter-{red,green}.log.
 
 ## Risks
 
-Not full HOT01: per-request profile/history compatibility, exact primary-profile
-removal and provenance-based recovery completion remain. Source-counter recovery
-checks are not yet the final T61 contract. New ancestor fingerprints fail closed
-when restart cannot reconstruct the original service/credential ceiling. Changed
-static credentials/profile headers cannot widen a running child; new authority needs
-a new launch. No public busy reload, watcher/MCP diff, shared host/IPC/client settings
-or final workspace/debug/release qualification. Existing remote auth blocker and
-T44/VIS46 handoff unchanged; no push/auth retry, secrets or live API call.
+No public busy reload, watcher/MCP diff, shared host/IPC/client settings or final rebuilt
+release qualification yet. Native checkpoint profile cannot be translated silently;
+unknown custom legacy origin fails closed. Child restart still requires matching saved
+source/ancestor proof; this is not permission to reconstruct broader authority.
+No ignored tests, caps, deadlines or assertions relaxed. Remote auth blocker and T44/VIS46
+handoff unchanged; no push/auth retry, credentials or live API call.
 
 ## Next
 
-Finish R1 profile/history/recovery compatibility and composed HOT01 without enabling
-public hot reload early, then R2–R5 within the frozen contract. No overall READY or
-completion of T44/T45/T57.
+Integrate R2 complete candidate publication and persistent MCP/watch ownership, checking
+initial request preparation across MCP awaits before public active publication. Compose
+HOT01 with that public boundary, then R3–R5. No T44/T45/T57 or overall READY claim.
 
 
 Ready (до 5): нет
