@@ -17,6 +17,9 @@ enum AttachedServer {
 #[derive(Clone)]
 pub(super) struct McpGeneration {
     pub(super) publication: u64,
+    /// Exact admitted source inputs, not a publication counter. Retained once
+    /// per desired configuration and shared by its immutable request views.
+    pub(super) admitted: Arc<BTreeMap<String, crate::config::McpEntry>>,
     servers: Vec<AttachedMcp>,
     pub(super) entries: Vec<mcp_remote::RegistryEntry>,
     degraded: Vec<RuntimeError>,
@@ -93,6 +96,7 @@ impl McpGeneration {
     pub(super) fn empty(publication: u64, wake: Arc<tokio::sync::Notify>) -> Self {
         Self {
             publication,
+            admitted: Arc::new(BTreeMap::new()),
             servers: Vec::new(),
             entries: Vec::new(),
             degraded: Vec::new(),

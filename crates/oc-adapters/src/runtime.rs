@@ -1686,21 +1686,26 @@ impl<'a> Runtime<'a> {
     /// between turns; returns the new id.
     pub async fn reload(&self, generation: Generation) -> Result<u64, RuntimeError> {
         let _lease = self.begin_active()?;
-        self.shutdown_mcp().await?;
+        self.start_mcp()?;
         // This low-level replacement has no newly pinned source descriptors.
         // Application reload builds a complete Composition/runtime instead.
+        let id = self.generation_id() + 1;
+        self.mcp_owner()
+            .reconcile(
+                self.quarantined_mcp_config(generation.clone()),
+                id,
+                None,
+                true,
+            )
+            .await?;
         self.mcp_activation.write().expect("MCP activation").take();
-        let id = {
+        {
             let mut current = self.current.write().expect("generation lock");
-            let id = current.id + 1;
             Arc::make_mut(&mut current).generation = PublishedGeneration {
                 id,
                 config: generation,
             };
-            id
-        };
-        self.replace_mcp_owner();
-        self.start_mcp()?;
+        }
         Ok(id)
     }
 
@@ -1784,7 +1789,17 @@ impl<'a> Runtime<'a> {
         if self.mcp_cleanup_failed.load(Ordering::SeqCst) {
             return Err(RuntimeError::McpShutdown);
         }
-        let mut config = self.current.read().expect("generation lock").config.clone();
+        let config = self
+            .quarantined_mcp_config(self.current.read().expect("generation lock").config.clone());
+        self.mcp_owner().start(
+            config,
+            self.roots.project.clone(),
+            self.parent_env.clone(),
+            self.mcp_activation.read().expect("MCP activation").clone(),
+        )
+    }
+
+    fn quarantined_mcp_config(&self, mut config: Generation) -> Generation {
         if self.remote_retry_quarantined() {
             for (server, entry) in &mut config.mcp {
                 if entry.kind == "remote" && entry.enabled {
@@ -1805,12 +1820,7 @@ impl<'a> Runtime<'a> {
                 }
             }
         }
-        self.mcp_owner().start(
-            config,
-            self.roots.project.clone(),
-            self.parent_env.clone(),
-            self.mcp_activation.read().expect("MCP activation").clone(),
-        )
+        config
     }
 
     pub fn mcp_status(&self) -> oc_core::queries::McpSnapshot {
@@ -1913,7 +1923,17 @@ impl<'a> Runtime<'a> {
                 retryable: false,
             });
         }
-        self.mcp_owner().request(cancel).await
+        let attached = self.mcp_owner().request(cancel).await?;
+        let current = self.current.read().expect("generation lock");
+        if attached.admitted.as_ref() != &current.config.mcp {
+            // An interrupted publication cannot graft another desired MCP
+            // authority onto this execution view. An unrelated counter change
+            // with identical admitted inputs is not itself a refusal.
+            return Err(RuntimeError::InvalidArgs(
+                "MCP source publication is not admitted; reload configuration".into(),
+            ));
+        }
+        Ok(attached)
     }
 
     /// Owner-only status, read after shutdown has retired any poisoned MCP

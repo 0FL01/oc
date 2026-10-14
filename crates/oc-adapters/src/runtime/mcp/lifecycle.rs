@@ -10,10 +10,13 @@ use tokio::sync::{Notify, mpsc, oneshot};
 use tokio::task::{JoinHandle, JoinSet};
 
 mod lookups;
+mod reconcile;
 use lookups::{LookupAck, LookupActive, LookupCompleted};
+use reconcile::configured_node;
 
 type StatusAck = oneshot::Sender<Result<McpSnapshot, oc_core::session::CoreError>>;
 type RequestAck = oneshot::Sender<Result<Arc<McpGeneration>, RuntimeError>>;
+type ReconcileAck = oneshot::Sender<Result<McpSnapshot, RuntimeError>>;
 
 /// Application-owned supervisor handle. Only the resource task mutates clients;
 /// short read locks expose bounded immutable snapshots, never a turn-held mutex.
@@ -60,6 +63,13 @@ impl Drop for RequestWait<'_> {
 }
 
 enum Command {
+    Reconcile {
+        config: Generation,
+        publication: u64,
+        activation: Option<Arc<crate::composition::McpActivation>>,
+        force: bool,
+        ack: ReconcileAck,
+    },
     Control {
         control: McpControl,
         ack: StatusAck,
@@ -82,6 +92,7 @@ struct Node {
     desired: bool,
     cancel: Option<Arc<AtomicBool>>,
     closing: bool,
+    replacing: bool,
     catalogs: [Option<oc_core::queries::McpLookupData>; 3],
     catalog_pending: [bool; 3],
 }
@@ -111,6 +122,9 @@ struct Scope {
     generation: McpGeneration,
     work: JoinSet<Completed>,
     retiring: Vec<(String, Arc<()>, Arc<AttachedServer>)>,
+    /// Every connecting/live/retiring physical incarnation occupies one slot
+    /// until its connect failure or successful close has actually been joined.
+    instances: Vec<(String, Arc<()>)>,
     requests: Vec<RequestAck>,
     lookups: Vec<LookupActive>,
     fatal: Option<RuntimeError>,
@@ -290,67 +304,19 @@ impl McpOwner {
                     .map_err(RuntimeError::InvalidArgs)?,
             );
         }
-        let mut nodes = BTreeMap::new();
-        for (server, entry) in &config.mcp {
-            use sha2::{Digest, Sha256};
-            let digest = Sha256::digest(server.as_bytes());
-            let source = config
-                .provenance
-                .get(&format!("mcp.{server}"))
-                .cloned()
-                .unwrap_or_else(|| "native config".into());
-            nodes.insert(
-                server.clone(),
-                Node {
-                    incarnation: Arc::new(()),
-                    row: McpServerSnapshot {
-                        id: format!(
-                            "mcp-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
-                            digest[0],
-                            digest[1],
-                            digest[2],
-                            digest[3],
-                            digest[4],
-                            digest[5],
-                            digest[6],
-                            digest[7]
-                        ),
-                        name: if safe_display_label(server, &protected) {
-                            server.clone()
-                        } else {
-                            safe_server_id(server)
-                        },
-                        configured_enabled: entry.enabled,
-                        status: if entry.failure.is_some() {
-                            McpStatus::Failed
-                        } else if entry.enabled {
-                            McpStatus::Pending
-                        } else {
-                            McpStatus::Disabled
-                        },
-                        pending_action: if entry.enabled && entry.failure.is_none() {
-                            Some(McpAction::Connect)
-                        } else {
-                            None
-                        },
-                        tools: 0,
-                        diagnostic: entry.failure.clone(),
-                        actions: Vec::new(),
-                    },
-                    source,
-                    desired: entry.enabled && entry.failure.is_none(),
-                    cancel: None,
-                    closing: false,
-                    catalogs: [None, None, None],
-                    catalog_pending: [false; 3],
-                },
-            );
-        }
+        let nodes = config
+            .mcp
+            .iter()
+            .map(|(server, entry)| {
+                (
+                    server.clone(),
+                    configured_node(server, entry, &config, &protected),
+                )
+            })
+            .collect();
         let publication = self.shared.publication.read().expect("MCP publication");
-        let generation = McpGeneration::empty(
-            publication.status.binding.generation,
-            self.shared.wake.clone(),
-        );
+        let mut generation = publication.request.as_ref().clone();
+        generation.admitted = Arc::new(config.mcp.clone());
         drop(publication);
         let mut scope = Scope {
             shared: self.shared.clone(),
@@ -362,6 +328,7 @@ impl McpOwner {
             generation,
             work: JoinSet::new(),
             retiring: Vec::new(),
+            instances: Vec::new(),
             requests: Vec::new(),
             lookups: Vec::new(),
             fatal: None,
@@ -391,8 +358,9 @@ impl McpOwner {
             scope.connect(&server, scope.config.mcp[&server].clone());
         }
         scope.publish()?;
-        // Empty configs need no background task, including synchronous fixtures.
-        if scope.nodes.is_empty() {
+        // Synchronous empty fixtures need no runtime. An async Location keeps
+        // this same supervisor even when its desired inventory becomes empty.
+        if scope.nodes.is_empty() && tokio::runtime::Handle::try_current().is_err() {
             return Ok(());
         }
         let (tx, rx) = mpsc::channel(64);
@@ -481,6 +449,16 @@ impl McpOwner {
     ) -> Result<Arc<McpGeneration>, RuntimeError> {
         if let Some(error) = self.fatal() {
             return Err(error);
+        }
+        let empty = {
+            let publication = self.shared.publication.read().expect("MCP publication");
+            publication.status.servers.is_empty() && publication.request.admitted.is_empty()
+        };
+        // There can be no list-changed notification or connect waiter in an
+        // empty admitted inventory. Keep this common no-MCP request local,
+        // without moving the whole execution future through another task.
+        if empty {
+            return self.request_view();
         }
         let sender = self.control.lock().expect("MCP control").clone();
         let Some(sender) = sender else {
@@ -583,11 +561,14 @@ impl Scope {
     }
 
     fn connect(&mut self, server: &str, entry: crate::config::McpEntry) {
+        debug_assert!(self.instances.len() < MAX_MCP_SERVERS);
         let cancel = Arc::new(AtomicBool::new(false));
         let incarnation = Arc::new(());
         let node = self.nodes.get_mut(server).expect("MCP node");
         node.incarnation = incarnation.clone();
         node.cancel = Some(cancel.clone());
+        node.replacing = false;
+        self.instances.push((server.into(), incarnation.clone()));
         let server = server.to_string();
         let project = self.project.clone();
         let env = self.env.clone();
@@ -622,6 +603,7 @@ impl Scope {
         self.lookup_catalog_budget()
             .map_err(|_| RuntimeError::McpCatalogLimit)?;
         let mut publication = self.shared.publication.write().expect("MCP publication");
+        publication.status.binding.generation = self.generation.publication;
         publication.status.revision += 1;
         for (name, node) in &mut self.nodes {
             node.row.actions = if node.closing
@@ -676,9 +658,15 @@ impl Scope {
     }
 
     fn stop_server(&mut self, server: &str) {
-        for lookup in &self.lookups {
-            if lookup.server == server {
-                lookup.cancel.store(true, Ordering::SeqCst);
+        self.retire_server(server, true);
+    }
+
+    fn retire_server(&mut self, server: &str, cancel_lookups: bool) {
+        if cancel_lookups {
+            for lookup in &self.lookups {
+                if lookup.server == server {
+                    lookup.cancel.store(true, Ordering::SeqCst);
+                }
             }
         }
         let node = self.nodes.get_mut(server).expect("MCP node");
@@ -751,7 +739,12 @@ impl Scope {
         for ack in self.requests.drain(..) {
             let _ = ack.send(Err(RuntimeError::Cancelled));
         }
-        if let Err(error) = self.publish() {
+        // Empty inventory has no service state to retire. In particular a
+        // no-MCP Location must not emit a spurious service event after its
+        // terminal turn event merely because it now retains a supervisor.
+        if (!self.nodes.is_empty() || self.fatal.is_some())
+            && let Err(error) = self.publish()
+        {
             self.fatal = Some(error);
         }
         self.drain_retiring();
@@ -769,6 +762,13 @@ impl Scope {
             }
             other => other,
         };
+        if matches!(&completed.result, Ok(WorkResult::Closed))
+            || (!completed.refresh
+                && matches!(&completed.result, Err(error) if !matches!(error, RuntimeError::McpShutdown | RuntimeError::McpAttach { stage: "cleanup", .. })))
+        {
+            self.instances
+                .retain(|(_, incarnation)| !Arc::ptr_eq(incarnation, &completed.incarnation));
+        }
         let server = completed.server;
         if self
             .nodes
@@ -803,7 +803,13 @@ impl Scope {
         // A relist's lease may finish before its result is consumed. A close
         // confirmation can therefore arrive first. Never let that stale relist
         // overwrite a disconnected node or reopen its controls during cleanup.
-        if completed.refresh && !node.desired {
+        if (completed.refresh && !node.desired)
+            || (node.replacing
+                && !matches!(
+                    &completed.result,
+                    Ok(WorkResult::Connected(_) | WorkResult::Closed)
+                ))
+        {
             if matches!(
                 &completed.result,
                 Err(RuntimeError::McpShutdown
@@ -820,7 +826,12 @@ impl Scope {
             return;
         }
         match completed.result {
-            Ok(WorkResult::Connected(client)) if node.desired && !self.stopping => {
+            Ok(WorkResult::Connected(mut client))
+                if node.desired && !node.replacing && !self.stopping =>
+            {
+                if let Some(entry) = self.config.mcp.get(&server) {
+                    client.code_mode = entry.codemode != Some(false);
+                }
                 node.catalogs = [None, None, None];
                 node.catalog_pending = [false; 3];
                 node.row.status = McpStatus::Connected;
@@ -1009,13 +1020,7 @@ impl Scope {
                 {
                     return Err("MCP outcome unknown; retry unsafe");
                 }
-                if self
-                    .nodes
-                    .iter()
-                    .filter(|(name, node)| *name != server && node.desired)
-                    .count()
-                    >= MAX_MCP_SERVERS
-                {
+                if self.instances.len() >= MAX_MCP_SERVERS {
                     return Err("too many enabled MCP servers");
                 }
                 let activation = self
@@ -1065,6 +1070,7 @@ impl Scope {
             if self.shared.stop.load(Ordering::SeqCst) {
                 self.begin_stop();
             }
+            self.pump_replacements();
             if self.stopping && self.work.is_empty() && self.retiring.is_empty() {
                 break;
             }
@@ -1079,6 +1085,10 @@ impl Scope {
                     self.release_requests();
                 },
                 command = controls.recv(), if !self.stopping => match command {
+                    Some(Command::Reconcile { config, publication, activation, force, ack }) => {
+                        let result = self.reconcile(config, publication, activation, force);
+                        let _ = ack.send(result);
+                    },
                     Some(Command::Control { control, ack }) => self.control(control, ack),
                     Some(Command::Request(ack)) => self.request(ack),
                     Some(Command::Lookup { query, cancel, ack }) => self.lookup(query, cancel, ack),

@@ -5012,7 +5012,9 @@ async fn worker(
                 let mut conversation_change = None;
                 let result;
                 {
-                    let operation = async {
+                    // Keep the execution state machine off the actor's inline
+                    // future and worker stacks when independent service jobs wake.
+                    let mut operation = Box::pin(async {
                         let mut title_warnings = Vec::new();
                         let on_accept = |id: &str,
                                          model_switch: Option<
@@ -5259,8 +5261,7 @@ async fn worker(
                         }
                         report.warnings.extend(title_warnings);
                         Ok::<_, RuntimeError>(report)
-                    };
-                    tokio::pin!(operation);
+                    });
                     result = loop {
                         tokio::select! {
                             result = &mut operation => break result,

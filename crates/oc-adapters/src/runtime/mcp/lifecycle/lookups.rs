@@ -15,6 +15,7 @@ pub(super) struct LookupCompleted {
     remote: bool,
     dispatched: bool,
     connection: std::sync::Weak<AttachedServer>,
+    source: String,
 }
 fn catalog_slot(op: &McpLookupOp) -> Option<usize> {
     match op {
@@ -151,6 +152,9 @@ impl Scope {
             return;
         };
         let remote = matches!(client.client.as_ref(), AttachedServer::Remote(_));
+        let source =
+            crate::config::mcp::failure(server, &node.source, "lookup", ServiceCode::Transport)
+                .source;
         if remote
             && !query.operation.is_catalog()
             && self.generation.remote_unknown.load(Ordering::SeqCst)
@@ -202,6 +206,7 @@ impl Scope {
                     result,
                     remote,
                     connection,
+                    source,
                     dispatched: dispatched.load(Ordering::SeqCst),
                 }))),
             }
@@ -240,17 +245,18 @@ impl Scope {
         );
         if lookup.remote && lookup.dispatched && slot.is_none() && uncertain {
             self.generation.remote_unknown.store(true, Ordering::SeqCst);
-            let node = self.nodes.get_mut(server).expect("lookup scope");
-            node.row.diagnostic = Some(connection_diagnostic(
-                server,
-                &node.source,
-                &RuntimeError::McpAttach {
-                    server: safe_server_id(server),
-                    stage: "call",
-                    safe_code: "unsafe_retry",
-                    retryable: false,
-                },
-            ));
+            if let Some(node) = self.nodes.get_mut(server) {
+                node.row.diagnostic = Some(connection_diagnostic(
+                    server,
+                    &node.source,
+                    &RuntimeError::McpAttach {
+                        server: safe_server_id(server),
+                        stage: "call",
+                        safe_code: "unsafe_retry",
+                        retryable: false,
+                    },
+                ));
+            }
             if let Err(error) = self.publish() {
                 self.fatal = Some(error);
                 self.begin_stop();
@@ -261,12 +267,11 @@ impl Scope {
             self.fatal = Some(RuntimeError::McpShutdown);
             self.begin_stop();
         }
-        let node = self.nodes.get(server).expect("lookup scope");
-        if self.stopping || !node.desired || node.closing || !same_connection {
+        if self.stopping || lookup.cancel.load(Ordering::SeqCst) {
             if result.is_ok() {
                 result = Err(McpLookupError::Cancelled);
             }
-        } else if let (Some(slot), Ok(data)) = (slot, &result) {
+        } else if same_connection && let (Some(slot), Ok(data)) = (slot, &result) {
             let old = self.nodes.get_mut(server).expect("lookup scope").catalogs[slot]
                 .replace(data.clone());
             if self.lookup_catalog_budget().is_err() {
@@ -276,17 +281,10 @@ impl Scope {
                 self.begin_stop();
             }
         }
-        let source = crate::config::mcp::failure(
-            server,
-            &self.nodes[server].source,
-            "lookup",
-            ServiceCode::Transport,
-        )
-        .source;
         let _ = lookup.ack.send(result.map(|data| McpLookupReply {
             binding: lookup.query.binding,
             server: lookup.query.server,
-            source,
+            source: lookup.source,
             cached: false,
             data,
         }));
