@@ -165,7 +165,7 @@ Captured native HEAD(s): ${result.captured_heads.map(head=>`\`${head}\``).join('
 the uncommitted build/runtime/test-fixture inputs sealed below. All
 ${Object.keys(result.runs).length} independent \`--build-oc true\` invocations are checked
 for successful \`cargo build --locked\`; failures are listed above. Every run used
-\`/home/opencode/ai/oc/target/debug/oc\` SHA-256
+\`/home/opencode/ai/oc/target/debug/oc2\` SHA-256
 \`${first.binary_sha256}\`, with one Rust input-set digest
 \`${first.rust_inputs_sha256}\` (sorted Rust manifest entries, JSON SHA-256).
 Source inputs matched before/after every build and capture. HEAD alone is not

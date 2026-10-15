@@ -23,7 +23,7 @@ fn go05_configless_headless_refuses_before_session_turn_or_tools() {
     drop(db);
     let stdout = fixture.home.join("unchosen.stdout");
     let stderr = fixture.home.join("unchosen.stderr");
-    let child = Command::new(env!("CARGO_BIN_EXE_oc"))
+    let child = Command::new(env!("CARGO_BIN_EXE_oc2"))
         .env_clear()
         .env("HOME", &fixture.home)
         .env("OPENCODE_CONFIG_DIR", &fixture.global)
@@ -123,7 +123,7 @@ fn tool18_models_does_not_open_locked_native_history_prefs_or_recover_pending_tu
     let before = snapshot();
     let stdout = fixture.home.join("catalog.stdout");
     let stderr = fixture.home.join("catalog.stderr");
-    let child = Command::new(env!("CARGO_BIN_EXE_oc"))
+    let child = Command::new(env!("CARGO_BIN_EXE_oc2"))
         .env_clear()
         .env("HOME", &fixture.home)
         .env("OPENCODE_CONFIG_DIR", &fixture.global)

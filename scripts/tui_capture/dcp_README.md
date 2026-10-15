@@ -87,7 +87,7 @@ After the parent releases and attests a built native binary:
 
 ```sh
 python3 scripts/tui_capture/dcp_native_qualify.py \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --released-sha256 PARENT_ATTESTED_FINAL_BINARY_SHA256 \
   --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativeNEW
 ```
@@ -199,7 +199,7 @@ controls and binary/source provenance. No fixture enters native history.
 
 ```sh
 python3 scripts/tui_capture/dcp_native_qualify.py \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --released-sha256 PARENT_ATTESTED_FINAL_BINARY_SHA256 \
   --output /home/opencode/ai/oc/evidence/tui/recovery-v00/dcp-nativeNEW \
   --default-detail-only --show-compression

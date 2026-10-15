@@ -27,7 +27,7 @@ crates/oc/src/
 
 DCP placement: детерминированные общие `ContextPlan`/`CompressionBlock` и application commit rules принадлежат core; upstream-specific selection/nudge/strategy policy находится в `oc-adapters::dcp`, возвращает проверяемые изменения через узкий `ContextPolicy` interface. Не создавать crate/trait на каждый тип. Подключение второго контекстного движка не входит в задачу.
 
-Один binary target `oc`; библиотеки statically linked в приложение. Нет runtime DCP/npm loader. Без Axum в production до появления реального remote requirement; fake HTTP test servers могут быть dev-dependency.
+Один binary target `oc2`; библиотеки statically linked в приложение. Нет runtime DCP/npm loader. Без Axum в production до появления реального remote requirement; fake HTTP test servers могут быть dev-dependency.
 
 ## Файлы и тесты
 
@@ -173,7 +173,7 @@ Ratatui+Crossterm; bounded viewport и lazy paging session list/history. Input b
 
 Основные экраны: chat, sessions/Locations, model/variant/primary-agent picker, slash command completion, skill catalog/tool card, approvals, DCP context/stats. UI получает только redacted projection текущей generation и dispatches typed operations с expected generation; второго parser/catalog state нет. Минимальный markdown/diff/tool cards, paste/resize/Unicode и terminal restoration. Не строить собственный renderer/editor framework. При non-TTY без подкоманды — usage error; headless `run --json` выдаёт NDJSON, diagnostics отдельно stderr.
 
-T39 wiring: `oc-tui` — чистый view-model без storage handle. Панели открываются командами, а данные приходят bounded-запросами application owner (`catalog`, `skills`, `history_page`, `tool_ops_page`, `dcp_snapshot`); выборы уходят как typed intents (`ChooseModel`/`SelectAgent`/`SwitchSession`/`Compress`) и применяются только после acceptance — effective model/variant/agent меняются для следующих turns, смена session во время turn явно отклоняется. История живёт в bounded окне (`WINDOW_ROWS`/`WINDOW_BYTES`): старые страницы выгружаются, новые запрашиваются курсором; tool cards читаются newest-first страницами, а не первыми 200 старейшими записями. Bracketed paste приходит одним событием, resize/stream не блокируют loop, а ошибка output handle завершает процесс с восстановлением терминала. `oc` бинарник владеет event loop, terminal guard и opt-in `OC_TUI_TEST_METRICS` (только для PTY-квалификации).
+T39 wiring: `oc-tui` — чистый view-model без storage handle. Панели открываются командами, а данные приходят bounded-запросами application owner (`catalog`, `skills`, `history_page`, `tool_ops_page`, `dcp_snapshot`); выборы уходят как typed intents (`ChooseModel`/`SelectAgent`/`SwitchSession`/`Compress`) и применяются только после acceptance — effective model/variant/agent меняются для следующих turns, смена session во время turn явно отклоняется. История живёт в bounded окне (`WINDOW_ROWS`/`WINDOW_BYTES`): старые страницы выгружаются, новые запрашиваются курсором; tool cards читаются newest-first страницами, а не первыми 200 старейшими записями. Bracketed paste приходит одним событием, resize/stream не блокируют loop, а ошибка output handle завершает процесс с восстановлением терминала. `oc2` бинарник владеет event loop, terminal guard и opt-in `OC_TUI_TEST_METRICS` (только для PTY-квалификации).
 
 T40 wiring: активный контекст собирается bounded projection, а не полным чтением архива. `Db::active_history` читает только строки выше prune mark, пропуская покрытые compression-блоками (placeholders не материализуются: `project_active_rows` ставит summary по позиции блока из `Db::block_positions`/`message_seqs`), а `Db::wire_logs_for_window` переигрывает turn logs newest-first до anchor floor — pruned turns не читаются. Итоговая проекция побайтово совпадает с `project_rows` над полной историей (это проверяется в тестах и debug-assertions). Независимый byte safety budget `ACTIVE_CONTEXT_BYTES_CAP` (16 MiB) — memory guard, а не model admission: token admission по `limit.context` остаётся отдельным и выполняется по эвристике bytes/4, поэтому переполнение любого из них даёт явную ошибку (`ContextOverflow`/`OverContext`) с диагностикой, а не silent truncation. Manual `/dcp-compress` остаётся explicit owner-действием над видимым транскриптом: ranges могут адресовать pruned rows, поэтому этот путь материализует адресованную историю и не входит в per-turn hot path. Tool operation rows отдают bounded preview с явным маркером `…[+N]`, полный result остаётся единственной durable копией в `tool_operations.output` и доступен продолжением `Db::read_tool_op_output(op, offset, limit)`; UI никогда не становится единственной копией результата. TUI input budget равен core-лимиту (`MAX_INPUT_BYTES`), а вставка/набор сверх него видны в note, а не отбрасываются молча.
 
@@ -199,9 +199,9 @@ T36/T40 historical evidence does not prove this pending outcome.
 
 ## T42 compatibility wiring
 
-Bare `oc` is the local TUI: `bootstrap` launches the same `run_tui` path as `oc tui` when
-stdin *and* stdout are terminals, and otherwise exits 2 with an actionable `oc run "<prompt>"`
-hint instead of any hidden headless/daemon mode. `oc tui` stays the explicit equivalent
+Bare `oc2` is the local TUI: `bootstrap` launches the same `run_tui` path as `oc2 tui` when
+stdin *and* stdout are terminals, and otherwise exits 2 with an actionable `oc2 run "<prompt>"`
+hint instead of any hidden headless/daemon mode. `oc2 tui` stays the explicit equivalent
 (stdin-only gate, so an unusable stdout still fails visibly at draw time).
 
 A Location switch happens inside one running application lifecycle: `/location <path>` sends

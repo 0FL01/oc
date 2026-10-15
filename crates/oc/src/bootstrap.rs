@@ -59,7 +59,7 @@ pub async fn run(args: Args) -> ExitCode {
     if args.command.is_none() && !crate::tui_cmd::interactive_ready() {
         eprintln!(
             "error: bare `oc` needs an interactive terminal (stdin/stdout are not a TTY); \
-             use `oc run \"<prompt>\"` for headless use"
+             use `oc2 run \"<prompt>\"` for headless use"
         );
         return ExitCode::from(2);
     }

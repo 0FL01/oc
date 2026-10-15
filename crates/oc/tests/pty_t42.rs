@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-const BIN: &str = env!("CARGO_BIN_EXE_oc");
+const BIN: &str = env!("CARGO_BIN_EXE_oc2");
 const POLL: Duration = Duration::from_millis(25);
 const DEADLINE: Duration = Duration::from_secs(20);
 
@@ -3496,7 +3496,7 @@ fn aud38_bare_oc_launches_the_local_tui() {
     assert!(body.contains(GLOBAL_RULE), "global AGENTS rule in request");
     assert!(body.contains(A_RULE), "Location AGENTS rule in request");
 
-    // Redirected bare `oc`: clear error pointing at `oc run`.
+    // Redirected bare `oc2`: clear error pointing at `oc2 run`.
     let output = fixture
         .command_in(&fixture.project_a())
         .stdin(Stdio::piped())
@@ -3509,7 +3509,7 @@ fn aud38_bare_oc_launches_the_local_tui() {
     assert_eq!(output.status.code(), Some(2), "usage exit code");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("oc run") && stderr.contains("interactive terminal"),
+        stderr.contains("oc2 run") && stderr.contains("interactive terminal"),
         "actionable headless hint: {stderr}"
     );
 }

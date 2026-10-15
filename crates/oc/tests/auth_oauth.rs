@@ -7,7 +7,7 @@ fn auth02_auth04_binary_device_browser_and_native_requests() {
             "-B",
             "-c",
             include_str!("support/auth_oauth.py"),
-            env!("CARGO_BIN_EXE_oc"),
+            env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
         .env("TMPDIR", "/home/opencode/.cache/opencode-tmp/opencode")

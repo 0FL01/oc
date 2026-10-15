@@ -20,7 +20,7 @@ for(const run of runs) {
   const argv=[path.join(here,'capture.mjs'),'--leader-pending','true','--leader-config','default',
     ...(run.extra?['--leader-extra','true']:[]),...(run.navigation?['--leader-paste-navigation','true']:[]),...(run.suffixSpace?['--leader-paste-suffix-space','true']:[]),
     '--geometry','true','--sidebar','hide','--sample','short','--columns',String(run.width),'--rows','40',
-    '--reference',reference,'--oc',path.join(repo,'target/debug/oc'),'--build-oc','true','--output',path.join(root,run.name)];
+    '--reference',reference,'--oc',path.join(repo,'target/debug/oc2'),'--build-oc','true','--output',path.join(root,run.name)];
   const child=spawnSync(process.execPath,argv,{cwd:repo,encoding:'utf8',env:{...process.env,CARGO_BUILD_JOBS:'3',TMPDIR:'/home/opencode/.cache/opencode-tmp/opencode'},timeout:180000,maxBuffer:16*1024*1024});
   fs.writeFileSync(path.join(root,run.name+'.runner.log'),(child.stdout||'')+(child.stderr||''),{flag:'wx'});
   result.runs.push({...run,argv:[process.execPath,...argv],exit_code:child.status,error:child.error?.message,signal:child.signal});

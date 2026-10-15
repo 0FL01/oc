@@ -183,7 +183,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
         }
         requests
     });
-    let mut command = Command::new(env!("CARGO_BIN_EXE_oc"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_oc2"));
     command
         .env_clear()
         .env("HOME", &home)

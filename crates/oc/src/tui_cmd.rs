@@ -198,7 +198,7 @@ async fn run_stages(
 ) -> Result<u8, String> {
     if !at_tty() {
         return Err(
-            "no TTY for interactive TUI; use `oc run \"<prompt>\"` for headless use".to_string(),
+            "no TTY for interactive TUI; use `oc2 run \"<prompt>\"` for headless use".to_string(),
         );
     }
     let project = std::env::current_dir().map_err(|e| e.to_string())?;

@@ -109,7 +109,7 @@ impl Fixture {
         let home = self.root.path().join("home");
         let stdout = home.join(format!("{label}.stdout"));
         let stderr = home.join(format!("{label}.stderr"));
-        let child = Command::new(env!("CARGO_BIN_EXE_oc"))
+        let child = Command::new(env!("CARGO_BIN_EXE_oc2"))
             .env_clear()
             .env("HOME", &home)
             .env("XDG_CONFIG_HOME", home.join("config"))
@@ -511,7 +511,7 @@ fn aud12_binary_delta_before_terminal_and_silent_stream_sigint() {
 #[test]
 fn aud10_binary_image_modality_is_explicitly_rejected() {
     let root = tempfile::tempdir().unwrap();
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_oc"))
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_oc2"))
         .env_clear()
         .env("HOME", root.path())
         .current_dir(root.path())

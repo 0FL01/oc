@@ -4,7 +4,7 @@
 
 ## Обязательный конечный результат
 
-В `0FL01/oc` создан модульный монолит на Rust 2024 для Debian 13 GNU/Linux x86_64. `cargo build --locked` создаёт `target/debug/oc`; `cargo build` также работает. Бинарник запускает локальный TUI и headless coding session без исходного OpenCode, Node/Bun и JS-плагинов как runtime-зависимостей. SQLite может быть bundled. Динамическая системная линковка допустима. Существующие dev tools, shell/git и явные внешние MCP не являются частью этого запрета.
+В `0FL01/oc` создан модульный монолит на Rust 2024 для Debian 13 GNU/Linux x86_64. `cargo build --locked` создаёт `target/debug/oc2`; `cargo build` также работает. Бинарник запускает локальный TUI и headless coding session без исходного OpenCode, Node/Bun и JS-плагинов как runtime-зависимостей. SQLite может быть bundled. Динамическая системная линковка допустима. Существующие dev tools, shell/git и явные внешние MCP не являются частью этого запрета.
 
 Продукт работает с пользовательским OpenProxy через нативный OpenAI Responses wire adapter; принимает config alias `@ai-sdk/openai`, baseURL/apiKey и указанные options. `ludka` поддерживает static models, `ludka2` — динамическую metadata discovery по присланному plugin без списка моделей в Rust. В этом lane API/OAuth реальных upstream providers остаются за OpenProxy. Direct Go/custom wires допущены только T53; built-in OpenAI Key и Codex OAuth — только T57 по amendment ниже, без изменения OpenProxy alias/authority/oracle.
 
@@ -273,7 +273,7 @@ Mandatory policy/trust/storage/recovery/cleanup/caps остаются насто
 
 E2E06 имеет одного владельца T51: source-derived offline regression/recovery плюс
 bounded PTY/strace текущего non-root пользователя, реальных HOME/XDG/PATH/Location
-и неизменённых config sources. Обязательны bare `target/release/oc` с существующим
+и неизменённых config sources. Обязательны bare `target/release/oc2` с существующим
 default native store и тот же config environment с fresh `--data-dir`. `--help`,
 temp HOME, только fresh store или NOT_RUN не заменяют real-user qualification.
 Методика и безопасные trace/effect assertions — [TEST_PLAN](docs/TEST_PLAN.md#e2e06--inherited-ts-config--real-user-startup-approved-2026-09-29-pending),

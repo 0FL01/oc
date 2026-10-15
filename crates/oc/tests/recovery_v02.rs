@@ -242,7 +242,7 @@ async fn scenario(
     if label == "Changed" {
         binary_tui_restart(&home, &project, "", &title, &model_name, true);
     } else {
-        let output = Command::new(env!("CARGO_BIN_EXE_oc"))
+        let output = Command::new(env!("CARGO_BIN_EXE_oc2"))
             .env_clear()
             .env("HOME", &home)
             .env("XDG_CONFIG_HOME", home.join("config"))
@@ -782,7 +782,7 @@ fn binary_tui_restart(
     unsafe {
         libc::fcntl(master.as_raw_fd(), libc::F_SETFL, libc::O_NONBLOCK);
     }
-    let mut command = Command::new(env!("CARGO_BIN_EXE_oc"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_oc2"));
     command
         .env_clear()
         .env("HOME", home)

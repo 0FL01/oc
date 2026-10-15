@@ -32,7 +32,7 @@ use serde_json::{Value, json};
 #[path = "live_bounded/envelope.rs"]
 mod envelope;
 
-const BIN: &str = env!("CARGO_BIN_EXE_oc");
+const BIN: &str = env!("CARGO_BIN_EXE_oc2");
 const POLL: Duration = Duration::from_millis(10);
 /// Per-process watchdog.
 const CALL_TIMEOUT: Duration = Duration::from_secs(300);

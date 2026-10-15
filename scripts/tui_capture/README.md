@@ -44,7 +44,7 @@ agent binary/configuration is never discovered or used.
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --build-oc true \
   --output /home/opencode/ai/oc/evidence/tui/recovery-v00/attempt-05
 ```
@@ -69,7 +69,7 @@ leader frames keep their original short sampling delay. Navigation submissions
 require completed main + title requests and a stable restored frame.
 Each chip/default and extra/longdraft pair at 79/80/120/121×40 independently runs
 `cargo build --locked`, seals source hashes before/after build/capture and uses the
-explicit pinned reference plus `target/debug/oc`. Both real CLI configs set
+explicit pinned reference plus `target/debug/oc2`. Both real CLI configs set
 `session.tps=false`. The existing default sequence captures the same three-line
 chip normal/pending/restored and actual mouse expansion. The unchanged extra
 sequence inserts the bounded Enter text at the actual middle caret and records
@@ -107,7 +107,7 @@ node scripts/tui_capture/capture.mjs \
   --apply-patch true --geometry true --sidebar hide --sample short \
   --columns 121 --rows 40 --patch-view auto --patch-wrap none \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --output evidence/tui/recovery-v00/apply-patch20260927-23
 ```
 
@@ -161,7 +161,7 @@ node scripts/tui_capture/capture.mjs \
   --compaction true --compaction-trigger manual \
   --geometry true --sidebar hide --sample short --columns 120 --rows 40 \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --output evidence/tui/recovery-v00/compaction20260927-23
 ```
 
@@ -456,7 +456,7 @@ For the completed real-read exploration group, run a **fresh** output directory:
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample tools --sidebar hide --columns 120 --rows 40 \
   --exploration-click true --output /home/opencode/ai/oc/evidence/tui/NEW-ATTEMPT
 ```
@@ -477,7 +477,7 @@ completed real-read/profile fixture:
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --tab-click true \
   --output /home/opencode/ai/oc/evidence/tui/NEW-TAB-ATTEMPT
@@ -560,7 +560,7 @@ exploration-click, variants, resize/matrix, seed-root or startup-error mode):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --rename-session true \
   --output /home/opencode/ai/oc/evidence/tui/NEW-RENAME-ATTEMPT
@@ -634,7 +634,7 @@ output directory (this command does not run Cargo):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --two-turn true \
   --output /home/opencode/ai/oc/evidence/tui/two-turn-NEW-ATTEMPT
@@ -668,7 +668,7 @@ immutable output directory (the runner refuses an existing attempt):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample reasoning --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --reasoning-click true \
   --output /home/opencode/ai/oc/evidence/tui/NEW-REASONING-ATTEMPT
@@ -716,7 +716,7 @@ both real executables, a fresh attempt path, and the Reader 120×40 profile:
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample reasoning-steps --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --reasoning-steps true \
   --output /home/opencode/ai/oc/evidence/tui/reasoning-steps-NEW-ATTEMPT
@@ -756,7 +756,7 @@ immutable attempt directory:
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --clean-services true \
   --output /home/opencode/ai/oc/evidence/tui/VIS42-NEW-ATTEMPT
@@ -808,7 +808,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true \
   --output /home/opencode/ai/oc/evidence/tui/TOOL-PREVIEW-NEW-IMMUTABLE-ATTEMPT
@@ -933,7 +933,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true --mcp-status true \
   --output /home/opencode/ai/oc/evidence/tui/MCP-STATUS-NEW-IMMUTABLE-ATTEMPT
@@ -972,7 +972,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true --mcp-status true --mcp-footer remap \
   --output /home/opencode/ai/oc/evidence/tui/MCP-FOOTER-NEW-IMMUTABLE-ATTEMPT
@@ -1009,7 +1009,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true --prompt-caret true \
   --output /home/opencode/ai/oc/evidence/tui/PROMPT-CARET-NEW-IMMUTABLE-ATTEMPT
@@ -1046,7 +1046,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 80 --rows 24 \
   --tool-preview true --prompt-history default \
   --output /home/opencode/ai/oc/evidence/tui/HISTORY-NEW-IMMUTABLE-ATTEMPT
@@ -1134,7 +1134,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true --combined-composer true \
   --output /home/opencode/ai/oc/evidence/tui/COMPOSER-NEW-IMMUTABLE-ATTEMPT
@@ -1315,7 +1315,7 @@ CARGO_BUILD_JOBS=3 RUST_TEST_THREADS=2 \
 TMPDIR=/home/opencode/.cache/opencode-tmp/opencode \
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample short --sidebar hide --columns 120 --rows 40 \
   --tool-preview true --cursor-temporal blink --cursor-renderer webgl \
   --cursor-case expanded \
@@ -1387,7 +1387,7 @@ Run with both pinned executables and a **new** immutable output directory:
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --autocomplete true \
   --output /home/opencode/ai/oc/evidence/tui/NEW-AUTOCOMPLETE-ATTEMPT
@@ -1415,7 +1415,7 @@ For a separate **keyboard** probe, use a fresh path and replace
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --autocomplete-keys true \
   --output /home/opencode/ai/oc/evidence/tui/NEW-AUTOCOMPLETE-KEYS-ATTEMPT
@@ -1471,7 +1471,7 @@ with `--ctrl-c true` (exclusive with other interaction/resize/variant modes):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --ctrl-c true \
   --output /home/opencode/ai/oc/evidence/tui/ctrl-c-NEW-ATTEMPT
@@ -1506,7 +1506,7 @@ with a **new** immutable output directory (without `--autocomplete true`):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --mention true \
   --output /home/opencode/ai/oc/evidence/tui/mention-20260924-01
@@ -1538,7 +1538,7 @@ to build it):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --selection-copy true \
   --output /home/opencode/ai/oc/evidence/tui/selection-copy-NEW-ATTEMPT
@@ -1586,7 +1586,7 @@ replaces the prefilled title through the real Rename session dialog with a long
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar auto --agent-profile true \
   --columns 121 --rows 40 --toast-overlap true \
   --output /home/opencode/ai/oc/evidence/tui/toast-overlap-NEW-ATTEMPT
@@ -1619,14 +1619,14 @@ immutable output path for each setting (do not pass `--build-oc true`):
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --scanner true --scanner-animation true --scanner-cancel false \
   --output /home/opencode/ai/oc/evidence/tui/scanner-animated-NEW-ATTEMPT
 
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --scanner true --scanner-animation false --scanner-cancel false \
   --output /home/opencode/ai/oc/evidence/tui/scanner-fallback-NEW-ATTEMPT
@@ -1739,7 +1739,7 @@ binary, with a new immutable attempt directory (120×40; `--columns 160
 ```sh
 node scripts/tui_capture/capture.mjs \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc --build-oc true \
+  --oc /home/opencode/ai/oc/target/debug/oc2 --build-oc true \
   --geometry true --sample tools --sidebar hide --agent-profile true \
   --columns 120 --rows 40 --models-interaction true \
   --output /home/opencode/ai/oc/evidence/tui/models-NEW-ATTEMPT
@@ -1801,7 +1801,7 @@ node scripts/tui_capture/capture.mjs \
   --bounded-mode wheel --geometry true --sample short --sidebar hide \
   --columns 120 --rows 40 \
   --reference /home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode \
-  --oc /home/opencode/ai/oc/target/debug/oc \
+  --oc /home/opencode/ai/oc/target/debug/oc2 \
   --output /home/opencode/ai/oc/evidence/tui/recovery-v00/NEW-HIGH-REFRESH-ATTEMPT
 node scripts/tui_capture/summarize_wheel.mjs \
   evidence/tui/recovery-v00/NEW-HIGH-REFRESH-ATTEMPT

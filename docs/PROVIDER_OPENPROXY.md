@@ -4,7 +4,7 @@
 
 ## Граница
 
-Для OpenProxy lane одна native protocol family: OpenAI Responses. `npm: "@ai-sdk/openai"` — compatibility alias. OpenProxy делает свои OAuth/vendor/account routing; `oc` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
+Для OpenProxy lane одна native protocol family: OpenAI Responses. `npm: "@ai-sdk/openai"` — compatibility alias. OpenProxy делает свои OAuth/vendor/account routing; `oc2` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
 
 Owner-approved [T53](goals/2026-09-29-opencode-go-and-provider-auth.md) отдельно добавляет
 Go/models.dev и общий credential owner (implementation pending). Это не смена
@@ -99,7 +99,7 @@ failure не повторяются; не более двух attempts толь�
 Authorization/Accept/Content-Type имеют приоритет без учёта регистра. Transport
 overrides (Host, Content-Length и т. п.) отвергаются; redirects запрещены.
 
-Application profile пока text-only: `oc run --image URL` явно отказывает с exit 2
+Application profile пока text-only: `oc2 run --image URL` явно отказывает с exit 2
 до network/storage. Adapter image serialization отдельно проверена, но это НЕ
 claim рабочего image workflow или полного A04. AUD10 допускает такой diagnostic.
 Same-session provider/model switch сейчас явно отказывает вместо replay чужого

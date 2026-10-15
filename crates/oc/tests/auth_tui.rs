@@ -8,7 +8,7 @@ fn auth05_actual_binary_tui_accounts_picker_and_owned_authorization() {
         .arg("-B")
         .arg("-c")
         .arg(include_str!("support/auth_tui.py"))
-        .arg(env!("CARGO_BIN_EXE_oc"))
+        .arg(env!("CARGO_BIN_EXE_oc2"))
         .output()
         .expect("isolated TUI auth fixture");
     assert!(

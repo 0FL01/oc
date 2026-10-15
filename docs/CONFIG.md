@@ -1,7 +1,7 @@
 # Конфигурация и пользовательский профиль
 
 Встроенный `skill({"id":"customize-opencode"})` возвращает самостоятельный
-[ранбук настройки native `oc`](../crates/oc-adapters/assets/skills/customize-opencode/SKILL.md).
+[ранбук настройки native `oc2`](../crates/oc-adapters/assets/skills/customize-opencode/SKILL.md).
 Рекомендации ранбука следуют работающим native consumers; upstream schema и Proposed
 примеры сами по себе не подтверждают поддержку.
 
@@ -27,7 +27,7 @@ Admitted `/reload` повторяет только существующий boun
 
 JSONC comments/trailing commas принимаются; диагностика показывает qualified opaque source и schema-only field, не исходный parser payload/path. Unsupported arbitrary plugin/provider package даёт safe field и capability code. Не «поддерживать» настройку только тем, что Serde её проглотил. Security-relevant invalid candidate не публикуется; malformed отдельная definition исключается с typed cause. Explicit selected-reference failure остаётся явным; configured default eligibility/fallback governed by approved R6, not the old blanket default-reference hard error.
 
-DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins сохраняются в native generation; доступные безопасные diagnostics — в TUI Settings и service details, без secrets и sensitive absolute paths. Команд `oc config explain/check/validate` нет: использовать `oc --help`, `oc models` и профильные проверки.
+DCP domains, provider model metadata/variants, MCP entries, skills, agents, commands и permissions имеют отдельные merge rules. Native own settings не переопределяют смысл известных upstream fields. Источник и shadowed origins сохраняются в native generation; доступные безопасные diagnostics — в TUI Settings и service details, без secrets и sensitive absolute paths. Команд `oc2 config explain/check/validate` нет: использовать `oc2 --help`, `oc2 models` и профильные проверки.
 
 ## Service config/startup — native diagnostic contract
 
@@ -402,7 +402,7 @@ of arbitrary endpoint onboarding or discovery.
   empty success retires all remote IDs. No auto-selection, full reload or MCP restart.
   No-provider/model TUI opens Home/history/commands; dependent submit/headless fails
   before effects. Existing mandatory policy/storage failures remain fatal.
-- `oc models` joins bounded sanitized saved custom snapshots via read-only DB access,
+- `oc2 models` joins bounded sanitized saved custom snapshots via read-only DB access,
   no key read/custom network/second owner or selection. Missing/failed/revision-mismatched
   snapshot makes listing incomplete/nonzero; valid empty complete. This does not prove
   credentials/endpoint/generation readiness. Legacy OpenProxy oracle is unchanged.
@@ -578,12 +578,12 @@ full skill bodies и sensitive paths.
 
 ## Commands — проектируемый CLI
 
-`oc`/`oc tui`: local TUI, no daemon. `oc run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc sessions list`, `oc run --session ID <prompt>` — история/продолжение. **`oc models`** (без обязательного `list`) — catalog-only список точных IDs. `oc config check` и `oc config explain` остаются проектируемыми командами; наличие модели в каталоге не подтверждает generation readiness.
+`oc2`/`oc2 tui`: local TUI, no daemon. `oc2 run <prompt> --model <provider/model-id> [--variant name] [--json]` — headless. `oc2 sessions list`, `oc2 run --session ID <prompt>` — история/продолжение. **`oc2 models`** (без обязательного `list`) — catalog-only список точных IDs. `oc2 config check` и `oc2 config explain` остаются проектируемыми командами; наличие модели в каталоге не подтверждает generation readiness.
 
 ### CLI models и привязка профиля
 
 [T50/R7/TOOL18](goals/2026-09-27-native-tool-parity.md#cli-models--r7tool18-approved-2026-10-01-pending)
-предоставляет `oc models`: полный список включённых моделей поддерживаемых
+предоставляет `oc2 models`: полный список включённых моделей поддерживаемых
 admitted каталогов как точные `provider/model-id`, один ID на строку, стабильный
 лексикографический порядок. Пустой исправный каталог — пустой stdout/exit 0;
 diagnostics — stderr, incomplete required dynamic/fatal/output failures — nonzero.
@@ -594,15 +594,15 @@ Static/public metadata не требует generation key, authenticated OpenPro
 требует ключ admitted endpoint и сохраняет existing oracle/budgets/retirement.
 
 Pinned OC2 `opencode models` имеет ServerParams, а не OC1 positional provider/
-`--verbose`/`--refresh`. Прежнее проектируемое `oc models list [--refresh]` superseded;
+`--verbose`/`--refresh`. Прежнее проектируемое `oc2 models list [--refresh]` superseded;
 native server/standalone/JSON/filter/bind flags и compatibility alias не добавляются.
 Existing global `--data-dir` принимается; catalog-only команда не вызывает `Db::open`,
 не захватывает второго writable data-root owner, не читает saved selection/UI preferences
 и не запускает recovery. Existing read-only public-cache path остаётся; T59 добавляет
 к нему bounded sanitized saved custom catalogs, без credential material/custom probes.
-Например: `target/debug/oc --data-dir /path/to/native-data models`.
+Например: `target/debug/oc2 --data-dir /path/to/native-data models`.
 
-Целевой путь пользователя: скопировать ID из `oc models`, затем вручную указать его
+Целевой путь пользователя: скопировать ID из `oc2 models`, затем вручную указать его
 в global `model`, canonical `agents.<id>.model` либо Markdown profile
 `.opencode/agents/<id>.md`. Для JSON legacy `agent` проходит donor normalization;
 это не каноническое имя OC2 и не повод удалить существующую совместимость.
@@ -672,7 +672,7 @@ supported implementation/compatibility claims require TOOL12/TOOL20 qualificatio
 
 [Frozen auth contract](goals/2026-10-06-codex-oauth-and-openai-key.md): built-in `openai`
 offers `chatgpt-browser`, `chatgpt-headless` and `key` through native `/connect` and
-`oc auth login openai --method <method>`. Headless device login works without TTY/
+`oc2 auth login openai --method <method>`. Headless device login works without TTY/
 local callback but requires the user to confirm its URL/code elsewhere; it is not
 unattended sign-in. API-key CLI input is an interactive password form; headless
 generation uses admitted OPENAI_API_KEY/config/stored account, no key/token argv.

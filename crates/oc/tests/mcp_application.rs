@@ -26,7 +26,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-const BIN: &str = env!("CARGO_BIN_EXE_oc");
+const BIN: &str = env!("CARGO_BIN_EXE_oc2");
 const MODEL: &str = "mcp-application-model";
 const TIMEOUT: Duration = Duration::from_secs(12);
 

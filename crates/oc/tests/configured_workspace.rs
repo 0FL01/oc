@@ -110,7 +110,7 @@ impl Fixture {
     fn spawn(&self, project: &Path, session: &str, prompt: &str, label: &str) -> Process {
         let stdout = self.home.join(format!("{label}.stdout"));
         let stderr = self.home.join(format!("{label}.stderr"));
-        let child = Command::new(env!("CARGO_BIN_EXE_oc"))
+        let child = Command::new(env!("CARGO_BIN_EXE_oc2"))
             .env_clear()
             .env("HOME", &self.home)
             .env("XDG_CONFIG_HOME", self.home.join("config"))

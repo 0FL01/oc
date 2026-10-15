@@ -8,7 +8,7 @@ fn auth05_actual_binary_cli_metadata_masking_and_owned_callback() {
         .arg("-B")
         .arg("-c")
         .arg(include_str!("support/auth_cli.py"))
-        .arg(env!("CARGO_BIN_EXE_oc"))
+        .arg(env!("CARGO_BIN_EXE_oc2"))
         .output()
         .expect("isolated auth fixture");
     assert!(

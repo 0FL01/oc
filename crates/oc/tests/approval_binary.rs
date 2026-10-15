@@ -36,7 +36,7 @@ fn vis36_actual_hidden_auto_aliases_keep_help_side_effect_free() {
             vec![flag, "run", "--help"],
             vec!["run", flag, "--help"],
         ] {
-            let output = Command::new(env!("CARGO_BIN_EXE_oc"))
+            let output = Command::new(env!("CARGO_BIN_EXE_oc2"))
                 .env_clear()
                 .env("HOME", &home)
                 .env("XDG_CONFIG_HOME", home.join("config"))
@@ -140,7 +140,7 @@ fn run(auto_flag: Option<&str>, deny: bool) {
         }
         count
     });
-    let mut command = Command::new(env!("CARGO_BIN_EXE_oc"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_oc2"));
     command
         .current_dir(&project)
         .env_clear()

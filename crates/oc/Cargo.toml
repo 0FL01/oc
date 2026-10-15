@@ -8,7 +8,7 @@ repository.workspace = true
 description = "Native oc binary: local TUI and headless coding session"
 
 [[bin]]
-name = "oc"
+name = "oc2"
 path = "src/main.rs"
 
 [features]

@@ -20,7 +20,7 @@ for(let i=first;i<=last;i++){
  runs.push({name,captured_head:lock.oc.commit,source_manifest_sha256:lock.oc.source_manifest_sha256,manifest_hash_valid:digest(canonical(manifest))===lock.oc.source_manifest_sha256,rust_inputs_sha256:digest(JSON.stringify(inputs)),binary_sha256:lock.oc.executable_sha256,build:read(path.join(dir,'commands.json')).filter(c=>c.argv[0]==='cargo').map(c=>({argv:c.argv,exit_code:c.exit_code})),current_mismatches});
 }
 const current_head=spawnSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).stdout.trim();
-const current_binary_sha256=digest(fs.readFileSync('target/debug/oc'));
+const current_binary_sha256=digest(fs.readFileSync('target/debug/oc2'));
 const report={current_head,current_binary_sha256,runs,scope:'Only these source-built captures; no older evidence qualifies this source.'};
 fs.writeFileSync(output,JSON.stringify(report,null,2)+'\n');
 console.log(JSON.stringify(report,null,2));

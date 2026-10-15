@@ -151,7 +151,7 @@ impl Fixture {
     ) -> Process {
         let stdout = self.home.join(format!("{label}.stdout"));
         let stderr = self.home.join(format!("{label}.stderr"));
-        let mut command = Command::new(env!("CARGO_BIN_EXE_oc"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_oc2"));
         command
             .env_clear()
             .env("HOME", &self.home)

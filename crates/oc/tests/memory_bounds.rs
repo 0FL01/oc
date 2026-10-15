@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-const BIN: &str = env!("CARGO_BIN_EXE_oc");
+const BIN: &str = env!("CARGO_BIN_EXE_oc2");
 const MODEL: &str = "memory-fixture";
 const SESSION: &str = "s-aud32";
 const POLL: Duration = Duration::from_millis(2);

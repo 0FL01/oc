@@ -31,7 +31,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-const BIN: &str = env!("CARGO_BIN_EXE_oc");
+const BIN: &str = env!("CARGO_BIN_EXE_oc2");
 const MODEL: &str = "gpt-golden-model";
 const SESSION_A: &str = "s-golden-a";
 const SESSION_B: &str = "s-golden-b";

@@ -10,7 +10,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 
 /// Native `oc` command line.
 #[derive(Debug, Parser)]
-#[command(name = "oc", version, about = "Native oc agent runtime")]
+#[command(name = "oc2", version, about = "Native oc2 agent runtime")]
 pub struct Args {
     /// Isolate storage under an explicit data directory.
     #[arg(long, global = true)]

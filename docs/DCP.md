@@ -709,7 +709,7 @@ Fake-model scenario заставляет вызвать compress на больш
 target. В частности, прежнее сохранение tool payload/protected ancestry и nested
 consumed blocks не квалифицирует approved 2026-09-30 replacement/forgetting.
 
-Normal `oc run`/TUI runtime публикует `compress` как ordinary function tool рядом
+Normal `oc2 run`/TUI runtime публикует `compress` как ordinary function tool рядом
 с `glob`/`grep`; все три проходят общий validation → permission → durable intent →
 dispatch → durable outcome. DCP developer lane содержит bounded ordered anchors
 `{id,role,closed}` и transient nudge, но не записывается в raw history. Disabled,

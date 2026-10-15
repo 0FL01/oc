@@ -64,7 +64,7 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
                     "--geometry",
                     "true",
                     "--oc",
-                    env!("CARGO_BIN_EXE_oc"),
+                    env!("CARGO_BIN_EXE_oc2"),
                     "--build-oc",
                     "true",
                     "--seed-root",
@@ -158,7 +158,7 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
         1,
     );
     let output = Command::new("python3")
-        .args(["-c", &geometry, env!("CARGO_BIN_EXE_oc")])
+        .args(["-c", &geometry, env!("CARGO_BIN_EXE_oc2")])
         .arg(root.path())
         .output()
         .unwrap();

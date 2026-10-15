@@ -400,7 +400,7 @@ fn spawn(home: &Path, project: &Path, prompt: &str, label: &str) -> Process {
     // Files avoid pipe backpressure and inherited-pipe EOF waits on failures.
     let stdout = home.join(format!("{label}.stdout"));
     let stderr = home.join(format!("{label}.stderr"));
-    let child = Command::new(env!("CARGO_BIN_EXE_oc"))
+    let child = Command::new(env!("CARGO_BIN_EXE_oc2"))
         .env_clear()
         .env("HOME", home)
         .env("XDG_CONFIG_HOME", home.join("config"))

@@ -315,7 +315,7 @@ async fn one_shot_live_model_identity(rotated: bool) {
         reserved_requests(),
     )
     .expect("one-shot campaign already reserved; no automatic retry");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_oc"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_oc2"))
         .env_clear()
         .envs(&environment)
         .current_dir(&project)

@@ -85,7 +85,7 @@ fn isolated_binary_startup_routes() {
         .args([
             "-c",
             include_str!("support/startup.py"),
-            env!("CARGO_BIN_EXE_oc"),
+            env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
         .output()
@@ -105,7 +105,7 @@ fn isolated_discovery_startup_routes() {
         .args([
             "-c",
             include_str!("support/discovery_startup.py"),
-            env!("CARGO_BIN_EXE_oc"),
+            env!("CARGO_BIN_EXE_oc2"),
         ])
         .env_clear()
         .output()

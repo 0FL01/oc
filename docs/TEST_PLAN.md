@@ -16,7 +16,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --locked
 cargo build --locked
-target/debug/oc --help
+target/debug/oc2 --help
 ```
 
 Во время реализации запускать ближайший targeted test и только применимые crate/workspace checks. Live tests исключены из default `cargo test` и запускаются явным opt-in harness. Missing tool/Cargo manifest = fail/not-ready, не skip-success.
@@ -234,7 +234,7 @@ RECON is source evidence only; new behavior is pending/NOT_RUN until qualificati
    reminder, no model/variant/MCP/autoaccept-based policy bypass, parent Plan ceilings
    constrain native child mutations, and context reconciliation after DCP/compact/
    Revert/reopen/restart has no missing Plan or stale leave-state instructions.
-   Actual `oc run --agent plan` selects before prompting; omission on a resumed session
+   Actual `oc2 run --agent plan` selects before prompting; omission on a resumed session
    retains its saved profile, no hidden Build substitution. A picker label alone fails.
 6. **Catalog/recovery boundary (existing T46 seams).** Fake barriers update/relist/
    disconnect before next request; newly admitted registered tools receive the same
@@ -538,7 +538,7 @@ fixtures, not a new auto engine/task/gate or another full negative matrix.
 Primary owners: `crates/oc/src/approval_tests.rs` for owner/mode tests,
 `crates/oc/tests/approval_binary.rs` for actual ELF headless effects, existing core/
 runtime and PTY targets for independent lifecycle/child/UI risks. A binary-crate
-unit test named real_binary is not itself proof of launching CARGO_BIN_EXE_oc.
+unit test named real_binary is not itself proof of launching CARGO_BIN_EXE_oc2.
 Targeted checks → affected crates → required integration workspace fmt/clippy/tests/
 build → rebuilt-binary and paired qualification. Reuse existing A02/A03/A05/A08/
 A10/A13/permission/recovery gates and TOOL15/TOOL12/TOOL20 receipts as relevant;
@@ -1021,8 +1021,8 @@ T44 visual qualification remains separate and PAUSED until explicit resume.
    turn and headless request produce typed pre-effect refusal and zero generation/
    tool calls. Keep mandatory malformed policy/trust/storage/recovery/cleanup/caps
    fatal; selected malformed agent must not authorize built-in/sibling behavior.
-2. **Current real-user existing-store launch.** Rebuild and retain target/release/oc;
-   run bare target/release/oc under bounded PTY/strace as the current non-root user,
+2. **Current real-user existing-store launch.** Rebuild and retain target/release/oc2;
+   run bare target/release/oc2 under bounded PTY/strace as the current non-root user,
    from the current Location with inherited HOME/XDG/PATH and actual config resolution.
    Do not env_clear, replace HOME/XDG/config roots, switch cwd or pass a fresh data-dir.
    Record which admitted global/project/.opencode roots and default native store were
@@ -1121,7 +1121,7 @@ helper-only tests, fixture table tool names and document validation are insuffic
   model grouping/paging semantics remain. Minimal shared-view prerequisite, no all-T47
   completion dependency or duplicate ranking matrix/acceptance owner.
   The owner-approved 2026-10-01 user CLI extension below additionally requires
-  actual `oc models` stdout/error/effect receipts; historical tool lookup/rename
+  actual `oc2 models` stdout/error/effect receipts; historical tool lookup/rename
   PASS does not qualify a missing CLI or a profile binding.
 - TOOL19 freezes A/B configs/history/job placement and uses barriers/crash points
   before admission/placement/result delivery. Verify same ID, trusted generation,
@@ -1175,7 +1175,7 @@ no new ID/task/framework/paid request, historical reports/statuses/baselines unc
 
 Finish line/source comparison: [T50/R10](goals/2026-09-27-native-tool-parity.md#tool-output--r10tool21-approved-2026-10-01-pending).
 TOOL21 belongs only to T50; one bounded offline fake-provider campaign on rebuilt
-debug/release `oc` proves real result/config/filesystem/provider behavior. Freeze
+debug/release `oc2` proves real result/config/filesystem/provider behavior. Freeze
 workload sizes/barriers/sentinel positions before execution. Helper tests and UI
 `read_session_tool_output` are not the model `read(path)` acceptance surface.
 
@@ -1265,7 +1265,7 @@ source is OC2 commands/handlers/models.ts, the available model endpoint, Model.R
 and config agent normalization/importer, not V1 CLI documentation. Source observations
 and native declared differences are separate from executed binary qualification.
 
-- **Actual CLI output.** Rebuild and invoke debug/release `oc models` as independent
+- **Actual CLI output.** Rebuild and invoke debug/release `oc2 models` as independent
   non-TTY subprocesses. Capture exact stdout/stderr/exit, not only parser/unit tests
   or `--help`. Synthetic static/multi-provider fixture includes more than 20 models,
   repeated family metadata, slash-containing model IDs, colliding provider-local IDs,
@@ -1315,7 +1315,7 @@ and native declared differences are separate from executed binary qualification.
 Source/finish line: [T50/R1/R9](goals/2026-09-27-native-tool-parity.md), pinned
 U90–U102, including follow-up live-switch clarification. TOOL12/TOOL20 belong only
 to T50; PRM01 remains T45, VAR01 ordering T47 and visual cases T44.
-One bounded fake-provider campaign on rebuilt actual `oc` proves tool definitions,
+One bounded fake-provider campaign on rebuilt actual `oc2` proves tool definitions,
 calls/results and real filesystem/storage effects. Share its receipts with frontend
 tests; static registry entries/renderer fixtures/helper-only green do not qualify.
 
@@ -1422,7 +1422,7 @@ T52 проверяет ARCH01–ARCH05 из `planning/acceptance.json`; это �
 
 До/после переноса с одинаковыми Cargo options/environment сохранить `-- --list` для затронутых lib/bin/integration targets и отдельно список `-- --ignored --list`. Сверить target + полное имя + ignored membership. Допустимые изменения module prefixes перечислить явно; тестовые функции/assertions/fixtures не удалять ради равных counts. Сохранение одного количества не доказывает сохранение набора. Новые диагностические tests учитывать отдельно. Filter после переезда обязан запускать ожидаемые тесты, не заканчиваться тихим `0 tests`.
 
-Ближайшие suites выполнять в каждом срезе, полный workspace gate — после интеграции. В `oc` unit tests остаются `--bin oc`; их перенос не требует добавлять lib target. Существующие `--test runtime` и `--test pty_t39` сохраняются; это позволяет не размножать Cargo processes/fixtures. `cargo test` библиотеки для integration target не включает cfg(test)-only API: нельзя так скрыть ScriptDriver или открыть private API через новые public методы.
+Ближайшие suites выполнять в каждом срезе, полный workspace gate — после интеграции. В `oc2` unit tests остаются `--bin oc`; их перенос не требует добавлять lib target. Существующие `--test runtime` и `--test pty_t39` сохраняются; это позволяет не размножать Cargo processes/fixtures. `cargo test` библиотеки для integration target не включает cfg(test)-only API: нельзя так скрыть ScriptDriver или открыть private API через новые public методы.
 
 Чистое перемещение не меняет golden/expected output/timeout/skip/ignored/resource thresholds. Любая наблюдаемая разница — расследовать отдельно, не обновлять baseline автоматически. Для затронутых UI paths использовать существующие deterministic PTY/full-frame сценарии; compare styled cells, cursor и PNG там, где этого требует их контракт. Source-path metadata может измениться, а ожидаемое поведение — нет. Недостающие в присланном архиве raw captures — `NOT_AVAILABLE_IN_ARCHIVE`, не новый PASS или требование восстановить всю многогигабайтную историю.
 
@@ -1467,7 +1467,7 @@ custom-only screens have no pinned-donor counterpart and are declared native ext
    then reopen/restart. Reuse T53 three-wire serialization and captured-request/auxiliary
    tests instead of duplicating whole GO03/GO04 matrices. Conn creation/publication must
    not alter saved selection, generation ID/Location epoch or restart unrelated MCP.
-6. Invoke actual `oc models` against saved bounded sanitized catalog using existing
+6. Invoke actual `oc2 models` against saved bounded sanitized catalog using existing
    read-only connection path. Complete empty prints nothing/exit0; incomplete may emit
    safe last-good IDs and diagnostics/nonzero. Assert zero saved-custom endpoint requests
    and credential material reads; listing is not auth/server/generation proof.

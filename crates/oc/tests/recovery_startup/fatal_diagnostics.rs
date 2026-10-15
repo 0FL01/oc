@@ -17,7 +17,7 @@ fn cfg10_native_malformed_document_has_safe_cause_and_empty_json_stdout() {
         format!("{{\"apiKey\":\"{CANARY}\", \"permission\": {{ INVALID }}"),
     )
     .unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_oc"))
+    let output = Command::new(env!("CARGO_BIN_EXE_oc2"))
         .current_dir(&project)
         .env_clear()
         .env("HOME", &home)

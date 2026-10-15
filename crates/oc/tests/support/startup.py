@@ -1,4 +1,4 @@
-"""Isolated native startup PTY exercise; also runnable with target/release/oc.
+"""Isolated native startup PTY exercise; also runnable with target/release/oc2.
 
 Uses only an empty project, a static dummy provider and the approved temp root.
 No input is submitted to the provider. env is a fresh allowlist per child.

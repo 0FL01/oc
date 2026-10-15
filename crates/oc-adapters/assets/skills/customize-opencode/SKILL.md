@@ -4,7 +4,7 @@ description: "Configure the native Rust oc itself: runtime JSON/JSONC, providers
 ---
 # Configure native oc
 
-Use this manual to configure **the native Rust `oc`**, not an arbitrary application
+Use this manual to configure **the native Rust `oc2`**, not an arbitrary application
 or the Node/Bun upstream. It is bundled in the binary; no checkout, runtime skill
 file or network documentation fetch is needed. Load it explicitly with
 `skill({"id":"customize-opencode"})`. Automatic discovery supplies metadata only.
@@ -73,15 +73,15 @@ complete generation, not a mixture of old clients and new policy.
    Prepared requests keep their captured generation and model; picker drafts,
    committed selections and edited config defaults are not interchangeable.
 5. Check actual safe Settings/provider/plugin/MCP diagnostics and the result of
-   the requested behavior. `oc models` lists admitted exact model references
+   the requested behavior. `oc2 models` lists admitted exact model references
    without generation, session creation or MCP startup; dynamic discovery can
    make bounded metadata HTTP requests. Listing alone is not readiness proof.
 6. If reload fails, retain the last healthy generation, fix the indicated safe
    source/field and retry the changed cause. Never clear data, saved selections
    or security policy to hide the failure.
 
-There is no working `oc config explain`, `oc config check` or `oc config validate`
-command. Use `oc --help`, `oc models`, TUI diagnostics and narrowly scoped tests.
+There is no working `oc2 config explain`, `oc2 config check` or `oc2 config validate`
+command. Use `oc2 --help`, `oc2 models`, TUI diagnostics and narrowly scoped tests.
 Do not initiate a paid model request or OAuth flow merely to validate syntax.
 
 ## Provider and model example

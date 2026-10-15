@@ -144,7 +144,7 @@ class Profile:
         self.trace_read, trace_write = os.pipe()
         command = ['strace', '-f', '-qq', '-yy', '-s', '256', '-e', 'trace=' + TRACE_CALLS,
                    '-e', 'raw=execve,execveat', '-o', f'/proc/self/fd/{trace_write}',
-                   'target/release/oc']
+                   'target/release/oc2']
         if fresh:
             command += ['--data-dir', str(data_root)]
         # No env argument: exact inherited product environment, no overrides.
@@ -529,7 +529,7 @@ def main():
         return
     assert os.getuid() != 0 and Path.cwd() == REPO and CACHE.is_dir()
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=REPO).decode().strip()
-    binary_hash = digest((REPO / 'target/release/oc').read_bytes())
+    binary_hash = digest((REPO / 'target/release/oc2').read_bytes())
     assert head == EXPECTED_HEAD and binary_hash == EXPECTED_BINARY
     assert shutil.which('strace')
     # Scope aggregate accounting to this harness's own runs; never inspect other
@@ -579,7 +579,7 @@ def main():
     fresh = run / 'fresh-native'
     fresh.mkdir(mode=0o700)
     results.append(Profile('fresh', run, visible_rows, config, fresh, True).finish())
-    assert digest((REPO / 'target/release/oc').read_bytes()) == binary_hash
+    assert digest((REPO / 'target/release/oc2').read_bytes()) == binary_hash
     summary = {'preflight': preflight, 'profiles': results}
     (run / 'sanitized.json').write_text(json.dumps(summary, indent=2) + '\n')
     print(json.dumps(summary, indent=2))

@@ -1,6 +1,6 @@
 # OpenCode Rust
 
-**Цель:** собрать из исходников полезный локальный `oc`: Rust 2024, модульный монолит, OpenProxy (`@ai-sdk/openai` как config alias), discovery без списка моделей в коде, DCP range/compress, configured workspace, базовые tools, MCP и TUI. Сейчас repository содержит execution contract и утилиты прогресса, но ещё не Rust-реализацию.
+**Цель:** собрать из исходников полезный локальный `oc2`: Rust 2024, модульный монолит, OpenProxy (`@ai-sdk/openai` как config alias), discovery без списка моделей в коде, DCP range/compress, configured workspace, базовые tools, MCP и TUI. Сейчас repository содержит execution contract и утилиты прогресса, но ещё не Rust-реализацию.
 
 Основание: ответы владельца Q01–Q07, присланный discovery-plugin и обязательный configured-workspace scope. Порядок источников: новые требования владельца → `GOAL.md` и принятые контракты → pinned upstream. Технические defaults помечены в `docs/DECISIONS.md`; старые change/recon документы являются историей и provenance, не активными инструкциями.
 
@@ -31,8 +31,8 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 
 ## Карта активных документов
 
-Список точных включённых native model references: `target/debug/oc models` или
-`target/release/oc models`. Команда читает admitted config/catalog без выбора
+Список точных включённых native model references: `target/debug/oc2 models` или
+`target/release/oc2 models`. Команда читает admitted config/catalog без выбора
 default model, открытия database, session/recovery или MCP/browser startup.
 IDs идут в stdout; diagnostics в stderr, обязательный discovery failure — nonzero.
 Static metadata доступна без generation key; это не проверка generation readiness.
