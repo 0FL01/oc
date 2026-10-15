@@ -817,7 +817,9 @@ node scripts/tui_capture/capture.mjs \
 Allow a bounded 600-second runner timeout. This exclusive test-only mode uses
 the existing bridge/frontend/comparator, isolated per-side roots, local fake
 Responses and a real stdio MCP peer. No live generation or user configuration is
-used. Four ordinary tool effects are two consecutive large MCP results, real
+used. Both binaries explicitly configure `codemode:false` for this direct
+Generic/MCP profile; the production Code Mode default is unchanged. Four ordinary
+tool effects are two consecutive large MCP results, real
 80-line Shell output and a genuine MCP `isError` result; one title plus five main
 requests are validated. The authorized Shell also appends one fixed line to its
 per-side isolated project counter; read-only snapshots require exactly one effect

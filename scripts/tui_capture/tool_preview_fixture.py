@@ -39,7 +39,7 @@ def configure(spec, home, project, config, cli):
         config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
                                  {'action':'vis16__output','resource':'*','effect':'allow'},
                                  {'action':'shell','resource':command(spec),'effect':'allow'}]
-        config['mcp'] = {'servers':{'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)]}}}
+        config['mcp'] = {'servers':{'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'codemode':False}}}
     if spec.get('mcp_status'):
         servers = config['mcp']['servers']
         # A safe display key distinct from handshake/argv and inherited scalar

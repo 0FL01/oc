@@ -5,6 +5,15 @@ ARCH01–ARCH05 is complete and delivered; T44 was restored through the journal.
 T44 remains incomplete: VIS38 and configured canonical VIS09/VIS29 presentation
 are qualified below, but V09 and product READY are not claimed.**
 
+## Current resumed baseline (2026-10-15)
+
+[Current-source resume receipt](../tui/resume-20261015.md): capture environment
+restored, known VIS38 PTY teardown race reproduced/fixed without weakening gates,
+all60 PTY tests PASS, fresh paired tool probe27 stages per side and no replay.
+Full comparisons:6 EQUAL/48 DIFFERENT, not whole-slice pixel PASS. Next confirmed
+rendering fault: Generic/MCP continuation indentation foreground. Historical
+qualified subsets below remain scoped receipts, not full T44 acceptance.
+
 ## Current canonical model/variant presentation (2026-09-28)
 
 T47 R1/AUD41 and R6/VAR01 is complete/delivered (`6cf1cdc859`, closeout `9d2af6c98`).

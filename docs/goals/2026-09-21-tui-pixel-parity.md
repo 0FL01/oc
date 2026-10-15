@@ -25,8 +25,9 @@ T44 is resumed; progress.py remains the sole task-state owner.
 - Finish line: every existing R1–R6 / mandatory VIS01–VIS46 and supplement resolved
   with current actual-binary effects, full paired styled-cell/PNG/cursor captures,
   temporal/resource/safety and final current-source gates. No partial-slice finish.
-- Next: rebuild and capture comparable Generic/MCP/Shell and clean-dialogue states
-  against pinned OC2; diagnose actual full-frame differences before editing.
+- Next: fix the current paired-capture-confirmed Generic/MCP continuation-indent
+  foreground (`tools.rs::generic_block_expanded`), qualify the narrow change, then
+  improve comparable tool/clean-dialogue states without erasing producer facts.
   Existing bounded body/guidance/capture facts and collapse/expand behavior are
   implemented, not a new backend to rewrite. Preserve genuine payload and RAW.
 - Ordered continuation: tool cards/clean dialogue (VIS16/17/42); prompt/caret/blink/
@@ -48,10 +49,13 @@ T44 is resumed; progress.py remains the sole task-state owner.
   and effect owners, permissions/redaction/resource limits and disclosed native
   differences remain. No user-config edits, paid campaign reset/new allowance,
   shared service, OC1 compatibility, masks or relaxed comparator/baselines.
-- Current evidence: source HEAD at resume `9f8a053a6`; clean worktree, non-root1003,
-  verified origin, sufficient build resources. Old tool-preview28/refusal22 full
-  comparisons remain DIFFERENT, not current-source pixel PASS. New qualification
-  is pending; no T44/READY claim.
+- Current evidence: [resume receipt](../../evidence/tui/resume-20261015.md).
+  Activation `6bf56b82a` pushed; capture prerequisites restored. Reproduced VIS38
+  teardown race is fixed with success/restoration/resource assertions intact;
+  all60 PTY tests pass. Current full paired tool probe passes27 behavioral stages
+  per side, no replay effects;54 grid/PNG comparisons give6 equal/48 different,
+  not whole-slice pixel PASS. One genuine continuation-space style fault is
+  isolated. T44 remains active; no READY claim or external blocker.
 
 ## Objective
 

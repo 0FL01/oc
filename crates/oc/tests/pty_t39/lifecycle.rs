@@ -1451,11 +1451,17 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         wait_screen_row(&pty, "summary preview limited", DEADLINE);
         sample(&pty);
     }
-    pty.send(b"\x03");
-    std::thread::sleep(POLL);
-    pty.send(b"\x03");
+    // As in the preparation phase, this resource sample does not exercise
+    // repeated Ctrl+C: a second byte after raw-mode restoration is a real
+    // SIGINT, not another editor action. Still require a clean, restored exit.
+    pty.send(b"/quit\r");
     let (status, output) = pty.wait_exit(DEADLINE);
-    assert!(status.success() && pty.restored() && contains(&output, ALT_LEAVE));
+    assert!(
+        status.success() && pty.restored() && contains(&output, ALT_LEAVE),
+        "measured exit={status:?}; restored={}; alternate_left={}",
+        pty.restored(),
+        contains(&output, ALT_LEAVE)
+    );
     assert!(
         !Path::new(&format!("/proc/{pid}")).exists(),
         "measured child and OS tasks reaped"
