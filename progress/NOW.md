@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T00:32:23+00:00
+State updated: 2026-10-15T01:03:55+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,23 +14,22 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: source7ce43773e integrates complete idle application publication
-on the same runtime/MCP supervisor. R1/R2 remain partial, R3–R5 pending.
+T61 IN_PROGRESS: sourceac96ef997 rejects reload inputs superseded during discovery
+before source/MCP effects. R1/R2 remain partial, R3–R5 pending.
 
 ## Checks
 
-- Real application reload was red on supervisor replacement. It now preserves the
-  instance, stages all source fields and joins old/new stdio processes explicitly.
-- Actual subsequent HTTP sees the new profile, AGENTS and skill metadata, not its
-  body; read is denied and DCP disabled. Reload creates zero sessions or requests.
-- Valid removed profile becomes exact unavailable without fallback, then explicit
-  repair works. Issued lookup survives on its captured binding; replacement connects
-  only after old PID reap. All prior cancellation/disconnect checks remain.
-- Original title regression caught a missing retirement step: successful explicit
-  reload drains/stops old title work; rejected reload leaves accepted work alive.
-- Current locked workspace:1964 passed/0 failed/12 existing opt-in ignored,46 result
-  records. Strict workspace all-target clippy,22 reload-filter owner cases, fmt/docs/
-  diff checks pass. Logs t61-application-source-* and t61-application-reload-owner-*.
+- New real held /models barrier was red: a file edit during discovery still published
+  the stale source. Local-only re-admission now rejects it, preserving exact catalog/
+  generation and zero sessions; the rejected MCP command never starts. A later explicit
+  reload recovers the latest source. Both HTTP requests and shutdown are joined.
+- Ephemeral typed inputs retain original local model overrides and resolved captures,
+  not remote-merged models. They are never logged/serialized and grant no authority.
+  Comments/formatting and inert files compare equal; used key/AGENTS/skill/model changes
+  differ. Freshness checking makes no extra discovery/credential/MCP request.
+- Current locked workspace:1966 passed/0 failed/12 existing opt-in ignored,46 result
+  records. Strict workspace all-target clippy,24 reload-filter owner cases, fmt/docs/
+  diff checks pass. Logs t61-source-freshness-*.log. No thresholds/guards/tests weakened.
 
 ## Risks
 
@@ -40,10 +39,10 @@ live env read/paid request. T44 remote blocker/VIS46 unchanged.
 
 ## Next
 
-Implement the admitted watcher/re-arm and single watch/manual coordinator, preserving
-local discovery identity and build freshness. Own finite active-operation inputs and
-preserve its exact primary profile before enabling busy publication. Finish dynamic
-MCP notifications and poisoned-owner/shared late quarantine, then R3–R5.
+Implement admitted watch/re-arm and the single watch/manual coordinator with source
+freshness epochs and retained local discovery identity. Own finite active-operation
+inputs and preserve its exact primary profile before busy publication. Finish dynamic
+MCP notification/poisoned-owner shared late quarantine, then R3–R5.
 
 
 Ready (до 5): нет
