@@ -1029,3 +1029,20 @@ live progress как у донора.
 устанавливать один native-бинарник с встроенными assets. Только publishing/packages
 исключены из прежнего запрета; auto-update и прочие границы не меняются.
 Публикация не означает READY, не снимает runtime blockers и не переписывает evidence.
+
+## Owner execution directive (2026-10-15 — TUI parity first)
+
+Владелец явно возобновил **T44**: полностью реализовать визуальный и интерактивный
+паритет по существующему контракту R1–R6 / VIS01–VIS46. Активная цель и порядок —
+[T44 execution checkpoint](docs/goals/2026-09-21-tui-pixel-parity.md#current-execution-checkpoint--2026-10-15).
+Сначала актуальные сопоставимые captures и Generic/MCP/clean-dialogue, затем
+prompt/caret/scroll, question/tabs, execute UI и остальные обязательные workflow;
+порядок не сокращает frozen acceptance. При доказанном backend-блокере переключить
+существующий task owner через безопасный journal handoff, исправить минимальный
+блокирующий срез и вернуться к T44. Завершение всего T61 не prerequisite T44.
+После каждого крупного проверенного среза — reviewed commit и обычный push в
+проверенный origin своей ветки; delivery отдельно от implementation/qualification.
+Full styled-cell/PNG/cursor, temporal/effect/resource и current-source gates
+остаются обязательными; собственные goldens, публикация oc2 и historical PASS
+не заменяют их. Новых paid campaigns, ослабления security/guards, shared service
+или OC1 compatibility эта директива не разрешает. Статусы ведёт progress.py.

@@ -12,7 +12,46 @@ Additional source: owner-reported phantom caret over large highlighted tool outp
 Additional source: owner-approved OC2 --auto RECON and mode-completion plan commit/push, 2026-10-01. Existing T44/R5/VIS36 owns hidden CLI aliases, effective mode/pending/Settings/child qualification; basic native Once behavior already exists, full parity remains open and T44 PAUSED.
 Additional source: owner-reported technical config/plugin/provider warning spam before assistant answers, read-only RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS42 owns clean dialogue/status/details/change-sensitive feedback; VIS17 owns compact truthful live-preview truncation indication. T44 remains PAUSED.
 Additional source: owner-reported repeated Part/output preview markers in MCP/Shell cards, pinned OC2 TS RECON and approval of current-branch plan commit/push, 2026-10-02. Existing VIS16/VIS17 own synthetic-marker suppression and Generic/MCP collapse/expand parity; T50/R10 supplies minimal structured presentation facts. T44 remains PAUSED.
-Last updated: 2026-10-12
+Last updated: 2026-10-15
+
+## Current execution checkpoint — 2026-10-15
+
+Source: owner explicitly requests recording this as the active goal, completing
+full visual parity, fixing demonstrated backend blockers before returning to TUI,
+and committing/pushing each major verified slice. This supersedes historical
+PAUSED scheduling statements below, not their frozen requirements or evidence.
+T44 is resumed; progress.py remains the sole task-state owner.
+
+- Finish line: every existing R1–R6 / mandatory VIS01–VIS46 and supplement resolved
+  with current actual-binary effects, full paired styled-cell/PNG/cursor captures,
+  temporal/resource/safety and final current-source gates. No partial-slice finish.
+- Next: rebuild and capture comparable Generic/MCP/Shell and clean-dialogue states
+  against pinned OC2; diagnose actual full-frame differences before editing.
+  Existing bounded body/guidance/capture facts and collapse/expand behavior are
+  implemented, not a new backend to rewrite. Preserve genuine payload and RAW.
+- Ordered continuation: tool cards/clean dialogue (VIS16/17/42); prompt/caret/blink/
+  scroll (VIS12/16/31/32); pending question/forms and tabs (VIS37/41/44); new execute
+  progress/nested-call rows/dialog (VIS46); remaining child/Subagents/Shell/Terminals,
+  approval/file cards, MCP/auth/retry, Home/Markdown/Thinking/selectors/sessions/
+  Message Actions/conversation-only Revert/compaction; full acceptance closure.
+  This is navigation, not reduced acceptance or a claim that every listed behavior
+  is absent. Preserve qualified historical DCP/picker slices and recheck affected
+  invariants; investigate the known VIS38 PTY/resource failure rather than waive it.
+- Backend detour: only a demonstrated blocker to the current required UI outcome;
+  record the smallest affected seam and existing owner, checkpoint/block T44,
+  start/reopen that owner as allowed by the task graph, qualify the fix, then resume
+  T44. Do not wait for whole T61 or create a second store/framework/task engine.
+- Delivery: each major verified slice gets a reviewed commit and ordinary push to
+  the verified own branch. A delivery failure is reported separately and does not
+  erase independent in-scope engineering actions. No unknown-effect replay.
+- Constraints: four native Rust crates, immutable RAW/bounded HOT, captured request
+  and effect owners, permissions/redaction/resource limits and disclosed native
+  differences remain. No user-config edits, paid campaign reset/new allowance,
+  shared service, OC1 compatibility, masks or relaxed comparator/baselines.
+- Current evidence: source HEAD at resume `9f8a053a6`; clean worktree, non-root1003,
+  verified origin, sufficient build resources. Old tool-preview28/refusal22 full
+  comparisons remain DIFFERENT, not current-source pixel PASS. New qualification
+  is pending; no T44/READY claim.
 
 ## Objective
 

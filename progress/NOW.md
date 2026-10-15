@@ -1,93 +1,58 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T19:23:51+00:00
-Active: нет
+State updated: 2026-10-15T19:38:58+00:00
+Active: T44
 
 Сверить Git status/diff до выполнения команд.
+Task: T44 — TUI pixel parity с opencode v2.0.12, включая Approve (VIS36), question (VIS37), DCP (VIS38), child/Subagents/Shell/Terminals (VIS39), MCP modal/startup (VIS19/VIS40), tab hover-marquee (VIS41), plugin/service errors и чистый диалог без diagnostic spam (VIS42), компактный live-preview indicator (VIS17), скрытые synthetic tool-preview markers и Generic/MCP expand (VIS16/VIS17), provider retry (VIS43), Middle Click tab close (VIS44), tool-output phantom caret / prompt blink (VIS16/VIS31), историю промптов Up/Down и установку каретки мышью (VIS12), Codex/OpenAI connect/accounts/browser/device/key auth (VIS45), Code Mode execute inline calls/detail dialog (VIS46)
+Spec: docs/goals/2026-09-21-tui-pixel-parity.md
+Evidence target: evidence/T44/report.md
 
-Последний срез: T64 [done]; сверить незакоммиченный diff.
+Full frozen R1-R6/VIS01-VIS46 and supplements remain in spec, T44_CONTRACT_AMENDMENT.md, ACCEPTANCE.json and SAFETY_REGRESSIONS.md; navigation is not reduced acceptance. Owner explicitly resumed2026-10-07: full closure, realtime todos, checked commit/push per major slice. First clean-dialogue e2120e418 qualified1720/0/11; pinned attempt005 eleven stages per side/22 stable frames, ALL22 strict comparisons DIFFERENT. Next concise typed submitted-refusal facet qualified current1721/0/11 plus strict Clippy/debug-release/release-startup; safe captured detail and pre-effect draft preserved. Receipts evidence/tui/vis42-clean-dialogue.md and vis42-request-refusal.md. Whole VIS42/V09/T44 is not PASS. Continue ordered structured tool-body/guidance/ref/capture and Generic-MCP VIS16/VIS17, remaining VIS42 styled/detail integration and every approved prompt/caret/blink/pacing/scroll/profile/model/live-selection/tabs/session/Revert/compaction/file/approval/question/DCP/child/Shell/Terminals/retry/MCP/auth slice. Consume landed backend owners without whole-task done cycles. Actual effects plus running OC2/native full styled-cell/PNG/cursor proof, not own goldens/historical PASS; disclose native differences. Four crates/one owner/immutable RAW/permissions/redaction/caps/no unknown replay; no new registry/store/poll/paid campaign/user config edits. AUTH06 deferred; original24/24 and Go13/24 unchanged. Owner-approved 2026-10-14 VIS46: Code Mode execute producer facts/live ToolCallProgress, inline nested-call rows and execute detail dialog (Code/Output/c/o/esc) with paired qualification after T59 finish; supersedes only T60 generic-card difference, NOT_RUN. Finish only after all mandatory T44 outcomes and final current-source R6/V09 gates.
 
-# T64 — native oc2 published on crates.io
+Последний checkpoint этой задачи (проверить актуальность по Git):
 
 ## Result
 
-Published 2026-10-15 with the configured crates.io credential, after the owner
-explicitly authorized immutable registry publication. Implementation commit:
-`750f377c8`; committed pre-upload checkpoint: `1b8a1cf58` and
-[prepublish.md](prepublish.md). No upload retry or version correction was needed.
-
-Public API confirmed all four versions unyanked and published by `0FL01`:
-
-| Package | Version | Published archive bytes | Registry |
-| --- | --- | ---: | --- |
-| oc-core | 0.1.0 | 72,538 | https://crates.io/crates/oc-core/0.1.0 |
-| oc-adapters | 0.1.0 | 1,465,085 | https://crates.io/crates/oc-adapters/0.1.0 |
-| oc-tui | 0.1.0 | 8,057,467 | https://crates.io/crates/oc-tui/0.1.0 |
-| oc2 | 0.1.0 | 456,385 | https://crates.io/crates/oc2/0.1.0 |
-
-The binary package is now named oc2, matching the unchanged sole executable
-target. The previous 0.0.1 bootstrap is not overwritten. Library boundaries,
-native data/config identity and runtime behavior remain unchanged. README now
-documents installation, prerequisites and current qualification limits.
+T44 Generic source-separator/direct-MCP fixture slice committed locally as
+68d3ca653. Exact reviewed22file delivery preserves old proofs/receipts and all
+unrelated untracked user data. No T44 finish or whole-frame PASS. Approved ordinary
+push is externally unavailable for the required dedicated non-root account.
 
 ## Checks
 
-- All 39 source archives were losslessly converted from gzip to XZ: each complete
-  uncompressed tar stream compared byte-for-byte, 19,100,096 → 7,320,508 encoded
-  bytes. Only archive filenames/digests and the reference manifest checksum
-  changed; source/license/query metadata and behavioral oracle stayed intact.
-  The decoder is a minimal build-only dependency; no runtime download was added.
-- `cargo test -p oc-tui --lib syntax::`: 5 passed, 0 failed, including the complete
-  inventory and actual-reference token/style comparisons.
-- `cargo publish --workspace --dry-run --locked --allow-dirty`: PASS. All four
-  extracted packages built with staged registry dependencies, not sibling paths.
-  Archive inspection confirmed normalized versions, README, applicable complete
-  licenses/notices, all 39 grammars/build inputs and only the oc2 executable.
-- `cargo publish --workspace --no-verify --locked`: PASS after the committed
-  checkpoint; verification was not redundantly repeated. Cargo reported each
-  version published and available. Public API independently confirmed the table.
-- From approved scratch outside the checkout:
-  `cargo install oc2 --version 0.1.0 --locked --root <isolated-root>`: PASS,
-  release build 7m27s. Sources came from crates.io; the existing target cache was
-  reused. No default user installation or user config was replaced.
-- Installed root contains exactly one binary, an ELF named oc2. In a fresh HOME,
-  isolated project/data dirs and empty PATH: `--version` printed `oc2 0.1.0`,
-  `--help` exposed the real commands, and the existing `--smoke` exercised core,
-  adapter/SQLite/client and TUI composition.
-- The installed ELF completed a headless turn against a local fake Responses
-  endpoint with canonical OC2 config, returned the fixture marker, and exposed
-  the persisted session via `sessions list`. Two local requests (title/main),
-  no paid provider request and no Cargo/Node/Bun/external tool executable on PATH.
-- `rustfmt --check --edition 2024 crates/oc-tui/build.rs`, importer Python syntax
-  compilation, `python3 scripts/check_docs.py` (64 tasks / 192 specifications),
-  whitespace checks and reviewed implementation diff: PASS.
+Current workspace1900/0/12existingopt-inignored/all46 targets; presentation12/0;
+Python71/0; fmt, strictClippy, lockeddebug/release/build/help and release9/0/all7
+commands PASS. docs/journal/diff checks PASS; tracked diff clean after commit.
+SSH push to verified origin git@github.com:0FL01/oc.git failed exit128 with
+Permission denied(publickey). Safe one-time HTTPS push to the exact same repo,
+terminal prompting disabled and no inherited askpass/SSH-agent credentials,
+failed exit128: could not read Username for https://github.com. No root/foreign
+credential fallback, credential search, force push, origin change or repeated
+unknown external effect. Remote delivery is not claimed.
 
 ## Risks
 
-This verifies packaging/installation and the affected syntax path, not a new full
-runtime or full-product READY qualification. Existing owner-config/E2E06 and
-VIS38 caveats remain. Fedora/macOS/Windows were not newly tested; documented
-target remains GNU/Linux x86_64. Source installation needs Rust 1.93+ and native
-C/C++/make/CMake build prerequisites.
-
-Cargo reports the pre-existing locked yoke-derive 0.8.3 as yanked. The locked
-archive builds and registry installation passed; unrelated dependencies were
-not updated. Own source stays MIT; packages containing/linking source-derived
-DCP retain AGPL notices/full text and composite metadata. Other vendored license
-bytes were preserved. No credential, raw live response or user-config content
-was recorded. Subsequent published corrections must use new versions.
+R6 source delivery needs approved write authentication usable by opencode. Both
+normal permitted transports were checked; no currently available safe authenticated
+route. This is an external delivery blocker, not a reason to waive R1–R5 or pending
+VIS01–45/paired captures. T44 still has implementation/qualification actions;
+journal blocked records paused delivery while independent ready plans advance,
+not a assertion that no in-scope engineering action exists. Existing old full
+frames remain DIFFERENT; clock probes are feasibility-only. See checkpoint146
+and evidence/T44/report.md. Do not reset paid campaign24/24 or bypass AUTH06.
 
 ## Next
 
-Close the task and push the implementation/checkpoint/report on the existing
-branch. Users install with `cargo install oc2 --locked`, then launch `oc2`;
-the newer version replaces the 0.0.1 bootstrap. Unrelated runtime follow-up stays
-with its existing owners and paused tasks.
+Continue independent T58 via normal journal start at this safe handoff, per the
+current user's explicit request to implement every approved GOAL plan. T58 has
+only T13 dependency, not complete T44/T45. Preserve the frozen T44 mission and
+return to comparable-state capture/clock work; retry source push only after
+approved dedicated-account authentication becomes available. Required capture,
+release, temporal/resource, final-source and owner-auth gates are unchanged.
 
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): нет
-Blocked: T27, T44, T45, T57, T61
+Blocked: T27, T45, T57, T61
 
 Done в журнале не означает READY всего продукта; см. GOAL.md.
