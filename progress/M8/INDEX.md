@@ -19,4 +19,4 @@ Plan: ../../roadmap/M8.md
 - [T60](T60/INDEX.md) [done] — Code Mode execute на нативном Rust-интерпретаторе; latest: 0001.md.
 - [T61](T61/INDEX.md) [blocked] — Hot reload (per-process); shared service descoped; latest: 0017.md.
 - [T62](T62/INDEX.md) [done] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: 0001.md.
-- [T63](T63/INDEX.md) [active] — MIT для собственного кода проекта; latest: нет.
+- [T63](T63/INDEX.md) [done] — MIT для собственного кода проекта; latest: 0001.md.
