@@ -45,9 +45,9 @@ T28 сначала фиксирует короткий baseline и measurement w
 
 Численные thresholds выводятся из baseline до optimisation candidate и не повышаются для сокрытия регрессии. Требуется отсутствие linear retained-history growth; произвольное заранее заданное число turns/sessions не является product contract.
 
-## Hot reload / native shared service — T61/HOT01–HOT04 (approved 2026-10-14; pending)
+## Hot reload (per-process) — T61/HOT01, HOT02, HOT04 (approved 2026-10-14, amended 2026-10-15; pending)
 
-Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md). Four cohesive
+Contract: [T61](goals/2026-10-14-hot-reload-shared-service.md) R1/R2/R4/R5; R3 descoped. Three cohesive
 scenarios, only T61 owns them; not one gate per field/layer or a new paid campaign.
 
 - **HOT01 — request/authority/history.** Held provider stream and tool/approval prove
@@ -68,22 +68,14 @@ scenarios, only T61 owns them; not one gate per field/layer or a new paid campai
   completions/control, optional handshake failure, fatal aggregate cap/cleanup, late
   unknown quarantine and repeated edits stay truthful/bounded. Explicit reload settles
   affected unresolved interaction once as Reloaded, not entire task/user cancel.
-- **HOT03 — actual service processes.** Cold concurrent clients elect ONE write/root
-  owner; different Location routing independent, second foreground root SAME Location
-  TurnBusy before durable input. Detach preserves work; lost acceptance ACK reconciles
-  admission token without duplicate dispatch. Consumer detach/reconnect, competing reply,
-  own SIGINT, --auto and one PTY controller prove no cross-session authority/cancellation.
-  Slow/oversized clients/gaps resnapshot active work/interactions/output with bounded
-  queues. Root recovery once, safe children by stored Location; kill/restart unknown
-  effects no replay. Auth-only broken-project startup, sessions while store owned,
-  help/models/status no spawn; standalone conflict; restart/version/election/stale path,
-  changed binary/env, cleanup failure and no overlapping root-lock holders.
+- **HOT03 — removed 2026-10-15.** Shared service descoped by owner; independent
+  processes only. Second process on the same data root stays `DataRootBusy` (existing STORE checks).
 - **HOT04 — actual TUI settings.** PTY atomic valid/invalid/delete edits test native
   precedence/runtime fallback/captured client overlay, compiled theme dark/light/system,
   binding forms/events/leader reset and supported tabs/diffs/TPS/copy/animations. Palette
   reaches transcript/dialog/approval/question/terminal and hit-testing/cache revision.
-  Preserve drafts/parked tabs/live parts/panels/selection/readiness through later server
-  snapshots. Shared-file changes reach matching clients, per-client overlays do not leak;
+  Preserve drafts/parked tabs/live parts/panels/selection/readiness through later runtime
+  catalog snapshots. Shared-file changes reach every process using them, per-process overlays do not leak;
   presentation edits have zero provider/MCP rebuilds. Permission persistence/consumer
   scope remains a functional owner check, not cosmetic global autoaccept.
 
@@ -98,14 +90,29 @@ not deleted tests; existing move and model-switch contracts retain separate sema
 Run nearest gates per slice, affected crates at integration. Final composed current
 code requires workspace fmt/strict all-target clippy/locked tests, locked AND ordinary
 build/help plus rebuilt debug/release fixtures and clean HOME/XDG/no Node/Bun proof.
-Legacy owner-exit binary fixtures use explicit standalone where needed; service fixtures
-own stop/join even on failure. Freeze bounded workload before resource comparison;
-count connecting/live/retiring MCP, Location states, client bytes/tasks/FDs/processes,
+Fixtures own stop/join even on failure; two independent processes on separate data
+roots run concurrently. Freeze bounded workload before resource comparison;
+count connecting/live/retiring MCP, Location states, tasks/FDs/processes,
 no linear retained growth. Existing mandatory live gates and T44 paired-visual owners
 remain; no new paid/visual campaign or runtime PASS from planning checks.
 
 Plan-only validation: progress reindex/check, check_docs and existing Python
-journal/docs regressions. HOT01–HOT04 implementation/qualification NOT_RUN.
+journal/docs regressions. HOT01/HOT02/HOT04 implementation/qualification NOT_RUN.
+
+## Canonical OpenCode 2 config only — T62/CFG11–CFG13 (approved 2026-10-15; pending)
+
+Contract: [T62](goals/2026-10-15-canonical-v2-config.md).
+
+- **CFG11.** Owner unit test: one document with every detector rule plus one agent,
+  command and cli.json file yields the complete ordered `source: path → replacement`
+  list, no values. Actual binary TUI/headless/`oc2 models` with a v1 global config show
+  the same list, exit nonzero, zero provider/MCP/network effects.
+- **CFG12.** Canonical round-trips for providers/permissions/agents/commands/plugins/
+  mcp.servers/compaction/experimental.policies (last-match precedence); existing
+  config/defs/MCP/permission regressions run on canonical fixtures; check_docs validates
+  `examples/opencode.jsonc` canonical shape.
+- **CFG13.** Running process: add a v1 key → reload refused, last-good kept, report
+  visible; canonical correction adopted. Catalog-only `oc2 models` refuses before discovery.
 
 ## Customize-opencode — T58/SKILL01 (approved 2026-10-08; pending)
 

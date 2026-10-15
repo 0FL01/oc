@@ -105,7 +105,7 @@ deadlines/retries/metadata and last-healthy publication remain intact. Async MCP
 startup/status/control and cleanup use the existing T46 resource owner. Native worker
 joins preserve typed cleanup/cap causes and discard unsafe legacy/panic payloads.
 
-## Hot reload и shared service — T61 approved target, NOT_STARTED
+## Hot reload — T61 per-process target (shared service descoped 2026-10-15)
 
 Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md); commands ниже —
 планируемый интерфейс, не claim текущей реализации. Существующий `/reload` пока idle-only.
@@ -115,14 +115,13 @@ Contract: [T61/R1–R5](goals/2026-10-14-hot-reload-shared-service.md); commands
 | Admitted opencode.json(c), agents/commands/skills, instructions, DCP/native-module settings и admitted file substitutions | Automatic validated publication; следующая fresh preparation той же задачи, не mid-stream/tool batch |
 | MCP command/URL/headers/cwd/env/disabled | Reconcile affected instances, unchanged auto reuse; old leased batch finishes before cleanup/replacement, actual tools after handshake |
 | `/mcps` connect/disconnect/retry | Runtime control actual Location owner; сохранение намерения в config отдельно; auto no-op его не сбрасывает |
-| `oc reload` / `/reload` | Force discovery/services для already-loaded Locations, не boot cwd; config publication/pending/failure отдельны, per-Location atomicity |
+| `/reload` | Force discovery/services для already-loaded Locations этого процесса, не boot cwd; config publication/pending/failure отдельны, per-Location atomicity |
 | Native CLI settings/theme/keybinds | Independent client watch/last-good UI snapshot, no provider/MCP rebuild |
-| Новый binary/server process env | `oc service restart`; TUI environment изменяется только при restart самого TUI |
+| Новый binary/process env | Перезапуск этого процесса `oc2` |
 
-Один native service/root-lock owner; TUI/run/auth/sessions/control attach, client exit
-не service shutdown. `oc service start|status|stop|restart`; status/help/models не
-auto-spawn. `--standalone` использует тот же runtime privately, занятый root даёт
-DataRootBusy, не второй store. Unix socket local IPC, не general HTTP API/SDK parity.
+Каждый процесс `oc2` независим: нет shared service, IPC, attach/detach и `oc service`
+(осознанная дивергенция с OC2 managed `127.0.0.1` service, owner 2026-10-15). Второй
+процесс на тот же data root получает `DataRootBusy`; разные data roots независимы.
 
 Fatal config/security/mandatory definition/discovery failure сохраняет complete
 last-good; valid removal saved agent/model/variant сохраняет exact unavailable identity
@@ -137,7 +136,7 @@ system (known terminal mode, deterministic dark fallback при unknown), без
 palette documents. Donor binding shapes поддерживаются для implemented actions с
 реальной заявленной event/fallthrough semantics; unsupported options diagnostic, не
 silent flatten. Invalid settings retain last-good, deletion restores admitted fallback.
-Shared-file changes независимо видят все использующие его TUI; inline env/consumer
+Shared-file changes независимо видят все процессы, использующие файл; inline env/consumer
 state не shared defaults. Preference-file persistence client-owned; permission mode
 идёт scoped execution command, `--auto` не authorizes чужие pending asks.
 

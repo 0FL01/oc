@@ -16,7 +16,9 @@
 
 **M6: Квалификация и handoff.** См. `roadmap/M6.md`.
 
-**M8 additions: local service / hot reload.** [T61](goals/2026-10-14-hot-reload-shared-service.md), approved 2026-10-14; one task/five slices, HOT01–HOT04 and final T30 dependency. Registration todo/implementation NOT_STARTED, no active-task switch.
+**M8 additions: per-process hot reload.** [T61](goals/2026-10-14-hot-reload-shared-service.md), approved 2026-10-14, amended 2026-10-15: shared service descoped (D26), HOT01/HOT02/HOT04 and final T30 dependency; paused by owner.
+
+**M8 additions: canonical OpenCode 2 config only.** [T62](goals/2026-10-15-canonical-v2-config.md) (D27), CFG11–CFG13 and final T30 dependency.
 
 **M10: Укрупнённые code slices для agent-only разработки.** См. `roadmap/M10.md`, task T52. Это структурная работа без нового product scope, смены baseline и расширения A01–A13.
 

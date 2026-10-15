@@ -36,7 +36,7 @@
 
 **A12 HANDOFF:** `evidence/FINAL.md` содержит code commit, команды проверки, отдельный результат каждого A-gate, supported differences, инструкцию запуска и известные ограничения. Лицензии и provenance DCP/upstream сохранены до push производного кода. Нет обещания full OpenCode parity.
 
-**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. До T61 один turn использует одну immutable Location/config generation; утверждённый T61 target ниже переносит same-Location config adoption на fresh request boundary, сохраняя issued request/full tool batch. Switch сохраняет global и убирает старое project-local состояние; session_move остаётся отдельным turn boundary. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Унаследованные OpenCode TS конфиги/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG10, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
+**A13 CONFIGURED WORKSPACE:** global и Location-local `opencode.json/jsonc`, ordered `AGENTS.md`, `.opencode`, skills, primary agents и current-session commands загружаются с pinned precedence, provenance и actionable diagnostics. До T61 один turn использует одну immutable Location/config generation; утверждённый T61 target ниже переносит same-Location config adoption на fresh request boundary, сохраняя issued request/full tool batch. Switch сохраняет global и убирает старое project-local состояние; session_move остаётся отдельным turn boundary. Skill body появляется только как bounded result native `skill`; exact DCP и admitted `openproxy-models.js` aliases включают native modules, а прочие JS/TS/package plugins дают per-entry failed/`UnsupportedPlugin` до исполнения и без Node/Bun, не обрушая исправную локальную часть приложения (T51). Принимается только канонический config OpenCode 2 (T62): любой ключ OpenCode 1 отказывает fail-closed одним отчётом со всеми ключами, источниками и каноническими заменами; неподдерживаемые канонические optional entries/MCP и недоступные saved agent/model/variant не блокируют исправный локальный Home/history/selectors; недоступный выбор остаётся явным и запрещает запрос до effects, без скрытого fallback/reset или ослабления policy. CFG05–CFG13, TOOL11, UI06/UI07 и E2E05/E2E06 проходят; E2E06 обязательно квалифицирует rebuilt release-бинарник в реальной текущей пользовательской среде под PTY/strace, с existing и fresh native data roots.
 
 Детальные test IDs и методики: `docs/TEST_PLAN.md`. Задачи/зависимости: `planning/tasks.json`.
 
@@ -50,7 +50,7 @@
 
 ## Вне этого goal
 
-OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), общий HTTP/remote serve/attach parity (локальная shared service включена T61, 2026-10-14), web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer, publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
+OAuth providers/MCP, другие native provider families, Chat Completions adapter, Code Mode interpreter (superseded T60, amendment 2026-10-13), общий HTTP/remote serve/attach parity и любой локальный shared service/daemon/IPC/`oc service` (каждый `oc2` — независимый процесс; D26, 2026-10-15), web/desktop, LSP, snapshot/undo, subagents/task orchestration, arbitrary JS/TS/npm plugin runtime, general plugin SDK/hot-load, migration/importer (включая нормализацию OpenCode 1 config, D27), publishing/packages/auto-update, embeddings/RAG журнала. DCP experimental message mode, executable skills/commands и config-authoring UI отложены и не должны приниматься как working config.
 
 ## Owner scope amendment (2026-09-21)
 
@@ -938,7 +938,7 @@ attach) не меняются: `execute` — confined interpreter, не plugin h
 
 Исполнение не привязано к GPT, модели, provider или CLI. Любой compatible coding agent, удовлетворяющий контракту `docs/AGENT_RUNBOOK.md`, может продолжать работу в выделенном worktree. Модель/CLI authoring-agent не являются частью product config и не выбираются через `OC_TEST_MODEL`. Не обещать завершение за фиксированное число суток. Остановки при rate limit/компакции/crash должны оставлять продолжимый worktree, а не стирать незавершённую работу.
 
-## Owner amendment (2026-10-14 — hot reload и native shared service; pending)
+## Owner amendment (2026-10-14 — hot reload и native shared service; pending; shared service descoped 2026-10-15)
 
 После RECON и параллельного read-only аудита владелец утвердил исправленный план и
 commit/push текущей ветки; явно выбрал **также shared service**, не watcher-only TUI.
@@ -977,6 +977,28 @@ Superseded узко daemon exclusion и whole-turn **same-Location config** pinn
 security/history/DCP/retry/cleanup/AGPL и mandatory live/visual owners сохраняются.
 Новых scheduler/store/framework/paid campaigns нет. T61 todo/NOT_STARTED, HOT01–HOT04
 NOT_RUN; эта плановая доставка не start/resume/finish других задач и не runtime PASS.
+
+## Owner amendment (2026-10-15 — независимые процессы и только OpenCode 2 config)
+
+Владелец после RECON: «запуск опенкода в режиме сервера — выкинуть полностью из scope,
+oc2 будет работать независимо»; «совместимость с opencode 1 конфигами не нужна, по апи
+совместимость только с opencode 2». Executable переименован в `oc2`.
+
+- **D26.** Shared service исключён: нет host на 127.0.0.1, Unix IPC, `oc service`,
+  attach/detach, durable admission tokens и cross-client recovery. T61 R3/HOT03 удалены;
+  R1/R2/R4 (watcher/coordinator/MCP supervisor/client settings) работают внутри процесса,
+  `/reload` — действие TUI. Per-process data-root lock (`DataRootBusy`), SQLite safety и
+  OAuth loopback сохраняются. Осознанная дивергенция с OC2.
+- **D27/T62.** Только канонический schema OC2 v2.0.12 (`packages/schema` config + cli.json).
+  Всё, что upstream принимает лишь через `packages/core/src/v1/**` или миграцию
+  tui.json/kv.json, отказывает fail-closed одним `LegacyConfig` отчётом (все ключи,
+  источник, каноническая замена, без значений) на startup, reload (last-good) и
+  `oc2 models`. CFG11–CFG13 — T62. Пользовательский конфиг владелец конвертирует сам;
+  E2E06 переквалифицируется после этого.
+
+Узко superseded: shared-service часть amendment 2026-10-14 и D25, а также формулировки
+«pinned OC2 normalizer/migration как oracle» для v1-форм в T43/T45 R6/T46 MCP09/T53 GO02.
+Завершённые evidence не переписываются. T61 paused, T62 todo.
 
 ## Owner amendment (2026-10-14 — Code Mode `execute` TUI parity; pending)
 

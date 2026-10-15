@@ -511,7 +511,8 @@
         "T57",
         "T58",
         "T59",
-        "T61"
+        "T61",
+        "T62"
       ],
       "tests": [
         "OPS02",
@@ -923,7 +924,7 @@
     {
       "id": "T61",
       "phase": "M8",
-      "title": "Hot reload и native shared service",
+      "title": "Hot reload (per-process); shared service descoped",
       "depends_on": [
         "T24",
         "T46",
@@ -942,12 +943,31 @@
         "A13",
         "HOT01",
         "HOT02",
-        "HOT03",
         "HOT04"
       ],
-      "work": "Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices. Coherent source publication and issued request/full-batch leases; fresh same-task root/child preparation, captured retry/summary boundaries and latest-HOT provenance. One admitted watcher/manual pipeline, whole last-good, persistent Location MCP supervisor with unchanged reuse/per-instance retirement/shared quarantine. Native local IPC service, one Db write/root-lock owner, bounded Locations and foreground-root single-flight per Location; durable admission lookup, scoped consumers/auto/SIGINT/PTY, recovery, detach/resnapshot/joined restart. Preserve guarded readonly models/no-spawn helpers. Independent client settings precedence/env overlay/theme/bindings, no cosmetic runtime rebuild. Composed actual debug/release fixtures and final gates; no HTTP/SDK parity, scheduler/store/framework/plugin host or paid campaign. Qualified seams, not whole T44/T45/T57 dependencies; T30 requires T61. Plan registration todo/implementation NOT_STARTED, other execution states and historical evidence unchanged.",
+      "work": "Owner amendment 2026-10-15: shared native service, local IPC, `oc service`, client attach/detach, durable admission tokens and cross-client recovery (R3/HOT03) are DESCOPED; every oc2 process is independent. Remaining R1/R2/R4/R5 with HOT01/HOT02/HOT04 run inside one process: coherent source publication and issued request/full-batch leases; fresh same-task root/child preparation, captured retry/summary boundaries and latest-HOT provenance; one in-process admitted watcher/manual pipeline, whole last-good, persistent per-Location MCP supervisor with unchanged reuse/per-instance retirement/shared quarantine; client settings precedence/env overlay/theme/bindings with no cosmetic runtime rebuild; composed debug/release qualification of independent instances. Per-process data-root lock/DataRootBusy, SQLite safety and OAuth loopback stay. Preserve guarded readonly models/no-spawn helpers. No HTTP/SDK parity, shared host, scheduler/store/framework/plugin host or paid campaign. Qualified seams, not whole T44/T45/T57 dependencies; T30 requires T61. Historical evidence unchanged.",
       "evidence": "evidence/T61/report.md",
       "spec": "docs/goals/2026-10-14-hot-reload-shared-service.md"
+    },
+    {
+      "id": "T62",
+      "phase": "M8",
+      "title": "Canonical OpenCode 2 config only (no OpenCode 1 compatibility)",
+      "depends_on": [
+        "T43",
+        "T51",
+        "T58"
+      ],
+      "tests": [
+        "A03",
+        "A13",
+        "CFG11",
+        "CFG12",
+        "CFG13"
+      ],
+      "work": "Owner decision 2026-10-15: accept only the canonical OpenCode 2 v2.0.12 config schema (packages/schema config Info + cli.json schema). Everything upstream accepts only through packages/core/src/v1/** (ConfigNormalize/ConfigMigrateV1, including markdown agent frontmatter migrated by migrateAgent) and tui.json/kv.json migration is removed. Any v1 key fails closed with one typed diagnostic listing every offending key, its source and canonical replacement, without values, on startup, catalog-only `oc2 models` and hot reload (last-good kept). One detector in config/legacy.rs; delete v1 branches in providers/permissions/agents/MCP/compaction/keybinds; add missing canonical commands/plugins/experimental.policies. Convert test fixtures, harness scripts, examples and docs to canonical v2; historical evidence unchanged. Owner converts their own config.",
+      "evidence": "evidence/T62/report.md",
+      "spec": "docs/goals/2026-10-15-canonical-v2-config.md"
     }
   ]
 }

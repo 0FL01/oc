@@ -1,21 +1,35 @@
-# Goal: hot reload и native shared service
+# Goal: hot reload (per-process); shared service descoped
 
-Status: active — frozen contract; T61 active, implementation IN_PROGRESS.
+Status: frozen contract amended 2026-10-15 (R3/HOT03 descoped); T61 paused by owner, implementation IN_PROGRESS.
 Source: требование владельца о reload без перезапуска, «паритет с донором»;
 явный выбор «Также shared service»; согласованный после параллельного read-only
 аудита минимальный план; 2026-10-14: «Вноси правки в план работ и коммит пуш на текущей ветке».
 Last updated: 2026-10-15
-Task: T61 / M8; detailed acceptance HOT01–HOT04 только T61.
+Task: T61 / M8; detailed acceptance HOT01, HOT02, HOT04 только T61.
+
+## Owner amendment (2026-10-15 — independent processes, no shared service)
+
+Владелец исключил shared service полностью: каждый `oc2` — независимый процесс без
+общего host на 127.0.0.1, Unix IPC, `oc service`, client attach/detach, durable
+admission tokens или cross-client recovery. Это осознанная дивергенция с OC2
+(managed `127.0.0.1` service + `service.json`). R3 и HOT03 удалены; R1/R2/R4
+выполняются внутри одного процесса («один coordinator/supervisor per Location»
+значит — в этом процессе). Сохраняются per-process data-root `oc.lock`
+(`DataRootBusy` для второго процесса на тот же data dir), SQLite/WAL safety и
+OAuth loopback callback. `oc reload`, `oc service`, `oc mcp list` и lost-ACK
+reconciliation не делаются; manual reload — `/reload` внутри TUI. R5 квалифицирует
+независимые инстансы. Разделы ниже про shared host сохранены как история и помечены
+DESCOPED; они не являются требованиями.
 
 ## Objective
 
-Нативная фоновая служба `oc` обслуживает TUI/headless и внешние control commands.
-Admitted config/definitions/native-module settings автоматически обновляются;
-`oc reload` и `/reload` явно пересобирают сервисы загруженных Location. Выполняющийся
+Каждый независимый процесс `oc2` (TUI/headless) сам наблюдает admitted
+config/definitions/native-module settings и автоматически их обновляет;
+`/reload` явно пересобирает сервисы загруженных Location этого процесса. Выполняющийся
 request и полный его tool batch остаются captured, следующая fresh preparation
 той же автономной задачи использует coherent новую generation без нового user turn,
 потери сессии/истории или повторения effects. CLI settings перечитывает сам TUI.
-Новый бинарник/server env требует `oc service restart`, client env — restart клиента.
+Новый бинарник или env требуют перезапуска процесса.
 
 ## Execution Directive
 
@@ -56,7 +70,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
   - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted observations `bdafd9d19`, cancellation-safe commit `322455183`, complete idle application publication `7ce43773e`, superseded-build rejection `ac96ef997`, joined source observation `e5de05bd7`, original-input discovery reuse `98458b124` and same-task notification adoption `81d8fea50`; composed HOT02 pending.
-- R3: shared native service и безопасные client/lifecycle boundaries.
+- R3: DESCOPED 2026-10-15 (owner amendment above) — shared native service и client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
   - Acceptance: один host/Db write/root-lock owner, bounded independent Location;
@@ -65,10 +79,9 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
     Lost ACK reconciles через durable admission без retransmit effects; reconnect
     resnapshots active work/interactions. Restart joins старого owner до replacement,
     adopts invoking process env/binary и не replays unknown effects.
-  - Primary evidence: HOT03 actual subprocess/PTY clients, cold-start election,
-    cross-Location/lost-ACK/detach/restart/cleanup/recovery и interaction isolation.
-  - Status: pending.
-  - Evidence: NOT_RUN; `evidence/T61/report.md` отделит fake, actual binary и live.
+  - Primary evidence: HOT03 removed with this requirement.
+  - Status: descoped.
+  - Evidence: none; not implemented.
 - R4: client-only hot settings без server rebuild или UI reset.
   - Source: valid `cli.json` theme/keybind/прочие настройки подхватываются TUI;
     утверждённый native supported subset и сохранение native precedence.
@@ -78,16 +91,17 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
     каждый использующий их клиент; overlays/permission consumer остаются scoped.
     Presentation-only edits дают ноль provider/MCP rebuilds.
   - Primary evidence: HOT04 real PTY edit/repaint/key events, snapshot/cache/overlay
-    checks и service-side zero-effect counters.
+    checks и runtime zero-effect counters.
   - Status: pending.
   - Evidence: NOT_RUN; full donor theme/action inventory не обещан.
 - R5: composed executable qualification и правдивые living docs/handoff.
   - Source: требование паритета и существующие A01–A13/BUILD02/BUILD03 invariants.
-  - Acceptance: HOT01–HOT04 и affected regressions зелёные на итоговом code commit;
+  - Acceptance: HOT01, HOT02, HOT04 и affected regressions зелёные на итоговом code commit;
     rebuilt debug/release binary, clean HOME/XDG/no Node/Bun и workspace final gates
-    подтверждены. CONFIG/ARCHITECTURE/help/startup guidance различают managed/standalone,
-    publication/adoption и reload/restart; report не подменяет live/visual owners.
-  - Primary evidence: те же четыре composed fixtures, final commands и reviewed diff;
+    подтверждены, включая два независимых процесса на разных data roots. CONFIG/
+    ARCHITECTURE/help/startup guidance различают publication/adoption и reload/restart;
+    report не подменяет live/visual owners.
+  - Primary evidence: те же три composed fixtures, final commands и reviewed diff;
     не отдельный новый quality gate или paid campaign.
   - Status: pending.
   - Evidence: NOT_RUN; регистрация не implementation/qualification/overall READY.
@@ -188,7 +202,10 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
   не generic question dismissal/whole-turn user cancel, не host-wide cancel(None).
   Settlement один раз, executing effects не прерываются; следующая preparation G2.
 
-### Shared host, IPC, admission and frontends
+### Shared host, IPC, admission and frontends — DESCOPED 2026-10-15
+
+История; не требование (см. owner amendment 2026-10-15).
+
 
 - Один process/Tokio/Db write/root-lock/recovery owner; existing children/shell/approval/
   question/auth/PTY/title owners общие, не `application::spawn` на клиента. Bounded
@@ -246,10 +263,10 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
   fallthrough semantics; unsupported options дают typed diagnostic, не silent flatten.
   Exact shapes/IDs брать из pinned donor, не придумывать. External themes вне scope.
 - Валидный snapshot atomic; invalid edit сохраняет last-good. Shared-file edit
-  независимо видят использующие его clients; env overlays/resolved prefs/consumers
-  не становятся server defaults другого клиента. Client owns preference-file persistence;
+  независимо видят все процессы, использующие файл; env overlays/resolved prefs
+  остаются внутри своего процесса. Client owns preference-file persistence;
   permission-mode change — scoped owner command, не косметический global autoaccept.
-- Incoming server snapshot merge сохраняет client facets без изменения selection,
+- Runtime catalog snapshot merge сохраняет client facets без изменения selection,
   readiness/capabilities/diagnostics. Не использовать broad `apply_catalog` или
   `refresh_configuration` для cosmetics. Все render/hit-test paths используют current
   theme; palette revision invalidates transcript/Markdown caches, не только mode.
@@ -270,7 +287,7 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
    `application.rs` with a coarse `application/reload.rs` owner slice,
    `runtime/mcp{,/lifecycle}.rs`; workspace/adapter manifests + Cargo.lock for `notify`.
    Один pipeline/supervisor, no new registry. HOT02 consumes slice1 lease release.
-3. **Host/IPC/frontends.** Existing application + coarse `application/host.rs`, owned
+3. **DESCOPED 2026-10-15 — Host/IPC/frontends.** Existing application + coarse `application/host.rs`, owned
    `Db::shared_handle` seam; closed pure DTOs `oc-core/src/service.rs`, adapter
    `service.rs` with necessary coarse lifecycle/client/server slices; binary CLI/
    bootstrap/headless/tui/auth/service controls. Existing turns/turn_acceptances for
@@ -278,9 +295,8 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
    BEFORE default shared-client enablement. HOT03 consumes stable source publication.
 4. **Client settings.** Extract existing composition/config parsing into adapter-owned
    `cli_config.rs`; binary client wiring; TUI app/input/live/theme/shell/transcript/
-   dialogs/approval/question/terminal consumers and caches. HOT04 parsing/rendering may
-   develop in standalone independently of daemon internals; scoped consumer seam must
-   precede shared defaults. No full inventory or settings framework.
+   dialogs/approval/question/terminal consumers and caches. HOT04 parsing/rendering is
+   in-process (no shared host since 2026-10-15). No full inventory or settings framework.
 5. **Compose and deliver.** Existing Cargo targets/owner test modules; real debug/release
    processes and PTYs. Update live CONFIG/ARCHITECTURE/CLI help/startup diagnostics and
    narrow supported-differences docs on actual implementation, keep historical leaves.
@@ -342,7 +358,7 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
-- Current: R1/R2 in_progress; R3–R5 pending, HOT01–HOT04 not yet qualified. T59 complete;
+- Current: R1/R2 in_progress; R3 descoped 2026-10-15; R4/R5 pending, HOT01/HOT02/HOT04 not yet qualified. T59 complete;
   T44/T45/T57/live/visual statuses and historical PASS remain independent.
 - Current owner evidence: held G1 provider response after G2 publication keeps G1
   approval/question bindings, read output budget, model lookup and after-read roots;

@@ -245,6 +245,24 @@ Supersedes only D01 daemon exclusion, D10/old lifecycle whole-turn config pinnin
 D23's unchanged-config limitation; session_move, RAW/HOT/provenance, no-JS-host, all
 permission/security/retry/resource guarantees and existing test ownership remain.
 Task todo/implementation NOT_STARTED, gates NOT_RUN; no status/evidence rewrite.
+Shared-service part superseded by D26 (2026-10-15).
+
+### D26 — independent processes, no shared service (owner 2026-10-15)
+
+Owner removes the shared service from scope: every `oc2` process is independent, no
+host on 127.0.0.1, Unix IPC, `oc service`, client attach/detach, durable admission
+tokens or cross-client recovery. Deliberate divergence from OC2's managed local
+service. T61 R3/HOT03 descoped; R1/R2/R4 run per process; D01 daemon exclusion restored.
+Per-process data-root lock (`DataRootBusy`), SQLite safety and OAuth loopback remain.
+
+### D27 — canonical OpenCode 2 config only (owner 2026-10-15)
+
+No OpenCode 1 config compatibility. Only the canonical v2.0.12 schema
+(`packages/schema` config `Info` + cli.json schema) is accepted; anything upstream
+accepts only through `packages/core/src/v1/**` or tui.json/kv.json migration fails
+closed with one complete report of offending keys, sources and canonical replacements.
+Supersedes earlier "pinned OC2 normalizer/migration as oracle" wording for v1 shapes
+(T43/T45 R6/T46 MCP09/T53 GO02 legacy-equivalence). Owner converts their config. T62.
 
 ## Остаточные prerequisites, не новые Q
 

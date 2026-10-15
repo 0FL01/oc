@@ -59,7 +59,7 @@ Tokio runtime один на процесс. Application handle — cloneable typ
 
 ## Владение сессией
 
-Один execution owner на session владеет mutable session/active turn/context generation. Session имеет текущий `LocationId`; T50 допускает только явный durable admitted move той же session на safe boundary, superseding прежнюю пожизненную привязку. Issued request/full tool batch держит immutable generation/profile view. T61 pending допускает same-Location config adoption только на fresh preparation; Location identity остаётся source до terminal исходного turn, destination execution принадлежит отдельному последующему turn, не in-flight retarget. Команды идут по bounded channel; одновременно один execution owner на session. T61 сохраняет foreground-root single-flight per Location (второй root TurnBusy до acceptance); independent Location и существующие foreground/background children не сериализуются общей family lease. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
+Один execution owner на session владеет mutable session/active turn/context generation. Session имеет текущий `LocationId`; T50 допускает только явный durable admitted move той же session на safe boundary, superseding прежнюю пожизненную привязку. Issued request/full tool batch держит immutable generation/profile view. T61 pending допускает same-Location config adoption только на fresh preparation; Location identity остаётся source до terminal исходного turn, destination execution принадлежит отдельному последующему turn, не in-flight retarget. Команды идут по bounded channel; одновременно один execution owner на session. Процесс сохраняет foreground-root single-flight per Location (второй root TurnBusy до acceptance); independent Location и существующие foreground/background children не сериализуются общей family lease. T45/R3 требует параллельных независимых foreground-детей и background progress до конца parent turn; existing supervisor owns bounded jobs/cancellation/delivery, без нового scheduler service. Tool mutations сохраняют ordering/CAS/path protections, а parent-held lease не сериализует все child sessions. Headless, TUI и MCP никогда не получают `Arc<Mutex<Everything>>` или raw DB handle. Чтение immutable session snapshots отделено от команд.
 
 Долгий provider stream не блокирует обработку Cancel: worker select-ит stream, inbox и shutdown, а выполняемые child activities имеют owner и cancellation. Очередь новых пользовательских сообщений ограничена; сообщение принято только после durable acknowledgement. Ошибка storage не маскируется успешным UI ack.
 
@@ -84,7 +84,7 @@ be an image. Search/conversion engines stay bounded and pinned; PDF remains excl
 
 Persist messages/operations и небольшое durable событие в одной транзакции. События имеют monotonic seq на сессию; UI notifications после commit. Это transactional event journal, не система восстановления всей DB проигрыванием event stream. UI делtas могут coalesce; единственная durable копия terminal outcome не теряется из-за медленного потребителя.
 
-SQLite data root отделён от upstream; advisory OS lock на время владения. Lockfile inode не удалять по PID. Второй write/root-lock owner — `DataRootBusy`, не опасный «repair». T61 clients attach к одному owner; existing guarded read-only catalog/cache connection допустим без writes/recovery/другого root owner. DB на локальном ext4; network filesystem не квалифицирован.
+SQLite data root отделён от upstream; advisory OS lock на время владения. Lockfile inode не удалять по PID. Второй write/root-lock owner — `DataRootBusy`, не опасный «repair». Каждый `oc2` — независимый процесс без shared host/attach (owner 2026-10-15); existing guarded read-only catalog/cache connection допустим без writes/recovery/другого root owner. DB на локальном ext4; network filesystem не квалифицирован.
 
 Full outputs и attachments — content-addressed files в own blob dir, atomic temp/write/fsync/rename. Сначала durable blob, затем DB reference. Unreferenced files после crash безопасно собираются только собственным GC с grace period; referenced blobs не удаляются. DB errors/disc full прекращают mutations. Логи не дублируют blobs.
 
@@ -143,29 +143,24 @@ at-least-once, not exactly-once; native started/unknown mutation/shell/MCP effec
 remain blocked from automatic replay. Successful parent completion is not child
 cancellation. Shutdown still joins all owned work; no orphan background tasks.
 
-### T61 local service / reload target — approved, implementation NOT_STARTED
+### T61 per-process reload target — shared service descoped 2026-10-15
 
-Contract: [T61](goals/2026-10-14-hot-reload-shared-service.md). Shared application host
-owns one Db and process-wide resources, bounded Location runtimes/publications/MCP
-supervisors and execution-scoped consumers. Client-local current Location/UI settings
-не global active pointer; tab persistence remains existing Location/CAS. Children share
+Contract: [T61](goals/2026-10-14-hot-reload-shared-service.md). Each independent `oc2`
+process owns its Db and process-wide resources, Location runtimes/publications/MCP
+supervisors; there is no shared host, IPC or client attach. Tab persistence remains
+existing Location/CAS. Children share
 source publication only, not mutable execution state. Finite watch topology comes from
 admitted loading; one debounced watcher/manual pipeline, one latest desired MCP config,
 per-instance retirement/quarantine, no generation-owned supervisor chains.
 
-CoreApp remains typed facade, Unix IPC carries closed operations/redacted DTOs, not
-InboxMsg channels or sensitive Composition. Durable admission token precedes send;
-lost ACK reconciles through existing acceptance storage, never mutation retransmit.
-Bounded dispatch/replies/events and explicit active-work/interaction resnapshot preserve
-cancel/approval responsiveness. Client guard detaches; host guard joins all resources
-and shared handles before restart/root-lock release. Auth-only boot loads no Location;
-config-dependent child recovery routes by durable source Location. No root auto-replay.
+CoreApp remains the in-process typed facade. Shutdown joins all resources before
+root-lock release. Config-dependent child recovery routes by durable source Location;
+no root auto-replay.
 
-Client parsing/watch/persistence belongs to client orchestration/adapter, not raw TUI
-network/process code. Narrow UI settings merge overlays each server snapshot, retains
-runtime facets/live state and invalidates palette-dependent caches. Permission consumer
-is execution-scoped, not a shared queue preference. CLI env captured separately from
-server env. These are future obligations, not current service/command support claims.
+Client settings parsing/watch belongs to adapter orchestration, not raw TUI code. Narrow
+UI settings merge overlays each runtime catalog snapshot, retains runtime facets/live
+state and invalidates palette-dependent caches. These are T61 obligations, not current
+support claims.
 
 ## TUI без второй модели мира
 

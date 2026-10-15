@@ -12,8 +12,9 @@ This paragraph records the original V3 subset, not current T45 exclusions.
 Owner-approved [R3/R6–R10](goals/2026-09-21-config-compat-and-subagents.md) and dated
 GOAL.md amendments supersede primary-only/subagent/child-command exclusions and
 admit bounded native instruction observation at safe generation boundaries.
-T61 (approved 2026-10-14, implementation NOT_STARTED) also supersedes the watcher
-exclusion for admitted sources/native modules and adds local shared service; see
+T61 (approved 2026-10-14) also supersedes the watcher exclusion for admitted
+sources/native modules; its local shared service was descoped 2026-10-15 (D26), and
+OpenCode 1 config compatibility was removed (D27/T62); see
 [the frozen contract](goals/2026-10-14-hot-reload-shared-service.md). No arbitrary module
 code execution or general HTTP/remote API parity.
 Context packs/default child DCP/host context are native additions. Skill bodies
