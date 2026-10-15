@@ -10,8 +10,10 @@ are qualified below, but V09 and product READY are not claimed.**
 [Current-source resume receipt](../tui/resume-20261015.md): capture environment
 restored, known VIS38 PTY teardown race reproduced/fixed without weakening gates,
 all60 PTY tests PASS, fresh paired tool probe27 stages per side and no replay.
-Full comparisons:6 EQUAL/48 DIFFERENT, not whole-slice pixel PASS. Next confirmed
-rendering fault: Generic/MCP continuation indentation foreground. Historical
+Full comparisons:6 EQUAL/48 DIFFERENT, not whole-slice pixel PASS. The confirmed
+[Generic/MCP continuation foreground fault](../tui/generic-continuation-20261015.md)
+is fixed:541 TUI tests and fresh paired actual-binary behavioral proof pass;
+full-frame differences remain honestly open. Historical
 qualified subsets below remain scoped receipts, not full T44 acceptance.
 
 ## Current canonical model/variant presentation (2026-09-28)

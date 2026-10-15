@@ -25,9 +25,10 @@ T44 is resumed; progress.py remains the sole task-state owner.
 - Finish line: every existing R1–R6 / mandatory VIS01–VIS46 and supplement resolved
   with current actual-binary effects, full paired styled-cell/PNG/cursor captures,
   temporal/resource/safety and final current-source gates. No partial-slice finish.
-- Next: fix the current paired-capture-confirmed Generic/MCP continuation-indent
-  foreground (`tools.rs::generic_block_expanded`), qualify the narrow change, then
-  improve comparable tool/clean-dialogue states without erasing producer facts.
+- Next: build a small-output direct MCP/Shell comparable-state profile without
+  preceding service failures. If needed, align displayed elapsed buckets with a
+  bounded real fixture-response wait from PTY submission, never a production
+  clock/history/paint override. Keep full comparisons and actual no-replay proof.
   Existing bounded body/guidance/capture facts and collapse/expand behavior are
   implemented, not a new backend to rewrite. Preserve genuine payload and RAW.
 - Ordered continuation: tool cards/clean dialogue (VIS16/17/42); prompt/caret/blink/
@@ -54,8 +55,11 @@ T44 is resumed; progress.py remains the sole task-state owner.
   teardown race is fixed with success/restoration/resource assertions intact;
   all60 PTY tests pass. Current full paired tool probe passes27 behavioral stages
   per side, no replay effects;54 grid/PNG comparisons give6 equal/48 different,
-  not whole-slice pixel PASS. One genuine continuation-space style fault is
-  isolated. T44 remains active; no READY claim or external blocker.
+  not whole-slice pixel PASS. The [continuation-style facet](../../evidence/tui/generic-continuation-20261015.md)
+  is fixed and passes541 TUI tests plus fresh paired capture (same6/48 full-frame
+  result; the affected indentation is exact). Strict affected-crate Clippy and
+  the post-cleanup targeted regression pass. T44 remains active; no READY claim
+  or external blocker.
 
 ## Objective
 

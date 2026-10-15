@@ -56,6 +56,40 @@ fn paint(state: &mut TuiState, frame: Rect) -> (Vec<crate::styled::Line>, u16, u
     (painted, area.x + 6, area.y + header as u16)
 }
 
+#[test]
+fn generic_continuation_indents_inherit_canvas_not_muted_labels() {
+    let card = crate::history::card_from_row(&operation());
+    let crate::tools::ToolRender::Inline(inline) = &card.render else {
+        panic!("fixture must use Generic presentation");
+    };
+    let theme = crate::theme::Theme::dark();
+    let padding = " ".repeat(crate::messages::MESSAGE_PADDING + crate::tools::TOOL_ICON_WIDTH);
+    for width in [32, 120] {
+        let rows = crate::tools::generic_block_expanded(inline, &card, theme, width, true);
+        let continuation = rows
+            .iter()
+            .filter(|row| {
+                row.spans().len() >= 2
+                    && row.spans()[0].content() == padding
+                    && !row.spans()[1].content().is_empty()
+                    && row.spans()[1].content().trim().is_empty()
+            })
+            .collect::<Vec<_>>();
+        assert!(!continuation.is_empty(), "hard and soft wrapped details");
+        for row in continuation {
+            assert_eq!(row.spans()[1].style(), ratatui::style::Style::default());
+        }
+        for label in ["nested: ", "output: "] {
+            let span = rows
+                .iter()
+                .flat_map(crate::styled::Line::spans)
+                .find(|span| span.content() == label)
+                .unwrap();
+            assert_eq!(span.style().fg, Some(theme.text_muted()));
+        }
+    }
+}
+
 #[tokio::test]
 async fn generic_live_mouse_and_replayed_projection_keep_body_caret_and_capture_truth() {
     let mut state = fresh_state("preview-owner").await;

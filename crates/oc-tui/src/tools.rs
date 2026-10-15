@@ -1693,14 +1693,15 @@ pub(crate) fn generic_block_expanded(
             ) {
                 let mut spans = vec![
                     Span::plain(" ".repeat(padding)),
-                    Span::styled(
-                        if first {
-                            prefix.clone()
-                        } else {
-                            " ".repeat(prefix_width)
-                        },
-                        ratatui::style::Style::default().fg(theme.text_muted()),
-                    ),
+                    if first {
+                        Span::styled(
+                            prefix.clone(),
+                            ratatui::style::Style::default().fg(theme.text_muted()),
+                        )
+                    } else {
+                        // GenericTool's continuation indent is layout, not key text.
+                        Span::plain(" ".repeat(prefix_width))
+                    },
                 ];
                 spans.extend_from_slice(line.spans());
                 rows.push(Line::new(spans));
