@@ -410,6 +410,9 @@ Chat/Messages support**.
   first/last distinct system boundaries and one message tail (at most four),
   independently of the OpenAI-compatible capability. Package-specific
   `settings.setCacheKey` JSON is no longer a runtime switch or a legacy error.
+  Canonical `compatibility.reasoningField` is a string, not a boolean or old
+  `{field:...}` shape. Known unsupported compatibility options distinguish valid
+  but unsupported features from malformed boolean/enum values; neither is V1.
   Runtime key identity remains session/fork-root lineage, not request-body hash.
   No Go-only headers/cache policy leaks into custom bindings.
 

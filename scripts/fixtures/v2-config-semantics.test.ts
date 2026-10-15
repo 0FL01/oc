@@ -1,7 +1,7 @@
 // Staged unchanged into the pinned oracle's core/test/config by the Python runner.
 import { expect } from "bun:test"
 import { Document, Info } from "@opencode/schema/config"
-import { Effect, Schema } from "effect"
+import { Effect, Exit, Schema } from "effect"
 import { Config } from "@opencode/core/config"
 import { ConfigProviderPlugin } from "@opencode/core/config/plugin/provider"
 import { ConfigAgentPlugin } from "@opencode/core/config/plugin/agent"
@@ -32,6 +32,12 @@ const configuredModel = Effect.fn(function* (documents: unknown[]) {
   if (model === undefined) throw new Error("Fixture model was not materialized")
   return model
 })
+
+for (const item of fixture.schema_cases) {
+  it.effect(`CFG11/14 canonical schema / ${item.id}`, () => Effect.sync(() => {
+    expect(Exit.isSuccess(Schema.decodeUnknownExit(Info)(item.document))).toBe(item.schema_valid)
+  }))
+}
 
 for (const item of fixture.permission_evaluator_cases) {
   it.effect(`CFG17 evaluator / ${item.id}`, () => Effect.sync(() => {

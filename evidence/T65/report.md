@@ -3,9 +3,9 @@
 ## Result
 
 **IN PROGRESS.** R2/R3 compatibility/cache and R4 provider-only deadlines follow
-shared V2 fixtures. Ordered permissions and affected authority guards are qualified
-below; final legacy/error guards,
-complete gates and publication remain. T44 is paused with its stash intact.
+shared V2 fixtures. Ordered permissions, authority and legacy/error guards are
+qualified below; complete gates and publication remain. T44 is paused with its
+stash intact.
 
 Current configuration reference is **V2 revision
 `b4f19bfe74a972c2919aa4c9d7445fa61f41b226`**. Initial compatibility/cache checks
@@ -15,6 +15,27 @@ change; its parent b4 retains all required compatibility/cache/provider-only
 features and the owner's exact300000ms defaults. The shared tests were rerun
 against that exact clean checkout; requirements were not relaxed. V2.0.12 and
 stale `v2` branch4617210 lack required fields. Frozen TUI reference is unchanged.
+
+### R1 canonical values and pre-effect legacy boundary / CFG11–13
+
+- Actual pinned schema validates13 shared documents: opaque package JSON,
+  canonical reasoning strings, malformed string/boolean/enum/container values,
+  and valid-but-unsupported compatibility features. Together with the existing
+  shared matrix: TS79 PASS/192 expectations; native config44 PASS.
+- Reproduced native acceptance of `reasoningField:false` as canonical. Canonical
+  reasoningField now requires a string; the separate internal catalog helper
+  is not a migration path for external V1 documents. Known unsupported boolean/
+  enum features validate their values before returning UnsupportedCapability;
+  malformed values return Invalid without including input-value canaries.
+- Actual oc2 positive control accepts `settings.setCacheKey:{vendor:"opaque"}`,
+  starts the explicitly configured local MCP peer and completes a local provider
+  request. Five fresh negative fixtures (provider/permission/npm/options/
+  modalities) refuse with legacy_config before either effect, no canary leak and
+  no Cargo/Node/Bun/npx loader execution. The fixture preserves the complete base
+  provider rather than accidentally replacing it with a partial root object.
+- `config::`44 PASS, the binary control PASS and strict workspace/all-target
+  Clippy PASS. Logs: `.local/evidence/t65-schema-{ts,native,binary-02,clippy}.log`;
+  native red reproduction: `t65-schema-reproduce.log`.
 
 ### R2 binding facet / CFG14
 
@@ -182,7 +203,7 @@ Local synthetic-only logs: `.local/evidence/t65-cfg14-*` and
 
 ## Risks and next
 
-R2–R5 are qualified for the specified subset, not full TS protocol/SDK/built-in
-agent parity. Next: final legacy/error classification and complete required gates.
+R1–R5 are qualified for the specified subset, not full TS protocol/SDK/built-in
+agent parity. Next: prepare coherent0.2.0 and run complete required gates on it.
 Publish only after all configuration gates and the coherent version bump pass;
 then finish T65 and resume the parked T44 work exactly once.

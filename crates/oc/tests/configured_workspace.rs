@@ -29,6 +29,8 @@ const NEW_SKILL_BODY: &str = "AUD17_MUTATED_SKILL_NEW_a8315b";
 mod customize_opencode;
 #[path = "configured_workspace/models_cli.rs"]
 mod models_cli;
+#[path = "configured_workspace/v2_validation.rs"]
+mod v2_validation;
 
 struct Fixture {
     _root: tempfile::TempDir,

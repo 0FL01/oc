@@ -42,8 +42,11 @@ the separately frozen T44 objective.
     not ban every `settings.setCacheKey` as legacy.
   - Primary evidence: existing legacy/config/composition tests plus positive V2
     and negative V1 synthetic fixtures with pre-effect assertions.
-  - Status: pending
-  - Evidence: pending.
+   - Status: verified
+   - Evidence: shared13 schema cases within TS79/192 expectations; native config44
+     PASS. Actual binary accepts opaque setCacheKey JSON and starts the positive
+     MCP/provider controls; five V1 key families fail legacy_config with zero MCP/
+     provider effects and no canary disclosure. Strict workspace Clippy PASS.
 - R2: provider defaults then model compatibility overrides.
   - Source: owner section2; pinned `config/plugin/provider.ts`, `model.ts`
     (`Model.snapshot`), `schema/src/model-compatibility.ts`.
@@ -176,16 +179,15 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R1 distinct legacy, unsupported-capability and malformed-value refusals.
-- Smallest next action: cover canonical compatibility value validation and opaque
-  package settings with shared fixtures. In particular, do not accept old object/
-  boolean reasoningField forms as canonical strings or label malformed known
-  unsupported flags as capability errors. Preserve the pre-effect V1 gate.
-- Expected evidence: same canonical schema inputs in actual TS/Rust consumers,
-  honest native unsupported errors, legacy-before-effect binary control; existing
-  redaction, package/Markdown/MCP and final adapter/binary/workspace gates.
-- Replan if: error classification requires broadening supported capabilities or
-  accepting/migrating OpenCode 1.
+- Closes: R6 final subset/security qualification and R8 version preparation.
+- Smallest next action: commit the verified R1 slice; prepare coherent unpublished
+  0.2.0 manifests/lock for the exposed SDK changes, then run the required complete
+  adapter/binary/workspace gates on that final version. No upload before green.
+- Expected evidence: package versions/dependencies agree, complete native gates,
+  retained redaction/endpoint/cancel/MCP/Markdown/authority regressions; verified
+  package archives before the committed publication checkpoint.
+- Replan if: a required gate exposes an unmet frozen outcome; do not suppress it,
+  relax the legacy gate, or publish an unqualified version.
 
 ## Current State
 
@@ -209,13 +211,20 @@ the separately frozen T44 objective.
   child41, strict binary4 and workspace Clippy after the reviewed scalar-ceiling
   fix. Broader adapter library801/1ignored passed before that fix. Ordinary config
   phases are separate from native/programmatic/captured-parent constraints.
-  R1/final gates/publication remain unresolved.
+   Final gates/publication remain unresolved.
+- R1 is verified: shared canonical schema cases distinguish malformed values from
+  valid unsupported capabilities, opaque settings remain nonlegacy; native
+  config44, actual positive/negative binary controls and strict workspace Clippy
+  pass. Pinned TS now79/192 expectations. No V1 migration or new capability added.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
 - Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
 
 ## Material Decisions
 
+- R8: use coherent0.2.0 for the public cache/optional-deadline SDK field changes.
+  Public registry lookups returned404 for all four0.2.0 versions before preparation.
+  This is version selection, not an upload receipt; publication waits for R6.
 - R5: actual pinned `schema/agent.ts::Info.default` supplies four ordinary rules:
   `*` Allow, read `*.env` Ask, read `*.env.*` Ask, read `*.env.example` Allow.
   These precede all top-level documents, then agent documents. Raw unmatched
@@ -253,5 +262,5 @@ the separately frozen T44 objective.
 
 ## Completion
 
-Not complete; R2–R5 are verified, R1/R6–R8 remain unresolved. T44 resumes after
+Not complete; R1–R5 are verified, R6–R8 remain unresolved. T44 resumes after
 T65 delivery/publication.

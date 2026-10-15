@@ -1723,8 +1723,9 @@ pub(crate) fn provider_wire(
     Ok(wire)
 }
 
-/// OC2 `Model.Compatibility` subset with actual native semantics, plus the
-/// legacy `interleaved` string/`{field}` → `reasoningField` migration.
+/// OC2 `Model.Compatibility` subset with actual native semantics. Internal
+/// catalog `interleaved` facts are separate from the canonical string field;
+/// external OpenCode 1 documents are refused before this projection.
 fn chat_compat(
     field: &str,
     model: &serde_json::Value,
@@ -1733,6 +1734,10 @@ fn chat_compat(
     let invalid = |name: &str, reason: &str| ConfigError::Invalid {
         field: format!("{field}.{name}"),
         reason: reason.to_string(),
+    };
+    let unsupported = |name: &str| ConfigError::UnsupportedCapability {
+        field: format!("{field}.compatibility.{name}"),
+        reason: "compatibility setting has no native semantics".to_string(),
     };
     let reasoning_field = |value: &serde_json::Value, name: &str| match value {
         serde_json::Value::String(field) if !field.is_empty() => Ok(Some(field.clone())),
@@ -1761,7 +1766,12 @@ fn chat_compat(
                     .ok_or_else(|| invalid(&format!("compatibility.{key}"), "must be boolean"))?;
             }
             "reasoningField" => {
-                compat.reasoning_field = reasoning_field(value, "compatibility.reasoningField")?
+                compat.reasoning_field = Some(
+                    value
+                        .as_str()
+                        .ok_or_else(|| invalid("compatibility.reasoningField", "must be a string"))?
+                        .to_owned(),
+                );
             }
             "maxTokensField" => {
                 compat.max_completion_tokens = match value.as_str() {
@@ -1780,12 +1790,25 @@ fn chat_compat(
                     invalid("compatibility.supportsPromptCacheKey", "must be boolean")
                 })?)
             }
-            other => {
-                return Err(ConfigError::UnsupportedCapability {
-                    field: format!("{field}.compatibility.{other}"),
-                    reason: "compatibility setting has no native semantics".to_string(),
-                });
+            "requireReasoning"
+            | "requireFinishReason"
+            | "requireAssistantAfterTool"
+            | "supportsThinkingBlockBinding" => {
+                value
+                    .as_bool()
+                    .ok_or_else(|| invalid(&format!("compatibility.{key}"), "must be boolean"))?;
+                return Err(unsupported(key));
             }
+            "cacheFormat" => {
+                if !matches!(value.as_str(), Some("anthropic" | "alibaba")) {
+                    return Err(invalid(
+                        "compatibility.cacheFormat",
+                        "must be anthropic or alibaba",
+                    ));
+                }
+                return Err(unsupported(key));
+            }
+            other => return Err(unsupported(other)),
         }
     }
     Ok(compat)

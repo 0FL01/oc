@@ -105,6 +105,49 @@ fn cfg12_canonical_document_has_no_findings() {
 }
 
 #[test]
+fn cfg11_v2_schema_values_and_unsupported_capabilities_are_not_legacy() {
+    use crate::config::{ConfigError, Source, assemble, provider_wire};
+    use std::collections::BTreeMap;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/v2-config-semantics.json"
+    ))
+    .unwrap();
+    for case in fixture["schema_cases"].as_array().unwrap() {
+        assert!(
+            scan_document(&case["document"]).is_empty(),
+            "{}",
+            case["id"]
+        );
+        let documents = [
+            fixture["base"].clone(),
+            case["document"].clone(),
+            json!({"providers":{"fixture":{"package":"@opencode/ai/providers/openai-compatible"}}}),
+        ];
+        let sources = documents
+            .iter()
+            .enumerate()
+            .map(|(index, document)| Source {
+                path: format!("/schema-{index}.json"),
+                text: document.to_string(),
+                trusted: false,
+            })
+            .collect::<Vec<_>>();
+        let result = assemble(&sources, &BTreeMap::new(), None)
+            .and_then(|generation| provider_wire("fixture", &generation.providers["fixture"]));
+        let observed = match &result {
+            Ok(_) => "supported",
+            Err(ConfigError::Invalid { .. }) => "invalid",
+            Err(ConfigError::UnsupportedCapability { .. }) => "unsupported",
+            other => panic!("unexpected schema result: {other:?}"),
+        };
+        assert_eq!(observed, case["native"].as_str().unwrap(), "{}", case["id"]);
+        if let Err(error) = result {
+            assert!(!error.to_string().contains("SCHEMA_VALUE_CANARY"));
+        }
+    }
+}
+
+#[test]
 fn cfg11_markdown_and_cli_findings() {
     let agent = json!({"description": "d", "mode": "subagent", "variant": "high",
                        "permission": {"edit": "deny"}, "maxSteps": 3, "anything": 1});

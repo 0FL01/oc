@@ -33,6 +33,24 @@
     "@opencode/ai/providers/openai-compatible": "chat",
     "@opencode/ai/providers/anthropic": "messages"
   },
+  "schema_cases": [
+    { "id": "opaque-settings-are-not-legacy", "document": { "providers": { "fixture": { "settings": {
+      "setCacheKey": { "vendor": "opaque" }, "npm": "vendor-option", "options": [],
+      "provider": { "nested": true }, "permission": true, "modalities": ["vendor"]
+    } } } }, "schema_valid": true, "native": "supported" },
+    { "id": "canonical-reasoning-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": "vendor_reasoning" } } } } } }, "schema_valid": true, "native": "supported" },
+    { "id": "reasoning-boolean-is-not-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": false } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "reasoning-object-is-not-string", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "reasoningField": { "field": "SCHEMA_VALUE_CANARY" } } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "cache-flag-type", "document": { "providers": { "fixture": { "compatibility": { "supportsPromptCacheKey": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-boolean", "document": { "providers": { "fixture": { "compatibility": { "requireFinishReason": true } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-boolean", "document": { "providers": { "fixture": { "compatibility": { "requireFinishReason": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-enum", "document": { "providers": { "fixture": { "compatibility": { "cacheFormat": "alibaba" } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-enum", "document": { "providers": { "fixture": { "compatibility": { "cacheFormat": "SCHEMA_VALUE_CANARY" } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "unsupported-valid-model-flag", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "supportsThinkingBlockBinding": true } } } } } }, "schema_valid": true, "native": "unsupported" },
+    { "id": "unsupported-malformed-model-flag", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "supportsThinkingBlockBinding": "SCHEMA_VALUE_CANARY" } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "max-token-enum-type", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": { "maxTokensField": "SCHEMA_VALUE_CANARY" } } } } } }, "schema_valid": false, "native": "invalid" },
+    { "id": "compatibility-container-type", "document": { "providers": { "fixture": { "models": { "m": { "compatibility": [] } } } } }, "schema_valid": false, "native": "invalid" }
+  ],
   "permission_base": { "agents": { "fixture": {} } },
   "permission_evaluator_cases": [
     { "id": "no-match", "rules": [], "action": "shell", "resource": "echo fixture", "expected": "ask" },
