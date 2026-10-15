@@ -1464,7 +1464,10 @@ async fn start_worker(
     let authentication = authentication::new(&db);
     let response_channels = db.response_channels.clone();
     let authentication_location = composition.project.to_string_lossy().into_owned();
-    let result = start_worker_inner(
+    // Keep the complete application state on its owning task's heap. Source
+    // admission carries bounded but large immutable values; nested inline
+    // futures must not duplicate that state on each Tokio worker's poll stack.
+    let result = Box::pin(start_worker_inner(
         db,
         composition,
         inbox,
@@ -1472,7 +1475,7 @@ async fn start_worker(
         ready,
         children.clone(),
         &authentication,
-    )
+    ))
     .await;
     // Covers every return/failed publication, including errors after a move.
     let authentication_stop = authentication::shutdown(&authentication).await;
@@ -2092,6 +2095,7 @@ async fn start_worker_inner(
                     &location_epoch,
                     &mut provider_work,
                     &events,
+                    true,
                 )
                 .await;
                 if result.is_ok() {

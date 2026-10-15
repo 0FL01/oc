@@ -1,6 +1,7 @@
 //! Same-Location candidate assembly and publication. The existing application
 //! owns this operation through ACK; it never creates a replacement runtime/owner.
 use super::*;
+use std::collections::BTreeSet;
 
 fn configuration(failure: composition::LoadFailure) -> CoreError {
     let issue = SpawnIssue::configuration(failure);
@@ -55,6 +56,7 @@ pub(super) async fn replace(
     location_epoch: &AtomicU64,
     provider_work: &mut provider_catalog::ProviderWork,
     events: &broadcast::Sender<CoreEvent>,
+    force: bool,
 ) -> Result<ReloadLocationSnapshot, CoreError> {
     // Until the shared watch/manual coordinator owns this observer, the existing
     // explicit operation owns it through joined cleanup. Never detach a watch
@@ -83,6 +85,7 @@ pub(super) async fn replace(
             provider_work,
             events,
             &watch,
+            force,
         )
         .await
     }
@@ -114,6 +117,7 @@ async fn replace_observed(
     provider_work: &mut provider_catalog::ProviderWork,
     events: &broadcast::Sender<CoreEvent>,
     watch: &composition::SourceWatch,
+    force: bool,
 ) -> Result<ReloadLocationSnapshot, CoreError> {
     let mut next = composition::load_reload_local_with_env(
         &composition.project,
@@ -149,10 +153,35 @@ async fn replace_observed(
         return Err(superseded());
     }
     let epoch = watch.epoch();
+    if !force && next.local_inputs == composition.local_inputs {
+        // A topology repair is still meaningful even when admitted source values
+        // are unchanged. Do not replace resolved credentials/catalogs or revive
+        // a manually disconnected MCP client just to acknowledge such an edit.
+        composition.watch_inputs = next.watch_inputs;
+        let generation = location_epoch.load(Ordering::SeqCst);
+        return Ok(ReloadLocationSnapshot {
+            location: runtime.location().into(),
+            generation,
+            catalog: effective.snapshot(composition, generation),
+            diagnostics: composition.diagnostics.clone(),
+            notices: composition.startup_notices.clone(),
+        });
+    }
     next.attach_custom_connections(db).map_err(configuration)?;
     next.resolve_credentials(db).await.map_err(configuration)?;
     next.attach_public_catalog(db).await;
-    next.refresh_public_catalog(db, true).await;
+    let retained = if force {
+        BTreeSet::new()
+    } else {
+        next.retain_provider_catalogs(composition)
+    };
+    if force
+        || [crate::models_dev::PROVIDER, crate::models_dev::OPENAI]
+            .iter()
+            .any(|id| next.public_provider(id) && !retained.contains(*id))
+    {
+        next.refresh_public_catalog(db, force).await;
+    }
     next.refresh_provider().await.map_err(configuration)?;
     // Discovery is bounded but can outlive a file replacement. Re-admission is
     // local-only: no second discovery, credentials, MCP activation or effects.
@@ -248,7 +277,7 @@ async fn replace_observed(
     // Those read-only jobs must not publish an old binding after this commit.
     provider_work.stop().await.map_err(CoreError::Diagnostic)?;
     runtime
-        .publish_source(input, true)
+        .publish_source(input, force)
         .await
         .map_err(runtime_error)?;
     let epoch = location_epoch.fetch_add(1, Ordering::SeqCst) + 1;

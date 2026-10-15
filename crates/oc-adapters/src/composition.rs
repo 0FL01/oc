@@ -34,6 +34,9 @@ pub(crate) use watch_inputs::observer::SourceWatch;
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {
+    /// Original local admission, before saved credentials and remote catalogs.
+    /// Shared only for reload comparison; never a read or execution capability.
+    pub(crate) local_inputs: Option<std::sync::Arc<reload_inputs::ReloadInputs>>,
     /// Finite loader observations; not filesystem read or trust capabilities.
     pub(crate) watch_inputs: watch_inputs::WatchInputs,
     /// Consumer state projected by the application owner, independent of selection.
@@ -189,6 +192,7 @@ pub(crate) async fn load_with_env_diagnostic(
 ) -> Result<Composition, LoadFailure> {
     let result = async {
         let mut composition = load_stages(project, parent_env, false).await?;
+        composition.retain_local_inputs()?;
         composition.refresh_provider().await?;
         Ok(composition)
     }
@@ -210,6 +214,7 @@ pub(crate) async fn load_local_with_env(
 ) -> Result<Composition, LoadFailure> {
     let mut composition = load_stages(project, parent_env, false).await?;
     composition.admit_provider_views()?;
+    composition.retain_local_inputs()?;
     Ok(composition)
 }
 
@@ -222,6 +227,7 @@ pub(crate) async fn load_reload_local_with_env(
 ) -> Result<Composition, LoadFailure> {
     let mut composition = load_stages(project, parent_env, true).await?;
     composition.admit_provider_views()?;
+    composition.retain_local_inputs()?;
     Ok(composition)
 }
 
@@ -1515,6 +1521,7 @@ async fn load_stages(
     tui_chrome.conversation_shortcuts = conversation_keybinds.resolve();
     watch_inputs.borrow().validate()?;
     Ok(Composition {
+        local_inputs: None,
         watch_inputs: watch_inputs.into_inner(),
         provider_views: BTreeMap::new(),
         custom_revisions: BTreeMap::new(),

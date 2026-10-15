@@ -836,6 +836,140 @@ mod reload_tests {
     }
 
     #[tokio::test]
+    async fn hot02_automatic_noop_and_profile_edit_reuse_discovery_but_force_refreshes() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/literal", listener.local_addr().unwrap());
+        let count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let peer_count = count.clone();
+        let peer = tokio::spawn(async move {
+            for name in ["INITIAL_REMOTE", "FORCED_REMOTE"] {
+                let (mut stream, _) =
+                    tokio::time::timeout(Duration::from_secs(3), listener.accept())
+                        .await
+                        .unwrap()
+                        .unwrap();
+                let mut request = vec![0; 8192];
+                let read = stream.read(&mut request).await.unwrap();
+                assert!(
+                    String::from_utf8_lossy(&request[..read]).starts_with("GET /literal/models ")
+                );
+                peer_count.fetch_add(1, Ordering::SeqCst);
+                let body = serde_json::json!({"object":"list","data":[{"id":"exact","opencode":{"name":name}}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let mut config: serde_json::Value =
+            serde_json::from_str(&config("exact", &base, false)).unwrap();
+        config["disabled_providers"] = serde_json::json!(["opencode-go", "openai"]);
+        let path = project.join("opencode.jsonc");
+        std::fs::write(&path, config.to_string()).unwrap();
+        let db = Db::open(&data).unwrap();
+        let mut composition = composition::load_local_with_env(&project, env(&data))
+            .await
+            .unwrap();
+        composition.resolve_credentials(&db).await.unwrap();
+        composition.refresh_provider().await.unwrap();
+        let runtime = build_runtime(&db, &composition).unwrap();
+        let mut effective = Effective::from_composition(&composition);
+        publish_workspace(&runtime, &composition, &effective).unwrap();
+        runtime.start_mcp().unwrap();
+        let mut registry = WorkspaceRegistry::bind(
+            runtime.generation_id(),
+            runtime.location(),
+            &composition.generation,
+            workspace_agents(&composition),
+            skill_metas(&composition),
+        );
+        let mut work = provider_catalog::ProviderWork::start(&composition, &db);
+        let (events, _) = broadcast::channel(32);
+        let epoch = AtomicU64::new(1);
+        let sessions = BTreeMap::new();
+        let initial = runtime.generation_id();
+        std::fs::write(
+            &path,
+            format!(
+                "// cosmetic only\n{}",
+                serde_json::to_string_pretty(&config).unwrap()
+            ),
+        )
+        .unwrap();
+        let noop = reload::replace(
+            &db,
+            &runtime,
+            &mut composition,
+            &mut effective,
+            &mut registry,
+            &sessions,
+            &epoch,
+            &mut work,
+            &events,
+            false,
+        )
+        .await
+        .unwrap();
+        assert_eq!(runtime.generation_id(), initial);
+        assert_eq!(noop.generation, 1);
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            composition.catalog.models["exact"]["name"],
+            "INITIAL_REMOTE"
+        );
+
+        config["agents"] = serde_json::json!({"build":{"prompt":"UPDATED_WITHOUT_DISCOVERY"}});
+        std::fs::write(&path, config.to_string()).unwrap();
+        reload::replace(
+            &db,
+            &runtime,
+            &mut composition,
+            &mut effective,
+            &mut registry,
+            &sessions,
+            &epoch,
+            &mut work,
+            &events,
+            false,
+        )
+        .await
+        .unwrap();
+        assert!(runtime.generation_id() > initial);
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        assert_eq!(
+            composition.catalog.models["exact"]["name"],
+            "INITIAL_REMOTE"
+        );
+        assert!(
+            composition.agents["build"]
+                .body
+                .contains("UPDATED_WITHOUT_DISCOVERY")
+        );
+
+        reload::replace(
+            &db,
+            &runtime,
+            &mut composition,
+            &mut effective,
+            &mut registry,
+            &sessions,
+            &epoch,
+            &mut work,
+            &events,
+            true,
+        )
+        .await
+        .unwrap();
+        assert_eq!(count.load(Ordering::SeqCst), 2);
+        assert_eq!(composition.catalog.models["exact"]["name"], "FORCED_REMOTE");
+        assert!(db.list_sessions().unwrap().is_empty());
+        work.stop().await.unwrap();
+        runtime.shutdown_mcp().await.unwrap();
+        peer.await.unwrap();
+    }
+
+    #[tokio::test]
     async fn hot02_malformed_definition_rejects_the_whole_candidate_before_mcp_effects() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
