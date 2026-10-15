@@ -894,7 +894,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         let mode = agent_mode(optional_string(object, "mode")?)?;
                         let permissions = BTreeMap::new();
                         let permission_rules =
-                            crate::permissions::PermissionRules::from_config(raw)
+                            crate::permissions::PermissionRules::from_document(raw)
                                 .map_err(|error| error.to_string())?;
                         let hidden = metadata_bool(raw.get("hidden"))?;
                         let disabled = metadata_bool(raw.get("disabled"))?;
@@ -1393,7 +1393,7 @@ fn insert_agent(out: &mut Collector<'_>, root: &DefRoot, mut input: AgentInput, 
         permissions.extend(input.permissions);
         input.permissions = permissions;
         let mut rules = previous.permission_rules.clone();
-        rules.extend(input.permission_rules);
+        rules.append_configuration(input.permission_rules);
         input.permission_rules = rules;
         let mut request = previous.request.clone();
         request.extend(std::mem::take(&mut input.request));
@@ -1750,7 +1750,7 @@ fn load_entry(
                         variant,
                         body: body.trim().to_string(),
                         permissions: BTreeMap::new(),
-                        permission_rules: crate::permissions::PermissionRules::from_config(
+                        permission_rules: crate::permissions::PermissionRules::from_document(
                             &serde_json::Value::Object(
                                 frontmatter.fields.clone().into_iter().collect(),
                             ),

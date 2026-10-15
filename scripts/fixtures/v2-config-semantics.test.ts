@@ -4,6 +4,10 @@ import { Document, Info } from "@opencode/schema/config"
 import { Effect, Schema } from "effect"
 import { Config } from "@opencode/core/config"
 import { ConfigProviderPlugin } from "@opencode/core/config/plugin/provider"
+import { ConfigAgentPlugin } from "@opencode/core/config/plugin/agent"
+import { Agent } from "@opencode/core/agent"
+import { Permission } from "@opencode/core/permission"
+import { Global } from "@opencode/util/global"
 import { Model } from "@opencode/core/model"
 import { ModelResolver } from "@opencode/core/model-resolver"
 import { Plugin } from "@opencode/core/plugin"
@@ -28,6 +32,31 @@ const configuredModel = Effect.fn(function* (documents: unknown[]) {
   if (model === undefined) throw new Error("Fixture model was not materialized")
   return model
 })
+
+for (const item of fixture.permission_evaluator_cases) {
+  it.effect(`CFG17 evaluator / ${item.id}`, () => Effect.sync(() => {
+    const rules = Schema.decodeUnknownSync(Permission.Ruleset)(item.rules)
+    expect(Permission.evaluate(item.action, item.resource, rules).effect).toBe(item.expected)
+  }))
+}
+
+for (const item of fixture.permission_cases) {
+  it.effect(`CFG17 documents / ${item.id}`, () => Effect.gen(function* () {
+    const entries = [fixture.permission_base, ...item.documents].map(
+      (info) => new Document({ type: "document", info: decode(info) }),
+    )
+    const plugin = yield* Plugin.Service
+    const host = yield* PluginHost.make(plugin)
+    yield* ConfigAgentPlugin.Plugin.effect(host).pipe(
+      Effect.provide(Config.testLayer(entries)),
+      Effect.provide(Global.layerWith({})),
+    )
+    const agents = yield* Agent.Service
+    const agent = yield* agents.get(Agent.ID.make("fixture"))
+    if (agent === undefined) throw new Error("Fixture agent was not materialized")
+    expect(Permission.evaluate(item.action, item.resource, agent.permissions).effect).toBe(item.expected)
+  }))
+}
 
 function cacheBlocks(value: unknown): number {
   if (Array.isArray(value)) return value.reduce((sum, item) => sum + cacheBlocks(item), 0)

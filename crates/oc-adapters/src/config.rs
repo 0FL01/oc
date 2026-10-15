@@ -1081,7 +1081,7 @@ fn assemble_with_admission(
     let mut mcp_timeout = McpTimeouts::default();
     let mut mcp_provenance = BTreeMap::new();
     let mut permissions_source = None;
-    let mut permission_rules = crate::permissions::PermissionRules::default();
+    let mut permission_rules = crate::permissions::PermissionRules::configuration();
     let mut terminal_copy_source = None;
     let mut terminal_copy = None;
     let mut animations_source = None;
@@ -1207,7 +1207,7 @@ fn assemble_with_admission(
         if let Some(home) = env.get("HOME") {
             source_rules.expand_home(home);
         }
-        permission_rules.extend(source_rules);
+        permission_rules.append_configuration(source_rules);
         if obj.get("permissions").is_some() {
             permissions_source = Some(source.path.clone());
         }
@@ -2991,7 +2991,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_permissions_per_source_intersect_and_order_within_a_source() {
+    fn canonical_permissions_follow_document_and_within_source_order() {
         let generation = assemble(
             &[
                 src(

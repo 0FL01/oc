@@ -107,8 +107,11 @@ the separately frozen T44 objective.
     of complete built-in-agent permission parity.
   - Primary evidence: shared ordered-rule cases plus saved-grant/config-deny,
     child-parent authority, sandbox/endpoint and existing security regressions.
-  - Status: pending
-  - Evidence: pending.
+  - Status: verified
+  - Evidence: shared TS66/179 expectations; native shared rule/agent cases and
+    saved-grant, child/independent/Plan/Explore/scalar guards5 PASS, permissions8,
+    child integration41, strict binary Responses4 and workspace all-target Clippy
+    PASS after the scalar-ceiling fix; earlier broader adapter library801/1ignored.
 - R6: qualify the specified subset with shared synthetic inputs and retain guards.
   - Source: owner checks and unchanged/non-goal sections.
   - Acceptance: same covered V2 documents and expected results used for TS and
@@ -173,14 +176,16 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R5 ordinary configuration order without widening authority.
-- Smallest next action: add shared document/agent permission precedence cases
-  against the real pinned ConfigAgentPlugin/Permission evaluator, reproduce native
-  intersection behavior, then distinguish ordinary configured ordering from
-  independent native/parent constraints. Keep generic strictest/narrow boundaries.
-- Expected evidence: late allow/deny, agent-specific priority, unmatched Ask;
-  actual saved-grant versus final-deny and child-parent authority regressions.
-- Replan if: an ordinary override can erase a delegation/sandbox/profile ceiling.
+- Closes: R1 distinct legacy, unsupported-capability and malformed-value refusals.
+- Smallest next action: cover canonical compatibility value validation and opaque
+  package settings with shared fixtures. In particular, do not accept old object/
+  boolean reasoningField forms as canonical strings or label malformed known
+  unsupported flags as capability errors. Preserve the pre-effect V1 gate.
+- Expected evidence: same canonical schema inputs in actual TS/Rust consumers,
+  honest native unsupported errors, legacy-before-effect binary control; existing
+  redaction, package/Markdown/MCP and final adapter/binary/workspace gates.
+- Replan if: error classification requires broadening supported capabilities or
+  accepting/migrating OpenCode 1.
 
 ## Current State
 
@@ -199,13 +204,25 @@ the separately frozen T44 objective.
   WS frame policy pass real local-server tests. Shared TS now54/167 expectations;
   provider82/1existingignored, config43, binary Responses4 and strict workspace
   all-target Clippy pass. SDK deadline-field changes join the authorized version
-  bump, not a new JSON switch. R1/R5/final gates/publication remain unresolved.
+   bump, not a new JSON switch.
+- R5 is verified against TS66/179 expectations, native guards5, permissions8,
+  child41, strict binary4 and workspace Clippy after the reviewed scalar-ceiling
+  fix. Broader adapter library801/1ignored passed before that fix. Ordinary config
+  phases are separate from native/programmatic/captured-parent constraints.
+  R1/final gates/publication remain unresolved.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
 - Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
 
 ## Material Decisions
 
+- R5: actual pinned `schema/agent.ts::Info.default` supplies four ordinary rules:
+  `*` Allow, read `*.env` Ask, read `*.env.*` Ask, read `*.env.example` Allow.
+  These precede all top-level documents, then agent documents. Raw unmatched
+  evaluation still asks. Keep unselected source/profile rules open as constraints;
+  freeze complete selected-parent policies, including defaults, when delegating.
+  Existing native session modes/approvals/saved grants remain the supported session
+  handling; no new Session service API or secret-file loader is introduced.
 - 2026-10-16, R4 oracle correction: V2.0.30/f16 has a **900000ms** chunk
   default, contradicting the owner's explicit **300000ms** requirement. Upstream
   commit `d8129ca1e036a967add1e7078679fd9b3697a180` introduced that fifteen-minute
@@ -236,5 +253,5 @@ the separately frozen T44 objective.
 
 ## Completion
 
-Not complete; R2/R3 are verified, R1/R4–R8 remain unresolved. T44 resumes after
+Not complete; R2–R5 are verified, R1/R6–R8 remain unresolved. T44 resumes after
 T65 delivery/publication.

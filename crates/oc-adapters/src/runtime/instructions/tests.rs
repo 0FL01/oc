@@ -2,6 +2,107 @@
 use super::*;
 
 #[tokio::test]
+async fn cfg17_saved_allow_cannot_bypass_final_configured_deny() {
+    for denied in [false, true] {
+        let data = tempfile::tempdir().unwrap();
+        let project = tempfile::tempdir().unwrap();
+        std::fs::write(
+            project.path().join("blocked.txt"),
+            "SAVED_GRANT_READ_CANARY",
+        )
+        .unwrap();
+        let db = Db::open(data.path()).unwrap();
+        db.create_bound_session("s", "work").unwrap();
+        let sources = [
+            crate::config::Source {
+                path: "/first.json".into(), trusted: false,
+                text: serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"ask"}]}).to_string(),
+            },
+            crate::config::Source {
+                path: "/last.json".into(), trusted: false,
+                text: if denied {
+                    serde_json::json!({"permissions":[{"action":"read","resource":"blocked.txt","effect":"deny"}]})
+                } else { serde_json::json!({}) }.to_string(),
+            },
+        ];
+        let mut generation = crate::config::assemble(&sources, &BTreeMap::new(), None).unwrap();
+        generation.compaction.auto = false;
+        let runtime = runtime(&db, project.path(), generation);
+        let patterns =
+            crate::approval::grant_resources(project.path(), "read", &["blocked.txt".into()]);
+        let identity = crate::approval::project_identity(project.path()).unwrap();
+        db.save_permission_grants(&identity, "read", &patterns)
+            .unwrap();
+        assert!(
+            db.permission_grant_matches(&identity, "read", &patterns[0])
+                .unwrap()
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let provider = config(&listener);
+        let peer = tokio::spawn(async move {
+            let (mut socket, request) = read_request(&listener).await;
+            assert!(
+                request["tools"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|tool| tool["name"] == "read")
+            );
+            let item = serde_json::json!({"type":"function_call","id":"saved-read","call_id":"saved-read","name":"read","arguments":"{\"path\":\"blocked.txt\",\"limit\":2}","status":"completed"});
+            let script = [serde_json::json!({"type":"response.output_item.added","item":item}),
+                serde_json::json!({"type":"response.output_item.done","item":item}),
+                serde_json::json!({"type":"response.completed","response":{"status":"completed","output":[item]}})]
+                .iter().map(|event|format!("data: {event}\n\n")).collect::<String>();
+            respond(&mut socket, &script).await;
+            let (mut socket, request) = read_request(&listener).await;
+            let output = request["input"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|item| item["type"] == "function_call_output")
+                .unwrap()["output"]
+                .as_str()
+                .unwrap();
+            assert_eq!(output.contains("SAVED_GRANT_READ_CANARY"), !denied);
+            if denied {
+                assert_eq!(output, "error: denied read");
+            }
+            respond(&mut socket, &sse("done")).await;
+        });
+        let catalog = catalog();
+        let cancel = AtomicBool::new(false);
+        let report = tokio::time::timeout(
+            Duration::from_secs(4),
+            runtime.run_turn(TurnParams {
+                session: "s".into(),
+                prompt: "read".into(),
+                invocation: None,
+                catalog: &catalog,
+                model_id: "m".into(),
+                variant: None,
+                max_output: 1024,
+                provider,
+                cancel: &cancel,
+            }),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        peer.await.unwrap();
+        assert_eq!(report.status, TurnStatus::Completed);
+        assert_eq!(
+            db.list_tool_ops("s").unwrap()[0].state,
+            if denied { "failed" } else { "completed" }
+        );
+        assert!(runtime.pending_approvals().is_empty());
+        assert_eq!(
+            std::fs::read_to_string(project.path().join("blocked.txt")).unwrap(),
+            "SAVED_GRANT_READ_CANARY"
+        );
+    }
+}
+
+#[tokio::test]
 async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
     use oc_core::approval::{ApprovalDecision, ApprovalReply};
     for decision in [ApprovalDecision::Once, ApprovalDecision::Always] {

@@ -167,7 +167,7 @@ fn subagent_tool_def(
                 if let Some(project) = policy.root {
                     agent_rules.bind_plan_project(project);
                 }
-                rules.narrow(policy.permissions, &agent.permissions, &agent_rules);
+                rules.configure_child(policy.permissions, &agent.permissions, &agent_rules);
                 let child_policy =
                     RuntimePolicy::with_rules(policy.permissions, &rules).with_mcp(policy.mcp);
                 let compression_permission = effective_compress_permission(dcp, &child_policy);
@@ -3591,7 +3591,7 @@ impl<'a> Runtime<'a> {
             agent_rules.expand_home(home);
         }
         agent_rules.bind_plan_project(&self.roots.project);
-        permission_rules.narrow(&permissions, &agent.permissions, &agent_rules);
+        permission_rules.configure_child(&permissions, &agent.permissions, &agent_rules);
         permission_rules.bind_plan_project(&self.roots.project);
         for (tool, level) in &agent.permissions {
             permissions

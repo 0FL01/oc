@@ -3,7 +3,8 @@
 ## Result
 
 **IN PROGRESS.** R2/R3 compatibility/cache and R4 provider-only deadlines follow
-shared V2 fixtures. Ordered permissions, final legacy/error guards,
+shared V2 fixtures. Ordered permissions and affected authority guards are qualified
+below; final legacy/error guards,
 complete gates and publication remain. T44 is paused with its stash intact.
 
 Current configuration reference is **V2 revision
@@ -93,7 +94,48 @@ stale `v2` branch4617210 lack required fields. Frozen TUI reference is unchanged
   with no new canonical JSON switch or transport framework. These SDK changes
   are included in the authorized version bump, not published prematurely.
 
+### R5 ordinary permissions / CFG17
+
+- Shared actual TS ConfigAgentPlugin/Agent/Permission tests now pass66 cases and179
+  expectations. Twelve permission cases cover raw no-match Ask, pinned agent
+  defaults, document order and the separate agent phase; existing54 provider/cache/
+  settings cases remain unchanged. No V1 migration or TS production clone is used.
+- Reproduced old native Deny for unmatched rules and an empty configured agent.
+  Canonical sources now use one phased configured chain; native/programmatic
+  authorities, Plan/Explore and captured parent ceilings stay separate. Generic
+  strictest/extend/narrow retain intersection semantics.
+- Primary, child/preview, command-parent and MCP lookup consumers distinguish
+  ordinary selection from delegation. A child starts with the same global documents
+  and its own agent, while the complete captured parent policy remains a ceiling.
+  Unselected source/profile constraints do not invent an actor's fallback policy.
+- Native CFG17 tests5 PASS: same shared inputs plus child Ask/Deny/no inherited
+  parent-agent override, independent/native builtin ceilings and an actual saved
+  grant. The latter proves a saved Ask allowance reads the fixture, while a final
+  configured Deny returns exactly `error: denied read`, without the canary, pending
+  approval or file mutation. Builtin refusals keep their existing `failed` state;
+  no production error contract was changed to fit a test assumption.
+- Permissions integration8 and config43 PASS. Two old cross-source/empty-source
+  expectations were changed only as required by the owner's last-match/Ask
+  contract; explicit narrowing, wildcard/path/MCP and native ceiling assertions
+  remain. Broader adapter library801 PASS (one existing opt-in ignored) and child
+  integration41 PASS. The strict binary suite exposed an old implicit read-only
+  fixture: explicit `deny *`, then `allow read`, restores all4 exact wire tests
+  without loosening their assertions; workspace Clippy also passed.
+- Review then reproduced a current-diff boundary bug: an ordinary agent document
+  could hide a simultaneous programmatic scalar agent Deny (actual Allow vs Deny).
+  Scalar agent restrictions are now always retained as independent constraints,
+  alongside configured documents. After the fix: CFG17 guards5, permissions8,
+  child integration41, strict binary Responses4 and workspace all-target Clippy
+  PASS. No failing assertion was removed or relaxed to accept the boundary bug.
+
 ## Checks
+
+R5 current-source qualification: TS oracle66 PASS/179 expectations;
+`.local/evidence/t65-cfg17-native-05.log`5 PASS;
+`t65-cfg17-permissions-02.log`8 PASS; `t65-cfg17-subagent-02.log`41 PASS;
+`t65-cfg17-responses-03.log`4 PASS; `t65-cfg17-clippy-02.log` strict workspace
+all-target PASS. Earlier full adapter library801/1existingignored is retained in
+`t65-cfg17-adapter-lib.log`, before the scalar-ceiling correction.
 
 Current R4 slice:
 
@@ -140,8 +182,7 @@ Local synthetic-only logs: `.local/evidence/t65-cfg14-*` and
 
 ## Risks and next
 
-R2/R3/R4 are qualified for the specified subset, not full TS protocol/SDK parity.
-Next: ordinary permission precedence without widening delegation/authority ceilings;
-then final legacy/error classification and complete required gates.
+R2–R5 are qualified for the specified subset, not full TS protocol/SDK/built-in
+agent parity. Next: final legacy/error classification and complete required gates.
 Publish only after all configuration gates and the coherent version bump pass;
 then finish T65 and resume the parked T44 work exactly once.

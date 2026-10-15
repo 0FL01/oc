@@ -1,10 +1,13 @@
 //! Ordered action/resource rules, intersected at authority boundaries.
 //!
-//! v2.0.12 uses last-match within a ruleset. Native central sources and agent
-//! constraints remain independent authorities: later allow cannot erase their deny.
+//! Ordinary V2 documents and agent overrides form one ordered configuration.
+//! Native/programmatic authorities and delegated ceilings remain intersected.
 
 use crate::config::{ConfigError, Permission, legacy_key};
 use std::collections::BTreeMap;
+
+#[cfg(test)]
+mod tests;
 
 /// One upstream action/resource/effect rule.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -23,6 +26,8 @@ pub struct Rule {
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PermissionRules {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    configured: Option<ConfiguredRules>,
     authorities: Vec<Vec<Rule>>,
     constraints: Vec<Vec<Rule>>,
     // Explore's native defaults yield only to actual registered MCP. User
@@ -34,6 +39,43 @@ pub struct PermissionRules {
     plan_ceilings: Vec<Vec<Rule>>,
 }
 
+/// Keep source phases distinct so a child selects its own agent before the
+/// captured parent policy is applied as an independent ceiling.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConfiguredRules {
+    // None is an unselected source/profile, not a captured actor authority.
+    defaults: Option<Vec<Rule>>,
+    documents: Vec<Rule>,
+    agent: Vec<Rule>,
+}
+
+impl ConfiguredRules {
+    fn iter(&self) -> impl Iterator<Item = &Rule> + Clone {
+        self.defaults
+            .iter()
+            .flatten()
+            .chain(&self.documents)
+            .chain(&self.agent)
+    }
+
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Rule> {
+        self.defaults
+            .iter_mut()
+            .flatten()
+            .chain(&mut self.documents)
+            .chain(&mut self.agent)
+    }
+}
+
+fn rule(action: &str, resource: &str, effect: Permission) -> Rule {
+    Rule {
+        action: action.into(),
+        resource: resource.into(),
+        effect,
+    }
+}
+
 fn strictest(a: Permission, b: Permission) -> Permission {
     match (a, b) {
         (Permission::Deny, _) | (_, Permission::Deny) => Permission::Deny,
@@ -43,6 +85,86 @@ fn strictest(a: Permission, b: Permission) -> Permission {
 }
 
 impl PermissionRules {
+    /// Ordinary evaluation has no implicit grant; selecting an agent supplies
+    /// its pinned defaults before documents and agent-specific overrides.
+    pub(crate) fn configuration() -> Self {
+        Self {
+            configured: Some(ConfiguredRules::default()),
+            ..Default::default()
+        }
+    }
+
+    pub(crate) fn from_document(value: &serde_json::Value) -> Result<Self, ConfigError> {
+        let mut configured = Self::configuration();
+        configured.append_configuration(Self::from_config(value)?);
+        Ok(configured)
+    }
+
+    /// Config source ordering is not an authority boundary. Do not use extend
+    /// here: that API deliberately intersects independently captured policies.
+    pub(crate) fn append_configuration(&mut self, mut other: Self) {
+        let configured = self.configured.get_or_insert_default();
+        if let Some(source) = other.configured.take() {
+            configured.documents.extend(source.documents);
+            configured.documents.extend(source.agent);
+        }
+        configured
+            .documents
+            .extend(other.authorities.drain(..).flatten());
+        self.extend(other);
+    }
+
+    pub(crate) fn configure_agent(
+        &mut self,
+        base: &BTreeMap<String, Permission>,
+        agent: &BTreeMap<String, Permission>,
+        rules: &Self,
+    ) {
+        let Some(configured) = &mut self.configured else {
+            self.narrow(base, agent, rules);
+            return;
+        };
+        // schema/agent.ts::Info.default at the configuration oracle revision.
+        configured.defaults = Some(vec![
+            rule("*", "*", Permission::Allow),
+            rule("read", "*.env", Permission::Ask),
+            rule("read", "*.env.*", Permission::Ask),
+            rule("read", "*.env.example", Permission::Allow),
+        ]);
+        configured.agent.clear();
+        if let Some(source) = &rules.configured {
+            configured.agent.extend(source.documents.iter().cloned());
+            configured.agent.extend(source.agent.iter().cloned());
+        }
+        // Scalar SDK policies are not canonical document overrides.
+        if !base.is_empty() {
+            self.constraints.push(scalar_rules(base));
+        }
+        if !agent.is_empty() {
+            self.constraints.push(scalar_rules(agent));
+        }
+        self.constraints.extend(rules.authorities.clone());
+        self.constraints.extend(rules.constraints.clone());
+        self.builtin_defaults.extend(rules.builtin_defaults.clone());
+        self.builtin_grants.extend(rules.builtin_grants.clone());
+        self.plan_ceilings.extend(rules.plan_ceilings.clone());
+    }
+
+    /// Child ordinary overrides are based on the same documents, not on its
+    /// parent's agent overrides. The complete parent chain remains a ceiling.
+    pub(crate) fn configure_child(
+        &mut self,
+        base: &BTreeMap<String, Permission>,
+        agent: &BTreeMap<String, Permission>,
+        rules: &Self,
+    ) {
+        if let Some(parent) = &self.configured
+            && parent.defaults.is_some()
+        {
+            self.constraints.push(parent.iter().cloned().collect());
+        }
+        self.configure_agent(base, agent, rules);
+    }
     pub(crate) fn has_plan_ceiling(&self) -> bool {
         !self.builtin_grants.is_empty()
     }
@@ -96,6 +218,11 @@ impl PermissionRules {
             .iter_mut()
             .chain(&mut self.constraints)
             .chain(&mut self.plan_ceilings)
+            .chain(
+                self.configured
+                    .iter_mut()
+                    .flat_map(|configured| [&mut configured.documents, &mut configured.agent]),
+            )
         {
             let mut original = std::mem::take(layer).into_iter().peekable();
             while let Some(rule) = original.next() {
@@ -153,8 +280,11 @@ impl PermissionRules {
         }
     }
 
-    /// Add another central source, intersecting overlapping action authority.
-    pub fn extend(&mut self, other: Self) {
+    /// Intersect an independent policy, never ordinary configuration documents.
+    pub fn extend(&mut self, mut other: Self) {
+        if let Some(configured) = other.configured.take() {
+            self.authorities.push(configured.iter().cloned().collect());
+        }
         self.authorities.extend(other.authorities);
         self.constraints.extend(other.constraints);
         self.builtin_defaults.extend(other.builtin_defaults);
@@ -217,6 +347,11 @@ impl PermissionRules {
             .chain(&mut self.plan_ceilings)
             .flatten()
             .chain(&mut self.builtin_grants)
+            .chain(
+                self.configured
+                    .iter_mut()
+                    .flat_map(ConfiguredRules::iter_mut),
+            )
         {
             if !matches!(
                 rule.action.as_str(),
@@ -244,10 +379,13 @@ impl PermissionRules {
         agent: &BTreeMap<String, Permission>,
         rules: &Self,
     ) {
-        if self.authorities.is_empty() {
+        if self.authorities.is_empty() && self.configured.is_none() {
             self.authorities.push(scalar_rules(base));
         }
-        if rules.authorities.is_empty() {
+        if let Some(configured) = &rules.configured {
+            self.constraints.push(configured.iter().cloned().collect());
+        }
+        if rules.authorities.is_empty() && rules.configured.is_none() {
             self.constraints.push(scalar_rules(agent));
         } else {
             self.constraints.extend(rules.authorities.clone());
@@ -318,8 +456,11 @@ impl PermissionRules {
             absolute.as_deref().unwrap_or(resource),
             relative.as_deref().unwrap_or(resource),
         ];
-        let mut effect = None;
-        if self.authorities.is_empty() {
+        let mut effect = self.configured.as_ref().map(|configured| {
+            evaluate_layer_resources(configured.iter(), actions, &resources)
+                .unwrap_or(Permission::Ask)
+        });
+        if self.authorities.is_empty() && self.configured.is_none() {
             effect = evaluate_layer_resources(&scalar_rules(fallback), actions, &resources);
         } else {
             for layer in &self.authorities {
@@ -368,8 +509,13 @@ impl PermissionRules {
         resource: &str,
     ) -> bool {
         let actions = [legacy_key(action)];
+        if self.configured.as_ref().is_some_and(|configured| {
+            evaluate_layer(configured.iter(), &actions, resource) == Some(Permission::Deny)
+        }) {
+            return true;
+        }
         let scalar = scalar_rules(fallback);
-        let authorities = if self.authorities.is_empty() {
+        let authorities = if self.authorities.is_empty() && self.configured.is_none() {
             std::slice::from_ref(&scalar)
         } else {
             &self.authorities
@@ -403,12 +549,15 @@ impl PermissionRules {
             effect
         };
         let scalar = scalar_rules(fallback);
-        let authorities = if self.authorities.is_empty() {
+        let authorities = if self.authorities.is_empty() && self.configured.is_none() {
             std::slice::from_ref(&scalar)
         } else {
             &self.authorities
         };
-        let mut effect = None;
+        let mut effect = self.configured.as_ref().map(|configured| {
+            evaluate_layer_resources(configured.iter(), &["read"], &[resolved, location])
+                .unwrap_or(Permission::Ask)
+        });
         for layer in authorities {
             if let Some(next) = layer_effect(layer) {
                 effect = Some(effect.map_or(next, |old| strictest(old, next)));
@@ -434,12 +583,20 @@ impl PermissionRules {
     ) -> bool {
         let actions: Vec<_> = actions.iter().map(|action| legacy_key(action)).collect();
         let scalar = scalar_rules(fallback);
-        let authorities = if self.authorities.is_empty() {
+        let authorities = if self.authorities.is_empty() && self.configured.is_none() {
             std::slice::from_ref(&scalar)
         } else {
             &self.authorities
         };
-        let admitted = registered_mcp
+        if self
+            .configured
+            .as_ref()
+            .is_some_and(|configured| layer_denies_all(configured.iter(), &actions))
+        {
+            return false;
+        }
+        let admitted = self.configured.is_some()
+            || registered_mcp
             || self
                 .builtin_grants
                 .iter()
@@ -455,22 +612,7 @@ impl PermissionRules {
             .chain(&self.plan_ceilings)
             .chain(self.builtin_defaults.iter().filter(|_| !registered_mcp))
         {
-            let matching: Vec<_> = layer
-                .iter()
-                .filter(|rule| {
-                    actions
-                        .iter()
-                        .any(|action| wildcard(action, legacy_key(&rule.action)))
-                })
-                .collect();
-            if matching.is_empty() {
-                continue;
-            }
-            if evaluate_layer(layer, &actions, "*") == Some(Permission::Deny)
-                && matching.iter().all(|rule| {
-                    evaluate_layer(layer, &actions, &rule.resource) == Some(Permission::Deny)
-                })
-            {
+            if layer_denies_all(layer.iter(), &actions) {
                 return false;
             }
         }
@@ -496,12 +638,30 @@ fn scalar_rules(map: &BTreeMap<String, Permission>) -> Vec<Rule> {
         .collect()
 }
 
-fn evaluate_layer(rules: &[Rule], actions: &[&str], resource: &str) -> Option<Permission> {
+fn layer_denies_all<'a>(rules: impl Iterator<Item = &'a Rule> + Clone, actions: &[&str]) -> bool {
+    evaluate_layer(rules.clone(), actions, "*") == Some(Permission::Deny)
+        && rules
+            .clone()
+            .filter(|rule| {
+                actions
+                    .iter()
+                    .any(|action| wildcard(action, legacy_key(&rule.action)))
+            })
+            .all(|rule| {
+                evaluate_layer(rules.clone(), actions, &rule.resource) == Some(Permission::Deny)
+            })
+}
+
+fn evaluate_layer<'a>(
+    rules: impl IntoIterator<Item = &'a Rule>,
+    actions: &[&str],
+    resource: &str,
+) -> Option<Permission> {
     evaluate_layer_resources(rules, actions, &[resource])
 }
 
-fn evaluate_layer_resources(
-    rules: &[Rule],
+fn evaluate_layer_resources<'a>(
+    rules: impl IntoIterator<Item = &'a Rule>,
     actions: &[&str],
     resources: &[&str],
 ) -> Option<Permission> {

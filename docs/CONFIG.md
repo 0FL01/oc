@@ -200,9 +200,16 @@ auto/2026-07-28 remains a per-entry capability failure. Disabled local chrome ha
 npx/browser/spawn/network effects. Local cwd/env inherit only the admitted product
 execution context and overlay, not authoring-agent configuration.
 
-Canonical `permissions` is an ordered array; later matching Allow overrides broad Deny
-**inside that authority only**. Independent native central/source/profile/parent
-ceilings remain, not donor's unrestricted cross-layer last-Allow behavior. OpenCode 1
+Canonical `permissions` is an ordered array. Ordinary configuration follows agent
+defaults → top-level documents in config order → agent-specific documents in
+config order → existing session approval/grant handling. The last configured
+action/resource match wins: later documents can override earlier Deny, and agent
+rules can override top-level rules. An unmatched ordinary evaluation asks; selected
+agents start with the pinned defaults (Allow, with Ask for `*.env`/`*.env.*` and
+Allow for `*.env.example`). Saved grants never bypass a final configured Deny.
+Independent native/programmatic, Plan/Explore and captured parent/delegation
+ceilings still intersect; this is not complete built-in-agent permission parity.
+OpenCode 1
 `permission`/`tools` and object-form `permissions` fail closed (T62). Malformed
 security policy is fatal, not skipped into Allow. MCP aliases come from actual tools/list:
 server crw + scrape → crw_scrape, crw + crw_scrape → crw_crw_scrape. `codex_web` matches
@@ -534,7 +541,8 @@ custom Markdown primary/subagent/all and typed system/model/variant/request/step
 follow pinned importer/merge/default semantics. Configured default_agent uses donor
 visible-primary fallback; an explicit invalid selection still fails, and a disappeared
 pinned session selection is diagnosed rather than silently widening authority.
-Native central/parent/child permissions only narrow. Unsupported arbitrary hooks/env
+Independent native authority and captured parent/child ceilings only narrow;
+ordinary configured overrides use the ordered rules above. Unsupported arbitrary hooks/env
 or other unimplemented fields do not become silently accepted. Historical subset
 evidence is not qualification of these pending outcomes.
 

@@ -34,7 +34,7 @@ pub(super) fn admit(
         .ok_or(McpLookupError::NativeFailure)?;
     let base = &composition.generation.permissions;
     let mut rules = composition.generation.permission_rules.clone();
-    rules.narrow(base, &agent.permissions, &agent.permission_rules);
+    rules.configure_agent(base, &agent.permissions, &agent.permission_rules);
     let policy = crate::runtime::RuntimePolicy::with_rules(base, &rules);
     let identity = serde_json::to_string(&[
         server.as_str(),

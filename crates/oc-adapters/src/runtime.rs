@@ -2455,7 +2455,7 @@ impl<'a> Runtime<'a> {
         let workspace = &published.workspace;
         let permissions = published.config.permissions.clone();
         let mut permission_rules = published.config.permission_rules.clone();
-        permission_rules.narrow(
+        permission_rules.configure_agent(
             &permissions,
             &workspace.agent_permissions,
             &workspace.agent_permission_rules,

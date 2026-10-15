@@ -53,7 +53,7 @@ Source trust and credential/endpoint ownership are checked before publication.
 | Native profile | `oc-rs.toml` reference/examples are Proposed, not an application-input/support guarantee. Use only consumer-qualified controls; parser acceptance and `examples/oc-rs.toml` are not a shipped-feature inventory. |
 
 Merge is domain-specific, not a universal deep merge: later same-ID MCP servers
-replace whole entries; permission rules retain ordered authority; omitted agent
+replace whole entries; ordinary permission documents fold in order; omitted agent
 fields can retain earlier profile values; definition collisions retain provenance.
 Invalid individual definitions have diagnostics and healthy siblings survive.
 Malformed config/policy, trust failures and invalid mandatory references do not
@@ -183,7 +183,7 @@ MCP ownership; the native `?codemode=false` URL query is not added.
 
 Configured, enabled, admitted and connected MCP tools have a native default Allow
 before explicit narrowing. This does not enable disabled servers, authorize unknown
-actions or override central/source/profile/parent ceilings. Plan/Explore are not
+actions or override independent native/profile/parent ceilings. Plan/Explore are not
 MCP effect sandboxes; tools are not inferred read-only. Match the actual registered
 action/alias. A literal server name is **not** a wildcard for all its tools.
 
@@ -197,8 +197,13 @@ action/alias. A literal server name is **not** a wildcard for all its tools.
 }
 ```
 
-Canonical rules are ordered. A later rule can override an earlier rule inside
-its own authority, not another independent ceiling. Actions are canonical
+Canonical rules use agent defaults, then all top-level documents in order, then
+agent-specific documents in order. The last matching configured rule wins, even
+across documents; agent rules can override top-level rules. No match asks. Selected
+agents default Allow with Ask for read `*.env`/`*.env.*`, except `*.env.example`.
+Existing session approvals/grants apply afterward but never bypass a final Deny.
+Native Plan/Explore and parent/delegation ceilings remain independent; full built-in
+permission parity is not claimed. Actions are canonical
 (`edit` covers apply_patch/write/edit, `shell` the shell tool). Invalid security
 policy is fatal. Outside-Location access still needs its external-directory
 admission as well as action permission. Do not recommend broad Allow or CLI
@@ -228,7 +233,8 @@ permissions:
 Review the requested changes; do not claim unexecuted checks passed.
 ```
 
-The frontmatter narrows ordinary authority; body prose does not sandbox MCP or
+Frontmatter contributes ordinary agent overrides within native/parent ceilings;
+body prose does not sandbox MCP or
 grant writes. Model/variant pins must be exact supported references. Do not
 invent an artificial successful-round limit or automatic agent fallback.
 

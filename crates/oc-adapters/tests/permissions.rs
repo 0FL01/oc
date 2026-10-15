@@ -85,7 +85,7 @@ fn native_order_tools_and_agent_constraints_never_widen_central() {
 }
 
 #[test]
-fn source_boundaries_and_empty_central_authority_cannot_be_widened() {
+fn ordered_documents_override_but_independent_narrowing_cannot_grant() {
     let sources = [
         Source {
             path: "global".into(),
@@ -100,7 +100,7 @@ fn source_boundaries_and_empty_central_authority_cannot_be_widened() {
     ];
     let generation = assemble(&sources, &BTreeMap::new(), None).unwrap();
     let policy = RuntimePolicy::with_rules(&generation.permissions, &generation.permission_rules);
-    assert_eq!(policy.effect("read", "private"), Permission::Deny);
+    assert_eq!(policy.effect("read", "private"), Permission::Allow);
     assert_eq!(policy.effect("read", "safe/file"), Permission::Allow);
     let mut empty = config("{}");
     let agent = config(r#"{"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}"#);
@@ -112,7 +112,7 @@ fn source_boundaries_and_empty_central_authority_cannot_be_widened() {
     assert_eq!(
         RuntimePolicy::with_rules(&empty.permissions, &empty.permission_rules)
             .effect("bash", "anything"),
-        Permission::Deny
+        Permission::Ask
     );
 }
 

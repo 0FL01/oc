@@ -33,6 +33,40 @@
     "@opencode/ai/providers/openai-compatible": "chat",
     "@opencode/ai/providers/anthropic": "messages"
   },
+  "permission_base": { "agents": { "fixture": {} } },
+  "permission_evaluator_cases": [
+    { "id": "no-match", "rules": [], "action": "shell", "resource": "echo fixture", "expected": "ask" },
+    { "id": "unmatched-action", "rules": [{ "action": "read", "resource": "*", "effect": "allow" }], "action": "shell", "resource": "echo fixture", "expected": "ask" },
+    { "id": "unmatched-resource", "rules": [{ "action": "shell", "resource": "git *", "effect": "allow" }], "action": "shell", "resource": "echo fixture", "expected": "ask" }
+  ],
+  "permission_cases": [
+    { "id": "agent-default", "documents": [], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "agent-default-env", "documents": [], "action": "read", "resource": ".env.local", "expected": "ask" },
+    { "id": "agent-default-example", "documents": [], "action": "read", "resource": ".env.example", "expected": "allow" },
+    { "id": "late-document-allow", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "late-document-deny", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "deny" },
+    { "id": "agent-over-top-level", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }],
+        "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] } } }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "early-agent-over-late-top-level", "documents": [
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] } } },
+      { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] }
+    ], "action": "shell", "resource": "echo fixture", "expected": "deny" },
+    { "id": "late-agent-allow", "documents": [
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "deny" }] } } },
+      { "agents": { "fixture": { "permissions": [{ "action": "shell", "resource": "*", "effect": "allow" }] } } }
+    ], "action": "shell", "resource": "echo fixture", "expected": "allow" },
+    { "id": "resource-rule-over-default", "documents": [
+      { "permissions": [{ "action": "shell", "resource": "git *", "effect": "deny" }] }
+    ], "action": "shell", "resource": "git", "expected": "deny" }
+  ],
   "settings_cases": [
     {
       "id": "provider-numeric-wins",

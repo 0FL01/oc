@@ -44,7 +44,12 @@ impl Fixture {
         std::fs::write(
             config.join("opencode.json"),
             json!({
-                "model": format!("fixture/{MODEL}"), "permissions": [{"action": "read", "resource": "*", "effect": "allow"}],
+                // This wire fixture is intentionally read-only, independent of
+                // the canonical selected-agent defaults.
+                "model": format!("fixture/{MODEL}"), "permissions": [
+                    {"action": "*", "resource": "*", "effect": "deny"},
+                    {"action": "read", "resource": "*", "effect": "allow"}
+                ],
                 "providers": {"fixture": {"package": "@ai-sdk/openai", "compatibility": {"supportsPromptCacheKey": cache}, "settings": {
                     "baseURL": format!("http://{addr}/proxy/v1"), "apiKey": "fixture-key",
                     "timeout": false, "chunkTimeout": 6000000,

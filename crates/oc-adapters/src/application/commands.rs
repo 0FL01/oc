@@ -120,7 +120,13 @@ pub(super) fn permission_rules(
     let permissions = agent.map(|a| a.permissions.clone()).unwrap_or_default();
     for parent in &effective.command_parents {
         if let Some(parent) = c.agents.get(parent) {
-            rules.narrow(&permissions, &parent.permissions, &parent.permission_rules);
+            let mut ceiling = c.generation.permission_rules.clone();
+            ceiling.configure_agent(
+                &c.generation.permissions,
+                &parent.permissions,
+                &parent.permission_rules,
+            );
+            rules.narrow(&permissions, &parent.permissions, &ceiling);
         }
     }
     rules
