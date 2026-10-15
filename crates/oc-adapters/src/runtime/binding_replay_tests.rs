@@ -307,7 +307,7 @@ async fn go04_actual_wires_reopen_and_fork_preserve_settled_pairs_without_opaque
         };
         provider.wire.protocol = source;
         provider.wire.messages_bearer = true;
-        provider.wire.chat.insert(
+        provider.wire.compatibility.insert(
             "m".into(),
             crate::provider::chat::ChatCompat {
                 reasoning_field: Some("reasoning_content".into()),

@@ -1148,7 +1148,7 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
         )
         .unwrap();
         view.generation.config.providers.insert("inventory".into(), crate::config::ProviderEntry {
-            npm: None, name: None, env: Vec::new(), options: Default::default(),
+            npm: None, name: None, env: Vec::new(), options: Default::default(), compatibility: Default::default(),
             models: BTreeMap::from([("G1_METADATA".into(), json!({}))]),
         });
         view.workspace.instruction_roots = vec![crate::instructions::Root {

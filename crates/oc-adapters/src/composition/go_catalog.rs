@@ -230,11 +230,13 @@ fn public_bindings(
                             npm: package.map(str::to_owned),
                             name: None,
                             env: Vec::new(),
+                            compatibility: entry.compatibility.clone(),
                             options: Default::default(),
                             models: BTreeMap::from([(id.clone(), model.clone())]),
                         };
                         let metadata = config::provider_wire(&catalog.provider, &entry)?;
-                        request.wire.chat = metadata.chat;
+                        request.wire.default_compatibility = metadata.default_compatibility;
+                        request.wire.compatibility = metadata.compatibility;
                         request.wire.chronology = metadata.chronology;
                     }
                     Ok(())

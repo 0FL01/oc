@@ -2,6 +2,64 @@ use super::*;
 use crate::config::{Source, assemble};
 
 #[test]
+fn cfg14_provider_model_compatibility_uses_shared_v2_documents() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/v2-config-semantics.json"
+    ))
+    .unwrap();
+    for package in fixture["protocols"].as_array().unwrap() {
+        for case in fixture["compatibility"].as_array().unwrap() {
+            let documents = std::iter::once(fixture["base"].clone())
+                .chain(case["documents"].as_array().unwrap().iter().cloned())
+                .chain(std::iter::once(
+                    json!({"providers":{"fixture":{"package":package}}}),
+                ));
+            let sources = documents
+                .enumerate()
+                .map(|(index, document)| Source {
+                    path: format!("/fixture-{index}.json"),
+                    trusted: false,
+                    text: document.to_string(),
+                })
+                .collect::<Vec<_>>();
+            let generation = assemble(&sources, &BTreeMap::new(), None).unwrap();
+            let entry = &generation.providers["fixture"];
+            let wire = crate::config::provider_wire("fixture", entry).unwrap();
+            for binding in std::iter::once(&wire).chain(
+                entry
+                    .options
+                    .request_bindings
+                    .values()
+                    .map(|request| &request.wire),
+            ) {
+                let compat = binding
+                    .compatibility
+                    .get("m")
+                    .unwrap_or(&binding.default_compatibility);
+                assert_eq!(
+                    compat.supports_prompt_cache_key,
+                    case["expected"]["supportsPromptCacheKey"].as_bool(),
+                    "{} / {package}",
+                    case["id"]
+                );
+                assert_eq!(
+                    compat.reasoning_field.as_deref(),
+                    case["expected"]["reasoningField"].as_str(),
+                    "{} / {package}",
+                    case["id"]
+                );
+                assert_eq!(
+                    compat.max_completion_tokens,
+                    case["expected"]["maxTokensField"] == "max_completion_tokens",
+                    "{} / {package}",
+                    case["id"]
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn go02_canonical_provider_overlays_normalize_to_the_native_entry() {
     let canonical = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "settings":{"baseURL":"https://example.com/v1", "apiKey":"synthetic", "transport":"http"}, "headers":{"X-A":"a"}, "body":{"nested":{"one":1}}, "models":{"catalog":{"modelID":"wire", "package":"@ai-sdk/anthropic", "settings":{"baseURL":"https://example.com/messages", "thinking":{"type":"adaptive"}}, "capabilities":{"tools":true,"input":["text"],"output":["text"]}, "compatibility":{"reasoningField":"reasoning_content"}, "variants":[{"id":"high","settings":{"reasoningEffort":"high"}}]}}}}});
     let p = &document(canonical.as_object().unwrap()).unwrap()["p"];

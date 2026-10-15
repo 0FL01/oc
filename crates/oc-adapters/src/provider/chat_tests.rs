@@ -64,7 +64,7 @@ fn go03_chat_request_lowers_common_history_in_order() {
     let compat = ChatCompat {
         reasoning_field: Some("reasoning_content".into()),
         max_completion_tokens: true,
-        supports_prompt_cache_key: false,
+        supports_prompt_cache_key: Some(false),
     };
     let body = request_body("m", &input, &tool_defs(), 321, Some("high"), &compat).unwrap();
     let messages = body["messages"].as_array().unwrap();

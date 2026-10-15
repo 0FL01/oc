@@ -185,7 +185,7 @@ async fn go02_public_models_capture_independent_native_wires_and_retire_bindings
     }
     let chat = composition.provider.for_selection("chat", Some("high"));
     assert_eq!(
-        chat.wire.chat["chat"].reasoning_field.as_deref(),
+        chat.wire.compatibility["chat"].reasoning_field.as_deref(),
         Some("reasoning_content")
     );
     assert!(

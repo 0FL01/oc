@@ -47,6 +47,7 @@ fn tool18_lookup_group_family_page_merge_and_redaction() {
     let entry = |name: &str, models: serde_json::Value| crate::config::ProviderEntry {
         name: Some(name.into()),
         env: vec![],
+        compatibility: Default::default(),
         npm: None,
         options: Default::default(),
         models: serde_json::from_value(models).unwrap(),
@@ -149,6 +150,7 @@ fn go02_native_lookup_merges_public_go_before_static_or_selected_rows() {
             name: None,
             npm: None,
             env: Vec::new(),
+            compatibility: Default::default(),
             options: Default::default(),
         },
     );

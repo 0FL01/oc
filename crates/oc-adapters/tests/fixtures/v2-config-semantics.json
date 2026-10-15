@@ -1,0 +1,109 @@
+{
+  "oracle": {
+    "release": "v2.0.30",
+    "commit": "f16ef9ad8878279ea2be3cfab7baeed97aef61aa"
+  },
+  "base": {
+    "providers": {
+      "fixture": {
+        "settings": {
+          "baseURL": "https://example.com/v1",
+          "apiKey": "synthetic-t65-only"
+        },
+        "models": {
+          "m": {
+            "modelID": "wire-model",
+            "variants": [{ "id": "v" }]
+          }
+        }
+      }
+    }
+  },
+  "protocols": [
+    "@opencode/ai/providers/openai",
+    "@opencode/ai/providers/openai-compatible",
+    "@opencode/ai/providers/anthropic"
+  ],
+  "compatibility": [
+    {
+      "id": "absent",
+      "documents": [],
+      "expected": {}
+    },
+    {
+      "id": "provider-defaults",
+      "documents": [
+        { "providers": { "fixture": { "compatibility": {
+          "supportsPromptCacheKey": true,
+          "reasoningField": "reasoning_content",
+          "maxTokensField": "max_completion_tokens"
+        } } } }
+      ],
+      "expected": {
+        "supportsPromptCacheKey": true,
+        "reasoningField": "reasoning_content",
+        "maxTokensField": "max_completion_tokens"
+      }
+    },
+    {
+      "id": "provider-false-model-true",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": false, "reasoningField": "reasoning_text" },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": true } } }
+        } } }
+      ],
+      "expected": { "supportsPromptCacheKey": true, "reasoningField": "reasoning_text" }
+    },
+    {
+      "id": "provider-true-model-false",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": false } } }
+        } } }
+      ],
+      "expected": { "supportsPromptCacheKey": false }
+    },
+    {
+      "id": "earlier-model-false-later-provider-true",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": { "compatibility": { "supportsPromptCacheKey": true } } } }
+      ],
+      "expected": { "supportsPromptCacheKey": false }
+    },
+    {
+      "id": "levels-fold-independently-by-field",
+      "documents": [
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": false, "maxTokensField": "max_completion_tokens" },
+          "models": { "m": { "compatibility": { "reasoningField": "reasoning_text", "maxTokensField": "max_tokens" } } }
+        } } },
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true, "reasoningField": "reasoning_content" },
+          "models": { "m": { "compatibility": { "supportsPromptCacheKey": false } } }
+        } } }
+      ],
+      "expected": {
+        "supportsPromptCacheKey": false,
+        "reasoningField": "reasoning_text",
+        "maxTokensField": "max_tokens"
+      }
+    },
+    {
+      "id": "later-model-override",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": true }
+        } } } } }
+      ],
+      "expected": { "supportsPromptCacheKey": true }
+    }
+  ]
+}

@@ -36,6 +36,7 @@ async fn conn05_custom_publication_keeps_captured_generation_policy_and_mcp_leas
             npm: Some("@ai-sdk/openai-compatible".into()),
             name: Some("New native connection".into()),
             env: Vec::new(),
+            compatibility: Default::default(),
             options: Default::default(),
             models: BTreeMap::from([("exact/new".into(), serde_json::json!({"name":"New model"}))]),
         },

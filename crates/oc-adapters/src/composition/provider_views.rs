@@ -320,6 +320,7 @@ impl Composition {
                     npm: view.entry.npm.clone(),
                     name: view.entry.name.clone(),
                     env: Vec::new(),
+                    compatibility: view.entry.compatibility.clone(),
                     models: view.entry.models.clone(),
                     options: config::ProviderOptions {
                         base_url: if view.catalog.provider == crate::models_dev::OPENAI {

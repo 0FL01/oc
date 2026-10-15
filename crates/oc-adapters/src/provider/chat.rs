@@ -18,7 +18,8 @@ use super::{
 /// Fields a configured reasoning field may never shadow.
 const RESERVED_REASONING_FIELDS: [&str; 4] = ["role", "content", "refusal", "tool_calls"];
 
-/// Explicit Chat compatibility facts from the admitted model binding.
+/// Admitted compatibility subset. Chat uses reasoning/token fields; the cache
+/// capability keeps its tri-state meaning on the other supported wires too.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ChatCompat {
     /// Assistant reasoning field (e.g. `reasoning_content`).
@@ -26,7 +27,7 @@ pub(crate) struct ChatCompat {
     /// `max_completion_tokens` instead of the default `max_tokens`.
     pub max_completion_tokens: bool,
     /// The endpoint accepts `prompt_cache_key`.
-    pub supports_prompt_cache_key: bool,
+    pub supports_prompt_cache_key: Option<bool>,
 }
 
 /// Build the Chat request body. Effort is the exact selected value only.

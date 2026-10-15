@@ -432,7 +432,7 @@ pub struct ResponsesConfig {
     pub wire: WireBinding,
 }
 
-/// Immutable admitted wire binding: protocol plus explicit Chat facts by model.
+/// Immutable admitted wire binding: protocol and effective compatibility by model.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WireBinding {
     pub(crate) selection_scope: Option<String>,
@@ -454,7 +454,8 @@ pub struct WireBinding {
     pub(crate) endpoint: Option<crate::endpoint::EndpointBinding>,
     pub(crate) auth_policy: crate::auth::AuthPolicy,
     pub(crate) protocol: protocol::Protocol,
-    pub(crate) chat: BTreeMap<String, chat::ChatCompat>,
+    pub(crate) default_compatibility: chat::ChatCompat,
+    pub(crate) compatibility: BTreeMap<String, chat::ChatCompat>,
     pub(crate) messages_bearer: bool,
     /// Opt-in qualification only; absent from production builds and JSON config.
     #[cfg(test)]
@@ -494,7 +495,7 @@ impl WireBinding {
     pub(crate) fn chat(chat: BTreeMap<String, chat::ChatCompat>) -> Self {
         Self {
             protocol: protocol::Protocol::Chat,
-            chat,
+            compatibility: chat,
             ..Self::default()
         }
     }
@@ -1762,12 +1763,11 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     if config.wire.protocol == protocol::Protocol::Chat {
         let compat = config
             .wire
-            .chat
+            .compatibility
             .get(catalog_model)
-            .cloned()
-            .unwrap_or_default();
+            .unwrap_or(&config.wire.default_compatibility);
         return stream_chat_overlaid(
-            config, &compat, overlay, model, variant, input, tools, max_output, cancel, observe,
+            config, compat, overlay, model, variant, input, tools, max_output, cancel, observe,
             dispatch,
         )
         .await;
@@ -1926,7 +1926,7 @@ pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderE
         context.cache_body(
             protocol::Protocol::Chat,
             &mut body,
-            compat.supports_prompt_cache_key,
+            compat.supports_prompt_cache_key == Some(true),
         );
     }
     stream_body(

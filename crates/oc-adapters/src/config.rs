@@ -184,6 +184,9 @@ pub struct ProviderEntry {
     /// Connection options.
     #[serde(default)]
     pub options: ProviderOptions,
+    /// V2 provider defaults; explicit model compatibility overrides each field.
+    #[serde(default)]
+    pub compatibility: serde_json::Map<String, serde_json::Value>,
     /// Static models (ludka style); absent for discovery providers.
     #[serde(default)]
     pub models: BTreeMap<String, serde_json::Value>,
@@ -1243,6 +1246,7 @@ fn assemble_with_admission(
                         npm: entry.npm.clone(),
                         name: entry.name.clone(),
                         env: entry.env.clone(),
+                        compatibility: entry.compatibility.clone(),
                         options: ProviderOptions {
                             base_url: if id == crate::models_dev::OPENAI {
                                 entry.options.base_url.clone()
@@ -1270,6 +1274,7 @@ fn assemble_with_admission(
                         npm: entry.npm.clone(),
                         name: entry.name.clone(),
                         env: entry.env.clone(),
+                        compatibility: entry.compatibility.clone(),
                         options: ProviderOptions::default(),
                         models: entry.models.clone(),
                     },
@@ -1589,20 +1594,39 @@ pub(crate) fn provider_wire(
             reason: "competing auth header".into(),
         });
     }
-    let mut chat = BTreeMap::new();
+    for key in ["supportsEffortUpdates", "supportsNativeSystemUpdates"] {
+        if entry.compatibility.contains_key(key) {
+            return Err(ConfigError::Invalid {
+                field: format!("provider.{id}.compatibility.{key}"),
+                reason: "requires model-level compatibility".into(),
+            });
+        }
+    }
+    let default_compatibility = chat_compat(
+        &format!("provider.{id}"),
+        &serde_json::json!({"compatibility": entry.compatibility}),
+        &Default::default(),
+    )?;
+    let mut compatibility = BTreeMap::new();
     for (model, value) in &entry.models {
-        let compat = chat_compat(&format!("provider.{id}.models.{model}"), value)?;
-        if protocol == Protocol::Chat && compat != Default::default() {
-            chat.insert(model.clone(), compat);
+        let compat = chat_compat(
+            &format!("provider.{id}.models.{model}"),
+            value,
+            &default_compatibility,
+        )?;
+        if compat != Default::default() {
+            compatibility.insert(model.clone(), compat);
         }
     }
     let mut wire = match protocol {
-        Protocol::Chat => crate::provider::WireBinding::chat(chat),
+        Protocol::Chat => crate::provider::WireBinding::chat(BTreeMap::new()),
         Protocol::Messages => crate::provider::WireBinding::messages(
             entry.options.messages_bearer || entry.options.auth_token.is_some(),
         ),
         _ => Default::default(),
     };
+    wire.default_compatibility = default_compatibility;
+    wire.compatibility = compatibility;
     wire.total_timeout_ms = match entry.options.timeout {
         Some(ProviderTimeout::Milliseconds(ms)) if ms > 0 => Some(ms),
         Some(ProviderTimeout::Flag(false)) | None => None,
@@ -1693,6 +1717,7 @@ pub(crate) fn provider_wire(
 fn chat_compat(
     field: &str,
     model: &serde_json::Value,
+    defaults: &crate::provider::chat::ChatCompat,
 ) -> Result<crate::provider::chat::ChatCompat, ConfigError> {
     let invalid = |name: &str, reason: &str| ConfigError::Invalid {
         field: format!("{field}.{name}"),
@@ -1707,7 +1732,7 @@ fn chat_compat(
         serde_json::Value::Bool(_) => Ok(None),
         _ => Err(invalid(name, "must be a field name or {field}")),
     };
-    let mut compat = crate::provider::chat::ChatCompat::default();
+    let mut compat = defaults.clone();
     if let Some(value) = model.get("interleaved") {
         compat.reasoning_field = reasoning_field(value, "interleaved")?;
     }
@@ -1740,9 +1765,9 @@ fn chat_compat(
                 }
             }
             "supportsPromptCacheKey" => {
-                compat.supports_prompt_cache_key = value.as_bool().ok_or_else(|| {
+                compat.supports_prompt_cache_key = Some(value.as_bool().ok_or_else(|| {
                     invalid("compatibility.supportsPromptCacheKey", "must be boolean")
-                })?
+                })?)
             }
             other => {
                 return Err(ConfigError::UnsupportedCapability {
@@ -3092,6 +3117,7 @@ mod tests {
             npm: Some("@ai-sdk/openai-compatible".into()),
             name: None,
             env: vec![],
+            compatibility: Default::default(),
             options: ProviderOptions::default(),
             models: serde_json::from_value(models).unwrap(),
         };
@@ -3106,15 +3132,15 @@ mod tests {
         )
         .unwrap();
         assert_eq!(wire.protocol, Protocol::Chat);
-        let a = &wire.chat["a"];
+        let a = &wire.compatibility["a"];
         assert_eq!(a.reasoning_field.as_deref(), Some("reasoning_content"));
-        assert!(a.max_completion_tokens && a.supports_prompt_cache_key);
+        assert!(a.max_completion_tokens && a.supports_prompt_cache_key == Some(true));
         assert_eq!(
-            wire.chat["b"].reasoning_field.as_deref(),
+            wire.compatibility["b"].reasoning_field.as_deref(),
             Some("reasoning_details")
         );
         assert!(
-            !wire.chat.contains_key("c") && !wire.chat.contains_key("d"),
+            !wire.compatibility.contains_key("c") && !wire.compatibility.contains_key("d"),
             "boolean interleaved invents no field"
         );
         for bad in [

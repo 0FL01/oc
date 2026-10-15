@@ -151,6 +151,7 @@ pub(in crate::config) fn request_bindings(
             let mut entry: ProviderEntry = serde_json::from_value(json!({
                 "npm": model.get("package").or_else(|| raw.get("npm")),
                 "options": options,
+                "compatibility": raw.get("compatibility").cloned().unwrap_or_else(|| json!({})),
                 "models": {model_id: model},
             }))
             .map_err(|_| invalid(&model_prefix))?;

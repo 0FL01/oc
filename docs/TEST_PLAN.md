@@ -116,8 +116,9 @@ Contract: [T62](goals/2026-10-15-canonical-v2-config.md).
 
 ## Native V2 configuration semantics — T65/CFG14–CFG17
 
-Contract: [T65](goals/2026-10-15-v2-config-semantics.md). Oracle is pinned TS
-V2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`, not moving upstream HEAD.
+Contract: [T65](goals/2026-10-15-v2-config-semantics.md). Configuration oracle is
+released V2.0.30 `f16ef9ad8878279ea2be3cfab7baeed97aef61aa`, not moving upstream HEAD.
+This does not change the separate frozen TUI2.0.12 oracle.
 Use shared synthetic V2 documents/expected results; no real credentials.
 
 - **CFG14:** merge each compatibility level across documents before provider→model
@@ -136,7 +137,8 @@ Use shared synthetic V2 documents/expected results; no real credentials.
 
 Run targeted cases, affected adapter/binary crates (`oc-adapters`, `oc2`), then
 full locked workspace tests and fmt/strict Clippy/affected native builds. Finish
-and commit/push T65 before restoring the paused T44 WIP and continuing its goal.
+and commit/push T65, then verify the owner-authorized version/publication and
+isolated registry install before restoring paused T44 WIP and continuing its goal.
 
 ## Customize-opencode — T58/SKILL01 (approved 2026-10-08; pending)
 

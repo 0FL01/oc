@@ -3,9 +3,14 @@
 Status: active
 Source: owner plan 2026-10-15, sections1–5 and done/check/scope clauses; explicit
 instruction to pause T44, implement this plan, commit/push, then resume TUI parity.
+Additional source: owner explicitly authorizes a version bump and crates.io
+publication after configuration completion, using already-present Cargo credentials,
+then continuing the paused work. Never print credentials.
 Last updated: 2026-10-15
 Task: T65 / M8
-Oracle: local `opencode` V2.0.12 at `2670273ff17da96f85c5826ced57aa1b368754fa`.
+Configuration oracle: released V2.0.30 at `f16ef9ad8878279ea2be3cfab7baeed97aef61aa`,
+read-only source cache `/home/opencode/.cache/opencode-tmp/opencode/t65-ts-oracle`.
+TUI oracle remains local V2.0.12/`2670273`; it is not updated by this task.
 
 ## Objective
 
@@ -20,7 +25,8 @@ Complete the frozen Required Outcomes using the listed Change Envelope and
 Primary Evidence. Work on the smallest unresolved outcome. Do not add requirements
 from reviews, tests, tools, speculative risks, or optional source text. Finish
 when every required outcome is resolved and affected constraints remain satisfied.
-Then perform the owner's explicit return to the separately frozen T44 objective.
+Then publish the verified new version and perform the owner's explicit return to
+the separately frozen T44 objective.
 
 ## Frozen Contract
 
@@ -48,8 +54,9 @@ Then perform the owner's explicit return to the separately frozen T44 objective.
     feature is introduced.
   - Primary evidence: shared synthetic V2 cases for both boolean directions,
     missing values and cross-document overrides, checked against pinned TS.
-  - Status: pending
-  - Evidence: pending.
+  - Status: in_progress
+  - Evidence: shared21 TS/native binding cases, config42 and context2 PASS;
+    see evidence/T65/report.md. Protocol cache consumption still needs R3.
 - R3: V2 compatibility alone controls protocol-specific prompt cache-key behavior.
   - Source: owner section3; pinned `ai/src/protocols/shared.ts` and `openai-chat.ts`.
   - Acceptance: remove `settings.setCacheKey` as a runtime gate; preserve
@@ -104,14 +111,28 @@ Then perform the owner's explicit return to the separately frozen T44 objective.
     fmt/strict Clippy and affected native build gates.
   - Status: pending
   - Evidence: pending.
-- R7: deliver this configuration slice, then resume the paused TUI objective.
+- R7: deliver this configuration slice, then resume TUI after publication R8.
   - Source: «Потом коммит пуш, и продолжить работу с паритетом TUI».
   - Acceptance: reviewed configuration implementation/evidence committed and
-    normally pushed to the verified own origin/branch. Finish T65 through the
-    existing journal; resume T44 and restore its parked WIP once after checking
+    normally pushed to the verified own origin/branch. After R8, finish T65 through
+    the existing journal; resume T44 and restore its parked WIP once after checking
     Git state. No T44 completion or reduced visual acceptance is implied.
   - Primary evidence: implementation/closeout commits, ordinary push and journal
     transition; T44 resume checkpoint.
+  - Status: pending
+  - Evidence: pending.
+- R8: bump and publish the completed configuration implementation to crates.io.
+  - Source: subsequent explicit owner publication authorization.
+  - Acceptance: choose an appropriate unpublished version for exposed API changes,
+    update the native workspace/dependency versions coherently, preserve modular
+    packages/assets and MIT/third-party/AGPL provenance. Publish in dependency
+    order only after configuration gates pass; use Cargo's existing credentials
+    without exposing them. Verify public registry metadata and isolated
+    `cargo install oc2 --locked --version <new-version>` from the registry, not a
+    path/git fallback, plus actual installed help/version. No release/tag or
+    full-product READY claim. Resume TUI only after this delivery.
+  - Primary evidence: existing T64 publication workflow reused for the new version,
+    real package/publish receipts, registry metadata and isolated install output.
   - Status: pending
   - Evidence: pending.
 
@@ -134,33 +155,44 @@ Then perform the owner's explicit return to the separately frozen T44 objective.
   protocol consumers; existing permission/config/provider integration targets.
 - Shared synthetic fixtures/test-only pinned-TS oracle runner, current CONFIG/
   PROVIDER documentation and the existing journal/task registry as necessary.
+- Workspace/package Cargo manifests/lock and publication metadata, archive and
+  isolated-install checks as in T64; no new publishing framework or release/tag.
 - No new store, service, scheduler, production SDK/dependency or general
   abstraction. Expand only for a demonstrated blocker to these R outcomes.
 
 ## Current Checkpoint
 
-- Closes: R2 first, preserving R1.
-- Smallest next action: trace pinned provider/model compatibility folding and
-  native document merge/binding assembly; add the cross-document false/true
-  regression and fix effective compatibility before changing cache semantics.
-- Expected evidence: targeted shared compatibility cases with explicit false,
-  including an earlier model override versus a later provider default.
-- Replan if: the existing merge boundary destroys level provenance; keep the
-  smallest level-separated representation rather than changing all settings.
+- Closes: R2/R3 cache consumers, preserving R1.
+- Smallest next action: remove `settings.setCacheKey` as a runtime gate; consume
+  captured tri-state compatibility on each protocol. Preserve independent
+  request cache-none, header-affinity and Anthropic policies; do not invent a
+  Rust-only JSON cache switch or infer `settings.cache` from the AI request API.
+- Expected evidence: shared synthetic compiled/captured request JSON and headers
+  for absent/false/true/cache-none plus ignored arbitrary `settings.setCacheKey`.
+- Replan if: binding selection loses the captured request policy; keep it with
+  the existing operation/context owner rather than creating another registry.
 
 ## Current State
 
 - T44 delivered through `8a68dde06` and paused by the latest owner instruction.
   WIP is parked at Git stash `1087067b3025322885c6a964579d80cea4931b06`, not applied.
   Its detailed continuation is in `evidence/T44/configuration-pause-20261015.md`.
-- Oracle SHA checked directly; no configuration implementation edits yet.
+- Old TUI pin and stale `v2` branch were falsified as configuration oracles:
+  missing provider compatibility/sendsPromptCacheKey. Released V2.0.30 contains
+  the plan's exact schema/shared helpers. The R2 binding facet is implemented:
+  provider defaults/model overrides, tri-state cache capability and captured
+  public/base/variant binding facts. Exact shared TS21/native21 cases pass;
+  config42/context2 pass. Actual new cache semantics remain the next checkpoint.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
-- No external blocker demonstrated. Next: R2 compatibility.
+- Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
 
 ## Material Decisions
 
-- Pin the existing repository donor V2.0.12, rather than moving upstream HEAD.
+- Correct the initial oracle assumption using actual sources: V2.0.12 and `v2`
+  branch `4617210` predate provider defaults and cache-key opt-out; latest stable
+  tag V2.0.30 has the explicit features. Pin its full SHA, not a moving branch.
+  Keep the separate frozen TUI oracle untouched. This changes no required outcome.
 - User's `cargo test -p oc` means the current native binary package `oc2` after
   T64's rename; use its real Cargo name, not a new compatibility package.
 - Ordinary configured precedence and saved grants must both satisfy R5; inspect
@@ -169,4 +201,4 @@ Then perform the owner's explicit return to the separately frozen T44 objective.
 
 ## Completion
 
-Not complete; R1–R7 remain unresolved. T44 must be resumed after T65 delivery.
+Not complete; R1–R8 remain unresolved. T44 resumes after T65 delivery/publication.

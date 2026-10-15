@@ -91,6 +91,7 @@ impl Composition {
             ),
             name: Some(row.name),
             env: Vec::new(),
+            compatibility: Default::default(),
             models: row.models.clone(),
             options: config::ProviderOptions {
                 base_url: row.base_url.clone(),

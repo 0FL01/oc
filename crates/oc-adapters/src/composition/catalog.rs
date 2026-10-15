@@ -336,6 +336,7 @@ async fn load_catalog_inner(
                     npm: None,
                     name: Some(row.name),
                     env: Vec::new(),
+                    compatibility: Default::default(),
                     options: Default::default(),
                     models: row.models,
                 },

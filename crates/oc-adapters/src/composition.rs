@@ -1140,6 +1140,7 @@ async fn load_stages(
         npm: None,
         name: None,
         env: Vec::new(),
+        compatibility: Default::default(),
         options: Default::default(),
         models: Default::default(),
     };

@@ -143,10 +143,10 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 protocol,
                 // A custom authToken flag cannot replace the Go native scheme.
                 messages_bearer: true,
-                chat: BTreeMap::from([(
+                compatibility: BTreeMap::from([(
                     "model".into(),
                     crate::provider::chat::ChatCompat {
-                        supports_prompt_cache_key: supported,
+                        supports_prompt_cache_key: Some(supported),
                         ..Default::default()
                     },
                 )]),
