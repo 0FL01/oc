@@ -15,6 +15,8 @@ use oc_core::queries::{ServiceCode, ServiceStage};
 const MAX_TARGETS: usize = 4096;
 const MAX_PATH_BYTES: usize = 1024 * 1024;
 
+pub(crate) mod observer;
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Target {
     pub(crate) path: PathBuf,

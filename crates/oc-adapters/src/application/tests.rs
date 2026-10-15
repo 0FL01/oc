@@ -1510,6 +1510,10 @@ mod reload_tests {
             serde_json::from_str(&config("remote", &base, false)).unwrap();
         latest["agents"] = serde_json::json!({"build":{"prompt":"LATEST_ADMITTED_PROFILE"}});
         std::fs::write(&path, latest.to_string()).unwrap();
+        // The final bytes are restored before the GET completes. A comparison
+        // of only the final admitted value cannot prove this build stayed current.
+        std::fs::write(&path, candidate.to_string()).unwrap();
+        tokio::time::sleep(Duration::from_millis(10)).await;
         release.send(()).unwrap();
         let rejected = tokio::time::timeout(Duration::from_secs(3), first)
             .await
@@ -1517,6 +1521,7 @@ mod reload_tests {
             .unwrap();
         let retained = app.catalog().await.unwrap();
         let retained_generation = app.file_suggestions("".into(), 1).await.unwrap().generation;
+        std::fs::write(&path, latest.to_string()).unwrap();
         let recovered = app.reload_location().await;
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();

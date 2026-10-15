@@ -150,6 +150,11 @@ provider-name heuristics, periodic OpenProxy `/models` polling или paid campa
   не отменяет explicit force. Watch readiness/overflow/error/root recreation требуют
   reconcile/re-arm И admitted rescan. Missing parent anchors наблюдают known path,
   не расширяют config discovery/trust, не создают directories.
+  Implementation decision (2026-10-15): notify8.2's Linux and polling backends do not
+  retain/join their worker thread. The Debian/Linux adapter therefore uses notify's
+  event/handler vocabulary on an owned nonblocking inotify FD and one joined Tokio
+  task. No polling fallback, detached worker, extra runtime or generic watch framework;
+  the callback still only marks dirty and the admitted loader remains the read authority.
 - Фильтровать access/unrelated events, не все self-writes: atomic preference writes
   и concurrent external edits остаются наблюдаемы. Semantic no-op предотвращает loop;
   topology reconciles даже без новой generation. Global edits fan out loaded Locations.

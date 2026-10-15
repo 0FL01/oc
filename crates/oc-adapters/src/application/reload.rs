@@ -56,6 +56,65 @@ pub(super) async fn replace(
     provider_work: &mut provider_catalog::ProviderWork,
     events: &broadcast::Sender<CoreEvent>,
 ) -> Result<ReloadLocationSnapshot, CoreError> {
+    // Until the shared watch/manual coordinator owns this observer, the existing
+    // explicit operation owns it through joined cleanup. Never detach a watch
+    // thread or allow a failed candidate to leave a background observer behind.
+    let watch = composition::SourceWatch::start(&composition.watch_inputs)
+        .map_err(CoreError::Diagnostic)?;
+    let ready = watch.changed().await;
+    let result = async {
+        if ready.failed {
+            return Err(superseded());
+        }
+        if ready.rearm {
+            watch
+                .reconcile(&composition.watch_inputs, true)
+                .await
+                .map_err(CoreError::Diagnostic)?;
+        }
+        replace_observed(
+            db,
+            runtime,
+            composition,
+            effective,
+            registry,
+            sessions,
+            location_epoch,
+            provider_work,
+            events,
+            &watch,
+        )
+        .await
+    }
+    .await;
+    let cleanup = watch.shutdown().await;
+    cleanup.map_err(CoreError::Diagnostic)?;
+    result
+}
+
+fn superseded() -> CoreError {
+    CoreError::Diagnostic(crate::config::diagnostic::failure(
+        "native reload candidate",
+        &["source", "superseded"],
+        oc_core::queries::ServiceStage::Admission,
+        oc_core::queries::ServiceCode::SourceUnavailable,
+        oc_core::queries::ServiceAction::ReviewConfiguration,
+    ))
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn replace_observed(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &mut Composition,
+    effective: &mut Effective,
+    registry: &mut WorkspaceRegistry,
+    sessions: &BTreeMap<String, String>,
+    location_epoch: &AtomicU64,
+    provider_work: &mut provider_catalog::ProviderWork,
+    events: &broadcast::Sender<CoreEvent>,
+    watch: &composition::SourceWatch,
+) -> Result<ReloadLocationSnapshot, CoreError> {
     let mut next = composition::load_reload_local_with_env(
         &composition.project,
         composition.parent_env.clone(),
@@ -72,6 +131,24 @@ pub(super) async fn replace(
         )));
     }
     let admitted_inputs = next.reload_inputs().map_err(configuration)?;
+    watch
+        .reconcile(&next.watch_inputs, false)
+        .await
+        .map_err(CoreError::Diagnostic)?;
+    // Closing the load→watch registration window is a local admitted rescan,
+    // not a second discovery or an expanded read capability.
+    let ready_inputs = composition::load_reload_local_with_env(
+        &composition.project,
+        composition.parent_env.clone(),
+    )
+    .await
+    .map_err(configuration)?
+    .reload_inputs()
+    .map_err(configuration)?;
+    if ready_inputs != admitted_inputs {
+        return Err(superseded());
+    }
+    let epoch = watch.epoch();
     next.attach_custom_connections(db).map_err(configuration)?;
     next.resolve_credentials(db).await.map_err(configuration)?;
     next.attach_public_catalog(db).await;
@@ -88,14 +165,8 @@ pub(super) async fn replace(
     .map_err(configuration)?
     .reload_inputs()
     .map_err(configuration)?;
-    if current_inputs != admitted_inputs {
-        return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
-            "native reload candidate",
-            &["source", "superseded"],
-            oc_core::queries::ServiceStage::Admission,
-            oc_core::queries::ServiceCode::SourceUnavailable,
-            oc_core::queries::ServiceAction::ReviewConfiguration,
-        )));
+    if current_inputs != admitted_inputs || watch.epoch() != epoch {
+        return Err(superseded());
     }
     if next.provider_state.catalog_status == oc_core::queries::ProviderStatus::Failed {
         let diagnostic = next

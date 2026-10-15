@@ -38,6 +38,8 @@ tokio-tungstenite = { version = "=0.28.0", default-features = false, features = 
 # Code Mode: ECMAScript regular expressions for the native interpreter; no JS host.
 regress = { version = "=0.12.0", features = ["utf16"] }
 indexmap = "2"
+# Event/handler vocabulary; Linux descriptor/task ownership stays in the adapter.
+notify = { version = "=8.2.0", default-features = false }
 
 [dev-dependencies]
 tempfile.workspace = true
