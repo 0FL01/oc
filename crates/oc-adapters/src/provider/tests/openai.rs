@@ -34,7 +34,7 @@ async fn auth04_profile_headers_cannot_rebind_native_account_or_actor_on_http() 
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: WireBinding {
                 transport: Some(crate::provider::websocket::Transport::Http),
                 auth_policy: if subscription {

@@ -116,7 +116,7 @@ fn config(listener: &tokio::net::TcpListener) -> ResponsesConfig {
         connect_timeout: Duration::from_secs(2),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     }
 }
@@ -161,7 +161,7 @@ async fn compaction_real_summary_wire_usage_tail_dcp_undo_redo_reopen_fork() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let mut provider = config(&listener);
     provider.wire.go = true;
-    provider.set_cache_key = true;
+    provider.cache = crate::provider::CacheMode::Auto;
     let task = tokio::spawn(async move {
         let (mut socket, request) = read_request(&listener).await;
         assert_eq!(request["tools"], serde_json::json!([]));
@@ -1087,7 +1087,7 @@ fn compaction_route_hash_uses_effective_case_insensitive_tenant_auth_and_endpoin
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: BTreeMap::from([("X-Tenant".into(), "private-tenant".into())]),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let route = crate::compaction::route_identity("p", "m", &provider).unwrap();

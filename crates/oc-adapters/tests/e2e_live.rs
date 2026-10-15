@@ -54,7 +54,7 @@ fn live_env() -> Option<(ResponsesConfig, String, Option<String>)> {
     Some((
         ResponsesConfig {
             headers: BTreeMap::new(),
-            set_cache_key: true,
+            cache: oc_adapters::provider::CacheMode::Auto,
             wire: Default::default(),
             base_url: base,
             api_key: key,

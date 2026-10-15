@@ -237,7 +237,7 @@ pub(crate) async fn probe(
         chunk_timeout_ms: crate::provider::CHUNK_TIMEOUT_MS,
         connect_timeout: Duration::from_secs(10),
         allow_private: false,
-        set_cache_key: false,
+        cache: Default::default(),
         wire: Default::default(),
     };
     provider.wire.endpoint = Some(

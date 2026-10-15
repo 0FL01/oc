@@ -99,6 +99,7 @@ the shape, not a claim about an existing model); merge into the existing file.
   "providers": {
     "lab": {
       "package": "@ai-sdk/openai",
+      "compatibility": { "supportsPromptCacheKey": true },
       "settings": {
         "baseURL": "https://api.example.invalid/v1",
         "apiKey": "{env:LAB_API_KEY}"
@@ -124,6 +125,15 @@ the exact configured base path; do not append a vendor route or infer protocol,
 reasoning or capabilities from a model name. Use supported catalog/variant IDs;
 static metadata and discovery do not prove wire support. File-tool schemas follow
 the captured committed model view: use the advertised family, not stale tools.
+
+Supported compatibility fields inherit from provider defaults to model overrides;
+documents merge each level first, so an earlier model `false` still overrides a
+later provider `true`. Variants have no compatibility object. For body prompt
+cache keys, Responses permits an available key unless `supportsPromptCacheKey`
+is false; Chat requires true. Do not add a Rust-only `settings.setCacheKey` switch:
+that arbitrary package setting is ignored, not legacy syntax. Request `cache:none`
+is an AI/SDK policy, not a native `settings.cache` JSON option. Header affinity and
+Messages automatic cache blocks are separate from the cache-key capability.
 
 Native OpenAI browser/device/API-key authentication has explicit operator steps.
 Never substitute an OpenProxy credential for an ordinary OpenAI key or auto-confirm

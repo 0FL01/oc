@@ -117,7 +117,8 @@ Contract: [T62](goals/2026-10-15-canonical-v2-config.md).
 ## Native V2 configuration semantics — T65/CFG14–CFG17
 
 Contract: [T65](goals/2026-10-15-v2-config-semantics.md). Configuration oracle is
-released V2.0.30 `f16ef9ad8878279ea2be3cfab7baeed97aef61aa`, not moving upstream HEAD.
+V2 revision `b4f19bfe74a972c2919aa4c9d7445fa61f41b226`, before the upstream
+fifteen-minute chunk-default change, not moving upstream HEAD.
 This does not change the separate frozen TUI2.0.12 oracle.
 Use shared synthetic V2 documents/expected results; no real credentials.
 

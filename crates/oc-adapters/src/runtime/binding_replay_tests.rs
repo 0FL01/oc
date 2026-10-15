@@ -122,7 +122,7 @@ async fn go03_chat_and_messages_runtime_retry_records_partial_without_tool_repla
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         provider.wire.protocol = protocol;
@@ -302,7 +302,7 @@ async fn go04_actual_wires_reopen_and_fork_preserve_settled_pairs_without_opaque
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         provider.wire.protocol = source;

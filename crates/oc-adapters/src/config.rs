@@ -121,9 +121,6 @@ pub struct ProviderOptions {
     /// Idle ms between body chunks (6000000 = 100 min, not 60 s).
     #[serde(rename = "chunkTimeout", default)]
     pub chunk_timeout: Option<u64>,
-    /// Stable cache key flag.
-    #[serde(rename = "setCacheKey", default)]
-    pub set_cache_key: Option<bool>,
     /// Extra generation headers; native auth and transport headers take precedence.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
@@ -145,7 +142,6 @@ impl std::fmt::Debug for ProviderOptions {
             .field("credentials", &"[redacted]")
             .field("timeout", &self.timeout)
             .field("chunk_timeout", &self.chunk_timeout)
-            .field("set_cache_key", &self.set_cache_key)
             .finish_non_exhaustive()
     }
 }
@@ -1497,7 +1493,6 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "timeout",
     "chunkTimeout",
     "transport",
-    "setCacheKey",
     "headers",
     "body",
     "reasoningEffort",
@@ -2664,12 +2659,12 @@ mod tests {
         let text = r#"{
             // ludka static + ludka2 discovery
             "providers": {
-                "ludka": {"package": "@ai-sdk/openai", "settings": {
+                "ludka": {"package": "@ai-sdk/openai", "compatibility":{"supportsPromptCacheKey":true}, "settings": {
                     "baseURL": "{env:LUDKA_API_URL}", "apiKey": "{env:LUDKA_API_KEY}",
-                    "timeout": false, "setCacheKey": true, "chunkTimeout": 6000000}},
-                "ludka2": {"package": "@ai-sdk/openai", "settings": {
+                    "timeout": false, "chunkTimeout": 6000000}},
+                "ludka2": {"package": "@ai-sdk/openai", "compatibility":{"supportsPromptCacheKey":true}, "settings": {
                     "baseURL": "{env:LUDKA2_API_URL}", "apiKey": "{env:LUDKA2_API_KEY}",
-                    "timeout": false, "setCacheKey": true, "chunkTimeout": 6000000}}
+                    "timeout": false, "chunkTimeout": 6000000}}
             },
             "experimental": {"policies": [{"action": "provider.use", "resource": "*", "effect": "deny"}, {"action": "provider.use", "resource": "ludka2", "effect": "allow"}]},
         }"#;

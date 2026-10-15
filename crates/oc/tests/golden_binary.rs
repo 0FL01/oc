@@ -488,8 +488,9 @@ impl Fixture {
                 "dcp": {"enabled": true},
                 "providers": {"fixture": {
                     "package": "@ai-sdk/openai",
+                    "compatibility": {"supportsPromptCacheKey": false},
                     "settings": {"baseURL": peer.url, "apiKey": "golden-key",
-                                "timeout": false, "setCacheKey": false},
+                                "timeout": false},
                     "models": {MODEL: {"name": "Golden fixture",
                                       "limit": {"context": 200_000, "output": 8_000}}}
                 }},

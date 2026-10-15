@@ -45,9 +45,9 @@ impl Fixture {
             config.join("opencode.json"),
             json!({
                 "model": format!("fixture/{MODEL}"), "permissions": [{"action": "read", "resource": "*", "effect": "allow"}],
-                "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {
+                "providers": {"fixture": {"package": "@ai-sdk/openai", "compatibility": {"supportsPromptCacheKey": cache}, "settings": {
                     "baseURL": format!("http://{addr}/proxy/v1"), "apiKey": "fixture-key",
-                    "timeout": false, "chunkTimeout": 6000000, "setCacheKey": cache,
+                    "timeout": false, "chunkTimeout": 6000000,
                     "headers": {"x-audit-trace": "configured-extra-header"}
                 }, "models": {MODEL: {"name": "Strict fixture", "limit": {
                     "context": 32768, "output": 789
@@ -377,7 +377,10 @@ fn aud09_aud10_binary_exact_typed_tool_history_survives_restart() {
             "strict ordered input at round {index}"
         );
         assert_eq!(body["max_output_tokens"], 789);
-        assert!(body.get("prompt_cache_key").is_none(), "setCacheKey:false");
+        assert!(
+            body.get("prompt_cache_key").is_none(),
+            "supportsPromptCacheKey:false"
+        );
         assert!(
             headers
                 .to_ascii_lowercase()
@@ -455,7 +458,7 @@ fn aud12_binary_delta_before_terminal_and_silent_stream_sigint() {
             body["prompt_cache_key"]
                 .as_str()
                 .is_some_and(|s| !s.is_empty()),
-            "setCacheKey:true"
+            "supportsPromptCacheKey:true"
         );
         if send_delta {
             socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"visible-before-terminal\"}\n\n").expect("one delta");

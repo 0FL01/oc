@@ -1055,7 +1055,8 @@ Full styled-cell/PNG/cursor, temporal/effect/resource и current-source gates
 compatibility без отдельного runtime setCacheKey; provider-only transport settings
 и раздельные HTTP/WS deadlines; ordered ordinary permission overrides отдельно от
 authority/sandbox/delegation ceilings. Только synthetic fixtures, pinned OC2
-released V2.0.30 `f16ef9ad8878279ea2be3cfab7baeed97aef61aa` (старый TUI oracle
+V2 revision `b4f19bfe74a972c2919aa4c9d7445fa61f41b226` (до upstream-перехода
+на900000ms chunk default; требуемые300000ms сохранены; старый TUI oracle
 `2670273` не меняется); V1 по-прежнему fail-closed, без миграции,
 user-config/secrets.env edits, настоящих credentials или полного plugin host.
 После проверенных cargo/config/provider/security gates — commit/push и явно

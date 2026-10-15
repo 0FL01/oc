@@ -254,7 +254,7 @@ fn runtime_of<'a>(harness: &'a Harness, generation: Generation) -> Runtime<'a> {
 fn provider_of(base: &str) -> ResponsesConfig {
     ResponsesConfig {
         headers: BTreeMap::new(),
-        set_cache_key: true,
+        cache: oc_adapters::provider::CacheMode::Auto,
         wire: Default::default(),
         base_url: base.to_string(),
         api_key: "test-key".to_string(),

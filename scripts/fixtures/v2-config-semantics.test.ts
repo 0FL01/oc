@@ -5,9 +5,12 @@ import { Effect, Schema } from "effect"
 import { Config } from "@opencode/core/config"
 import { ConfigProviderPlugin } from "@opencode/core/config/plugin/provider"
 import { Model } from "@opencode/core/model"
+import { ModelResolver } from "@opencode/core/model-resolver"
 import { Plugin } from "@opencode/core/plugin"
 import { PluginHost } from "@opencode/core/plugin/host"
 import { Provider } from "@opencode/core/provider"
+import { LLM, Message, ToolDefinition } from "@opencode/ai"
+import { compileRequest } from "@opencode/ai/route/client"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "../plugin/fixture"
 import fixture from "../fixture/oc-native-v2-config.fixture.json"
@@ -15,19 +18,64 @@ import fixture from "../fixture/oc-native-v2-config.fixture.json"
 const it = testEffect(PluginTestLayer)
 const decode = Schema.decodeUnknownSync(Info)
 
+const configuredModel = Effect.fn(function* (documents: unknown[]) {
+  const entries = documents.map((info) => new Document({ type: "document", info: decode(info) }))
+  const plugin = yield* Plugin.Service
+  const host = yield* PluginHost.make(plugin)
+  yield* ConfigProviderPlugin.Plugin.effect(host).pipe(Effect.provide(Config.testLayer(entries)))
+  const models = yield* Model.Service
+  const model = yield* models.get(Provider.ID.make("fixture"), Model.ID.make("m"))
+  if (model === undefined) throw new Error("Fixture model was not materialized")
+  return model
+})
+
+function cacheBlocks(value: unknown): number {
+  if (Array.isArray(value)) return value.reduce((sum, item) => sum + cacheBlocks(item), 0)
+  if (value === null || typeof value !== "object") return 0
+  return Object.entries(value).reduce(
+    (sum, [key, item]) => sum + Number(key === "cache_control" && item !== undefined) + cacheBlocks(item),
+    0,
+  )
+}
+
 for (const packageName of fixture.protocols) {
   for (const item of fixture.compatibility) {
     it.effect(`CFG14 ${packageName} / ${item.id}`, () =>
       Effect.gen(function* () {
         const documents = [fixture.base, ...item.documents, { providers: { fixture: { package: packageName } } }]
-        const entries = documents.map((info) => new Document({ type: "document", info: decode(info) }))
-        const plugin = yield* Plugin.Service
-        const host = yield* PluginHost.make(plugin)
-        yield* ConfigProviderPlugin.Plugin.effect(host).pipe(Effect.provide(Config.testLayer(entries)))
-        const models = yield* Model.Service
-        const model = yield* models.get(Provider.ID.make("fixture"), Model.ID.make("m"))
-        expect(model).toBeDefined()
-        expect(model?.compatibility ?? {}).toEqual(item.expected)
+        const model = yield* configuredModel(documents)
+        expect(model.compatibility ?? {}).toEqual(item.expected)
+      }),
+    )
+  }
+  for (const item of fixture.cache_requests) {
+    it.effect(`CFG15 ${packageName} / ${item.id}`, () =>
+      Effect.gen(function* () {
+        const model = yield* configuredModel([
+          fixture.base,
+          ...item.documents,
+          { providers: { fixture: { package: packageName } } },
+        ])
+        expect(model.headers).toEqual(fixture.base.providers.fixture.headers)
+        const resolved = yield* ModelResolver.fromCatalogModel(model)
+        const minimal = "minimal_input" in item && item.minimal_input === true
+        const compiled = yield* compileRequest(LLM.request({
+          model: resolved,
+          cache: item.cache === "none" ? "none" : "auto",
+          promptCacheKey: "provide_key" in item && item.provide_key === false ? undefined : fixture.prompt_cache_key,
+          system: minimal ? undefined : "initial",
+          messages: [Message.user("first"), Message.assistant("answer"), Message.user("last")],
+          tools: minimal ? undefined : [ToolDefinition.make({ name: "read", description: "read", inputSchema: { type: "object" } })],
+          generation: { maxTokens: 64 },
+        }))
+        const wire = fixture.wire_names[packageName as keyof typeof fixture.wire_names]
+        const expected = item.expected_key[wire as keyof typeof item.expected_key]
+        expect(compiled.body.prompt_cache_key).toEqual(expected ? fixture.prompt_cache_key : undefined)
+        expect(cacheBlocks(compiled.body)).toBe(wire === "messages" ? item.expected_blocks : 0)
+        if (wire === "messages" && minimal) {
+          expect(compiled.body.system).toBeUndefined()
+          expect(compiled.body.tools).toBeUndefined()
+        }
       }),
     )
   }

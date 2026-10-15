@@ -23,7 +23,16 @@ Rust design default: `store:false`, explicit local input projection, function to
 
 `timeout:false`: нет общего generation deadline в provider adapter; отдельно остаются connect timeout и cancellation. `chunkTimeout:6000000` = 6 000 000 миллисекунд = 100 минут idle между body chunks. Не заменить «разумными 60s». Idle timer по полученным bytes; complete SSE event/arguments независимо ограничены по размеру. Heartbeats могут поддерживать stream при unlimited total — это видимая пользовательская настройка, не гарантия конечности. Discovery имеет совершенно отдельные сроки.
 
-`setCacheKey:true`: передавать стабильный, не содержащий secrets, session/provider-scoped `prompt_cache_key`; конкретное upstream-compatible построение сравнить с baseline wire fixture. Cache key не меняется на каждый chunk/retry; reset на смене provider identity. DCP меняет prompt prefix, поэтому cache hit не обещается. Не добавлять vendor-specific cache anchors.
+Кэширование — [V2 semantics / T65](goals/2026-10-15-v2-config-semantics.md):
+`providers.<id>.compatibility.supportsPromptCacheKey` задаёт default, а поле модели
+его переопределяет, в том числе явным `false`. Для Responses отсутствие флага или
+`true` допускает `prompt_cache_key`, `false` запрещает; Chat требует явного `true`.
+Runtime key — стабильная, не содержащая secrets session/fork-root lineage, не hash
+каждого нового body. AI request `cache:none` запрещает body key, но не отключает
+header affinity. Messages Auto расставляет собственные bounded `cache_control`
+независимо от этого capability-флага. `settings.setCacheKey` больше не управляет
+runtime: это обычный package-specific JSON/ignored-option diagnostic, не V1-синтаксис.
+DCP меняет prompt prefix, поэтому cache hit не обещается.
 
 Reasoning effort — непустая строка из выбранного effective variant, передаваемая в `reasoning.effort`; без жёсткого enum по имени модели. Disabled variants не отображаются/не выбираются. Не объявлять несуществующую возможность из одного имени модели.
 
@@ -93,8 +102,8 @@ Accounting charge `4 × payload bytes + 256/event` не является изм�
 Превышение даёт явную sanitized ошибку, не silent truncate. HTTP 400 и terminal
 failure не повторяются; не более двух attempts только до commitment.
 
-`max_output_tokens` берётся из выбранного лимита; `setCacheKey:false`/absent не
-добавляет key, true хеширует logical body без credentials/headers. Extra headers
+`max_output_tokens` берётся из выбранного лимита; актуальная V2 cache policy выше
+заменяет старый `setCacheKey` gate и body-hash identity раннего T34. Extra headers
 задаются в provider `headers` (или `settings.headers`), разрешают substitutions, но native
 Authorization/Accept/Content-Type имеют приоритет без учёта регистра. Transport
 overrides (Host, Content-Length и т. п.) отвергаются; redirects запрещены.

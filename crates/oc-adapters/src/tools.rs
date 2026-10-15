@@ -2441,7 +2441,7 @@ mod tests {
     fn provider_config(base: &str) -> ResponsesConfig {
         ResponsesConfig {
             headers: BTreeMap::new(),
-            set_cache_key: true,
+            cache: crate::provider::CacheMode::Auto,
             wire: Default::default(),
             base_url: base.to_string(),
             api_key: "k".to_string(),

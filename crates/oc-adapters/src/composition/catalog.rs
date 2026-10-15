@@ -222,7 +222,7 @@ async fn load_catalog_inner(
                     .unwrap_or(provider::CHUNK_TIMEOUT_MS),
                 connect_timeout: Duration::from_secs(10),
                 allow_private: env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
-                set_cache_key: entry.options.set_cache_key.unwrap_or(false),
+                cache: Default::default(),
                 wire: config::provider_wire(discovery::PROVIDER_ID, entry)
                     .map_err(|_| invalid(source, &["provider", "options"]))?,
             };

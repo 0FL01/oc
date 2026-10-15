@@ -6,6 +6,212 @@ use serde_json::json;
 use std::{collections::BTreeMap, sync::atomic::AtomicBool, time::Duration};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 
+async fn read_request(socket: &mut tokio::net::TcpStream) -> (String, serde_json::Value) {
+    let mut bytes = Vec::new();
+    let mut chunk = [0; 4096];
+    let (head, length) = loop {
+        let n = socket.read(&mut chunk).await.unwrap();
+        assert!(n > 0 && bytes.len() < 1_048_576);
+        bytes.extend_from_slice(&chunk[..n]);
+        if let Some(head) = bytes.windows(4).position(|x| x == b"\r\n\r\n") {
+            let length = String::from_utf8_lossy(&bytes[..head])
+                .lines()
+                .find_map(|line| {
+                    line.to_ascii_lowercase()
+                        .strip_prefix("content-length: ")
+                        .and_then(|n| n.parse::<usize>().ok())
+                })
+                .unwrap();
+            break (head + 4, length);
+        }
+    };
+    while bytes.len() < head + length {
+        let n = socket.read(&mut chunk).await.unwrap();
+        assert!(n > 0);
+        bytes.extend_from_slice(&chunk[..n]);
+    }
+    (
+        String::from_utf8_lossy(&bytes[..head]).to_ascii_lowercase(),
+        serde_json::from_slice(&bytes[head..head + length]).unwrap(),
+    )
+}
+
+async fn reply(socket: &mut tokio::net::TcpStream, protocol: Protocol) {
+    let response = match protocol {
+        Protocol::Responses => format!(
+            "data: {}\n\n",
+            json!({"type":"response.completed","response":{"status":"completed","output":[]}})
+        ),
+        Protocol::Chat => format!(
+            "data: {}\n\ndata: [DONE]\n\n",
+            json!({"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]})
+        ),
+        Protocol::Messages => [
+            json!({"type":"message_start","message":{"role":"assistant"}}),
+            json!({"type":"message_delta","delta":{"stop_reason":"end_turn"}}),
+            json!({"type":"message_stop"}),
+        ]
+        .iter()
+        .map(|v| format!("data: {v}\n\n"))
+        .collect(),
+    };
+    socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",response.len()).as_bytes()).await.unwrap();
+}
+
+fn cache_blocks(value: &serde_json::Value) -> usize {
+    match value {
+        serde_json::Value::Array(values) => values.iter().map(cache_blocks).sum(),
+        serde_json::Value::Object(values) => {
+            usize::from(values.contains_key("cache_control"))
+                + values.values().map(cache_blocks).sum::<usize>()
+        }
+        _ => 0,
+    }
+}
+
+#[tokio::test]
+async fn cfg15_shared_v2_cache_cases_reach_actual_requests() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/v2-config-semantics.json"
+    ))
+    .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/prefix", listener.local_addr().unwrap());
+    let expected = fixture.clone();
+    let peer = tokio::spawn(async move {
+        for package in expected["protocols"].as_array().unwrap() {
+            let name = expected["wire_names"][package.as_str().unwrap()]
+                .as_str()
+                .unwrap();
+            let protocol = match name {
+                "responses" => Protocol::Responses,
+                "chat" => Protocol::Chat,
+                "messages" => Protocol::Messages,
+                _ => unreachable!("closed fixture protocol"),
+            };
+            for case in expected["cache_requests"].as_array().unwrap() {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let (headers, body) = read_request(&mut socket).await;
+                assert_eq!(body["model"], "wire-model");
+                if case["expected_key"][name].as_bool().unwrap() {
+                    assert_eq!(
+                        body["prompt_cache_key"], expected["prompt_cache_key"],
+                        "{} / {name}",
+                        case["id"]
+                    );
+                } else {
+                    assert!(
+                        body.get("prompt_cache_key").is_none(),
+                        "{} / {name}",
+                        case["id"]
+                    );
+                }
+                assert!(body.get("setCacheKey").is_none());
+                if protocol == Protocol::Messages && case["minimal_input"] == true {
+                    assert!(body.get("system").is_none() && body.get("tools").is_none());
+                }
+                assert_eq!(
+                    cache_blocks(&body),
+                    if protocol == Protocol::Messages {
+                        case["expected_blocks"].as_u64().unwrap() as usize
+                    } else {
+                        0
+                    },
+                    "{} / {name}",
+                    case["id"]
+                );
+                for (key, value) in expected["base"]["providers"]["fixture"]["headers"]
+                    .as_object()
+                    .unwrap()
+                {
+                    assert!(
+                        headers.contains(&format!("{key}: {}\r\n", value.as_str().unwrap())),
+                        "affinity survives {} / {name}",
+                        case["id"]
+                    );
+                }
+                reply(&mut socket, protocol).await;
+            }
+        }
+    });
+    for package in fixture["protocols"].as_array().unwrap() {
+        for case in fixture["cache_requests"].as_array().unwrap() {
+            let documents = std::iter::once(fixture["base"].clone())
+                .chain(case["documents"].as_array().unwrap().iter().cloned())
+                .chain(std::iter::once(
+                    json!({"providers":{"fixture":{"package":package}}}),
+                ));
+            let sources = documents
+                .enumerate()
+                .map(|(index, document)| crate::config::Source {
+                    path: format!("/fixture-{index}.json"),
+                    trusted: false,
+                    text: document.to_string(),
+                })
+                .collect::<Vec<_>>();
+            let generation = crate::config::assemble(&sources, &BTreeMap::new(), None).unwrap();
+            let mut config = generation.providers["fixture"].options.request_bindings
+                [&("m".to_owned(), None)]
+                .clone();
+            // Only the test transport is rebound to its local peer; canonical
+            // documents and captured model/settings/compatibility are unchanged.
+            config.base_url = base.clone();
+            config.wire.endpoint = None;
+            config.allow_private = true;
+            config
+                .wire
+                .requests
+                .insert(("m".to_owned(), None), config.clone());
+            config.cache = if case["cache"] == "none" {
+                CacheMode::None
+            } else {
+                CacheMode::Auto
+            };
+            let config = if case["provide_key"] == false {
+                config
+            } else {
+                config.with_context(RequestContext {
+                    project: "project-fixture".into(),
+                    session: "session-fixture".into(),
+                    parent: None,
+                    cache: fixture["prompt_cache_key"].as_str().unwrap().into(),
+                    operation: None,
+                })
+            };
+            let input = [
+                InputItem::message(InputRole::Developer, "initial"),
+                InputItem::message(InputRole::User, "first"),
+                InputItem::message(InputRole::Assistant, "answer"),
+                InputItem::message(InputRole::User, "last"),
+            ];
+            let tools = [crate::provider::ToolDef {
+                name: "read".into(),
+                description: "read".into(),
+                parameters: json!({"type":"object"}),
+            }];
+            stream_input_overlaid(
+                &config,
+                &RequestOverlay::default(),
+                "m",
+                None,
+                &input[usize::from(case["minimal_input"] == true)..],
+                if case["minimal_input"] == true {
+                    &[]
+                } else {
+                    &tools
+                },
+                64,
+                &AtomicBool::new(false),
+                &mut |_| {},
+                &mut || async { Ok(()) },
+            )
+            .await
+            .unwrap();
+        }
+    }
+    peer.await.unwrap();
+}
+
 #[tokio::test]
 async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
     let root = tempfile::tempdir().unwrap();
@@ -29,30 +235,7 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
             (Protocol::Messages, false, false),
         ] {
             let (mut socket, _) = listener.accept().await.unwrap();
-            let mut bytes = Vec::new();
-            let mut chunk = [0; 4096];
-            let (head, length) = loop {
-                let n = socket.read(&mut chunk).await.unwrap();
-                assert!(n > 0 && bytes.len() < 1_048_576);
-                bytes.extend_from_slice(&chunk[..n]);
-                if let Some(head) = bytes.windows(4).position(|x| x == b"\r\n\r\n") {
-                    let length = String::from_utf8_lossy(&bytes[..head])
-                        .lines()
-                        .find_map(|l| {
-                            l.to_ascii_lowercase()
-                                .strip_prefix("content-length: ")
-                                .and_then(|n| n.parse::<usize>().ok())
-                        })
-                        .unwrap();
-                    break (head + 4, length);
-                }
-            };
-            while bytes.len() < head + length {
-                let n = socket.read(&mut chunk).await.unwrap();
-                assert!(n > 0);
-                bytes.extend_from_slice(&chunk[..n]);
-            }
-            let headers = String::from_utf8_lossy(&bytes[..head]).to_ascii_lowercase();
+            let (headers, body) = read_request(&mut socket).await;
             for (name, value) in [
                 ("user-agent", crate::USER_AGENT),
                 ("x-opencode-client", "oc"),
@@ -75,15 +258,13 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 assert!(headers.contains("authorization: bearer resolved-key\r\n"));
                 assert!(!headers.contains("x-api-key:"));
             }
-            let body: serde_json::Value =
-                serde_json::from_slice(&bytes[head..head + length]).unwrap();
             match protocol {
                 Protocol::Responses => assert_eq!(body["prompt_cache_key"], expected.cache),
                 Protocol::Chat if supported => assert_eq!(body["prompt_cache_key"], expected.cache),
                 Protocol::Chat => assert!(body.get("prompt_cache_key").is_none()),
                 Protocol::Messages => {
-                    let count = body.to_string().matches("cache_control").count();
-                    assert_eq!(count, if cached { 4 } else { 0 });
+                    let count = cache_blocks(&body);
+                    assert_eq!(count, if cached { 3 } else { 0 });
                     assert!(body.get("prompt_cache_key").is_none());
                     if cached {
                         assert_eq!(
@@ -97,25 +278,7 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                     }
                 }
             }
-            let response = match protocol {
-                Protocol::Responses => format!(
-                    "data: {}\n\n",
-                    json!({"type":"response.completed","response":{"status":"completed","output":[]}})
-                ),
-                Protocol::Chat => format!(
-                    "data: {}\n\ndata: [DONE]\n\n",
-                    json!({"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]})
-                ),
-                Protocol::Messages => [
-                    json!({"type":"message_start","message":{"role":"assistant"}}),
-                    json!({"type":"message_delta","delta":{"stop_reason":"end_turn"}}),
-                    json!({"type":"message_stop"}),
-                ]
-                .iter()
-                .map(|v| format!("data: {v}\n\n"))
-                .collect(),
-            };
-            socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{response}",response.len()).as_bytes()).await.unwrap();
+            reply(&mut socket, protocol).await;
         }
     });
     for (index, protocol, cached, supported) in [
@@ -137,7 +300,11 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 ("X-SESSION-ID".into(), "spoof-config".into()),
                 ("X-API-Key".into(), "spoof-auth".into()),
             ]),
-            set_cache_key: cached,
+            cache: if cached {
+                crate::provider::CacheMode::Auto
+            } else {
+                crate::provider::CacheMode::None
+            },
             wire: WireBinding {
                 go: true,
                 protocol,
@@ -146,7 +313,8 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
                 compatibility: BTreeMap::from([(
                     "model".into(),
                     crate::provider::chat::ChatCompat {
-                        supports_prompt_cache_key: Some(supported),
+                        supports_prompt_cache_key: (protocol == Protocol::Chat)
+                            .then_some(supported),
                         ..Default::default()
                     },
                 )]),
@@ -215,7 +383,7 @@ fn go03_custom_headers_and_identity_compatibility_are_not_go_policy() {
             ("User-Agent".into(), "custom-agent".into()),
             ("X-Session-Id".into(), "custom-session".into()),
         ]),
-        set_cache_key: true,
+        cache: crate::provider::CacheMode::Auto,
         wire: WireBinding::default(),
     };
     assert!(

@@ -6,9 +6,9 @@ instruction to pause T44, implement this plan, commit/push, then resume TUI pari
 Additional source: owner explicitly authorizes a version bump and crates.io
 publication after configuration completion, using already-present Cargo credentials,
 then continuing the paused work. Never print credentials.
-Last updated: 2026-10-15
+Last updated: 2026-10-16
 Task: T65 / M8
-Configuration oracle: released V2.0.30 at `f16ef9ad8878279ea2be3cfab7baeed97aef61aa`,
+Configuration oracle: V2 revision `b4f19bfe74a972c2919aa4c9d7445fa61f41b226`,
 read-only source cache `/home/opencode/.cache/opencode-tmp/opencode/t65-ts-oracle`.
 TUI oracle remains local V2.0.12/`2670273`; it is not updated by this task.
 
@@ -54,9 +54,10 @@ the separately frozen T44 objective.
     feature is introduced.
   - Primary evidence: shared synthetic V2 cases for both boolean directions,
     missing values and cross-document overrides, checked against pinned TS.
-  - Status: in_progress
-  - Evidence: shared21 TS/native binding cases, config42 and context2 PASS;
-    see evidence/T65/report.md. Protocol cache consumption still needs R3.
+  - Status: verified
+  - Evidence: shared21 binding cases and24 actual protocol requests, including
+    cross-document model false with an API-model alias; corrected TS pin45 tests
+    PASS. See evidence/T65/report.md and R3's cache/selection checks.
 - R3: V2 compatibility alone controls protocol-specific prompt cache-key behavior.
   - Source: owner section3; pinned `ai/src/protocols/shared.ts` and `openai-chat.ts`.
   - Acceptance: remove `settings.setCacheKey` as a runtime gate; preserve
@@ -67,8 +68,10 @@ the separately frozen T44 objective.
     config needs only `compatibility.supportsPromptCacheKey:true`.
   - Primary evidence: exact captured synthetic Responses/Chat/Messages request
     JSON and affinity headers for absent/false/true/cache-none cases.
-  - Status: pending
-  - Evidence: pending.
+  - Status: verified
+  - Evidence: shared8 cache cases ×3 protocols, TS45/95 expectations overall;
+    native context3, provider79, config42, actual-binary Responses4 and strict
+    adapter/all-target Clippy PASS. No runtime setCacheKey gate remains.
 - R4: provider-only transport settings and separate native timeout budgets.
   - Source: owner section4; pinned `core/src/provider.ts::modelSettings` and actual
     HTTP/WebSocket protocol consumers.
@@ -162,37 +165,56 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R2/R3 cache consumers, preserving R1.
-- Smallest next action: remove `settings.setCacheKey` as a runtime gate; consume
-  captured tri-state compatibility on each protocol. Preserve independent
-  request cache-none, header-affinity and Anthropic policies; do not invent a
-  Rust-only JSON cache switch or infer `settings.cache` from the AI request API.
-- Expected evidence: shared synthetic compiled/captured request JSON and headers
-  for absent/false/true/cache-none plus ignored arbitrary `settings.setCacheKey`.
-- Replan if: binding selection loses the captured request policy; keep it with
-  the existing operation/context owner rather than creating another registry.
+- Closes: R4 provider-only overlays and independent deadlines, preserving R1.
+- Smallest next action: use the actual pinned `Provider.modelSettings/timeouts`
+  in shared cases; exclude exactly four model/variant settings before option
+  admission and origin folding. Then implement independent HTTP header/chunk
+  defaults300000ms, individual false-disable and retained cancellation; derive
+  WebSocket waits separately from its pinned channel policy.
+- Expected evidence: shared effective bindings/defaults and controlled delayed
+  headers/chunks/frames, optional total deadline and cancellation after disable.
+- Replan if: provider-only filtering changes other settings or endpoint authority.
 
 ## Current State
 
 - T44 delivered through `8a68dde06` and paused by the latest owner instruction.
   WIP is parked at Git stash `1087067b3025322885c6a964579d80cea4931b06`, not applied.
   Its detailed continuation is in `evidence/T44/configuration-pause-20261015.md`.
-- Old TUI pin and stale `v2` branch were falsified as configuration oracles:
-  missing provider compatibility/sendsPromptCacheKey. Released V2.0.30 contains
-  the plan's exact schema/shared helpers. The R2 binding facet is implemented:
-  provider defaults/model overrides, tri-state cache capability and captured
-  public/base/variant binding facts. Exact shared TS21/native21 cases pass;
-  config42/context2 pass. Actual new cache semantics remain the next checkpoint.
+- Old TUI pin/stale `v2` branch lack required configuration fields; initial f16
+  established compatibility/cache behavior, then R4's explicit300000ms defaults
+  selected the exact pre-fifteen-minute-change revision above. R2/R3 are verified:
+  same21 compatibility cases and24 protocol cache requests, current TS45/95
+  expectations, native context3/provider79/config42/Responses4/strict Clippy PASS.
+  Request cache:none survives captured model selection, affinity is independent,
+  and minimal Messages requests retain absent fields rather than nulls.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
 - Evidence: `evidence/T65/report.md`. No external blocker demonstrated.
 
 ## Material Decisions
 
+- 2026-10-16, R4 oracle correction: V2.0.30/f16 has a **900000ms** chunk
+  default, contradicting the owner's explicit **300000ms** requirement. Upstream
+  commit `d8129ca1e036a967add1e7078679fd9b3697a180` introduced that fifteen-minute
+  default; its exact parent `b4f19bfe74a972c2919aa4c9d7445fa61f41b226` retains
+  provider compatibility, shared cache-key opt-out, the same Auto cache policy
+  and four provider-only settings with both HTTP defaults300000ms. Correct the
+  configuration oracle to that parent and rerun the shared tests unchanged in
+  intent. Do not weaken the owner's deadline requirements or change the TUI pin.
+  Earlier f16 receipts remain historical evidence, not rewritten qualifications.
+- R3: the runtime request policy exposes the supported AI `cache:auto|none`
+  subset, not a new JSON `settings` switch. Replace the obsolete SDK cache flag
+  with that typed policy and keep captured selection/context ownership. Actual
+  V2.0.30 `cache-policy.ts` marks the last tool, distinct first/last system parts
+  and one conversation tail (maximum4); the shared one-system fixture has3,
+  not the old native fill-all-remaining-message-slots4. Align that Auto shape
+  while keeping capability-false independent, cache-none and affinity semantics;
+  no new manual-hint/TTL configuration capability is implied.
 - Correct the initial oracle assumption using actual sources: V2.0.12 and `v2`
   branch `4617210` predate provider defaults and cache-key opt-out; latest stable
-  tag V2.0.30 has the explicit features. Pin its full SHA, not a moving branch.
-  Keep the separate frozen TUI oracle untouched. This changes no required outcome.
+  tag V2.0.30 established the compatibility/cache features. The later R4 check
+  above corrects its timeout-era mismatch; use the exact matching revision, not
+  a moving branch. Keep the separate frozen TUI oracle untouched.
 - User's `cargo test -p oc` means the current native binary package `oc2` after
   T64's rename; use its real Cargo name, not a new compatibility package.
 - Ordinary configured precedence and saved grants must both satisfy R5; inspect
@@ -201,4 +223,5 @@ the separately frozen T44 objective.
 
 ## Completion
 
-Not complete; R1–R8 remain unresolved. T44 resumes after T65 delivery/publication.
+Not complete; R2/R3 are verified, R1/R4–R8 remain unresolved. T44 resumes after
+T65 delivery/publication.

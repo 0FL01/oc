@@ -255,7 +255,7 @@ fn go01_auth_authority_priority_scope_and_unsupported_oauth() {
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: Default::default(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     assert!(!provider.auth_ready());

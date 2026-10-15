@@ -74,7 +74,7 @@ async fn go01_discovery_captured_scope_refuses_escape_and_redirect_without_forwa
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: Default::default(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     config.wire.endpoint = Some(EndpointBinding::admit(&base, true, "local config").unwrap());

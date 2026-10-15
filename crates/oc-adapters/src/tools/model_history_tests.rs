@@ -12,7 +12,7 @@ fn config(protocol: Protocol) -> ResponsesConfig {
         connect_timeout: std::time::Duration::from_secs(1),
         allow_private: false,
         headers: Default::default(),
-        set_cache_key: true,
+        cache: crate::provider::CacheMode::Auto,
         wire: WireBinding {
             protocol,
             ..Default::default()

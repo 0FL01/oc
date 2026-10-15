@@ -168,7 +168,7 @@ fn go01_messages_auth_is_exclusive_and_debug_is_secret_safe() {
             connect_timeout: std::time::Duration::from_secs(5),
             allow_private: false,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: provider_wire("local", &entry).unwrap(),
         };
         config
@@ -215,7 +215,7 @@ async fn go03_messages_transport_failure_and_cancel_share_one_attempt_owner() {
             connect_timeout: std::time::Duration::from_secs(2),
             allow_private: true,
             headers: BTreeMap::from([("anthropic-beta".into(), "provider-beta".into())]),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: WireBinding::messages(false),
         };
         let cancel = std::sync::Arc::new(AtomicBool::new(false));

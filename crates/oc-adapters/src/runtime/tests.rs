@@ -435,7 +435,7 @@ mod vis38_review_tests {
                 max_output: 1000,
                 provider: ResponsesConfig {
                     headers: BTreeMap::new(),
-                    set_cache_key: true,
+                    cache: crate::provider::CacheMode::Auto,
                     wire: Default::default(),
                     base_url: base,
                     api_key: "fixture".into(),

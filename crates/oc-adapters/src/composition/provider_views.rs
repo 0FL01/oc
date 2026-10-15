@@ -267,7 +267,7 @@ impl Composition {
                     .unwrap_or(provider::CHUNK_TIMEOUT_MS),
                 connect_timeout: Duration::from_secs(10),
                 allow_private: false,
-                set_cache_key: entry.options.set_cache_key.unwrap_or(false),
+                cache: Default::default(),
                 wire,
             };
             if provider.base_url.is_empty() {

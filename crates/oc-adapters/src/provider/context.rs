@@ -3,7 +3,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
-use super::{ProviderError, protocol::Protocol};
+use super::{CacheMode, ProviderError, protocol::Protocol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RequestContext {
@@ -87,43 +87,62 @@ impl RequestContext {
     }
 
     pub(super) fn cache_body(
-        &self,
+        context: Option<&Self>,
         protocol: Protocol,
         body: &mut serde_json::Value,
-        chat_supported: bool,
+        supported: Option<bool>,
+        cache: CacheMode,
     ) {
         match protocol {
-            Protocol::Responses => body["prompt_cache_key"] = self.cache.clone().into(),
-            Protocol::Chat if chat_supported => {
-                body["prompt_cache_key"] = self.cache.clone().into()
-            }
-            Protocol::Chat => {}
-            Protocol::Messages => {
-                // OC2 priority: tools, initial system, then message parts. Only
-                // the terminal part of each useful prefix needs a breakpoint.
-                let mut remaining = 4;
-                for field in ["tools", "system"] {
-                    if let Some(last) = body[field].as_array_mut().and_then(|v| v.last_mut()) {
-                        last["cache_control"] = serde_json::json!({"type":"ephemeral"});
-                        remaining -= 1;
-                    }
-                }
-                if let Some(messages) = body["messages"].as_array_mut() {
-                    for message in messages.iter_mut().rev() {
-                        if remaining == 0 {
-                            break;
-                        }
-                        if let Some(last) = message["content"].as_array_mut().and_then(|v| {
-                            v.iter_mut().rev().find(|p| {
-                                p["type"] != "thinking" && p["type"] != "redacted_thinking"
-                            })
-                        }) {
-                            last["cache_control"] = serde_json::json!({"type":"ephemeral"});
-                            remaining -= 1;
-                        }
-                    }
+            Protocol::Responses | Protocol::Chat => {
+                if cache.sends_prompt_cache_key(protocol, supported)
+                    && let Some(context) = context
+                {
+                    body["prompt_cache_key"] = context.cache.clone().into();
                 }
             }
+            Protocol::Messages if cache == CacheMode::Auto => {
+                // V2 Auto: final tool, first/last distinct system boundaries,
+                // then one conversation tail. At most four markers; independent
+                // of the OpenAI-compatible cache-key capability and identity.
+                if let Some(last) = body
+                    .get_mut("tools")
+                    .and_then(serde_json::Value::as_array_mut)
+                    .and_then(|v| v.last_mut())
+                {
+                    last["cache_control"] = serde_json::json!({"type":"ephemeral"});
+                }
+                if let Some(system) = body
+                    .get_mut("system")
+                    .and_then(serde_json::Value::as_array_mut)
+                {
+                    let length = system.len();
+                    for (index, part) in system.iter_mut().enumerate() {
+                        if index == 0 || index + 1 == length {
+                            part["cache_control"] = serde_json::json!({"type":"ephemeral"});
+                        }
+                    }
+                }
+                if let Some(parts) = body
+                    .get_mut("messages")
+                    .and_then(serde_json::Value::as_array_mut)
+                    .and_then(|v| v.last_mut())
+                    .and_then(|v| {
+                        v.get_mut("content")
+                            .and_then(serde_json::Value::as_array_mut)
+                    })
+                    && let Some(index) = parts
+                        .iter()
+                        .rposition(|p| p["type"] == "text")
+                        .or_else(|| parts.len().checked_sub(1))
+                {
+                    let part = &mut parts[index];
+                    if part["type"] != "thinking" && part["type"] != "redacted_thinking" {
+                        part["cache_control"] = serde_json::json!({"type":"ephemeral"});
+                    }
+                }
+            }
+            Protocol::Messages => {}
         }
     }
 }

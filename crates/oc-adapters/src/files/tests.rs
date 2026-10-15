@@ -333,7 +333,7 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
         };
         let provider = ResponsesConfig {
             headers: BTreeMap::new(),
-            set_cache_key: true,
+            cache: crate::provider::CacheMode::Auto,
             wire: Default::default(),
             base_url: base,
             api_key: "fixture".into(),

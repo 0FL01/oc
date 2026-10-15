@@ -51,7 +51,7 @@ async fn go03_absent_and_false_timeout_have_no_total_deadline() {
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: Default::default(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         stream_input_counted(
@@ -136,7 +136,7 @@ async fn go03_total_deadline_preserves_each_wire_output_and_one_attempt() {
                 connect_timeout: Duration::from_secs(1),
                 allow_private: true,
                 headers: Default::default(),
-                set_cache_key: false,
+                cache: crate::provider::CacheMode::None,
                 wire: WireBinding {
                     protocol,
                     total_timeout_ms: Some(120),

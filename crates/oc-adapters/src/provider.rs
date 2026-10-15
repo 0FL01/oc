@@ -426,10 +426,29 @@ pub struct ResponsesConfig {
     pub allow_private: bool,
     /// Extra request headers (values are never included in Debug).
     pub headers: BTreeMap<String, String>,
-    /// Enable supported cache fields using captured session/fork lineage.
-    pub set_cache_key: bool,
+    /// AI request cache policy, separate from the V2 model's cache-key capability.
+    pub cache: CacheMode,
     /// Admitted wire protocol and per-model compatibility facts.
     pub wire: WireBinding,
+}
+
+/// Supported AI request cache policy. This is not a package `settings` switch.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum CacheMode {
+    #[default]
+    Auto,
+    None,
+}
+
+impl CacheMode {
+    fn sends_prompt_cache_key(self, protocol: protocol::Protocol, supported: Option<bool>) -> bool {
+        self == Self::Auto
+            && match protocol {
+                protocol::Protocol::Responses => supported != Some(false),
+                protocol::Protocol::Chat => supported == Some(true),
+                protocol::Protocol::Messages => false,
+            }
+    }
 }
 
 /// Immutable admitted wire binding: protocol and effective compatibility by model.
@@ -1647,7 +1666,15 @@ pub async fn stream_generation_observed(
         variant.and_then(|v| v.reasoning_effort.as_deref()),
     ))?;
     let mut body = request_body(model, variant, prompt, tools);
-    if !config.set_cache_key {
+    let compat = config
+        .wire
+        .compatibility
+        .get(model)
+        .unwrap_or(&config.wire.default_compatibility);
+    if !config.cache.sends_prompt_cache_key(
+        protocol::Protocol::Responses,
+        compat.supports_prompt_cache_key,
+    ) {
         body.as_object_mut()
             .expect("request object")
             .remove("prompt_cache_key");
@@ -1733,6 +1760,7 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
     observe: &mut (dyn FnMut(&StreamItem) + Send),
     dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
+    let cache = config.cache;
     let config = config.for_selection(model, variant.map(|v| v.name.as_str()));
     if !config.auth_ready() {
         return Err(ProviderError::InvalidConfig);
@@ -1760,15 +1788,15 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         reasoning_effort: Some(effort.to_owned()),
     });
     let variant = effective_variant.as_ref();
+    let compat = config
+        .wire
+        .compatibility
+        .get(catalog_model)
+        .unwrap_or(&config.wire.default_compatibility);
     if config.wire.protocol == protocol::Protocol::Chat {
-        let compat = config
-            .wire
-            .compatibility
-            .get(catalog_model)
-            .unwrap_or(&config.wire.default_compatibility);
         return stream_chat_overlaid(
-            config, compat, overlay, model, variant, input, tools, max_output, cancel, observe,
-            dispatch,
+            config, cache, compat, overlay, model, variant, input, tools, max_output, cancel,
+            observe, dispatch,
         )
         .await;
     }
@@ -1797,11 +1825,13 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
             else { output.remove("effort"); }
         }
         settings::merge(&mut body, &serde_json::json!(overlay.body));
-        if config.set_cache_key
-            && let Some(context) = &config.wire.context
-        {
-            context.cache_body(protocol::Protocol::Messages, &mut body, false);
-        }
+        context::RequestContext::cache_body(
+            config.wire.context.as_ref(),
+            protocol::Protocol::Messages,
+            &mut body,
+            compat.supports_prompt_cache_key,
+            cache,
+        );
         return stream_body(
             config,
             None,
@@ -1845,11 +1875,13 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         .settings
         .apply(protocol::Protocol::Responses, &mut body, effort);
     settings::merge(&mut body, &serde_json::json!(overlay.body));
-    if config.set_cache_key
-        && let Some(context) = &config.wire.context
-    {
-        context.cache_body(protocol::Protocol::Responses, &mut body, false);
-    }
+    context::RequestContext::cache_body(
+        config.wire.context.as_ref(),
+        protocol::Protocol::Responses,
+        &mut body,
+        compat.supports_prompt_cache_key,
+        cache,
+    );
     stream_body(
         config,
         None,
@@ -1888,6 +1920,7 @@ fn bounded_json(value: &impl Serialize) -> Result<Vec<u8>, ProviderError> {
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
+    cache: CacheMode,
     compat: &chat::ChatCompat,
     overlay: &RequestOverlay,
     model: &str,
@@ -1920,15 +1953,13 @@ pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderE
         variant.and_then(|v| v.reasoning_effort.as_deref()),
     );
     settings::merge(&mut body, &serde_json::json!(overlay.body));
-    if config.set_cache_key
-        && let Some(context) = &config.wire.context
-    {
-        context.cache_body(
-            protocol::Protocol::Chat,
-            &mut body,
-            compat.supports_prompt_cache_key == Some(true),
-        );
-    }
+    context::RequestContext::cache_body(
+        config.wire.context.as_ref(),
+        protocol::Protocol::Chat,
+        &mut body,
+        compat.supports_prompt_cache_key,
+        cache,
+    );
     stream_body(
         config,
         Some(compat),
@@ -2799,7 +2830,7 @@ mod tests {
             connect_timeout: Duration::from_secs(5),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: true,
+            cache: crate::provider::CacheMode::Auto,
             wire: Default::default(),
         }
     }
@@ -2940,6 +2971,7 @@ mod tests {
         let mut observed = Vec::new();
         let generation = stream_chat_overlaid(
             &config,
+            config.cache,
             &ChatCompat::default(),
             &Default::default(),
             "chat-model",
@@ -2992,7 +3024,7 @@ mod tests {
             ], abort_after: None,
         })).await;
         let mut config = test_config(&server.base);
-        config.set_cache_key = false;
+        config.cache = crate::provider::CacheMode::None;
         config.headers = BTreeMap::from([
             ("X-Trace".into(), "private-extra-value".into()),
             ("aUtHoRiZaTiOn".into(), "wrong".into()),

@@ -172,7 +172,7 @@ async fn hot01_initial_lane_is_captured_after_the_mcp_request_await() {
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         let catalog = crate::models::ModelCatalog {

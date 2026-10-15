@@ -141,7 +141,7 @@ async fn go03_captured_options_reach_each_native_wire_with_selected_effort() {
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: Default::default(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: crate::config::provider_wire("fixture", &entry).unwrap(),
         };
         let server = tokio::spawn(async move {

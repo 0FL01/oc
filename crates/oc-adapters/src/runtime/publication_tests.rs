@@ -73,7 +73,7 @@ for line in sys.stdin:
         connect_timeout: Duration::from_secs(1),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let catalog = ModelCatalog {
@@ -243,7 +243,7 @@ for line in sys.stdin:
         connect_timeout: Duration::from_secs(1),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let catalog = ModelCatalog {
@@ -517,7 +517,7 @@ fn hot01_profile_history_keeps_closed_pairs_and_each_request_origin() {
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     }
     .provenance("fixture", "m")
@@ -707,7 +707,7 @@ fn hot01_child_source_publication_is_shared_but_launch_authority_is_not() {
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let child = owner.owned_child_for(&issued, &agent, &parent, "child-op", "fixture", &provider);
@@ -935,7 +935,7 @@ async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals(
         connect_timeout: Duration::from_secs(1),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let catalog = ModelCatalog {
@@ -1172,7 +1172,7 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
         connect_timeout: Duration::from_secs(1),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let catalog = ModelCatalog {
@@ -1439,7 +1439,7 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         let catalog = ModelCatalog {

@@ -18,7 +18,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
     std::fs::create_dir(&project).unwrap();
     let config = json!({"model":"fixture/catalog#fast", "agents":{"title":{"model":"fixture/title"}},
     "providers":{"fixture":{
-        "package":"@ai-sdk/openai", "settings":{"baseURL":"https://example.com/parent","setCacheKey":true},
+        "package":"@ai-sdk/openai", "compatibility":{"supportsPromptCacheKey":true}, "settings":{"baseURL":"https://example.com/parent"},
         "headers":{"X-Overlay":"provider"}, "body":{"nested":{"provider":1}},
         "models":{
             "catalog":{"modelID":"API_MESSAGES_ID", "package":"@ai-sdk/anthropic",

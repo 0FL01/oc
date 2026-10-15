@@ -10,7 +10,7 @@ fn config() -> ResponsesConfig {
         chunk_timeout_ms: 1000,
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         headers: BTreeMap::from([
             ("Originator".into(), "INJECTED_ORIGIN".into()),
             ("ChatGPT-Account-Id".into(), "INJECTED_ACCOUNT".into()),

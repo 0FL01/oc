@@ -333,7 +333,7 @@ async fn go03_chronological_effort_reaches_wire_and_messages_beta_is_conditional
                 connect_timeout: std::time::Duration::from_secs(1),
                 allow_private: true,
                 headers: Default::default(),
-                set_cache_key: false,
+                cache: crate::provider::CacheMode::None,
                 wire: WireBinding {
                     protocol,
                     chronology: std::collections::BTreeMap::from([(

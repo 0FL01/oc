@@ -389,9 +389,16 @@ Chat/Messages support**.
 - Preserve native timeout:false/no-overall-deadline, numeric timeout/chunkTimeout
   milliseconds with validation and idle policy plus cancellation/byte caps. OC2's
   native package strips these core settings; the old SDK wrapper is not native parity.
-  Keep setCacheKey compatibility control, but move key identity from request-body hash
-  to session/fork-root lineage; Responses prompt_cache_key, capability-gated Chat and
-  explicit Messages cache_control (max four breakpoints) have separate lowering.
+  T65 supersedes the old setCacheKey gate: effective provider→model
+  `compatibility.supportsPromptCacheKey` preserves absent/false/true. Responses
+  permits a supplied lineage key unless false; Chat requires true. The AI request
+  cache policy (`CacheMode::Auto`/`None` in the native SDK, not `settings.cache`)
+  independently controls automatic body caching; None omits prompt cache keys.
+  Header affinity remains independent. Messages Auto marks the last tool,
+  first/last distinct system boundaries and one message tail (at most four),
+  independently of the OpenAI-compatible capability. Package-specific
+  `settings.setCacheKey` JSON is no longer a runtime switch or a legacy error.
+  Runtime key identity remains session/fork-root lineage, not request-body hash.
   No Go-only headers/cache policy leaks into custom bindings.
 
 Qualification uses synthetic host-shaped configs, not copied secrets: legacy/canonical

@@ -29,7 +29,7 @@ impl Fixture {
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: Default::default(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: WireBinding {
                 endpoint: Some(
                     crate::endpoint::EndpointBinding::admit(base, true, "fixture").unwrap(),

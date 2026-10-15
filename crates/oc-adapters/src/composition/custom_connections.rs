@@ -113,7 +113,7 @@ impl Composition {
             chunk_timeout_ms: provider::CHUNK_TIMEOUT_MS,
             connect_timeout: Duration::from_secs(10),
             allow_private: false,
-            set_cache_key: false,
+            cache: Default::default(),
             wire,
         };
         let mut state =

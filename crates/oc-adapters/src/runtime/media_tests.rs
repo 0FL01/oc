@@ -184,7 +184,7 @@ async fn mcp12_compaction_receives_native_media_and_recent_checkpoint_tail_reope
         base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
         api_key: "fixture-key".into(),
         headers: BTreeMap::new(),
-        set_cache_key: true,
+        cache: crate::provider::CacheMode::Auto,
         wire: Default::default(),
         timeout: Some(false),
         chunk_timeout_ms: 5000,

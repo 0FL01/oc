@@ -1,7 +1,7 @@
 {
   "oracle": {
-    "release": "v2.0.30",
-    "commit": "f16ef9ad8878279ea2be3cfab7baeed97aef61aa"
+    "revision": "parent of the upstream fifteen-minute chunk-default change",
+    "commit": "b4f19bfe74a972c2919aa4c9d7445fa61f41b226"
   },
   "base": {
     "providers": {
@@ -9,6 +9,10 @@
         "settings": {
           "baseURL": "https://example.com/v1",
           "apiKey": "synthetic-t65-only"
+        },
+        "headers": {
+          "x-session-affinity": "session-fixture",
+          "x-session-id": "session-fixture"
         },
         "models": {
           "m": {
@@ -23,6 +27,94 @@
     "@opencode/ai/providers/openai",
     "@opencode/ai/providers/openai-compatible",
     "@opencode/ai/providers/anthropic"
+  ],
+  "wire_names": {
+    "@opencode/ai/providers/openai": "responses",
+    "@opencode/ai/providers/openai-compatible": "chat",
+    "@opencode/ai/providers/anthropic": "messages"
+  },
+  "prompt_cache_key": "cache-fixture",
+  "cache_requests": [
+    {
+      "id": "absent-auto",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": { "settings": { "setCacheKey": false } } } }],
+      "expected_key": { "responses": true, "chat": false, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "true-with-obsolete-false",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": false }
+      } } }],
+      "expected_key": { "responses": true, "chat": true, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "false-with-obsolete-true",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": false },
+        "settings": { "setCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "absent-cache-none",
+      "cache": "none",
+      "documents": [{ "providers": { "fixture": { "settings": { "setCacheKey": true } } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 0
+    },
+    {
+      "id": "true-cache-none",
+      "cache": "none",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 0
+    },
+    {
+      "id": "package-json-not-a-switch",
+      "cache": "auto",
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true },
+        "settings": { "setCacheKey": { "vendor": "opaque" } }
+      } } }],
+      "expected_key": { "responses": true, "chat": true, "messages": false },
+      "expected_blocks": 3
+    },
+    {
+      "id": "key-absent-keeps-message-policy",
+      "cache": "auto",
+      "provide_key": false,
+      "minimal_input": true,
+      "documents": [{ "providers": { "fixture": {
+        "compatibility": { "supportsPromptCacheKey": true }
+      } } }],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 1
+    },
+    {
+      "id": "earlier-model-false-beats-later-provider-true-on-wire",
+      "cache": "auto",
+      "documents": [
+        { "providers": { "fixture": { "models": { "m": {
+          "compatibility": { "supportsPromptCacheKey": false }
+        } } } } },
+        { "providers": { "fixture": {
+          "compatibility": { "supportsPromptCacheKey": true },
+          "settings": { "setCacheKey": true }
+        } } }
+      ],
+      "expected_key": { "responses": false, "chat": false, "messages": false },
+      "expected_blocks": 3
+    }
   ],
   "compatibility": [
     {

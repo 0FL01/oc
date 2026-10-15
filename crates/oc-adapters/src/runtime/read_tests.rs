@@ -286,7 +286,7 @@ async fn tool16_compaction_carries_original_local_image_array_and_recent_tail() 
         base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
         api_key: "synthetic".into(),
         headers: BTreeMap::new(),
-        set_cache_key: true,
+        cache: crate::provider::CacheMode::Auto,
         wire: Default::default(),
         timeout: Some(false),
         chunk_timeout_ms: 5000,

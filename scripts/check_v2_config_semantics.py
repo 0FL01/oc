@@ -11,7 +11,7 @@ from pathlib import Path
 import shutil
 import subprocess
 
-ORACLE = "f16ef9ad8878279ea2be3cfab7baeed97aef61aa"
+ORACLE = "b4f19bfe74a972c2919aa4c9d7445fa61f41b226"
 
 
 def main():

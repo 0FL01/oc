@@ -211,7 +211,7 @@ pub(in crate::config) fn request_bindings(
                 connect_timeout: Duration::from_secs(10),
                 allow_private: false,
                 headers: entry.options.headers,
-                set_cache_key: entry.options.set_cache_key.unwrap_or(false),
+                cache: Default::default(),
                 wire,
             };
             let mut shape = request.clone();

@@ -13,7 +13,7 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
         .join("home/config/opencode/opencode.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    config["providers"]["fixture"]["settings"]["setCacheKey"] = true.into();
+    config["providers"]["fixture"]["compatibility"]["supportsPromptCacheKey"] = true.into();
     config["providers"]["fixture"]["settings"]["nativeFallbackLimits"] =
         serde_json::json!({"context":32768,"output":128});
     config["providers"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!([

@@ -184,11 +184,11 @@ impl Fixture {
                 "permissions": [{"action": "read", "resource": "*", "effect": "allow"}],
                 "providers": {"fixture": {
                     "package": "@ai-sdk/openai",
+                    "compatibility": {"supportsPromptCacheKey": false},
                     "settings": {
                         "baseURL": format!("http://{addr}/proxy/v1"),
                         "apiKey": "fixture-key",
-                        "timeout": false,
-                        "setCacheKey": false
+                        "timeout": false
                     },
                     "models": {MODEL: {"name": "Memory fixture", "limit": {
                         "context": 1_000_000, "output": 100_000

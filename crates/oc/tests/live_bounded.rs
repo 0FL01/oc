@@ -870,7 +870,7 @@ impl Fixture {
         ]);
         let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "codemode": false, "url":entry["url"], "headers":entry["headers"], "oauth":false, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
         let config = json!({"model": self.model, "permissions":permissions, "dcp":{"enabled":true},
-            "providers": {provider: {"package":"@ai-sdk/openai", "settings":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":{"servers":mcp}});
+            "providers": {provider: {"package":"@ai-sdk/openai", "compatibility":{"supportsPromptCacheKey":false}, "settings":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":{"servers":mcp}});
         let config_dir = self.config_dir.as_ref().expect("private config");
         std::fs::create_dir_all(config_dir).expect("private config directory");
         std::fs::write(config_dir.join("opencode.json"), config.to_string())
@@ -928,8 +928,9 @@ impl Fixture {
                 "dcp": {"enabled": true},
                 "providers": {"fixture": {
                     "package": "@ai-sdk/openai",
+                    "compatibility": {"supportsPromptCacheKey": false},
                     "settings": {"baseURL": peer.url, "apiKey": "dry-run-key",
-                                "timeout": false, "setCacheKey": false},
+                                "timeout": false},
                     "models": {"gpt-dry-run-model": {"name": "Dry run",
                         "limit": {"context": 128_000, "output": 8_000}}}
                 }},

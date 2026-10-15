@@ -19,7 +19,7 @@ async fn resumed_provider_checkpoint_keeps_reported_context_without_usage_or_too
         connect_timeout: Duration::from_secs(1),
         allow_private: true,
         headers: BTreeMap::new(),
-        set_cache_key: false,
+        cache: crate::provider::CacheMode::None,
         wire: Default::default(),
     };
     let mut models = models::ModelCatalog {

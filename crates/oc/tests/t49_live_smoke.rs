@@ -160,7 +160,7 @@ fn probe_route(model: &str, url: String, key: String) -> oc_adapters::provider::
         connect_timeout: Duration::from_secs(8),
         allow_private: false,
         headers: Default::default(),
-        set_cache_key: false,
+        cache: oc_adapters::provider::CacheMode::None,
         wire: Default::default(),
     };
     let cancel = std::sync::atomic::AtomicBool::new(false);

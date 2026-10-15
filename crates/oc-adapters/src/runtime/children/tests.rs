@@ -26,7 +26,7 @@ async fn hot01_child_recovery_uses_saved_provenance_not_the_current_counter() {
             connect_timeout: std::time::Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: Default::default(),
         };
         let catalog = ModelCatalog {

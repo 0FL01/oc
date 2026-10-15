@@ -304,7 +304,7 @@ async fn go06_exhausted_campaign_blocks_every_wire_before_transport_dispatch() {
             connect_timeout: Duration::from_secs(1),
             allow_private: false,
             headers: BTreeMap::new(),
-            set_cache_key: false,
+            cache: crate::provider::CacheMode::None,
             wire: WireBinding {
                 go: true,
                 protocol,
