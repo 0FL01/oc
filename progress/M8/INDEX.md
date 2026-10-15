@@ -17,4 +17,4 @@ Plan: ../../roadmap/M8.md
 - [T58](T58/INDEX.md) [done] — Встроенный customize-opencode: конфигурационный ранбук native oc; latest: 0001.md.
 - [T59](T59/INDEX.md) [done] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: 0003.md.
 - [T60](T60/INDEX.md) [done] — Code Mode execute на нативном Rust-интерпретаторе; latest: 0001.md.
-- [T61](T61/INDEX.md) [active] — Hot reload и native shared service; latest: 0010.md.
+- [T61](T61/INDEX.md) [active] — Hot reload и native shared service; latest: 0011.md.

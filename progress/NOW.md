@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-14T23:41:12+00:00
+State updated: 2026-10-15T00:32:23+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,35 +14,36 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: source322455183 qualifies cancellation-safe execution/MCP commit.
-R1/R2 remain partial, R3–R5 and public HOT01–HOT04 delivery remain pending.
+T61 IN_PROGRESS: source7ce43773e integrates complete idle application publication
+on the same runtime/MCP supervisor. R1/R2 remain partial, R3–R5 pending.
 
 ## Checks
 
-- New real lost-ACK barrier was red: accepted MCP desired2 left execution1.
-  The existing supervisor now owns the expected-view checked source commit;
-  losing/dropping its caller cannot leave that half-publication.
-- Same-id superseded source refuses before replacement effects; zero sessions/processes.
-  Children share the source commit gate, not execution/cancel state. MCP activation
-  descriptors are part of the immutable source. Fallible reads/network are outside it.
-- Extended real held provider/stdio batch uses that commit path: old call finishes
-  once, next requests adopt G2 prompt/profile, old PID is reaped, new-only tools appear.
-  Both process joins, prior receipts [1,2,2] and exactly two effects remain asserted.
-- Current14 HOT02 and11 HOT01 owner cases pass. Strict workspace all-target clippy,
-  locked workspace tests1963 passed/0 failed/12 existing opt-in ignored,46 result
-  records, fmt/docs/diff checks pass. Logs t61-atomic-source-*.log.
+- Real application reload was red on supervisor replacement. It now preserves the
+  instance, stages all source fields and joins old/new stdio processes explicitly.
+- Actual subsequent HTTP sees the new profile, AGENTS and skill metadata, not its
+  body; read is denied and DCP disabled. Reload creates zero sessions or requests.
+- Valid removed profile becomes exact unavailable without fallback, then explicit
+  repair works. Issued lookup survives on its captured binding; replacement connects
+  only after old PID reap. All prior cancellation/disconnect checks remain.
+- Original title regression caught a missing retirement step: successful explicit
+  reload drains/stops old title work; rejected reload leaves accepted work alive.
+- Current locked workspace:1964 passed/0 failed/12 existing opt-in ignored,46 result
+  records. Strict workspace all-target clippy,22 reload-filter owner cases, fmt/docs/
+  diff checks pass. Logs t61-application-source-* and t61-application-reload-owner-*.
 
 ## Risks
 
-Low-level public reload remains idle-only; no application busy reload, watcher,
-shared host/client settings, release/current live/paired visual/HOT completion claim.
-No push/auth retry/live env read/paid request. T44 remote blocker/VIS46 unchanged.
+Public busy reload remains refused; no actual watcher/coordinator, service/settings,
+release/current live/paired visual or HOT01–HOT04 completion claim. No push/auth retry,
+live env read/paid request. T44 remote blocker/VIS46 unchanged.
 
 ## Next
 
-Complete application candidate assembly and same-owner watch/manual publication;
-real watcher/re-arm with failed/nested/activation source observations. Finish dynamic
-MCP notification and poisoned-owner/shared late-quarantine lifetime, then R3–R5.
+Implement the admitted watcher/re-arm and single watch/manual coordinator, preserving
+local discovery identity and build freshness. Own finite active-operation inputs and
+preserve its exact primary profile before enabling busy publication. Finish dynamic
+MCP notifications and poisoned-owner/shared late quarantine, then R3–R5.
 
 
 Ready (до 5): нет

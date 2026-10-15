@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted source observations `bdafd9d19` and cancellation-safe source/MCP commit `322455183`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted source observations `bdafd9d19`, cancellation-safe commit `322455183` and complete idle application publication `7ce43773e`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -325,9 +325,10 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
       across MCP awaits and releases physical clients at the issued batch boundary.
       `322455183` makes the supervisor own an accepted source/MCP commit even when its
       caller loses the ACK; expected-view CAS precedes retirement, and fresh captures
-      share the short commit gate. This is not yet the application candidate builder.
-     Next integrate the actual watcher and complete atomic application candidate path
-     before enabling busy publication and composing public HOT01 evidence.
+       share the short commit gate. `7ce43773e` supplies the complete admitted application
+       candidate on that same runtime/supervisor for idle manual reload.
+      Next integrate actual watching and the single watch/manual coordinator before
+      enabling busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
   unchanged; если потребуется material expansion вне envelope — зафиксировать blocker,
   не наращивать общий framework.
@@ -411,8 +412,8 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
 - Exact admitted MCP source inputs guard an interrupted execution/MCP publication;
   a different counter with equal inputs is not itself a refusal. Existing runtime remote
   quarantine also applies to low-level reload. The public low-level reload remains idle-only;
-  application reload still replaces its runtime. Poisoned-owner retirement, complete
-  atomic application publication and source watches are not claimed complete.
+   application reload still replaced its runtime at this earlier slice. Poisoned-owner
+   retirement and source watches remained incomplete; application integration is below.
 - Earlier `e64e825a2` gates: strict workspace all-target clippy; workspace tests 1957
   passed / 0 failed / 12 existing opt-in ignored, 46 result records; ten `hot02_` owner
   cases; fmt/docs/diff checks pass. Actual debug MCP/PTY/title/memory regressions are in
@@ -457,15 +458,30 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   activation descriptors now belong to the same immutable execution source.
   The real held G1 MCP batch uses this commit path, finishes once, and the next requests
   retain its outcomes while adopting G2 prompt/profile and latest-only replacement tools.
-- Current gates: fourteen `hot02_` and eleven `hot01_` owner cases; strict workspace
+- Earlier `322455183` gates: fourteen `hot02_` and eleven `hot01_` owner cases; strict workspace
   all-target clippy; workspace tests1963 passed/0 failed/12 existing opt-in ignored,
   46 result records. Fmt/docs/diff checks pass. Logs `.local/evidence/t61-atomic-source-*.log`.
   The red lost-ACK case left execution at1 while MCP was2; no test/cap was weakened.
+- Current `7ce43773e` evidence: idle application reload stages complete workspace/profile,
+  skill metadata, instruction roots, DCP/protections, executable provider views and MCP
+  activation before the supervisor-owned commit. No temporary runtime or second owner;
+  actual stdio supervisor instance stays identical through replacement and both PIDs reap.
+  A real following request contains the new profile/instructions/skill metadata but no
+  skill body, with read denied and DCP disabled. Reload itself creates zero sessions.
+  Valid exact profile removal publishes unavailable without fallback; explicit repair
+  is required before dispatch. Old issued lookup survives reload on its original binding;
+  its connection is reaped before replacement connects. Explicit reload retires old
+  title tickets only on success; rejected reload keeps accepted title work alive.
+- Current gates: strict workspace all-target clippy; workspace tests1964 passed/0 failed/
+  12 existing opt-in ignored,46 result records;22 reload-filter owner cases, fmt/docs/diff
+  checks pass. Logs `.local/evidence/t61-application-source-*.log` and reload-owner logs.
+  Red cases proved whole-runtime replacement and missing title-ticket retirement;
+  source behavior was repaired without weakening resource, cleanup or title assertions.
 - Next: actual watcher/re-arm and single watch/manual coordinator, including observations
   from failed candidates and later admitted nested instructions/explicit activation.
-  Complete atomic application publication and remaining quarantine/retirement lifetime.
-  Wire the complete application candidate into the qualified source/MCP commit before
-  public busy adoption. Dynamic MCP notification adoption and
+  Preserve admitted local discovery identity and reject superseded builds. Busy operation
+  inputs must be finite owned captures, and workspace admission must retain the active
+  primary identity rather than a global fallback. Dynamic MCP notification adoption and
   poisoned-owner/late-quarantine lifetime remain part of that integration.
   R3–R5 remain pending.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,
