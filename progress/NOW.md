@@ -1,35 +1,14 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T17:33:19+00:00
-Active: нет
+State updated: 2026-10-15T18:46:38+00:00
+Active: T63
 
 Сверить Git status/diff до выполнения команд.
+Task: T63 — MIT для собственного кода проекта
+Spec: README.md
+Evidence target: evidence/T63/report.md
 
-Последний срез: T62 [done]; сверить незакоммиченный diff.
-
-## Result
-
-T62 done locally: only the canonical OpenCode 2 config is admitted; any OpenCode 1 key
-fails closed with one complete legacy_config report (startup, reload last-good, oc2 models).
-OpenCode 1 parsing branches removed; fixtures, harnesses, examples and docs canonical.
-
-## Checks
-
-Workspace 1983 passed / 1 failed (pty_t39 vis38, intermittent before T62 and in
-isolation) / 12 ignored; strict clippy, fmt, check_docs, Python unittests, release build.
-Actual oc2 models: canonical temp config lists models; owner-config copy refused (15 lines).
-
-## Risks
-
-Owner's ~/.config/opencode is OpenCode 1-shaped and is refused until converted. E2E06
-must be re-qualified after conversion. vis38 PTY flake remains open.
-
-## Next
-
-Owner converts config; then resume T61 (per-process R1/R2/R4/R5) on owner request.
-
-
-Следующий шаг: проверить зависимости и начать первую ready-задачу.
+Owner request 2026-10-15: set the workspace default license for original project code to MIT, add the MIT license text and document its scope in README. Preserve existing third-party and source-derived licenses, notices and provenance. Verify Cargo metadata and documentation structure, commit and push the current branch. No runtime changes, crates.io publication, release or tag.
 
 Ready (до 5): нет
 Blocked: T27, T44, T45, T57, T61

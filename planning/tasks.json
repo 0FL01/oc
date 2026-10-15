@@ -968,6 +968,16 @@
       "work": "Owner decision 2026-10-15: accept only the canonical OpenCode 2 v2.0.12 config schema (packages/schema config Info + cli.json schema). Everything upstream accepts only through packages/core/src/v1/** (ConfigNormalize/ConfigMigrateV1, including markdown agent frontmatter migrated by migrateAgent) and tui.json/kv.json migration is removed. Any v1 key fails closed with one typed diagnostic listing every offending key, its source and canonical replacement, without values, on startup, catalog-only `oc2 models` and hot reload (last-good kept). One detector in config/legacy.rs; delete v1 branches in providers/permissions/agents/MCP/compaction/keybinds; add missing canonical commands/plugins/experimental.policies. Convert test fixtures, harness scripts, examples and docs to canonical v2; historical evidence unchanged. Owner converts their own config.",
       "evidence": "evidence/T62/report.md",
       "spec": "docs/goals/2026-10-15-canonical-v2-config.md"
+    },
+    {
+      "id": "T63",
+      "phase": "M8",
+      "title": "MIT для собственного кода проекта",
+      "depends_on": [],
+      "tests": [],
+      "work": "Owner request 2026-10-15: set the workspace default license for original project code to MIT, add the MIT license text and document its scope in README. Preserve existing third-party and source-derived licenses, notices and provenance. Verify Cargo metadata and documentation structure, commit and push the current branch. No runtime changes, crates.io publication, release or tag.",
+      "evidence": "evidence/T63/report.md",
+      "spec": "README.md"
     }
   ]
 }

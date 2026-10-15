@@ -13,6 +13,13 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 
 Опционально, при наличии Node в dev-среде: `node --test scripts/test_discovery_reference.mjs`. Это offline oracle tests присланного JavaScript, а не runtime-зависимость Rust-продукта.
 
+## Лицензия
+
+Собственный код проекта распространяется по [MIT](LICENSE). Сторонние и производные
+компоненты сохраняют свои лицензии, уведомления и атрибуцию; MIT их не заменяет.
+Provenance DCP: [ядро](docs/DCP.md) и [представление](docs/DCP_VIS38_PROVENANCE.md).
+Лицензии встроенных upstream assets и syntax grammars сохранены рядом с ними.
+
 ## Что передать compatible coding agent
 
 Передать `prompts/AGENT_GOAL.txt` любому compatible coding agent через его native prompt/task/job механизм. Не требуется конкретная модель, provider, CLI, slash command или runner tool API. Полные условия находятся в `GOAL.md` и `docs/AGENT_RUNBOOK.md`.
