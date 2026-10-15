@@ -3,8 +3,10 @@ name = "oc-adapters"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license = "MIT AND AGPL-3.0-or-later"
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
 description = "Adapter implementations for oc-core ports: storage, providers, tools, mcp, dcp"
 
 [features]
@@ -12,7 +14,7 @@ description = "Adapter implementations for oc-core ports: storage, providers, to
 auth-fixture = []
 
 [dependencies]
-oc-core = { path = "../oc-core" }
+oc-core = { path = "../oc-core", version = "0.1.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }

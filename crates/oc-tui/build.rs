@@ -105,7 +105,7 @@ fn main() {
                 );
             }
         }
-        tar::Archive::new(flate2::read::GzDecoder::new(Cursor::new(compressed)))
+        tar::Archive::new(lzma_rust2::XzReader::new(Cursor::new(compressed), false))
             .unpack(&source)
             .expect("vendored native grammar sources");
         let parser = source.join(item["parser"].as_str().expect("parser source"));

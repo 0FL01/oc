@@ -1,11 +1,13 @@
 [package]
-name = "oc"
+name = "oc2"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license = "MIT AND AGPL-3.0-or-later"
 repository.workspace = true
-description = "Native oc binary: local TUI and headless coding session"
+homepage.workspace = true
+readme = "../../README.md"
+description = "Native Rust coding agent with a local TUI and headless sessions in one oc2 binary"
 
 [[bin]]
 name = "oc2"
@@ -15,9 +17,9 @@ path = "src/main.rs"
 auth-fixture = ["oc-adapters/auth-fixture"]
 
 [dependencies]
-oc-core = { path = "../oc-core" }
-oc-adapters = { path = "../oc-adapters" }
-oc-tui = { path = "../oc-tui" }
+oc-core = { path = "../oc-core", version = "0.1.0" }
+oc-adapters = { path = "../oc-adapters", version = "0.1.0" }
+oc-tui = { path = "../oc-tui", version = "0.1.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true

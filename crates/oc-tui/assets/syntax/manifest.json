@@ -338,8 +338,8 @@
       "revision": "44c892e0be055ac465d5eeddae6d3e194424e7de",
       "release": "v0.25.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-javascript/releases/download/v0.25.0/tree-sitter-javascript.wasm",
-      "archive": "javascript.tar.gz",
-      "archive_sha256": "c09a07de2a8d7bd94d0b75337b0d9b25a9cce4cf245df1c393df83b25140351c",
+      "archive": "javascript.tar.xz",
+      "archive_sha256": "73c66ebabff55f3c4df7125419dfc5f78215000e64f9e495892564d264417738",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -375,8 +375,8 @@
       "revision": "f975a621f4e7f532fe322e13c4f79495e0a7b2e7",
       "release": "v0.23.2",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-typescript/releases/download/v0.23.2/tree-sitter-typescript.wasm",
-      "archive": "typescript.tar.gz",
-      "archive_sha256": "f8c3a7ec1faee305964ef47b358ee0f12573236ceac2252b33dfd51802d731aa",
+      "archive": "typescript.tar.xz",
+      "archive_sha256": "84c1d38b5e18a77e4ac1160b7b7b8a1905de46caa68067ba7bdeab576b5741d4",
       "parser": "typescript/src/parser.c",
       "scanners": [
         "typescript/src/scanner.c"
@@ -410,8 +410,8 @@
       "revision": "2dfd57f547f06ca5631a80f601e129d73fc8e9f0",
       "release": "v0.5.1",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown.wasm",
-      "archive": "markdown.tar.gz",
-      "archive_sha256": "c6790a995c5303750d547f009bc6011010ac94522a4f895c6b6a2da0683f1a81",
+      "archive": "markdown.tar.xz",
+      "archive_sha256": "83575cee7fa5b8e54e4d4313020562e0654df7c910da9bbf406d8f8816126273",
       "parser": "tree-sitter-markdown/src/parser.c",
       "scanners": [
         "tree-sitter-markdown/src/scanner.c"
@@ -475,8 +475,8 @@
       "revision": "2dfd57f547f06ca5631a80f601e129d73fc8e9f0",
       "release": "v0.5.1",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-markdown/releases/download/v0.5.1/tree-sitter-markdown_inline.wasm",
-      "archive": "markdown_inline.tar.gz",
-      "archive_sha256": "07430d2771a4636712a151cb83b0d96b5437ebb83de7b0dd978dbbec3eff7a3e",
+      "archive": "markdown_inline.tar.xz",
+      "archive_sha256": "b827af74e938114e43b707dc6d58417d8eafd66127087a81e312ebedad678b3f",
       "parser": "tree-sitter-markdown-inline/src/parser.c",
       "scanners": [
         "tree-sitter-markdown-inline/src/scanner.c"
@@ -510,8 +510,8 @@
       "revision": "b670c8df85a1568f498aa5c8cae42f51a90473c0",
       "release": "v1.1.2",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-zig/releases/download/v1.1.2/tree-sitter-zig.wasm",
-      "archive": "zig.tar.gz",
-      "archive_sha256": "ad5e4cdd0ae61f519e4926858e37db7538ddc2d65de9add51e7aa2d9b3634fc5",
+      "archive": "zig.tar.xz",
+      "archive_sha256": "436b519c3cfb089800a165a435d0a37567ad5f9b3406528aa9ad159a0a2abffb",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_zig",
@@ -543,8 +543,8 @@
       "revision": "bffb65a8cfe4e46290331dfef0dbf0ef3679de11",
       "release": "v0.23.6",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-python/releases/download/v0.23.6/tree-sitter-python.wasm",
-      "archive": "python.tar.gz",
-      "archive_sha256": "d599f60263121568335a3fa0e030efe4873ce98949b4a635a0957bbc0e2f02fb",
+      "archive": "python.tar.xz",
+      "archive_sha256": "c0d8df9f2273c18b28d6fea879962c57ed31ef33d00cf069dd181c17beab1539",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -605,8 +605,8 @@
       "revision": "18b0515fca567f5a10aee9978c6d2640e878671a",
       "release": "v0.24.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.24.0/tree-sitter-rust.wasm",
-      "archive": "rust.tar.gz",
-      "archive_sha256": "da9c845eb91c9af41a78023f6a60169ecb2357b94767dd2e24672b388777bd2c",
+      "archive": "rust.tar.xz",
+      "archive_sha256": "cc7024f91dd80ade6aa5a2906ea39b7d4fa3720610cce89aef2161841fbc1038",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -667,8 +667,8 @@
       "revision": "1547678a9da59885853f5f5cc8a99cc203fa2e2c",
       "release": "v0.25.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.25.0/tree-sitter-go.wasm",
-      "archive": "go.tar.gz",
-      "archive_sha256": "f9b6dd7be6cd26b4ca0674b43eca22d1ee1b15ec9578a7ea948a2f0e6e16a8c8",
+      "archive": "go.tar.xz",
+      "archive_sha256": "cc721654ae92f7c17f3a23c655ea98612bfd995573a0272d9ddde100617397ed",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_go",
@@ -727,8 +727,8 @@
       "revision": "f41e1a044c8a84ea9fa8577fdd2eab92ec96de02",
       "release": "v0.23.4",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-cpp/releases/download/v0.23.4/tree-sitter-cpp.wasm",
-      "archive": "cpp.tar.gz",
-      "archive_sha256": "536a510ee6c3872b33fa0744c5e187c4aa05b1b5dffea24c6fe3b9f36cf4cfc4",
+      "archive": "cpp.tar.xz",
+      "archive_sha256": "e21ca55454f3384c5a882a0db26393fc014eec1b4ddb50c67eb124f81bbbd909",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -789,8 +789,8 @@
       "revision": "362a8a41b265056592a0c3771664a21d23a71392",
       "release": "v0.23.1",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-c-sharp/releases/download/v0.23.1/tree-sitter-c_sharp.wasm",
-      "archive": "csharp.tar.gz",
-      "archive_sha256": "ace3dc86f089f7e8fa76a6c16982ef4bec26c866b799b15c10fee7353b353daa",
+      "archive": "csharp.tar.xz",
+      "archive_sha256": "2646a310110bd164ea13a7055fb1688bb373ad88f8d79a58b20c15137125f180",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -851,8 +851,8 @@
       "revision": "56b54c61fb48bce0c63e3dfa2240b5d274384763",
       "release": "v0.25.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-bash/releases/download/v0.25.0/tree-sitter-bash.wasm",
-      "archive": "bash.tar.gz",
-      "archive_sha256": "b5d815364a1aaaf08352687521fdce3bdffcf637913df40f385c3fece645bc45",
+      "archive": "bash.tar.xz",
+      "archive_sha256": "fae9dc42f48e35d949b75744fcdc772e542f5adb7c6b1dc819ab9e0cf95c3c2d",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -893,8 +893,8 @@
       "revision": "7fa1be1b694b6e763686793d97da01f36a0e5c12",
       "release": "v0.24.1",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-c/releases/download/v0.24.1/tree-sitter-c.wasm",
-      "archive": "c.tar.gz",
-      "archive_sha256": "3fd99cfa9f0d42a2bac1a0581f9b156383b6b221109a8a59852f94bd4f054d35",
+      "archive": "c.tar.xz",
+      "archive_sha256": "89b5aaf6dfa72b192a07afccc6dfc60b5c6c1164b12769733bbadd69601b27fc",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_c",
@@ -953,8 +953,8 @@
       "revision": "94703d5a6bed02b98e438d7cad1136c01a60ba2c",
       "release": "v0.23.5",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-java/releases/download/v0.23.5/tree-sitter-java.wasm",
-      "archive": "java.tar.gz",
-      "archive_sha256": "e52c57e0ee740797f7ff1f9e4165edb63fa64763cf77d38e87d7fd4804c59c9c",
+      "archive": "java.tar.xz",
+      "archive_sha256": "c55094f7770ac6b6c4743ec093ac972c6efe5888d910d9f194c1df669a6289db",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_java",
@@ -1013,8 +1013,8 @@
       "revision": "e1a2d5ad1f61f5740677183cd4125bb071cd2f30",
       "release": "0.3.8",
       "reference_wasm": "https://github.com/fwcd/tree-sitter-kotlin/releases/download/0.3.8/tree-sitter-kotlin.wasm",
-      "archive": "kotlin.tar.gz",
-      "archive_sha256": "7fa533e66d1ef3b02506997a8050b25daefa015ce154556dd3561c968a2d848a",
+      "archive": "kotlin.tar.xz",
+      "archive_sha256": "b7391f4cee5cc904bef9dcc97861a7c0861c51b9475a6466008dc32f25f5269f",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1075,8 +1075,8 @@
       "revision": "71bd32fb7607035768799732addba884a37a6210",
       "release": "v0.23.1",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-ruby/releases/download/v0.23.1/tree-sitter-ruby.wasm",
-      "archive": "ruby.tar.gz",
-      "archive_sha256": "dc714df4bc3945afd6cc3b43e7502acc401093cf4783ca51205e8ecb209a2aed",
+      "archive": "ruby.tar.xz",
+      "archive_sha256": "1990fc1fdaef823454f57a96b4425f35c815eb7e2db3d61b19fc267654be7caf",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1137,8 +1137,8 @@
       "revision": "5b5627faaa290d89eb3d01b9bf47c3bb9e797dea",
       "release": "v0.24.2",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-php/releases/download/v0.24.2/tree-sitter-php.wasm",
-      "archive": "php.tar.gz",
-      "archive_sha256": "7b3299b30352f7bb34c0d6f7cb0cacbedb158f8e334de014371b2f3cfb8497f3",
+      "archive": "php.tar.xz",
+      "archive_sha256": "c4fdd6f614d851bbaaa0c3b360d292c68dc32f3fd131c84e44e56643136eacb4",
       "parser": "php/src/parser.c",
       "scanners": [
         "php/src/scanner.c"
@@ -1179,8 +1179,8 @@
       "revision": "2d55e74b0485fe05058ffe5e8155506c9710c767",
       "release": "v0.24.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-scala/releases/download/v0.24.0/tree-sitter-scala.wasm",
-      "archive": "scala.tar.gz",
-      "archive_sha256": "cb3984d78f488153a79733ef6c3b960b4dcf992fa0c96e4933ec3739838736f1",
+      "archive": "scala.tar.xz",
+      "archive_sha256": "f2a60033e6dcf800aaf3652e01cc09d5ddebfffed67386195d5742cfe5d922d9",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1221,8 +1221,8 @@
       "revision": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
       "release": "v0.23.2",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-html/releases/download/v0.23.2/tree-sitter-html.wasm",
-      "archive": "html.tar.gz",
-      "archive_sha256": "7889d8421d665664ea1b2ec922e4cb8b558b08c902d7ac1750369e0e4b5f0c83",
+      "archive": "html.tar.xz",
+      "archive_sha256": "fcf2f1c74bd3f85b839254704b88c2620c620bb6c774406814ef50e55df92511",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1263,8 +1263,8 @@
       "revision": "3354771c4214919444917a1b44547609ba8b67a8",
       "release": "v0.1.2",
       "reference_wasm": "https://github.com/anomalyco/tree-sitter-vue/releases/download/v0.1.2/tree-sitter-vue.wasm",
-      "archive": "vue.tar.gz",
-      "archive_sha256": "e91cabeaf8644e7f913db1a23814c9c9c410aeb03edcf4d3d246b3b1754e0b3f",
+      "archive": "vue.tar.xz",
+      "archive_sha256": "58107dae271dc04b03fbaecf76d305185ee74e7151f22919af322cea3d02681e",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1317,8 +1317,8 @@
       "revision": "fad991865fee927dd1de5e172fb3f08ac674d914",
       "release": "v1.2.0",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-hcl/releases/download/v1.2.0/tree-sitter-hcl.wasm",
-      "archive": "hcl.tar.gz",
-      "archive_sha256": "5047083d949eb7e635812c59d328a7a74b0473205cbcbfccb104e1febf0c0b25",
+      "archive": "hcl.tar.xz",
+      "archive_sha256": "af05f0b43addc4ce0f93c8e15f7641b0c10345f2aa2b17355092abf88f53cc36",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1359,8 +1359,8 @@
       "revision": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
       "release": "v0.24.8",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-json/releases/download/v0.24.8/tree-sitter-json.wasm",
-      "archive": "json.tar.gz",
-      "archive_sha256": "f0242a1f3d867a2a6426719b145d34a9480a502921c79623508fe8cc4ecca7a7",
+      "archive": "json.tar.xz",
+      "archive_sha256": "dff5bbfd982ed52d8a490013ae41d0f85dd04a08034cc676c841708a73f13f38",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_json",
@@ -1399,8 +1399,8 @@
       "revision": "7708026449bed86239b1cd5bce6e3c34dbca6415",
       "release": "v0.7.2",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-yaml/releases/download/v0.7.2/tree-sitter-yaml.wasm",
-      "archive": "yaml.tar.gz",
-      "archive_sha256": "c700e42d5c1959bea7f4e3c6c9b840db8f580011cc5fa1c411e1cab702203214",
+      "archive": "yaml.tar.xz",
+      "archive_sha256": "c3e2cb8e7b0e5c2a03e6df09e1ef3a10bc0d2022e309942e9589bab6b09e7987",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1441,8 +1441,8 @@
       "revision": "c30d812bc90827f1a54106a25bc9a6307f5cdcec",
       "release": "v0.23.1",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-haskell/releases/download/v0.23.1/tree-sitter-haskell.wasm",
-      "archive": "haskell.tar.gz",
-      "archive_sha256": "169ee3a6519c9e8f647dc76c472b82e180ca3574327eabe1e934f44e0a30cd59",
+      "archive": "haskell.tar.xz",
+      "archive_sha256": "1161a9d5f554f50cd4a5b593fdb3e3ba2b705630e61eb79383fd5842e1693fab",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1483,8 +1483,8 @@
       "revision": "dda5cfc5722c429eaba1c910ca32c2c0c5bb1a3f",
       "release": "v0.25.0",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-css/releases/download/v0.25.0/tree-sitter-css.wasm",
-      "archive": "css.tar.gz",
-      "archive_sha256": "40e166c6b651df0b5cae37f1c45b517745568b91bbc06b6b2bec359ab2dfcb50",
+      "archive": "css.tar.xz",
+      "archive_sha256": "b592eed5e8a33f5c0ec94784a3f763271d28367c3dcec47c9752351d4cbd9582",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1525,8 +1525,8 @@
       "revision": "a8e1262997d5a45520a06cbe1b86c0737d507054",
       "release": "v0.23.1",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-julia/releases/download/v0.23.1/tree-sitter-julia.wasm",
-      "archive": "julia.tar.gz",
-      "archive_sha256": "fae6d60900a2646064d32570dd0ec4952549438360fcd7640d2ada6ad70b02cf",
+      "archive": "julia.tar.xz",
+      "archive_sha256": "0282748c12b4da697d3b4f68a809dd11f9d12a801fac7c8e0c003e40145363aa",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1567,8 +1567,8 @@
       "revision": "10fe0054734eec83049514ea2e718b2a56acd0c9",
       "release": "v0.5.0",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-lua/releases/download/v0.5.0/tree-sitter-lua.wasm",
-      "archive": "lua.tar.gz",
-      "archive_sha256": "8c4500804d035663df66bda0a994df932e3e19422a57820ab4d2108520bb775c",
+      "archive": "lua.tar.xz",
+      "archive_sha256": "2d7855a21b0937bcee1253b73dc34ed60c45ba02af810166a176e0ec81353c26",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1629,8 +1629,8 @@
       "revision": "0cc270ff90ca09c29d0f2f9dec69ddfef55a3eff",
       "release": "v0.24.2",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-ocaml/releases/download/v0.24.2/tree-sitter-ocaml.wasm",
-      "archive": "ocaml.tar.gz",
-      "archive_sha256": "312b7599769695464ad8c77355fcce73108cd63261d88ecd82ec56c73668aaab",
+      "archive": "ocaml.tar.xz",
+      "archive_sha256": "2be2715c587076fb6639b9d394fb559fd4fdf79f2632d40efe765e1c638f1ce9",
       "parser": "grammars/ocaml/src/parser.c",
       "scanners": [
         "grammars/ocaml/src/scanner.c"
@@ -1671,8 +1671,8 @@
       "revision": "6bd708af87f6974eccb9beda89038f9f081a7a60",
       "release": "v0.0.1",
       "reference_wasm": "https://github.com/anomalyco/tree-sitter-clojure/releases/download/v0.0.1/tree-sitter-clojure.wasm",
-      "archive": "clojure.tar.gz",
-      "archive_sha256": "7f26e5626a28dba095d476e31d8647ac29b5157331e25ff5c387ba556ccc8e44",
+      "archive": "clojure.tar.xz",
+      "archive_sha256": "cfe25961c6f29f72948d686d3f72cf0e3181fa538bdf54c81d356f283e2f7625",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_clojure",
@@ -1711,8 +1711,8 @@
       "revision": "7c2f26b5dce12e82ef2bd932a883ef514ae566b8",
       "release": "0.7.1",
       "reference_wasm": "https://github.com/alex-pinkus/tree-sitter-swift/releases/download/0.7.1/tree-sitter-swift.wasm",
-      "archive": "swift.tar.gz",
-      "archive_sha256": "df60c632fe4a7608f3af43260afb47435dccfa441e85f69026f38decccd90ffb",
+      "archive": "swift.tar.xz",
+      "archive_sha256": "9fa2268c15c5761cb49b9eca79220b71ea2ef13a6b6f2b8c722ad3a5b7c4ea4b",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1783,8 +1783,8 @@
       "revision": "64b56832c2cffe41758f28e05c756a3a98d16f41",
       "release": "v0.7.0",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-toml/releases/download/v0.7.0/tree-sitter-toml.wasm",
-      "archive": "toml.tar.gz",
-      "archive_sha256": "69a7d1a0e221e0f2093af43d78fcfc890fd19d1ca8f365d8f2c3d806ecdb0933",
+      "archive": "toml.tar.xz",
+      "archive_sha256": "46e6eeb760193013432d572e43b9fe9582271de8d74d9731434d82c912f82019",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1825,8 +1825,8 @@
       "revision": "ed711d8499e17398e2c84f2a779f2c2b5ac54264",
       "release": "master",
       "reference_wasm": "https://github.com/ast-grep/ast-grep.github.io/raw/40b84530640aa83a0d34a20a2b0623d7b8e5ea97/website/public/parsers/tree-sitter-nix.wasm",
-      "archive": "nix.tar.gz",
-      "archive_sha256": "d442d5939fea17b2b38c96cabba0d769d2ec27383f817e14d17f57275bc0d4a5",
+      "archive": "nix.tar.xz",
+      "archive_sha256": "5e9e88a84e6dbf4075b308f11ded97d93874e5729d546f8b2640567f38d4ae36",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1890,8 +1890,8 @@
       "revision": "2520c3f934b3179bb540d23e0ef45f75304b5fed",
       "release": "v0.1.0",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-diff/releases/download/v0.1.0/tree-sitter-diff.wasm",
-      "archive": "diff.tar.gz",
-      "archive_sha256": "3bbe199cce732a09a4210d35587f47865204b79b1f91f0920fa2684506c09d21",
+      "archive": "diff.tar.xz",
+      "archive_sha256": "090490ea95e9674000b5794687b10ef07cf189329c9f12afe3ea2100517dd9b6",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_diff",
@@ -1930,8 +1930,8 @@
       "revision": "e2d9e6e0e76b0c436fa48a0b8c32a031d0cbdf49",
       "release": "v0.3.5",
       "reference_wasm": "https://github.com/elixir-lang/tree-sitter-elixir/releases/download/v0.3.5/tree-sitter-elixir.wasm",
-      "archive": "elixir.tar.gz",
-      "archive_sha256": "80bd79bb4f37be2cdc83193514ad30f48e0174f97b34752c6e063b94e8193746",
+      "archive": "elixir.tar.xz",
+      "archive_sha256": "f46b6c1d822003f399339ef16aae1de1dcd5930e0caea91172e7654d304cc1b3",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -1992,8 +1992,8 @@
       "revision": "5247c1197cb290fcaea0e0a793d32829c1396831",
       "release": "0.3.0",
       "reference_wasm": "https://github.com/ionide/tree-sitter-fsharp/releases/download/0.3.0/tree-sitter-fsharp.wasm",
-      "archive": "fsharp.tar.gz",
-      "archive_sha256": "3aa4db2d2c94f8e63aabe5a5027e8c4bdb9c59ad1adc0cf925ba5db4fcb4b5e1",
+      "archive": "fsharp.tar.xz",
+      "archive_sha256": "48041907d583a7b51fd444e10ac8f429633aff018453422a4c9032a55fcd4983",
       "parser": "fsharp/src/parser.c",
       "scanners": [
         "fsharp/src/scanner.c"
@@ -2034,8 +2034,8 @@
       "revision": "e9944e9801595ad484f49be492daf0c4c81547ef",
       "release": "v1.2.0",
       "reference_wasm": "https://github.com/r-lib/tree-sitter-r/releases/download/v1.2.0/tree-sitter-r.wasm",
-      "archive": "r.tar.gz",
-      "archive_sha256": "8c2125e1dd92d066eebf2ed9a07694c9f4fcf5e63e45399ac404692011213c9c",
+      "archive": "r.tar.xz",
+      "archive_sha256": "294592a0ce44703a3110b6a68a6b3d18c1845986c8c703b6121b83ec3198dfc1",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -2101,8 +2101,8 @@
       "revision": "5e9e8f8ff3387b0edcaa90f46ddf3629f4cfeb1d",
       "release": "v1.1.1",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-make/releases/download/v1.1.1/tree-sitter-make.wasm",
-      "archive": "make.tar.gz",
-      "archive_sha256": "11789f23f9ed9abdedf3938e6f4596045ea89eb44a79efa5ef2fec13a06ca66b",
+      "archive": "make.tar.xz",
+      "archive_sha256": "9ef80359a4e472ad34c4087515663e6c8b57bf4b07a21311f57913acaedfc1d4",
       "parser": "src/parser.c",
       "scanners": [],
       "symbol": "tree_sitter_make",
@@ -2141,8 +2141,8 @@
       "revision": "3092fcd99eb87bbd0fc434aa03650ba58bd5b43b",
       "release": "v0.8.1",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-vim/releases/download/v0.8.1/tree-sitter-vim.wasm",
-      "archive": "vim.tar.gz",
-      "archive_sha256": "8f0200d38bb6f3fd3649e9d9325ff0243caa5d3ad3ec0dd3f3ccbe3cf5fb0a77",
+      "archive": "vim.tar.xz",
+      "archive_sha256": "f908c4703f1563ed9daa57b3681abf8dc812a68e137bbac204a7d3d40886f896",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"
@@ -2203,8 +2203,8 @@
       "revision": "4b64dd3a03ec002258d6268d712fd93716d6ab57",
       "release": "v0.7.0",
       "reference_wasm": "https://github.com/tree-sitter-grammars/tree-sitter-xml/releases/download/v0.7.0/tree-sitter-xml.wasm",
-      "archive": "xml.tar.gz",
-      "archive_sha256": "e93717cf2548a65eccf2b09c01fdfc1cfc370baea3f34d83ca39e77275395d21",
+      "archive": "xml.tar.xz",
+      "archive_sha256": "fa915f2e72ab3058700989f868532d1efe7a7823f5f3bd27b341394e97d37969",
       "parser": "xml/src/parser.c",
       "scanners": [
         "xml/src/scanner.c"
@@ -2265,8 +2265,8 @@
       "revision": "47802091de0cb8ac2533d67ac37e65692c5902c4",
       "release": "v1.3.3",
       "reference_wasm": "https://github.com/tree-sitter/tree-sitter-agda/releases/download/v1.3.3/tree-sitter-agda.wasm",
-      "archive": "agda.tar.gz",
-      "archive_sha256": "b66d14ceca295e9445115f77b57fe268f28668fc366196cc4c24332610cabd34",
+      "archive": "agda.tar.xz",
+      "archive_sha256": "e25275b465298e3fb4de9ce68c964dee16afe87ae0c35777a9aba157a1b872aa",
       "parser": "src/parser.c",
       "scanners": [
         "src/scanner.c"

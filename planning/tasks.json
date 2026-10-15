@@ -978,6 +978,16 @@
       "work": "Owner request 2026-10-15: set the workspace default license for original project code to MIT, add the MIT license text and document its scope in README. Preserve existing third-party and source-derived licenses, notices and provenance. Verify Cargo metadata and documentation structure, commit and push the current branch. No runtime changes, crates.io publication, release or tag.",
       "evidence": "evidence/T63/report.md",
       "spec": "README.md"
+    },
+    {
+      "id": "T64",
+      "phase": "M8",
+      "title": "Publish native oc2 on crates.io",
+      "depends_on": ["T63"],
+      "tests": [],
+      "work": "Owner-authorized 2026-10-15 publication: replace the oc2 bootstrap with native 0.1.0, preserve modular library boundaries and all embedded assets, publish versioned registry dependencies, verify archive builds and an isolated cargo install from crates.io. Original source MIT; retain and ship third-party/source-derived licenses and provenance with truthful package metadata. No runtime scope expansion, auto-update, full-product READY or user-config conversion. Subsequent corrections use new versions.",
+      "evidence": "evidence/T64/report.md",
+      "spec": "docs/goals/2026-10-15-crates-io.md"
     }
   ]
 }

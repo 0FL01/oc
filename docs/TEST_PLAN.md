@@ -143,7 +143,7 @@ Implementation targets:
 
 ```sh
 cargo test -p oc-adapters builtin_tests --locked
-cargo test -p oc --test configured_workspace --locked
+cargo test -p oc2 --test configured_workspace --locked
 cargo test -p oc-adapters --locked
 ```
 
@@ -1494,7 +1494,7 @@ cargo test -p oc-adapters --locked storage::provider_connections::tests::
 cargo test -p oc-adapters --locked application::provider_connections::tests::
 cargo test -p oc-adapters --locked application::provider_catalog::tests::
 cargo test -p oc-tui --locked accounts
-cargo test -p oc --test pty_t39 --locked
+cargo test -p oc2 --test pty_t39 --locked
 ```
 
 Legacy discovery/configless/provider-readiness/auth/captured-model regression suites,

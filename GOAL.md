@@ -1021,3 +1021,11 @@ live progress как у донора.
 Узко superseded только declared difference T60 «generic карточка показывает код и
 результат». T60 DONE и CM01–CM08 evidence не переписываются. VIS46 mandatory NOT_RUN;
 реализация после finish T59 и явного start/resume T44; эта доставка не меняет статусов.
+
+## Owner amendment (2026-10-15 — crates.io publication)
+
+Владелец явно разрешил публикацию полноценного `oc2` вместо bootstrap 0.0.1:
+[T64](docs/goals/2026-10-15-crates-io.md). `cargo install oc2 --locked` должен
+устанавливать один native-бинарник с встроенными assets. Только publishing/packages
+исключены из прежнего запрета; auto-update и прочие границы не меняются.
+Публикация не означает READY, не снимает runtime blockers и не переписывает evidence.

@@ -5,6 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
 description = "Typed application core for oc: domain, application, runtime and ports (no UI/storage/network deps)"
 
 [dependencies]

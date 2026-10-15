@@ -1370,7 +1370,7 @@ DOM/frontend observation limits remain recorded in the factual receipt.
 
 `--startup-error true` with only `--oc` captures a real malformed-config native
 preflight error. For supported child routes and real Location query failures,
-`OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc
+`OC_V03_CAPTURE_OUTPUT=/absolute/fresh-attempt-prefix cargo test --locked -p oc2
 --test recovery_v03 -- --nocapture` optionally seeds native storage through its
 storage API, imports original parent/child sessions using the original supported
 `session import --standalone` command, and saves `-child` and `-query` attempts.

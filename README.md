@@ -1,10 +1,47 @@
-# OpenCode Rust
+# oc2 — OpenCode Rust
 
-**Цель:** собрать из исходников полезный локальный `oc2`: Rust 2024, модульный монолит, OpenProxy (`@ai-sdk/openai` как config alias), discovery без списка моделей в коде, DCP range/compress, configured workspace, базовые tools, MCP и TUI. Сейчас repository содержит execution contract и утилиты прогресса, но ещё не Rust-реализацию.
+Нативный coding agent на Rust 2024: локальный TUI и headless sessions в одном
+бинарнике `oc2`. Встроены tools, MCP, DCP range/compress, skills, темы и syntax
+grammars. Для запуска не нужны исходники проекта, Node/Bun или JS-плагины.
+Явно настроенные внешние MCP и вызываемые агентом dev tools устанавливаются отдельно.
+
+## Установка и запуск
+
+```sh
+cargo install oc2 --locked
+oc2 --version
+oc2
+```
+
+Если установлена bootstrap-версия 0.0.1, та же команда обновит её до актуальной.
+`oc2` без аргументов открывает TUI в терминале; `oc2 --help` показывает команды,
+`oc2 run "задача"` запускает headless session с настроенной моделью.
+
+Cargo собирает приложение из исходников: нужны Rust **1.93+**, C/C++ toolchain,
+make и CMake. Квалифицированная платформа — GNU/Linux x86_64 (Debian 13);
+отдельной qualification Fedora/macOS/Windows пока нет. После установки запускается
+один native-бинарник, без отдельного сервиса и загрузки грамматик.
+
+Конфигурация — только каноническая OpenCode 2; OpenCode 1 config отвергается с
+диагностикой, автоматической миграции нет. Пример: [examples/opencode.jsonc](examples/opencode.jsonc),
+подробности: [docs/CONFIG.md](docs/CONFIG.md). Provider credentials нужны для
+запросов к модели, но не для `--help`/`--version`.
+
+Версия 0.1.0 содержит приложение, а не прежнюю bootstrap-заглушку. Проект остаётся
+в разработке: публикация не означает full-product READY или полный паритет с
+OpenCode. Текущие результаты и ограничения — [progress/NOW.md](progress/NOW.md),
+[GOAL.md](GOAL.md); owner-config/E2E06 requalification и известный VIS38 PTY flake
+не исправляются этой публикацией.
+
+Сборка из checkout:
+
+```sh
+cargo install --path crates/oc --locked --bin oc2
+```
 
 Основание: ответы владельца Q01–Q07, присланный discovery-plugin и обязательный configured-workspace scope. Порядок источников: новые требования владельца → `GOAL.md` и принятые контракты → pinned upstream. Технические defaults помечены в `docs/DECISIONS.md`; старые change/recon документы являются историей и provenance, не активными инструкциями.
 
-Проверка самого пакета (ещё НЕ приёмка Rust-продукта):
+Проверка execution-документации (не замена Rust/runtime-приёмки):
 
 ```sh
 python3 scripts/check_docs.py
@@ -19,6 +56,8 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 компоненты сохраняют свои лицензии, уведомления и атрибуцию; MIT их не заменяет.
 Provenance DCP: [ядро](docs/DCP.md) и [представление](docs/DCP_VIS38_PROVENANCE.md).
 Лицензии встроенных upstream assets и syntax grammars сохранены рядом с ними.
+Пакеты с DCP и связанный executable имеют составную metadata
+`MIT AND AGPL-3.0-or-later`; исходный MIT-код не перелицензирован.
 
 ## Что передать compatible coding agent
 

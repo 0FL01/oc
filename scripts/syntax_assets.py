@@ -7,10 +7,10 @@ bytes, relative scanner includes and attribution without vendoring Git metadata.
 """
 
 import argparse
-import gzip
 import hashlib
 import io
 import json
+import lzma
 import pathlib
 import re
 import subprocess
@@ -145,8 +145,8 @@ def grammar(descriptor):
             info = tarfile.TarInfo(relative)
             info.mode, info.size = 0o644, len(data)
             tar.addfile(info, io.BytesIO(data))
-    encoded = gzip.compress(payload.getvalue(), mtime=0)
-    filename = name + ".tar.gz"
+    encoded = lzma.compress(payload.getvalue(), preset=6)
+    filename = name + ".tar.xz"
     (OUT / filename).write_bytes(encoded)
     return {
         "name": name, "aliases": descriptor.get("aliases", []), "repository": repository,

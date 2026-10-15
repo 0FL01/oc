@@ -3,13 +3,15 @@ name = "oc-tui"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-license.workspace = true
+license = "MIT AND AGPL-3.0-or-later"
 repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
 description = "Local terminal UI for oc, bound to oc-core application API plus oc-adapters read-side domain (D12)"
 
 [dependencies]
-oc-core = { path = "../oc-core" }
-oc-adapters = { path = "../oc-adapters" }
+oc-core = { path = "../oc-core", version = "0.1.0" }
+oc-adapters = { path = "../oc-adapters", version = "0.1.0" }
 tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -28,7 +30,7 @@ streaming-iterator = "=0.1.9"
 
 [build-dependencies]
 cc = "1.2"
-flate2 = "1.1"
+lzma-rust2 = { version = "0.20.1", default-features = false, features = ["std", "xz"] }
 tar = "0.4"
 serde_json.workspace = true
 sha2.workspace = true

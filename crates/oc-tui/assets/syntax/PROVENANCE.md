@@ -21,13 +21,17 @@ query-source licenses, actual file-extension and info-string resolution inputs.
 - Full inventory: 34 externally configured grammars plus five actual OpenTUI
   built-ins: JavaScript, TypeScript, Markdown, Markdown inline and Zig.
 
-Each `{language}.tar.gz` retains the byte-exact generated parser/scanner sources,
+Each `{language}.tar.xz` retains the byte-exact generated parser/scanner sources,
 relative headers, node-type metadata and repository license/COPYING files. They
 remain third-party source under those original licenses; packaging is deterministic
 and excludes repository history/tests/binaries. `license-*` files retain the
 byte-exact licenses for query-source repositories. Keep all attribution and
 license bytes when updating inputs. The manifest lists their original paths and
 digests; it does not replace the original notices.
+
+XZ packaging keeps the complete crate below the crates.io upload limit. The
+conversion from gzip preserves each uncompressed tar stream byte-for-byte;
+grammar, query, license and actual-reference fixture contents are unchanged.
 
 `scripts/syntax_assets.py` is a development importer, not a build/runtime tool.
 It reads actual donor/OpenTUI descriptors and freezes their direct query inputs.
