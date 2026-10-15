@@ -11,22 +11,79 @@ pub struct CatalogListing {
     pub complete: bool,
 }
 
-pub(super) fn provider_filters(
-    sources: &[config::Source],
-) -> Result<(Option<Vec<String>>, Vec<String>), LoadFailure> {
-    let mut enabled = None;
-    let mut disabled = Vec::new();
-    for source in sources {
+/// Canonical `experimental.policies` `provider.use` rules (donor `plugin/policy.ts`):
+/// documents in reverse precedence (user-global last), the last matching wildcard
+/// wins and `deny` removes the provider. No rule means allowed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ProviderPolicy {
+    rules: Vec<(String, bool)>,
+}
+
+impl ProviderPolicy {
+    pub(crate) fn allows(&self, id: &str) -> bool {
+        self.rules
+            .iter()
+            .rev()
+            .find(|(pattern, _)| crate::permissions::wildcard(id, pattern))
+            .is_none_or(|(_, allow)| *allow)
+    }
+
+    /// An allowed id named exactly by an `allow` rule (explicit opt-in).
+    pub(crate) fn names(&self, id: &str) -> bool {
+        self.allows(id)
+            && self
+                .rules
+                .iter()
+                .any(|(pattern, allow)| *allow && pattern == id)
+    }
+
+    /// A not-yet-configured id (custom connection creation) is admitted unless the
+    /// winning catch-all rule denies it.
+    pub(crate) fn allows_unlisted(&self) -> bool {
+        self.rules
+            .iter()
+            .rev()
+            .find(|(pattern, _)| pattern == "*")
+            .is_none_or(|(_, allow)| *allow)
+    }
+}
+
+pub(crate) fn provider_filters(sources: &[config::Source]) -> Result<ProviderPolicy, LoadFailure> {
+    let mut policy = ProviderPolicy::default();
+    for source in sources.iter().rev() {
         let value =
             config::parse_jsonc(&source.text, &source.path).map_err(|_| document(&source.path))?;
-        if let Some(list) = value.get("enabled_providers") {
-            enabled = Some(provider_ids(list, "enabled_providers", &source.path)?);
-        }
-        if let Some(list) = value.get("disabled_providers") {
-            disabled = provider_ids(list, "disabled_providers", &source.path)?;
+        let Some(rules) = value.pointer("/experimental/policies") else {
+            continue;
+        };
+        let field = ["experimental", "policies"];
+        let rules = rules
+            .as_array()
+            .ok_or_else(|| invalid(&source.path, &field))?;
+        for rule in rules {
+            let text = |key: &str| rule.get(key).and_then(serde_json::Value::as_str);
+            let allow = match text("effect") {
+                Some("allow") => true,
+                Some("deny") => false,
+                _ => return Err(invalid(&source.path, &field)),
+            };
+            let resource = text("resource").ok_or_else(|| invalid(&source.path, &field))?;
+            match text("action") {
+                Some("provider.use") => policy.rules.push((resource.to_string(), allow)),
+                // Ignoring a permission deny would widen authority: refuse instead.
+                Some("permission") => {
+                    return Err(failure(
+                        &source.path,
+                        &field,
+                        ServiceStage::Capability,
+                        ServiceCode::UnsupportedCapability,
+                    ));
+                }
+                _ => return Err(invalid(&source.path, &field)),
+            }
         }
     }
-    Ok((enabled, disabled))
+    Ok(policy)
 }
 
 /// Load metadata before mandatory model selection. Dropping this future cancels
@@ -84,10 +141,9 @@ async fn load_catalog_inner(
     let admitted = admit_sources(project, &env)?;
     admit_dcp(&admitted.sources, &admitted.admitted_roots)?;
     let settings = admit_settings(&admitted.sources, &admitted.admitted_roots, &env, false)?;
-    let (enabled, disabled) = (settings.enabled, settings.disabled);
-    let include =
-        |id: &String| !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id));
-    let mut dynamic = if discovery::should_run(&disabled, enabled.as_deref()) {
+    let policy = settings.providers;
+    let include = |id: &String| policy.allows(id);
+    let mut dynamic = if policy.allows(discovery::PROVIDER_ID) {
         HashSet::from([discovery::PROVIDER_ID.to_string()])
     } else {
         HashSet::new()
@@ -95,9 +151,7 @@ async fn load_catalog_inner(
     if public.is_some() && include(&crate::models_dev::PROVIDER.to_string()) {
         dynamic.insert(crate::models_dev::PROVIDER.into());
     }
-    let openai_requested = enabled
-        .as_ref()
-        .is_some_and(|ids| ids.iter().any(|id| id == crate::models_dev::OPENAI))
+    let openai_requested = policy.names(crate::models_dev::OPENAI)
         || admitted.sources.iter().any(|s| {
             config::parse_jsonc(&s.text, &s.path).ok().is_some_and(|v| {
                 v.pointer("/provider/openai").is_some()

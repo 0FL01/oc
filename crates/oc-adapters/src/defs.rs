@@ -256,6 +256,8 @@ pub struct LoadedDefs {
     pub shadowed: Vec<String>,
     /// Per-file diagnostics.
     pub diagnostics: Vec<Diagnostic>,
+    /// OpenCode 1 frontmatter per root origin and kind; such files are not loaded.
+    pub(crate) legacy: Vec<(String, &'static str, Vec<crate::config::legacy::Finding>)>,
 }
 
 /// Primary-agent selection failure.
@@ -1087,13 +1089,13 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         }
     }
 
-    if let Some(raw_commands) = config.get("command") {
+    if let Some(raw_commands) = config.get("commands") {
         if let Some(commands) = raw_commands.as_object() {
             for (id, raw) in commands {
                 if !valid_id(id) {
                     out.defs.diagnostics.push(diag(
                         source_path,
-                        &format!("command.{id}"),
+                        &format!("commands.{id}"),
                         "invalid id",
                     ));
                     continue;
@@ -1101,7 +1103,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                 let Some(object) = raw.as_object() else {
                     out.defs.diagnostics.push(diag(
                         source_path,
-                        &format!("command.{id}"),
+                        &format!("commands.{id}"),
                         "must be an object",
                     ));
                     continue;
@@ -1118,7 +1120,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                 if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str())) {
                     out.defs.diagnostics.push(diag(
                         source_path,
-                        &format!("command.{id}.{field}"),
+                        &format!("commands.{id}.{field}"),
                         "unsupported field",
                     ));
                     continue;
@@ -1147,7 +1149,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     Ok(input) => insert_command(&mut out, &root, input, source_path),
                     Err(reason) => out.defs.diagnostics.push(diag(
                         source_path,
-                        &format!("command.{id}"),
+                        &format!("commands.{id}"),
                         &reason,
                     )),
                 }
@@ -1155,7 +1157,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         } else {
             out.defs
                 .diagnostics
-                .push(diag(source_path, "command", "must be an object"));
+                .push(diag(source_path, "commands", "must be an object"));
         }
     }
     *defs = out.defs;
@@ -1806,6 +1808,25 @@ fn load_entry(
                     return;
                 }
             };
+            // T62: only canonical OpenCode 2 frontmatter is admitted, never migrated.
+            let fields: serde_json::Map<_, _> = frontmatter.fields.clone().into_iter().collect();
+            let (label, findings) = if kind == "agent" {
+                (
+                    "agent definitions",
+                    crate::config::legacy::scan_agent_frontmatter(&fields),
+                )
+            } else {
+                (
+                    "command definitions",
+                    crate::config::legacy::scan_command_frontmatter(&fields),
+                )
+            };
+            if !findings.is_empty() {
+                out.defs
+                    .legacy
+                    .push((root.origin.clone(), label, findings));
+                return;
+            }
             if kind == "agent" {
                 if diagnose_step_constraints(
                     &mut out.defs,

@@ -17,12 +17,21 @@ pub(crate) fn failure(
         stage,
         code,
         action,
+        details: Vec::new(),
     }
 }
 
 /// Schema fragments only. Never preserve provider/permission/env/definition IDs.
 pub(crate) fn schema_field(field: &str) -> Vec<String> {
     const SCHEMA: &[&str] = &[
+        "providers",
+        "package",
+        "settings",
+        "servers",
+        "plugins",
+        "commands",
+        "policies",
+        "legacy",
         "provider",
         "options",
         "models",
@@ -117,6 +126,8 @@ pub(crate) fn schema_field(field: &str) -> Vec<String> {
     let entry_domain = matches!(
         first,
         "provider"
+            | "providers"
+            | "commands"
             | "mcp"
             | "agent"
             | "agents"
@@ -149,7 +160,7 @@ pub(crate) fn from_error(source: &str, error: &ConfigError) -> ServiceDiagnostic
             ServiceCode::UnsupportedCapability,
         ),
         ConfigError::UnsupportedPlugin { .. } => (
-            vec!["plugin".into()],
+            vec!["plugins".into()],
             ServiceStage::Capability,
             ServiceCode::UnsupportedPlugin,
         ),

@@ -160,6 +160,17 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
             unreachable!("diagnostic category projected above")
         }
     };
+    let legacy = diagnostic
+        .as_ref()
+        .is_some_and(|diagnostic| diagnostic.code == oc_core::queries::ServiceCode::LegacyConfig);
+    let (reason, action) = if legacy {
+        (
+            "OpenCode 1 config keys are not supported",
+            "Replace each key below with its canonical OpenCode 2 form, then restart.",
+        )
+    } else {
+        (reason, action)
+    };
     let mut text = vec![
         Line::from("Native startup error").style(Style::default().add_modifier(Modifier::BOLD)),
         Line::from(""),
@@ -185,7 +196,10 @@ pub fn render_startup_failure(frame: &mut Frame<'_>, failure: StartupFailure) {
             6,
             Line::from(format!("Field: {}", diagnostic.field.join("."))),
         );
-        text.insert(7, Line::from(diagnostic.to_string()));
+        // Detail lines (bounded, schema-only) each get their own row.
+        for (offset, line) in diagnostic.to_string().lines().enumerate() {
+            text.insert(7 + offset, Line::from(line.to_string()));
+        }
     }
     frame.render_widget(
         Paragraph::new(text)

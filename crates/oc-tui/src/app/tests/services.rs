@@ -13,6 +13,7 @@ fn diagnostic(kind: ServiceKind) -> ServiceDiagnostic {
         stage: ServiceStage::Config,
         code: ServiceCode::InvalidDefinition,
         action: ServiceAction::ReviewConfiguration,
+        details: Vec::new(),
     }
 }
 

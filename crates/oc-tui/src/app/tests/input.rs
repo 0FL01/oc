@@ -363,6 +363,7 @@ async fn cfg10_diagnostic_details_copy_and_investigation_never_touch_prompt_or_s
         stage: ServiceStage::Config,
         code: ServiceCode::InvalidDefinition,
         action: ServiceAction::ReviewConfiguration,
+        details: Vec::new(),
     };
     let mut catalog = snapshot();
     catalog.chrome.service_diagnostics.push(diagnostic.clone());
@@ -451,6 +452,7 @@ async fn vis42_settings_omits_healthy_provider_summary_without_hiding_owner_issu
         stage: oc_core::queries::ServiceStage::ModelCatalog,
         code: oc_core::queries::ServiceCode::Transport,
         action: oc_core::queries::ServiceAction::RefreshCatalog,
+        details: Vec::new(),
     });
     catalog.chrome.provider = Some(readiness.clone());
     state.apply_catalog(catalog.clone());
@@ -498,6 +500,7 @@ async fn ui07_provider_settings_are_read_only_owner_facts_and_preserve_draft() {
             stage: ServiceStage::Config,
             code: ServiceCode::MissingCredential,
             action: ServiceAction::ReviewConfiguration,
+            details: Vec::new(),
         }),
     };
     catalog.chrome.provider = Some(readiness.clone());
@@ -534,6 +537,7 @@ async fn cfg09_plugin_settings_rows_show_owner_status_and_are_read_only() {
         stage: ServiceStage::Capability,
         code: ServiceCode::UnsupportedPlugin,
         action: ServiceAction::ReviewConfiguration,
+        details: Vec::new(),
     };
     catalog.chrome.plugins.entries.push(PluginEntry {
         requested: diagnostic.service.clone(),
@@ -3202,6 +3206,7 @@ async fn r4a_unavailable_primary_row_is_read_only_and_draft_survives_agent_repai
         stage: ServiceStage::Admission,
         code: ServiceCode::AgentUnavailable,
         action: ServiceAction::SelectAgent,
+        details: Vec::new(),
     };
     catalog.chrome.selection = Some(SelectionReadiness {
         requested: requested.clone(),
@@ -3245,6 +3250,7 @@ async fn r4a_disabled_last_variant_still_offers_explicit_default_repair() {
             stage: oc_core::queries::ServiceStage::Admission,
             code: oc_core::queries::ServiceCode::VariantUnavailable,
             action: oc_core::queries::ServiceAction::SelectVariant,
+            details: Vec::new(),
         },
     });
     state.apply_catalog(catalog);

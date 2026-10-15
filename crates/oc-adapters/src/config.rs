@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub(crate) mod diagnostic;
+pub(crate) mod legacy;
 pub(crate) mod mcp;
 mod providers;
 pub use crate::tools::output::Limits as ToolOutputLimits;
@@ -2640,8 +2641,8 @@ mod tests {
     #[test]
     fn conversation_snapshots_default_off_and_false_aliases_are_safe() {
         for raw in [
-            serde_json::json!({}),
             serde_json::json!({"snapshot":false}),
+            serde_json::json!({}),
             serde_json::json!({"snapshots":false}),
             serde_json::json!({"snapshot":false,"snapshots":false}),
         ] {

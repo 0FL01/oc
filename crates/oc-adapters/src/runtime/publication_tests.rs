@@ -1558,6 +1558,7 @@ async fn hot01_fresh_provider_capture_changes_route_without_replaying_or_falling
                         stage: ServiceStage::Admission,
                         code: ServiceCode::AgentUnavailable,
                         action: ServiceAction::SelectAgent,
+                        details: Vec::new(),
                     });
                 }
             });

@@ -834,6 +834,9 @@ pub struct ServiceDiagnostic {
     pub stage: ServiceStage,
     pub code: ServiceCode,
     pub action: ServiceAction,
+    /// Bounded schema-only detail lines (no values/IDs), e.g. a legacy-key report.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub details: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -935,6 +938,8 @@ pub enum ServiceCode {
     CleanupFailed,
     Cancelled,
     UnsafeRetry,
+    /// OpenCode 1 config keys; only the canonical OpenCode 2 schema is admitted.
+    LegacyConfig,
 }
 
 impl ServiceCode {
@@ -984,6 +989,7 @@ impl ServiceCode {
             Self::CleanupFailed => "cleanup_failed",
             Self::Cancelled => "cancelled",
             Self::UnsafeRetry => "unsafe_retry",
+            Self::LegacyConfig => "legacy_config",
         }
     }
 }
@@ -1007,6 +1013,7 @@ pub enum ServiceAction {
     ReviewRecovery,
     ReduceCapacity,
     UseInteractiveTui,
+    ReplaceLegacyConfig,
 }
 
 impl std::fmt::Display for ServiceDiagnostic {
@@ -1058,8 +1065,14 @@ impl std::fmt::Display for ServiceDiagnostic {
                     "reduce the admitted input or resource size; limits remain enforced",
                 ServiceAction::UseInteractiveTui =>
                     "use the interactive TUI to answer; --auto only accepts permissions",
+                ServiceAction::ReplaceLegacyConfig =>
+                    "replace OpenCode 1 keys with the canonical OpenCode 2 keys listed",
             }
-        )
+        )?;
+        for detail in &self.details {
+            write!(f, "\n  {detail}")?;
+        }
+        Ok(())
     }
 }
 

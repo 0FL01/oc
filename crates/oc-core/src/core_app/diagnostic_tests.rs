@@ -11,6 +11,7 @@ async fn cfg10_worker_join_keeps_native_cause_and_redacts_legacy_failure() {
         stage: ServiceStage::Cleanup,
         code: ServiceCode::CleanupFailed,
         action: ServiceAction::RestartApplication,
+        details: Vec::new(),
     };
     let returned = cause.clone();
     let worker = WorkerGuard::from_diagnostic_task(tokio::spawn(async move { Err(returned) }));

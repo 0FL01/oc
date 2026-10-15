@@ -192,6 +192,7 @@ impl ProviderState {
             stage,
             code,
             action,
+            details: Vec::new(),
         }
     }
 

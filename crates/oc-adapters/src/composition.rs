@@ -340,6 +340,7 @@ fn admit_sources(
     let mut sources = Vec::new();
     let mut source_authority = BTreeMap::new();
     let mut seen = HashSet::new();
+    let mut legacy = config::legacy::Report::default();
     for (index, (root, admitted)) in roots.iter().zip(&admitted_roots).enumerate() {
         let Some(admitted) = admitted else { continue };
         for name in ["opencode.json", "opencode.jsonc"] {
@@ -377,6 +378,12 @@ fn admit_sources(
                         text.len()
                     ),
                 );
+                if let Ok(document) = config::parse_jsonc(&text, &source_path) {
+                    legacy.add(
+                        &format!("{} {name}", legacy_scope(index, global.is_some())),
+                        &config::legacy::scan_document(&document),
+                    );
+                }
                 sources.push(config::Source {
                     path: source_path,
                     text,
@@ -387,6 +394,7 @@ fn admit_sources(
             }
         }
     }
+    legacy_gate(legacy, &admitted_roots, global.is_some())?;
     Ok(AdmittedSources {
         project,
         global,
@@ -395,6 +403,73 @@ fn admit_sources(
         sources,
         source_authority,
     })
+}
+
+/// Static scope label for an admitted config root; never a filesystem path.
+fn legacy_scope(index: usize, has_global: bool) -> &'static str {
+    match (has_global, index) {
+        (true, 0) => "global",
+        (true, 1) | (false, 0) => "location",
+        _ => "location .opencode",
+    }
+}
+
+/// T62 fail-closed gate: any OpenCode 1 key in an admitted document or cli.json
+/// refuses admission with one complete report, including Markdown definitions.
+/// Clean documents leave definitions to the ordinary loader (`LoadedDefs::legacy`).
+fn legacy_gate(
+    mut report: config::legacy::Report,
+    admitted_roots: &[Option<AdmittedRoot>],
+    has_global: bool,
+) -> Result<(), LoadFailure> {
+    for (index, admitted) in admitted_roots.iter().enumerate() {
+        let Some(admitted) = admitted else { continue };
+        for name in ["cli.json", "cli.jsonc"] {
+            let Ok(Some(text)) = read_native_config(admitted, name) else {
+                continue;
+            };
+            if let Ok(document) = config::parse_jsonc(&text, name) {
+                report.add(
+                    &format!("{} {name}", legacy_scope(index, has_global)),
+                    &config::legacy::scan_cli(&document),
+                );
+            }
+        }
+    }
+    if report.is_empty() {
+        return Ok(());
+    }
+    let definition_roots = [
+        has_global.then_some(0),
+        admitted_roots.len().checked_sub(1),
+    ];
+    for index in definition_roots.into_iter().flatten() {
+        let Some(admitted) = admitted_roots[index].as_ref() else {
+            continue;
+        };
+        let mut scanned = defs::LoadedDefs::default();
+        defs::merge_definition_root_admitted(
+            &mut scanned,
+            &defs::DefRoot {
+                dir: admitted.path.clone(),
+                origin: String::new(),
+            },
+            &admitted.dir,
+            None,
+        );
+        add_definition_findings(&mut report, legacy_scope(index, has_global), &scanned);
+    }
+    Err(LoadFailure::Configuration(report.diagnostic()))
+}
+
+fn add_definition_findings(
+    report: &mut config::legacy::Report,
+    scope: &str,
+    loaded: &defs::LoadedDefs,
+) {
+    for (_, kind, findings) in &loaded.legacy {
+        report.add(&format!("{scope} {kind}"), findings);
+    }
 }
 
 struct DcpAdmission {
@@ -505,7 +580,7 @@ fn admit_dcp(
                     diagnostic.code = ServiceCode::UnsupportedCapability;
                 }
                 dcp_auto::DcpAutoError::UnsupportedPlugin { .. } => {
-                    diagnostic.field = vec!["plugin".into()];
+                    diagnostic.field = vec!["plugins".into()];
                     diagnostic.stage = ServiceStage::Capability;
                     diagnostic.code = ServiceCode::UnsupportedPlugin;
                 }
@@ -527,8 +602,7 @@ struct LocalSettings {
     selected_source: String,
     default_agent: Option<String>,
     subagent_depth: u32,
-    enabled: Option<Vec<String>>,
-    disabled: Vec<String>,
+    providers: catalog::ProviderPolicy,
     native_modules: BTreeSet<String>,
     plugins: PluginInventory,
     plugin_issues: bool,
@@ -548,7 +622,7 @@ fn admit_settings(
         .unwrap_or_else(|| "native config".into());
     let mut default_agent = None;
     let mut subagent_depth: u32 = 1;
-    let (enabled, disabled) = catalog::provider_filters(sources)?;
+    let providers = catalog::provider_filters(sources)?;
     let mut native_modules = BTreeSet::new();
     let mut plugins = PluginInventory::default();
     let mut plugin_issues = false;
@@ -607,8 +681,8 @@ fn admit_settings(
                 subagent_depth = depth as u32;
             }
         }
-        if let Some(identities) = value.get("plugin") {
-            let identities = provider_ids(identities, "plugin", &source.path)?;
+        if let Some(identities) = value.get("plugins") {
+            let identities = plugin_packages(identities, &source.path)?;
             for (index, identity) in identities.into_iter().enumerate() {
                 // Exact compiled aliases only. No plugin is opened or executed.
                 let module = admitted_roots.iter().flatten().find_map(|root| {
@@ -637,7 +711,7 @@ fn admit_settings(
                 }
                 let requested = config::safe_plugin_id(&identity);
                 let source_id = config::mcp::safe_source_id(&source.path);
-                let field = vec!["plugin".into(), index.to_string()];
+                let field = vec!["plugins".into(), index.to_string()];
                 let diagnostic = (status == PluginStatus::Failed).then(|| ServiceDiagnostic {
                     kind: ServiceKind::Plugin,
                     service: requested.clone(),
@@ -646,6 +720,7 @@ fn admit_settings(
                     stage: ServiceStage::Capability,
                     code: ServiceCode::UnsupportedPlugin,
                     action: ServiceAction::ReviewConfiguration,
+                    details: Vec::new(),
                 });
                 if let Some(diagnostic) = &diagnostic {
                     trace::log("plugin.fail", &diagnostic.to_string());
@@ -675,8 +750,7 @@ fn admit_settings(
         selected_source,
         default_agent,
         subagent_depth,
-        enabled,
-        disabled,
+        providers,
         native_modules,
         plugins,
         plugin_issues,
@@ -722,8 +796,7 @@ async fn load_stages(
         selected_source,
         mut default_agent,
         subagent_depth,
-        enabled,
-        disabled,
+        providers: provider_policy,
         native_modules,
         plugins,
         plugin_issues,
@@ -779,6 +852,22 @@ async fn load_stages(
             &admitted.dir,
             Some(&observe_definition),
         );
+    }
+    if !loaded_defs.legacy.is_empty() {
+        let mut report = config::legacy::Report::default();
+        let global_origin = global
+            .as_ref()
+            .and(admitted_roots[0].as_ref())
+            .map(|root| root.path.to_string_lossy().into_owned());
+        for (origin, kind, findings) in &loaded_defs.legacy {
+            let scope = if Some(origin) == global_origin.as_ref() {
+                "global"
+            } else {
+                "location .opencode"
+            };
+            report.add(&format!("{scope} {kind}"), findings);
+        }
+        return Err(LoadFailure::Configuration(report.diagnostic()));
     }
 
     let mut instruction_roots = Vec::new();
@@ -967,10 +1056,7 @@ async fn load_stages(
             })
         })
         .flatten();
-    let provider_enabled = !(disabled.iter().any(|id| id == provider_id)
-        || enabled
-            .as_ref()
-            .is_some_and(|ids| !ids.iter().any(|id| id == provider_id)));
+    let provider_enabled = provider_policy.allows(provider_id);
     let selected_providers = if provider_enabled {
         HashSet::from([provider_id.to_string()])
     } else {
@@ -1002,17 +1088,11 @@ async fn load_stages(
         diagnostic.field = note.field.clone();
         return Err(LoadFailure::Configuration(diagnostic));
     }
-    generation.providers.retain(|id, _| {
-        !disabled.contains(id) && enabled.as_ref().is_none_or(|ids| ids.contains(id))
-    });
-    generation.public_go_enabled = !disabled.iter().any(|id| id == crate::models_dev::PROVIDER)
-        && enabled
-            .as_ref()
-            .is_none_or(|ids| ids.iter().any(|id| id == crate::models_dev::PROVIDER));
-    generation.public_openai_enabled = !disabled.iter().any(|id| id == crate::models_dev::OPENAI)
-        && enabled
-            .as_ref()
-            .is_none_or(|ids| ids.iter().any(|id| id == crate::models_dev::OPENAI));
+    generation
+        .providers
+        .retain(|id, _| provider_policy.allows(id));
+    generation.public_go_enabled = provider_policy.allows(crate::models_dev::PROVIDER);
+    generation.public_openai_enabled = provider_policy.allows(crate::models_dev::OPENAI);
     admit_local_mcp(
         &mut generation,
         &project,
@@ -1154,8 +1234,7 @@ async fn load_stages(
             .map(String::as_str)
             .unwrap_or("native config"),
         provider.auth_ready(),
-        provider_id == discovery::PROVIDER_ID
-            && discovery::should_run(&disabled, enabled.as_deref()),
+        provider_id == discovery::PROVIDER_ID && provider_policy.allows(discovery::PROVIDER_ID),
     );
     let provider_state = provider_state.with_auth_policy(provider.wire.auth_policy);
     let skills = loaded_defs
@@ -2123,12 +2202,22 @@ fn merge_config_sources(
     Ok(())
 }
 
-fn provider_ids(
-    value: &serde_json::Value,
-    field: &str,
-    source: &str,
-) -> Result<Vec<String>, LoadFailure> {
-    serde_json::from_value(value.clone()).map_err(|_| invalid(source, &[field]))
+/// Canonical `plugins`: package strings or `{package, options}`. Compiled native
+/// modules take no options; they are accepted but have no effect.
+fn plugin_packages(value: &serde_json::Value, source: &str) -> Result<Vec<String>, LoadFailure> {
+    let entries = value
+        .as_array()
+        .ok_or_else(|| invalid(source, &["plugins"]))?;
+    entries
+        .iter()
+        .map(|entry| {
+            entry
+                .as_str()
+                .or_else(|| entry.get("package").and_then(serde_json::Value::as_str))
+                .map(str::to_string)
+                .ok_or_else(|| invalid(source, &["plugins"]))
+        })
+        .collect()
 }
 
 #[cfg(test)]

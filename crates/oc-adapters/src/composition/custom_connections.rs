@@ -36,22 +36,16 @@ impl Composition {
     }
 
     pub(crate) fn custom_creation_admitted(&self) -> bool {
-        matches!(
-            catalog::provider_filters(&self.mcp_activation.sources),
-            Ok((None, _))
-        )
+        catalog::provider_filters(&self.mcp_activation.sources)
+            .is_ok_and(|policy| policy.allows_unlisted())
     }
 
     pub(crate) fn custom_admitted(&self, id: &str) -> bool {
         let sources = &self.mcp_activation.sources;
-        let Ok((enabled, disabled)) = catalog::provider_filters(sources) else {
+        let Ok(policy) = catalog::provider_filters(sources) else {
             return false;
         };
-        !reserved(sources).contains(id)
-            && !disabled.iter().any(|value| value == id)
-            && enabled
-                .as_ref()
-                .is_none_or(|ids| ids.iter().any(|value| value == id))
+        !reserved(sources).contains(id) && policy.allows(id)
     }
 
     pub(crate) fn attach_custom_connections(
