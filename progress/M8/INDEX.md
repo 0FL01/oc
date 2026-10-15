@@ -20,4 +20,4 @@ Plan: ../../roadmap/M8.md
 - [T61](T61/INDEX.md) [blocked] — Hot reload (per-process); shared service descoped; latest: 0017.md.
 - [T62](T62/INDEX.md) [done] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: 0001.md.
 - [T63](T63/INDEX.md) [done] — MIT для собственного кода проекта; latest: 0001.md.
-- [T64](T64/INDEX.md) [active] — Publish native oc2 on crates.io; latest: 0001.md.
+- [T64](T64/INDEX.md) [done] — Publish native oc2 on crates.io; latest: 0002.md.

@@ -1,66 +1,91 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T19:13:38+00:00
-Active: T64
+State updated: 2026-10-15T19:23:51+00:00
+Active: нет
 
 Сверить Git status/diff до выполнения команд.
-Task: T64 — Publish native oc2 on crates.io
-Spec: docs/goals/2026-10-15-crates-io.md
-Evidence target: evidence/T64/report.md
 
-Owner-authorized 2026-10-15 publication: replace the oc2 bootstrap with native 0.1.0, preserve modular library boundaries and all embedded assets, publish versioned registry dependencies, verify archive builds and an isolated cargo install from crates.io. Original source MIT; retain and ship third-party/source-derived licenses and provenance with truthful package metadata. No runtime scope expansion, auto-update, full-product READY or user-config conversion. Subsequent corrections use new versions.
+Последний срез: T64 [done]; сверить незакоммиченный diff.
 
-Последний checkpoint этой задачи (проверить актуальность по Git):
-
-# T64 — pre-publication checkpoint
+# T64 — native oc2 published on crates.io
 
 ## Result
 
-Implementation commit: `750f377c8` (`feat(packaging): prepare native oc2 for crates.io`).
-The reviewed workspace prepares oc-core, oc-adapters, oc-tui and oc2 at 0.1.0.
-The installed executable remains oc2; no launcher or runtime service was added.
-No real registry upload has been attempted at this checkpoint.
+Published 2026-10-15 with the configured crates.io credential, after the owner
+explicitly authorized immutable registry publication. Implementation commit:
+`750f377c8`; committed pre-upload checkpoint: `1b8a1cf58` and
+[prepublish.md](prepublish.md). No upload retry or version correction was needed.
+
+Public API confirmed all four versions unyanked and published by `0FL01`:
+
+| Package | Version | Published archive bytes | Registry |
+| --- | --- | ---: | --- |
+| oc-core | 0.1.0 | 72,538 | https://crates.io/crates/oc-core/0.1.0 |
+| oc-adapters | 0.1.0 | 1,465,085 | https://crates.io/crates/oc-adapters/0.1.0 |
+| oc-tui | 0.1.0 | 8,057,467 | https://crates.io/crates/oc-tui/0.1.0 |
+| oc2 | 0.1.0 | 456,385 | https://crates.io/crates/oc2/0.1.0 |
+
+The binary package is now named oc2, matching the unchanged sole executable
+target. The previous 0.0.1 bootstrap is not overwritten. Library boundaries,
+native data/config identity and runtime behavior remain unchanged. README now
+documents installation, prerequisites and current qualification limits.
 
 ## Checks
 
-- Lossless conversion: all 39 gzip tar streams equal their XZ decompression
-  byte-for-byte; archive total 19,100,096 → 7,320,508 bytes. Only archive paths,
-  encoded digests and the reference manifest checksum changed. Source/query/
-  license metadata, fixtures.json and the behavioral reference oracle are intact.
-- `cargo test -p oc-tui --lib syntax::`: 5 passed, 0 failed. This generated the
-  lockfile entries for the build-only decoder and the oc → oc2 package rename.
-- `cargo publish --workspace --dry-run --locked --allow-dirty`: PASS; all four
-  normalized packages built from extracted archives, with staged registry
-  dependencies instead of sibling workspace paths. Uploads explicitly aborted
-  by dry-run. No production source changed after verification.
-- Archive inspection: README, byte-exact MIT/license copies, applicable complete
-  AGPL notices, internal registry versions and sole oc2 binary target present.
-  All 39 XZ grammars and build/reference inputs are in the TUI archive.
-- Dry-run sizes: oc-core 72,547; oc-adapters 1,465,093; oc-tui 8,057,478;
-  oc2 456,410 bytes. Every archive is below 10,000,000 bytes.
-- `rustfmt --check --edition 2024 crates/oc-tui/build.rs`: PASS.
-  Development importer Python compilation: PASS.
-- `python3 scripts/check_docs.py`: PASS, 64 tasks / 192 acceptance specifications.
-  `git diff --check` and staged diff review: PASS.
+- All 39 source archives were losslessly converted from gzip to XZ: each complete
+  uncompressed tar stream compared byte-for-byte, 19,100,096 → 7,320,508 encoded
+  bytes. Only archive filenames/digests and the reference manifest checksum
+  changed; source/license/query metadata and behavioral oracle stayed intact.
+  The decoder is a minimal build-only dependency; no runtime download was added.
+- `cargo test -p oc-tui --lib syntax::`: 5 passed, 0 failed, including the complete
+  inventory and actual-reference token/style comparisons.
+- `cargo publish --workspace --dry-run --locked --allow-dirty`: PASS. All four
+  extracted packages built with staged registry dependencies, not sibling paths.
+  Archive inspection confirmed normalized versions, README, applicable complete
+  licenses/notices, all 39 grammars/build inputs and only the oc2 executable.
+- `cargo publish --workspace --no-verify --locked`: PASS after the committed
+  checkpoint; verification was not redundantly repeated. Cargo reported each
+  version published and available. Public API independently confirmed the table.
+- From approved scratch outside the checkout:
+  `cargo install oc2 --version 0.1.0 --locked --root <isolated-root>`: PASS,
+  release build 7m27s. Sources came from crates.io; the existing target cache was
+  reused. No default user installation or user config was replaced.
+- Installed root contains exactly one binary, an ELF named oc2. In a fresh HOME,
+  isolated project/data dirs and empty PATH: `--version` printed `oc2 0.1.0`,
+  `--help` exposed the real commands, and the existing `--smoke` exercised core,
+  adapter/SQLite/client and TUI composition.
+- The installed ELF completed a headless turn against a local fake Responses
+  endpoint with canonical OC2 config, returned the fixture marker, and exposed
+  the persisted session via `sessions list`. Two local requests (title/main),
+  no paid provider request and no Cargo/Node/Bun/external tool executable on PATH.
+- `rustfmt --check --edition 2024 crates/oc-tui/build.rs`, importer Python syntax
+  compilation, `python3 scripts/check_docs.py` (64 tasks / 192 specifications),
+  whitespace checks and reviewed implementation diff: PASS.
 
 ## Risks
 
-Registry credential authorization/scopes and the real registry installation are
-not yet verified. Cargo warns that the pre-existing locked yoke-derive 0.8.3 is
-yanked; the locked package builds succeeded and no unrelated dependency update
-was made. GNU/Linux x86_64 only; Fedora/macOS/Windows are not newly qualified.
-Existing owner-config/E2E06 and VIS38 caveats remain; this is not full-product
-READY or a fresh complete runtime qualification. Own source remains MIT;
-source-derived AGPL and other third-party licenses are preserved, not relabeled.
+This verifies packaging/installation and the affected syntax path, not a new full
+runtime or full-product READY qualification. Existing owner-config/E2E06 and
+VIS38 caveats remain. Fedora/macOS/Windows were not newly tested; documented
+target remains GNU/Linux x86_64. Source installation needs Rust 1.93+ and native
+C/C++/make/CMake build prerequisites.
+
+Cargo reports the pre-existing locked yoke-derive 0.8.3 as yanked. The locked
+archive builds and registry installation passed; unrelated dependencies were
+not updated. Own source stays MIT; packages containing/linking source-derived
+DCP retain AGPL notices/full text and composite metadata. Other vendored license
+bytes were preserved. No credential, raw live response or user-config content
+was recorded. Subsequent published corrections must use new versions.
 
 ## Next
 
-Commit this checkpoint, then publish only these four packages with
-`cargo publish --workspace --no-verify --locked` (archive builds already passed).
-Check actual registry state before any retry after an ambiguous upload result.
-Install oc2 0.1.0 from crates.io into an isolated root; verify version/help and an
-offline actual-binary smoke, then record the factual outcome and push the branch.
+Close the task and push the implementation/checkpoint/report on the existing
+branch. Users install with `cargo install oc2 --locked`, then launch `oc2`;
+the newer version replaces the 0.0.1 bootstrap. Unrelated runtime follow-up stays
+with its existing owners and paused tasks.
 
+
+Следующий шаг: проверить зависимости и начать первую ready-задачу.
 
 Ready (до 5): нет
 Blocked: T27, T44, T45, T57, T61
