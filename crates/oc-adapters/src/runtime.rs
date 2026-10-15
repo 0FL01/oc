@@ -1189,6 +1189,7 @@ mod tests;
 mod media_tests;
 
 mod publication;
+pub(crate) use publication::{SourcePublication, WorkspacePublication};
 
 impl<'a> Runtime<'a> {
     /// Build a runtime over one Location and an initial generation.
@@ -1695,7 +1696,7 @@ impl<'a> Runtime<'a> {
         let _lease = self.begin_active()?;
         self.start_mcp()?;
         // This low-level replacement has no newly pinned source descriptors.
-        // Application reload builds a complete Composition/runtime instead.
+        // Application reload supplies a complete admitted source publication instead.
         let expected = self.current.read().expect("generation lock").clone();
         let id = expected.id.checked_add(1).ok_or(RuntimeError::Storage)?;
         let mut candidate = expected.as_ref().clone();
@@ -2004,15 +2005,6 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-    pub(crate) fn publish_profile_issue(
-        &self,
-        issue: Option<oc_core::queries::ServiceDiagnostic>,
-    ) -> Result<(), RuntimeError> {
-        let _active = self.begin_active()?;
-        self.update_execution(|view| view.workspace.profile_issue = issue);
-        Ok(())
-    }
-
     fn admit_primary_profile(&self, published: &ExecutionGeneration) -> Result<(), RuntimeError> {
         if let Some(issue) = &published.workspace.profile_issue {
             return Err(RuntimeError::InvalidArgs(issue.to_string()));
@@ -2032,59 +2024,31 @@ impl<'a> Runtime<'a> {
         agent_id: Option<String>,
         agent_color_index: Option<usize>,
         agent_permissions: BTreeMap<String, Permission>,
-        mut agent_permission_rules: crate::permissions::PermissionRules,
+        agent_permission_rules: crate::permissions::PermissionRules,
         agent_request: crate::provider::RequestOverlay,
     ) -> Result<(), RuntimeError> {
-        if self.active.load(Ordering::Relaxed) {
-            return Err(RuntimeError::TurnActive);
-        }
-        let (mut skills, warnings) = SkillSnapshot::build(&files);
-        if !warnings.is_empty() {
-            return Err(RuntimeError::InvalidArgs(warnings.join("; ")));
-        }
-        skills.errors = skill_errors;
-        let projection = skills.projection();
-        let skills_projection = if projection.is_empty() {
-            None
-        } else {
-            Some(serde_json::to_string(&projection).map_err(|_| RuntimeError::Storage)?)
-        };
-        let _commit = self.publication_commit.lock().expect("publication commit");
-        let shared_sources = !self
+        let workspace = self
             .current
             .read()
             .expect("generation lock")
             .workspace
-            .instruction_roots
-            .is_empty();
-        // The skills preview is appended per lane after its final policy.
-        let fixed_input = lane_fixed_input(
-            agent_prompt,
-            if shared_sources { "" } else { instructions },
-            None,
-        );
-        if let Some(home) = self.parent_env.get("HOME") {
-            agent_permission_rules.expand_home(home);
-        }
-        agent_permission_rules.bind_plan_project(&self.roots.project);
-        let mut current = self.current.write().expect("generation lock");
-        let workspace = &mut Arc::make_mut(&mut current).workspace;
-        workspace.fixed_input = fixed_input;
-        workspace.skills = skills;
-        workspace.agent_digest = agent_digest;
-        workspace.profile_issue = None;
-        workspace.agent_permissions = agent_permissions;
-        workspace.agent_permission_rules = agent_permission_rules;
-        workspace.agent_request = agent_request;
-        workspace.agent_id = agent_id;
-        workspace.agent_color_index = agent_color_index;
-        workspace.instructions = if shared_sources {
-            String::new()
-        } else {
-            instructions.to_string()
-        };
-        workspace.skills_projection = skills_projection;
-        Ok(())
+            .clone();
+        self.publish_native_workspace(WorkspacePublication {
+            agent_prompt: agent_prompt.map(str::to_owned),
+            instructions: instructions.into(),
+            files,
+            skill_errors,
+            agent_digest,
+            agent_id,
+            agent_color_index,
+            agent_permissions,
+            agent_permission_rules,
+            agent_request,
+            instruction_roots: workspace.instruction_roots,
+            subagents: workspace.subagents,
+            command_digest: workspace.command_digest,
+            profile_issue: None,
+        })
     }
 
     /// Publish the subagent catalog + depth budget between turns.

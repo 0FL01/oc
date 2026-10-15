@@ -3,17 +3,6 @@ use super::*;
 use crate::instructions::{Origin, Source};
 
 impl Runtime<'_> {
-    pub(crate) fn publish_instruction_roots(
-        &self,
-        roots: Vec<crate::instructions::Root>,
-    ) -> Result<(), RuntimeError> {
-        if self.active.load(Ordering::Relaxed) {
-            return Err(RuntimeError::TurnActive);
-        }
-        self.update_execution(|view| view.workspace.instruction_roots = roots);
-        Ok(())
-    }
-
     pub(super) fn instruction_sources(
         &self,
         published: &ExecutionGeneration,

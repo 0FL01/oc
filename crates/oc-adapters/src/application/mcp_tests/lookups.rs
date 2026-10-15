@@ -304,11 +304,18 @@ async fn mcp11_core_drop_disconnect_reload_location_cancel_only_owned_lookup_and
     });
     wait_count(&report, "resources/read", 2).await;
     app.reload_location().await.unwrap();
-    assert_eq!(pending.await.unwrap(), Err(McpLookupError::Cancelled));
-    gone(old_pid);
+    // Reload no longer shuts down the Location owner. The already-issued read
+    // retains its physical lease/binding, while new work cannot use that binding.
+    assert!(!pending.is_finished());
+    fs::write(&gate, "issued-read-release").unwrap();
+    let issued = pending.await.unwrap().unwrap();
+    assert_eq!(issued.binding, snapshot.binding);
     let (new, _) = wait_status(&app, "peer", McpStatus::Connected).await;
+    // Replacement exposure requires confirmed retirement of the issued client.
+    gone(old_pid);
     assert_ne!(new.binding, snapshot.binding);
     assert_eq!(app.mcp_lookup(q).await, Err(McpLookupError::StaleBinding));
+    fs::remove_file(&gate).unwrap();
     let pending = tokio::spawn({
         let app = app.clone();
         let q = query(

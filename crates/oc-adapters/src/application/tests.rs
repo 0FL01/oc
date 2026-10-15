@@ -1231,7 +1231,7 @@ mod reload_tests {
     }
 
     #[tokio::test]
-    async fn removed_selected_primary_refuses_reload_and_keeps_old_turn_usable() {
+    async fn removed_selected_primary_publishes_unavailable_and_requires_explicit_repair() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
         let data = root.path().join("data");
@@ -1276,32 +1276,51 @@ mod reload_tests {
         let catalog = app.catalog().await.unwrap();
 
         std::fs::write(&path, config(false)).unwrap();
-        assert_eq!(
-            app.reload_location().await,
-            Err(CoreError::LocationSwitch {
-                category: LocationSwitchFailure::Configuration,
-                detail: "retained session selection unavailable in reloaded configuration".into(),
-                diagnostic: Some(crate::config::diagnostic::failure(
-                    &project.to_string_lossy(),
-                    &["selection"],
-                    oc_core::queries::ServiceStage::Admission,
-                    oc_core::queries::ServiceCode::ModelUnavailable,
-                    oc_core::queries::ServiceAction::SelectModel,
-                )),
-            })
+        // T61/R1 supersedes rejecting a valid removal: keep the exact saved
+        // choice unavailable, never retain its old executable profile/fallback.
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > initial.generation);
+        assert!(catalog.agents.iter().any(|agent| agent.id == "review"));
+        assert!(
+            !reloaded
+                .catalog
+                .agents
+                .iter()
+                .any(|agent| agent.id == "review")
         );
-        assert_eq!(app.catalog().await.unwrap(), catalog);
         assert_eq!(app.tab_deck().await.unwrap(), saved);
+        let unavailable = app
+            .session_selection(session.clone(), false, Action::Current)
+            .await
+            .unwrap();
+        assert_ne!(unavailable.agent_id.as_deref(), Some("build"));
         assert_eq!(
-            app.file_suggestions("".into(), 1).await.unwrap().generation,
-            initial.generation
+            unavailable
+                .chrome
+                .selection
+                .as_ref()
+                .unwrap()
+                .diagnostic
+                .code,
+            oc_core::queries::ServiceCode::AgentUnavailable
         );
-        assert_eq!(
-            app.session_selection(session.clone(), false, Action::Current)
+        assert!(
+            app.submit(session.clone(), "must not dispatch removed profile".into())
                 .await
-                .unwrap(),
-            chosen
+                .is_err()
         );
+        assert!(app.read_history(session.clone()).await.unwrap().is_empty());
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(100), listener.accept())
+                .await
+                .is_err()
+        );
+        let repaired = app
+            .session_selection(session.clone(), false, Action::Agent("build".into()))
+            .await
+            .unwrap();
+        assert_eq!(repaired.agent_id.as_deref(), Some("build"));
+        assert!(repaired.chrome.selection.is_none());
 
         let server = tokio::spawn(async move {
             let (mut stream, _) = listener.accept().await.unwrap();
@@ -1327,7 +1346,14 @@ mod reload_tests {
                 }
             }
             let body = String::from_utf8_lossy(&request);
-            assert!(body.contains("REVIEW_PRIMARY"), "old agent prompt missing");
+            assert!(
+                body.contains("BUILD_PRIMARY"),
+                "explicit repaired agent prompt missing"
+            );
+            assert!(
+                !body.contains("REVIEW_PRIMARY"),
+                "removed executable profile survived reload"
+            );
             assert!(body.contains("retained turn"), "old session prompt missing");
             let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"answer\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
             stream

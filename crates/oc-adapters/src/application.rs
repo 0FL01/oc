@@ -59,6 +59,7 @@ mod provider_connections;
 #[cfg(test)]
 #[path = "application/provider_tests.rs"]
 mod provider_tests;
+mod reload;
 #[path = "application_selection.rs"]
 mod selection;
 #[cfg(test)]
@@ -1365,23 +1366,7 @@ fn build_runtime<'a>(db: &'a Db, composition: &Composition) -> Result<Runtime<'a
         .publish_subagents(subagent_catalog(composition))
         .map_err(|error| runtime_issue(&source, &["agent"], &error))?;
     runtime
-        .publish_command_digest(crate::compaction::fingerprint(
-            &composition
-                .command_defs
-                .values()
-                .map(|def| {
-                    (
-                        &def.id,
-                        &def.body,
-                        &def.description,
-                        &def.agent,
-                        &def.model,
-                        def.subagent,
-                        def.subtask,
-                    )
-                })
-                .collect::<Vec<_>>(),
-        ))
+        .publish_command_digest(command_digest(composition))
         .map_err(|error| runtime_issue(&source, &["command"], &error))?;
     Ok(runtime)
 }
@@ -1446,6 +1431,7 @@ enum WorkerOutcome {
         old_deck: oc_core::queries::TabDeckSnapshot,
         ack: oneshot::Sender<Result<oc_core::queries::SessionPickerOpen, CoreError>>,
     },
+    Reload(oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>),
     /// The owner asked to switch Location; the supervisor owns the rebuild.
     Switch {
         /// Target project path.
@@ -1458,7 +1444,6 @@ enum WorkerOutcome {
 enum SwitchAck {
     Session(oneshot::Sender<Result<LocationSnapshot, CoreError>>),
     Home(oneshot::Sender<Result<HomeLocationSnapshot, CoreError>>),
-    Reload(oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>),
 }
 
 /// Own the whole application task: build the runtime, publish the workspace
@@ -1956,7 +1941,6 @@ async fn start_worker_inner(
                     &mut sessions,
                     composition.parent_env.clone(),
                     true,
-                    false,
                 )
                 .await;
                 let (next, next_composition, mut next_effective, mut next_registry, _, _) =
@@ -2097,6 +2081,31 @@ async fn start_worker_inner(
                 terminal_stop?;
                 break;
             }
+            WorkerOutcome::Reload(ack) => {
+                let result = reload::replace(
+                    &db,
+                    &runtime,
+                    &mut composition,
+                    &mut effective,
+                    &mut registry,
+                    &sessions,
+                    &location_epoch,
+                    &mut provider_work,
+                    &events,
+                )
+                .await;
+                if result.is_ok() {
+                    // Preserve explicit-reload title ownership: completed results
+                    // may settle, but unfinished old-source title jobs are joined.
+                    // A rejected candidate never invalidates their pending ticket.
+                    while let Ok(result) = title_rx.try_recv() {
+                        commit_automatic_title(&db, &events, &title_work, result);
+                    }
+                    stop_automatic_titles(&title_work).await?;
+                    home_choices.remove(runtime.location());
+                }
+                let _ = ack.send(result);
+            }
             WorkerOutcome::Switch { path, ack } => {
                 let home = !matches!(ack, SwitchAck::Session(_));
                 match switch_target(
@@ -2105,77 +2114,10 @@ async fn start_worker_inner(
                     &mut sessions,
                     composition.parent_env.clone(),
                     home,
-                    matches!(ack, SwitchAck::Reload(_)),
                 )
                 .await
                 {
                     Ok((next, next_composition, next_effective, next_registry, session, notes)) => {
-                        if matches!(ack, SwitchAck::Reload(_))
-                            && next_composition.provider_state.catalog_status
-                                == oc_core::queries::ProviderStatus::Failed
-                        {
-                            let error = next_composition
-                                .provider_state
-                                .for_model(&next_composition.model_id, false)
-                                .diagnostic
-                                .expect("failed refresh has a cause");
-                            next.shutdown_mcp().await.map_err(|error| {
-                                runtime_issue(next.location(), &["mcp"], &error).diagnostic
-                            })?;
-                            if next_composition.catalog.provider == composition.catalog.provider {
-                                // Keep the complete healthy catalog/policy/credentials. Only the
-                                // transient latest-attempt fact changes, as with MCP status.
-                                let same_binding = composition
-                                    .provider
-                                    .same_request_binding(&next_composition.provider)
-                                    .map_err(|_| {
-                                        crate::config::diagnostic::failure(
-                                            "native provider binding",
-                                            &["provider", "options", "headers"],
-                                            oc_core::queries::ServiceStage::Config,
-                                            oc_core::queries::ServiceCode::InvalidHeader,
-                                            oc_core::queries::ServiceAction::ReviewConfiguration,
-                                        )
-                                    })?;
-                                composition.provider_state.retain_failed_attempt(
-                                    &next_composition.provider_state,
-                                    same_binding,
-                                );
-                                runtime
-                                    .publish_provider_state(
-                                        composition.provider_state.clone(),
-                                        composition.request_provider(&composition.catalog.provider),
-                                    )
-                                    .map_err(|error| {
-                                        runtime_issue(runtime.location(), &["provider"], &error)
-                                            .diagnostic
-                                    })?;
-                                let _ = events.send(CoreEvent::ProviderChanged);
-                            }
-                            if let SwitchAck::Reload(ack) = ack {
-                                let _ = ack.send(Err(CoreError::ProviderUnavailable(error)));
-                            }
-                            continue;
-                        }
-                        if matches!(ack, SwitchAck::Reload(_)) {
-                            let validation = validate_reload_selections(
-                                &db,
-                                &runtime,
-                                &next,
-                                &next_composition,
-                                &next_effective,
-                                &sessions,
-                            );
-                            if let Err(error) = validation {
-                                next.shutdown_mcp().await.map_err(|error| {
-                                    runtime_issue(next.location(), &["mcp"], &error).diagnostic
-                                })?;
-                                if let SwitchAck::Reload(ack) = ack {
-                                    let _ = ack.send(Err(error));
-                                }
-                                continue;
-                            }
-                        }
                         next_composition.approval_consumer_mode.store(
                             composition.approval_consumer_mode.load(Ordering::SeqCst),
                             Ordering::SeqCst,
@@ -2283,23 +2225,6 @@ async fn start_worker_inner(
                                     notices,
                                 }));
                             }
-                            SwitchAck::Reload(ack) => {
-                                // A cached Home draft belongs to the old
-                                // config. Recompute it from the new generation
-                                // on the next Home query, without altering the
-                                // persisted deck or any session selection.
-                                home_choices.remove(&location);
-                                let _ = ack.send(Ok(ReloadLocationSnapshot {
-                                    location,
-                                    generation: location_epoch.load(Ordering::SeqCst),
-                                    catalog: effective.snapshot(
-                                        &composition,
-                                        location_epoch.load(Ordering::SeqCst),
-                                    ),
-                                    diagnostics: notes,
-                                    notices,
-                                }));
-                            }
                         }
                     }
                     Err(issue) => {
@@ -2322,84 +2247,9 @@ async fn start_worker_inner(
                             SwitchAck::Home(ack) => {
                                 let _ = ack.send(Err(error));
                             }
-                            SwitchAck::Reload(ack) => {
-                                let _ = ack.send(Err(error));
-                            }
                         }
                     }
                 }
-            }
-        }
-    }
-    Ok(())
-}
-
-/// A reload retains the same Location's tab deck and scoped session choices.
-/// Resolve them through the owner's Current path before publishing the new
-/// generation. Missing model/provider/variant availability is optional: retain
-/// the exact choice as unavailable, not the old executable configuration or a
-/// substitute model. Profile/policy and storage admission remain mandatory.
-fn validate_reload_selections(
-    db: &Db,
-    old: &Runtime<'_>,
-    next: &Runtime<'_>,
-    composition: &Composition,
-    effective: &Effective,
-    sessions: &BTreeMap<String, String>,
-) -> Result<(), CoreError> {
-    let storage_error = || CoreError::LocationSwitch {
-        category: LocationSwitchFailure::Storage,
-        detail: "retained tab deck unavailable".into(),
-        diagnostic: Some(
-            SpawnIssue::new(
-                SpawnFailure::Storage,
-                &db.root().to_string_lossy(),
-                &["tab_deck"],
-                oc_core::queries::ServiceCode::StorageUnavailable,
-            )
-            .diagnostic,
-        ),
-    };
-    let selection_error = || CoreError::LocationSwitch {
-        category: LocationSwitchFailure::Configuration,
-        detail: "retained session selection unavailable in reloaded configuration".into(),
-        diagnostic: Some(crate::config::diagnostic::failure(
-            &composition.project.to_string_lossy(),
-            &["selection"],
-            oc_core::queries::ServiceStage::Admission,
-            oc_core::queries::ServiceCode::ModelUnavailable,
-            oc_core::queries::ServiceAction::SelectModel,
-        )),
-    };
-    let old_deck = tab_deck::load(db, old).map_err(|_| storage_error())?;
-    let next_deck = tab_deck::load(db, next).map_err(|_| storage_error())?;
-    // Projection must not make an existing saved root disappear on reload.
-    if old_deck.sessions != next_deck.sessions || old_deck.active != next_deck.active {
-        return Err(storage_error());
-    }
-    let mut retained = old_deck.sessions;
-    if let Some(id) = sessions.get(old.location())
-        && !retained.iter().any(|session| &session.0 == id)
-    {
-        retained.push(SessionId(id.clone()));
-    }
-    for session in retained {
-        next.open_session(&session.0).map_err(|_| storage_error())?;
-        let selected = selection::apply(
-            db,
-            composition,
-            effective,
-            &session.0,
-            false,
-            oc_core::queries::SessionSelectionAction::Current,
-            next.generation_id(),
-        )
-        .map_err(|_| selection_error())?;
-        let turn = selection::for_turn(db, composition, effective, &session.0)
-            .map_err(|_| selection_error())?;
-        for selected in [&selected, &turn] {
-            if selected.profile_issue.is_some() {
-                return Err(selection_error());
             }
         }
     }
@@ -2417,7 +2267,6 @@ async fn switch_target<'a>(
     sessions: &mut BTreeMap<String, String>,
     env: BTreeMap<String, String>,
     home: bool,
-    reload: bool,
 ) -> Result<
     (
         Runtime<'a>,
@@ -2429,12 +2278,9 @@ async fn switch_target<'a>(
     ),
     SpawnIssue,
 > {
-    let mut composition = if reload {
-        composition::load_reload_local_with_env(Path::new(path), env).await
-    } else {
-        composition::load_local_with_env(Path::new(path), env).await
-    }
-    .map_err(SpawnIssue::configuration)?;
+    let mut composition = composition::load_local_with_env(Path::new(path), env)
+        .await
+        .map_err(SpawnIssue::configuration)?;
     composition
         .attach_custom_connections(db)
         .map_err(SpawnIssue::configuration)?;
@@ -2509,38 +2355,65 @@ fn publish_workspace(
     composition: &Composition,
     effective: &Effective,
 ) -> Result<(), RuntimeError> {
+    runtime.publish_native_workspace(workspace_publication(composition, effective))
+}
+
+fn command_digest(composition: &Composition) -> String {
+    crate::compaction::fingerprint(
+        &composition
+            .command_defs
+            .values()
+            .map(|def| {
+                (
+                    &def.id,
+                    &def.body,
+                    &def.description,
+                    &def.agent,
+                    &def.model,
+                    def.subagent,
+                    def.subtask,
+                )
+            })
+            .collect::<Vec<_>>(),
+    )
+}
+
+fn workspace_publication(
+    composition: &Composition,
+    effective: &Effective,
+) -> crate::runtime::WorkspacePublication {
     let agent = effective
         .agent_id
         .as_ref()
         .and_then(|id| composition.agents.get(id));
-    runtime.publish_instruction_roots(composition.instruction_roots.clone())?;
-    runtime.publish_workspace(
-        effective.agent_prompt.as_deref(),
-        &composition.instructions,
-        composition.skills.clone(),
-        composition.skill_errors.clone(),
-        effective.agent_digest.clone(),
-        effective.agent_id.clone(),
+    crate::runtime::WorkspacePublication {
+        agent_prompt: effective.agent_prompt.clone(),
+        instructions: composition.instructions.clone(),
+        files: composition.skills.clone(),
+        skill_errors: composition.skill_errors.clone(),
+        agent_digest: effective.agent_digest.clone(),
+        agent_id: effective.agent_id.clone(),
         // An explicit profile color is resolved by id, not by a pinned slot.
-        effective
+        agent_color_index: effective
             .agent_id
             .as_ref()
             .filter(|_| agent.is_none_or(|agent| agent.color.is_none()))
             .and_then(|id| composition.agents.values().position(|a| &a.id == id)),
-        agent
+        agent_permissions: agent
             .map(|agent| agent.permissions.clone())
             .unwrap_or_default(),
-        commands::permission_rules(composition, effective, agent),
-        agent.map(|agent| agent.request.clone()).unwrap_or_default(),
-    )?;
-    runtime.publish_profile_issue(
-        effective
+        agent_permission_rules: commands::permission_rules(composition, effective, agent),
+        agent_request: agent.map(|agent| agent.request.clone()).unwrap_or_default(),
+        instruction_roots: composition.instruction_roots.clone(),
+        subagents: subagent_catalog(composition),
+        command_digest: Some(command_digest(composition)),
+        profile_issue: effective
             .selection_issue(composition)
             .filter(|issue| {
                 issue.diagnostic.code == oc_core::queries::ServiceCode::AgentUnavailable
             })
             .map(|issue| issue.diagnostic),
-    )
+    }
 }
 
 fn workspace_agents(composition: &Composition) -> Vec<WorkspaceAgent> {
@@ -4758,10 +4631,7 @@ async fn worker(
                     let _ = ack.send(Err(CoreError::ProviderUnavailable(diagnostic)));
                     continue;
                 }
-                return Ok(WorkerOutcome::Switch {
-                    path: runtime.location().to_string(),
-                    ack: SwitchAck::Reload(ack),
-                });
+                return Ok(WorkerOutcome::Reload(ack));
             }
             message @ InboxMsg::UserShell { .. } => {
                 if user_shell::run(

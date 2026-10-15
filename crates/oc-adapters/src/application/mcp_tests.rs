@@ -458,6 +458,131 @@ async fn mcp08_disabled_project_activation_cannot_reintroduce_orphan_product_cre
 }
 
 #[tokio::test]
+async fn hot02_application_reload_commits_complete_source_on_the_same_supervisor() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut fixture = Fixture::new();
+    fixture
+        .env
+        .insert("OC_TEST_ALLOW_LOOPBACK".into(), "1".into());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let first = fixture.project.join("atomic-first.json");
+    fixture.config(json!({"servers":{"same":fixture.entry("same", &first, "-", "-", false)}}));
+    let (app, guard) = fixture.spawn().await;
+    let (before, _) = wait_status(&app, "same", McpStatus::Connected).await;
+    let second = fixture.project.join("atomic-second.json");
+    fixture.config(json!({"servers":{"same":fixture.entry("same", &second, "-", "-", false)}}));
+    let path = fixture.global.join("opencode.json");
+    let mut config: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    config["provider"]["fixture"]["options"]["baseURL"] =
+        json!(format!("http://{}/v1", listener.local_addr().unwrap()));
+    config["agent"] = json!({"build":{"mode":"primary","prompt":"ATOMIC_APPLICATION_PROFILE"}});
+    config["permissions"] = json!({"read":"deny", "skill":"allow", "compress":"allow"});
+    fs::write(path, config.to_string()).unwrap();
+    fs::write(fixture.project.join("dcp.json"), r#"{"enabled":false}"#).unwrap();
+    let skills = fixture.project.join(".opencode/skills");
+    fs::create_dir_all(&skills).unwrap();
+    fs::write(skills.join("atomic.md"), "---\nname: Atomic skill\ndescription: ATOMIC_SKILL_METADATA\n---\nATOMIC_SKILL_BODY_ONLY_ON_EXPLICIT_LOAD").unwrap();
+    fs::write(
+        fixture.project.join("AGENTS.md"),
+        "ATOMIC_APPLICATION_INSTRUCTIONS",
+    )
+    .unwrap();
+    let reloaded = app.reload_location().await.unwrap();
+    let (after, _) = wait_status(&app, "same", McpStatus::Connected).await;
+    let catalog = app.catalog().await.unwrap();
+    assert!(
+        app.list_sessions().await.unwrap().is_empty(),
+        "reload accepted work"
+    );
+    assert!(
+        app.skills()
+            .await
+            .unwrap()
+            .iter()
+            .any(|skill| skill.description == "ATOMIC_SKILL_METADATA")
+    );
+    let server = tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.unwrap();
+        let mut request = Vec::new();
+        let body = loop {
+            let mut chunk = [0; 4096];
+            let read = stream.read(&mut chunk).await.unwrap();
+            assert!(read > 0);
+            request.extend_from_slice(&chunk[..read]);
+            if let Some(end) = request.windows(4).position(|bytes| bytes == b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&request[..end]);
+                let length: usize = headers
+                    .lines()
+                    .find_map(|line| {
+                        line.to_ascii_lowercase()
+                            .strip_prefix("content-length: ")?
+                            .parse()
+                            .ok()
+                    })
+                    .unwrap();
+                if request.len() >= end + 4 + length {
+                    break serde_json::from_slice::<Value>(&request[end + 4..end + 4 + length])
+                        .unwrap();
+                }
+            }
+        };
+        let sse = "data: {\"type\":\"response.output_text.delta\",\"delta\":\"coherent source\"}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}\n\n";
+        stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{sse}", sse.len()).as_bytes()).await.unwrap();
+        body
+    });
+    let session = SessionId("atomic-application-source".into());
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "Explicit title".into())
+        .await
+        .unwrap();
+    let mut stream_events = app.subscribe();
+    app.submit(session.clone(), "verify coherent source".into())
+        .await
+        .unwrap();
+    loop {
+        match tokio::time::timeout(Duration::from_secs(5), stream_events.recv())
+            .await
+            .unwrap()
+            .unwrap()
+        {
+            CoreEvent::TurnFinished { session: id, .. } if id == session => break,
+            CoreEvent::TurnFailed { error, .. } => {
+                panic!("reloaded source request failed: {error}")
+            }
+            _ => {}
+        }
+    }
+    let body = server.await.unwrap();
+    let input = body["input"].to_string();
+    assert!(input.contains("ATOMIC_APPLICATION_PROFILE"));
+    assert!(input.contains("ATOMIC_APPLICATION_INSTRUCTIONS"));
+    assert!(input.contains("ATOMIC_SKILL_METADATA"));
+    assert!(!input.contains("ATOMIC_SKILL_BODY_ONLY_ON_EXPLICIT_LOAD"));
+    let tools = body["tools"].as_array().unwrap();
+    assert!(tools.iter().any(|tool| tool["name"] == "skill"));
+    assert!(
+        !tools
+            .iter()
+            .any(|tool| tool["name"] == "read" || tool["name"] == "compress")
+    );
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert_eq!(
+        before.binding.instance, after.binding.instance,
+        "same-Location reload replaced its MCP supervisor"
+    );
+    assert!(after.binding.generation > before.binding.generation);
+    assert_eq!(catalog, reloaded.catalog);
+    assert_eq!(catalog.model_id, "fixture");
+    assert_eq!(events(&first, "spawn"), 1);
+    assert_eq!(events(&second, "spawn"), 1);
+    assert_reaped(&first);
+    assert_reaped(&second);
+    let db = Db::open(&fixture.data).unwrap();
+    assert_eq!(db.list_sessions().unwrap(), [session.0]);
+}
+
+#[tokio::test]
 async fn mcp10_reload_and_location_join_old_pending_jobs_and_reject_stale_actions() {
     let fixture = Fixture::new();
     let old = fixture.project.join("old.json");
@@ -479,6 +604,18 @@ async fn mcp10_reload_and_location_join_old_pending_jobs_and_reject_stale_action
     )
     .unwrap();
     app.reload_location().await.unwrap();
+    // Desired publication acknowledges pending retirement, not synchronous reap.
+    // A held initialize must still be joined before the replacement is exposed.
+    let deadline = Instant::now() + Duration::from_secs(3);
+    let pid = counts(&old)["pid"].as_i64().unwrap() as libc::pid_t;
+    // SAFETY: signal zero probes only this fixture's recorded child.
+    while unsafe { libc::kill(pid, 0) } == 0 {
+        assert!(
+            Instant::now() < deadline,
+            "retired initialize was not reaped"
+        );
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
     assert_reaped(&old);
     fs::write(&gate, "late-old-release").unwrap();
     assert!(

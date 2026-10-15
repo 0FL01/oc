@@ -24,14 +24,14 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
             generation.permission_rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permission":{"read":{"*":"ask","nested/file.txt":"ask","nested/AGENTS.md":source_effect}}})).unwrap();
             generation.compaction.auto = false;
             let runtime = runtime(&db, project.path(), generation);
-            runtime
-                .publish_instruction_roots(vec![crate::instructions::Root {
+            runtime.update_execution(|view| {
+                view.workspace.instruction_roots = vec![crate::instructions::Root {
                     path: project.path().into(),
                     dir: Arc::new(std::fs::File::open(project.path()).unwrap()),
                     origin: crate::instructions::Origin::Project,
                     baseline: None,
-                }])
-                .unwrap();
+                }];
+            });
             let (events, _receiver) = tokio::sync::broadcast::channel(16);
             runtime.set_approval_events(&events);
             runtime.register_approval_consumer(false);
@@ -217,8 +217,8 @@ async fn prm01_latest_sources_survive_real_dcp_compaction_revert_fork_and_reopen
         .insert("compress".into(), Permission::Allow);
     generation.compaction.keep_tokens = 0;
     let runtime = runtime(&db, project.path(), generation.clone());
-    runtime
-        .publish_instruction_roots(vec![crate::instructions::Root {
+    runtime.update_execution(|view| {
+        view.workspace.instruction_roots = vec![crate::instructions::Root {
             path: project.path().into(),
             dir: Arc::new(std::fs::File::open(project.path()).unwrap()),
             origin: crate::instructions::Origin::Project,
@@ -228,14 +228,14 @@ async fn prm01_latest_sources_survive_real_dcp_compaction_revert_fork_and_reopen
                 crate::instructions::Origin::Project,
                 "OLD_INSTRUCTION\n",
             ))),
-        }])
-        .unwrap();
+        }];
+    });
     let first = seed_instructions(&runtime, "one", &"closed work ".repeat(1000));
     let old = db.instruction_view("s").unwrap().1[0].clone();
     let original = db.turn_result("one").unwrap();
     std::fs::write(&source, "LATEST_INSTRUCTION\n").unwrap();
-    runtime
-        .publish_instruction_roots(vec![crate::instructions::Root {
+    runtime.update_execution(|view| {
+        view.workspace.instruction_roots = vec![crate::instructions::Root {
             path: project.path().into(),
             dir: Arc::new(std::fs::File::open(project.path()).unwrap()),
             origin: crate::instructions::Origin::Project,
@@ -245,8 +245,8 @@ async fn prm01_latest_sources_survive_real_dcp_compaction_revert_fork_and_reopen
                 crate::instructions::Origin::Project,
                 "LATEST_INSTRUCTION\n",
             ))),
-        }])
-        .unwrap();
+        }];
+    });
     let second = seed_instructions(&runtime, "two", "second");
     let latest = db.instruction_view("s").unwrap().1[0].clone();
     assert_eq!(latest.change, "changed");
