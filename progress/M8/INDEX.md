@@ -18,4 +18,4 @@ Plan: ../../roadmap/M8.md
 - [T59](T59/INDEX.md) [done] — Custom /connect: OC2 auth pattern, scoped connections и native catalog discovery; latest: 0003.md.
 - [T60](T60/INDEX.md) [done] — Code Mode execute на нативном Rust-интерпретаторе; latest: 0001.md.
 - [T61](T61/INDEX.md) [blocked] — Hot reload (per-process); shared service descoped; latest: 0017.md.
-- [T62](T62/INDEX.md) [active] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: нет.
+- [T62](T62/INDEX.md) [done] — Canonical OpenCode 2 config only (no OpenCode 1 compatibility); latest: 0001.md.

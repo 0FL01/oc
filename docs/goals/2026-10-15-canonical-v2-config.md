@@ -1,6 +1,6 @@
 # Goal: canonical OpenCode 2 config only
 
-Status: active — frozen contract; T62 registered 2026-10-15.
+Status: done locally 2026-10-15 — see evidence/T62/report.md.
 Source: решение владельца 2026-10-15: «совместимость с opencode 1 конфигами не нужна,
 это всё под нож, по апи совместимость только с opencode 2»; выбран fail-closed отчёт
 с подсказкой; владелец конвертирует свой конфиг сам.
@@ -28,7 +28,7 @@ Task: T62 / M8; detailed acceptance CFG11–CFG13 только T62.
     effects одним typed `LegacyConfig` диагнозом: полный детерминированный список
     `source: path → replacement`, без значений. Reload сохраняет last-good (T61 R2).
   - Primary evidence: CFG11, CFG13.
-  - Status: pending.
+  - Status: done (`084ee744d`, `e4d788c42`, `272ec41b4`).
 - R2: v1-ветки удалены, канонические замены поддержаны.
   - Acceptance: providers/permissions/agents/MCP/compaction/keybinds парсят только
     канонические формы; добавлены `commands`, `plugins`, `experimental.policies`
@@ -37,13 +37,13 @@ Task: T62 / M8; detailed acceptance CFG11–CFG13 только T62.
     не является config compatibility и сохраняется.
   - Primary evidence: CFG12 и существующие config/defs/MCP/permission регрессии на
     канонических фикстурах.
-  - Status: pending.
+  - Status: done (`272ec41b4`).
 - R3: фикстуры, harness, examples и docs только в канонической форме.
   - Acceptance: test fixtures, `scripts/**` генераторы конфигов, `examples/*.jsonc`,
     корневой `opencode.json`, CONFIG/SKILL/README/PROVIDER/DCP docs используют v2 формы;
     CONFIG содержит таблицу v1 → v2, совпадающую с детектором. `evidence/**` и
     `progress/**` — история, не переписываются.
-  - Status: pending.
+  - Status: done (`b75a8d86e`).
 
 ### Decisions from the pinned donor
 
@@ -81,4 +81,5 @@ CFG04/CFG10 safety и T61 last-good сохраняются. Четыре crates,
 
 ## Current checkpoint
 
-Registered; implementation NOT_STARTED.
+Done locally; CFG11–CFG13 verified (evidence/T62/report.md). Remaining: owner converts their
+OpenCode 1 config; E2E06 re-qualification by its owner afterwards.
