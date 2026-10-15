@@ -1625,7 +1625,7 @@ async fn start_worker_inner(
         let outcome = worker(
             &runtime,
             &db,
-            &composition,
+            &mut composition,
             &mut effective,
             &mut registry,
             &mut inbox,
@@ -1921,7 +1921,7 @@ async fn start_worker_inner(
                     let receipt = prepare_picker_open(
                         &db,
                         &runtime,
-                        &composition,
+                        &mut composition,
                         &mut effective,
                         &mut registry,
                         &mut sessions,
@@ -1946,7 +1946,7 @@ async fn start_worker_inner(
                     true,
                 )
                 .await;
-                let (next, next_composition, mut next_effective, mut next_registry, _, _) =
+                let (next, mut next_composition, mut next_effective, mut next_registry, _, _) =
                     match next {
                         Ok(next) => next,
                         Err(issue) => {
@@ -1982,7 +1982,7 @@ async fn start_worker_inner(
                 let receipt = prepare_picker_open(
                     &db,
                     &next,
-                    &next_composition,
+                    &mut next_composition,
                     &mut next_effective,
                     &mut next_registry,
                     &mut sessions,
@@ -2645,7 +2645,7 @@ fn project_model_switch(
 async fn prepare_picker_open(
     db: &Db,
     runtime: &Runtime<'_>,
-    composition: &Composition,
+    composition: &mut Composition,
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
     sessions: &mut BTreeMap<String, String>,
@@ -2788,7 +2788,7 @@ fn picker_target(
 async fn query(
     db: &Db,
     runtime: &Runtime<'_>,
-    composition: &Composition,
+    composition: &mut Composition,
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
     sessions: &mut BTreeMap<String, String>,
@@ -4091,7 +4091,7 @@ async fn query(
 async fn worker(
     runtime: &Runtime<'_>,
     db: &Db,
-    composition: &Composition,
+    composition: &mut Composition,
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
     inbox: &mut mpsc::Receiver<InboxMsg>,
@@ -4155,9 +4155,12 @@ async fn worker(
                     oc_core::queries::ServiceAction::SelectModel,
                 )
             })?;
+            // The auxiliary operation pins its admitted catalog, not the mutable
+            // application source used by concurrent owner queries/publications.
+            let catalog = catalog.clone();
             let operation = runtime.deliver_compaction(
                 &session,
-                catalog,
+                &catalog,
                 &selected.model_id,
                 selected.variant.as_deref(),
                 &provider,
@@ -4866,11 +4869,27 @@ async fn worker(
                         continue;
                     }
                 };
+                // The accepted operation owns only the finite source inputs it
+                // actually uses. Never keep a Composition borrow through provider
+                // I/O: the same owner must remain available for a later publication.
+                let turn_catalog = turn_catalog.clone();
+                let accepted_catalog = composition.catalog.clone();
+                let title_instructions = title_agent
+                    .map(|agent| agent.body.clone())
+                    .unwrap_or_else(|| "Generate a short session title from the user's request. Output only the title, in at most 100 characters.".into());
+                let title_fallback = composition
+                    .generation
+                    .providers
+                    .get(&title_provider_id)
+                    .map(|provider| provider.options.native_fallback_limits)
+                    .unwrap_or_default();
+                let title_project = composition.project.clone();
+                let title_env = composition.parent_env.clone();
                 let params = TurnParams {
                     session: session.0.clone(),
                     prompt,
                     invocation,
-                    catalog: turn_catalog,
+                    catalog: &turn_catalog,
                     model_id: turn_selection.model_id.clone(),
                     variant: turn_selection.variant.clone(),
                     // The runtime resolves its native default against known
@@ -4902,9 +4921,9 @@ async fn worker(
                             let _ = events.send(CoreEvent::TurnStarted {
                                 session: session.clone(),
                                 turn: id.clone(),
-                                model_switch: model_switch.cloned().map(|notice| {
-                                    project_model_switch(notice, &composition.catalog)
-                                }),
+                                model_switch: model_switch
+                                    .cloned()
+                                    .map(|notice| project_model_switch(notice, &accepted_catalog)),
                             });
                             // Acceptance is durable here. Do not launch a title
                             // request for a rejected prompt, an already titled
@@ -4921,7 +4940,7 @@ async fn worker(
                                     let provider =
                                         crate::provider::context::RequestContext::capture(
                                             db,
-                                            &composition.project,
+                                            &title_project,
                                             &session.0,
                                         )
                                         .map(|context| {
@@ -4931,23 +4950,15 @@ async fn worker(
                                         });
                                     let selection = title_selection.clone();
                                     let prompt = title_prompt.clone();
-                                    let instructions = title_agent
-                                        .map(|agent| agent.body.clone())
-                                        .unwrap_or_else(|| "Generate a short session title from the user's request. Output only the title, in at most 100 characters.".into());
-                                    let fallback = composition
-                                        .generation
-                                        .providers
-                                        .get(&title_provider_id)
-                                        .map(|provider| provider.options.native_fallback_limits)
-                                        .unwrap_or_default();
-                                    let budget = crate::models::budget(&selection, 256, fallback);
+                                    let budget =
+                                        crate::models::budget(&selection, 256, title_fallback);
                                     if let Some(warning) = &budget.warning {
                                         title_warnings.push(format!("title generation: {warning}"));
                                     }
                                     let input = vec![
                                         crate::provider::InputItem::message(
                                             crate::provider::InputRole::Developer,
-                                            &instructions,
+                                            &title_instructions,
                                         ),
                                         runtime.environment_input(),
                                         crate::provider::InputItem::message(
@@ -4972,7 +4983,7 @@ async fn worker(
                                         work.pending.remove(&session.0);
                                     } else {
                                         let title_db = db.shared_handle();
-                                        let title_env = composition.parent_env.clone();
+                                        let title_env = title_env.clone();
                                         let provider_id = title_provider_id.clone();
                                         work.tasks.push((
                                             session.0.clone(),

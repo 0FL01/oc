@@ -1869,6 +1869,11 @@ impl<'a> Runtime<'a> {
         let mut prepared_binding = binding.clone();
         let mut prepared_digest = lane.agent_digest.clone();
         let mut prepared_publication = published.clone();
+        // Root initial admission already drove the catalog once. A notification
+        // arriving during that relist belongs to the next physical preparation,
+        // not a duplicate pass before its first request. Child entry has only
+        // taken a ceiling-filtered snapshot and must drive its first boundary.
+        let mut refresh_mcp_catalog = self.child_launch.is_some();
         let request_context = crate::provider::context::RequestContext::capture(
             &self.db,
             &self.roots.project,
@@ -1920,6 +1925,14 @@ impl<'a> Runtime<'a> {
             }
             // Capture once per fresh preparation. This Arc and its lane survive
             // the physical attempt and every issued tool, including approval waits.
+            if refresh_mcp_catalog {
+                let refreshed = self.refresh_mcp_catalog(params.cancel).await;
+                if params.cancel.load(Ordering::Relaxed) {
+                    continue 'step;
+                }
+                refreshed?;
+            }
+            refresh_mcp_catalog = true;
             let (published, current_mcp) = if primary_request || self.child_launch.is_some() {
                 self.fresh_request_view()?
             } else {

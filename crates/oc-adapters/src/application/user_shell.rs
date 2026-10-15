@@ -7,7 +7,7 @@ use oc_core::core_app::UserShellSelection;
 pub(super) async fn run(
     db: &Db,
     runtime: &Runtime<'_>,
-    composition: &Composition,
+    composition: &mut Composition,
     effective: &mut Effective,
     registry: &mut WorkspaceRegistry,
     sessions: &mut BTreeMap<String, String>,
@@ -88,6 +88,7 @@ pub(super) async fn run(
         let _ = ack.send(Err(app_error("selected provider unavailable")));
         return Ok(false);
     };
+    let catalog = catalog.clone();
     let mut ack = Some(ack);
     let mut admitted = false;
     let mut shutdown = false;
@@ -97,7 +98,7 @@ pub(super) async fn run(
             crate::runtime::UserShellParams {
                 session: &session.0,
                 command: &command,
-                catalog,
+                catalog: &catalog,
                 model: &selected.model_id,
                 variant: selected.variant.as_deref(),
                 fresh,

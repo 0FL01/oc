@@ -1946,6 +1946,16 @@ impl<'a> Runtime<'a> {
         self.fresh_request_view()
     }
 
+    /// Relist only catalogs whose live clients reported a change. This is a
+    /// fresh-preparation operation, never part of an issued attempt or retry.
+    async fn refresh_mcp_catalog(&self, cancel: &AtomicBool) -> Result<(), RuntimeError> {
+        let owner = self.mcp_owner();
+        // Refuse fatal/unknown state before starting any new metadata work.
+        owner.request_view()?;
+        owner.request(cancel).await?;
+        Ok(())
+    }
+
     /// One fresh request takes only clients admitted by its coherent source view
     /// and, for children, every immutable launch ceiling. No older view fallback.
     fn mcp_view_in(

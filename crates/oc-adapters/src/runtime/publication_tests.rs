@@ -1,6 +1,179 @@
 use super::*;
 
 #[tokio::test]
+async fn hot02_tool_notification_changes_the_next_same_task_catalog_not_the_issued_batch() {
+    use serde_json::json;
+    use tokio::io::AsyncWriteExt as _;
+    let project = tempfile::tempdir().unwrap();
+    let data = tempfile::tempdir().unwrap();
+    let db = Db::open(data.path()).unwrap();
+    db.create_bound_session("s", "work").unwrap();
+    let owner = binding_replay_tests::owner(&db, project.path());
+    let script = r#"
+import json, os, pathlib, sys
+label = sys.argv[1]
+log = pathlib.Path(label + '.events')
+log.write_text('pid %d\n' % os.getpid())
+changed = False
+for line in sys.stdin:
+    message = json.loads(line)
+    if 'id' not in message: continue
+    method = message['method']
+    with log.open('a') as file: file.write(method + '\n')
+    if method == 'initialize':
+        result = {'protocolVersion':'2024-11-05','capabilities':{'tools':{'listChanged':True}},'serverInfo':{'name':'notification-fixture','version':'1'}}
+    elif method == 'tools/list':
+        name = ('new' if changed else 'old') if label == 'dirty' else 'ping'
+        result = {'tools':[{'name':name,'inputSchema':{'type':'object'}}]}
+    else:
+        if label == 'dirty' and not changed:
+            changed = True
+            # Deliver the notification before the call reply, so the next request
+            # boundary has an acknowledged dirty catalog without timing sleeps.
+            print(json.dumps({'jsonrpc':'2.0','method':'notifications/tools/list_changed'}), flush=True)
+        result = {'content':[{'type':'text','text':'NOTIFICATION_ISSUED_RESULT'}]}
+    print(json.dumps({'jsonrpc':'2.0','id':message['id'],'result':result}), flush=True)
+"#;
+    owner.update_execution(|view| {
+        for label in ["dirty", "stable"] {
+            view.generation.config.mcp.insert(
+                label.into(),
+                crate::config::McpEntry {
+                    kind: "local".into(),
+                    command: vec![
+                        "/usr/bin/python3".into(),
+                        "-u".into(),
+                        "-c".into(),
+                        script.into(),
+                        label.into(),
+                    ],
+                    cwd: Some(project.path().to_string_lossy().into_owned()),
+                    resource_admitted: true,
+                    codemode: Some(false),
+                    ..Default::default()
+                },
+            );
+        }
+    });
+    owner.start_mcp().unwrap();
+    let supervisor = owner.mcp_owner();
+    tokio::time::timeout(Duration::from_secs(3), async {
+        while supervisor.request_view().unwrap().entries.len() != 2 {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let provider = ResponsesConfig {
+        base_url: format!("http://{}/v1", listener.local_addr().unwrap()),
+        api_key: "synthetic".into(),
+        timeout: None,
+        chunk_timeout_ms: 5000,
+        connect_timeout: Duration::from_secs(1),
+        allow_private: true,
+        headers: BTreeMap::new(),
+        set_cache_key: false,
+        wire: Default::default(),
+    };
+    let catalog = ModelCatalog {
+        provider: "fixture".into(),
+        models: BTreeMap::from([(
+            "m".into(),
+            json!({"limit":{"context":500000,"output":8000}}),
+        )]),
+    };
+    let peer = tokio::spawn(async move {
+        let (mut socket, first) = binding_replay_tests::request(&listener).await;
+        let tools = first["tools"].as_array().unwrap();
+        assert!(tools.iter().any(|tool| tool["name"] == "dirty__old"));
+        assert!(tools.iter().any(|tool| tool["name"] == "stable__ping"));
+        let body = format!(
+            "data: {}\n\n",
+            json!({"type":"response.completed","response":{"status":"completed","output":[{"type":"function_call","id":"old-a","call_id":"issued-old-a","name":"dirty__old","arguments":"{}"},{"type":"function_call","id":"old-b","call_id":"issued-old-b","name":"dirty__old","arguments":"{}"}]}})
+        );
+        socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\nconnection: close\r\ncontent-length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        let (mut socket, next) = binding_replay_tests::request(&listener).await;
+        let adopted = next["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "dirty__new");
+        let still_old = next["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "dirty__old");
+        let stable = next["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "stable__ping");
+        let settled = next["input"]
+            .to_string()
+            .contains("NOTIFICATION_ISSUED_RESULT");
+        assert!(next["input"].to_string().contains("issued-old-a"));
+        assert!(next["input"].to_string().contains("issued-old-b"));
+        // Complete even on the red path so owner shutdown joins both stdio peers.
+        binding_replay_tests::respond(
+            &mut socket,
+            crate::provider::protocol::Protocol::Responses,
+            false,
+        )
+        .await;
+        (adopted, still_old, stable, settled)
+    });
+    let cancel = AtomicBool::new(false);
+    let report = tokio::time::timeout(
+        Duration::from_secs(8),
+        owner.run_turn(TurnParams {
+            session: "s".into(),
+            prompt: "continue after the issued tool changes its catalog".into(),
+            invocation: None,
+            catalog: &catalog,
+            model_id: "m".into(),
+            variant: None,
+            max_output: 1000,
+            provider,
+            cancel: &cancel,
+        }),
+    )
+    .await
+    .unwrap();
+    let observed = peer.await;
+    owner.shutdown_mcp().await.unwrap();
+    let (adopted, still_old, stable, settled) = observed.unwrap();
+    assert!(
+        adopted && !still_old,
+        "notification was not admitted at the next same-task request"
+    );
+    assert!(stable && settled);
+    assert_eq!(report.unwrap().status, TurnStatus::Completed);
+    assert!(Arc::ptr_eq(&supervisor, &owner.mcp_owner()));
+    let operations = db.list_tool_ops("s").unwrap();
+    assert_eq!(operations.len(), 2);
+    assert!(
+        operations
+            .iter()
+            .all(|operation| operation.state == "completed")
+    );
+    for (label, lists) in [("dirty", 2), ("stable", 1)] {
+        let events =
+            std::fs::read_to_string(project.path().join(format!("{label}.events"))).unwrap();
+        assert_eq!(
+            events.lines().filter(|line| *line == "initialize").count(),
+            1
+        );
+        assert_eq!(
+            events.lines().filter(|line| *line == "tools/list").count(),
+            lists
+        );
+        let pid = events.lines().next().unwrap().strip_prefix("pid ").unwrap();
+        assert!(!std::path::Path::new(&format!("/proc/{pid}")).exists());
+    }
+}
+
+#[tokio::test]
 async fn hot01_mcp_batch_releases_before_same_task_replacement_and_next_catalog() {
     use serde_json::json;
     use tokio::io::AsyncWriteExt as _;
