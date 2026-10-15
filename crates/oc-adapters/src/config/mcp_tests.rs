@@ -311,17 +311,16 @@ fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
 #[test]
 fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_reads() {
     let src = source(serde_json::json!({
-        "providers":{"old":{"settings":{"apiKey":"provider-protected"},
-            "api":"https://user:%6c%65%67%61%63%79-protected@example.invalid/mcp",
-            "models":{"inactive":{"disabled":true,
-                "provider":{"api":"https://user:%6e%65%73%74%65%64-protected@example.invalid/mcp"}}}}},
-        "providers":{"new":{"settings":{"authToken":"other-protected"},
-            "models":{"disabled":{"disabled":true,"settings":{"apiKey":"model-protected"},
-                "variants":[{"id":"disabled","disabled":true,"settings":{"apiKey":"variant-protected"}}]}}}},
+        "providers":{
+            "old":{"settings":{"apiKey":"provider-protected"},
+                "models":{"inactive":{"disabled":true}}},
+            "new":{"settings":{"authToken":"other-protected"},
+                "models":{"disabled":{"disabled":true,"settings":{"apiKey":"model-protected"},
+                    "variants":[{"id":"disabled","disabled":true,"settings":{"apiKey":"variant-protected"}}]}}}},
         "mcp":{
-            "legacy":{"type":"local","enabled":false,"command":["never-spawn"],
-                "environment":{"TOKEN":"{env:INACTIVE}","FILE":"{file:missing}"}},
             "servers":{
+                "inactive":{"type":"local","disabled":true,"command":["never-spawn"],
+                    "environment":{"TOKEN":"{env:INACTIVE}","FILE":"{file:missing}"}},
                 "failed":{"type":"local","command":false,"headers":{"X":"Bearer failed-protected"}},
                 "unsupported":{"type":"remote","url":"https://example.invalid/mcp",
                     "oauth":{"client_secret":"oauth-protected"},"credentials":{"nested":["refused-protected"]},
@@ -340,8 +339,6 @@ fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_read
         "refused-protected",
         "model-protected",
         "variant-protected",
-        "legacy-protected",
-        "nested-protected",
     ] {
         assert!(values.iter().any(|value| value == secret));
     }

@@ -263,8 +263,9 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-binary-', dir=os.environ['TMPD
         assert TOKENS[1]['grant_type'] == ['authorization_code'] and len(TOKENS[1]['code_verifier'][0]) == 43, 'native browser exchange'
 
         def write_config(http=False, configured_key=False):
-            value = {'model': 'openai/gpt-5.5', 'disabled_providers': ['opencode-go'], 'permissions': {'read': 'allow'},
-                     'provider': {'openai': {'npm': '@ai-sdk/openai', 'options': {'baseURL': 'https://api.openai.com/v1',
+            value = {'model': 'openai/gpt-5.5', 'experimental': {'policies': [{'action': 'provider.use', 'resource': 'opencode-go', 'effect': 'deny'}]},
+                     'permissions': [{'action': 'read', 'resource': '*', 'effect': 'allow'}],
+                     'providers': {'openai': {'package': '@ai-sdk/openai', 'settings': {'baseURL': 'https://api.openai.com/v1',
                        **({'transport': 'http'} if http else {}), **({'apiKey': KEY} if configured_key else {})},
                        'models': {'gpt-5.5': {'name': 'Native fixture'}}}}}
             (config / 'opencode.json').write_text(json.dumps(value))

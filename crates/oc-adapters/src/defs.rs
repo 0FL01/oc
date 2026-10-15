@@ -2123,6 +2123,12 @@ mod tests {
         }
     }
 
+    fn decide(agent: &AgentDef, action: &str, resource: &str) -> Permission {
+        agent
+            .permission_rules
+            .evaluate(&BTreeMap::new(), action, resource)
+    }
+
     fn write(path: &Path, text: &str) {
         fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         fs::write(path, text).expect("write");
@@ -2198,7 +2204,7 @@ mod tests {
         );
         write(
             &opencode.join("agents/ok.md"),
-            "---\ndescription: ok agent\nmodel: m\nmode: primary\npermission:\n  apply_patch: allow\n  write: deny\n---\nbody\n",
+            "---\ndescription: ok agent\nmodel: m\nmode: primary\npermissions:\n  - action: edit\n    resource: \"*\"\n    effect: allow\n  - action: edit\n    resource: \"*\"\n    effect: deny\n---\nbody\n",
         );
         write(
             &opencode.join("agents/all.md"),
@@ -2235,7 +2241,7 @@ mod tests {
         assert_eq!(loaded.agents["ok"].mode.as_deref(), Some("primary"));
         assert_eq!(loaded.agents["ok"].body, "body"); // donor trims Markdown agent bodies
         assert_eq!(
-            loaded.agents["ok"].permissions["apply_patch"],
+            decide(&loaded.agents["ok"], "apply_patch", "src/x"),
             Permission::Deny
         );
         assert!(
@@ -2250,12 +2256,10 @@ mod tests {
                 .iter()
                 .any(|d| d.reason.contains("reserved"))
         );
-        assert!(
-            loaded
-                .diagnostics
-                .iter()
-                .any(|d| d.path.ends_with("danger.md") && d.reason.contains("invalid config tools"))
-        );
+        // OpenCode 1 `tools` is reported by the T62 gate and never loaded.
+        assert!(loaded.legacy.iter().any(|(_, _, findings)| findings
+            .iter()
+            .any(|finding| finding.path == "tools")));
         // Execution fields are parsed and stored; the commands stay loadable.
         assert_eq!(loaded.commands["delegate"].subtask, Some(true));
         let delegated = &loaded.commands["delegate-agent"];
@@ -2283,7 +2287,7 @@ mod tests {
     }
 
     #[test]
-    fn commented_frontmatter_and_glob_permissions_follow_upstream() {
+    fn commented_frontmatter_and_canonical_permission_rules() {
         let base = tempfile::tempdir().expect("tmp");
         let opencode = base.path().join(".opencode");
         write(
@@ -2292,11 +2296,23 @@ mod tests {
         );
         write(
             &opencode.join("agents/build.md"),
-            "---\ndescription: build\npermission:\n  external_directory:\n    \"*\": ask\n    \"~/.cargo/**\": allow\n  edit: allow\n  bash:\n    \"*\": ask\n    \"git status\": allow\n  webfetch: allow\n  some_future_action: allow\n  tavily-local_*: allow\n  read:\n    \"*\": allow\n    \"~/.ssh/*\": deny\n---\nbody\n",
+            concat!(
+                "---\ndescription: build\npermissions:\n",
+                "  - action: external_directory\n    resource: \"*\"\n    effect: ask\n",
+                "  - action: external_directory\n    resource: \"~/.cargo/**\"\n    effect: allow\n",
+                "  - action: edit\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: shell\n    resource: \"*\"\n    effect: ask\n",
+                "  - action: shell\n    resource: git status\n    effect: allow # trailing comment\n",
+                "  - action: webfetch\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: tavily-local_*\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: read\n    resource: \"*\"\n    effect: allow\n",
+                "  - action: read\n    resource: \"~/.ssh/*\"\n    effect: deny\n",
+                "---\nbody\n"
+            ),
         );
         write(
             &opencode.join("agents/bad-permission.md"),
-            "---\ndescription: bad\npermission:\n  bash:\n    \"*\":\n      nested: allow\n---\nbody\n",
+            "---\ndescription: bad\npermissions:\n  - action: shell\n    resource: \"*\"\n    effect: maybe\n---\nbody\n",
         );
         let loaded = load_definitions(&[root(&opencode, "P")]);
         let explore = &loaded.agents["explore"];
@@ -2304,20 +2320,24 @@ mod tests {
         assert_eq!(explore.mode.as_deref(), Some("subagent"));
         let build = &loaded.agents["build"];
         assert_eq!(
-            build.permissions["external_directory"],
-            Permission::Ask,
-            "glob maps fold to the most restrictive level"
+            decide(build, "external_directory", "/tmp/x"),
+            Permission::Ask
         );
-        assert_eq!(build.permissions["apply_patch"], Permission::Allow);
-        assert_eq!(build.permissions["bash"], Permission::Ask);
-        assert_eq!(build.permissions["webfetch"], Permission::Allow);
-        assert_eq!(build.permissions["some_future_action"], Permission::Allow);
         assert_eq!(
-            build.permissions["tavily-local_*"],
-            Permission::Allow,
-            "custom/glob permission keys are accepted like upstream"
+            decide(build, "external_directory", "~/.cargo/registry/x"),
+            Permission::Allow
         );
-        assert_eq!(build.permissions["read"], Permission::Deny);
+        assert_eq!(decide(build, "apply_patch", "src/x"), Permission::Allow);
+        assert_eq!(decide(build, "bash", "ls"), Permission::Ask);
+        assert_eq!(decide(build, "bash", "git status"), Permission::Allow);
+        assert_eq!(decide(build, "webfetch", "https://x"), Permission::Allow);
+        assert_eq!(
+            decide(build, "tavily-local_search", "q"),
+            Permission::Allow,
+            "custom/glob permission actions are accepted like upstream"
+        );
+        assert_eq!(decide(build, "read", "src/x"), Permission::Allow);
+        assert_eq!(decide(build, "read", "~/.ssh/id"), Permission::Deny);
         assert!(
             !loaded
                 .diagnostics
@@ -2331,7 +2351,7 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.path.ends_with("bad-permission.md")),
-            "genuinely unsupported nesting stays a diagnostic"
+            "an invalid effect stays a diagnostic"
         );
     }
 
@@ -2525,7 +2545,7 @@ mod tests {
             "omitted supplied fields retain prior values"
         );
         assert_eq!(agent.variant.as_deref(), Some("high"));
-        assert_eq!(agent.permissions["apply_patch"], Permission::Deny);
+        assert_eq!(decide(agent, "apply_patch", "src/x"), Permission::Deny);
         assert_eq!(loaded.commands["run"].origin, "P/opencode.jsonc");
         assert!(loaded.commands["run"].body.contains("```sh"));
         assert!(loaded.commands.contains_key("ok"));
@@ -2569,7 +2589,7 @@ mod tests {
         let opencode = base.path().join(".opencode");
         write(
             &opencode.join("agents/review.md"),
-            "---\ndescription: review\npermission:\n  apply_patch: deny\n---\npolicy A\n",
+            "---\ndescription: review\npermissions:\n  - action: edit\n    resource: \"*\"\n    effect: deny\n---\npolicy A\n",
         );
         let loaded = load_definitions(&[root(&opencode, "P")]);
         let agent = &loaded.agents["review"];

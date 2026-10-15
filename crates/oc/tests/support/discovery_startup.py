@@ -79,9 +79,9 @@ with tempfile.TemporaryDirectory(prefix='oc-discovery-', dir=base) as tmp:
     try:
         fixture = {
             'model': 'ludka2/' + chosen,
-            'provider': {'ludka2': {
-                'npm': '@ai-sdk/openai', 'name': 'Fixture',
-                'options': {'baseURL': 'http://127.0.0.1:' + str(server.server_port) + '/v1',
+            'providers': {'ludka2': {
+                'package': '@ai-sdk/openai', 'name': 'Fixture',
+                'settings': {'baseURL': 'http://127.0.0.1:' + str(server.server_port) + '/v1',
                             'apiKey': '{env:FIXTURE_DISCOVERY_KEY}'},
             }},
         }

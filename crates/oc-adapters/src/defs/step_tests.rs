@@ -33,20 +33,16 @@ fn step_constraints_are_typed_source_fields_not_silent_profile_limits() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir(dir.path().join("agents")).unwrap();
     let path = dir.path().join("agents/constrained.md");
-    std::fs::write(&path, "---\nsteps: 16\nmaxSteps: 8\n---\nbody").unwrap();
+    // Canonical `steps` is the Long Horizon refusal; OpenCode 1 `maxSteps` is a T62 report.
+    std::fs::write(&path, "---\nsteps: 16\n---\nbody").unwrap();
     let defs = load_definitions(&[DefRoot {
         dir: dir.path().into(),
         origin: "fixture".into(),
     }]);
     assert!(!defs.agents.contains_key("constrained"));
-    assert_eq!(defs.diagnostics.len(), 2);
-    for diagnostic in defs.diagnostics {
-        assert_eq!(diagnostic.path, path.to_string_lossy());
-        assert_eq!(diagnostic.failure.code, ServiceCode::UnsupportedCapability);
-        assert_eq!(diagnostic.failure.field[..2], ["agent", "entry"]);
-        assert!(matches!(
-            diagnostic.failure.field[2].as_str(),
-            "steps" | "maxSteps"
-        ));
-    }
+    assert_eq!(defs.diagnostics.len(), 1);
+    let diagnostic = &defs.diagnostics[0];
+    assert_eq!(diagnostic.path, path.to_string_lossy());
+    assert_eq!(diagnostic.failure.code, ServiceCode::UnsupportedCapability);
+    assert_eq!(diagnostic.failure.field, ["agent", "entry", "steps"]);
 }

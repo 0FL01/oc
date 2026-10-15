@@ -259,18 +259,19 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
     root = Path(directory)
     (root/'home/config/opencode').mkdir(parents=True)
     (root/'project').mkdir()
-    config = {'disabled_providers': ['opencode-go'], 'animations': False,
-              'keybinds': {'terminal.close': 'ctrl+c'}, 'model': 'fixture/root',
-              'permission': {'*': 'allow'},
-              'agent': {'helper': {'mode': 'subagent', 'model': 'fixture/child', 'prompt': 'Fixture child'}},
-              'provider': {'fixture': {'npm': '@ai-sdk/openai',
-                  'options': {'baseURL': f'http://127.0.0.1:{peer.server_port}/v1', 'apiKey': 'SYNTHETIC-TERM01-CANARY'},
+    config = {'experimental': {'policies': [{'action': 'provider.use', 'resource': 'opencode-go', 'effect': 'deny'}]}, 'animations': False,
+              'model': 'fixture/root',
+              'permissions': [{'action': '*', 'resource': '*', 'effect': 'allow'}],
+              'agents': {'helper': {'mode': 'subagent', 'model': 'fixture/child', 'system': 'Fixture child'}},
+              'providers': {'fixture': {'package': '@ai-sdk/openai',
+                  'settings': {'baseURL': f'http://127.0.0.1:{peer.server_port}/v1', 'apiKey': 'SYNTHETIC-TERM01-CANARY'},
                   'models': {name: {'name': 'Local fixture', 'limit': {'context': 32768, 'output': 2048}} for name in ('root', 'child')}}}}
     config_path = root/'project/opencode.json'
     config_path.write_text(json.dumps(config))
     # Pin the pane profile across local/debug and packaged/release channels;
     # the optional local devtools row has its own layout tests.
-    (root/'project/cli.json').write_text(json.dumps({'debug': {'devtools': False}}))
+    (root/'project/cli.json').write_text(json.dumps({'debug': {'devtools': False},
+                                                     'keybinds': {'terminal.close': 'ctrl+c'}}))
     (root/'project/vt.py').write_text(VT)
     view = View(root)
     known = []
@@ -374,7 +375,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         vertical = tuple(map(int, (root/'project/vertical-size').read_text().split()))
         assert vertical != actual and vertical[1] < actual[1]
         view.leader(b'\x1b[D')
-        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}, 'keybinds': {'leader': 'ctrl+g'}}))
+        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}, 'keybinds': {'leader': 'ctrl+g', 'terminal.close': 'ctrl+c'}}))
         view.command('/reload')
         time.sleep(.2)
         view.prefix = b'\x07'

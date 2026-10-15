@@ -69,13 +69,6 @@ fn overlays(raw: &mut Map<String, Value>, legacy: bool, field: &str) -> Result<(
         Some(value) => object(&value, field)?,
         None => Map::new(),
     };
-    if !legacy
-        && settings
-            .keys()
-            .any(|key| !super::PROVIDER_OPTION_KEYS.contains(&key.as_str()) && key != "extraBody")
-    {
-        return Err(invalid(field));
-    }
     for (from, to) in [
         ("headers", "headers"),
         ("body", "body"),

@@ -28,7 +28,7 @@ fn r6_recursive_source_order_nested_ids_and_flat_compatibility() {
     for (file, text) in [
         (
             "agent/team/reviewer.md",
-            "---\nmodel: fixture/org/model#fast\npermission:\n  read: deny\n---\nold",
+            "---\nmodel: fixture/org/model#fast\npermissions:\n  - action: read\n    resource: \"*\"\n    effect: deny\n---\nold",
         ),
         (
             "agents/team/reviewer.md",
@@ -63,7 +63,12 @@ fn r6_recursive_source_order_nested_ids_and_flat_compatibility() {
     assert_eq!(profile.variant.as_deref(), Some("fast"));
     assert_eq!(profile.description, "later");
     assert_eq!(profile.body, "new");
-    assert_eq!(profile.permissions["read"], Permission::Deny);
+    assert_eq!(
+        profile
+            .permission_rules
+            .evaluate(&BTreeMap::new(), "read", "src/x"),
+        Permission::Deny
+    );
     assert_eq!(defs.agents["compat"].mode.as_deref(), Some("primary"));
     assert!(defs.agents["compat"].hidden);
     assert!(!defs.agents.contains_key("nested/ignored"));
@@ -156,7 +161,7 @@ fn r6_markdown_native_structured_variant_and_nested_path_safety() {
 }
 
 #[test]
-fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals() {
+fn r6_request_overlays_merge_by_key_and_explicit_refusals() {
     let temp = tempfile::tempdir().unwrap();
     let path = temp.path().join("agents/team/tuned.md");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -173,18 +178,11 @@ fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals(
     merge_config_definitions(
         &mut defs,
         &serde_json::json!({
-            "agents":{"legacy":{"options":{"top_p":0.1,"seed":7},"temperature":0.3,"top_p":0.9}},
             "agents":{"team/tuned":{"request":{"headers":{"x-other":"json"},"body":{"seed":1}}}}
         }),
         "project",
     );
     assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);
-    let legacy = &defs.agents["legacy"].request;
-    assert!(legacy.headers.is_empty());
-    assert_eq!(
-        serde_json::Value::Object(legacy.body.clone()),
-        serde_json::json!({"top_p":0.9,"seed":7,"temperature":0.3})
-    );
     let tuned = &defs.agents["team/tuned"];
     assert_eq!(
         tuned.body, "md body",
@@ -260,7 +258,7 @@ fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals(
 }
 
 #[test]
-fn r6_color_native_pattern_legacy_theme_migration_and_supplied_merge() {
+fn r6_color_native_pattern_refuses_theme_names_and_supplied_merge() {
     let temp = tempfile::tempdir().unwrap();
     for (file, text) in [
         ("agents/native.md", "---\ncolor: \"#A1b2C3\"\n---\nn"),
@@ -280,12 +278,9 @@ fn r6_color_native_pattern_legacy_theme_migration_and_supplied_merge() {
         origin: "global".into(),
     }]);
     assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
-    assert_eq!(defs.agents["legacy"].color.as_deref(), Some("#aaaaaa"));
-    assert_eq!(
-        defs.agents["legacy"].request.body["temperature"],
-        serde_json::json!(0.1),
-        "plain YAML numbers stay numbers"
-    );
+    // T62: OpenCode 1 frontmatter is reported, never migrated or loaded.
+    assert!(!defs.agents.contains_key("legacy"));
+    assert_eq!(defs.legacy.len(), 1);
     for refused in ["theme", "short"] {
         assert!(!defs.agents.contains_key(refused), "{refused}");
     }
@@ -301,12 +296,10 @@ fn r6_color_native_pattern_legacy_theme_migration_and_supplied_merge() {
     merge_config_definitions(
         &mut defs,
         &serde_json::json!({
-            "agents":{"v1":{"color":"primary"}},
             "agents":{"native":{"description":"kept color"},"bad":{"color":"primary"}}
         }),
         "project",
     );
-    assert_eq!(defs.agents["v1"].color.as_deref(), Some("#aaaaaa"));
     assert_eq!(defs.agents["native"].color.as_deref(), Some("#A1b2C3"));
     assert!(!defs.agents.contains_key("bad"));
 }

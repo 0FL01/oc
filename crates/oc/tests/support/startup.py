@@ -109,9 +109,9 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     (home / 'data').mkdir()
     fixture = {
         'model': 'fixture/offline',
-        'provider': {'fixture': {
-            'npm': '@ai-sdk/openai', 'name': 'Offline fixture',
-            'options': {'baseURL': 'http://127.0.0.1:9/v1', 'apiKey': 'DUMMY-STARTUP-SECRET'},
+        'providers': {'fixture': {
+            'package': '@ai-sdk/openai', 'name': 'Offline fixture',
+            'settings': {'baseURL': 'http://127.0.0.1:9/v1', 'apiKey': 'DUMMY-STARTUP-SECRET'},
             'models': {'offline': {'name': 'Offline', 'limit': {'context': 10000, 'output': 1000}}}
         }}
     }
@@ -241,7 +241,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
     target = root / 'bad-location'
     target.mkdir()
     (target / 'opencode.json').write_text(json.dumps({
-        **fixture, 'model': 'fixture/LEAKME-MODEL-SECRET', 'permission': {'read': 123}}))
+        **fixture, 'model': 'fixture/LEAKME-MODEL-SECRET', 'permissions': [{'action': 'read', 'resource': '*', 'effect': 123}]}))
     broken = root / 'broken-location'
     broken.mkdir()
     (broken / 'opencode.json').write_text('{"apiKey":"LEAKME-CONFIG-SECRET", INVALID}')

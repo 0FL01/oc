@@ -295,11 +295,6 @@ fn scan_agent(out: &mut Vec<Finding>, prefix: &str, agent: &Map<String, Value>, 
             .map_or(REMOVED, |(_, canonical)| *canonical);
         push(out, format!("{prefix}{}", safe_key(key)), replacement);
     }
-    if let Some(color) = agent.get("color").and_then(Value::as_str)
-        && !is_hex_color(color)
-    {
-        push(out, format!("{prefix}color"), "color: \"#RRGGBB\"");
-    }
     if let Some(rules) = agent.get("permissions") {
         scan_rules(out, &format!("{prefix}permissions"), rules);
     }
@@ -371,12 +366,6 @@ fn safe_key(key: &str) -> &str {
         .chain(["name", "body"])
         .any(|legacy| legacy == key);
     if known { key } else { "<key>" }
-}
-
-fn is_hex_color(color: &str) -> bool {
-    color.len() == 7
-        && color.starts_with('#')
-        && color[1..].bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn dedup(findings: Vec<Finding>) -> Vec<Finding> {

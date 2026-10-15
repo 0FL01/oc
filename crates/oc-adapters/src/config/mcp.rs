@@ -169,11 +169,19 @@ pub(crate) fn source_credential_values(
         return Ok(Vec::new());
     };
     let mut raw = Vec::new();
-    if let Some(providers) = obj.get("provider").and_then(Value::as_object) {
+    if let Some(providers) = obj.get("providers").and_then(Value::as_object) {
         for provider in providers.values() {
-            if let Some(options) = provider.get("options").and_then(Value::as_object) {
-                raw.extend(options.get("apiKey").and_then(Value::as_str));
-                if let Some(headers) = options.get("headers").and_then(Value::as_object) {
+            let settings = provider.get("settings").and_then(Value::as_object);
+            raw.extend(
+                settings
+                    .and_then(|settings| settings.get("apiKey"))
+                    .and_then(Value::as_str),
+            );
+            for headers in [
+                settings.and_then(|settings| settings.get("headers")),
+                provider.get("headers"),
+            ] {
+                if let Some(headers) = headers.and_then(Value::as_object) {
                     raw.extend(headers.values().filter_map(Value::as_str));
                 }
             }

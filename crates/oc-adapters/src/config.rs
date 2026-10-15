@@ -1186,10 +1186,10 @@ fn assemble_with_admission(
                 providers::record_origins(&id, &raw, &source.path, &mut provider_origins);
                 for key in unknown_option_keys(raw.get("options")) {
                     unknown_options.push(if require_credential { format!(
-                        "provider.{id}.options.{key} is not supported by the native \
-                         profile; the option is ignored"
+                        "providers.{id}.settings.{key} is not supported by the native \
+                         profile; the setting is ignored"
                     ) } else {
-                        diagnostic::failure(&source.path, &["provider", "entry", "options", "entry"], oc_core::queries::ServiceStage::Config, oc_core::queries::ServiceCode::IgnoredSetting, oc_core::queries::ServiceAction::ReviewConfiguration).to_string()
+                        diagnostic::failure(&source.path, &["providers", "entry", "settings", "entry"], oc_core::queries::ServiceStage::Config, oc_core::queries::ServiceCode::IgnoredSetting, oc_core::queries::ServiceAction::ReviewConfiguration).to_string()
                     });
                 }
                 if let Some(options) = raw.get("options").and_then(serde_json::Value::as_object) {
@@ -1531,6 +1531,7 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "authPolicy",
     "timeout",
     "chunkTimeout",
+    "transport",
     "setCacheKey",
     "headers",
     "body",
@@ -1980,6 +1981,7 @@ pub struct SkillMeta {
 }
 
 /// One frontmatter line with its indentation width.
+#[derive(Clone, Copy)]
 struct FrontmatterLine<'a> {
     indent: usize,
     content: &'a str,
@@ -2060,6 +2062,27 @@ fn parse_frontmatter_block(
                 .content
                 .strip_prefix('-')
                 .ok_or_else(|| "unsupported frontmatter structure".to_string())?;
+            let rest = item.trim_start();
+            if frontmatter_mapping_entry(rest) {
+                // `- key: value` opens a mapping item whose keys align at `column`.
+                let column = line.indent + (line.content.len() - rest.len());
+                let mut item_lines = vec![FrontmatterLine {
+                    indent: column,
+                    content: rest,
+                }];
+                let mut next = *index + 1;
+                while let Some(more) = lines.get(next).filter(|more| more.indent >= column) {
+                    item_lines.push(*more);
+                    next += 1;
+                }
+                let mut consumed = 0;
+                items.push(parse_frontmatter_block(&item_lines, &mut consumed, column)?);
+                if consumed < item_lines.len() {
+                    return Err("unsupported frontmatter indentation".to_string());
+                }
+                *index = next;
+                continue;
+            }
             items.push(parse_frontmatter_scalar(item.trim())?);
             *index += 1;
         }
@@ -2107,6 +2130,16 @@ fn parse_frontmatter_block(
         }
     }
     Ok(serde_json::Value::Object(map))
+}
+
+/// A plain `key: value` (or `key:`) sequence item, not a quoted/URL scalar.
+fn frontmatter_mapping_entry(item: &str) -> bool {
+    if item.starts_with(['"', '\'']) {
+        return false;
+    }
+    let item = strip_frontmatter_comment(item).trim_end();
+    item.find(':')
+        .is_some_and(|colon| colon > 0 && matches!(item.as_bytes().get(colon + 1), None | Some(b' ')))
 }
 
 /// Strip a trailing `#` comment outside quotes (YAML comment rules).
@@ -2795,7 +2828,7 @@ mod tests {
             generation
                 .warnings
                 .iter()
-                .any(|warning| warning.contains("provider.p.options.vendorExtension")),
+                .any(|warning| warning.contains("providers.p.settings.vendorExtension")),
             "the ignored option is reported: {:?}",
             generation.warnings
         );

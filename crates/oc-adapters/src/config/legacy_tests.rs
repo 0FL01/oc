@@ -54,7 +54,6 @@ fn cfg11_document_reports_every_v1_key_once_without_values() {
         "agent → agents",
         "agent.<id>.prompt → system",
         "agent.<id>.permission → permissions: [{action, resource, effect}]",
-        "agent.<id>.color → color: \"#RRGGBB\"",
         "command.<id>.variant → model: \"provider/model#variant\"",
         "plugin → plugins",
         "snapshot → snapshots",

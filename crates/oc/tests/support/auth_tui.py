@@ -168,8 +168,8 @@ with tempfile.TemporaryDirectory(prefix='t57-auth-tui-',dir=os.environ['TMPDIR']
            'LANG':'C.UTF-8','SHELL':'/bin/bash','OPENAI_API_KEY':'PARENT_KEY_CANARY','OC_API_KEY':'PARENT_OC_CANARY'}
     with socket.socket() as guard:
         guard.bind(('127.0.0.1',0)); guard.listen(); guard.setblocking(False)
-        fixture = {'model':'fixture/gpt-5.5','disabled_providers':['opencode-go'],'provider':{'fixture':{
-            'npm':'@ai-sdk/openai','name':'Collision fixture','options':{'baseURL':f'http://127.0.0.1:{guard.getsockname()[1]}/v1','apiKey':'FIXTURE_KEY_CANARY'},
+        fixture = {'model':'fixture/gpt-5.5','experimental': {'policies': [{'action': 'provider.use', 'resource': 'opencode-go', 'effect': 'deny'}]},'providers':{'fixture':{
+            'package':'@ai-sdk/openai','name':'Collision fixture','settings':{'baseURL':f'http://127.0.0.1:{guard.getsockname()[1]}/v1','apiKey':'FIXTURE_KEY_CANARY'},
             'models':{'gpt-5.5':{'name':'Collision fixture','limit':{'context':10000,'output':1000}}}}}}
         (config/'opencode.json').write_text(json.dumps(fixture))
         result = subprocess.run([BINARY,'--data-dir',str(root/'data'),'auth','list','--format','json'],cwd=root/'project',env=env,

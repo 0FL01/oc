@@ -2,26 +2,24 @@ use super::*;
 use crate::config::{Source, assemble};
 
 #[test]
-fn go02_legacy_and_canonical_provider_overlays_are_equivalent() {
-    let legacy = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "api":"https://example.com/v1", "settings":{"apiKey":"synthetic", "headers":{"X-A":"a"}, "extraBody":{"nested":{"one":1}}}, "models":{"catalog":{"modelID":"wire", "provider":{"npm":"@ai-sdk/anthropic", "api":"https://example.com/messages"}, "settings":{"thinking":{"type":"adaptive"}}, "tool_call":true, "modalities":{"input":["text"],"output":["text"]}, "interleaved":{"field":"reasoning_content"}, "variants":[{"id": "high", "settings": {"reasoningEffort": "high"}}]}}}}});
-    let canonical = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "settings":{"baseURL":"https://example.com/v1", "apiKey":"synthetic"}, "headers":{"X-A":"a"}, "body":{"nested":{"one":1}}, "models":{"catalog":{"modelID":"wire", "package":"@ai-sdk/anthropic", "settings":{"baseURL":"https://example.com/messages", "thinking":{"type":"adaptive"}}, "capabilities":{"tools":true,"input":["text"],"output":["text"]}, "compatibility":{"reasoningField":"reasoning_content"}, "variants":[{"id":"high","settings":{"reasoningEffort":"high"}}]}}}}});
-    let a = document(legacy.as_object().unwrap()).unwrap();
-    let b = document(canonical.as_object().unwrap()).unwrap();
-    for key in [
-        "modelID",
-        "package",
-        "settings",
-        "capabilities",
-        "compatibility",
-        "variants",
-    ] {
-        assert_eq!(
-            a["p"]["models"]["catalog"][key], b["p"]["models"]["catalog"][key],
-            "{key}"
-        );
-    }
-    assert_eq!(a["p"]["options"], b["p"]["options"]);
-    assert_eq!(a["p"]["npm"], b["p"]["npm"]);
+fn go02_canonical_provider_overlays_normalize_to_the_native_entry() {
+    let canonical = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "settings":{"baseURL":"https://example.com/v1", "apiKey":"synthetic", "transport":"http"}, "headers":{"X-A":"a"}, "body":{"nested":{"one":1}}, "models":{"catalog":{"modelID":"wire", "package":"@ai-sdk/anthropic", "settings":{"baseURL":"https://example.com/messages", "thinking":{"type":"adaptive"}}, "capabilities":{"tools":true,"input":["text"],"output":["text"]}, "compatibility":{"reasoningField":"reasoning_content"}, "variants":[{"id":"high","settings":{"reasoningEffort":"high"}}]}}}}});
+    let p = &document(canonical.as_object().unwrap()).unwrap()["p"];
+    assert_eq!(p["npm"], "@ai-sdk/openai-compatible");
+    assert_eq!(
+        p["options"],
+        json!({"baseURL":"https://example.com/v1", "apiKey":"synthetic", "transport":"http",
+               "headers":{"X-A":"a"}, "body":{"nested":{"one":1}}})
+    );
+    let model = &p["models"]["catalog"];
+    assert_eq!(model["modelID"], "wire");
+    assert_eq!(model["package"], "@ai-sdk/anthropic");
+    assert_eq!(model["tool_call"], true);
+    assert_eq!(model["modalities"], json!({"input":["text"],"output":["text"]}));
+    assert_eq!(
+        model["variants"],
+        json!([{"id":"high","settings":{"reasoningEffort":"high"}}])
+    );
 }
 
 #[test]
@@ -55,10 +53,7 @@ fn go02_source_merge_preserves_fields_variants_and_connection_provenance() {
 }
 
 #[test]
-fn go02_conflicting_roots_and_duplicate_variants_fail_without_echoing_inputs() {
-    let conflict = json!({"providers":{"p":{"settings":{"apiKey":"SECRET_CANARY"}}},"providers":{"p":{"settings":{"apiKey":"OTHER_CANARY"}}}});
-    let error = document(conflict.as_object().unwrap()).unwrap_err();
-    assert!(!format!("{error:?}").contains("CANARY"));
+fn go02_duplicate_variants_and_unsafe_bodies_fail_without_echoing_inputs() {
     for variants in [
         json!([{"id":"x"},{"id":"x"}]),
         json!([{"settings":{}}]),
@@ -68,7 +63,6 @@ fn go02_conflicting_roots_and_duplicate_variants_fail_without_echoing_inputs() {
         assert!(document(input.as_object().unwrap()).is_err());
     }
     for input in [
-        json!({"providers":{"p":{"settings":{"unknownExecutable":"CANARY"}}}}),
         json!({"providers":{"p":{"body":{"model":"CANARY"}}}}),
         json!({"providers":{"p":{"models":{"m":{"body":{"messages":[]}}}}}}),
     ] {
