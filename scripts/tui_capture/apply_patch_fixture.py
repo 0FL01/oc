@@ -48,7 +48,7 @@ def configure(spec, home, project, config, cli):
         config['plugins'].append(str(plugin))
         config['permissions'] = [{'action':'*','resource':'*','effect':'deny'}, *[{'action':'edit','resource':name,'effect':'allow'} for name in FILES if name!='denied.txt']]
     else:
-        config['permissions'] = {'*':'deny','apply_patch':{'*':'deny',**{name:'allow' for name in FILES if name!='denied.txt'}}}
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'}, *[{'action':'edit','resource':name,'effect':'allow'} for name in FILES if name!='denied.txt']]
         config['animations'] = False
     if spec.get('patch_view'):
         cli['diffs'] = {'view':spec['patch_view'],'wrap':spec.get('patch_wrap','word')}

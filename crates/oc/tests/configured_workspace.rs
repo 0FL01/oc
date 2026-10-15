@@ -489,10 +489,11 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
 }
 
 #[test]
-fn aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect() {
+fn aud16_binary_later_edit_deny_blocks_apply_patch_side_effect() {
     let fixture = Fixture::new();
+    // Ordered canonical rules: the later edit deny wins over the earlier allow.
     fixture.write_base_config(json!({
-        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "deny"}, {"action": "edit", "resource": "*", "effect": "deny"}]
+        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "deny"}]
     }));
     run_denied_patch(
         &fixture,
@@ -506,7 +507,9 @@ fn aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect() {
 #[test]
 fn aud16_binary_selected_agent_can_only_narrow_apply_patch_permission() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": [{"action": "edit", "resource": "*", "effect": "allow"}]}));
+    fixture.write_base_config(
+        json!({"permissions": [{"action": "edit", "resource": "*", "effect": "allow"}]}),
+    );
     write(
         &fixture.project_a.join("opencode.json"),
         "{\"default_agent\":\"narrow\"}",
@@ -555,7 +558,7 @@ fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
     assert_eq!(process.output().trim(), "healthy runtime complete");
     let diagnostic = process.diagnostics();
     assert!(diagnostic.contains("unsupported_plugin"), "{diagnostic}");
-    assert!(diagnostic.contains("plugin.0"), "{diagnostic}");
+    assert!(diagnostic.contains("plugins.0"), "{diagnostic}");
     assert!(diagnostic.contains("source-"), "{diagnostic}");
     assert!(!diagnostic.contains(&plugin));
     assert!(!diagnostic.contains(&config.to_string_lossy().to_string()));
@@ -568,7 +571,9 @@ fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
 #[test]
 fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": [{"action": "read", "resource": "*", "effect": "allow"}]}));
+    fixture.write_base_config(
+        json!({"permissions": [{"action": "read", "resource": "*", "effect": "allow"}]}),
+    );
     write(
         &fixture.project_a.join("opencode.json"),
         "{\"default_agent\":\"broken\"}",
@@ -607,7 +612,9 @@ fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
 #[test]
 fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}));
+    fixture.write_base_config(
+        json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}),
+    );
     write_skill(
         &fixture.project_a.join(".opencode/skills/good/SKILL.md"),
         "good",
@@ -663,7 +670,7 @@ fn v07a_binary_refuses_discovered_external_root_before_any_effect() {
             "providers": {"fixture": {"settings": {"baseURL": fixture.endpoint,
                 "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}},
             "mcp": {"servers": {"trap": {"type": "local", "codemode": false, "command": ["node", "trap"]}}},
-            "commands": {"trap": "node trap"}
+            "commands": {"trap": {"template": "node trap"}}
         })
         .to_string(),
     );
@@ -767,7 +774,7 @@ fn v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded() {
     let nested = fixture.project_a.join("nested");
     write(
         &nested.join("opencode.jsonc"),
-        "{ // admitted JSONC in a nested Location root\n \"permissions\": {\"read\": \"allow\"},}\n",
+        "{ // admitted JSONC in a nested Location root\n \"permissions\": [{\"action\": \"read\", \"resource\": \"*\", \"effect\": \"allow\"}],}\n",
     );
     symlink(&nested, fixture.project_a.join(".opencode")).expect("in-root link");
     let mut process = fixture.spawn(&fixture.project_a, "s-v07a-positive", "hello", "positive");
@@ -814,7 +821,9 @@ fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
 #[test]
 fn v07a_binary_external_definition_subdirectories_never_reach_provider() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}));
+    fixture.write_base_config(
+        json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}),
+    );
     let local = fixture.project_a.join(".opencode");
     let outside = fixture.home.join("outside-definitions");
     write_skill(
@@ -957,7 +966,7 @@ fn write_skill(path: &Path, name: &str, description: &str, body: &str) {
 
 fn write_agent(path: &Path, description: &str, body: &str, apply_patch_permission: Option<&str>) {
     let permission = apply_patch_permission.map_or_else(String::new, |level| {
-        format!("permission:\n  apply_patch: {level}\n")
+        format!("permissions:\n  - action: edit\n    resource: \"*\"\n    effect: {level}\n")
     });
     write(
         path,

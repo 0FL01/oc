@@ -14,7 +14,7 @@ fn cfg10_native_malformed_document_has_safe_cause_and_empty_json_stdout() {
     std::fs::create_dir_all(home.join("config/opencode")).unwrap();
     std::fs::write(
         project.join("opencode.jsonc"),
-        format!("{{\"apiKey\":\"{CANARY}\", \"permission\": {{ INVALID }}"),
+        format!("{{\"apiKey\":\"{CANARY}\", \"permissions\": {{ INVALID }}"),
     )
     .unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_oc2"))

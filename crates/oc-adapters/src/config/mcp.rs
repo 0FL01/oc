@@ -61,7 +61,7 @@ pub(crate) fn failure(id: &str, source: &str, field: &str, code: ServiceCode) ->
         },
         code,
         action: ServiceAction::ReviewConfiguration,
-        details: Vec::new(),
+        details: None,
     }
 }
 

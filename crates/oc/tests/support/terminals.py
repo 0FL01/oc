@@ -366,7 +366,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         actual = tuple(map(int, (root/'project/size').read_text().split()))
         assert actual == (47, 78), ('full-height 160x48 pane with one-cell horizontal insets', actual)
         view.leader(b'\x1b[D')
-        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'vertical'}, 'debug': {'devtools': False}}))
+        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'vertical'}, 'debug': {'devtools': False}, 'keybinds': {'terminal.close': 'ctrl+c'}}))
         view.command('/reload')
         time.sleep(.2)
         view.leader(b'\x1b[C')
@@ -398,7 +398,7 @@ with tempfile.TemporaryDirectory(prefix='oc-term01-', dir=BASE) as directory:
         view.see('RAW_4')
         assert view.child.poll() is None
         view.leader(b'\x1b[D')
-        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}}))
+        (root/'project/cli.json').write_text(json.dumps({'tabs': {'layout': 'horizontal'}, 'debug': {'devtools': False}, 'keybinds': {'terminal.close': 'ctrl+c'}}))
         view.command('/reload')
         time.sleep(.2)
         view.prefix = b'\x18'

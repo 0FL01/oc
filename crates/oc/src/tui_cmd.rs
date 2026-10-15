@@ -1686,7 +1686,7 @@ fn startup_query(error: CoreError) -> StartupFailure {
             stage: oc_core::queries::ServiceStage::Query,
             code: oc_core::queries::ServiceCode::QueryFailed,
             action: oc_core::queries::ServiceAction::RestartApplication,
-            details: Vec::new(),
+            details: None,
         }),
     }
 }

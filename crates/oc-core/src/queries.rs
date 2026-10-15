@@ -835,8 +835,9 @@ pub struct ServiceDiagnostic {
     pub code: ServiceCode,
     pub action: ServiceAction,
     /// Bounded schema-only detail lines (no values/IDs), e.g. a legacy-key report.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub details: Vec<String>,
+    /// Boxed so the common detail-free diagnostic stays pointer-sized.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub details: Option<Box<Vec<String>>>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -1069,7 +1070,7 @@ impl std::fmt::Display for ServiceDiagnostic {
                     "replace OpenCode 1 keys with the canonical OpenCode 2 keys listed",
             }
         )?;
-        for detail in &self.details {
+        for detail in self.details.iter().flat_map(|details| details.iter()) {
             write!(f, "\n  {detail}")?;
         }
         Ok(())

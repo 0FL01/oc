@@ -171,10 +171,14 @@ def validate(root: Path = ROOT) -> dict[str, int]:
     assert "DISCOVERY_ATTEMPT_TIMEOUT_MS = 15000" in reference
     assert "DISCOVERY_TOTAL_TIMEOUT_MS = 30000" in reference
     sample = jsonc((root / "examples/opencode.jsonc").read_text())
-    assert sample["mcp"]["chrome-devtools"]["enabled"] is False
-    assert sample["mcp"]["codex_web"]["oauth"] is False
-    assert sample["provider"]["ludka2"]["npm"] == "@ai-sdk/openai"
-    assert not sample["provider"]["ludka2"].get("models"), "Do not bake in dynamic model IDs"
+    # T62: the sample is canonical OpenCode 2 config (no OpenCode 1 keys).
+    for legacy in ("provider", "permission", "tools", "agent", "command", "plugin",
+                   "enabled_providers", "disabled_providers", "snapshot"):
+        assert legacy not in sample, f"OpenCode 1 key in examples/opencode.jsonc: {legacy}"
+    assert sample["mcp"]["servers"]["chrome-devtools"]["disabled"] is True
+    assert sample["mcp"]["servers"]["codex_web"]["oauth"] is False
+    assert sample["providers"]["ludka2"]["package"] == "@ai-sdk/openai"
+    assert not sample["providers"]["ludka2"].get("models"), "Do not bake in dynamic model IDs"
     journal = Journal(root)
     with journal.lock():
         state = journal.load()

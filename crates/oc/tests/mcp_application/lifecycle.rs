@@ -18,7 +18,7 @@ fn lifecycle_entry(
             value.to_string()
         }
     };
-    json!({"type":"local", "codemode": false, "enabled":enabled, "command":[
+    json!({"type":"local", "codemode": false, "disabled":!enabled, "command":[
         "/usr/bin/python3", concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/mcp10-lifecycle.py"),
         fixture.project.join(format!("{label}.json")), format!("peer-{label}"), gate(initialize), gate(catalog), fixture.project
     ],"environment":{"MCP10_CANARY":"mcp10-activated-canary"}})
@@ -93,14 +93,14 @@ fn mcp10_initial_connections_run_before_any_prompt_and_slow_neighbor_does_not_bl
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "a_slow": {"type":"remote", "codemode": false,"url":slow.url,"oauth":false},
             "healthy": {"type":"remote", "codemode": false,"url":healthy.url,"oauth":false},
-            "disabled": {"type":"local", "codemode": false,"enabled":false,"command":["never-execute"]},
-            "failed": {"type":"remote", "codemode": false,"url":healthy.url,"oauth":true}
+            "disabled": {"type":"local", "codemode": false,"disabled":true,"command":["never-execute"]},
+            "failed": {"type":"remote", "codemode": false,"url":healthy.url,"oauth":{}}
             ,"pretend_connected": {"type":"remote", "codemode": false,"url":auth.url,"oauth":false}
-        }),
-        json!({"healthy__ping":"allow"}),
+        }}),
+        json!([{"action": "healthy__ping", "resource": "*", "effect": "allow"}]),
     );
     let bytes = fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap();
     let mut tui = PtyProcess::spawn(&fixture, "mcp10-initial");
@@ -206,8 +206,8 @@ fn mcp08_disabled_activation_controls_held_request_snapshots_reopen_and_restart(
     dormant["environment"]["MCP10_CANARY"] = json!("{file:activation-token}");
     fixture.write_config(
         &responses,
-        json!({"dormant":dormant}),
-        json!({"dormant__ping":"allow"}),
+        json!({"servers": {"dormant":dormant}}),
+        json!([{"action": "dormant__ping", "resource": "*", "effect": "allow"}]),
     );
     let config = fixture.home.join("config/opencode/opencode.json");
     let before = fs::read(&config).unwrap();
@@ -393,12 +393,12 @@ fn mcp_late_failure_published_during_held_native_turn_is_visible_scoped_and_reap
         .push(json!("initialize-error"));
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "healthy": lifecycle_entry(&fixture, "healthy", true, "-", "-"),
             "slow": lifecycle_entry(&fixture, "slow", true, slow_gate.to_str().unwrap(), "-"),
             "unavailable": unavailable,
-        }),
-        json!({"healthy__ping":"allow"}),
+        }}),
+        json!([{"action": "healthy__ping", "resource": "*", "effect": "allow"}]),
     );
     let _children: Vec<_> = ["healthy", "slow", "unavailable"]
         .into_iter()
@@ -513,7 +513,7 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     let catalog = fixture.project.join("retry-catalog-release");
     let mut entry = lifecycle_entry(&fixture, "repair", true, "-", catalog.to_str().unwrap());
     entry["command"][0] = json!(program);
-    fixture.write_config(&responses, json!({"repair":entry}), json!({}));
+    fixture.write_config(&responses, json!({"servers": {"repair":entry}}), json!([]));
     let mut tui = PtyProcess::spawn(&fixture, "mcp08-retry-reload-location");
     tui.wait_visible(READY);
     tui.send_line("/mcps");
@@ -552,11 +552,11 @@ fn mcp08_actual_retry_and_reload_location_retire_pending_scope_without_late_effe
     wait_row(&tui, "repair", "Connected");
     close_mcps(&mut tui);
     // Reload builds a new source generation; it retires the ready client first.
-    fixture.write_config(&responses, json!({}), json!({}));
+    fixture.write_config(&responses, json!({}), json!([]));
     let old_gate = fixture.project.join("old-initialize-release");
     let slow = lifecycle_entry(&fixture, "late", true, old_gate.to_str().unwrap(), "-");
     let local = fixture.project.join("opencode.json");
-    fs::write(&local, json!({"mcp":{"late":slow}}).to_string()).unwrap();
+    fs::write(&local, json!({"mcp":{"servers":{"late":slow}}}).to_string()).unwrap();
     let local_bytes = fs::read(&local).unwrap();
     tui.send_line("/reload");
     tui.wait_screen("Configuration reloaded", TIMEOUT);

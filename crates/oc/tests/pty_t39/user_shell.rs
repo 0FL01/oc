@@ -11,7 +11,10 @@ fn vis12_actual_user_shell_records_before_effect_without_provider_or_restart_rep
         .path()
         .join("home/config/opencode/opencode.json");
     let mut value: Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-    value["permissions"] = json!({"compress":"allow", "bash":"allow"});
+    value["permissions"] = json!([
+        {"action": "compress", "resource": "*", "effect": "allow"},
+        {"action": "shell", "resource": "*", "effect": "allow"}
+    ]);
     fs::write(config, value.to_string()).unwrap();
     let command = "python3 shell-history-probe.py";
     fs::write(project.join("shell-history-probe.py"), format!(r#"
@@ -141,8 +144,10 @@ fn vis12_actual_user_shell_ask_and_deny_keep_history_and_effects_at_admission_bo
             .path()
             .join("home/config/opencode/opencode.json");
         let mut value: Value = serde_json::from_slice(&fs::read(&config).unwrap()).unwrap();
-        value["permissions"] =
-            json!({"compress":"allow", "bash":if decision == "deny" {"deny"} else {"ask"}});
+        value["permissions"] = json!([
+            {"action": "compress", "resource": "*", "effect": "allow"},
+            {"action": "shell", "resource": "*", "effect": if decision == "deny" {"deny"} else {"ask"}}
+        ]);
         fs::write(config, value.to_string()).unwrap();
         seed_session(&fixture.data_dir(), &project, "user-shell-policy-origin", 0);
         let mut pty = PtySession::spawn(fixture.clone(), "user-shell-policy-origin", None);

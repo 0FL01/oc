@@ -234,10 +234,11 @@ class Provider(BaseHTTPRequestHandler):
 
 server = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
 threading.Thread(target=server.serve_forever, daemon=True).start()
-config = {'model': 'fixture/vis38-native-model', 'plugin': ['@tarquinen/opencode-dcp@3.1.15'],
-          'permissions': {'*': 'deny', 'compress': 'allow'},
-          'provider': {'fixture': {'name': 'VIS38 Display Fixture', 'npm': '@ai-sdk/openai',
-              'options': {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'offline-fixture-not-a-secret'},
+config = {'model': 'fixture/vis38-native-model', 'plugins': ['@tarquinen/opencode-dcp@3.1.15'],
+          'permissions': [{'action': '*', 'resource': '*', 'effect': 'deny'},
+                          {'action': 'compress', 'resource': '*', 'effect': 'allow'}],
+          'providers': {'fixture': {'name': 'VIS38 Display Fixture', 'package': '@ai-sdk/openai',
+              'settings': {'baseURL': f'http://127.0.0.1:{server.server_port}/v1', 'apiKey': 'offline-fixture-not-a-secret'},
               'models': {'vis38-native-model': {'name': 'VIS38 Display Model', 'limit': {'context': 1000000, 'output': 64000}}}}}}
 (home / 'config/opencode/opencode.json').write_text(json.dumps(config))
 (project / 'dcp.jsonc').write_text(json.dumps({'enabled': True, 'autoUpdate': False,

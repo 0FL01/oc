@@ -527,22 +527,22 @@ if spec['origin'] == 'upstream':
                   'cursor': {'style': 'block', 'blinking': False}}
     argv = [spec['binary'], '--standalone']
 else:
-    config = {'model': 'fixture/fixture-model-1', 'provider': {'fixture': {
-        'name': catalog['provider']['name'], 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}},
-        'permissions': {'read': 'allow'}}
+    config = {'model': 'fixture/fixture-model-1', 'providers': {'fixture': {
+        'name': catalog['provider']['name'], 'package': '@ai-sdk/openai', 'settings': settings, 'models': models}},
+        'permissions': [{'action': 'read', 'resource': '*', 'effect': 'allow'}]}
     if spec.get('scanner'):
         config['animations'] = spec['animations']
     if profile_id:
-        # Native inline definitions use singular `agent` and `prompt`.
         config['default_agent'] = 'build' if bounded else profile_id
-        config['agent'] = {profile_id: {'mode': 'primary', 'prompt': profile_prompt}}
+        config['agents'] = {profile_id: {'mode': 'primary', 'system': profile_prompt}}
         if bounded:
-            config['agent']['build'] = {'mode': 'primary', 'prompt': 'Initial isolated fixture profile.'}
+            config['agents']['build'] = {'mode': 'primary', 'system': 'Initial isolated fixture profile.'}
         if bounded == 'shell':
             # Native bash is argv-only. Authorize its exact boundary-preserving
             # resource strings, not a general shell or printf wildcard.
             resources = shell_commands
-            config['permissions'] = {'*': 'deny', 'bash': {'*': 'deny', **{command: 'allow' for command in resources}}}
+            config['permissions'] = [{'action': '*', 'resource': '*', 'effect': 'deny'},
+                                     *[{'action': 'shell', 'resource': command, 'effect': 'allow'} for command in resources]]
     argv = [spec['binary'], 'tui']
     cli_config = {
         'session': {'sidebar': spec.get('sidebar', 'auto')},
@@ -571,7 +571,8 @@ if spec.get('compaction'):
         cli_config['session']['tps'] = spec['compaction_tps']
     if spec['origin'] == 'oc':
         config['animations'] = spec.get('compaction_animation', False)
-        config['permissions'] = {'*':'deny','bash':{'*':'deny','sleep 25':'allow'}}
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
+                                 {'action':'shell','resource':'sleep 25','effect':'allow'}]
     else:
         config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},{'action':'shell','resource':'sleep 25','effect':'allow'}]
 if spec.get('revert_redo'):

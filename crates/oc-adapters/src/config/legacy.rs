@@ -166,7 +166,7 @@ fn table(
     }
 }
 
-fn entries<'a>(value: Option<&'a Value>) -> impl Iterator<Item = &'a Map<String, Value>> {
+fn entries(value: Option<&Value>) -> impl Iterator<Item = &Map<String, Value>> {
     value
         .and_then(Value::as_object)
         .into_iter()
@@ -425,7 +425,7 @@ impl Report {
             stage: ServiceStage::Config,
             code: ServiceCode::LegacyConfig,
             action: ServiceAction::ReplaceLegacyConfig,
-            details,
+            details: Some(Box::new(details)),
         }
     }
 }

@@ -102,12 +102,12 @@ impl Fixture {
                 "manualMode": {"enabled": manual_mode, "automaticStrategies": true},
                 "compress": {
                     "mode": "range",
+                    "permission": "allow",
                     "minContextLimit": 1,
                     "maxContextLimit": 1,
                     "nudgeFrequency": 3,
                     "iterationNudgeThreshold": 100,
-                    "nudgeForce": "soft",
-                    "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
+                    "nudgeForce": "soft"
                 },
                 "strategies": {
                     "deduplication": {"enabled": true},

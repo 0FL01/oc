@@ -82,7 +82,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     });
     if unknown_limits {
         configuration["providers"]["fixture"]["models"][model] = serde_json::json!({
-            "name": "Fixture model", "variants": {"low": {"reasoningEffort":"low"}}
+            "name": "Fixture model", "variants": [{"id": "low", "settings": {"reasoningEffort":"low"}}]
         });
     }
     if unknown_limits || title.is_some() {
@@ -96,10 +96,10 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     };
     if let Some(title) = &title {
         configuration["providers"]["fixture"]["models"][title_model] = serde_json::json!({
-            "limit": title.limit, "variants": {"low": {"reasoningEffort":"low"}}
+            "limit": title.limit, "variants": [{"id": "low", "settings": {"reasoningEffort":"low"}}]
         });
-        configuration["agent"] = serde_json::json!({"title": {
-            "model": format!("fixture/{title_model}"), "prompt": title.prompt
+        configuration["agents"] = serde_json::json!({"title": {
+            "model": format!("fixture/{title_model}"), "system": title.prompt
         }});
     }
     let title_output = title

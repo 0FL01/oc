@@ -16,14 +16,14 @@ fn var01_full_canonical_cycle_picker_agreement_and_exact_wire() {
     config["providers"]["fixture"]["settings"]["setCacheKey"] = true.into();
     config["providers"]["fixture"]["settings"]["nativeFallbackLimits"] =
         serde_json::json!({"context":32768,"output":128});
-    config["providers"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!({
-        "max":{"reasoningEffort":"max"}, "xhigh":{"reasoningEffort":"xhigh"},
-        "zeta":{"reasoningEffort":" deep "}, "fast":{"reasoningEffort":"low"},
-        "high":{"reasoningEffort":"high"}, "alpha":{"reasoningEffort":"custom"},
-        "medium":{"reasoningEffort":"medium"}, "default":{"reasoningEffort":"none"},
-        "low":{}, "minimal":{"reasoningEffort":"minimal"},
-        "disabled":{"reasoningEffort":"medium","disabled":true}, "none":{"reasoningEffort":"none"}
-    });
+    config["providers"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!([
+        {"id":"max","settings":{"reasoningEffort":"max"}}, {"id":"xhigh","settings":{"reasoningEffort":"xhigh"}},
+        {"id":"zeta","settings":{"reasoningEffort":" deep "}}, {"id":"fast","settings":{"reasoningEffort":"low"}},
+        {"id":"high","settings":{"reasoningEffort":"high"}}, {"id":"alpha","settings":{"reasoningEffort":"custom"}},
+        {"id":"medium","settings":{"reasoningEffort":"medium"}}, {"id":"default","settings":{"reasoningEffort":"none"}},
+        {"id":"low"}, {"id":"minimal","settings":{"reasoningEffort":"minimal"}},
+        {"id":"disabled","settings":{"reasoningEffort":"medium"},"disabled":true}, {"id":"none","settings":{"reasoningEffort":"none"}}
+    ]);
     std::fs::write(&path, config.to_string()).unwrap();
     let mut pty = PtySession::spawn_sized(fixture.clone(), "var01-cycle", None, 100, 40);
     pty.wait_visible(READY, DEADLINE);
@@ -165,9 +165,9 @@ fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection(
         if all_disabled {
             let mut config: serde_json::Value =
                 serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-            config["providers"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!({
-                "max":{"disabled":true}, "low":{"disabled":true}, "default":{}
-            });
+            config["providers"]["fixture"]["models"][MODEL]["variants"] = serde_json::json!([
+                {"id":"max","disabled":true}, {"id":"low","disabled":true}, {"id":"default"}
+            ]);
             std::fs::write(&path, config.to_string()).unwrap();
         }
         let mut pty = PtySession::spawn(fixture.clone(), "var01-guards", None);
@@ -219,7 +219,7 @@ fn var01_empty_disabled_noop_and_readonly_shortcut_preserve_draft_and_selection(
         let mut config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         config["providers"]["fixture"]["models"][MODEL]["variants"] =
-            serde_json::json!({"low":{"reasoningEffort":"low"}});
+            serde_json::json!([{"id":"low","settings":{"reasoningEffort":"low"}}]);
         std::fs::write(&path, config.to_string()).unwrap();
         let mut child = PtySession::spawn(fixture.clone(), "var01-readonly", None);
         wait_screen_row(&child, "VAR01 readonly", DEADLINE); // startup notice overlays the suffix
@@ -267,17 +267,17 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         .join("home/config/opencode/opencode.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    let provider = config["provider"]
+    let provider = config["providers"]
         .as_object_mut()
         .unwrap()
         .remove("fixture")
         .unwrap();
-    config["provider"]["ludka2"] = provider;
+    config["providers"]["ludka2"] = provider;
     config["model"] = format!("ludka2/{MODEL}").into();
-    config["agent"].as_object_mut().unwrap().remove("t39agent");
-    config["providers"]["ludka2"]["models"] = serde_json::json!({MODEL:{"name":"Canonical probe 0", "variants":{
-        "fast":{"reasoningEffort":"low"}, "low":{"reasoningEffort":"custom-low"}, "minimal":{}
-    }}});
+    config["agents"].as_object_mut().unwrap().remove("t39agent");
+    config["providers"]["ludka2"]["models"] = serde_json::json!({MODEL:{"name":"Canonical probe 0", "variants":[
+        {"id":"fast","settings":{"reasoningEffort":"low"}}, {"id":"low","settings":{"reasoningEffort":"custom-low"}}, {"id":"minimal"}
+    ]}});
     std::fs::write(&path, config.to_string()).unwrap();
     let publish = |variants: serde_json::Value| {
         *fixture.models.lock().unwrap() = serde_json::json!({"object":"list", "data":[{
@@ -346,9 +346,9 @@ fn var01_discovery_refresh_reopen_restart_and_retired_identity() {
         pty.send(b"/variants\r");
         choose_variant(&mut pty, "fast");
         config["providers"]["ludka2"]["models"][MODEL]["variants"]
-            .as_object_mut()
+            .as_array_mut()
             .unwrap()
-            .remove("fast");
+            .retain(|variant| variant["id"] != "fast");
         reordered.as_object_mut().unwrap().remove("fast");
         if disabled {
             reordered["fast"] = serde_json::json!({"disabled":true});
@@ -1570,8 +1570,10 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
             .join("home/config/opencode/opencode.json");
         let mut config: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-        config["providers"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
-            serde_json::json!({"reasoningEffort":"low"});
+        *variant_mut(
+            &mut config["providers"]["fixture"]["models"][ALT_MODEL],
+            "none",
+        ) = serde_json::json!({"id":"none","settings":{"reasoningEffort":"low"}});
         std::fs::write(&path, config.to_string()).unwrap();
         let mut pty = PtySession::spawn(fixture.clone(), "retired", None);
         pty.wait_visible(READY, DEADLINE);
@@ -1596,8 +1598,10 @@ fn v04_retired_model_and_variant_remain_visible_until_explicit_remediation() {
                 .unwrap()
                 .remove(ALT_MODEL);
         } else {
-            config["providers"]["fixture"]["models"][ALT_MODEL]["variants"]["fast"]["disabled"] =
-                true.into();
+            variant_mut(
+                &mut config["providers"]["fixture"]["models"][ALT_MODEL],
+                "fast",
+            )["disabled"] = true.into();
         }
         std::fs::write(&path, config.to_string()).unwrap();
         let mut pty = PtySession::spawn(
@@ -1723,7 +1727,7 @@ fn v04_raw_dialogs_preserve_draft_and_select_normal_provider_model_variant() {
         config["providers"]["fixture"]["models"][format!("modal-{i:02}")] = serde_json::json!({
             "name":format!("Modal {i:02}"), "limit":{"context":32768,"output":4096},
             // Named `none` is an explicit overlay, NOT the absence of a selection.
-            "variants":{"none":{"reasoningEffort":"low"},"fast":{"reasoningEffort":"high"}}
+            "variants":[{"id":"none","settings":{"reasoningEffort":"low"}},{"id":"fast","settings":{"reasoningEffort":"high"}}]
         });
     }
     std::fs::write(&path, config.to_string()).unwrap();

@@ -23,7 +23,7 @@ async fn mcp_error_details_are_read_only_preserve_list_and_own_copy_investigatio
         stage: ServiceStage::Initialize,
         code: ServiceCode::ConnectionFailed,
         action: ServiceAction::RetryConnection,
-        details: Vec::new(),
+        details: None,
     };
     let mut snapshot = McpSnapshot {
         binding: McpBinding {

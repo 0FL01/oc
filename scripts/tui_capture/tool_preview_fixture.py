@@ -36,15 +36,17 @@ def configure(spec, home, project, config, cli):
         config['mcp'] = {'servers':{'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'codemode':False}}}
     else:
         config['animations'] = False
-        config['permissions'] = {'*':'deny', 'vis16__output':'allow', 'bash':{'*':'deny',command(spec):'allow'}}
-        config['mcp'] = {'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)],'enabled':True}}
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
+                                 {'action':'vis16__output','resource':'*','effect':'allow'},
+                                 {'action':'shell','resource':command(spec),'effect':'allow'}]
+        config['mcp'] = {'servers':{'vis16':{'type':'local','command':['/usr/bin/python3',str(peer)]}}}
     if spec.get('mcp_status'):
-        servers = config['mcp']['servers'] if spec['origin'] == 'upstream' else config['mcp']
+        servers = config['mcp']['servers']
         # A safe display key distinct from handshake/argv and inherited scalar
         # values; the ordinary tool-effect fixture keeps its existing key.
         servers['vishealthy'] = servers.pop('vis16')
         servers['visdisabled'] = {'type':'local','command':['/usr/bin/python3',str(peer)],
-                                  **({'disabled':True} if spec['origin'] == 'upstream' else {'enabled':False})}
+                                  'disabled':True}
         servers['visfailed'] = {'type':'local','command':['/usr/bin/python3',str(peer),'--failed']}
         if spec.get('mcp_footer'):
             for name, role in (('vishealthy','healthy-peer'),('visdisabled','disabled-peer'),('visfailed','failed-peer')):

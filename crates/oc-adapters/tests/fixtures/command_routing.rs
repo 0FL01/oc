@@ -232,8 +232,8 @@ async fn command_routing_implicit_agent_preserves_false_authority_and_infers_chi
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&data).unwrap();
     let mut config = settings(&server.base);
-    config["command"]["same"] = serde_json::json!({"template":"SAME $1","subagent":false});
-    config["command"]["child"] = serde_json::json!({"template":"CHILD $1"});
+    config["commands"]["same"] = serde_json::json!({"template":"SAME $1","subagent":false});
+    config["commands"]["child"] = serde_json::json!({"template":"CHILD $1"});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), data.to_string_lossy().into_owned()),
@@ -323,11 +323,14 @@ async fn command_routing_native_admission_refuses_without_turn_child_or_dispatch
         std::fs::create_dir_all(&data).unwrap();
         let mut config = settings(&server.base);
         match case {
-            "model" => config["command"]["inferred"]["model"] = "fixture/absent".into(),
-            "variant" => config["command"]["inferred"]["model"] = "fixture/profile#absent".into(),
-            "disabled" => config["agent"]["reviewer"]["disable"] = true.into(),
+            "model" => config["commands"]["inferred"]["model"] = "fixture/absent".into(),
+            "variant" => config["commands"]["inferred"]["model"] = "fixture/profile#absent".into(),
+            "disabled" => config["agents"]["reviewer"]["disabled"] = true.into(),
             "depth" => config["experimental"]["subagent_depth"] = 0.into(),
-            "deny" | "ask" => config["permission"]["subagent"] = case.into(),
+            "deny" | "ask" => config["permissions"]
+                .as_array_mut()
+                .unwrap()
+                .push(serde_json::json!({"action":"subagent","resource":"*","effect":case})),
             "budget" => {
                 config["providers"]["fixture"]["models"]["profile"]["limit"] =
                     serde_json::json!({"context":1,"output":1})

@@ -11,15 +11,14 @@ def configure(spec, home, project, config, cli):
     plugin.mkdir()
     (plugin / 'package.json').write_text(json.dumps({'type': 'module', 'main': 'index.js'}))
     (plugin / 'index.js').write_text('throw new Error("VIS42_BACKGROUND_CANARY"); export default {};\n')
-    config['plugins' if spec['origin'] == 'upstream' else 'plugin'] = (
+    config['plugins'] = (
         ['-opencode.models.dev', str(plugin)] if spec['origin'] == 'upstream'
         else ['@tarquinen/opencode-dcp', str(plugin)])
-    config['compaction'] = {'auto': False, 'prune': True}
+    config['compaction'] = {'auto': False}
     command = ['/usr/bin/python3', str(Path(__file__).resolve()), 'peer', str(home)]
     server = {'type': 'local', 'command': command,
               'timeout': {'startup': 10000, 'catalog': 10000, 'execution': 10000}}
-    config['mcp'] = ({'servers': {'vis42': {**server, 'codemode': False}}}
-                     if spec['origin'] == 'upstream' else {'vis42': {**server, 'enabled': True}})
+    config['mcp'] = {'servers': {'vis42': {**server, 'codemode': False}}}
     (home / 'vis42-phase.json').write_text(json.dumps({'phase': 'held'}))
     cli['session']['tps'] = False
 
@@ -32,7 +31,7 @@ def control(home, config, origin, action):
     temporary.write_text(json.dumps({'phase': phase}))
     temporary.replace(home / 'vis42-phase.json')
     if action == 'recover':
-        config['plugins' if origin == 'upstream' else 'plugin'] = (
+        config['plugins'] = (
             ['-opencode.models.dev'] if origin == 'upstream' else ['@tarquinen/opencode-dcp'])
         config.pop('compaction', None)
         (home / 'config/opencode/opencode.json').write_text(json.dumps(config))

@@ -25,7 +25,7 @@ impl Peer {
         let source = Source { path: root.path().join("opencode.json").to_string_lossy().into_owned(), trusted:true, text:json!({"mcp":{
             "servers": {"probe": {
             "type":"local","command":["mcp09-server",report,root.path(),"project",stage,"two words",""],
-            "environment":{"PATH":bin,"MCP09_OVERLAY":"mcp09-configured-canary"},"timeout":{"catalog": timeout, "execution": timeout}
+            "environment":{"PATH":bin,"MCP09_OVERLAY":"mcp09-configured-canary"},"timeout":timeout
         }}
         }}).to_string() };
         let env = BTreeMap::from([
@@ -109,7 +109,8 @@ async fn mcp09_separate_actual_startup_catalog_execution_deadlines_and_reaping()
 
 #[tokio::test]
 async fn mcp09_numeric_timeout_does_not_bound_startup_and_canaries_stay_redacted() {
-    let peer = Peer::new("legacy-delay", json!(40));
+    // Canonical object without `startup`: startup keeps its default bound.
+    let peer = Peer::new("legacy-delay", json!({"catalog": 40, "execution": 40}));
     assert_eq!(peer.config.startup_timeout, Some(Duration::from_secs(30)));
     assert_eq!(peer.config.catalog_timeout, Some(Duration::from_millis(40)));
     assert_eq!(peer.config.timeout, Duration::from_millis(40));

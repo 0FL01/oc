@@ -9,7 +9,7 @@ async fn dcp12_no_file_owner_panel_precedence_restart_location() {
     let global = fixture.home.join("config/opencode");
     let config_path = global.join("opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
-    config["agent"] = json!({"title":{"disable":true}});
+    config["agents"] = json!({"title":{"disabled":true}});
     config["providers"]["fixture"]["models"][MODEL]["limit"] =
         json!({"context":100003,"output":2048});
     fs::write(&config_path, config.to_string()).unwrap();

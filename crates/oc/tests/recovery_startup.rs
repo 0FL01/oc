@@ -34,7 +34,8 @@ async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
     std::fs::write(original.join("opencode.json"), config("offline")).unwrap();
     let mut invalid_policy: serde_json::Value =
         serde_json::from_str(&config("LEAKME-MODEL-SECRET")).unwrap();
-    invalid_policy["permission"] = serde_json::json!({"read":123});
+    invalid_policy["permissions"] =
+        serde_json::json!([{"action":"read","resource":"*","effect":123}]);
     std::fs::write(bad.join("opencode.json"), invalid_policy.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".to_string(), home.to_string_lossy().into_owned()),
@@ -72,7 +73,7 @@ async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
         diagnostic.code,
         oc_core::queries::ServiceCode::InvalidConfig
     );
-    assert_eq!(diagnostic.field, ["permission"]);
+    assert_eq!(diagnostic.field, ["permissions"]);
     assert!(diagnostic.source.starts_with("source-"));
     assert_eq!(app.catalog().await.unwrap(), before);
     app.shutdown().await.unwrap();

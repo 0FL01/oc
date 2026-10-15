@@ -74,15 +74,15 @@ async fn scenario(
            "models":{"route/gpt-model/with/slashes":{"name":model_name,"cost":price.map(|(input,output)|serde_json::json!({"input":input,"output":output})),"limit":{"context":32768,"output":4096}}}}}
     });
     if label == "Changed" {
-        configuration["agent"]
+        configuration["agents"]
             .as_object_mut()
             .unwrap()
             .remove("title");
     } else {
-        configuration["agent"]["title"]["model"] =
+        configuration["agents"]["title"]["model"] =
             "fixture/route/gpt-model/with/slashes#brief".into();
         configuration["providers"]["fixture"]["models"]["route/gpt-model/with/slashes"]["variants"] =
-            serde_json::json!({"brief":{"reasoningEffort":"low"}});
+            serde_json::json!([{"id":"brief","settings":{"reasoningEffort":"low"}}]);
     }
     std::fs::write(config.join("opencode.json"), configuration.to_string()).unwrap();
     if let Some(probe) = probe {
@@ -682,8 +682,8 @@ async fn scenario(
     // Invalid title configuration must be refused before durable acceptance,
     // including when an existing session already has a generated title.
     let original = configuration.clone();
-    configuration["agent"]["title"] =
-        serde_json::json!({"mode":"subagent","prompt":"Title","model":"fixture/missing#brief"});
+    configuration["agents"]["title"] =
+        serde_json::json!({"mode":"subagent","system":"Title","model":"fixture/missing#brief"});
     std::fs::write(config.join("opencode.json"), configuration.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.display().to_string()),
@@ -714,7 +714,7 @@ async fn scenario(
     );
     invalid.shutdown().await.unwrap();
     guard.join().await.unwrap();
-    configuration["agent"]["title"] = serde_json::json!({"mode":"invalid-mode","prompt":"Title"});
+    configuration["agents"]["title"] = serde_json::json!({"mode":"invalid-mode","system":"Title"});
     std::fs::write(config.join("opencode.json"), configuration.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.display().to_string()),

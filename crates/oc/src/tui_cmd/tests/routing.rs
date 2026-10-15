@@ -1536,7 +1536,7 @@ async fn mcp_detail_keyboard_copy_drains_actual_transport_before_outcome() {
                     stage: ServiceStage::Initialize,
                     code: ServiceCode::ConnectionFailed,
                     action: ServiceAction::RetryConnection,
-                    details: Vec::new(),
+                    details: None,
                 }),
             }],
         });
@@ -2153,7 +2153,7 @@ async fn refused_reload_consumes_provider_facts_before_feedback_and_late_hint() 
         stage: ServiceStage::Query,
         code: ServiceCode::QueryFailed,
         action: ServiceAction::RetryConnection,
-        details: Vec::new(),
+        details: None,
     };
     current.chrome.service_diagnostics.push(diagnostic.clone());
     current.chrome.provider = Some(ProviderReadiness {

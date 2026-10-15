@@ -11,7 +11,41 @@ Upstream-compatible inputs: global/Location `opencode.json`/`opencode.jsonc`, `.
 
 В supplied примере provider snippet был фрагментом с лишними завершающими скобками/запятыми. `examples/opencode.jsonc` — заново собранный валидный полный пример, не побайтная копия; URL/keys остаются env references. Модели в основном примере не зафиксированы. Static модели из Q01 сохранены отдельно как fixture `examples/static-models.user.json` с отметкой «пользовательские metadata, не проверенные публичные спецификации».
 
-Discovery native enabled для ludka2; static ludka можно включить и явно задать models. `enabled_providers` в стартовом примере содержит только ludka2, чтобы отсутствие LUDKA_* не ломало его работу. Это явно выбранный ready-to-start default, не удаление поддержки ludka.
+Discovery native enabled для ludka2; static ludka можно включить и явно задать models. `experimental.policies` в стартовом примере разрешает только ludka2 (`provider.use`: `*` deny, затем `ludka2` allow), чтобы отсутствие LUDKA_* не ломало его работу. Это явно выбранный ready-to-start default, не удаление поддержки ludka.
+
+## Только канонический OpenCode 2 config — T62 (owner 2026-10-15)
+
+`oc2` принимает только канонический schema OpenCode 2 v2.0.12 (`packages/schema` config
+`Info` и `cli.json`). Совместимости с OpenCode 1 нет ([D27](DECISIONS.md),
+[T62](goals/2026-10-15-canonical-v2-config.md)): ключ, который donor принимает лишь через
+`core/src/v1/**` или миграцию tui.json/kv.json, не мигрируется и не игнорируется. Startup,
+`/reload` (сохраняет last-good) и `oc2 models` отказывают одним `legacy_config` отчётом:
+все найденные ключи, scope (`global`/`location`/`location .opencode` + файл) и замена;
+значения и ID не печатаются (`<id>`). Свой конфиг пользователь переводит сам.
+
+| OpenCode 1 | Канонический OpenCode 2 |
+|---|---|
+| `provider` | `providers` |
+| `providers.<id>.npm` / `.options` / `.api` | `package` / `settings` (+ top-level `headers`, `body`) / `settings.baseURL` |
+| model `id`, `options`, `tool_call`, `modalities`, `interleaved`, `status` | `modelID`, `settings`, `capabilities.{tools,input,output}`, `compatibility`, `disabled` |
+| model `variants: {"high": {...}}` | `variants: [{"id": "high", "settings": {...}}]` |
+| `permission` (map или scalar), `tools`, object-form `permissions` | `permissions: [{"action", "resource", "effect"}]` (порядок важен, побеждает последний) |
+| actions `bash` / `write`, `patch`, `apply_patch` / `task` | `shell` / `edit` / `subagent` |
+| `agent`, `mode` | `agents` (`mode` entries → `mode: "primary"`) |
+| agent `prompt`, `disable`, `maxSteps`, `permission`/`tools`, `temperature`/`top_p`/`options`, JSON `variant` | `system`, `disabled`, `steps`, `permissions`, `request.body`, `model: "p/m#variant"` |
+| Markdown agent frontmatter вне `model, request, system, description, mode, hidden, color, steps, disabled, permissions, variant` | канонические поля (`permissions:` — YAML-список правил) |
+| `command`, command `variant` | `commands`, `model: "p/m#variant"` |
+| `plugin` | `plugins` (строка или `{package, options}`) |
+| `mcp.<name>`, `enabled`, numeric `timeout`, camelCase `oauth` | `mcp.servers.<name>`, `disabled` (инверсия), `timeout: {startup, catalog, execution}`, snake_case |
+| `enabled_providers` / `disabled_providers` | `experimental.policies: [{"action": "provider.use", "resource", "effect"}]` |
+| `snapshot`, `autoupdate`, `autoshare`, `attachment`, `reference`, `small_model`, `subagent_depth` | `snapshots`, `update`, `share`, `media.image`, `references`, `agents.title.model`, `experimental.subagent_depth` |
+| compaction `reserved`, `preserve_recent_tokens` | `compaction.buffer`, `compaction.keep.tokens` |
+| `keybinds`/`theme`/`tui` в opencode.json | `cli.json` |
+| cli.json underscore keybinds, `leader_timeout`, `theme: "name"` | dotted keybinds, `leader.timeout`, `theme: {name}` |
+| `logLevel`, `server`, `layout`, compaction `prune`/`tail_turns` | удалить |
+
+`experimental.policies` с `action: "permission"` (donor deny-hook) не поддержан и
+отказывает typed capability error: молча проигнорированный deny расширил бы права.
 
 ## Source loading
 
@@ -32,8 +66,8 @@ DCP domains, provider model metadata/variants, MCP entries, skills, agents, comm
 ## Service config/startup — native diagnostic contract
 
 [T46 R6 matrix](goals/2026-09-22-mcp-attach-parity.md#r6-fieldcapability-matrix--approved-target-not-supported-claim)
-defines legacy `mcp.<name>` and canonical `mcp.servers.<name>`, global/server stage
-timeouts, enabled inversion/precedence, actual argv/cwd/environment and explicit
+defines canonical `mcp.servers.<name>` (OpenCode 1 `mcp.<name>` fails closed, T62),
+global/server stage timeouts, `disabled`/precedence, actual argv/cwd/environment and explicit
 OAuth/CodeMode/protocol differences. Admission is per server after source trust;
 malformed/unsupported entry stays in bounded failed diagnostic inventory while valid
 siblings survive. Unknown non-security donor metadata may be omitted, not recognized
@@ -147,16 +181,12 @@ catalog. Нет periodic /models polling, environment mutation живого пр
 
 ## MCP/permissions compatibility — approved 2026-10-02
 
-OC1 host config is an example; pinned OC2 v2.0.12 is the normalization oracle.
-[T46/MCP09 follow-up](goals/2026-09-22-mcp-attach-parity.md#mcppermission-config-follow-up--approved-2026-10-02-pending)
-keeps the completed backend baseline separate from new qualification. Canonical root
-`mcp.servers` uses `disabled`, not `enabled`; legacy enabled:false migrates to
-disabled:true. Moving entries without inversion is not equivalent. Scalar positive-ms
-timeout migrates only to catalog/execution, not startup; defaults are30,000/30,000/
-43,200,000 ms. Global supplied timeout leaves merge, per-server leaves override;
-later same-ID server replaces the whole entry, canonical wins mixed-root conflicts
-with a safe diagnostic. Typed legacy servers literally named servers/timeout remain
-distinct from canonical container/defaults keys.
+Only canonical OC2 v2.0.12 MCP config is admitted (T62): direct `mcp.<name>`
+entries, `enabled`, numeric timeouts and camelCase OAuth keys fail closed with the
+`legacy_config` report. Canonical root `mcp.servers` uses `disabled`; timeout is
+`{startup, catalog, execution}` in positive ms with defaults 30,000/30,000/43,200,000.
+Global supplied timeout leaves merge, per-server leaves override; later same-ID server
+replaces the whole entry.
 
 Canonical **direct-mode example** below preserves the supplied URLs/headers/argv/env
 and numeric timeout intent. `codemode:false` explicitly selects direct exposure; it is
@@ -170,10 +200,10 @@ auto/2026-07-28 remains a per-entry capability failure. Disabled local chrome ha
 npx/browser/spawn/network effects. Local cwd/env inherit only the admitted product
 execution context and overlay, not authoring-agent configuration.
 
-Canonical `permissions` is an ordered array. The legacy `permission` map is normalized
-before it, preserving rule order; later matching Allow overrides broad Deny **inside
-that authority only**. Independent native central/source/profile/parent ceilings and
-tools:false remain, not donor's unrestricted cross-layer last-Allow behavior. Malformed
+Canonical `permissions` is an ordered array; later matching Allow overrides broad Deny
+**inside that authority only**. Independent native central/source/profile/parent
+ceilings remain, not donor's unrestricted cross-layer last-Allow behavior. OpenCode 1
+`permission`/`tools` and object-form `permissions` fail closed (T62). Malformed
 security policy is fatal, not skipped into Allow. MCP aliases come from actual tools/list:
 server crw + scrape → crw_scrape, crw + crw_scrape → crw_crw_scrape. `codex_web` matches
 that exact action, not all codex_web tools; explicitly use codex_web_* if that is the
@@ -318,13 +348,14 @@ array differences; a new package spelling never qualifies these or full3.2.0 par
 ## Custom providers — T53 (approved clarification 2026-10-02; pending)
 
 The [T53 config/auth/wire contract](goals/2026-09-29-opencode-go-and-provider-auth.md)
-admits both OC1 legacy `provider` and OC2 canonical `providers` through one normalizer.
-Host config is an example; pinned OC2 schema/migration/requests are the oracle. This
-section describes the target, **not implemented Chat/Messages/canonical-config support**.
+admits canonical OC2 `providers` only (T62: OpenCode 1 `provider`, `npm`, `options`,
+model `id`/`tool_call`/`modalities`/`interleaved`/variant maps fail closed). Pinned OC2
+schema/requests are the oracle. This section describes the target, **not implemented
+Chat/Messages support**.
 
-- Legacy npm/options/model id/provider.npm/api/modalities/tool_call/interleaved/variant
-  maps normalize to package/settings/headers/body, API modelID, capabilities,
-  compatibility.reasoningField and array variants. Canonical provider/model/variant
+- Canonical `package`/`settings` (any extra keys; unknown ones warn)/`headers`/`body`,
+  API `modelID`, `capabilities`, `compatibility.reasoningField` and array variants.
+  Canonical provider/model/variant
   supplied overlays merge in admitted source order; request order is provider → model
   → selected variant, recursive settings/body and case-insensitive headers. Model
   package overrides provider; catalog reference differs from API `modelID ?? id`.
@@ -367,8 +398,8 @@ Qualification uses synthetic host-shaped configs, not copied secrets: legacy/can
 equivalence, API-ID/overlay precedence, real tool roundtrips/variants, private-route
 admission, errors/cancel and protocol-switch/reopen. GO01–GO06 only T53; PRM01 consumes
 chronological system/effort and T50's next-request switch, without new tasks/frameworks.
-Snapshot false aliases remain T44 conversation-only target; compaction.auto works,
-legacy compaction.prune remains diagnosed unsupported, not imported OC1 pruning.
+`snapshots: false` remains T44 conversation-only target; compaction.auto works.
+OpenCode 1 `snapshot` and compaction `prune` fail closed (T62).
 
 ## Custom /connect onboarding — T59 (approved 2026-10-12; pending)
 
@@ -603,8 +634,7 @@ Existing global `--data-dir` принимается; catalog-only команда
 
 Целевой путь пользователя: скопировать ID из `oc2 models`, затем вручную указать его
 в global `model`, canonical `agents.<id>.model` либо Markdown profile
-`.opencode/agents/<id>.md`. Для JSON legacy `agent` проходит donor normalization;
-это не каноническое имя OC2 и не повод удалить существующую совместимость.
+`.opencode/agents/<id>.md`. JSON `agent` — ключ OpenCode 1 и отказывает fail-closed (T62).
 Пример **target profile**, не claim текущего полного R6 parity (значения placeholders):
 
 ```yaml
@@ -662,8 +692,9 @@ OAuth is extended only by approved T57 below; MCP/other-provider OAuth remains e
 The historical universal apply_patch/no-write-edit difference is superseded only
 by the 2026-10-01 [T50/R1/R9 file-tools contract](goals/2026-09-27-native-tool-parity.md).
 Selected-model predicate changes schemas/managed guidance, not configured model IDs,
-reasoning/discovery/provider routes. Existing write/edit/patch permission aliases still
-normalize to apply_patch and preserve explicit Deny, grants and profile ceilings.
+reasoning/discovery/provider routes. Canonical `edit`/`shell` rules apply to the native
+apply_patch/write/edit and shell tools and preserve explicit Deny, grants and profile
+ceilings; OpenCode 1 action names in config rules fail closed (T62).
 No new file-tool override setting or executable sample is added in this plan delivery;
 supported implementation/compatibility claims require TOOL12/TOOL20 qualification.
 

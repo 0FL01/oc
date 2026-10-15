@@ -717,7 +717,7 @@ fn admit_settings(
                     stage: ServiceStage::Capability,
                     code: ServiceCode::UnsupportedPlugin,
                     action: ServiceAction::ReviewConfiguration,
-                    details: Vec::new(),
+                    details: None,
                 });
                 if let Some(diagnostic) = &diagnostic {
                     trace::log("plugin.fail", &diagnostic.to_string());

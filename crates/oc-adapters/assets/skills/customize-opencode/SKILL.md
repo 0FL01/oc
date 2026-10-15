@@ -86,17 +86,20 @@ Do not initiate a paid model request or OAuth flow merely to validate syntax.
 
 ## Provider and model example
 
-This is an illustrative **native accepted legacy shape**, not credentials or a
-promise that the placeholder model exists. Replace endpoint/ID with the user's
+This is an illustrative **canonical OpenCode 2 shape**, not credentials or a
+promise that the placeholder model exists. OpenCode 1 keys (`provider`, `npm`,
+`options`, `permission`, `tools`, `agent`, `command`, `plugin`, `mcp.<name>`,
+`enabled_providers` …) are refused with one `legacy_config` report listing every
+key and its canonical replacement; convert them, never re-add OpenCode 1 shapes. Replace endpoint/ID with the user's
 actual admitted values and verified model metadata (the limits below illustrate
 the shape, not a claim about an existing model); merge into the existing file.
 
 ```jsonc
 {
-  "provider": {
+  "providers": {
     "lab": {
-      "npm": "@ai-sdk/openai",
-      "options": {
+      "package": "@ai-sdk/openai",
+      "settings": {
         "baseURL": "https://api.example.invalid/v1",
         "apiKey": "{env:LAB_API_KEY}"
       },
@@ -112,7 +115,7 @@ the shape, not a claim about an existing model); merge into the existing file.
 }
 ```
 
-The `npm` spelling is a **native protocol alias**, not npm execution:
+The `package` value is a **native protocol alias**, not npm execution:
 `@ai-sdk/openai` (also `@opencode/ai/providers/openai`) selects Responses;
 `@ai-sdk/openai-compatible` / `@opencode/ai/providers/openai-compatible` select
 Chat Completions; `@ai-sdk/anthropic` / `@opencode/ai/providers/anthropic` select
@@ -151,9 +154,8 @@ native omitted OAuth also means no OAuth, unlike the upstream default.
 }
 ```
 
-Canonical entries use `disabled`; legacy `mcp.<name>` uses `enabled`, with inverse
-meaning. Do not copy the boolean unchanged during migration. Canonical wins a
-mixed-root collision with a diagnostic. Local MCP uses an explicit `command`
+Entries live under `mcp.servers` and use `disabled`; timeouts are
+`{startup, catalog, execution}` in ms. Local MCP uses an explicit `command`
 argv array (plus admitted cwd/env); external `npx` is only a user-approved installed
 dependency, never an internal JS host or automatic package installation.
 
@@ -179,8 +181,8 @@ action/alias. A literal server name is **not** a wildcard for all its tools.
 ```
 
 Canonical rules are ordered. A later rule can override an earlier rule inside
-its own authority, not another independent ceiling or `tools:false`. Legacy
-`permission` maps are normalized before the canonical array. Invalid security
+its own authority, not another independent ceiling. Actions are canonical
+(`edit` covers apply_patch/write/edit, `shell` the shell tool). Invalid security
 policy is fatal. Outside-Location access still needs its external-directory
 admission as well as action permission. Do not recommend broad Allow or CLI
 `--auto` as a workaround; headless Ask without a consumer fails before execution.
@@ -198,11 +200,13 @@ Use real Plan policy, not just the word “plan” in a prompt. Custom profiles 
 ---
 description: Review the current workspace
 mode: primary
-permission:
-  edit: deny
-  write: deny
-  apply_patch: deny
-  shell: ask
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: "*"
+    effect: ask
 ---
 Review the requested changes; do not claim unexecuted checks passed.
 ```

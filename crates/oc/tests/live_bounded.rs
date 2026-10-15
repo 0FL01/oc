@@ -858,12 +858,19 @@ impl Fixture {
 
     fn route_guard(&mut self, guard: envelope::Envelope) {
         let (provider, model) = split_model(&self.model).expect("validated model");
-        let mut permissions = json!({"*":"deny", "read":"allow", "apply_patch":"allow", "bash":{"cargo test":"allow"}, "compress":"allow", SEARCH_TOOL:"allow"});
-        // Catalogs are admitted; all calls still pass the counted short-search guard.
-        permissions["crw_*"] = json!("allow");
-        let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "codemode": false, "url":entry["url"], "headers":entry["headers"], "oauth":false, "enabled":true, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
+        // Catalogs are admitted (crw_*); all calls still pass the counted short-search guard.
+        let permissions = json!([
+            {"action": "*", "resource": "*", "effect": "deny"},
+            {"action": "read", "resource": "*", "effect": "allow"},
+            {"action": "edit", "resource": "*", "effect": "allow"},
+            {"action": "shell", "resource": "cargo test", "effect": "allow"},
+            {"action": "compress", "resource": "*", "effect": "allow"},
+            {"action": SEARCH_TOOL, "resource": "*", "effect": "allow"},
+            {"action": "crw_*", "resource": "*", "effect": "allow"}
+        ]);
+        let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "codemode": false, "url":entry["url"], "headers":entry["headers"], "oauth":false, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
         let config = json!({"model": self.model, "permissions":permissions, "dcp":{"enabled":true},
-            "providers": {provider: {"package":"@ai-sdk/openai", "settings":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":mcp});
+            "providers": {provider: {"package":"@ai-sdk/openai", "settings":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":{"servers":mcp}});
         let config_dir = self.config_dir.as_ref().expect("private config");
         std::fs::create_dir_all(config_dir).expect("private config directory");
         std::fs::write(config_dir.join("opencode.json"), config.to_string())
@@ -875,8 +882,12 @@ impl Fixture {
         let config_path = self.config_dir.as_ref().unwrap().join("opencode.json");
         let mut config: Value =
             serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
-        config["permissions"] =
-            json!({"*":"deny", "read":"allow", SEARCH_TOOL:"allow", "crw_*":"allow"});
+        config["permissions"] = json!([
+            {"action": "*", "resource": "*", "effect": "deny"},
+            {"action": "read", "resource": "*", "effect": "allow"},
+            {"action": SEARCH_TOOL, "resource": "*", "effect": "allow"},
+            {"action": "crw_*", "resource": "*", "effect": "allow"}
+        ]);
         std::fs::write(config_path, config.to_string()).unwrap();
     }
 
@@ -888,17 +899,24 @@ impl Fixture {
         let home = root.path().join("home");
         let config_dir = home.join("config/opencode");
         std::fs::create_dir_all(&config_dir).expect("config dir");
-        let mut permissions = json!({
-            "read": "allow", "apply_patch": "allow", "bash": "allow",
-            "compress": "allow", "webfetch": "allow", "skill": "allow"
-        });
+        let mut permissions = json!([
+            {"action": "read", "resource": "*", "effect": "allow"},
+            {"action": "edit", "resource": "*", "effect": "allow"},
+            {"action": "shell", "resource": "*", "effect": "allow"},
+            {"action": "compress", "resource": "*", "effect": "allow"},
+            {"action": "webfetch", "resource": "*", "effect": "allow"},
+            {"action": "skill", "resource": "*", "effect": "allow"}
+        ]);
         let mcp_section = match &mcp {
             Some(server) => {
-                permissions[SEARCH_TOOL] = json!("allow");
-                json!({SEARCH_SERVER: {"type": "remote", "codemode": false, "url": server.url,
-                                       "enabled": true, "oauth": false,
+                permissions
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({"action": SEARCH_TOOL, "resource": "*", "effect": "allow"}));
+                json!({"servers": {SEARCH_SERVER: {"type": "remote", "codemode": false, "url": server.url,
+                                       "oauth": false,
                                        "headers": {"Authorization": "Bearer dry-run"},
-                                       "timeout": 3000}})
+                                       "timeout": {"catalog": 3000, "execution": 3000}}}})
             }
             None => json!({}),
         };
@@ -1465,11 +1483,11 @@ fn select_fixture(
         .join("opencode.json");
     let mut value: Value =
         serde_json::from_slice(&std::fs::read(&path).expect("fixture config")).expect("json");
-    let mut entry = value["provider"]["fixture"].clone();
+    let mut entry = value["providers"]["fixture"].clone();
     entry["models"] = models;
-    entry["options"]["baseURL"] = json!(fixture.peer.as_ref().expect("offline peer").url);
-    entry["options"]["nativeFallbackLimits"] = json!({"context": 32768, "output": 256});
-    value["provider"] = json!({provider: entry});
+    entry["settings"]["baseURL"] = json!(fixture.peer.as_ref().expect("offline peer").url);
+    entry["settings"]["nativeFallbackLimits"] = json!({"context": 32768, "output": 256});
+    value["providers"] = json!({provider: entry});
     // A wrong global default must never override OC_TEST_MODEL routing.
     value["model"] = json!("unselected/not-the-test-model");
     std::fs::write(&path, value.to_string()).expect("fixture config");
@@ -1488,7 +1506,7 @@ fn bounded_exact_slash_model_variant_config_and_unknown_limits() {
         "org/future~model",
         Some("custom"),
         json!({
-            "org/future~model": {"variants": {"custom": {"reasoningEffort": "low"}}}
+            "org/future~model": {"variants": [{"id": "custom", "settings": {"reasoningEffort": "low"}}]}
         }),
     );
     let config = fixture.preflight(CALL_TIMEOUT).expect("exact slash model");
@@ -1561,12 +1579,12 @@ fn bounded_missing_catalog_model_variant_and_credentials_block_before_generation
         (
             "org/future",
             Some("unlisted"),
-            json!({"org/future": {"variants": {"low": {"reasoningEffort": "low"}}}}),
+            json!({"org/future": {"variants": [{"id": "low", "settings": {"reasoningEffort": "low"}}]}}),
         ),
         (
             "org/future",
             Some("disabled"),
-            json!({"org/future": {"variants": {"disabled": {"disabled": true}}}}),
+            json!({"org/future": {"variants": [{"id": "disabled", "disabled": true}]}}),
         ),
         ("org/future", None, json!({})),
     ] {
@@ -1611,7 +1629,8 @@ fn bounded_missing_catalog_model_variant_and_credentials_block_before_generation
     let fixture = Fixture::dry_run(false);
     let path = fixture.config_dir.as_ref().unwrap().join("opencode.json");
     let mut value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    value["providers"]["fixture"]["settings"]["apiKey"] = json!("{env:OC_BOUNDED_MISSING_TEST_KEY}");
+    value["providers"]["fixture"]["settings"]["apiKey"] =
+        json!("{env:OC_BOUNDED_MISSING_TEST_KEY}");
     std::fs::write(path, value.to_string()).unwrap();
     assert!(fixture.preflight(CALL_TIMEOUT).is_err());
     assert!(
@@ -1644,27 +1663,33 @@ fn bounded_permission_preflight_rejects_before_generation() {
         let fixture = Fixture::dry_run(true);
         let path = fixture.config_dir.as_ref().unwrap().join("opencode.json");
         let mut value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        // Replace every rule for `action` (ordered rules; last match wins).
+        let mut replace = |action: &str, rule: Option<Value>| {
+            let rules = value["permissions"].as_array_mut().unwrap();
+            rules.retain(|rule| rule["action"] != action);
+            rules.extend(rule);
+        };
+        let rule = |action: &str, resource: &str, effect: &str| {
+            Some(json!({"action": action, "resource": resource, "effect": effect}))
+        };
         match case {
-            "missing bash" => {
-                value["permissions"].as_object_mut().unwrap().remove("bash");
-            }
-            "denied patch" => value["permissions"]["apply_patch"] = json!("deny"),
-            "read requires approval" => value["permissions"]["read"] = json!("ask"),
-            "wrong read resource" => value["permissions"]["read"] = json!({"other.rs": "allow"}),
-            "denied compress" => value["permissions"]["compress"] = json!("deny"),
+            "missing bash" => replace("shell", None),
+            "denied patch" => replace("edit", rule("edit", "*", "deny")),
+            "read requires approval" => replace("read", rule("read", "*", "ask")),
+            "wrong read resource" => replace("read", rule("read", "other.rs", "allow")),
+            "denied compress" => replace("compress", rule("compress", "*", "deny")),
             "bare MCP server grant" | "MCP requires approval" => {
-                let permissions = value["permissions"].as_object_mut().unwrap();
-                permissions.retain(|name, _| !name.contains("__"));
+                replace(SEARCH_TOOL, None);
                 let (name, effect) = if case == "bare MCP server grant" {
                     ("codex_web", "allow")
                 } else {
                     ("codex_web__search", "ask")
                 };
-                permissions.insert(name.into(), json!(effect));
+                replace(name, rule(name, "*", effect));
             }
             "primary agent deny" => {
                 value["default_agent"] = json!("restricted");
-                value["agent"] = json!({"restricted": {
+                value["agents"] = json!({"restricted": {
                     "mode": "primary",
                     "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]
                 }});
@@ -1693,12 +1718,15 @@ fn bounded_permission_preflight_rejects_before_generation() {
     let fixture = Fixture::dry_run(true);
     let path = fixture.config_dir.as_ref().unwrap().join("opencode.json");
     let mut value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    value["permissions"] = json!({
-        "read": {"src/lib.rs": "allow"}, "apply_patch": {"src/lib.rs": "allow"},
-        "bash": {"cargo test": "allow"}, "compress": "allow", "codex_web_search": "allow"
-    });
+    value["permissions"] = json!([
+        {"action": "read", "resource": "src/lib.rs", "effect": "allow"},
+        {"action": "edit", "resource": "src/lib.rs", "effect": "allow"},
+        {"action": "shell", "resource": "cargo test", "effect": "allow"},
+        {"action": "compress", "resource": "*", "effect": "allow"},
+        {"action": "codex_web_search", "resource": "*", "effect": "allow"}
+    ]);
     value["default_agent"] = json!("restricted");
-    value["agent"] = json!({"restricted": {
+    value["agents"] = json!({"restricted": {
         "mode": "primary",
         "permissions": [{"action": "shell", "resource": "cargo test", "effect": "allow"}]
     }});

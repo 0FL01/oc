@@ -123,7 +123,8 @@ fn go05_connect_from_custom_connection_opens_only_go_without_changing_selection(
         .join("home/config/opencode/opencode.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&config_path).unwrap()).unwrap();
-    config.as_object_mut().unwrap().remove("disabled_providers");
+    // Drop the base `provider.use` deny policy for opencode-go.
+    config.as_object_mut().unwrap().remove("experimental");
     std::fs::write(config_path, config.to_string()).unwrap();
     let db = Db::open(&fixture.data_dir()).unwrap();
     let now = std::time::SystemTime::now()
@@ -200,7 +201,8 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     config.as_object_mut().unwrap().remove("model");
-    config.as_object_mut().unwrap().remove("disabled_providers");
+    // Drop the base `provider.use` deny policy for opencode-go.
+    config.as_object_mut().unwrap().remove("experimental");
     config["providers"]["fixture"]["settings"]
         .as_object_mut()
         .unwrap()
@@ -244,7 +246,9 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
     assert!(fixture.requests.lock().unwrap().is_empty());
     // Retain the exact Go choice as unavailable, rather than replacing it. The
     // next executable choice is an explicit custom-provider commit below.
-    config["disabled_providers"] = serde_json::json!(["opencode-go"]);
+    config["experimental"] = serde_json::json!({"policies": [
+        {"action": "provider.use", "resource": "opencode-go", "effect": "deny"}
+    ]});
     std::fs::write(&path, config.to_string()).unwrap();
     wait_idle(&pty);
     pty.send(b"/reload\r");

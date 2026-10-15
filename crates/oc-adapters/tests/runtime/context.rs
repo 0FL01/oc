@@ -131,7 +131,7 @@ for line in sys.stdin:
 
     // Restore a non-default selection, including when no spawnable catalog exists.
     config["default_agent"] = "build".into();
-    config["agent"].as_object_mut().unwrap().remove("helper");
+    config["agents"].as_object_mut().unwrap().remove("helper");
     std::fs::write(&config_path, config.to_string()).unwrap();
     let (app, guard, _) = application::spawn_with_env(project.path(), data.path(), env)
         .await

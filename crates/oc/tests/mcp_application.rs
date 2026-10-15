@@ -70,60 +70,26 @@ fn pending_edit_screen_accepts_fragmented_cursor_updates_not_raw_substrings() {
 }
 
 #[test]
-fn vis34_compaction_prune_normalization_headless_and_tui_entry() {
+fn vis34_compaction_prune_is_refused_fail_closed_as_legacy_config() {
+    // OpenCode 1 `compaction.prune` is no longer normalized (T62/D27): the
+    // whole configuration is refused before any session or provider effect.
     for prune in [true, false] {
         let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
         let fixture = Fixture::new();
-        fixture.write_config(&responses, json!({}), json!({}));
+        fixture.write_config(&responses, json!({}), json!([]));
         fs::write(
             fixture.project.join("opencode.json"),
             json!({"compaction":{"auto":true,"prune":prune}}).to_string(),
         )
         .unwrap();
         let mut headless = fixture.spawn_run("vis34-prune-headless");
-        assert!(headless.wait().success(), "{}", headless.diagnostics());
+        assert!(!headless.wait().success(), "{}", headless.diagnostics());
         let stderr = fs::read_to_string(&headless.stderr).unwrap();
+        assert!(stderr.contains("legacy_config"), "{stderr}");
         assert!(stderr.contains("compaction.prune"), "{stderr}");
-        assert!(
-            stderr.contains("ignored_setting") && stderr.contains("source-"),
-            "{stderr}"
-        );
-        assert!(
-            stderr.contains("omitted unsupported legacy setting"),
-            "{stderr}"
-        );
-        let stdout = fs::read_to_string(&headless.stdout).unwrap();
-        assert!(
-            stdout.contains("answer:exercise configured MCP"),
-            "{stdout}"
-        );
-        assert!(!stdout.contains("unsupported legacy"));
-
-        let mut tui = PtyProcess::spawn(&fixture, "vis34-prune-tui");
-        tui.wait_visible(READY);
-        let offset = tui.send_line("VIS34 prune accepted");
-        tui.wait_visible_after(offset, "answer:VIS34 prune accepted");
-        tui.send_line("/settings");
-        tui.wait_screen("ignored_setting", TIMEOUT);
-        tui.raw(b"\x1b");
-        std::thread::sleep(Duration::from_millis(300));
-        tui.send_line("/quit");
-        assert!(tui.wait_exit().success());
-        let output = tui.output.lock().unwrap();
-        let text = String::from_utf8_lossy(&output);
-        assert!(
-            text.contains("ignored_setting"),
-            "missing safe configuration details"
-        );
-        assert!(!text.contains("failed to start"));
-        assert_eq!(
-            responses
-                .requests()
-                .iter()
-                .filter(|r| !title::is_title(r))
-                .count(),
-            2
-        );
+        assert!(!stderr.contains("ignored_setting"), "{stderr}");
+        assert!(fs::read_to_string(&headless.stdout).unwrap().is_empty());
+        assert!(responses.requests().is_empty(), "no provider request");
     }
 }
 
@@ -445,7 +411,7 @@ impl FakeMcp {
                         write_json(
                             &mut socket,
                             id,
-                            json!({"protocolVersion":"2025-11-25","capabilities":{"permissions": []},"serverInfo":{"name":"refresh","version":"fixture"}}),
+                            json!({"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":true}},"serverInfo":{"name":"refresh","version":"fixture"}}),
                         );
                     }
                     "notifications/initialized" | "notifications/cancelled" => {
@@ -1086,10 +1052,9 @@ fn remote_entry(server: &FakeMcp, header_name: &str, bearer: &str) -> Value {
     json!({
         "type": "remote", "codemode": false,
         "url": server.url,
-        "enabled": true,
         "oauth": false,
         "headers": {header_name: bearer},
-        "timeout": 3000,
+        "timeout": {"catalog": 3000, "execution": 3000},
     })
 }
 
@@ -1100,12 +1065,12 @@ fn aud22_binary_accepts_user_authorization_spelling_at_strict_mcp() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"codex_web": remote_entry(
+        json!({"servers": {"codex_web": remote_entry(
             &mcp,
             "Authorization",
             "Bearer exact-user-token",
-        )}),
-        json!({}),
+        )}}),
+        json!([]),
     );
 
     let mut process = fixture.spawn_run("aud22-authorization");
@@ -1160,17 +1125,16 @@ fn aud22_binary_rejects_conflicting_authorization_duplicates_before_network() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"codex_web": {
+        json!({"servers": {"codex_web": {
             "type": "remote", "codemode": false,
             "url": mcp.url,
             "headers": {
                 "Authorization": "Bearer upper",
                 "authorization": "Bearer lower",
             },
-            "enabled": true,
             "oauth": false,
-        }}),
-        json!({}),
+        }}}),
+        json!([]),
     );
 
     let mut process = fixture.spawn_run("aud22-conflicting-auth");
@@ -1209,12 +1173,12 @@ fn aud24_binary_rejects_oversized_catalog_without_partial_provider_tools() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"oversized": remote_entry(
+        json!({"servers": {"oversized": remote_entry(
             &mcp,
             "Authorization",
             "Bearer catalog-token",
-        )}),
-        json!({}),
+        )}}),
+        json!([]),
     );
 
     let mut process = PtyProcess::spawn(&fixture, "aud24-catalog-limit");
@@ -1281,12 +1245,12 @@ fn aud24_binary_search_uses_the_advertised_response_length_schema() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"codex_web": remote_entry(
+        json!({"servers": {"codex_web": remote_entry(
             &mcp,
             "Authorization",
             "Bearer search-token",
-        )}),
-        json!({"codex_web__search": "allow"}),
+        )}}),
+        json!([{"action": "codex_web__search", "resource": "*", "effect": "allow"}]),
     );
 
     let mut process = fixture.spawn_run("aud24-search-schema");
@@ -1341,24 +1305,19 @@ fn aud24_binary_routes_collision_names_to_exact_original_server_and_tool() {
     write_routing_stdio_server(&server_a_b, &server_a_b_log, "server-a-b", &["c"]);
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "a": {
                 "type": "local", "codemode": false,
                 "command": [server_a.to_string_lossy()],
-                "enabled": true,
-                "timeout": 3000,
+                "timeout": {"catalog": 3000, "execution": 3000},
             },
             "a__b": {
                 "type": "local", "codemode": false,
                 "command": [server_a_b.to_string_lossy()],
-                "enabled": true,
-                "timeout": 3000,
+                "timeout": {"catalog": 3000, "execution": 3000},
             },
-        }),
-        json!({
-            "a__b__c": "allow",
-            "a__b__c__2": "allow",
-        }),
+        }}),
+        json!([{"action": "a__b__c", "resource": "*", "effect": "allow"}, {"action": "a__b__c__2", "resource": "*", "effect": "allow"}]),
     );
 
     let mut process = fixture.spawn_run("aud24-routing");
@@ -1421,16 +1380,12 @@ fn aud24_binary_surfaces_is_error_and_unsupported_result_modality() {
     );
     fixture.write_config(
         &responses,
-        json!({"results": {
+        json!({"servers": {"results": {
             "type": "local", "codemode": false,
             "command": [server.to_string_lossy()],
-            "enabled": true,
-            "timeout": 3000,
-        }}),
-        json!({
-            "results__is_error": "allow",
-            "results__image": "allow",
-        }),
+            "timeout": {"catalog": 3000, "execution": 3000},
+        }}}),
+        json!([{"action": "results__is_error", "resource": "*", "effect": "allow"}, {"action": "results__image", "resource": "*", "effect": "allow"}]),
     );
 
     let mut process = fixture.spawn_run("aud24-result-semantics");
@@ -1970,20 +1925,19 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     );
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "counted": {
                 "type": "local", "codemode": false,
                 "command": [stdio.to_string_lossy()],
-                "enabled": true,
-                "timeout": 3000,
+                "timeout": {"catalog": 3000, "execution": 3000},
             },
             "chrome-devtools": {
                 "type": "local", "codemode": false,
                 "command": [trap.to_string_lossy(), "-y", "chrome-devtools-mcp@latest"],
-                "enabled": false,
+                "disabled": true,
             },
-        }),
-        json!({}),
+        }}),
+        json!([]),
     );
 
     let mut tui = PtyProcess::spawn(&fixture, "aud23-two-turns");
@@ -2060,19 +2014,19 @@ fn aud23_tui_two_turns_own_one_stdio_child_and_disabled_entry_zero_spawns() {
     // launch/probe and still runs normally after the prior owner shut down.
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "counted": {
                 "type": "local", "codemode": false,
                 "command": [stdio.to_string_lossy()],
-                "enabled": false,
+                "disabled": true,
             },
             "chrome-devtools": {
                 "type": "local", "codemode": false,
                 "command": [trap.to_string_lossy(), "-y", "chrome-devtools-mcp@latest"],
-                "enabled": false,
+                "disabled": true,
             },
-        }),
-        json!({}),
+        }}),
+        json!([]),
     );
     let mut disabled = fixture.spawn_run("aud23-disabled-restart");
     assert!(disabled.wait().success(), "{}", disabled.diagnostics());
@@ -2158,8 +2112,8 @@ done
     );
     fixture.write_config(
         &responses,
-        json!({"probe":{"type":"local", "codemode": false,"command":[server.to_string_lossy()],"enabled":true}}),
-        json!({"probe__ping":"allow","probe__fail":"allow"}),
+        json!({"servers": {"probe":{"type":"local", "codemode": false,"command":[server.to_string_lossy()]}}}),
+        json!([{"action": "probe__ping", "resource": "*", "effect": "allow"}, {"action": "probe__fail", "resource": "*", "effect": "allow"}]),
     );
 
     let mut tui = PtyProcess::spawn(&fixture, "s04-replay");
@@ -2492,8 +2446,8 @@ fn s06_pending_submit_refuses_navigation_and_keeps_draft() {
     write_stalled_catalog_refresh(&server, &log, &release);
     fixture.write_config(
         &responses,
-        json!({"stall": {"type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000}}),
-        json!({}),
+        json!({"servers": {"stall": {"type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 10000, "execution": 10000}}}}),
+        json!([]),
     );
     let session = "s06-pending";
     let draft = "retain this draft";
@@ -2614,13 +2568,13 @@ fn pending_initialize_raw_pty(manual_compress: bool, unicode_edit: bool) {
     write_stalled_catalog_refresh(&server, &log, &release);
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000
-        }}),
+        json!({"servers": {"stall": {
+            "type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
         if manual_compress {
-            json!({"compress":"allow"})
+            json!([{"action": "compress", "resource": "*", "effect": "allow"}])
         } else {
-            json!({})
+            json!([])
         },
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-pending");
@@ -2904,8 +2858,12 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     let responses = FakeResponses::start(ResponsesScript::TextByPrompt);
     let mcp = FakeMcp::start("anonymous", "", &["search"]);
     let fixture = Fixture::new();
-    let entry = json!({"type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000});
-    fixture.write_config(&responses, json!({"anonymous":entry}), json!({}));
+    let entry = json!({"type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 3000, "execution": 3000}});
+    fixture.write_config(
+        &responses,
+        json!({"servers": {"anonymous":entry}}),
+        json!([]),
+    );
     let mut process = fixture.spawn_run("v01-anonymous");
     assert!(
         process.wait().success(),
@@ -2915,7 +2873,11 @@ fn v01_anonymous_remote_and_codex_required_auth() {
     assert_eq!(responses.requests().len(), 2);
     assert!(mcp.records().iter().all(|r| r.authorization.is_none()));
     let count = mcp.records().len();
-    fixture.write_config(&responses, json!({"codex_web":entry}), json!({}));
+    fixture.write_config(
+        &responses,
+        json!({"servers": {"codex_web":entry}}),
+        json!([]),
+    );
     let mut process = fixture.spawn_run("v01-codex-missing-auth");
     // The strict codex_web profile still refuses to reach the network, but the
     // failed server degrades: the run answers with a visible warning.
@@ -2956,8 +2918,8 @@ fn v01_degraded_remote_diagnostic_is_staged_and_redacted_in_tui() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"required":remote_entry(&mcp, "Authorization", "Bearer PRIVATE_HEADER_SENTINEL")}),
-        json!({}),
+        json!({"servers": {"required":remote_entry(&mcp, "Authorization", "Bearer PRIVATE_HEADER_SENTINEL")}}),
+        json!([]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-required-failure");
     tui.wait_visible(READY);
@@ -2990,14 +2952,14 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
     let required = FakeMcp::start("required", "Bearer repaired-token", &["search"]);
     let fixture = Fixture::new();
     let mut disabled_entry = remote_entry(&disabled, "Authorization", "Bearer disabled-token");
-    disabled_entry["enabled"] = json!(false);
+    disabled_entry["disabled"] = json!(true);
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "disabled": disabled_entry,
             "required": remote_entry(&required, "Authorization", "Bearer wrong-token"),
-        }),
-        json!({}),
+        }}),
+        json!([]),
     );
     let mut first = PtyProcess::spawn(&fixture, "v07-s05-failed");
     first.wait_visible(READY);
@@ -3046,11 +3008,11 @@ fn v07_s05_disabled_and_failed_mcp_only_retry_after_explicit_repair() {
     // Repairing the configuration alone must not replay the previous turn.
     fixture.write_config(
         &responses,
-        json!({
+        json!({"servers": {
             "disabled": disabled_entry,
             "required": remote_entry(&required, "Authorization", "Bearer repaired-token"),
-        }),
-        json!({}),
+        }}),
+        json!([]),
     );
     assert_eq!(required.records().len(), failed_records.len());
     assert!(disabled.records().is_empty());
@@ -3104,10 +3066,10 @@ fn v01_remote_pending_cancel_closes_request_before_fake_release() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"anonymous": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
-        }}),
-        json!({}),
+        json!({"servers": {"anonymous": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
+        json!([]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v01-remote-cancel");
     wait_initial_mcp(&mut tui, "anonymous");
@@ -3164,10 +3126,10 @@ fn v07b_remote_inflight_raw_esc_keeps_unknown_and_refuses_overlapping_retry() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
-        }}),
-        json!({"stall__ping":"allow"}),
+        json!({"servers": {"stall": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
+        json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-remote");
     wait_initial_mcp(&mut tui, "stall");
@@ -3267,10 +3229,10 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
-        }}),
-        json!({"stall__ping":"allow"}),
+        json!({"servers": {"stall": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
+        json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
     let b = fixture._root.path().join("project-b");
     let c = fixture._root.path().join("project-c");
@@ -3535,10 +3497,10 @@ fn v07b_remote_cancel_notification_failure_is_safe_and_poisoned() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":10000
-        }}),
-        json!({"stall__ping":"allow"}),
+        json!({"servers": {"stall": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
+        json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-cancel-failure");
     wait_initial_mcp(&mut tui, "stall");
@@ -3596,10 +3558,10 @@ fn v07b_remote_unverified_result(tool: &str) {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"effects": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
-        }}),
-        json!({format!("effects__{tool}"):"allow"}),
+        json!({"servers": {"effects": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 3000, "execution": 3000}
+        }}}),
+        json!([{"action": format!("effects__{tool}"), "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-remote-{tool}"));
     wait_initial_mcp(&mut tui, "effects");
@@ -3690,10 +3652,10 @@ fn v07b_remote_definitive_is_error_remains_failed_and_reusable() {
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"effects": {
-            "type":"remote", "codemode": false, "url":mcp.url, "enabled":true, "oauth":false, "timeout":3000
-        }}),
-        json!({format!("effects__{tool}"):"allow"}),
+        json!({"servers": {"effects": {
+            "type":"remote", "codemode": false, "url":mcp.url, "oauth":false, "timeout":{"catalog": 3000, "execution": 3000}
+        }}}),
+        json!([{"action": format!("effects__{tool}"), "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-definitive-error");
     wait_initial_mcp(&mut tui, "effects");
@@ -3791,10 +3753,10 @@ for line in sys.stdin:
     );
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":10000
-        }}),
-        json!({"stall__ping":"allow"}),
+        json!({"servers": {"stall": {
+            "type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 10000, "execution": 10000}
+        }}}),
+        json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-stdio");
     wait_initial_mcp(&mut tui, "stall");
@@ -3915,10 +3877,10 @@ fn v07b_stdio_definitive_is_error_remains_failed_and_reusable() {
     write_routing_stdio_server(&server, &log, "declared", &["is_error"]);
     fixture.write_config(
         &responses,
-        json!({"results": {
-            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":3000
-        }}),
-        json!({"results__is_error":"allow"}),
+        json!({"servers": {"results": {
+            "type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 3000, "execution": 3000}
+        }}}),
+        json!([{"action": "results__is_error", "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, "v07b-declared-stdio");
     wait_initial_mcp(&mut tui, "results");
@@ -4027,10 +3989,10 @@ for line in sys.stdin:
     );
     fixture.write_config(
         &responses,
-        json!({"stall": {
-            "type":"local", "codemode": false, "command":[server], "enabled":true, "timeout":3000
-        }}),
-        json!({"stall__ping":"allow"}),
+        json!({"servers": {"stall": {
+            "type":"local", "codemode": false, "command":[server], "timeout":{"catalog": 3000, "execution": 3000}
+        }}}),
+        json!([{"action": "stall__ping", "resource": "*", "effect": "allow"}]),
     );
     let mut tui = PtyProcess::spawn(&fixture, &format!("v07b-result-{mode}"));
     // R7 no longer promises first-prompt catalog readiness. This scenario

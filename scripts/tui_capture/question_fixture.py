@@ -30,10 +30,9 @@ title_requests = 0
 
 
 def configure(spec, config):
-    config['mcp'] = {'servers': {}} if spec['origin'] == 'upstream' else {}
-    config['permissions'] = ([{'action': '*', 'resource': '*', 'effect': 'deny'},
-                              {'action': 'question', 'resource': '*', 'effect': 'allow'}]
-                             if spec['origin'] == 'upstream' else {'*': 'deny', 'question': 'allow'})
+    config['mcp'] = {'servers': {}}
+    config['permissions'] = [{'action': '*', 'resource': '*', 'effect': 'deny'},
+                             {'action': 'question', 'resource': '*', 'effect': 'allow'}]
     # The fixture's typed result is small and complete; do not replace it with a
     # cold-output envelope merely because the ordinary VIS16 fixture uses 1KiB.
     config['tool_output'] = {'max_lines': 100, 'max_bytes': 8192}

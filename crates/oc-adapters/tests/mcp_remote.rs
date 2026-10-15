@@ -314,8 +314,8 @@ impl Fake {
                 };
                 reply(json!({
                     "protocolVersion": version,
-                    "capabilities": if self.mode == Mode::Lookups { json!({"prompts":{},"resources":{}, "permissions": []}) }
-                        else { json!({"permissions": []}) },
+                    "capabilities": if self.mode == Mode::Lookups { json!({"tools":{"listChanged":true},"prompts":{},"resources":{}}) }
+                        else { json!({"tools":{"listChanged":true}}) },
                     "serverInfo": {"name": "fake-codex-web", "version": "test"},
                     "instructions": format!("Search guidance test-key HEADER-CANARY {}", "界".repeat(4000)),
                 }))

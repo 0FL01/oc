@@ -321,7 +321,10 @@ async fn e2e05_configured_workspace_a_to_b() {
     write_tree(
         &a,
         &[
-            ("opencode.json", r#"{"permissions": {"webfetch": "deny"}}"#),
+            (
+                "opencode.json",
+                r#"{"permissions": [{"action": "webfetch", "resource": "*", "effect": "deny"}]}"#,
+            ),
             ("AGENTS.md", "location A rules\n"),
             (
                 ".opencode/commands/test-a.md",
@@ -349,21 +352,26 @@ async fn e2e05_configured_workspace_a_to_b() {
     assert!(diags.is_empty());
     assert!(instructions.find("global rules") < instructions.find("location A rules"));
 
-    // Generation A: later source wins, permissions most-restrictive.
+    // Generation A: later source wins; ordered rules, last match wins.
     let gen_a = assemble(
         &[
             src("G/opencode.json", G_CONFIG),
             src(
                 "A/opencode.json",
-                r#"{"permissions": {"webfetch": "deny"}}"#,
+                r#"{"permissions": [{"action": "webfetch", "resource": "*", "effect": "deny"}]}"#,
             ),
         ],
         &BTreeMap::new(),
         None,
     )
     .expect("gen A");
-    assert_eq!(gen_a.permissions["webfetch"], Permission::Deny);
-    assert_eq!(gen_a.permissions["read"], Permission::Allow);
+    let rule = |action: &str| {
+        gen_a
+            .permission_rules
+            .evaluate(&BTreeMap::new(), action, "*")
+    };
+    assert_eq!(rule("webfetch"), Permission::Deny);
+    assert_eq!(rule("read"), Permission::Allow);
 
     let defs_a = load_definitions(&[
         DefRoot {

@@ -9,7 +9,8 @@ def configure(spec, home, project, config):
         config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
                                  {'action':'shell','resource':COMMAND,'effect':'allow'}]
     else:
-        config['permissions'] = {'*':'deny', 'bash':{'*':'deny', COMMAND:'allow'}}
+        config['permissions'] = [{'action':'*','resource':'*','effect':'deny'},
+                                 {'action':'shell','resource':COMMAND,'effect':'allow'}]
     # No alternate executor: the real composer must launch this ordinary file
     # with the original session.shell / native supervised Jobs owner.
     (project / 'user-shell-probe.py').write_text(f'''

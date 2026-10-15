@@ -140,8 +140,8 @@ if spec['origin'] == 'upstream':
     argv = [spec['binary'], '--standalone']
 else:
     config = {'model': 'fixture/fixture-model-1', 'animations': spec['animations'], 'snapshots': False,
-              'compaction': {'auto': False}, 'permissions': {'*': 'deny'},
-              'provider': {'fixture': {'name': 'Fixture', 'npm': '@ai-sdk/openai', 'options': settings, 'models': models}}}
+              'compaction': {'auto': False}, 'permissions': [{'action': '*', 'resource': '*', 'effect': 'deny'}],
+              'providers': {'fixture': {'name': 'Fixture', 'package': '@ai-sdk/openai', 'settings': settings, 'models': models}}}
     argv = [spec['binary'], 'tui']
 for file, content in [('opencode.json', config), ('cli.json', cli)]:
     (home / 'config/opencode' / file).write_text(json.dumps(content))

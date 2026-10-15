@@ -66,17 +66,20 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
     std::fs::write(project.join("AGENTS.md"), "CFG09_NATIVE_RULE_ONCE").unwrap();
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&source).unwrap()).unwrap();
-    let provider = config["provider"]
+    let provider = config["providers"]
         .as_object_mut()
         .unwrap()
         .remove("fixture")
         .unwrap();
-    let endpoint = provider["options"]["baseURL"].as_str().unwrap().to_string();
-    config["provider"]["ludka2"] = provider;
+    let endpoint = provider["settings"]["baseURL"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    config["providers"]["ludka2"] = provider;
     config["providers"]["ludka2"]["models"] = json!({});
     config["model"] = format!("ludka2/{MODEL}").into();
-    config.as_object_mut().unwrap().remove("agent");
-    config["plugin"] = json!([
+    config.as_object_mut().unwrap().remove("agents");
+    config["plugins"] = json!([
         "@tarquinen/opencode-dcp",
         "@tarquinen/opencode-dcp@3.1.15",
         "@tarquinen/opencode-dcp@latest",
@@ -169,7 +172,7 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
     wait_idle(&pty);
     assert_eq!(std::fs::read(&source).unwrap(), original);
 
-    config["plugin"] = json!(["@tarquinen/opencode-dcp@3.1.16"]);
+    config["plugins"] = json!(["@tarquinen/opencode-dcp@3.1.16"]);
     std::fs::write(&source, config.to_string()).unwrap();
     pty.send(b"/reload\r");
     // A genuinely new failed plugin replaces the generic operation toast with

@@ -15,7 +15,7 @@ async fn mcp09_remote_separate_startup_catalog_execution_deadlines() {
         let mut timeout = json!({"startup":2000,"catalog":2000,"execution":2000});
         timeout[stage] = json!(100);
         let src = Source { path:"fixture/opencode.json".into(), trusted:true,text:json!({"mcp":{"servers":{"codex_web":{
-            "type":"remote","url":url,"headers":{"Authorization":"Bearer test-key"},"timeout":{"catalog": timeout, "execution": timeout}
+            "type":"remote","url":url,"headers":{"Authorization":"Bearer test-key"},"timeout":timeout
         }}}}).to_string() };
         let generation = assemble(&[src], &BTreeMap::new(), None).unwrap();
         let mut config = CodexWebConfig::from_entry(&generation.mcp["codex_web"]).unwrap();

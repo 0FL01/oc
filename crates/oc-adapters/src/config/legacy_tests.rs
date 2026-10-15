@@ -144,13 +144,14 @@ fn cfg11_report_counts_repeats_and_bounds_lines() {
         report.add(&format!("scope{index}"), std::slice::from_ref(&finding));
     }
     let diagnostic = report.diagnostic();
+    let details = diagnostic.details.as_deref().unwrap();
     assert_eq!(diagnostic.code, ServiceCode::LegacyConfig);
     assert_eq!(
-        diagnostic.details[0],
+        details[0],
         "global agent definitions: permission → permissions: [{action, resource, effect}] (×2)"
     );
-    assert_eq!(diagnostic.details.len(), MAX_LINES + 1);
-    assert_eq!(diagnostic.details[MAX_LINES], "… 7 more");
+    assert_eq!(details.len(), MAX_LINES + 1);
+    assert_eq!(details[MAX_LINES], "… 7 more");
     assert!(
         diagnostic
             .to_string()

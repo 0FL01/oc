@@ -135,15 +135,15 @@ fn setup(f: &Fixture) -> PathBuf {
     let path = config_path(f);
     let mut cfg: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     cfg["default_agent"] = "build".into();
-    cfg["agent"] = json!({
-        "build":{"mode":"primary", "prompt":"R4A_ADMITTED_BUILD"},
-        "lost":{"mode":"primary", "model":format!("fixture/{MODEL}"), "prompt":"R4A_LOST_BODY"},
-        "retired":{"mode":"primary", "model":format!("fixture/{ALT_MODEL}#fast"), "prompt":"R4A_RETIRED_BODY"},
-        "variant":{"mode":"primary", "model":format!("fixture/{MODEL}#fast"), "prompt":"R4A_VARIANT_BODY"}
+    cfg["agents"] = json!({
+        "build":{"mode":"primary", "system":"R4A_ADMITTED_BUILD"},
+        "lost":{"mode":"primary", "model":format!("fixture/{MODEL}"), "system":"R4A_LOST_BODY"},
+        "retired":{"mode":"primary", "model":format!("fixture/{ALT_MODEL}#fast"), "system":"R4A_RETIRED_BODY"},
+        "variant":{"mode":"primary", "model":format!("fixture/{MODEL}#fast"), "system":"R4A_VARIANT_BODY"}
     });
-    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"] =
-        json!({"reasoningEffort":"high"});
-    cfg["plugin"] = json!([
+    *variant_mut(&mut cfg["providers"]["fixture"]["models"][MODEL], "fast") =
+        json!({"id":"fast","settings":{"reasoningEffort":"high"}});
+    cfg["plugins"] = json!([
         "@tarquinen/opencode-dcp",
         format!("https://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m")
     ]);
@@ -157,8 +157,8 @@ fn setup(f: &Fixture) -> PathBuf {
     )
     .unwrap();
     std::fs::set_permissions(&trap, std::fs::Permissions::from_mode(0o700)).unwrap();
-    cfg["mcp"] = json!({"chrome-devtools":{"type":"local", "codemode": false, "command":[trap,"-y","chrome-devtools-mcp@latest"],
-        "enabled":false,"environment":{"R4A_AUTH": CANARY},"cwd":"missing-disabled-directory","timeout":5000}});
+    cfg["mcp"] = json!({"servers":{"chrome-devtools":{"type":"local", "codemode": false, "command":[trap,"-y","chrome-devtools-mcp@latest"],
+        "disabled":true,"environment":{"R4A_AUTH": CANARY},"cwd":"missing-disabled-directory","timeout":{"catalog":5000,"execution":5000}}}});
     std::fs::write(&path, cfg.to_string()).unwrap();
     std::fs::write(
         project(f).join("opencode.jsonc"),
@@ -242,12 +242,13 @@ fn seed(f: &Fixture) {
 fn retire(f: &Fixture) {
     let path = config_path(f);
     let mut cfg: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    cfg["agent"].as_object_mut().unwrap().remove("lost");
+    cfg["agents"].as_object_mut().unwrap().remove("lost");
     cfg["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()
         .remove(ALT_MODEL);
-    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
+    variant_mut(&mut cfg["providers"]["fixture"]["models"][MODEL], "fast")["disabled"] =
+        true.into();
     std::fs::write(path, cfg.to_string()).unwrap();
 }
 
@@ -563,7 +564,8 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
             std::fs::create_dir(&other).unwrap();
             std::fs::write(
                 other.join("opencode.jsonc"),
-                json!({"permissions":[{"action": "read", "resource": "*", "effect": "deny"}]}).to_string(),
+                json!({"permissions":[{"action": "read", "resource": "*", "effect": "deny"}]})
+                    .to_string(),
             )
             .unwrap();
             app.switch_location_home(other.to_string_lossy().into_owned())
@@ -618,11 +620,12 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     let trap = setup(&fixture);
     let path = config_path(&fixture);
     let mut cfg: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    cfg["agent"]["lost"]["model"] = format!("fixture/{ALT_MODEL}").into();
+    cfg["agents"]["lost"]["model"] = format!("fixture/{ALT_MODEL}").into();
     std::fs::write(&path, cfg.to_string()).unwrap();
     seed(&fixture);
-    cfg["agent"]["lost"]["model"] = format!("foreign/{CANARY}\u{1b}[31m").into();
-    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
+    cfg["agents"]["lost"]["model"] = format!("foreign/{CANARY}\u{1b}[31m").into();
+    variant_mut(&mut cfg["providers"]["fixture"]["models"][MODEL], "fast")["disabled"] =
+        true.into();
     cfg["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()

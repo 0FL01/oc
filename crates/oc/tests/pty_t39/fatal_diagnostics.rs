@@ -61,14 +61,17 @@ fn cfg10_native_optional_definition_is_visible_but_security_reload_remains_atomi
     let fixture = Fixture::new();
     let mut config: Value =
         serde_json::from_slice(&std::fs::read(config_path(&fixture)).unwrap()).unwrap();
-    config["permissions"]["read"] = json!("deny");
-    config["mcp"][CANARY] = Value::Null;
+    config["permissions"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"action": "read", "resource": "*", "effect": "deny"}));
+    config["mcp"]["servers"][CANARY] = Value::Null;
     std::fs::write(config_path(&fixture), config.to_string()).unwrap();
     let commands = config_path(&fixture).parent().unwrap().join("commands");
     std::fs::create_dir_all(&commands).unwrap();
     std::fs::write(
         commands.join(format!("{CANARY}.md")),
-        format!("---\n{CANARY}: [\n---\nhttps://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m"),
+        format!("---\nsubtask: {CANARY} [\n---\nhttps://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m"),
     )
     .unwrap();
     std::fs::write(
@@ -89,7 +92,7 @@ fn cfg10_native_optional_definition_is_visible_but_security_reload_remains_atomi
     dismissed(&pty, "Configuration diagnostics");
     // A complete global source does not permit dropping malformed local policy.
     let policy = fixture.root.path().join("project/opencode.jsonc");
-    std::fs::write(&policy, format!("{{\"permissions\":{{\"read\":\"{CANARY}\"}},\"dcp\":{{\"enabled\":false}},\"model\":\"fixture/{CANARY}\",\"agent\":{{")).unwrap();
+    std::fs::write(&policy, format!("{{\"permissions\":[{{\"action\":\"read\",\"resource\":\"*\",\"effect\":\"{CANARY}\"}}],\"dcp\":{{\"enabled\":false}},\"model\":\"fixture/{CANARY}\",\"agents\":{{")).unwrap();
     std::fs::write(&instructions, "CFG10 unadmitted new instruction generation").unwrap();
     pty.send(b"/reload\r");
     wait_screen_row(&pty, "Configuration reload failed", DEADLINE);
@@ -176,7 +179,7 @@ fn cfg10_native_fatal_lock_trust_policy_recovery_and_caps_are_non_success() {
     let source = fixture.root.path().join("project/opencode.jsonc");
     std::fs::write(
         &source,
-        format!("{{\"permissions\":{{\"read\":\"{CANARY}\"}}}}"),
+        format!("{{\"permissions\":[{{\"action\":\"read\",\"resource\":\"*\",\"effect\":\"{CANARY}\"}}]}}"),
     )
     .unwrap();
     fatal(fixture, "invalid_config", "config", "permissions");
@@ -231,7 +234,7 @@ fn cfg10_native_fatal_lock_trust_policy_recovery_and_caps_are_non_success() {
         .as_str()
         .unwrap()
         .to_string();
-    config["mcp"] = Value::Object(
+    config["mcp"]["servers"] = Value::Object(
         (0..9)
             .map(|index| {
                 (

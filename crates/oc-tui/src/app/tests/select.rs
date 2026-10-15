@@ -250,7 +250,7 @@ async fn select_mcp_footer_focus_styles_controls_and_stale_mouse_share_geometry(
         stage: oc_core::queries::ServiceStage::Initialize,
         code: oc_core::queries::ServiceCode::ConnectionFailed,
         action: oc_core::queries::ServiceAction::RetryConnection,
-        details: Vec::new(),
+        details: None,
     });
     state.apply_mcp_snapshot(snapshot.clone());
     raw(&mut state, KeyCode::End, KeyModifiers::NONE);

@@ -23,8 +23,8 @@ fn mcp12_actual_binary_mixed_media_reaches_next_responses_request_with_exact_cal
     let fixture = Fixture::new();
     fixture.write_config(
         &responses,
-        json!({"media":remote_entry(&mcp,"Authorization","Bearer mcp-media-private-canary")}),
-        json!({"media__mcp_media_mixed":"allow"}),
+        json!({"servers": {"media":remote_entry(&mcp,"Authorization","Bearer mcp-media-private-canary")}}),
+        json!([{"action": "media__mcp_media_mixed", "resource": "*", "effect": "allow"}]),
     );
     let bytes = fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap();
     let mut process = fixture.spawn_run("mcp12-mixed");
@@ -127,11 +127,11 @@ fn mcp12_actual_stdio_restart_replays_durable_media_without_another_tool_call() 
         .unwrap();
     fixture.write_config(
         &responses,
-        json!({"media":{
+        json!({"servers": {"media":{
             "type":"local", "codemode": false,"command":["/usr/bin/python3",script,report],
-            "environment":{"MCP_MEDIA_CANARY":"mcp-media-private-canary"},"timeout":3000
-        }}),
-        json!({"media__mcp_media_mixed":"allow"}),
+            "environment":{"MCP_MEDIA_CANARY":"mcp-media-private-canary"},"timeout":{"catalog": 3000, "execution": 3000}
+        }}}),
+        json!([{"action": "media__mcp_media_mixed", "resource": "*", "effect": "allow"}]),
     );
     let bytes = fs::read(fixture.home.join("config/opencode/opencode.json")).unwrap();
     let mut first = fixture.spawn_run("mcp12-stdio-restart");
@@ -278,8 +278,8 @@ fn mcp12_media_permissions_and_sensitive_binary_never_publish_partial_success() 
         let fixture = Fixture::new();
         fixture.write_config(
             &responses,
-            json!({"media":remote_entry(&mcp,"Authorization","Bearer mcp-media-private-canary")}),
-            json!({name.clone():permission}),
+            json!({"servers": {"media":remote_entry(&mcp,"Authorization","Bearer mcp-media-private-canary")}}),
+            json!([{"action": name.clone(), "resource": "*", "effect": permission}]),
         );
         let mut process = fixture.spawn_run("mcp12-sensitive");
         let success = process.wait().success();

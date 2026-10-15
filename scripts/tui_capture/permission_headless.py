@@ -35,7 +35,7 @@ for case, auto, deny in [('configauto-no-consumer',False,False),('cli-auto-once'
     server = ThreadingHTTPServer(('127.0.0.1',0),Provider)
     thread = threading.Thread(target=server.serve_forever,daemon=True)
     thread.start()
-    (config/'opencode.json').write_text(json.dumps({'model':'fixture/fixture-model-1','provider':{'fixture':{'npm':'@ai-sdk/openai','options':{'baseURL':f'http://127.0.0.1:{server.server_port}/v1','apiKey':'fixture-not-secret'},'models':{'fixture-model-1':{'limit':{'context':65536,'output':4096}}}}},'permission':{'bash':'deny' if deny else 'ask'},'agent':{'title':{'disable':True}}}))
+    (config/'opencode.json').write_text(json.dumps({'model':'fixture/fixture-model-1','providers':{'fixture':{'package':'@ai-sdk/openai','settings':{'baseURL':f'http://127.0.0.1:{server.server_port}/v1','apiKey':'fixture-not-secret'},'models':{'fixture-model-1':{'limit':{'context':65536,'output':4096}}}}},'permissions':[{'action':'shell','resource':'*','effect':'deny' if deny else 'ask'}],'agents':{'title':{'disabled':True}}}))
     (config/'cli.json').write_text('{"session":{"permissions":"autoaccept"}}')
     argv = [str(binary),'--data-dir',str(data),'run','VIS36 shell: invoke ordinary shell function','--json',*(['--auto'] if auto else [])]
     env = {'HOME':str(home),'XDG_CONFIG_HOME':str(home/'config'),'PATH':'/usr/bin:/bin','OC_TEST_ALLOW_LOOPBACK':'1','LANG':'C.UTF-8'}

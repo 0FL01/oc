@@ -105,9 +105,9 @@ if spec['origin'] == 'upstream':
               'permissions': [{'action': '*', 'resource': '*', 'effect': 'deny'}]}
 else:
     config = {'model': 'fixture/' + fixture['initial_model'], 'animations': False, 'snapshots': False,
-              'compaction': {'auto': False}, 'permissions': {'*': 'deny'},
-              'provider': {'fixture': {'name': fixture['provider_name'], 'npm': '@ai-sdk/openai',
-                  'options': settings, 'models': models}}}
+              'compaction': {'auto': False}, 'permissions': [{'action': '*', 'resource': '*', 'effect': 'deny'}],
+              'providers': {'fixture': {'name': fixture['provider_name'], 'package': '@ai-sdk/openai',
+                  'settings': settings, 'models': models}}}
 for name, data in [('opencode.json', config), ('cli.json', cli)]:
     (home / 'config/opencode' / name).write_text(json.dumps(data))
 env = {'HOME': str(home), 'XDG_CONFIG_HOME': str(home / 'config'), 'XDG_CACHE_HOME': str(home / 'cache'),

@@ -4,7 +4,7 @@
 
 ## Граница
 
-Для OpenProxy lane одна native protocol family: OpenAI Responses. `npm: "@ai-sdk/openai"` — compatibility alias. OpenProxy делает свои OAuth/vendor/account routing; `oc2` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
+Для OpenProxy lane одна native protocol family: OpenAI Responses. `providers.<id>.package: "@ai-sdk/openai"` — protocol alias (канонический OpenCode 2; OpenCode 1 `npm`/`options` отказывают, T62). OpenProxy делает свои OAuth/vendor/account routing; `oc2` отвечает за историю, tools, context projection, workflow и свои retries. Этот lane не обращается напрямую к upstream vendor APIs и не внедряет их model lists.
 
 Owner-approved [T53](goals/2026-09-29-opencode-go-and-provider-auth.md) отдельно добавляет
 Go/models.dev и общий credential owner (implementation pending). Это не смена
@@ -95,7 +95,7 @@ failure не повторяются; не более двух attempts толь�
 
 `max_output_tokens` берётся из выбранного лимита; `setCacheKey:false`/absent не
 добавляет key, true хеширует logical body без credentials/headers. Extra headers
-задаются в provider `options.headers`, разрешают substitutions, но native
+задаются в provider `headers` (или `settings.headers`), разрешают substitutions, но native
 Authorization/Accept/Content-Type имеют приоритет без учёта регистра. Transport
 overrides (Host, Content-Length и т. п.) отвергаются; redirects запрещены.
 

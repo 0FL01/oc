@@ -36,7 +36,8 @@ fn assert_sources_unchanged(fixture: &Fixture, config: &Path, original: &[u8]) {
 fn skill01_binary_embeds_the_full_manual_and_preserves_stricter_user_limits() {
     let fixture = Fixture::new();
     for strict in [false, true] {
-        let mut additions = json!({"permissions":[{"action": "skill", "resource": "*", "effect": "allow"}]});
+        let mut additions =
+            json!({"permissions":[{"action": "skill", "resource": "*", "effect": "allow"}]});
         if strict {
             additions["tool_output"] = json!({"max_bytes":128,"max_lines":4});
         }
@@ -97,7 +98,7 @@ fn skill01_binary_embeds_the_full_manual_and_preserves_stricter_user_limits() {
 fn skill01_binary_per_id_deny_removes_metadata_and_rejects_a_forced_call() {
     let fixture = Fixture::new();
     let config =
-        fixture.write_base_config(json!({"permissions":{"skill":{"*":"allow",ID:"deny"}}}));
+        fixture.write_base_config(json!({"permissions":[{"action":"skill","resource":"*","effect":"allow"},{"action":"skill","resource":ID,"effect":"deny"}]}));
     let original = fs::read(&config).unwrap();
     let mut process = fixture.spawn(
         &fixture.project_a,
@@ -130,7 +131,7 @@ fn skill01_binary_per_id_deny_removes_metadata_and_rejects_a_forced_call() {
 #[test]
 fn skill01_binary_fresh_headless_ask_stops_before_execution_intent() {
     let fixture = Fixture::new();
-    let config = fixture.write_base_config(json!({"permissions":{"skill":{"*":"allow",ID:"ask"}}}));
+    let config = fixture.write_base_config(json!({"permissions":[{"action":"skill","resource":"*","effect":"allow"},{"action":"skill","resource":ID,"effect":"ask"}]}));
     let original = fs::read(&config).unwrap();
     let session = "s-skill01-ask";
     let mut process = fixture.spawn(

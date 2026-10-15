@@ -2140,7 +2140,7 @@ impl WorkerGuard {
                 ServiceCode::RuntimeFailed
             },
             action: ServiceAction::RestartApplication,
-            details: Vec::new(),
+            details: None,
         };
         match self.handle.take() {
             Some(WorkerTask::Diagnostic(task)) => {

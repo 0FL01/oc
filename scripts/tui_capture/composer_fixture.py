@@ -22,30 +22,22 @@ continuation_release = threading.Event()
 
 
 def configure(spec, home, project, config, cli):
-    config['mcp'] = {'servers': {}} if spec['origin'] == 'upstream' else {}
+    config['mcp'] = {'servers': {}}
     config['tool_output'] = {'max_lines': 1000, 'max_bytes': 65536}
     cli['keybinds'] = {'session.child.first': 'ctrl+g'}
     if spec.get('subagent_cards') or spec.get('root_handoff'):
-        provider = config['providers' if spec['origin'] == 'upstream' else 'provider']['fixture']
+        provider = config['providers']['fixture']
         provider['models']['fixture-model-1']['name'] = 'Fixture Caption Model'
-    if spec['origin'] == 'upstream':
-        rules = [{'action': '*', 'resource': '*', 'effect': 'deny'},
-                 {'action': 'subagent', 'resource': 'helper', 'effect': 'allow'},
-                 *[{'action': 'shell', 'resource': c, 'effect': 'allow'} for c in COMMANDS]]
-        config['permissions'] = rules
-        config['agents'] = {'helper': {'mode': 'subagent', 'description': 'VIS39 fixture worker',
-                                      'system': 'Execute only the fixture-owned tool calls.',
-                                      'permissions': rules}}
-    else:
-        rules = {'*': 'deny', 'subagent': {'*': 'deny', 'helper': 'allow'},
-                 'bash': {'*': 'deny', **{c: 'allow' for c in COMMANDS}}}
-        config['permissions'] = rules
-        config['agent'] = {'helper': {'mode': 'subagent', 'description': 'VIS39 fixture worker',
-                                      'prompt': 'Execute only the fixture-owned tool calls.',
-                                      'permissions': rules}}
+    rules = [{'action': '*', 'resource': '*', 'effect': 'deny'},
+             {'action': 'subagent', 'resource': 'helper', 'effect': 'allow'},
+             *[{'action': 'shell', 'resource': c, 'effect': 'allow'} for c in COMMANDS]]
+    config['permissions'] = rules
+    config['agents'] = {'helper': {'mode': 'subagent', 'description': 'VIS39 fixture worker',
+                                  'system': 'Execute only the fixture-owned tool calls.',
+                                  'permissions': rules}}
     if spec.get('root_handoff'):
         cli['keybinds']['session.background'] = 'ctrl+y'
-        config['agents' if spec['origin'] == 'upstream' else 'agent']['build'] = {'color':'#12ab34'}
+        config['agents']['build'] = {'color':'#12ab34'}
     program = '''import os, sys, time
 from pathlib import Path
 phase = sys.argv[1]

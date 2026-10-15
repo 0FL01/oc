@@ -229,7 +229,7 @@ impl From<crate::auth::AuthError> for RuntimeError {
                     stage: ServiceStage::Admission,
                     code,
                     action,
-                    details: Vec::new(),
+                    details: None,
                 })
             }
         }

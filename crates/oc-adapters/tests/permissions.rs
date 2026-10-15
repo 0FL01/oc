@@ -20,7 +20,7 @@ fn config(text: &str) -> oc_adapters::config::Generation {
 #[test]
 fn resource_maps_are_ordered_and_unmatched_never_allow() {
     let generation = config(
-        r#"{"permissions":{"read":{"z/*":"allow","*":"deny","safe/*":"allow","safe/private/*":"deny"},"bash":{"git status":"allow"}}}"#,
+        r#"{"permissions":[{"action":"read","resource":"z/*","effect":"allow"},{"action":"read","resource":"*","effect":"deny"},{"action":"read","resource":"safe/*","effect":"allow"},{"action":"read","resource":"safe/private/*","effect":"deny"},{"action":"shell","resource":"git status","effect":"allow"}]}"#,
     );
     let policy = RuntimePolicy::with_rules(&generation.permissions, &generation.permission_rules);
     assert_eq!(policy.effect("read", "z/file"), Permission::Deny);
@@ -69,7 +69,7 @@ fn actual_call_resources_include_patch_rename_and_mcp_star() {
 #[test]
 fn native_order_tools_and_agent_constraints_never_widen_central() {
     let mut generation = config(
-        r#"{"permissions":[{"action":"*","resource":"*","effect":"deny"},{"action":"read","resource":"safe/*","effect":"allow"},{"action":"bash","resource":"*","effect":"allow"}, {"action": "shell", "resource": "*", "effect": "deny"}]}"#,
+        r#"{"permissions":[{"action":"*","resource":"*","effect":"deny"},{"action":"read","resource":"safe/*","effect":"allow"},{"action":"shell","resource":"*","effect":"allow"}, {"action": "shell", "resource": "*", "effect": "deny"}]}"#,
     );
     let agent = config(r#"{"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}"#);
     generation.permission_rules.narrow(
@@ -215,7 +215,7 @@ fn metadata_and_markdown_preserve_ordered_narrowing() {
 
     let temp = tempfile::tempdir().unwrap();
     std::fs::create_dir(temp.path().join("agents")).unwrap();
-    std::fs::write(temp.path().join("agents/review.md"), "---\nhidden: true\npermission:\n  read:\n    z/*: allow\n    '*': deny\n    safe/*: allow\ntools:\n  bash: false\n---\nReview files.\n").unwrap();
+    std::fs::write(temp.path().join("agents/review.md"), "---\nhidden: true\npermissions:\n  - action: read\n    resource: z/*\n    effect: allow\n  - action: read\n    resource: '*'\n    effect: deny\n  - action: read\n    resource: safe/*\n    effect: allow\n  - action: shell\n    resource: '*'\n    effect: deny\n---\nReview files.\n").unwrap();
     let loaded = load_definitions(&[DefRoot {
         dir: temp.path().to_path_buf(),
         origin: "test".into(),
@@ -223,7 +223,8 @@ fn metadata_and_markdown_preserve_ordered_narrowing() {
     assert!(loaded.diagnostics.is_empty(), "{:?}", loaded.diagnostics);
     let agent = &loaded.agents["review"];
     assert!(agent.hidden);
-    let mut central = config(r#"{"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}"#);
+    let mut central =
+        config(r#"{"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}"#);
     central.permission_rules.narrow(
         &central.permissions,
         &agent.permissions,

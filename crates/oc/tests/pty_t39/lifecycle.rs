@@ -849,10 +849,12 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     config["default_agent"] = "plain".into();
-    config["agent"]["plain"] =
-        serde_json::json!({"mode":"primary","prompt":"Plain fixture agent."});
-    config["providers"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
-        serde_json::json!({"reasoningEffort":"low"});
+    config["agents"]["plain"] =
+        serde_json::json!({"mode":"primary","system":"Plain fixture agent."});
+    *variant_mut(
+        &mut config["providers"]["fixture"]["models"][ALT_MODEL],
+        "none",
+    ) = serde_json::json!({"id":"none","settings":{"reasoningEffort":"low"}});
     std::fs::write(path, config.to_string()).unwrap();
     seed_session(
         &fixture.data_dir(),
@@ -1337,7 +1339,7 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     let project = fixture.root.path().join("project");
     std::fs::write(project.join("dcp.jsonc"), serde_json::json!({
         "enabled":true,"autoUpdate":false,"pruneNotification":"detailed","pruneNotificationType":"chat",
-        "compress":{"mode":"range","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000, "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]},
+        "compress":{"mode":"range","permission":"allow","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000},
         "strategies":{"deduplication":{"enabled":false},"purgeErrors":{"enabled":false}}
     }).to_string()).unwrap();
     let config = fixture

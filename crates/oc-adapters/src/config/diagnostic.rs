@@ -17,7 +17,7 @@ pub(crate) fn failure(
         stage,
         code,
         action,
-        details: Vec::new(),
+        details: None,
     }
 }
 

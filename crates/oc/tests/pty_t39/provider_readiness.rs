@@ -121,15 +121,15 @@ fn source(fixture: &Fixture) -> PathBuf {
 fn native_config(fixture: &Fixture) -> Value {
     let mut config: Value =
         serde_json::from_slice(&std::fs::read(source(fixture)).unwrap()).unwrap();
-    let provider = config["provider"]
+    let provider = config["providers"]
         .as_object_mut()
         .unwrap()
         .remove("fixture")
         .unwrap();
-    config["provider"]["ludka2"] = provider;
+    config["providers"]["ludka2"] = provider;
     config["model"] = format!("ludka2/{MODEL}").into();
-    config.as_object_mut().unwrap().remove("agent");
-    config["plugin"] = json!([
+    config.as_object_mut().unwrap().remove("agents");
+    config["plugins"] = json!([
         "@tarquinen/opencode-dcp",
         format!("https://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m")
     ]);
@@ -262,7 +262,9 @@ fn vis42_native_mixed_pending_failures_reload_recovery_and_reopen_keep_dialogue_
     let mut config = native_config(&fixture);
     rows(&fixture, false);
     fixture.catalog_control.hold.store(true, Ordering::Relaxed);
-    config["compaction"] = json!({"auto":false,"prune":true});
+    config["compaction"] = json!({"auto":false});
+    // An unknown DCP key is a canonical, non-fatal ignored setting.
+    config["dcp"]["vis42_unknown"] = json!(true);
     let project = fixture.root.path().join("project");
     let script = project.join("vis42-mcp.py");
     let release = project.join("vis42-release");
@@ -276,8 +278,8 @@ for line in sys.stdin:
             time.sleep(0.01)
         print(json.dumps({'jsonrpc':'2.0','id':request['id'],'error':{'code':-32603,'message':'UI07_NEVER_RENDER_CONFIG_ENV_AUTH_62c4'}}), flush=True)
 "#).unwrap();
-    config["mcp"] = json!({"vis42": {"type":"local", "codemode": false,"enabled":true,"timeout":10000,
-        "command":["/usr/bin/python3",script,pid_file,release]}});
+    config["mcp"] = json!({"servers": {"vis42": {"type":"local", "codemode": false,"timeout":{"catalog":10000,"execution":10000},
+        "command":["/usr/bin/python3",script,pid_file,release]}}});
     publish(&fixture, &config);
     let mut pty = PtySession::spawn_sized(fixture.clone(), "vis42-clean", None, 120, 40);
     wait_screen_row(&pty, READY, DEADLINE);
@@ -323,8 +325,12 @@ for line in sys.stdin:
     pty.resize(120, 40);
 
     // Recovery changes only current inventory, not messages or model selection.
-    config["plugin"] = json!(["@tarquinen/opencode-dcp"]);
+    config["plugins"] = json!(["@tarquinen/opencode-dcp"]);
     config.as_object_mut().unwrap().remove("compaction");
+    config["dcp"]
+        .as_object_mut()
+        .unwrap()
+        .remove("vis42_unknown");
     config.as_object_mut().unwrap().remove("mcp");
     publish(&fixture, &config);
     pty.send(b"/reload\r");

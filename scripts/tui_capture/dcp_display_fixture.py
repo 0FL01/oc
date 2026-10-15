@@ -132,7 +132,9 @@ for row in context:
 
 latest = by_message[context[-1]['id']]
 model = latest['accepted_model']
-provider = fixture_config['config']['provider'][model['providerID']]
+# Captures from before T62 recorded the OpenCode 1 `provider` root.
+providers = fixture_config['config'].get('providers') or fixture_config['config']['provider']
+provider = providers[model['providerID']]
 declaration = provider['models'][model['id']]
 assert declaration['name'] == latest['display']['model_label']
 session_tokens = {'input': sum(t['display']['usage'][0] for t in turns),

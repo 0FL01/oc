@@ -295,6 +295,22 @@ enum Script {
     Compress(String),
 }
 
+/// Canonical model `variants: [{id, settings, disabled}]` entry, appended when absent.
+fn variant_mut<'a>(model: &'a mut serde_json::Value, id: &str) -> &'a mut serde_json::Value {
+    if !model["variants"].is_array() {
+        model["variants"] = serde_json::json!([]);
+    }
+    let variants = model["variants"].as_array_mut().expect("variants array");
+    let index = match variants.iter().position(|variant| variant["id"] == id) {
+        Some(index) => index,
+        None => {
+            variants.push(serde_json::json!({"id": id}));
+            variants.len() - 1
+        }
+    };
+    &mut variants[index]
+}
+
 fn script(body: &serde_json::Value) -> Script {
     if has_function_call_output(body) {
         if last_user_text(body).as_deref() == Some(question::PROMPT) {
@@ -1818,7 +1834,10 @@ fn measure_s07(archive: usize) -> S07Run {
         serde_json::from_slice(&std::fs::read(&config).expect("S07 config")).expect("config JSON");
     settings["providers"]["fixture"]["models"][MODEL]["limit"]["context"] =
         serde_json::json!(262_144);
-    settings["permissions"]["read"] = serde_json::json!("allow");
+    settings["permissions"]
+        .as_array_mut()
+        .expect("canonical rules")
+        .push(serde_json::json!({"action": "read", "resource": "*", "effect": "allow"}));
     // The two provider requests have identical active context. DCP's anchors
     // contain durable message ids, which legitimately differ across archives.
     settings["dcp"]["enabled"] = serde_json::json!(false);

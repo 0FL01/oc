@@ -19,7 +19,7 @@ class PermissionFixtureTests(unittest.TestCase):
                     root = pathlib.Path(temporary)
                     home = root / origin / 'home'
                     (home / 'config/opencode').mkdir(parents=True)
-                    providers = 'provider' if origin == 'oc' else 'providers'
+                    providers = 'providers'
                     config = {'model': 'fixture/fixture-model-1', 'plugins': [],
                               providers: {'fixture': {'models': {'fixture-model-1': {'name': 'Patch fixture'}}}}}
                     spec = {'origin': origin, 'isolated_root': temporary,
@@ -31,8 +31,7 @@ class PermissionFixtureTests(unittest.TestCase):
                     self.assertEqual(spec['fixture_model'], model)
                     self.assertIn(model, config[providers]['fixture']['models'])
                     self.assertEqual(cli['session']['permissions'], 'autoaccept' if mode == 'auto-config' else 'prompt')
-                    server = (config['mcp']['vis36'] if origin == 'oc'
-                              else config['mcp']['servers']['vis36'])
+                    server = config['mcp']['servers']['vis36']
                     self.assertIs(server.get('codemode'), False, 'VIS36 calls an advertised direct MCP tool')
                     self.assertEqual(spec['permission_calls']['shell'],
                                      {'name': 'shell', 'arguments': {'command': '/usr/bin/touch shell-marker'}})

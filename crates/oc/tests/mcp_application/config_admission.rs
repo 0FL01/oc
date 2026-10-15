@@ -17,11 +17,11 @@ fn mcp09_disabled_chrome_environment_timeout_opens_first_tui_zero_spawn() {
         .unwrap();
         fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
     }
-    fixture.write_config(&responses, json!({"chrome-devtools": {
+    fixture.write_config(&responses, json!({"servers": {"chrome-devtools": {
         "type":"local", "codemode": false, "command":[bin.join("npx"),"-y","chrome-devtools-mcp@latest"],
-        "enabled":false,"environment":{"npm_config_offline":"true","CREDENTIAL":"{file:missing}"},
-        "cwd":"missing-disabled-directory", "timeout":5000
-    }}), json!({}));
+        "disabled":true,"environment":{"npm_config_offline":"true","CREDENTIAL":"{file:missing}"},
+        "cwd":"missing-disabled-directory", "timeout":{"catalog": 5000, "execution": 5000}
+    }}}), json!([]));
     let path = fixture.home.join("config/opencode/opencode.json");
     let before = fs::read(&path).unwrap();
     let mut tui = PtyProcess::spawn(&fixture, "mcp09-disabled-chrome");
@@ -51,7 +51,7 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
     )
     .unwrap();
     fs::set_permissions(&trap, fs::Permissions::from_mode(0o700)).unwrap();
-    fixture.write_config(&responses, json!({}), json!({}));
+    fixture.write_config(&responses, json!({}), json!([]));
     let global = fixture.home.join("config/opencode/opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&global).unwrap()).unwrap();
     config["providers"]["fixture"]["settings"]["apiKey"] = json!(bin);
@@ -148,7 +148,7 @@ fn mcp09_actual_argv_cwd_inherited_overlay_path_and_credential_domain() {
             } else {
                 json!({})
             },
-            json!({"probe__probe":"allow"}),
+            json!([{"action": "probe__probe", "resource": "*", "effect": "allow"}]),
         );
         if !global {
             fs::write(
@@ -267,7 +267,7 @@ fn mcp09_failed_inventory_before_prompt_and_healthy_sibling_actual_call() {
         "oauth-value-CANARY":null,
         "codemode":{"type":"local","command":[trap],"codemode":true,"disabled":true},
         "modern":{"type":"remote", "codemode": false,"url":mcp.url,"protocol":"auto"}
-    }}), json!({"codex_web__search":"allow"}));
+    }}), json!([{"action": "codex_web__search", "resource": "*", "effect": "allow"}]));
     let path = fixture.home.join("config/opencode/opencode.json");
     let before = fs::read(&path).unwrap();
     let mut tui = PtyProcess::spawn(&fixture, "mcp09-inventory");

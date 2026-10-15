@@ -180,9 +180,9 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
         listener.bind(('127.0.0.1', 0))
         listener.listen()
         listener.setblocking(False)
-        fixture['provider']['fixture']['options']['baseURL'] = (
+        fixture['providers']['fixture']['settings']['baseURL'] = (
             f'http://127.0.0.1:{listener.getsockname()[1]}/v1')
-        fixture['provider']['fixture']['options']['apiKey'] = '{env:FIXTURE_KEY}'
+        fixture['providers']['fixture']['settings']['apiKey'] = '{env:FIXTURE_KEY}'
         config_file.unlink()
         config_file = config / 'opencode.jsonc'
         config_file.write_text(json.dumps(fixture))
@@ -200,7 +200,7 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
               detail='missing_credential')
         env['FIXTURE_KEY'] = 'DUMMY-STARTUP-SECRET'
         check('credential present', ['█▀▀█'], forbidden=('Native startup error',))
-        fixture['provider']['fixture']['options']['apiKey'] = ''
+        fixture['providers']['fixture']['settings']['apiKey'] = ''
         config_file.write_text(json.dumps(fixture))
         check('credential empty literal', expected, forbidden=('Native startup error', 'Configuration load failed',),
               detail='missing_credential')
@@ -213,8 +213,8 @@ with tempfile.TemporaryDirectory(prefix='oc-startup-', dir=base) as tmp:
             raise AssertionError('provider traffic during startup diagnostics')
         config_file.unlink()
         config_file = config / 'opencode.json'
-        fixture['provider']['fixture']['options']['baseURL'] = 'http://127.0.0.1:9/v1'
-        fixture['provider']['fixture']['options']['apiKey'] = 'DUMMY-STARTUP-SECRET'
+        fixture['providers']['fixture']['settings']['baseURL'] = 'http://127.0.0.1:9/v1'
+        fixture['providers']['fixture']['settings']['apiKey'] = 'DUMMY-STARTUP-SECRET'
         config_file.write_text(json.dumps(fixture))
     with sqlite3.connect(data / 'oc.sqlite') as db:
         db.execute("INSERT INTO prefs(key,value,updated_at) VALUES (?,?,?)",

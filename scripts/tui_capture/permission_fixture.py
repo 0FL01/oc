@@ -20,7 +20,7 @@ def configure(spec, home, project, config, cli):
     # model on both sides rather than injecting an unadvertised file tool into
     # the non-GPT model's edit/write request view.
     model = 'gpt-fixture-model-1'
-    providers = config['providers' if spec['origin'] == 'upstream' else 'provider']
+    providers = config['providers']
     models = providers['fixture']['models']
     models[model] = models.pop('fixture-model-1')
     config['model'] = 'fixture/' + model
@@ -48,9 +48,11 @@ def configure(spec, home, project, config, cli):
         config['agents'] = {'vis36-child':{'mode':'subagent','system':'Isolated VIS36 child; follow the supplied task.'}}
         config['mcp'] = {'servers':{'vis36':{'type':'local','command':['/usr/bin/python3',str(home/'vis36-mcp.py')],'codemode':False}}}
     else:
-        config['permissions'] = {'*':'ask','subagent':'allow','apply_patch':{'*':'deny','approval.txt':'ask','denied.txt':'deny'}}
-        config['agent'] = {'vis36-child':{'mode':'subagent','prompt':'Isolated VIS36 child; follow the supplied task.'}}
-        config['mcp'] = {'vis36':{'type':'local','command':['/usr/bin/python3',str(home/'vis36-mcp.py')],'enabled':True,'codemode':False}}
+        config['permissions'] = [{'action':'*','resource':'*','effect':'ask'}, {'action':'subagent','resource':'*','effect':'allow'},
+                                 {'action':'edit','resource':'*','effect':'deny'}, {'action':'edit','resource':'approval.txt','effect':'ask'},
+                                 {'action':'edit','resource':'denied.txt','effect':'deny'}]
+        config['agents'] = {'vis36-child':{'mode':'subagent','system':'Isolated VIS36 child; follow the supplied task.'}}
+        config['mcp'] = {'servers':{'vis36':{'type':'local','command':['/usr/bin/python3',str(home/'vis36-mcp.py')],'codemode':False}}}
     (home/'vis36-mcp.py').write_text((__import__('pathlib').Path(__file__).parent/'permission_mcp.py').read_text())
     cli['session']['permissions'] = 'autoaccept' if spec.get('permission_mode') == 'auto-config' else 'prompt'
     if spec.get('permission_mode') in ('auto-config','auto-cli'):

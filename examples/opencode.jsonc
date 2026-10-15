@@ -1,11 +1,17 @@
 {
-  // Ready-to-start choice: use discovery provider; enable ludka explicitly when needed.
-  "enabled_providers": ["ludka2"],
-  "provider": {
+  // Canonical OpenCode 2 schema only (OpenCode 1 keys fail closed, see docs/CONFIG.md).
+  // Ready-to-start choice: use the discovery provider; allow ludka explicitly when needed.
+  "experimental": {
+    "policies": [
+      {"action": "provider.use", "resource": "*", "effect": "deny"},
+      {"action": "provider.use", "resource": "ludka2", "effect": "allow"}
+    ]
+  },
+  "providers": {
     "ludka": {
-      "npm": "@ai-sdk/openai",
+      "package": "@ai-sdk/openai",
       "name": "ludka",
-      "options": {
+      "settings": {
         "baseURL": "{env:LUDKA_API_URL}",
         "apiKey": "{env:LUDKA_API_KEY}",
         "timeout": false,
@@ -15,9 +21,9 @@
       "models": {}
     },
     "ludka2": {
-      "npm": "@ai-sdk/openai",
+      "package": "@ai-sdk/openai",
       "name": "ludka2",
-      "options": {
+      "settings": {
         "baseURL": "{env:LUDKA2_API_URL}",
         "apiKey": "{env:LUDKA2_API_KEY}",
         "timeout": false,
@@ -27,18 +33,19 @@
     }
   },
   "mcp": {
-    "codex_web": {
-      "type": "remote",
-      "url": "{env:LUDKA2_API_URL}/mcp",
-      "enabled": true,
-      "oauth": false,
-      "headers": {"Authorization": "Bearer {env:LUDKA2_API_KEY}"},
-      "timeout": 60000
-    },
-    "chrome-devtools": {
-      "type": "local",
-      "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browser-url", "http://127.0.0.1:9222"],
-      "enabled": false
+    "servers": {
+      "codex_web": {
+        "type": "remote",
+        "url": "{env:LUDKA2_API_URL}/mcp",
+        "oauth": false,
+        "headers": {"Authorization": "Bearer {env:LUDKA2_API_KEY}"},
+        "timeout": {"catalog": 60000, "execution": 60000}
+      },
+      "chrome-devtools": {
+        "type": "local",
+        "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browser-url", "http://127.0.0.1:9222"],
+        "disabled": true
+      }
     }
   }
 }

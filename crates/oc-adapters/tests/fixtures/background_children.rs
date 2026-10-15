@@ -21,7 +21,7 @@ async fn app_fixture(
     let project = root.path().join("source");
     std::fs::create_dir(&project).unwrap();
     let config = serde_json::json!({
-        "model":"fixture/m", "compaction":{"auto":false},"permission":permissions,
+        "model":"fixture/m", "compaction":{"auto":false},"permissions":permissions,
         "agents":{"title":{"disabled":true},"helper":{"mode":"subagent","model":"fixture/agent-model","system":"OWN_BACKGROUND_PROFILE"}},
         "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":peer.base,"apiKey":"synthetic"},"models":{"m":{"limit":{"context":500000,"output":4096}},"agent-model":{"limit":{"context":500000,"output":4096}}}}}
     });
@@ -110,7 +110,7 @@ async fn exact_historical_child_read_survives_seventeen_new_generations_without_
         }
     });
     let (_root, app, guard) =
-        app_fixture(&peer, serde_json::json!({"*":"deny","subagent":"allow"})).await;
+        app_fixture(&peer, serde_json::json!([{"action":"*","resource":"*","effect":"deny"}, {"action":"subagent","resource":"*","effect":"allow"}])).await;
     let parent = SessionId("parent".into());
     let mut events = app.subscribe();
     let mut oldest = None;
@@ -229,7 +229,7 @@ async fn foreground_child_result_survives_an_identity_too_large_for_ui_projectio
         }
     });
     let (root, app, guard) =
-        app_fixture(&peer, serde_json::json!({"*":"deny","subagent":"allow"})).await;
+        app_fixture(&peer, serde_json::json!([{"action":"*","resource":"*","effect":"deny"}, {"action":"subagent","resource":"*","effect":"allow"}])).await;
     let parent = oc_core::domain::SessionId("parent".into());
     let mut events = app.subscribe();
     let turn = app
@@ -347,7 +347,7 @@ async fn core_child_terminal_reason_and_final_span_reopen_without_retry_replay()
     });
     let (root, app, guard) = app_fixture(
         &peer,
-        serde_json::json!({"subagent":"allow","read":"allow"}),
+        serde_json::json!([{"action":"subagent","resource":"*","effect":"allow"}, {"action":"read","resource":"*","effect":"allow"}]),
     )
     .await;
     std::fs::write(root.path().join("source/seed.txt"), "ONE_CHILD_READ\n").unwrap();
@@ -543,7 +543,7 @@ async fn core_jobs_busy_continuation_selected_fences_and_source_survive_location
     });
     let (root, app, guard) = app_fixture(
         &peer,
-        serde_json::json!({"subagent":"allow","shell":"allow","read":"allow","edit":"allow"}),
+        serde_json::json!([{"action":"subagent","resource":"*","effect":"allow"}, {"action":"shell","resource":"*","effect":"allow"}, {"action":"read","resource":"*","effect":"allow"}, {"action":"edit","resource":"*","effect":"allow"}]),
     )
     .await;
     let parent = oc_core::domain::SessionId("parent".into());

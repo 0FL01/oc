@@ -3509,7 +3509,8 @@ async fn home_location_switch_restores_choices_without_roots_and_first_turn_bind
     // Missing optional selection is now a usable local view; malformed policy
     // remains the fatal configuration case whose publication must roll back.
     let mut bad_config = config("missing");
-    bad_config["permission"] = serde_json::json!({"read":123});
+    bad_config["permissions"] =
+        serde_json::json!([{"action": "read", "resource": "*", "effect": 123}]);
     std::fs::write(bad.path().join("opencode.json"), bad_config.to_string()).unwrap();
     let (app, guard, _) = application::spawn_with_env(
         a.path(),
