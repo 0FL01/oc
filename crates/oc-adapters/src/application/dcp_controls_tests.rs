@@ -221,15 +221,15 @@ async fn dcp12_zero_effect_command_refusals_query_and_reload_location() {
             DcpUnavailable::GlobalOff,
         ),
         (
-            serde_json::json!({"compress":{"enabled":false, "permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}}),
+            serde_json::json!({"compress":{"enabled":false, "permission":"ask"}}),
             DcpUnavailable::CompressOff,
         ),
         (
-            serde_json::json!({"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}}),
+            serde_json::json!({"compress":{"permission":"deny"}}),
             DcpUnavailable::Denied,
         ),
         (
-            serde_json::json!({"manualMode":{"enabled":true},"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}}),
+            serde_json::json!({"manualMode":{"enabled":true},"compress":{"permission":"ask"}}),
             DcpUnavailable::ApprovalConsumerRequired,
         ),
         (

@@ -2138,8 +2138,9 @@ fn frontmatter_mapping_entry(item: &str) -> bool {
         return false;
     }
     let item = strip_frontmatter_comment(item).trim_end();
-    item.find(':')
-        .is_some_and(|colon| colon > 0 && matches!(item.as_bytes().get(colon + 1), None | Some(b' ')))
+    item.find(':').is_some_and(|colon| {
+        colon > 0 && matches!(item.as_bytes().get(colon + 1), None | Some(b' '))
+    })
 }
 
 /// Strip a trailing `#` comment outside quotes (YAML comment rules).

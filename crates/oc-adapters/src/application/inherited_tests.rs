@@ -21,7 +21,7 @@ async fn r4a_missing_saved_primary_keeps_home_and_both_tabs_without_rewriting_pr
                 "vanished":{"mode":"primary", "system":"VANISHED_ONLY"}}
         });
         if !include {
-            config["agent"].as_object_mut().unwrap().remove("vanished");
+            config["agents"].as_object_mut().unwrap().remove("vanished");
         }
         config.to_string()
     };
@@ -119,7 +119,7 @@ async fn r4a_retired_pinned_model_and_variant_refuse_before_effects_then_repair_
                 .as_object_mut()
                 .unwrap()
                 .remove("alternate");
-            value["providers"]["fixture"]["models"]["main"]["variants"]["fast"]["disabled"] =
+            value["providers"]["fixture"]["models"]["main"]["variants"][0]["disabled"] =
                 true.into();
         }
         value.to_string()

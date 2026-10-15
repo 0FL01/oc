@@ -15,7 +15,10 @@ fn go02_canonical_provider_overlays_normalize_to_the_native_entry() {
     assert_eq!(model["modelID"], "wire");
     assert_eq!(model["package"], "@ai-sdk/anthropic");
     assert_eq!(model["tool_call"], true);
-    assert_eq!(model["modalities"], json!({"input":["text"],"output":["text"]}));
+    assert_eq!(
+        model["modalities"],
+        json!({"input":["text"],"output":["text"]})
+    );
     assert_eq!(
         model["variants"],
         json!([{"id":"high","settings":{"reasoningEffort":"high"}}])

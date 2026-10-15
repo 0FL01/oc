@@ -102,7 +102,7 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
         assert_eq!(diagnostic.stage, ServiceStage::Capability);
         assert_eq!(diagnostic.action, ServiceAction::ReviewConfiguration);
         assert_eq!(diagnostic.service, entry.requested);
-        assert_eq!(diagnostic.field, ["plugin".into(), index.to_string()]);
+        assert_eq!(diagnostic.field, ["plugins".into(), index.to_string()]);
         assert!(diagnostic.source.starts_with("source-"));
         assert!(diagnostic.source.ends_with("/opencode.json"));
     }
@@ -123,7 +123,7 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     );
 
     // A failed revision does not inherit an earlier healthy alias's active state.
-    config["plugin"] = json!(["@tarquinen/opencode-dcp@3.1.16"]);
+    config["plugins"] = json!(["@tarquinen/opencode-dcp@3.1.16"]);
     std::fs::write(&source, config.to_string()).unwrap();
     let failed_request = app.reload_location().await.unwrap();
     assert!(
@@ -150,8 +150,8 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     assert_eq!(failed_request.catalog.model_id, initial.model_id);
 
     // Invalid mandatory policy/keybindings cannot publish even healthy aliases.
-    config["plugin"] = json!(["@tarquinen/opencode-dcp"]);
-    config["permissions"] = json!({"read":"not-a-policy"});
+    config["plugins"] = json!(["@tarquinen/opencode-dcp"]);
+    config["permissions"] = json!([{"action":"read","resource":"*","effect":"not-a-policy"}]);
     std::fs::write(&source, config.to_string()).unwrap();
     assert!(app.reload_location().await.is_err());
     assert_eq!(app.catalog().await.unwrap(), failed_request.catalog);

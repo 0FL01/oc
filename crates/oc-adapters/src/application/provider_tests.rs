@@ -389,7 +389,7 @@ async fn ui07_pending_profile_selection_is_live_and_successful_catalog_retires_l
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&global).unwrap();
     let config = json!({"model":format!("ludka2/{DYNAMIC}"), "default_agent":"ui07-primary",
-        "agents":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}"), "variant":"fast", "system":"UI07 profile body"}},
+        "agents":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}#fast"), "system":"UI07 profile body"}},
         "providers":{"ludka2":{"settings":{"baseURL":format!("http://{addr}/v1"),"apiKey":"fixture"},
             "models":{"retired-local":{"name":"Retired local override","limit":{"context":32768,"output":4096}}}}}});
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();

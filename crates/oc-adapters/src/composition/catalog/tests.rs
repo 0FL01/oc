@@ -215,12 +215,10 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
             ))
         }
     }
-    let (project, env) = fixture(
-        json!({"model":"openai/gpt-5.5",
+    let (project, env) = fixture(json!({"model":"openai/gpt-5.5",
         "providers":{"openai":{"settings":{"apiKey":"{file:must-not-read}"}}},
         "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
-    }),
-    );
+    }));
     let data = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
     let owner = db.public_catalog();
@@ -398,7 +396,9 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
         ]
     );
     assert_eq!(client.0.load(std::sync::atomic::Ordering::SeqCst), 1);
-    let (root, env) = fixture(json!({"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}));
+    let (root, env) = fixture(
+        json!({"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}),
+    );
     let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false, None)
         .await
         .unwrap();

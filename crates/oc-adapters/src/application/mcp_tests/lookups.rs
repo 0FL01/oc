@@ -9,12 +9,20 @@ fn entry(f: &Fixture, mode: &str, report: &Path, gate: &Path) -> Value {
         "environment":{"LOOKUP_CANARY":"LOOKUP_SECRET_CANARY"},
         "timeout":{"startup":3000,"catalog":3000,"execution":3000}, "cwd":f.project})
 }
-fn setup(f: &Fixture, mcp: Value, permission: Value, agents: Value) {
-    f.config(mcp);
+fn rules(rules: &[(&str, &str, &str)]) -> Value {
+    rules
+        .iter()
+        .map(|(action, resource, effect)| {
+            json!({"action":action,"resource":resource,"effect":effect})
+        })
+        .collect()
+}
+fn setup(f: &Fixture, servers: Value, permissions: Value, agents: Value) {
+    f.config(json!({"servers": servers}));
     let path = f.global.join("opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    config["permission"] = permission;
-    config["agent"] = agents;
+    config["permissions"] = permissions;
+    config["agents"] = agents;
     fs::write(path, config.to_string()).unwrap();
 }
 fn query(snapshot: &McpSnapshot, server: &str, session: &str, operation: McpLookupOp) -> McpLookup {
@@ -72,7 +80,7 @@ async fn mcp11_core_caller_retains_healthy_catalog_and_keeps_lookup_out_of_histo
     setup(
         &f,
         json!({"peer":entry(&f,"basic",&report,&f.project.join("gate"))}),
-        json!({"mcp_lookup":"allow","read":"allow"}),
+        rules(&[("mcp_lookup", "*", "allow"), ("read", "*", "allow")]),
         json!({}),
     );
     let bytes = fs::read(f.global.join("opencode.json")).unwrap();
@@ -162,7 +170,7 @@ async fn mcp11_core_session_agent_deny_and_ask_are_enforced_before_body_rpc() {
     setup(
         &f,
         json!({"peer":entry(&f,"basic",&report,&f.project.join("gate"))}),
-        json!({"mcp_lookup":"allow","read":"allow"}),
+        rules(&[("mcp_lookup", "*", "allow"), ("read", "*", "allow")]),
         json!({"strict":{"mode":"primary", "permissions": [{"action": "read", "resource": "*", "effect": "deny"}]}}),
     );
     let (app, guard) = f.spawn().await;
@@ -213,7 +221,7 @@ async fn mcp11_core_session_agent_deny_and_ask_are_enforced_before_body_rpc() {
     setup(
         &f,
         json!({"peer":entry(&f,"basic",&report,&f.project.join("gate"))}),
-        json!({"mcp_lookup":"ask","read":"allow"}),
+        rules(&[("mcp_lookup", "*", "ask"), ("read", "*", "allow")]),
         json!({}),
     );
     let (app, guard) = f.spawn().await;
@@ -246,13 +254,13 @@ async fn mcp11_core_drop_disconnect_reload_location_cancel_only_owned_lookup_and
     setup(
         &f,
         json!({}),
-        json!({"mcp_lookup":"allow","read":"allow"}),
+        rules(&[("mcp_lookup", "*", "allow"), ("read", "*", "allow")]),
         json!({}),
     );
     fs::write(
         f.project.join("opencode.json"),
-        json!({"mcp":{"peer":entry(&f,"held",&report,&gate),
-        "sibling":entry(&f,"basic",&sibling,&gate)}})
+        json!({"mcp":{"servers":{"peer":entry(&f,"held",&report,&gate),
+        "sibling":entry(&f,"basic",&sibling,&gate)}}})
         .to_string(),
     )
     .unwrap();
@@ -356,8 +364,16 @@ async fn mcp11_core_child_foreign_disabled_and_exact_resource_rights_do_not_broa
     setup(
         &f,
         json!({"peer":entry(&f,"basic",&report,&f.project.join("gate")),
-        "disabled":{"type":"local","enabled":false,"command":["{file:missing-program}"]}}),
-        json!({"mcp_lookup":{"*":"deny","[\"peer\",\"resources/read\",\"fixture://allowed\"]":"allow"},"read":"allow"}),
+        "disabled":{"type":"local","disabled":true,"command":["{file:missing-program}"]}}),
+        rules(&[
+            ("mcp_lookup", "*", "deny"),
+            (
+                "mcp_lookup",
+                "[\"peer\",\"resources/read\",\"fixture://allowed\"]",
+                "allow",
+            ),
+            ("read", "*", "allow"),
+        ]),
         json!({}),
     );
     {
@@ -433,7 +449,7 @@ async fn mcp11_core_combined_generation_metadata_cap_is_fatal_and_all_clients_re
         &f,
         json!({"first":entry(&f,"catalog64",&first,&f.project.join("gate")),
         "second":entry(&f,"catalog64",&second,&f.project.join("gate"))}),
-        json!({"mcp_lookup":"allow","read":"allow"}),
+        rules(&[("mcp_lookup", "*", "allow"), ("read", "*", "allow")]),
         json!({}),
     );
     let (app, guard) = f.spawn().await;

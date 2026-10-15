@@ -117,7 +117,8 @@ async fn r6_default_profile_embedded_variant_matches_explicit_and_top_level_refe
     let path = temp.path().join("opencode.json");
     let mut config = config();
     config["default_agent"] = serde_json::json!("pinned");
-    config["agents"]["pinned"] = serde_json::json!({"model":"fixture/org/main#fast","variant":"absent","system":"pinned body"});
+    config["agents"]["pinned"] =
+        serde_json::json!({"model":"fixture/org/main#fast","system":"pinned body"});
     std::fs::write(&path, config.to_string()).unwrap();
     let c = composition::load_with_env(temp.path(), BTreeMap::new())
         .await
@@ -167,7 +168,7 @@ async fn r6_explicit_profile_color_reaches_tui_chrome_and_skips_slot_pin() {
     let mut config = config();
     config["agents"]["z-first"]["color"] = serde_json::json!("#123456");
     config["agents"]["worker"]["color"] = serde_json::json!("#654321");
-    config["agent"]["build"] = serde_json::json!({"color":"#12ab34"});
+    config["agents"]["build"] = serde_json::json!({"color":"#12ab34"});
     std::fs::write(temp.path().join("opencode.json"), config.to_string()).unwrap();
     let c = composition::load_with_env(temp.path(), BTreeMap::new())
         .await

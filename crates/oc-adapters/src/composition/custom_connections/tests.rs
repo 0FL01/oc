@@ -47,7 +47,11 @@ async fn conn01_attach_before_credentials_and_raw_config_collision_filters() {
     c.attach_custom_connections(&db).unwrap();
     assert!(!c.custom_revisions.contains_key(&connection.id));
     assert!(c.provider_for(&connection.id).is_none());
-    std::fs::write(project.join("opencode.json"), "{\"enabled_providers\":[]}").unwrap();
+    std::fs::write(
+        project.join("opencode.json"),
+        r#"{"experimental":{"policies":[{"action":"provider.use","resource":"*","effect":"deny"}]}}"#,
+    )
+    .unwrap();
     let mut c = load_local_with_env(&project, env).await.unwrap();
     c.attach_custom_connections(&db).unwrap();
     assert!(c.custom_revisions.is_empty());

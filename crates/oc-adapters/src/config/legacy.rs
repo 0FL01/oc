@@ -117,15 +117,6 @@ const AGENT_V1: &[(&str, &str)] = &[
     ("variant", VARIANT),
 ];
 
-const COMMAND: &[&str] = &[
-    "template",
-    "description",
-    "agent",
-    "model",
-    "subagent",
-    "subtask",
-];
-
 const ACTIONS: &[(&str, &str)] = &[
     ("write", "edit"),
     ("patch", "edit"),
@@ -271,8 +262,13 @@ fn scan_mcp(out: &mut Vec<Finding>, prefix: &str, server: &Map<String, Value>) {
 }
 
 fn scan_rules(out: &mut Vec<Finding>, path: &str, rules: &Value) {
-    let Some(rules) = rules.as_array() else {
+    // The action→effect map is the OpenCode 1/native shape; other non-array
+    // values are malformed canonical input for ordinary validation.
+    if rules.is_object() {
         push(out, path.into(), RULES);
+        return;
+    }
+    let Some(rules) = rules.as_array() else {
         return;
     };
     for rule in rules {
@@ -284,28 +280,29 @@ fn scan_rules(out: &mut Vec<Finding>, path: &str, rules: &Value) {
     }
 }
 
+/// Markdown agents mirror the donor importer: any non-canonical key selects the
+/// V1 migration. JSON agents report only known V1 fields; other unknown keys stay
+/// ordinary definition diagnostics.
 fn scan_agent(out: &mut Vec<Finding>, prefix: &str, agent: &Map<String, Value>, markdown: bool) {
     for key in agent.keys() {
         if AGENT.contains(&key.as_str()) || (markdown && key == "variant") {
             continue;
         }
-        let replacement = AGENT_V1
-            .iter()
-            .find(|(legacy, _)| legacy == key)
-            .map_or(REMOVED, |(_, canonical)| *canonical);
-        push(out, format!("{prefix}{}", safe_key(key)), replacement);
+        match AGENT_V1.iter().find(|(legacy, _)| legacy == key) {
+            Some((_, canonical)) => push(out, format!("{prefix}{key}"), canonical),
+            None if markdown => push(out, format!("{prefix}{}", safe_key(key)), REMOVED),
+            None => {}
+        }
     }
     if let Some(rules) = agent.get("permissions") {
         scan_rules(out, &format!("{prefix}permissions"), rules);
     }
 }
 
+/// Commands have no donor V1 decode path; only the V1 `variant` field is reported.
 fn scan_command(out: &mut Vec<Finding>, prefix: &str, command: &Map<String, Value>) {
-    for key in command.keys() {
-        if !COMMAND.contains(&key.as_str()) {
-            let replacement = if key == "variant" { VARIANT } else { REMOVED };
-            push(out, format!("{prefix}{}", safe_key(key)), replacement);
-        }
+    if command.contains_key("variant") {
+        push(out, format!("{prefix}variant"), VARIANT);
     }
 }
 

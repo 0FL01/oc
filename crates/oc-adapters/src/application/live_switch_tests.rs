@@ -519,9 +519,12 @@ async fn hot01_automatic_source_keeps_accepted_primary_and_pending_issued_approv
     let first_generation = app.catalog().await.unwrap().chrome.selection_generation;
     {
         let label = "REVIEW_G2";
-        source["agents"]["review"]["prompt"] = label.into();
+        source["agents"]["review"]["system"] = label.into();
         source["agents"]["review"]["description"] = label.into();
-        source["permissions"]["read"] = "deny".into();
+        source["permissions"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({"action":"read","resource":"*","effect":"deny"}));
         source["tool_output"]["max_lines"] = 1.into();
         std::fs::write(&path, source.to_string()).unwrap();
         tokio::time::timeout(std::time::Duration::from_secs(3), async {
@@ -542,7 +545,7 @@ async fn hot01_automatic_source_keeps_accepted_primary_and_pending_issued_approv
     }
     release.send(()).unwrap();
     let approval = next_approval(&app).await;
-    source["agents"]["review"]["prompt"] = "REVIEW_G3".into();
+    source["agents"]["review"]["system"] = "REVIEW_G3".into();
     source["agents"]["review"]["description"] = "REVIEW_G3".into();
     std::fs::write(&path, source.to_string()).unwrap();
     app.reload_location().await.unwrap();

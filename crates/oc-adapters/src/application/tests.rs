@@ -29,15 +29,19 @@ mod review_tests {
                 "model": "fixture/m", "providers": {"fixture": {
                     "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
                     "models": {"m": {}}
-                }},
-                "keybinds": {"leader": "ctrl+a", "session_undo": "<leader>z"}
+                }}
             })
             .to_string(),
         )
         .unwrap();
         std::fs::write(
-            global.join("opencode.jsonc"),
-            r#"{"keybinds":{"leader":"ctrl+g","session_redo":"alt+r"}}"#,
+            global.join("cli.json"),
+            r#"{"keybinds":{"leader":"ctrl+a","session.undo":"<leader>z"}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            global.join("cli.jsonc"),
+            r#"{"keybinds":{"leader":"ctrl+g","session.redo":"alt+r"}}"#,
         )
         .unwrap();
         std::fs::write(
@@ -108,12 +112,8 @@ mod review_tests {
             switched.catalog.chrome.conversation_shortcuts.leader,
             "ctrl+b"
         );
-        std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
-        let mut config: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(global.join("opencode.json")).unwrap())
-                .unwrap();
-        config.as_object_mut().unwrap().remove("keybinds");
-        std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
+        std::fs::write(global.join("cli.jsonc"), "{}").unwrap();
+        std::fs::write(global.join("cli.json"), "{}").unwrap();
         let defaults = app.reload_location().await.unwrap();
         assert_eq!(
             defaults.catalog.chrome.conversation_shortcuts,
@@ -309,7 +309,7 @@ mod review_tests {
             }}
         });
         std::fs::write(a.join("opencode.json"), config.to_string()).unwrap();
-        config["command"] = serde_json::json!({"review": {
+        config["commands"] = serde_json::json!({"review": {
             "template": "local review $ARGUMENTS", "description": "from B"
         }});
         std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
@@ -329,7 +329,7 @@ mod review_tests {
             app.catalog().await.unwrap().command_descriptions["review"],
             "from B"
         );
-        config["command"]["review"]["description"] = "reloaded".into();
+        config["commands"]["review"]["description"] = "reloaded".into();
         std::fs::write(b.join("opencode.json"), config.to_string()).unwrap();
         app.reload_location().await.unwrap();
         assert_eq!(
@@ -844,12 +844,15 @@ mod reload_tests {
         let path = project.join("opencode.json");
         let mut source: serde_json::Value =
             serde_json::from_str(&config("old", "https://example.invalid/v1", true)).unwrap();
-        source["disabled_providers"] = serde_json::json!(["opencode-go", "openai"]);
+        source["experimental"]["policies"] = serde_json::json!([
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}
+        ]);
         std::fs::write(&path, source.to_string()).unwrap();
         let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
         let initial = app.catalog().await.unwrap();
         for label in ["WATCH_GENERATION_TWO", "WATCH_RECOVERED_THREE"] {
-            source["agents"] = serde_json::json!({"build":{"description":label,"prompt":label}});
+            source["agents"] = serde_json::json!({"build":{"description":label,"system":label}});
             let temporary = project.join("atomic-input");
             std::fs::write(&temporary, source.to_string()).unwrap();
             std::fs::rename(&temporary, &path).unwrap();
@@ -921,7 +924,10 @@ mod reload_tests {
         });
         let mut config: serde_json::Value =
             serde_json::from_str(&config("exact", &base, false)).unwrap();
-        config["disabled_providers"] = serde_json::json!(["opencode-go", "openai"]);
+        config["experimental"]["policies"] = serde_json::json!([
+            {"action":"provider.use","resource":"opencode-go","effect":"deny"},
+            {"action":"provider.use","resource":"openai","effect":"deny"}
+        ]);
         let path = project.join("opencode.jsonc");
         std::fs::write(&path, config.to_string()).unwrap();
         let db = Db::open(&data).unwrap();
@@ -960,7 +966,7 @@ mod reload_tests {
                 .unwrap();
             } else if phase == 1 {
                 config["agents"] =
-                    serde_json::json!({"build":{"prompt":"UPDATED_WITHOUT_DISCOVERY"}});
+                    serde_json::json!({"build":{"system":"UPDATED_WITHOUT_DISCOVERY"}});
                 std::fs::write(&path, config.to_string()).unwrap();
             }
             let (ack, mut received) = oneshot::channel();
@@ -1046,10 +1052,11 @@ mod reload_tests {
         let marker = project.join("rejected-mcp-started");
         let mut changed: serde_json::Value = serde_json::from_str(&original).unwrap();
         changed["tool_output"] = serde_json::json!({"max_lines":1});
-        changed["permissions"] = serde_json::json!({"read":"deny"});
-        changed["mcp"] = serde_json::json!({"rejected":{
+        changed["permissions"] =
+            serde_json::json!([{"action":"read","resource":"*","effect":"deny"}]);
+        changed["mcp"] = serde_json::json!({"servers":{"rejected":{
             "type":"local", "command":["/bin/sh","-c",format!("printf rejected > '{}'", marker.display())]
-        }});
+        }}});
         std::fs::write(&path, changed.to_string()).unwrap();
         std::fs::write(
             skills.join("manual.md"),
@@ -1116,13 +1123,13 @@ mod reload_tests {
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
         let mut value: serde_json::Value =
             serde_json::from_str(&config("m", &base, false)).unwrap();
-        value["providers"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":{
-            "fast":{"reasoningEffort":"low"},
-            "low":{"reasoningEffort":"custom-low"},
-            "xhigh":{"disabled":true},
-            "minimal":{},
-            "default":{"reasoningEffort":"none"}
-        }});
+        value["providers"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":[
+            {"id":"fast","settings":{"reasoningEffort":"low"}},
+            {"id":"low","settings":{"reasoningEffort":"custom-low"}},
+            {"id":"xhigh","disabled":true},
+            {"id":"minimal"},
+            {"id":"default","settings":{"reasoningEffort":"none"}}
+        ]});
         std::fs::write(project.join("opencode.json"), value.to_string()).unwrap();
         let server = tokio::spawn(async move {
             for variants in [
@@ -1377,7 +1384,8 @@ mod reload_tests {
         );
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
-        config["providers"]["fixture"]["models"]["new"]["name"] = serde_json::json!("Renamed Later");
+        config["providers"]["fixture"]["models"]["new"]["name"] =
+            serde_json::json!("Renamed Later");
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let (reopened, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
         let replay = reopened
@@ -1423,13 +1431,13 @@ mod reload_tests {
         let config = |include_review: bool| {
             let mut value: serde_json::Value =
                 serde_json::from_str(&config("old", &base_url, true)).unwrap();
-            value["agent"] = serde_json::json!({
-                "build": {"mode": "primary", "prompt": "BUILD_PRIMARY"},
-                "review": {"mode": "primary", "prompt": "REVIEW_PRIMARY"}
+            value["agents"] = serde_json::json!({
+                "build": {"mode": "primary", "system": "BUILD_PRIMARY"},
+                "review": {"mode": "primary", "system": "REVIEW_PRIMARY"}
             });
             value["default_agent"] = "build".into();
             if !include_review {
-                value["agent"].as_object_mut().unwrap().remove("review");
+                value["agents"].as_object_mut().unwrap().remove("review");
             }
             value.to_string()
         };
@@ -1678,9 +1686,9 @@ mod reload_tests {
         let marker = project.join("rejected-mcp-started");
         let mut candidate: serde_json::Value =
             serde_json::from_str(&config("remote", &base, false)).unwrap();
-        candidate["mcp"] = serde_json::json!({"rejected":{
+        candidate["mcp"] = serde_json::json!({"servers":{"rejected":{
             "type":"local","command":["/bin/sh","-c",format!("printf rejected > '{}'",marker.display())]
-        }});
+        }}});
         std::fs::write(&path, candidate.to_string()).unwrap();
         let request = app.clone();
         let first = tokio::spawn(async move { request.reload_location().await });
@@ -1690,7 +1698,7 @@ mod reload_tests {
             .unwrap();
         let mut latest: serde_json::Value =
             serde_json::from_str(&config("remote", &base, false)).unwrap();
-        latest["agents"] = serde_json::json!({"build":{"description":"LATEST_ADMITTED_PROFILE","prompt":"LATEST_ADMITTED_PROFILE"}});
+        latest["agents"] = serde_json::json!({"build":{"description":"LATEST_ADMITTED_PROFILE","system":"LATEST_ADMITTED_PROFILE"}});
         std::fs::write(&path, latest.to_string()).unwrap();
         // The final bytes are restored before the GET completes. A comparison
         // of only the final admitted value cannot prove this build stayed current.

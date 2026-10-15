@@ -79,37 +79,42 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
     let path = fixture.global.join("opencode.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    config["command"] = serde_json::Value::Object(
+    config["commands"] = serde_json::Value::Object(
         (0..130)
             .map(|index| (format!("{CANARY}-{index}"), serde_json::Value::Null))
             .collect(),
     );
     config["providers"]["fixture"]["settings"][CANARY] = serde_json::json!(CANARY);
-    config["mcp"][CANARY] = serde_json::Value::Null;
-    config["mcp"]["chrome-devtools"] = serde_json::json!({
-        "type":"local", "command":["never-spawn-disabled"], "enabled":false,
+    config["mcp"]["servers"][CANARY] = serde_json::Value::Null;
+    config["mcp"]["servers"]["chrome-devtools"] = serde_json::json!({
+        "type":"local", "command":["never-spawn-disabled"], "disabled":true,
         "environment":{"TOKEN":"disabled-protected"}
     });
-    config["mcp"]["disabled-protected"] = serde_json::Value::Null;
-    config["mcp"]["bad-endpoint"] = serde_json::json!({"type":"remote","url":"{file:endpoint}"});
-    config["mcp"]["url-protected"] = serde_json::Value::Null;
+    config["mcp"]["servers"]["disabled-protected"] = serde_json::Value::Null;
+    config["mcp"]["servers"]["bad-endpoint"] =
+        serde_json::json!({"type":"remote","url":"{file:endpoint}"});
+    config["mcp"]["servers"]["url-protected"] = serde_json::Value::Null;
     std::fs::write(
         fixture.global.join("endpoint"),
         "https://user:%75%72%6c%2Dprotected@example.invalid/mcp",
     )
     .unwrap();
-    config["mcp"]["argv-carrier"] = serde_json::json!({"type":"local",
+    config["mcp"]["servers"]["argv-carrier"] = serde_json::json!({"type":"local",
         "command":["never-spawn","{file:argv}"],"cwd":"missing-directory"});
-    config["mcp"]["argv-protected"] = serde_json::Value::Null;
+    config["mcp"]["servers"]["argv-protected"] = serde_json::Value::Null;
     std::fs::write(fixture.global.join("argv"), "argv-protected").unwrap();
     let unicode_label = "日本語_long_name_".repeat(32);
-    config["mcp"][&unicode_label] = serde_json::Value::Null;
+    config["mcp"]["servers"][&unicode_label] = serde_json::Value::Null;
     std::fs::write(path, config.to_string()).unwrap();
     let composed = composition::load_with_env(&fixture.project, fixture.env.clone())
         .await
         .unwrap();
     assert_eq!(
-        composed.generation.permissions["read"],
+        composed.generation.permission_rules.evaluate(
+            &composed.generation.permissions,
+            "read",
+            "src/x"
+        ),
         crate::config::Permission::Deny
     );
     assert!(
@@ -143,7 +148,7 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
         .unwrap();
     assert_eq!(diagnostic.code, ServiceCode::InvalidDefinition);
     assert_eq!(diagnostic.stage, ServiceStage::Config);
-    assert_eq!(diagnostic.field, ["command", "entry"]);
+    assert_eq!(diagnostic.field, ["commands", "entry"]);
     assert_eq!(diagnostic.action, ServiceAction::ReviewConfiguration);
     Fixture::safe(diagnostic);
     assert!(!format!("{:?}", composed.diagnostics).contains(CANARY));

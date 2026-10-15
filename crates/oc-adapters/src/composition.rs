@@ -439,10 +439,7 @@ fn legacy_gate(
     if report.is_empty() {
         return Ok(());
     }
-    let definition_roots = [
-        has_global.then_some(0),
-        admitted_roots.len().checked_sub(1),
-    ];
+    let definition_roots = [has_global.then_some(0), admitted_roots.len().checked_sub(1)];
     for index in definition_roots.into_iter().flatten() {
         let Some(admitted) = admitted_roots[index].as_ref() else {
             continue;
@@ -2260,7 +2257,7 @@ mod tests {
         );
 
         let mut override_config = config;
-        override_config["command"] = serde_json::json!({"review": {
+        override_config["commands"] = serde_json::json!({"review": {
             "template": "workspace $1 / $ARGUMENTS",
             "description": "workspace review"
         }});
@@ -2383,7 +2380,7 @@ mod tests {
             );
         }
         std::fs::remove_file(project.join("cli.jsonc")).unwrap();
-        config["agent"] = serde_json::json!({"build":{"prompt":"configured Build","model":"fixture/other", "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]}});
+        config["agents"] = serde_json::json!({"build":{"system":"configured Build","model":"fixture/other", "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let configured = load().await.unwrap();
         assert_eq!(configured.default_agent.as_deref(), Some("build"));
@@ -2391,10 +2388,12 @@ mod tests {
         assert_eq!(configured.agent_prompt.as_deref(), Some("configured Build"));
         assert!(!configured.agents["build"].subagent_capable());
         assert_eq!(
-            configured.agents["build"].permissions["bash"],
+            configured.agents["build"]
+                .permission_rules
+                .evaluate(&BTreeMap::new(), "bash", "ls"),
             crate::config::Permission::Deny
         );
-        config["agent"] = serde_json::json!({"build":{"disabled":true},"review":{"mode":"primary","prompt":"review"}});
+        config["agents"] = serde_json::json!({"build":{"disabled":true},"review":{"mode":"primary","system":"review"}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let disabled = load().await.unwrap();
         assert!(!disabled.agents.contains_key("build"));
@@ -2596,7 +2595,7 @@ mod tests {
     #[tokio::test]
     async fn v07a_large_normal_config_is_not_limited_to_one_mib() {
         let dir = tempfile::tempdir().expect("fixture");
-        let mut config = r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"unused":""#.to_string();
+        let mut config = r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}},"unused":""#.to_string();
         config.push_str(&"x".repeat(1024 * 1024 + 16));
         config.push_str("\"}");
         std::fs::write(dir.path().join("opencode.json"), config).expect("large config");
@@ -2989,8 +2988,8 @@ mod tests {
         std::fs::write(
             &config,
             base.replace(
-                "\"agent\": {",
-                "\"experimental\": {\"subagent_depth\": 2}, \"agent\": {",
+                "\"agents\": {",
+                "\"experimental\": {\"subagent_depth\": 2}, \"agents\": {",
             ),
         )
         .expect("config");

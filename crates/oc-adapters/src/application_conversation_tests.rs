@@ -183,8 +183,7 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
     // Same catalog and usage as actual-binary VIS34 attempt 07. The transcript
     // itself is small, so only the provider measurement can trigger compaction.
     for settings in [
-        serde_json::json!({"auto":true,"keep":{"tokens":0},"buffer":20000,"prune":true}),
-        serde_json::json!({"auto":true,"preserve_recent_tokens":0,"reserved":20000,"prune":false}),
+        serde_json::json!({"auto":true,"keep":{"tokens":0},"buffer":20000}),
         serde_json::json!({"auto":false,"keep":{"tokens":0},"buffer":20000}),
     ] {
         let enabled = settings["auto"].as_bool().unwrap();
@@ -207,29 +206,16 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
             ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
         ]);
         let (app, guard, notes) = spawn_with_env(&project, &data, env.clone()).await.unwrap();
-        let typed = app.catalog().await.unwrap().chrome.config_diagnostics;
-        if settings.get("prune").is_some() {
-            assert_eq!(typed.len(), 1);
-            assert_eq!(
-                typed[0].source,
-                crate::config::mcp::safe_source_id(
-                    &project.join("opencode.json").to_string_lossy()
-                )
-            );
-            assert_eq!(typed[0].field, vec!["compaction", "prune"]);
-            assert_eq!(
-                typed[0].kind,
-                oc_core::queries::ConfigDiagnosticKind::Unsupported
-            );
-            assert_eq!(
-                typed[0].action,
-                oc_core::queries::ConfigDiagnosticAction::Skip
-            );
-            assert!(notes.iter().any(|s| s.contains("compaction.prune")
-                && s.contains("omitted unsupported legacy setting")));
-        } else {
-            assert!(typed.is_empty());
-        }
+        // OpenCode 1 compaction keys are a T62 fail-closed report, not soft notes.
+        assert!(
+            app.catalog()
+                .await
+                .unwrap()
+                .chrome
+                .config_diagnostics
+                .is_empty()
+        );
+        assert!(!notes.iter().any(|s| s.contains("compaction")));
         let session = SessionId("s".into());
         let mut events = app.subscribe();
         for index in 1..=3 {

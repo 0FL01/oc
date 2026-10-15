@@ -34,7 +34,7 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
         failure: None,
     });
     config["model"] = "other/other-model".into();
-    config["agents"] = serde_json::json!({"build":{"prompt":"CHANGED_PROFILE"}});
+    config["agents"] = serde_json::json!({"build":{"system":"CHANGED_PROFILE"}});
     std::fs::write(&path, config.to_string()).unwrap();
     let mut next = crate::composition::load_reload_local_with_env(&project, env.clone())
         .await

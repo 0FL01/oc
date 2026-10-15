@@ -1822,9 +1822,7 @@ fn load_entry(
                 )
             };
             if !findings.is_empty() {
-                out.defs
-                    .legacy
-                    .push((root.origin.clone(), label, findings));
+                out.defs.legacy.push((root.origin.clone(), label, findings));
                 return;
             }
             if kind == "agent" {
@@ -2257,9 +2255,12 @@ mod tests {
                 .any(|d| d.reason.contains("reserved"))
         );
         // OpenCode 1 `tools` is reported by the T62 gate and never loaded.
-        assert!(loaded.legacy.iter().any(|(_, _, findings)| findings
-            .iter()
-            .any(|finding| finding.path == "tools")));
+        assert!(
+            loaded
+                .legacy
+                .iter()
+                .any(|(_, _, findings)| findings.iter().any(|finding| finding.path == "tools"))
+        );
         // Execution fields are parsed and stored; the commands stay loadable.
         assert_eq!(loaded.commands["delegate"].subtask, Some(true));
         let delegated = &loaded.commands["delegate-agent"];

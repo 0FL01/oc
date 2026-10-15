@@ -44,7 +44,12 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
         std::fs::create_dir(path).unwrap();
         std::fs::write(
             path.join("opencode.json"),
-            r#"{"keybinds":{"leader":"ctrl+b,ctrl+g","terminal.toggle":"<leader>t","terminal.close":false}, "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
+            r#"{"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
+        )
+        .unwrap();
+        std::fs::write(
+            path.join("cli.json"),
+            r#"{"keybinds":{"leader":"ctrl+b,ctrl+g","terminal.toggle":"<leader>t","terminal.close":false}}"#,
         )
         .unwrap();
     }

@@ -156,37 +156,14 @@ fn tool12_scalar_alias_deny_and_resource_spelling_are_distinct() {
 }
 
 #[test]
-fn tool12_alias_objects_intersect_across_singular_and_plural_config_keys() {
+fn tool12_canonical_shell_rules_cover_both_native_names_in_last_match_order() {
     use crate::config::Permission;
-    for (config, expected) in [
-        (
-            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
-            Permission::Deny,
-        ),
-        (
-            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
-            Permission::Deny,
-        ),
-        (
-            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
-            Permission::Ask,
-        ),
-        (
-            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
-            Permission::Ask,
-        ),
-    ] {
-        let rules = crate::permissions::PermissionRules::from_config(&config).unwrap();
-        for name in ["shell", "bash"] {
-            assert_eq!(
-                rules.evaluate(&BTreeMap::new(), name, "true"),
-                expected,
-                "{config}"
-            );
-        }
-    }
     let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({
-        "permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "printf *", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "printf allowed", "effect": "allow"}]
+        "permissions":[
+            {"action":"shell","resource":"*","effect":"deny"},
+            {"action":"shell","resource":"printf *","effect":"allow"},
+            {"action":"shell","resource":"printf held","effect":"ask"}
+        ]
     }))
     .unwrap();
     for name in ["shell", "bash"] {
@@ -196,11 +173,11 @@ fn tool12_alias_objects_intersect_across_singular_and_plural_config_keys() {
         );
         assert_eq!(
             rules.evaluate(&BTreeMap::new(), name, "printf other"),
-            Permission::Ask
+            Permission::Allow
         );
         assert_eq!(
-            rules.evaluate(&BTreeMap::new(), name, "printf allowed"),
-            Permission::Allow
+            rules.evaluate(&BTreeMap::new(), name, "printf held"),
+            Permission::Ask
         );
     }
 }

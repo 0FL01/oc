@@ -67,11 +67,11 @@ async fn hot02_reload_verdict_distinguishes_mandatory_inputs_from_optional_inven
     // A disabled template remains inert; unsupported optional integrations remain
     // failed inventory, not malformed mandatory native policy/definitions.
     let mut optional = original;
-    optional["plugin"] = serde_json::json!(["unavailable-native-plugin"]);
-    optional["mcp"] = serde_json::json!({
-        "disabled":{"type":"local","enabled":false,"command":["{file:NEVER_READ}"]},
-        "unsupported":{"type":"remote","url":"https://example.invalid/mcp","oauth":true}
-    });
+    optional["plugins"] = serde_json::json!(["unavailable-native-plugin"]);
+    optional["mcp"] = serde_json::json!({"servers":{
+        "disabled":{"type":"local","disabled":true,"command":["{file:NEVER_READ}"]},
+        "unsupported":{"type":"remote","url":"https://example.invalid/mcp","oauth":{"client_id":"x"}}
+    }});
     std::fs::write(&path, optional.to_string()).unwrap();
     let accepted = load_reload_local_with_env(project, BTreeMap::new())
         .await

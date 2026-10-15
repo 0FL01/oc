@@ -507,8 +507,12 @@ async fn hot02_application_reload_commits_complete_source_on_the_same_supervisor
     let mut config: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
     config["providers"]["fixture"]["settings"]["baseURL"] =
         json!(format!("http://{}/v1", listener.local_addr().unwrap()));
-    config["agent"] = json!({"build":{"mode":"primary","prompt":"ATOMIC_APPLICATION_PROFILE"}});
-    config["permissions"] = json!({"read":"deny", "skill":"allow", "compress":"allow"});
+    config["agents"] = json!({"build":{"mode":"primary","system":"ATOMIC_APPLICATION_PROFILE"}});
+    config["permissions"] = json!([
+        {"action":"read","resource":"*","effect":"deny"},
+        {"action":"skill","resource":"*","effect":"allow"},
+        {"action":"compress","resource":"*","effect":"allow"}
+    ]);
     fs::write(path, config.to_string()).unwrap();
     fs::write(fixture.project.join("dcp.json"), r#"{"enabled":false}"#).unwrap();
     let skills = fixture.project.join(".opencode/skills");
