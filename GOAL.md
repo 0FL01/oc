@@ -1046,3 +1046,17 @@ Full styled-cell/PNG/cursor, temporal/effect/resource и current-source gates
 остаются обязательными; собственные goldens, публикация oc2 и historical PASS
 не заменяют их. Новых paid campaigns, ослабления security/guards, shared service
 или OC1 compatibility эта директива не разрешает. Статусы ведёт progress.py.
+
+## Owner execution directive (2026-10-15 — V2 configuration semantics before TUI)
+
+Последняя инструкция владельца ставит T44 на паузу до реализации и доставки
+[T65: native V2 configuration semantics](docs/goals/2026-10-15-v2-config-semantics.md).
+Порядок: provider→model compatibility после level-wise document merge; V2 cache
+compatibility без отдельного runtime setCacheKey; provider-only transport settings
+и раздельные HTTP/WS deadlines; ordered ordinary permission overrides отдельно от
+authority/sandbox/delegation ceilings. Только synthetic fixtures, pinned OC2
+`2670273ff17da96f85c5826ced57aa1b368754fa`; V1 по-прежнему fail-closed, без миграции,
+user-config/secrets.env edits, настоящих credentials или полного plugin host.
+После проверенных cargo/config/provider/security gates — commit/push, finish T65
+и возврат к полному T44. Его [pause handoff](evidence/T44/configuration-pause-20261015.md)
+сохраняет доставленные slices и отдельно parked WIP; визуальный контракт не ослаблен.

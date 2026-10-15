@@ -1,6 +1,6 @@
 # Goal: TUI pixel parity with opencode v2.0.12
 
-Status: active
+Status: blocked
 Source: user instructions 2026-09-21, reviewed recovery amendment 2026-09-22 and question/DCP/subagent/MCP/tab/service-error UI amendments 2026-09-27, reference `https://github.com/anomalyco/opencode/tree/v2.0.12` (commit `2670273ff17da96f85c5826ced57aa1b368754fa`); DCP 3.1.15 at `11f6517780a502512a3467645074be447cb0369e` for compression presentation.
 Additional source: owner-approved canonical effort ordering after RECON, 2026-09-27.
 Additional source: owner-reported missing Middle Click tab close and explicit request to add the detailed work plan, 2026-09-30.
@@ -15,6 +15,17 @@ Additional source: owner-reported repeated Part/output preview markers in MCP/Sh
 Last updated: 2026-10-15
 
 ## Current execution checkpoint — 2026-10-15
+
+**PAUSED by the latest owner instruction until T65 is implemented and pushed.**
+This is scheduling, not a technical impossibility or a reduced finish line.
+Active work is [V2 configuration semantics](2026-10-15-v2-config-semantics.md).
+Delivered TUI HEAD `8a68dde06`; unfinished work safely parked at Git stash
+`1087067b3025322885c6a964579d80cea4931b06`. The exact state, checks and red pending
+Shell notice regression are in the [pause handoff](../../evidence/T44/configuration-pause-20261015.md).
+After T65 delivery, start T44 and restore that WIP once after inspecting Git;
+all R1–R6/VIS01–VIS46 and the full visual/interaction finish line remain unchanged.
+
+### Earlier activation and verified slices
 
 Source: owner explicitly requests recording this as the active goal, completing
 full visual parity, fixing demonstrated backend blockers before returning to TUI,

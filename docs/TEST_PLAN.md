@@ -114,6 +114,30 @@ Contract: [T62](goals/2026-10-15-canonical-v2-config.md).
 - **CFG13.** Running process: add a v1 key → reload refused, last-good kept, report
   visible; canonical correction adopted. Catalog-only `oc2 models` refuses before discovery.
 
+## Native V2 configuration semantics — T65/CFG14–CFG17
+
+Contract: [T65](goals/2026-10-15-v2-config-semantics.md). Oracle is pinned TS
+V2.0.12 `2670273ff17da96f85c5826ced57aa1b368754fa`, not moving upstream HEAD.
+Use shared synthetic V2 documents/expected results; no real credentials.
+
+- **CFG14:** merge each compatibility level across documents before provider→model
+  inheritance; explicit false/true/missing and cross-document precedence across
+  supported bindings. Consume CFG11–CFG13 legacy/error-category regressions without
+  changing their T62 ownership; package-specific settings are not legacy by name.
+- **CFG15:** inspect actual Responses/Chat/Messages bodies and affinity headers;
+  tri-state supportsPromptCacheKey, cache:none, no setCacheKey runtime dependency;
+  retain independent Anthropic/header-affinity policy.
+- **CFG16:** provider-only four-field overlays; HTTP300000ms defaults, independently
+  disabled header/chunk and optional total budgets, WS-specific frame policy;
+  mock delayed headers/chunks/total/cancellation. Retain MCP/package/Markdown guards.
+- **CFG17:** ordered ordinary config/agent rules, no match ask, saved-grant versus
+  final configured deny; preserve independent sandbox/endpoint/child authority.
+  Plan/Explore ceilings are explicitly not complete TS built-in-agent parity.
+
+Run targeted cases, affected adapter/binary crates (`oc-adapters`, `oc2`), then
+full locked workspace tests and fmt/strict Clippy/affected native builds. Finish
+and commit/push T65 before restoring the paused T44 WIP and continuing its goal.
+
 ## Customize-opencode — T58/SKILL01 (approved 2026-10-08; pending)
 
 Contract: [T58/R1–R3](goals/2026-10-08-customize-opencode-skill.md). SKILL01 owns the
