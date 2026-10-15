@@ -25,7 +25,8 @@ impl Fixture {
             base_url: base.into(),
             api_key: "ACCESS_CANARY".into(),
             timeout: None,
-            chunk_timeout_ms: 1000,
+            header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+            chunk_timeout_ms: Some(1000),
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: Default::default(),
@@ -90,6 +91,7 @@ enum Reply {
     ChildPolicy,
     Ambiguous,
     Partial,
+    Delayed,
     Policy,
     Size,
     BadIdentity,
@@ -212,6 +214,9 @@ impl Peer {
                         added["content"] = json!([]);
                         socket.send(event(json!({"type":"response.output_item.added","output_index":0,"item":added}))).await.unwrap();
                         socket.send(event(json!({"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":result["id"],"delta":result["content"][0]["text"]}))).await.unwrap();
+                        if matches!(reply, Reply::Delayed) {
+                            tokio::time::sleep(Duration::from_millis(300)).await;
+                        }
                         socket.send(event(json!({"type":"response.output_item.done","output_index":0,"item":result}))).await.unwrap();
                         let completed = event(json!({"type":"response.completed","response":{"id":if matches!(reply,Reply::BadIdentity) {"alien"} else {&id},"status":"completed","output":[result],"usage":{"input_tokens":4,"output_tokens":2}}}));
                         if matches!(reply,Reply::Extra) {
@@ -641,6 +646,96 @@ async fn request(
         },
     )
     .await
+}
+
+#[tokio::test]
+async fn cfg16_websocket_frame_policy_is_not_http_and_false_keeps_cancellation() {
+    use crate::config::ProviderTimeout;
+    for (idle, low_level_override) in [
+        (None, false),
+        (Some(ProviderTimeout::Flag(false)), false),
+        (Some(ProviderTimeout::Milliseconds(100)), false),
+        (None, true),
+    ] {
+        let f = Fixture::new();
+        let peer = Peer::new(Reply::Delayed).await;
+        let mut config = f.config(&peer.base, false);
+        config.header_timeout_ms = Some(1);
+        config.chunk_timeout_ms = Some(1);
+        config.wire.websocket_chunk_timeout = idle;
+        assert_eq!(
+            frame_timeout(&config),
+            match idle {
+                None => Some(Duration::from_secs(30 * 60)),
+                Some(value) => value.milliseconds().map(Duration::from_millis),
+            }
+        );
+        let sends = std::sync::atomic::AtomicUsize::new(0);
+        let cancel = AtomicBool::new(false);
+        let input = [InputItem::message(InputRole::User, "first")];
+        let result = if low_level_override {
+            stream_generation(
+                &config,
+                "gpt-5.5",
+                None,
+                "first",
+                &[],
+                &cancel,
+                Some(Duration::from_millis(100)),
+            )
+            .await
+        } else {
+            request(&config, &input, &cancel, &sends).await
+        };
+        if low_level_override || matches!(idle, Some(ProviderTimeout::Milliseconds(_))) {
+            let ProviderError::Request(failure) = result.unwrap_err() else {
+                panic!("expected frame timeout");
+            };
+            assert_eq!(failure.transport, Some(TransportKind::IdleTimeout));
+            assert_eq!(failure.operation, Operation::Read);
+            assert!(failure.output_committed);
+        } else {
+            assert_eq!(result.unwrap().text, "answer-1");
+        }
+        if !low_level_override {
+            assert_eq!(sends.load(Ordering::SeqCst), 1);
+        }
+        assert_eq!(peer.frames.lock().unwrap().len(), 1);
+        assert!(peer.http.lock().unwrap().is_empty());
+        f.db.response_channels.shutdown().await.unwrap();
+        peer.shutdown().await;
+    }
+
+    let f = Fixture::new();
+    let peer = Peer::new(Reply::Delayed).await;
+    let mut config = f.config(&peer.base, false);
+    config.wire.websocket_chunk_timeout = Some(ProviderTimeout::Flag(false));
+    let cancel = AtomicBool::new(false);
+    let mut sends = 0;
+    let result = stream_input_counted(
+        &config,
+        "gpt-5.5",
+        None,
+        &[InputItem::message(InputRole::User, "first")],
+        &[],
+        64,
+        &cancel,
+        &mut |item| {
+            if matches!(item, StreamItem::TextDelta(_)) {
+                cancel.store(true, Ordering::Relaxed);
+            }
+        },
+        &mut || {
+            sends += 1;
+            std::future::ready(Ok(()))
+        },
+    )
+    .await;
+    assert_eq!(result, Err(ProviderError::Cancelled));
+    assert_eq!(sends, 1);
+    assert!(peer.http.lock().unwrap().is_empty());
+    f.db.response_channels.shutdown().await.unwrap();
+    peer.shutdown().await;
 }
 
 #[tokio::test]

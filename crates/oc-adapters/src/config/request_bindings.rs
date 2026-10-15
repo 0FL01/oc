@@ -99,6 +99,11 @@ pub(in crate::config) fn request_bindings(
             let mut field_origins = BTreeMap::new();
             let mut overlay = |value: &Value, variant: Option<&str>| {
                 let mut settings = value.get("settings").cloned().unwrap_or_else(|| json!({}));
+                if let Some(settings) = settings.as_object_mut() {
+                    for key in ["timeout", "headerTimeout", "chunkTimeout", "transport"] {
+                        settings.remove(key);
+                    }
+                }
                 for key in ["headers", "body"] {
                     if let Some(value) = value.get(key) {
                         settings[key] = value.clone();
@@ -204,10 +209,14 @@ pub(in crate::config) fn request_bindings(
                     .options
                     .timeout
                     .and_then(crate::config::ProviderTimeout::legacy_flag),
-                chunk_timeout_ms: entry
-                    .options
-                    .chunk_timeout
-                    .unwrap_or(crate::provider::CHUNK_TIMEOUT_MS),
+                header_timeout_ms: entry.options.header_timeout.map_or(
+                    Some(crate::provider::HEADER_TIMEOUT_MS),
+                    crate::config::ProviderTimeout::milliseconds,
+                ),
+                chunk_timeout_ms: entry.options.chunk_timeout.map_or(
+                    Some(crate::provider::CHUNK_TIMEOUT_MS),
+                    crate::config::ProviderTimeout::milliseconds,
+                ),
                 connect_timeout: Duration::from_secs(10),
                 allow_private: false,
                 headers: entry.options.headers,

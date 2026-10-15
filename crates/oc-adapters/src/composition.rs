@@ -1164,10 +1164,14 @@ async fn load_stages(
             .options
             .timeout
             .and_then(config::ProviderTimeout::legacy_flag),
-        chunk_timeout_ms: entry
-            .options
-            .chunk_timeout
-            .unwrap_or(provider::CHUNK_TIMEOUT_MS),
+        header_timeout_ms: entry.options.header_timeout.map_or(
+            Some(provider::HEADER_TIMEOUT_MS),
+            config::ProviderTimeout::milliseconds,
+        ),
+        chunk_timeout_ms: entry.options.chunk_timeout.map_or(
+            Some(provider::CHUNK_TIMEOUT_MS),
+            config::ProviderTimeout::milliseconds,
+        ),
         connect_timeout: Duration::from_secs(10),
         allow_private: parent_env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
     };
@@ -2753,7 +2757,7 @@ mod tests {
         assert_eq!(loaded.model_id, "org/new");
         assert_eq!(loaded.catalog.provider, "fixture");
         assert_eq!(loaded.provider.api_key, "fixture-key");
-        assert_eq!(loaded.provider.chunk_timeout_ms, 1234);
+        assert_eq!(loaded.provider.chunk_timeout_ms, Some(1234));
         assert!(!loaded.provider.allow_private);
         assert_eq!(loaded.generation.providers.len(), 1);
         assert_eq!(

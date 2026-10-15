@@ -708,7 +708,7 @@ async fn ret01_read_transport_retains_status_override_and_continuation_facts() {
     }))
     .await;
     let mut config = test_config(&server.base);
-    config.chunk_timeout_ms = 40;
+    config.chunk_timeout_ms = Some(40);
     let error = facts(
         stream_generation(&config, "m", None, "x", &[], &NO_CANCEL, None)
             .await

@@ -84,8 +84,16 @@ the separately frozen T44 objective.
     deadlines are disabled.
   - Primary evidence: binding overlay cases and controlled local servers delaying
     headers/chunks/frames, total timeout and cancellation; no real credentials.
-  - Status: pending
-  - Evidence: pending.
+  - Status: verified
+  - Evidence: shared TS54/167 expectations, native CFG16 four targeted tests;
+    base/variant HTTP/transport/raw-WS budgets, controlled independent headers/body,
+    disabled-deadline cancellation, all-protocol overall deadline with phase
+    budgets disabled, WS30-minute default/false/numeric frames and cancellation.
+    Provider82/1existingignored, config43, binary Responses4 and strict workspace
+    all-target Clippy PASS. Reproduced overall timer restarting after delayed
+    dispatch (701ms for400ms), fixed by retaining the absolute body deadline;
+    all-protocol partial-output/one-attempt guards pass. Explicit SDK WS idle
+    overrides and native bounded connect/resource guards are retained.
 - R5: ordered ordinary permission overrides without weakening real authorities.
   - Source: owner section5; pinned `config/plugin/agent.ts`, `permission.ts`
     (`evaluate`, `configured`, `evaluateInput`).
@@ -165,15 +173,14 @@ the separately frozen T44 objective.
 
 ## Current Checkpoint
 
-- Closes: R4 provider-only overlays and independent deadlines, preserving R1.
-- Smallest next action: use the actual pinned `Provider.modelSettings/timeouts`
-  in shared cases; exclude exactly four model/variant settings before option
-  admission and origin folding. Then implement independent HTTP header/chunk
-  defaults300000ms, individual false-disable and retained cancellation; derive
-  WebSocket waits separately from its pinned channel policy.
-- Expected evidence: shared effective bindings/defaults and controlled delayed
-  headers/chunks/frames, optional total deadline and cancellation after disable.
-- Replan if: provider-only filtering changes other settings or endpoint authority.
+- Closes: R5 ordinary configuration order without widening authority.
+- Smallest next action: add shared document/agent permission precedence cases
+  against the real pinned ConfigAgentPlugin/Permission evaluator, reproduce native
+  intersection behavior, then distinguish ordinary configured ordering from
+  independent native/parent constraints. Keep generic strictest/narrow boundaries.
+- Expected evidence: late allow/deny, agent-specific priority, unmatched Ask;
+  actual saved-grant versus final-deny and child-parent authority regressions.
+- Replan if: an ordinary override can erase a delegation/sandbox/profile ceiling.
 
 ## Current State
 
@@ -187,6 +194,12 @@ the separately frozen T44 objective.
   expectations, native context3/provider79/config42/Responses4/strict Clippy PASS.
   Request cache:none survives captured model selection, affinity is independent,
   and minimal Messages requests retain absent fields rather than nulls.
+- R4 is verified: actual ModelResolver service and native captured bindings agree
+  on provider-only settings; independent HTTP defaults/false/cancel and separate
+  WS frame policy pass real local-server tests. Shared TS now54/167 expectations;
+  provider82/1existingignored, config43, binary Responses4 and strict workspace
+  all-target Clippy pass. SDK deadline-field changes join the authorized version
+  bump, not a new JSON switch. R1/R5/final gates/publication remain unresolved.
 - Last baseline: workspace1984/0/12existingignored and46 targets, current TUI541
   tests/strict Clippy, debug/release/help. These predate this configuration work.
 - Evidence: `evidence/T65/report.md`. No external blocker demonstrated.

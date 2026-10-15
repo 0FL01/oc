@@ -216,10 +216,14 @@ async fn load_catalog_inner(
                     .options
                     .timeout
                     .and_then(config::ProviderTimeout::legacy_flag),
-                chunk_timeout_ms: entry
-                    .options
-                    .chunk_timeout
-                    .unwrap_or(provider::CHUNK_TIMEOUT_MS),
+                header_timeout_ms: entry.options.header_timeout.map_or(
+                    Some(provider::HEADER_TIMEOUT_MS),
+                    config::ProviderTimeout::milliseconds,
+                ),
+                chunk_timeout_ms: entry.options.chunk_timeout.map_or(
+                    Some(provider::CHUNK_TIMEOUT_MS),
+                    config::ProviderTimeout::milliseconds,
+                ),
                 connect_timeout: Duration::from_secs(10),
                 allow_private: env.get("OC_TEST_ALLOW_LOOPBACK").map(String::as_str) == Some("1"),
                 cache: Default::default(),

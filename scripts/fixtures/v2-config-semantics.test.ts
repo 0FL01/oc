@@ -39,6 +39,31 @@ function cacheBlocks(value: unknown): number {
 }
 
 for (const packageName of fixture.protocols) {
+  for (const item of fixture.settings_cases) {
+    it.effect(`CFG16 ${packageName} / ${item.id}`, () =>
+      Effect.gen(function* () {
+        const model = yield* configuredModel([
+          fixture.base,
+          { providers: { fixture: { package: packageName, settings: item.provider, models: {
+            m: { settings: item.model, variants: [{ id: "v", settings: item.variant }] },
+          } } } },
+        ])
+        const resolver = yield* ModelResolver.Service.pipe(Effect.provide(ModelResolver.layer))
+        for (const variant of [undefined, Model.VariantID.make("v")]) {
+          const selected = yield* ModelResolver.withVariant(model, variant)
+          const resolved = yield* resolver.resolveModel(model, variant)
+          expect({
+            timeout: resolved.model.defaults?.http?.timeout ?? null,
+            headerTimeout: resolved.model.defaults?.http?.headerTimeout,
+            chunkTimeout: resolved.model.defaults?.http?.chunkTimeout,
+          }).toEqual(item.expected_http)
+          expect(resolved.transport ?? null).toEqual(item.expected_transport)
+          expect(resolved.chunkTimeout ?? null).toEqual(item.provider.chunkTimeout ?? null)
+          expect(selected.settings?.reasoningEffort).toBe(variant === undefined ? "medium" : "high")
+        }
+      }),
+    )
+  }
   for (const item of fixture.compatibility) {
     it.effect(`CFG14 ${packageName} / ${item.id}`, () =>
       Effect.gen(function* () {

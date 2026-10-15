@@ -2,6 +2,63 @@ use super::*;
 use crate::config::assemble;
 
 #[test]
+fn cfg16_provider_only_settings_ignore_model_and_variant_overlays() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/v2-config-semantics.json"
+    ))
+    .unwrap();
+    for package in fixture["protocols"].as_array().unwrap() {
+        for case in fixture["settings_cases"].as_array().unwrap() {
+            let sources = [
+                Source { path: "base.json".into(), trusted: false, text: fixture["base"].to_string() },
+                Source { path: "settings.json".into(), trusted: false, text: json!({"providers":{"fixture":{
+                    "package":package,"settings":case["provider"],"models":{"m":{
+                        "settings":case["model"],"variants":[{"id":"v","settings":case["variant"]}]
+                    }}
+                }}}).to_string() },
+            ];
+            let config = assemble(&sources, &BTreeMap::new(), None).unwrap();
+            for variant in [None, Some("v".into())] {
+                let request = &config.providers["fixture"].options.request_bindings
+                    [&("m".into(), variant.clone())];
+                assert_eq!(
+                    request.wire.total_timeout_ms,
+                    case["provider"]["timeout"].as_u64(),
+                    "{}",
+                    case["id"]
+                );
+                assert_eq!(
+                    json!({
+                        "timeout": request.wire.total_timeout_ms.map(Value::from).unwrap_or_else(|| {
+                            request.timeout.map(Value::from).unwrap_or(Value::Null)
+                        }),
+                        "headerTimeout": request.header_timeout_ms.map(Value::from).unwrap_or(Value::Bool(false)),
+                        "chunkTimeout": request.chunk_timeout_ms.map(Value::from).unwrap_or(Value::Bool(false)),
+                    }),
+                    case["expected_http"]
+                );
+                assert_eq!(
+                    serde_json::to_value(request.wire.websocket_chunk_timeout).unwrap(),
+                    case["provider"]
+                        .get("chunkTimeout")
+                        .cloned()
+                        .unwrap_or(Value::Null)
+                );
+                assert_eq!(
+                    request.wire.transport,
+                    (case["expected_transport"] == "http")
+                        .then_some(crate::provider::websocket::Transport::Http)
+                );
+                assert_eq!(
+                    request.wire.settings.effort.as_deref(),
+                    Some(if variant.is_none() { "medium" } else { "high" })
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn go03_request_templates_capture_api_id_protocol_variant_and_field_origin() {
     let sources = [
         Source { path:"/untrusted.json".into(), trusted:false, text:json!({"providers":{"p":{

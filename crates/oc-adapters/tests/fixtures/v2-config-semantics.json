@@ -33,6 +33,32 @@
     "@opencode/ai/providers/openai-compatible": "chat",
     "@opencode/ai/providers/anthropic": "messages"
   },
+  "settings_cases": [
+    {
+      "id": "provider-numeric-wins",
+      "provider": { "timeout": 1234, "headerTimeout": 2345, "chunkTimeout": 3456, "transport": "http", "reasoningEffort": "low" },
+      "model": { "timeout": 1, "headerTimeout": 2, "chunkTimeout": 3, "transport": "websocket", "reasoningEffort": "medium" },
+      "variant": { "timeout": false, "headerTimeout": false, "chunkTimeout": false, "transport": "websocket", "reasoningEffort": "high" },
+      "expected_http": { "timeout": 1234, "headerTimeout": 2345, "chunkTimeout": 3456 },
+      "expected_transport": "http"
+    },
+    {
+      "id": "provider-disabled-wins",
+      "provider": { "timeout": false, "headerTimeout": false, "chunkTimeout": false, "transport": "http" },
+      "model": { "timeout": 1, "headerTimeout": 2, "chunkTimeout": 3, "transport": "websocket", "reasoningEffort": "medium" },
+      "variant": { "timeout": 4, "headerTimeout": 5, "chunkTimeout": 6, "transport": "websocket", "reasoningEffort": "high" },
+      "expected_http": { "timeout": false, "headerTimeout": false, "chunkTimeout": false },
+      "expected_transport": "http"
+    },
+    {
+      "id": "provider-absent-lower-invalid-ignored",
+      "provider": {},
+      "model": { "timeout": "ignored", "headerTimeout": {}, "chunkTimeout": true, "transport": "invalid", "reasoningEffort": "medium" },
+      "variant": { "timeout": {}, "headerTimeout": "ignored", "chunkTimeout": [], "transport": false, "reasoningEffort": "high" },
+      "expected_http": { "timeout": null, "headerTimeout": 300000, "chunkTimeout": 300000 },
+      "expected_transport": null
+    }
+  ],
   "prompt_cache_key": "cache-fixture",
   "cache_requests": [
     {

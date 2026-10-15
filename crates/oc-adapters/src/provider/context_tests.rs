@@ -293,7 +293,8 @@ async fn go03_immutable_identity_and_lineage_cache_reach_every_wire() {
             base_url: base.clone(),
             api_key: "resolved-key".into(),
             timeout: None,
-            chunk_timeout_ms: 1000,
+            header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+            chunk_timeout_ms: Some(1000),
             connect_timeout: Duration::from_secs(1),
             allow_private: true,
             headers: BTreeMap::from([
@@ -376,7 +377,8 @@ fn go03_custom_headers_and_identity_compatibility_are_not_go_policy() {
         base_url: "https://example.com/v1".into(),
         api_key: "key".into(),
         timeout: None,
-        chunk_timeout_ms: 1000,
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(1000),
         connect_timeout: Duration::from_secs(1),
         allow_private: false,
         headers: BTreeMap::from([

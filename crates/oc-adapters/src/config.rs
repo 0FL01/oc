@@ -118,9 +118,12 @@ pub struct ProviderOptions {
     /// False/absent disables the total deadline; a positive integer is milliseconds.
     #[serde(default)]
     pub timeout: Option<ProviderTimeout>,
-    /// Idle ms between body chunks (6000000 = 100 min, not 60 s).
+    /// HTTP response-header deadline; false disables it, absent uses 300000ms.
+    #[serde(rename = "headerTimeout", default)]
+    pub header_timeout: Option<ProviderTimeout>,
+    /// Body/frame idle deadline; false disables it, absent uses protocol defaults.
     #[serde(rename = "chunkTimeout", default)]
-    pub chunk_timeout: Option<u64>,
+    pub chunk_timeout: Option<ProviderTimeout>,
     /// Extra generation headers; native auth and transport headers take precedence.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
@@ -141,13 +144,14 @@ impl std::fmt::Debug for ProviderOptions {
             .field("base_url", &"[configured]")
             .field("credentials", &"[redacted]")
             .field("timeout", &self.timeout)
+            .field("header_timeout", &self.header_timeout)
             .field("chunk_timeout", &self.chunk_timeout)
             .finish_non_exhaustive()
     }
 }
 
-/// Native total generation deadline. False/absent retains the long-horizon
-/// no-total-deadline behavior; a positive integer is milliseconds, not seconds.
+/// Native deadline override. False disables the budget; a positive integer is
+/// milliseconds. Absence uses the owning phase/protocol's default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ProviderTimeout {
@@ -156,6 +160,13 @@ pub enum ProviderTimeout {
 }
 
 impl ProviderTimeout {
+    pub(crate) fn milliseconds(self) -> Option<u64> {
+        match self {
+            Self::Milliseconds(ms) => Some(ms),
+            Self::Flag(_) => None,
+        }
+    }
+
     pub(crate) fn legacy_flag(self) -> Option<bool> {
         match self {
             Self::Flag(value) => Some(value),
@@ -1491,6 +1502,7 @@ const PROVIDER_OPTION_KEYS: &[&str] = &[
     "authToken",
     "authPolicy",
     "timeout",
+    "headerTimeout",
     "chunkTimeout",
     "transport",
     "headers",
@@ -1622,22 +1634,26 @@ pub(crate) fn provider_wire(
     };
     wire.default_compatibility = default_compatibility;
     wire.compatibility = compatibility;
-    wire.total_timeout_ms = match entry.options.timeout {
-        Some(ProviderTimeout::Milliseconds(ms)) if ms > 0 => Some(ms),
-        Some(ProviderTimeout::Flag(false)) | None => None,
-        _ => {
+    for (field, value) in [
+        ("timeout", entry.options.timeout),
+        ("headerTimeout", entry.options.header_timeout),
+        ("chunkTimeout", entry.options.chunk_timeout),
+    ] {
+        if matches!(
+            value,
+            Some(ProviderTimeout::Flag(true) | ProviderTimeout::Milliseconds(0))
+        ) {
             return Err(ConfigError::Invalid {
-                field: format!("provider.{id}.options.timeout"),
+                field: format!("provider.{id}.options.{field}"),
                 reason: "must be false or a positive integer in milliseconds".into(),
             });
         }
-    };
-    if entry.options.chunk_timeout == Some(0) {
-        return Err(ConfigError::Invalid {
-            field: format!("provider.{id}.options.chunkTimeout"),
-            reason: "must be a positive integer in milliseconds".into(),
-        });
     }
+    wire.total_timeout_ms = entry
+        .options
+        .timeout
+        .and_then(ProviderTimeout::milliseconds);
+    wire.websocket_chunk_timeout = entry.options.chunk_timeout;
     wire.auth_policy = entry.options.auth_policy;
     wire.transport = entry
         .options
@@ -1821,6 +1837,7 @@ pub fn explain_redacted(generation: &Generation) -> serde_json::Value {
                     "baseURL": entry.options.base_url,
                     "apiKey": "***",
                     "timeout": entry.options.timeout,
+                    "headerTimeout": entry.options.header_timeout,
                     "chunkTimeout": entry.options.chunk_timeout,
                 },
                 "models": {},
@@ -2684,7 +2701,7 @@ mod tests {
         .expect("assemble");
         assert_eq!(
             generation.providers["ludka"].options.chunk_timeout,
-            Some(6000000)
+            Some(super::ProviderTimeout::Milliseconds(6000000))
         );
         assert_eq!(
             generation.providers["ludka"].options.timeout,

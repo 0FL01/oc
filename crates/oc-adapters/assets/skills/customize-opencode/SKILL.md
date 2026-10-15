@@ -135,6 +135,13 @@ that arbitrary package setting is ignored, not legacy syntax. Request `cache:non
 is an AI/SDK policy, not a native `settings.cache` JSON option. Header affinity and
 Messages automatic cache blocks are separate from the cache-key capability.
 
+Put `timeout`, `headerTimeout`, `chunkTimeout` and `transport` only in provider
+`settings`; model/variant copies cannot override them. Timeouts accept positive
+integer milliseconds or `false`. HTTP header/chunk defaults are independently
+300000ms; overall timeout is absent by default. WebSocket frame waits use the raw
+provider chunk setting (absent30minutes, false disabled), not the HTTP default.
+Disabling these deadlines does not disable cancellation or native resource guards.
+
 Native OpenAI browser/device/API-key authentication has explicit operator steps.
 Never substitute an OpenProxy credential for an ordinary OpenAI key or auto-confirm
 someone's browser/device authorization. A custom-provider connection wizard and

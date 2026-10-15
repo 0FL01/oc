@@ -2,8 +2,8 @@
 
 ## Result
 
-**IN PROGRESS.** R2/R3 compatibility and actual cache consumers follow shared V2
-fixtures. Transport deadlines, ordered permissions, final legacy/error guards,
+**IN PROGRESS.** R2/R3 compatibility/cache and R4 provider-only deadlines follow
+shared V2 fixtures. Ordered permissions, final legacy/error guards,
 complete gates and publication remain. T44 is paused with its stash intact.
 
 Current configuration reference is **V2 revision
@@ -61,9 +61,58 @@ stale `v2` branch4617210 lack required fields. Frozen TUI reference is unchanged
   and expectations. The harness was corrected to observe defined JSON fields,
   not optional undefined AST properties; no TS production code was changed.
 
+### R4 provider-only settings and deadlines / CFG16
+
+- Reproduced invalid model/variant transport options entering provider admission.
+  Lower overlays now omit exactly timeout/headerTimeout/chunkTimeout/transport
+  before option validation/origin folding; other settings retain precedence.
+- The same three JSON cases across three protocols compare base and variant
+  selections: provider numeric values win; provider false values win; malformed
+  lower copies cannot replace absent provider defaults. Native bindings and the
+  actual TS ModelResolver **service** agree, including its raw WS chunk override.
+  Using only the TS catalog snapshot was an insufficient test harness: that
+  snapshot intentionally omits provider-only fields. No production TS was edited.
+- HTTP header/chunk defaults are each300000ms, independently optional; overall
+  deadline is separate. Optional waits retain cancellation and the absolute total
+  deadline, including while dispatch/headers are pending. Typed header timeout
+  is Request/Deadline; body idle expiry is Read/IdleTimeout with committed deltas.
+  Existing byte/status/endpoint/credential/one-attempt guards remain.
+- WebSocket uses the raw provider chunk override: absent30minutes, false disabled,
+  positive milliseconds as supplied. Actual delayed frames survive deliberately
+  tiny HTTP budgets; numeric frame timeout and disabled-budget cancellation are
+  checked without HTTP replay. Existing bounded native connect guard is unchanged.
+- Preserved the existing low-level SDK's explicit idle override independently of
+  provider-derived HTTP/WS defaults; an actual delayed-frame case checks it.
+- Final review reproduced a real total-budget gap: a250ms dispatch delay let a
+ 400ms overall request last701ms, because the HTTP client's relative timer began
+  at send. Body/error waits now also retain the original absolute deadline. The
+  strengthened test covers delayed dispatch across all three protocols with
+  committed output, typed Read/Deadline, cancellation and one-attempt facts intact.
+- `ResponsesConfig` now exposes independent optional header/chunk millisecond
+  fields; None disables each phase. Constructors and consumers were migrated,
+  with no new canonical JSON switch or transport framework. These SDK changes
+  are included in the authorized version bump, not published prematurely.
+
 ## Checks
 
-Current R2/R3 slice:
+Current R4 slice:
+
+- Shared b4 TS oracle: **54 passed / 0 failed**,167 expectations,
+  `.local/evidence/t65-ts-oracle-cfg16-03.log`.
+- Native `cfg16_`: **4 passed**: shared bindings, independent HTTP phases,
+  cancellation with both disabled, and separate WS frames/cancellation.
+- `provider::`: **82 passed / 1 existing opt-in ignored**, including the strengthened
+  all-protocol total-deadline test with both phase budgets disabled.
+- `config::`: **43 passed**; actual-binary `oc2 --test responses`: **4 passed**.
+- `cargo clippy --locked --workspace --all-targets -- -D warnings`: PASS.
+  A test-only private-helper access was fixed by checking captured raw state at
+  that owner, not by widening production API. No lint/test was suppressed.
+- Final current-code provider/binary/strict gates:
+  `.local/evidence/t65-cfg16-{provider,responses,clippy}-03.log`; reproduced timer
+  gap: `.local/evidence/t65-cfg16-dispatch-reproduce.log`. No test was weakened to
+  accept the extended timer. Complete task/workspace tests remain pending.
+
+Earlier R2/R3 slice:
 
 - Corrected b4 oracle: **45 passed / 0 failed**,95 expectations
   (`.local/evidence/t65-ts-oracle-cfg15-b4f19b.log`).
@@ -91,8 +140,8 @@ Local synthetic-only logs: `.local/evidence/t65-cfg14-*` and
 
 ## Risks and next
 
-R2/R3 are qualified for the specified subset, not full TS protocol/SDK parity.
-Next: exact provider-only settings and independent HTTP/WS deadlines, then
-ordinary permission precedence without widening delegation/authority ceilings.
+R2/R3/R4 are qualified for the specified subset, not full TS protocol/SDK parity.
+Next: ordinary permission precedence without widening delegation/authority ceilings;
+then final legacy/error classification and complete required gates.
 Publish only after all configuration gates and the coherent version bump pass;
 then finish T65 and resume the parked T44 work exactly once.

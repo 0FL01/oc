@@ -187,7 +187,8 @@ async fn mcp12_compaction_receives_native_media_and_recent_checkpoint_tail_reope
         cache: crate::provider::CacheMode::Auto,
         wire: Default::default(),
         timeout: Some(false),
-        chunk_timeout_ms: 5000,
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(5000),
         connect_timeout: Duration::from_secs(5),
         allow_private: true,
     };

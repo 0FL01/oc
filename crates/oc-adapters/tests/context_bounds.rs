@@ -467,7 +467,8 @@ fn provider_of(base: &str) -> ResponsesConfig {
         base_url: base.to_string(),
         api_key: "test-key".to_string(),
         timeout: Some(false),
-        chunk_timeout_ms: 5_000,
+        header_timeout_ms: Some(oc_adapters::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(5_000),
         connect_timeout: Duration::from_secs(5),
         allow_private: true,
     }

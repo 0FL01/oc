@@ -289,7 +289,8 @@ async fn tool16_compaction_carries_original_local_image_array_and_recent_tail() 
         cache: crate::provider::CacheMode::Auto,
         wire: Default::default(),
         timeout: Some(false),
-        chunk_timeout_ms: 5000,
+        header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+        chunk_timeout_ms: Some(5000),
         connect_timeout: Duration::from_secs(5),
         allow_private: true,
     };

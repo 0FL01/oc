@@ -12,7 +12,17 @@ const ROTATE: Duration = Duration::from_secs(55 * 60);
 const CHANNELS: usize = 8;
 const CHECKPOINT_ITEMS: usize = 10_000;
 const BETA: &str = "responses_websockets=2026-02-06";
+const FRAME_TIMEOUT_MS: u64 = 30 * 60 * 1000;
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
+pub(super) fn frame_timeout(config: &ResponsesConfig) -> Option<Duration> {
+    config
+        .wire
+        .websocket_chunk_timeout
+        .map_or(Some(Duration::from_millis(FRAME_TIMEOUT_MS)), |timeout| {
+            timeout.milliseconds().map(Duration::from_millis)
+        })
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Transport {
@@ -137,7 +147,7 @@ impl Channels {
         headers: &reqwest::header::HeaderMap,
         body: &[u8],
         cancel: &AtomicBool,
-        idle: Duration,
+        idle: Option<Duration>,
         total: Option<Instant>,
         observe: &mut (dyn FnMut(&StreamItem) + Send),
         dispatch: &mut (impl FnMut() -> F + Send),
@@ -251,14 +261,14 @@ impl Channels {
         tokio::select! {
             biased;
             () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-            result = tokio::time::timeout_at(wait_deadline(idle,total), dispatch()) => {
+            result = optional_timeout_at(phase_deadline(idle,total), dispatch()) => {
                 result.map_err(|_| channel_failure(Operation::Request,Delivery::NotSent,false,timeout_kind(total)))??;
             }
         }
         let send = tokio::select! {
             biased;
             () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-            result = tokio::time::timeout_at(wait_deadline(idle, total), connection.socket.send(Message::text(sent.clone()))) => result,
+            result = optional_timeout_at(phase_deadline(idle, total), connection.socket.send(Message::text(sent.clone()))) => result,
         };
         match send {
             Ok(Ok(())) => {}
@@ -294,7 +304,7 @@ impl Channels {
             let next = tokio::select! {
                 biased;
                 () = wait_cancel(cancel) => return Err(ProviderError::Cancelled),
-                next = tokio::time::timeout_at(wait_deadline(idle, total), connection.socket.next()) => next,
+                next = optional_timeout_at(phase_deadline(idle, total), connection.socket.next()) => next,
             };
             let message = match next {
                 Ok(Some(Ok(message))) => message,
@@ -497,10 +507,6 @@ fn affirmatively_not_sent(error: &tungstenite::Error, sent: &str) -> bool {
     }
 }
 
-fn wait_deadline(idle: Duration, total: Option<Instant>) -> Instant {
-    let idle = Instant::now() + idle;
-    total.map_or(idle, |total| total.min(idle))
-}
 fn timeout_kind(total: Option<Instant>) -> TransportKind {
     if total.is_some_and(|end| Instant::now() >= end) {
         TransportKind::Deadline

@@ -35,8 +35,10 @@ pub use failure::{Delivery, FailureKind, Operation, PhysicalFailure, RetryHeader
 #[path = "provider/timeout_tests.rs"]
 mod timeout_tests;
 
-/// Idle budget between SSE bytes (6 000 000 ms = 100 min, not 6 s).
-pub const CHUNK_TIMEOUT_MS: u64 = 6_000_000;
+/// Default HTTP response-header budget in milliseconds.
+pub const HEADER_TIMEOUT_MS: u64 = 300_000;
+/// Default HTTP idle budget between body bytes in milliseconds.
+pub const CHUNK_TIMEOUT_MS: u64 = 300_000;
 /// Max SSE events decoded per response.
 pub const EVENT_CAP: usize = 10_000;
 /// Physical attempts per adapter invocation (no internal HTTP retry).
@@ -418,8 +420,10 @@ pub struct ResponsesConfig {
     pub api_key: String,
     /// `timeout:false`/absent means no total deadline.
     pub timeout: Option<bool>,
-    /// Idle ms between body bytes (default [`CHUNK_TIMEOUT_MS`]).
-    pub chunk_timeout_ms: u64,
+    /// HTTP response-header deadline; `None` disables this independent limit.
+    pub header_timeout_ms: Option<u64>,
+    /// HTTP body idle deadline; `None` disables it (default [`CHUNK_TIMEOUT_MS`]).
+    pub chunk_timeout_ms: Option<u64>,
     /// Bounded connect timeout.
     pub connect_timeout: Duration,
     /// Test-only private-network exception (mirrors webfetch).
@@ -464,6 +468,8 @@ pub struct WireBinding {
     pub(crate) channels: Option<websocket::Channels>,
     pub(crate) chronology: BTreeMap<String, protocol::Chronology>,
     pub(crate) total_timeout_ms: Option<u64>,
+    /// Raw provider override: absence keeps the WebSocket-specific frame default.
+    pub(crate) websocket_chunk_timeout: Option<crate::config::ProviderTimeout>,
     pub(crate) go: bool,
     pub(crate) context: Option<context::RequestContext>,
     pub(crate) unsupported: bool,
@@ -534,6 +540,7 @@ impl std::fmt::Debug for ResponsesConfig {
             .field("base_url", &"[configured]")
             .field("api_key", &"***")
             .field("timeout", &self.timeout)
+            .field("header_timeout_ms", &self.header_timeout_ms)
             .field("chunk_timeout_ms", &self.chunk_timeout_ms)
             .finish()
     }
@@ -1685,7 +1692,7 @@ pub async fn stream_generation_observed(
         &BTreeMap::new(),
         bounded_json(&body)?,
         cancel,
-        chunk_timeout.unwrap_or(Duration::from_millis(config.chunk_timeout_ms)),
+        chunk_timeout,
         observe,
         &mut || async { Ok(()) },
     )
@@ -1838,7 +1845,7 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
             &overlay.headers,
             bounded_json(&body)?,
             cancel,
-            Duration::from_millis(config.chunk_timeout_ms),
+            None,
             observe,
             dispatch,
         )
@@ -1888,7 +1895,7 @@ pub(crate) async fn stream_input_overlaid<F: Future<Output = Result<(), Provider
         &overlay.headers,
         bounded_json(&body)?,
         cancel,
-        Duration::from_millis(config.chunk_timeout_ms),
+        None,
         observe,
         dispatch,
     )
@@ -1966,7 +1973,7 @@ pub(crate) async fn stream_chat_overlaid<F: Future<Output = Result<(), ProviderE
         &overlay.headers,
         bounded_json(&body)?,
         cancel,
-        Duration::from_millis(config.chunk_timeout_ms),
+        None,
         observe,
         dispatch,
     )
@@ -1981,6 +1988,27 @@ pub(crate) async fn wait_cancel(cancel: &AtomicBool) {
     }
 }
 
+fn phase_deadline(
+    budget: Option<Duration>,
+    total: Option<tokio::time::Instant>,
+) -> Option<tokio::time::Instant> {
+    let phase = budget.and_then(|budget| tokio::time::Instant::now().checked_add(budget));
+    match (phase, total) {
+        (Some(phase), Some(total)) => Some(phase.min(total)),
+        (phase, total) => phase.or(total),
+    }
+}
+
+async fn optional_timeout_at<F: Future>(
+    deadline: Option<tokio::time::Instant>,
+    future: F,
+) -> Result<F::Output, tokio::time::error::Elapsed> {
+    match deadline {
+        Some(deadline) => tokio::time::timeout_at(deadline, future).await,
+        None => Ok(future.await),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     config: &ResponsesConfig,
@@ -1988,10 +2016,13 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
     extra_headers: &BTreeMap<String, String>,
     body: Vec<u8>,
     cancel: &AtomicBool,
-    chunk_timeout: Duration,
+    chunk_timeout: Option<Duration>,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
     dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, ProviderError> {
+    let frame_timeout = chunk_timeout.or_else(|| websocket::frame_timeout(config));
+    let chunk_timeout =
+        chunk_timeout.or_else(|| config.chunk_timeout_ms.map(Duration::from_millis));
     if config.timeout == Some(true) {
         return Err(ProviderError::InvalidConfig);
     }
@@ -2117,7 +2148,7 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
                 &headers,
                 &body,
                 cancel,
-                chunk_timeout,
+                frame_timeout,
                 total_deadline,
                 observe,
                 dispatch,
@@ -2183,6 +2214,11 @@ async fn stream_body<F: Future<Output = Result<(), ProviderError>> + Send>(
         config.allow_private,
         config.wire.endpoint.as_ref(),
         cancel,
+        phase_deadline(
+            config.header_timeout_ms.map(Duration::from_millis),
+            total_deadline,
+        ),
+        total_deadline,
         chunk_timeout,
         observe,
         dispatch,
@@ -2333,7 +2369,9 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     allow_private: bool,
     endpoint: Option<&crate::endpoint::EndpointBinding>,
     cancel: &AtomicBool,
-    chunk_timeout: Duration,
+    header_deadline: Option<tokio::time::Instant>,
+    total_deadline: Option<tokio::time::Instant>,
+    chunk_timeout: Option<Duration>,
     observe: &mut (dyn FnMut(&StreamItem) + Send),
     dispatch: &mut (impl FnMut() -> F + Send),
 ) -> Result<Generation, (ProviderError, bool)> {
@@ -2351,9 +2389,9 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     let resp = tokio::select! {
         biased;
         () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, false)),
-        result = tokio::time::timeout(chunk_timeout, send) => result.map_err(|_| {
+        result = optional_timeout_at(header_deadline, send) => result.map_err(|_| {
             let mut failure = PhysicalFailure::transport(Operation::Request, Delivery::Unknown, None);
-            failure.transport = Some(TransportKind::IdleTimeout);
+            failure.transport = Some(TransportKind::Deadline);
             (ProviderError::Request(Box::new(failure)), false)
         })??,
     }
@@ -2376,11 +2414,11 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
     if status != 200 {
         let mut response = resp;
         let mut bytes = Vec::new();
-        let deadline = tokio::time::Instant::now() + chunk_timeout;
+        let deadline = phase_deadline(chunk_timeout, total_deadline);
         loop {
             let chunk = tokio::select! {
                 () = wait_cancel(cancel) => return Err((ProviderError::Cancelled,false)),
-                result = tokio::time::timeout_at(deadline,response.chunk()) => result,
+                result = optional_timeout_at(deadline,response.chunk()) => result,
             };
             match chunk {
                 Ok(Ok(Some(chunk))) if bytes.len() + chunk.len() <= 16 * 1024 => {
@@ -2454,10 +2492,21 @@ async fn stream_attempt<F: Future<Output = Result<(), ProviderError>> + Send>(
         let result = tokio::select! {
             biased;
             () = wait_cancel(cancel) => return Err((ProviderError::Cancelled, committed)),
-            result = tokio::time::timeout(chunk_timeout, resp.chunk()) => result,
+            result = optional_timeout_at(phase_deadline(chunk_timeout, total_deadline), resp.chunk()) => result,
         };
         let chunk = match result {
-            Err(_) => return Err(read_failure(ProviderError::IdleTimeout, committed)),
+            Err(_) => {
+                return Err(read_failure(
+                    if total_deadline
+                        .is_some_and(|deadline| tokio::time::Instant::now() >= deadline)
+                    {
+                        ProviderError::Deadline
+                    } else {
+                        ProviderError::IdleTimeout
+                    },
+                    committed,
+                ));
+            }
             Ok(Err(e)) => {
                 let error = if e.is_timeout() {
                     ProviderError::Deadline
@@ -2826,7 +2875,8 @@ mod tests {
             base_url: base.to_string(),
             api_key: "test-key".to_string(),
             timeout: Some(false),
-            chunk_timeout_ms: CHUNK_TIMEOUT_MS,
+            header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+            chunk_timeout_ms: Some(CHUNK_TIMEOUT_MS),
             connect_timeout: Duration::from_secs(5),
             allow_private: true,
             headers: BTreeMap::new(),
@@ -3150,7 +3200,7 @@ mod tests {
         }))
         .await;
         let mut config = test_config(&server.base);
-        config.chunk_timeout_ms = 30;
+        config.chunk_timeout_ms = Some(30);
         let start = std::time::Instant::now();
         assert!(matches!(
             super::stream_input_observed(&config, "m", None, &[], &[], 5, &NO_CANCEL, &mut |_| {}).await,
@@ -3616,7 +3666,8 @@ mod tests {
 
     #[tokio::test]
     async fn prov07_timeouts_and_cancel() {
-        assert_eq!(CHUNK_TIMEOUT_MS, 6_000_000);
+        assert_eq!(CHUNK_TIMEOUT_MS, 300_000);
+        assert_eq!(super::HEADER_TIMEOUT_MS, 300_000);
         // Idle gap beyond the override budget fails; timeout:false keeps no
         // total deadline (slow-but-chatting streams succeed).
         let server = TestServer::spawn(Arc::new(|_| Action {

@@ -261,10 +261,14 @@ impl Composition {
                     .options
                     .timeout
                     .and_then(config::ProviderTimeout::legacy_flag),
-                chunk_timeout_ms: entry
-                    .options
-                    .chunk_timeout
-                    .unwrap_or(provider::CHUNK_TIMEOUT_MS),
+                header_timeout_ms: entry.options.header_timeout.map_or(
+                    Some(provider::HEADER_TIMEOUT_MS),
+                    config::ProviderTimeout::milliseconds,
+                ),
+                chunk_timeout_ms: entry.options.chunk_timeout.map_or(
+                    Some(provider::CHUNK_TIMEOUT_MS),
+                    config::ProviderTimeout::milliseconds,
+                ),
                 connect_timeout: Duration::from_secs(10),
                 allow_private: false,
                 cache: Default::default(),

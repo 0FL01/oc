@@ -386,9 +386,14 @@ Chat/Messages support**.
   Thinking/effort/textVerbosity/reasoning_content and dialect max-token/cache fields
   require actual protocol lowering, not only retaining metadata. Vision input/text
   output remain; image-generation/audio/video/PDF are not added.
-- Preserve native timeout:false/no-overall-deadline, numeric timeout/chunkTimeout
-  milliseconds with validation and idle policy plus cancellation/byte caps. OC2's
-  native package strips these core settings; the old SDK wrapper is not native parity.
+- `timeout`, `headerTimeout`, `chunkTimeout`, `transport` are provider-only:
+  model/variant overlays omit exactly these fields, keeping all other precedence.
+  Deadlines accept positive integer milliseconds or false. Overall timeout is
+  absent by default; HTTP header/chunk defaults are independently300000ms, false
+  disables only its phase. WebSocket frame waits use raw provider chunkTimeout
+  (absent30minutes, false disabled), not the HTTP default. Native bounded connect
+  guards, cancellation and byte caps remain independent. OC2's native package
+  strips core settings; the old SDK wrapper is not native parity.
   T65 supersedes the old setCacheKey gate: effective provider→model
   `compatibility.supportsPromptCacheKey` preserves absent/false/true. Responses
   permits a supplied lineage key unless false; Chat requires true. The AI request

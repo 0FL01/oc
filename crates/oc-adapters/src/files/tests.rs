@@ -338,7 +338,8 @@ async fn tool14_active_scan_cancel_refuses_partial_and_joins_before_next_query()
             base_url: base,
             api_key: "fixture".into(),
             timeout: Some(false),
-            chunk_timeout_ms: 5000,
+            header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+            chunk_timeout_ms: Some(5000),
             connect_timeout: Duration::from_secs(2),
             allow_private: true,
         };

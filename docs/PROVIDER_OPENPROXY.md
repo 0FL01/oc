@@ -21,7 +21,18 @@ Rust design default: `store:false`, explicit local input projection, function to
 
 `apiKey`: Bearer header; env/file resolution с redaction. Не попадать в model-visible options, logs и key hash, который можно восстановить. Пользовательский Authorization переопределяется apiKey для discovery, как в присланном коде. Headers остаются scoped этому provider origin; redirects для authenticated discovery/generation запрещены, чтобы не пересылать ключи.
 
-`timeout:false`: нет общего generation deadline в provider adapter; отдельно остаются connect timeout и cancellation. `chunkTimeout:6000000` = 6 000 000 миллисекунд = 100 минут idle между body chunks. Не заменить «разумными 60s». Idle timer по полученным bytes; complete SSE event/arguments независимо ограничены по размеру. Heartbeats могут поддерживать stream при unlimited total — это видимая пользовательская настройка, не гарантия конечности. Discovery имеет совершенно отдельные сроки.
+`timeout` — отдельный общий generation deadline в миллисекундах; отсутствие или
+`false` означает отсутствие этого deadline. Для HTTP `headerTimeout` и
+`chunkTimeout` независимы, каждый по умолчанию 300 000 ms; `false` отключает только
+соответствующий budget. Явный `chunkTimeout:6000000` по-прежнему означает 100 минут
+idle между body chunks, а не default или 60s. WebSocket использует raw provider
+`chunkTimeout`: без поля — 30 минут ожидания frames, `false` отключает этот budget.
+Нативный bounded connect guard, cancellation и byte caps сохраняются независимо.
+Все четыре `timeout`, `headerTimeout`, `chunkTimeout`, `transport` — provider-only:
+model/variant settings не заменяют их, но прочие settings сохраняют свой precedence.
+Idle timer идёт по полученным bytes; complete SSE event/arguments отдельно
+ограничены по размеру. Heartbeats могут поддерживать stream без общего deadline —
+это настройка, не гарантия конечности. Discovery имеет совершенно отдельные сроки.
 
 Кэширование — [V2 semantics / T65](goals/2026-10-15-v2-config-semantics.md):
 `providers.<id>.compatibility.supportsPromptCacheKey` задаёт default, а поле модели
@@ -93,8 +104,9 @@ result коммитятся атомарно. Restart сохраняет зав�
 иначе используются complete `output_item.done` в порядке output_index. Полный
 JSON аргументов без complete item/terminal не разрешает execution. Cancel
 прерывает DNS/headers/body и MCP initialize; observer получает UTF-8 deltas до
-terminal, максимум 16 KiB каждый. Idle budget — effective `chunkTimeout`, default
-6 000 000 ms; total deadline при `timeout:false` отсутствует.
+terminal, максимум 16 KiB каждый. HTTP idle budget — effective provider
+`chunkTimeout`, default300 000 ms; response-header budget отдельно default300 000 ms.
+Общий deadline при отсутствующем `timeout` или `timeout:false` отсутствует.
 
 Byte ceilings: pending SSE line/event — 2 MiB каждый, arguments/call — 1 MiB,
 generation accounting — 32 MiB, serialized request — 32 MiB, events — 10 000.

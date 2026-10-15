@@ -2446,7 +2446,8 @@ mod tests {
             base_url: base.to_string(),
             api_key: "k".to_string(),
             timeout: Some(false),
-            chunk_timeout_ms: super::super::provider::CHUNK_TIMEOUT_MS,
+            header_timeout_ms: Some(crate::provider::HEADER_TIMEOUT_MS),
+            chunk_timeout_ms: Some(super::super::provider::CHUNK_TIMEOUT_MS),
             connect_timeout: Duration::from_secs(5),
             allow_private: true,
         }

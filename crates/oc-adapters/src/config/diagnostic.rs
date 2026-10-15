@@ -53,6 +53,7 @@ pub(crate) fn schema_field(field: &str) -> Vec<String> {
         "cwd",
         "timeouts",
         "timeout",
+        "headerTimeout",
         "chunkTimeout",
         "setCacheKey",
         "nativeFallbackLimits",
