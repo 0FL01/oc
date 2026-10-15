@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted observations `bdafd9d19`, cancellation-safe commit `322455183`, complete idle application publication `7ce43773e`, superseded-build rejection `ac96ef997` and joined source observation `e5de05bd7`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted observations `bdafd9d19`, cancellation-safe commit `322455183`, complete idle application publication `7ce43773e`, superseded-build rejection `ac96ef997`, joined source observation `e5de05bd7` and original-input discovery reuse `98458b124`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -333,8 +333,10 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
        share the short commit gate. `7ce43773e` supplies the complete admitted application
        candidate on that same runtime/supervisor for idle manual reload. `ac96ef997`
         re-admits original local inputs after discovery before replacement effects.
-        `e5de05bd7` observes admitted Linux source events with a joined task and fences
-        explicit candidates by event epoch, including changed-and-restored inputs.
+         `e5de05bd7` observes admitted Linux source events with a joined task and fences
+         explicit candidates by event epoch, including changed-and-restored inputs.
+         `98458b124` retains original local provider inputs for semantic no-op/catalog
+         reuse, independently of selected provider and remote-merged metadata.
        Next retain that observer in the single persistent watch/manual coordinator
        before enabling busy publication and composing public HOT01 evidence.
 - Expected evidence: HOT01 issuing/captured G1 versus next fresh G2, history/authority
@@ -504,15 +506,32 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   are filtered. Failed replacement retains live watches; aborted observation is non-success.
   During idle explicit reload, registration/rescan and event epochs reject a changed-and-
   restored candidate even when its final bytes match. Normal cleanup is always awaited.
-- Current gates: four actual source-observer owner cases; strict workspace all-target clippy;
+- Earlier `e5de05bd7` gates: four actual source-observer owner cases; strict workspace all-target clippy;
   workspace tests1970 passed/0 failed/12 existing opt-in ignored,46 result records; fmt/docs/
   diff checks pass. Logs `.local/evidence/t61-source-watch-*.log`. The isolated red case
   proved final semantic comparison alone missed changed-and-restored inputs. No resource
   bound, baseline, assertion or deadline was weakened. This observer is currently owned
   only by explicit candidates: no continuous watch/coordinator or busy publication claim.
+- Current `98458b124` evidence: one shared original local snapshot is retained before saved
+  credentials, custom/public catalogs or discovery can mutate the admitted composition.
+  Provider identity uses original finite leaf captures and actual resolved request binding,
+  not selected ID, raw formatting or old remote models. Changed credentials/endpoint/local
+  metadata refuse reuse; matching catalogs/readiness carry forward without old credentials
+  or remote models becoming local overrides. The saved custom-provider revision cache is unchanged.
+- The same reload owner entry supports nonforced semantic no-op and profile-only publication:
+  real bounded HTTP counts remain one through both, then explicit force performs the second
+  GET. No-op keeps generation/MCP/manual control state; topology alone can reconcile. No
+  automatic dispatcher or persistent observer has been enabled by this private owner path.
+- Current gates: strict workspace all-target clippy; workspace tests1972 passed/0 failed/
+  12 existing opt-in ignored,46 result records; both new owner cases and unchanged AUD32 pass.
+  Fmt/docs/progress/diff checks pass. Logs `.local/evidence/t61-discovery-reuse-*.log`.
+  AUD32 first caught worker-state RSS above the unchanged64MiB bound. Heap-pinning the
+  existing whole-worker future reduced anonymous residency without changing runtime/threads/
+  stacks/test limits: three measured large peaks63872/63932/65484KiB and final workspace pass.
+  No threshold, baseline, assertion, deadline or ignore was changed.
 - Next: persistent single watch/manual coordinator with100ms debounce, including observations
    from failed candidates and later admitted nested instructions/explicit activation.
-   Retain per-provider original local discovery identity and semantic no-op behavior. Busy operation
+    Use the qualified original-input discovery identity and semantic no-op path. Busy operation
   inputs must be finite owned captures, and workspace admission must retain the active
   primary identity rather than a global fallback. Dynamic MCP notification adoption and
   poisoned-owner/late-quarantine lifetime remain part of that integration.
