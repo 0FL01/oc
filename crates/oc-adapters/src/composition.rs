@@ -30,7 +30,8 @@ mod reload_inputs;
 mod watch_inputs;
 pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
 pub(crate) use provider_readiness::ProviderState;
-pub(crate) use watch_inputs::observer::SourceWatch;
+pub(crate) use reload_inputs::{CatalogReuse, ReloadInputs};
+pub(crate) use watch_inputs::observer::{Observation, SourceWatch};
 
 /// Fully built application configuration. Contains credentials and must not be logged.
 pub struct Composition {

@@ -158,3 +158,28 @@ async fn pending_forms_have_a_hard_bound_and_all_waiters_retire() {
     }
     assert!(queue.pending().is_empty());
 }
+
+#[tokio::test]
+async fn explicit_reload_distinctly_settles_only_the_open_waiter() {
+    let queue = Arc::new(QuestionQueue::default());
+    queue.register_consumer();
+    let (events, mut rx) = broadcast::channel(8);
+    let job = tokio::spawn({
+        let queue = queue.clone();
+        let events = events.clone();
+        async move { queue.wait(request(), &events).await }
+    });
+    let CoreEvent::QuestionAsked(request) = rx.recv().await.unwrap() else {
+        panic!("question readiness");
+    };
+    queue.reload(Some(&request.binding.session), &events);
+    assert_eq!(job.await.unwrap(), Ok(QuestionDecision::Reloaded));
+    assert!(matches!(
+        rx.recv().await.unwrap(),
+        CoreEvent::QuestionResolved {
+            decision: QuestionDecision::Reloaded,
+            ..
+        }
+    ));
+    assert!(queue.pending().is_empty());
+}

@@ -35,6 +35,9 @@ pub(crate) struct SourcePublication {
     pub mcp_activation: Option<Arc<crate::composition::McpActivation>>,
 }
 
+/// Freshness only, never an execution or permission capability.
+pub(crate) struct SourceStamp(Arc<ExecutionGeneration>);
+
 pub(super) struct Commit {
     pub(super) gate: Arc<Mutex<()>>,
     current: Arc<RwLock<Arc<ExecutionGeneration>>>,
@@ -56,6 +59,14 @@ impl Commit {
 }
 
 impl Runtime<'_> {
+    pub(crate) fn source_stamp(&self) -> SourceStamp {
+        SourceStamp(self.current.read().expect("generation lock").clone())
+    }
+
+    pub(crate) fn source_is_current(&self, stamp: &SourceStamp) -> bool {
+        Arc::ptr_eq(&self.current.read().expect("generation lock"), &stamp.0)
+    }
+
     fn prepare_workspace(
         &self,
         mut input: WorkspacePublication,

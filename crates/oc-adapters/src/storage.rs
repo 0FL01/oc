@@ -547,6 +547,9 @@ impl Db {
         secure_sqlite_file(&root.join("oc.sqlite-wal"), false)?;
         secure_sqlite_file(&root.join("oc.sqlite-shm"), false)?;
         let conn = Connection::open(&db_path)?;
+        // Bound SQLite's process-resident page cache independently of a
+        // Location's archived history. This is per connection, in KiB.
+        conn.pragma_update(None, "cache_size", -512_i64)?;
         conn.create_scalar_function(
             "oc_session_lower",
             1,

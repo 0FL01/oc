@@ -96,6 +96,7 @@ fn admission_message(path: &str, failure: AdmissionFailure) -> String {
             format!("The user rejected the call to '{path}': {feedback}")
         }
         AdmissionFailure::Rejected(None) => format!("The user rejected the call to '{path}'."),
+        AdmissionFailure::Reloaded => format!("The source reloaded before '{path}' was approved."),
         AdmissionFailure::Cancelled => format!("Approval for '{path}' was cancelled."),
         AdmissionFailure::Invalid(reason) => format!("Call to '{path}' was not admitted: {reason}"),
     }

@@ -1,0 +1,1286 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-10T01:06:40.034Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "6826334aaef4fac1e6aea01333cc3da24d3837252780e97dc2f90fe3e749e196",
+    "frontend.js": "51e27994422990848249abd3357dafbfe38c68af265bf5bcac60e74fe9a2ee3b",
+    "bridge.py": "31bcdf47f20051bac2186c55dc64bcad6905a35b40c14ae1d2c6bb63a66b9937",
+    "tool_preview.mjs": "1f776235e1f0c14bbb642ebd3bf230b826e469787077ff1a0c1062b564b81bd3",
+    "tool_preview_fixture.py": "4d60c3563fb49f306fe83330483e2957fe86345f48f7957e867961a3f42b4766",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "composer.mjs": "306b485a65e306599b4b1b499870e4646e74d27521ee9f6fdabe1ca5d92c0245",
+    "composer_fixture.py": "485af5eb5246f421c1c01750c62579d90e916a06540f06c881717bc6d913b0a7"
+  },
+  "fixture_sha256": "daebd9daf36a22d84be06f8b500e453ff79f198b6cb8deb1ee693d3cd96a2e16",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "793aa1956cd4f47b544f377cf91248e5b8b39a3f",
+    "tree": "f0df55a00ddd64c4b306f92947cbfb7811ed46a5",
+    "dirty_diff_sha256": "cd4bc80eccd18c0b0cdbf5eb05038379e851c59ab2be717c2a1216f10afc254c",
+    "source_manifest_sha256": "4e4bb27a235cc1c75e772702036714a50325c494e1289f48952e404aa3528d52",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "444dfdb3dff1a2f64e5cad7489752dfa1a7184b50e290708ec2f6ff7a9aa8184",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-root-handoff-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-120",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-120",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-80",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-80",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-160",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-hint-160",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-background",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-child-background",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-shell-hint",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-shell-hint",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-80",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-80",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-120",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-120",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-160",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-background-footer-160",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-final",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-root-handoff-final",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-handoff-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-home.cells.json.gz",
+      "cells_sha256": "2b8c8f6cdbf7410d8ca0c971a3e24c980e2a991421fe791f34ea2e184de92123",
+      "png_sha256": "08e4454c33ce69f70ab0826914bb66b9d6be5b29c59528c7ed4a439c77bd6ba2",
+      "render_file": "tool-preview-root-handoff-home.render.json.gz",
+      "render_sha256": "ac906a2248e0f0ec8f0d5f3655495558146defc0836f058b9944eea5a2539c8b",
+      "text_file": "tool-preview-root-handoff-home.txt.gz",
+      "text_sha256": "62736dfe5a1a895e74088534d5ee6c64105a05552af06f13478ae56c11bbb1e5",
+      "vt_file": "tool-preview-root-handoff-home.vt.gz",
+      "vt_sha256": "b91ef53ed66bcbe9f4c4df994fd52067511269ef7e56364a258d390ff1e8d816",
+      "path": "upstream/tool-preview-root-handoff-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-hint-120.cells.json.gz",
+      "cells_sha256": "347717d469e5510fa18f921b637201f2e353964ae0c20af0c69be2ec083c0389",
+      "png_sha256": "8d164660cb1e4be9634a75e6490f2cd0ac91d303d43b197c1971b180d872f3c5",
+      "render_file": "tool-preview-root-child-hint-120.render.json.gz",
+      "render_sha256": "0fbacbc0a4b9de9bc80106bc251750ad0b71dbb8187a1fc118092d1b3f994f65",
+      "text_file": "tool-preview-root-child-hint-120.txt.gz",
+      "text_sha256": "82b3ffd44148a1142795580861ecca8fd0e26dbf0c2d0ce9e62d2bacb17d12ee",
+      "vt_file": "tool-preview-root-child-hint-120.vt.gz",
+      "vt_sha256": "d8720e5c4c6b5a5fa4850e385139549c81d18cd01ce28bdceac6acbe03bc64f4",
+      "path": "upstream/tool-preview-root-child-hint-120"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-child-hint-80.cells.json.gz",
+      "cells_sha256": "7e8dc8e3b17390bfa3bfdd9663917821d0c330a0e7200652a9d22aaf8ca53c38",
+      "png_sha256": "1169284db4f43bd2ba4f5fe058497b2c5578f6745c6eb8b34a0725b9f5074919",
+      "render_file": "tool-preview-root-child-hint-80.render.json.gz",
+      "render_sha256": "9f8e4959a95156bc92aec4ada516f9d817f183b79ec2f0846a5edd79138e057e",
+      "text_file": "tool-preview-root-child-hint-80.txt.gz",
+      "text_sha256": "02ca0f5fa1f3c9cfc49efb9714cba6098e8e83cde618cb41c389d8badc7f1f7c",
+      "vt_file": "tool-preview-root-child-hint-80.vt.gz",
+      "vt_sha256": "7f5547ee610c56a97093eb8e2ad7bbf6f8857728557244c4935f7665b0d4892d",
+      "path": "upstream/tool-preview-root-child-hint-80"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-hint-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-child-hint-160.cells.json.gz",
+      "cells_sha256": "6c37fafdf59ef33df08d21dcb8555254e13e056f013aa0376d2ec92a78182ffc",
+      "png_sha256": "53dc7cd3e24994fb4254fad7f2d38b7433cc399f7a28c7b5798c82f51aa5e0db",
+      "render_file": "tool-preview-root-child-hint-160.render.json.gz",
+      "render_sha256": "be54cb0870c5da11e068329ef8b2f45347edd4ab4903a5d234db939b5da1f193",
+      "text_file": "tool-preview-root-child-hint-160.txt.gz",
+      "text_sha256": "ae51b55aff8d112cef71a379f63157915e1c57353054dc7e30bcdede38e254ff",
+      "vt_file": "tool-preview-root-child-hint-160.vt.gz",
+      "vt_sha256": "c060bc1d73f7c78ccf6999d81a0c28d6e55ba2285379c2ab5c7aec58ffffea14",
+      "path": "upstream/tool-preview-root-child-hint-160"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-child-background",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-background.cells.json.gz",
+      "cells_sha256": "46db2e1e292662f4ff350aee1c3466bd0757d367fb4c264201add30730dedfb3",
+      "png_sha256": "e44fc491aac60fcc6294333ff44e71d80270111afd74b7a71148089023475df0",
+      "render_file": "tool-preview-root-child-background.render.json.gz",
+      "render_sha256": "df1f7d7a6aa5e06cd6f4ec146f437e08a5e3365ea6a78d032d3261775106494c",
+      "text_file": "tool-preview-root-child-background.txt.gz",
+      "text_sha256": "0b061e59a3eda28f43a68eb09ba1bdb6c39ad996dd57829fd3a0749cee661332",
+      "vt_file": "tool-preview-root-child-background.vt.gz",
+      "vt_sha256": "aeaf89cc10094a1713047131538a01e617a27387a45d5590d151975e03131f4b",
+      "path": "upstream/tool-preview-root-child-background"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-shell-hint",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-shell-hint.cells.json.gz",
+      "cells_sha256": "8e9f25d96baf37fb778fc0b24bbfd576b29ee6a145f322d20951b2e9f03b487f",
+      "png_sha256": "e44fc491aac60fcc6294333ff44e71d80270111afd74b7a71148089023475df0",
+      "render_file": "tool-preview-root-shell-hint.render.json.gz",
+      "render_sha256": "10087a3e31ed8dd376b3f0f2cb416ca3dfa13cdd859472878bd62f8289fb0ab8",
+      "text_file": "tool-preview-root-shell-hint.txt.gz",
+      "text_sha256": "0b061e59a3eda28f43a68eb09ba1bdb6c39ad996dd57829fd3a0749cee661332",
+      "vt_file": "tool-preview-root-shell-hint.vt.gz",
+      "vt_sha256": "aeaf89cc10094a1713047131538a01e617a27387a45d5590d151975e03131f4b",
+      "path": "upstream/tool-preview-root-shell-hint"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-background-footer-80.cells.json.gz",
+      "cells_sha256": "9a53d24e628330b86cf6e2bad0aaca774f40efb756bb1e89a6fdd3035a42509e",
+      "png_sha256": "1ef40ce098cda3faddeeb3f07d29c35ccd7c1664d64b3d7ae26866941d9f04da",
+      "render_file": "tool-preview-root-background-footer-80.render.json.gz",
+      "render_sha256": "f6e586b44ac0f9deca384f1589e3b730a2897023eba930c6a90c208bc4d093d5",
+      "text_file": "tool-preview-root-background-footer-80.txt.gz",
+      "text_sha256": "48e53104db9f3a112e228bb9a5722743bdad094075b57ca82c72f6be18ef1e9a",
+      "vt_file": "tool-preview-root-background-footer-80.vt.gz",
+      "vt_sha256": "c92e6e77c883aa4e251843d54df65072538235e2b5871252f31055aa1cdb5a55",
+      "path": "upstream/tool-preview-root-background-footer-80"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-background-footer-120.cells.json.gz",
+      "cells_sha256": "cfdd556cbb035a38d7da5caf4382b456e8ea56f099985705a2edbf1d6f6bbdcf",
+      "png_sha256": "83f0bf438034418f2b7e7d3f245399caea226c61934b6a6e0acfb905f1e187d1",
+      "render_file": "tool-preview-root-background-footer-120.render.json.gz",
+      "render_sha256": "60139285eaf8f40cc7256da60df5495ff2f15eb250ccc20691ecf18cc51a460d",
+      "text_file": "tool-preview-root-background-footer-120.txt.gz",
+      "text_sha256": "5c3878f34451f35c5d4d1111e7a6d3101ecc843b45650d156b864dd1d3beceed",
+      "vt_file": "tool-preview-root-background-footer-120.vt.gz",
+      "vt_sha256": "f9c167723301141cf9d7577f3e511a959a496fd5e44ce54b6bf7f8289681d3a6",
+      "path": "upstream/tool-preview-root-background-footer-120"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-background-footer-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-background-footer-160.cells.json.gz",
+      "cells_sha256": "1b4b54edbcb6ea7beb2b865aa0dc3574c38db45cc54df7de77e5e839102504eb",
+      "png_sha256": "dfb5b454d264c10e711ec42d4fe4f6fb749bd94a2310a13940114ce28d4191a5",
+      "render_file": "tool-preview-root-background-footer-160.render.json.gz",
+      "render_sha256": "d911e3c3d5e99ffca0bbfa6cc7f87691eccbc6a346c147c39348a1db74dcab66",
+      "text_file": "tool-preview-root-background-footer-160.txt.gz",
+      "text_sha256": "df3204b81757186ed9fcd1123fc0ffb76698ae05eb113e2a511cf44c1a495ccc",
+      "vt_file": "tool-preview-root-background-footer-160.vt.gz",
+      "vt_sha256": "75f3701389eadf8d0201665553f4629df2c0e4c5d6c6ca968f0bbd69f5bee197",
+      "path": "upstream/tool-preview-root-background-footer-160"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-root-handoff-final",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-final.cells.json.gz",
+      "cells_sha256": "6b6ab1f72a9e7c7b2aabde151cc3c1fd66aae7bcf0b67582bb369dbc9c1b8121",
+      "png_sha256": "01f584f1f20f9fad68153316a4a37776f221fd8333b84d0d153c62fba1c0b605",
+      "render_file": "tool-preview-root-handoff-final.render.json.gz",
+      "render_sha256": "7d2745a158bdc87287fffc358205208e1759c61dbb41b823eeb681f4d4063937",
+      "text_file": "tool-preview-root-handoff-final.txt.gz",
+      "text_sha256": "926f6c5a39205001206d30531b26be44e13f0e4b241906118eacebbc271f630b",
+      "vt_file": "tool-preview-root-handoff-final.vt.gz",
+      "vt_sha256": "52132e398d7d5b74c3ac147f3709dafb6c6a9be5da04ca7b9ae8f3cd1fac9bf1",
+      "path": "upstream/tool-preview-root-handoff-final"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-handoff-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-home.cells.json.gz",
+      "cells_sha256": "bbf42e1cd16705b0dfc492f43655b8df128f208ab8adc88704b0293c98df8cae",
+      "png_sha256": "5a607909cd4a83ea6b87b808df23bae84a9a0e886438cc772252c6bb66208595",
+      "render_file": "tool-preview-root-handoff-home.render.json.gz",
+      "render_sha256": "445d99ff487dcbfce6d50a9c37042dc1bdc12684a5c97a878727e9f058c29647",
+      "text_file": "tool-preview-root-handoff-home.txt.gz",
+      "text_sha256": "2da3d1c0d469593eb94c9548908e67073cfa198eee4da1bc5041e487fe6554eb",
+      "vt_file": "tool-preview-root-handoff-home.vt.gz",
+      "vt_sha256": "d4c13a4f4a76194da1a764b91617244bf571f115f27116d9526b5ba2dbfca65d",
+      "path": "oc/tool-preview-root-handoff-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-hint-120.cells.json.gz",
+      "cells_sha256": "4217f3451519b9b772c192aee45f4cf67abb9932bd599a2f9bce6bc5866297be",
+      "png_sha256": "d6f6de342859a3a0c8156084a7e107628d880a210ea1d44f6334098bb34e7ab7",
+      "render_file": "tool-preview-root-child-hint-120.render.json.gz",
+      "render_sha256": "57cf1a95f830e43eca5c3bccd1e9d93e7bccc10b6d78b6b0c0bf4c5dbe515e83",
+      "text_file": "tool-preview-root-child-hint-120.txt.gz",
+      "text_sha256": "a82bce2b1e0211be6fdc8b06f82e9764e983ed2bb04afb308f9bb38d90ffa8fa",
+      "vt_file": "tool-preview-root-child-hint-120.vt.gz",
+      "vt_sha256": "dd41e01bb361be0f0d6b2b7d8bfef168336e1fc59a0f5cd7a672ba6969f18dfe",
+      "path": "oc/tool-preview-root-child-hint-120"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-child-hint-80.cells.json.gz",
+      "cells_sha256": "094687e638dfbd930af6657864ff597b8d8520d6404f7a2c4c48610d5a7f1b26",
+      "png_sha256": "bc27ad949c4b996b5dd31c0fb135406755b695041dea193c8123266595511464",
+      "render_file": "tool-preview-root-child-hint-80.render.json.gz",
+      "render_sha256": "2e29dc0abbf539b6e406e10326514dd6c3bbac0d16da4372fb1edaee6b41a62e",
+      "text_file": "tool-preview-root-child-hint-80.txt.gz",
+      "text_sha256": "43f47d0b5e02331bffc35ab0ae2317aae7b0ca8e81add77f8f91ced66f379ca2",
+      "vt_file": "tool-preview-root-child-hint-80.vt.gz",
+      "vt_sha256": "900fb752a4a236cb382bd36af0679f27df07f577eff9eba69d7537390bd1cc05",
+      "path": "oc/tool-preview-root-child-hint-80"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-hint-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-child-hint-160.cells.json.gz",
+      "cells_sha256": "767973b324a789700bc4b77b8667ce786b2c953cefc59af13a4f73c0f2e49868",
+      "png_sha256": "8bec08422f812ed38e76c69b0ad896caa95da9b4871006711c0cf61e75c61962",
+      "render_file": "tool-preview-root-child-hint-160.render.json.gz",
+      "render_sha256": "85805a4171dd9a6cc13228188dd67c259de29e1ae005d7bbba7cba7f13a5f382",
+      "text_file": "tool-preview-root-child-hint-160.txt.gz",
+      "text_sha256": "20fed5f32fc849519c7b365a86e5dd3fca7032715405af69d72f4e1844ee3b49",
+      "vt_file": "tool-preview-root-child-hint-160.vt.gz",
+      "vt_sha256": "5579a3ac323b7ec584f9a67d77573f05de7d06a0c9681be76b7c3a05fa3bc955",
+      "path": "oc/tool-preview-root-child-hint-160"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-child-background",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-child-background.cells.json.gz",
+      "cells_sha256": "f4c2dd7c9320bb357d1e943cd5b2409b1025b0ad61db991fcbe283dfd5212f5a",
+      "png_sha256": "b2020578811ec22cdcbacbdaec52d8453faa070663fac466bc978d46a1b96c0e",
+      "render_file": "tool-preview-root-child-background.render.json.gz",
+      "render_sha256": "7d268e6a684fe6a0fb6348ef665a8669ec4370ef79306f2292b523e1501fdd73",
+      "text_file": "tool-preview-root-child-background.txt.gz",
+      "text_sha256": "03a1779c50512232344668a2b4eec87cc1dd0a3ecb6166f53d3363064bdf436a",
+      "vt_file": "tool-preview-root-child-background.vt.gz",
+      "vt_sha256": "3951e2d88fff6fec9195ad08cd9544b88ef9cef1d1dd9f26063b025e35391ca9",
+      "path": "oc/tool-preview-root-child-background"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-shell-hint",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-shell-hint.cells.json.gz",
+      "cells_sha256": "02bcb55acaefbc67f010f66b8f3b57fd670b3d4971a5ce61c1a7651976fed7bc",
+      "png_sha256": "154dd87a1cec9efb200b4096bf9e1983d78bd1006410fab6f7878ddee36381b9",
+      "render_file": "tool-preview-root-shell-hint.render.json.gz",
+      "render_sha256": "90328354970ad8024cf007130d3ec876a53b7b62099f4cd45eaa18badac6a850",
+      "text_file": "tool-preview-root-shell-hint.txt.gz",
+      "text_sha256": "a435dde55f41dde727804a2709c9bcecee8d3f1620fd32a39ac4cbd7c3ca1cd3",
+      "vt_file": "tool-preview-root-shell-hint.vt.gz",
+      "vt_sha256": "b8c1e9747dfe76fe4ce5014a0043c4a221d52791af5a0af28dfe3f3ee85a9666",
+      "path": "oc/tool-preview-root-shell-hint"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-80",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "1ddeb04b957a7322e88cf3323e628950cb53d3257a5283fdf2c969b7a43f52e6",
+      "cells_file": "tool-preview-root-background-footer-80.cells.json.gz",
+      "cells_sha256": "84f6b46ef29a95238baedf2cf1fe803846de1d69c23ed5cd0044a49f079828c7",
+      "png_sha256": "e85e1266221d8e94c655134e95ed8f9db11f92fa8580af16703557652e17bd01",
+      "render_file": "tool-preview-root-background-footer-80.render.json.gz",
+      "render_sha256": "11718bb3165a8343b1e86221b78f42bac6fdf0100957fb58e90d82a54f8c2120",
+      "text_file": "tool-preview-root-background-footer-80.txt.gz",
+      "text_sha256": "aaedc956bdc96676f26e475183d33c23e7608b4c31467d3db769f15e1840a552",
+      "vt_file": "tool-preview-root-background-footer-80.vt.gz",
+      "vt_sha256": "c37bd963afbeb482411c02fd8af8ef0e83661602e6909e8dba20f550eb07e168",
+      "path": "oc/tool-preview-root-background-footer-80"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-120",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-background-footer-120.cells.json.gz",
+      "cells_sha256": "0088a32ddba150acdba0783996120b87db39cc924d09e9bbae2a1d24704ca058",
+      "png_sha256": "d8949dc470348643cf460334ded1c9279d8f5c5ff4a4331491ab6d33e60d84c9",
+      "render_file": "tool-preview-root-background-footer-120.render.json.gz",
+      "render_sha256": "2158f6112fe586aea3d4a083e8a25891ece228a227c1f3548c93c7efd844b784",
+      "text_file": "tool-preview-root-background-footer-120.txt.gz",
+      "text_sha256": "84fd265370445e40402d8577795256b28ef00352893b518917bf88088e37d71a",
+      "vt_file": "tool-preview-root-background-footer-120.vt.gz",
+      "vt_sha256": "5a8d60fc74d8716e2f75c368af19c047cd7aef44bec68fcc650440efeacec786",
+      "path": "oc/tool-preview-root-background-footer-120"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-background-footer-160",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "93d2ec2224f661e443804079f58f62708b1a64134f4c83c0cc5f39bae8030a02",
+      "cells_file": "tool-preview-root-background-footer-160.cells.json.gz",
+      "cells_sha256": "baee54c64e6456dcd0b3d498682334f4ccb6c76aa37b33117d2f942e24ff300c",
+      "png_sha256": "33dbdfa1558dedce9c50d0fbcb6df194cc2845097586d305a69f885b3a9070bf",
+      "render_file": "tool-preview-root-background-footer-160.render.json.gz",
+      "render_sha256": "096b38a1ae82c2a2957f53a44d1c037e0211ad2e547900f08a5a602dd22f9091",
+      "text_file": "tool-preview-root-background-footer-160.txt.gz",
+      "text_sha256": "8c6b875ac17c1c9b1fa15504101ddcb093c101f4486718fe1c2b7c1820001f20",
+      "vt_file": "tool-preview-root-background-footer-160.vt.gz",
+      "vt_sha256": "c96e596221ebce8dacfe9a56615bc0cca35481e8c7b4f706ca543136cd56ec1f",
+      "path": "oc/tool-preview-root-background-footer-160"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-root-handoff-final",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-root-handoff-final.cells.json.gz",
+      "cells_sha256": "5c27caec68541e462b57d87a1c500dad025651013aa228f0a5a9aa4ab8a9fa19",
+      "png_sha256": "1ae0aba0359d92bf7217ffdd8b3846c634f9cfe798f54ba7565fa0489e6446b8",
+      "render_file": "tool-preview-root-handoff-final.render.json.gz",
+      "render_sha256": "f32dca725c85d0065cea9a10eb422c7d4e4263a0333df2a3cf950d065e5c738a",
+      "text_file": "tool-preview-root-handoff-final.txt.gz",
+      "text_sha256": "04aba26b0f764cc54de4034af028e53476f2df41cba0d3e1a1f8e7372294658d",
+      "vt_file": "tool-preview-root-handoff-final.vt.gz",
+      "vt_sha256": "b315b3ae1a8fe87c1a089b2ad33b336f8070fb6df8d39329fdbf28e5e6d56d7d",
+      "path": "oc/tool-preview-root-handoff-final"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "a38c7b48bced93bbd104f61a5ccaffd6f2bf47a4b3014f0a54d60aaa4809227e",
+      "cells_file": "tool-preview-failure.cells.json.gz",
+      "cells_sha256": "e66a1e022493bec64a3df4bdd20e874ccd03fd6543d2298d85253d2528f13f97",
+      "png_sha256": "1ae0aba0359d92bf7217ffdd8b3846c634f9cfe798f54ba7565fa0489e6446b8",
+      "render_file": "tool-preview-failure.render.json.gz",
+      "render_sha256": "55c5d756d676fa1324880a19bcfe327f3b0a434581f7fb47d720f9f5d66ac121",
+      "text_file": "tool-preview-failure.txt.gz",
+      "text_sha256": "04aba26b0f764cc54de4034af028e53476f2df41cba0d3e1a1f8e7372294658d",
+      "vt_file": "tool-preview-failure.vt.gz",
+      "vt_sha256": "b315b3ae1a8fe87c1a089b2ad33b336f8070fb6df8d39329fdbf28e5e6d56d7d",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": null,
+    "user_shell": false,
+    "combined_composer": true,
+    "model_shell": false,
+    "subagent_cards": false,
+    "root_handoff": true,
+    "cells_encoding": "gzip",
+    "frame_sidecars_encoding": "gzip",
+    "same_side_identical_png_links": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "PASS_BEHAVIOR_ONLY",
+      "stages": [
+        {
+          "stage": "root-handoff-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-background",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-shell-hint",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-handoff-final",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 9,
+          "calls": 3,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "composer": {
+        "status": "PASS_BEHAVIOR_ONLY",
+        "initial": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-child-foreground-1791594408728",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first"
+                ],
+                "bytes": 6,
+                "sha256": "b640e840b19d378660b32fb51ae18d67dccb4a8596a29e7bd72c1b2ae5928f41"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": false
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "parent_id": null,
+                      "time_created": 1791594408016
+                    },
+                    {
+                      "id": "ses_edca6d6d9ffeC90QkjjYZ5VJgY",
+                      "parent_id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "time_created": 1791594408237
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "second": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-own-shell-foreground-1791594420741",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "parent_id": null,
+                      "time_created": 1791594408016
+                    },
+                    {
+                      "id": "ses_edca6d6d9ffeC90QkjjYZ5VJgY",
+                      "parent_id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "time_created": 1791594408237
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "converted": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-converted",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "parent_id": null,
+                      "time_created": 1791594408016
+                    },
+                    {
+                      "id": "ses_edca6d6d9ffeC90QkjjYZ5VJgY",
+                      "parent_id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "time_created": 1791594408237
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "settled": {
+          "kind": "tool_preview_snapshot",
+          "request_id": "root-handoff-child-settled-1791594439585",
+          "observations": [
+            {
+              "tables": [
+                "account",
+                "account_state",
+                "control_account",
+                "credential",
+                "event",
+                "event_sequence",
+                "instruction_blob",
+                "instruction_entry",
+                "instruction_state",
+                "kv",
+                "migration",
+                "permission",
+                "project",
+                "project_directory",
+                "session_inbox",
+                "session_message",
+                "session_pending",
+                "session_v2",
+                "workspace",
+                "worktree"
+              ],
+              "data": {}
+            }
+          ],
+          "artifacts": {},
+          "shell_effect": null,
+          "composer": {
+            "effects": {
+              "started": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "completed": {
+                "lines": [
+                  "first",
+                  "second"
+                ],
+                "bytes": 13,
+                "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+              },
+              "terminal": {
+                "lines": [],
+                "bytes": 0,
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              }
+            },
+            "ready": {
+              "first": true,
+              "second": true
+            },
+            "observations": [
+              {
+                "tables": [
+                  "account",
+                  "account_state",
+                  "control_account",
+                  "credential",
+                  "event",
+                  "event_sequence",
+                  "instruction_blob",
+                  "instruction_entry",
+                  "instruction_state",
+                  "kv",
+                  "migration",
+                  "permission",
+                  "project",
+                  "project_directory",
+                  "session_inbox",
+                  "session_message",
+                  "session_pending",
+                  "session_v2",
+                  "workspace",
+                  "worktree"
+                ],
+                "data": {
+                  "sessions": [
+                    {
+                      "id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "parent_id": null,
+                      "time_created": 1791594408016
+                    },
+                    {
+                      "id": "ses_edca6d6d9ffeC90QkjjYZ5VJgY",
+                      "parent_id": "ses_edca6d7c9ffeHfKlGbGrhzKZqc",
+                      "time_created": 1791594408237
+                    }
+                  ]
+                }
+              }
+            ],
+            "read_only_sqlite": true
+          },
+          "mcp_lifecycle": [],
+          "mcp_calls": []
+        },
+        "actual_calls": 3,
+        "actual_requests": 9,
+        "root_prompt_remapped_key": "ctrl+y",
+        "preserved_source_and_process": true,
+        "nested_child_shell_not_root_target": true,
+        "no_effect_replay": true,
+        "scopes": "Both sides use their actual focused Root remapped background binding; no composer/viewer shortcut or API view injection. Native delay uses actual live receipt time, original its stored part start."
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "root-handoff-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-hint-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "root-child-background",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-shell-hint",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 5,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-80",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 18,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-120",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-background-footer-160",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 42,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 5,
+          "calls": 3,
+          "checks": {}
+        },
+        {
+          "stage": "root-handoff-final",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 28,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 6,
+          "calls": 3,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "reason": "Root handoff lacked actual final frozen flushes/no-PTY facts",
+      "failure_cursor": {
+        "x": 28,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_COMPOSER_ONLY",
+    "actual_requests": "Actual Root remapped foreground Subagent then Shell hints/handoff, same source/process and custom profile footer across three geometries; local fake Responses only",
+    "capture": "Each full grid/PNG is taken after the existing owned process-group pause/drain ACK and resumed immediately; no cross-binary phase alignment or animation-cadence claim",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Other VIS39 and full frozen T44 outcomes require independent qualification"
+    ]
+  },
+  "finished": "2026-10-10T01:08:09.058Z",
+  "exit_code": 1
+}

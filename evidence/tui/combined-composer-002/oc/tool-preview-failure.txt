@@ -1,0 +1,40 @@
+   Inspect child shell                                                                                                  
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ python3 composer-probe.py first                                                                                  
+  ┃                                                                                                                     
+  ┃  (63 earlier lines)                                                                                                 
+  ┃  VIS39-ROW-076                                                                                                      
+  ┃  VIS39-ROW-077                                                                                                      
+  ┃  VIS39-ROW-078                                                                                                      
+  ┃  VIS39-ROW-079                                                                                                      
+  ┃  VIS39-FINAL-FLUSH-first                                                                                            
+  ┃  [stderr]                                                                                                           
+  ┃  VIS39-STDERR-first                                                                                                 
+  ┃                                                                                                                     
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  $ python3 composer-probe.py second · Capture incomplete · /cards                                                   
+  ┃                                                                                                                     
+  ┃  (66 earlier lines)                                                                                                 
+  ┃  VIS39-ROW-077                                                                                                      
+  ┃  VIS39-ROW-078                                                                                                      
+  ┃  VIS39-ROW-079                                                                                                      
+  ┃  [stderr]                                                                                                           
+  ┃  VIS39-STDERR-second                                                                                                
+  ┃                                                                                                                     
+  ┃  Command cancelled.                                                                                                 
+  ┃                                                                                                                     
+                                                                                                                        
+     VIS39-CHILD-DONE                                                                                                   
+                                                                                                                        
+     Helper · MiMo-V2.6-Flash Free · 43.5s                                                                              
+                                                                                                                        
+  ┃                                                                                                                     
+  ┃  Subagents  Shell  Terminals                                                                                 esc    
+  ┃                                                                                                                     
+  ┃  No shell commands                                                                                                  
+  ┃▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀  
+  ┃…/tabs ←/→-…/opencode/t44-reference/runs/combined-composer-002/project  1.3K (1%)  ctrl+p commands  Preview limited  
+  ┃                                                                                                                     

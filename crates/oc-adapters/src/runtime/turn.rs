@@ -1007,6 +1007,9 @@ impl<'a> Runtime<'a> {
         compress_available: bool,
     ) -> Result<RuntimePolicy<'p>, AdmissionFailure> {
         use oc_core::approval::*;
+        if issuing.id < self.explicit_reload_generation.load(Ordering::Acquire) {
+            return Err(AdmissionFailure::Reloaded);
+        }
         let raw = crate::tools::permission_resources(call).map_err(|e| e.to_string())?;
         let resources: Vec<_> = raw
             .iter()
@@ -1171,6 +1174,7 @@ impl<'a> Runtime<'a> {
                 ApprovalDecision::Reject { feedback: None } => {
                     return Err(AdmissionFailure::Rejected(None));
                 }
+                ApprovalDecision::Reloaded => return Err(AdmissionFailure::Reloaded),
                 ApprovalDecision::Cancelled => return Err(AdmissionFailure::Cancelled),
             }
         }
@@ -4360,6 +4364,12 @@ impl<'a> Runtime<'a> {
                         serde_json::json!({"status":"permission_cancelled"}).to_string(),
                     ))
                 }
+                Assembled::Call(_) if matches!(&admission, Err(AdmissionFailure::Reloaded)) => {
+                    Some((
+                        "failed",
+                        serde_json::json!({"status":"reloaded"}).to_string(),
+                    ))
+                }
                 Assembled::Call(_) if admission.is_err() => Some((
                     if is_builtin(name) { "failed" } else { "denied" },
                     format!(
@@ -4945,7 +4955,11 @@ impl<'a> Runtime<'a> {
                                     .expect("typed question result"),
                                 )
                             }
-                            Ok(_) => {
+                            Ok(QuestionDecision::Reloaded) => (
+                                "failed",
+                                serde_json::json!({"status":"reloaded"}).to_string(),
+                            ),
+                            Ok(QuestionDecision::Answers(_)) | Ok(QuestionDecision::Cancelled) => {
                                 cancel.store(true, Ordering::Release);
                                 permission_rejected = true;
                                 ("cancelled", "error: question dismissed".into())

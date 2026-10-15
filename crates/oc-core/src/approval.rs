@@ -57,7 +57,11 @@ pub struct ApprovalRequest {
 pub enum ApprovalDecision {
     Once,
     Always,
-    Reject { feedback: Option<String> },
+    Reject {
+        feedback: Option<String>,
+    },
+    /// The owning Location explicitly published a replacement source view.
+    Reloaded,
     Cancelled,
 }
 
@@ -138,6 +142,17 @@ impl ApprovalQueue {
             .map_err(|_| "cancelled approval")
     }
     pub fn cancel(&self, session: Option<&str>, events: &broadcast::Sender<CoreEvent>) {
+        self.settle(session, events, ApprovalDecision::Cancelled);
+    }
+    pub fn reload(&self, session: Option<&str>, events: &broadcast::Sender<CoreEvent>) {
+        self.settle(session, events, ApprovalDecision::Reloaded);
+    }
+    fn settle(
+        &self,
+        session: Option<&str>,
+        events: &broadcast::Sender<CoreEvent>,
+        decision: ApprovalDecision,
+    ) {
         let requests = self.pending();
         for request in requests
             .into_iter()
@@ -147,7 +162,7 @@ impl ApprovalQueue {
                 ApprovalReply {
                     id: request.id,
                     binding: request.binding,
-                    decision: ApprovalDecision::Cancelled,
+                    decision: decision.clone(),
                 },
                 events,
             );
@@ -347,5 +362,29 @@ mod tests {
                 ..
             }
         ));
+    }
+    #[tokio::test]
+    async fn explicit_reload_distinctly_settles_only_the_open_waiter() {
+        let queue = Arc::new(ApprovalQueue::default());
+        queue.register_consumer(false);
+        let (events, mut rx) = broadcast::channel(8);
+        let job = tokio::spawn({
+            let queue = queue.clone();
+            let events = events.clone();
+            async move { queue.wait(request(), &events).await }
+        });
+        let CoreEvent::PermissionAsked(request) = rx.recv().await.unwrap() else {
+            panic!("approval readiness");
+        };
+        queue.reload(Some(&request.binding.session), &events);
+        assert_eq!(job.await.unwrap(), Ok(ApprovalDecision::Reloaded));
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            CoreEvent::PermissionResolved {
+                decision: ApprovalDecision::Reloaded,
+                ..
+            }
+        ));
+        assert!(queue.pending().is_empty());
     }
 }

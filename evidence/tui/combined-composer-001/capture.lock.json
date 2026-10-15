@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "started": "2026-10-09T05:11:11.540Z",
+  "runner_version": 1,
+  "runner_hashes": {
+    "capture.mjs": "46086df0440bd55072379eaef22e1a52acdf907d3bd61811258ab47542d66cd4",
+    "frontend.js": "3d5960cdba4803110b9aafb5b59dac01faf62bc08d11f21c65b4df4e9651ebb5",
+    "bridge.py": "a2836bce5425edc24bc4e4ad4c3d28f2e74bc3412d4605574d27c7880d0392c2",
+    "tool_preview.mjs": "0647d1f12c222cdd7cdf0eb37521e6a30458e27a0c48344b607de0efef19fecc",
+    "tool_preview_fixture.py": "a7d61a4a97719fb2d499f4cab8254dd61d5bfde0ae8e2b3bc132f21721c68486",
+    "tool_preview_mcp.py": "f661f7993f5e6a2a20008157309bb52b8874d2908f4f0efb066bbd78e71c769a",
+    "home_mcp.mjs": "508ad304f2322f01dd3407cba04678b03e7db9c74e86a7f5fa23be234e277979",
+    "composer.mjs": "a5d357d785816292d188b2b1f5ac56abaa7d8d6c38dc6c9840d773d33a095f51",
+    "composer_fixture.py": "e327a423a8406445d70c74d41a385ba6fac57181b18707b4d77beae6cba3fde2"
+  },
+  "fixture_sha256": "818fbe021436aff2a337b2494f83ec5ffb6d0daedcdc8411342cb2c43fdf630f",
+  "fixture_files": {
+    "README.md": "ef8007d0f390245239814da547203b6f5ee26377e415bb084ab047d762576ae9",
+    "input.txt": "0a819ce3b3542c61e417c8dae8fa87b22c264260197975f29324f9aab6b1d5ba",
+    "model-catalog.json": "2771c3a68dfd63f8dcca64584b60014aac894dc9a60dcfa847350f58616abf8b",
+    "scenarios.json": "cc9ea757fa332374a992d35192f9aff542d2096b808d2e1f07a612b5ad7f2805",
+    "transcript.md": "0fca560ba44e9f17fbaf2fa55f6343c9b3211964963a6bb66ce9104fe9d39ba9",
+    "variant-dialog.json": "a723142202772879567fa00f7d88f0e9ca56358915f58e962dbfc0b60700a923"
+  },
+  "oc": {
+    "commit": "3c24f6510b00ceecd8f8fb408bcf55a65150b093",
+    "tree": "424663652d49d32d9ddf359f78dd706be41410ce",
+    "dirty_diff_sha256": "6357b5239aabfa11d9b17fa37a61b12086721257f40a177683ae227e4167c3c5",
+    "source_manifest_sha256": "62c68dbceb644554286501972c4ab3b2a7608f1907fda82c19083fce42c99733",
+    "build_command": [
+      "cargo",
+      "build",
+      "--locked"
+    ],
+    "executable_path": "/home/opencode/ai/oc/target/debug/oc",
+    "executable_sha256": "326f5565674c2e9bfc45729b546a070426879e0fb0df6aeeb119d8b12ac06b91",
+    "version": "oc 0.1.0"
+  },
+  "sources": {
+    "upstream_commit": "2670273ff17da96f85c5826ced57aa1b368754fa"
+  },
+  "attempts": [
+    {
+      "scenario": "tool-preview-composer-home",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-composer-home",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "grid",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-failure",
+      "mode": "png",
+      "status": "DIFFERENT",
+      "exit_code": 1
+    },
+    {
+      "scenario": "tool-preview-composer-parent-subagents",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-parent-subagents",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-parent-draft",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-parent-draft",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-child-subagents",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-child-subagents",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-child-shell",
+      "mode": "grid",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    },
+    {
+      "scenario": "tool-preview-composer-child-shell",
+      "mode": "png",
+      "status": "BLOCKED",
+      "reason": "Missing actual capture"
+    }
+  ],
+  "captures": [
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-composer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "596a7e26e7239a4a71280a2440f348d04198949f270c87f8446b5206377ff0b3",
+      "png_sha256": "5fa940f35756e7d9d99c19941b2322eaba6078b73d92a6c43d36a417bbdcc92d",
+      "render_sha256": "f4f9602d58abebdc947b56f085d3d38dd4c1cdd2968c1150defa8c0dac84acd9",
+      "path": "upstream/tool-preview-composer-home"
+    },
+    {
+      "origin": "upstream",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "d9fb7d5cc9b0f46d2c71b6f16ff094ab8a185c5a2f285879839d9bf984ad1cee",
+      "png_sha256": "a7e11e742037a4fc8fa4cbd35c8b326693475a2c173a01bb8570bbfc7e025f9e",
+      "render_sha256": "4500d7bf0959641bb1ea3ab54dadc3dab1cf180ca505286c1e00b036d320d598",
+      "path": "upstream/tool-preview-failure"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-composer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "8fd550ecef2e022f8dfebabf73627f46a367a7581b3eb733dd7134106d702975",
+      "png_sha256": "846766e7e53fdb2e9426833bf374b97a93abf961194f3b554f144d9cb632a1c0",
+      "render_sha256": "cef24fd5835eed4c4b83c3aced9973bbd5149c21f7efd94edd8bfecf7fd6f2a6",
+      "path": "oc/tool-preview-composer-home"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-composer-parent-subagents",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "16b840f59640d54481d87d983bdb12932ef1a583d3ece5bd8b0545f6a18f59c6",
+      "png_sha256": "cad6bd5729c0a0777959dc0011600974e5eb211d6a35c69528dfd2c7d3edb2d1",
+      "render_sha256": "3f02930a9e297a37c26bd9307967455a6463498e7516b3fbfaacbb93d46d7cfb",
+      "path": "oc/tool-preview-composer-parent-subagents"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-composer-parent-draft",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "99ce000fce31a62a217a30e50e55358d330c1b639990f9a8b2fa96db0aafcbd0",
+      "png_sha256": "37a0621ccc054a767c0edaa4d19615148d117d14f97cfd2ebe1bc90b8545744e",
+      "render_sha256": "dc012ada2ee04d400b75edb9d294f8fa6dce46cbecef53ba61fc60ed1c0d2580",
+      "path": "oc/tool-preview-composer-parent-draft"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-composer-child-subagents",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "75c43909ff9429532c052a0bcebc26517b19335869466b254b222733fef4a87d",
+      "png_sha256": "98cf2077a628ce9f7e01dc236eb9ce12abf321cd8f22e4538a65d7eaeb6f127f",
+      "render_sha256": "cd5811a72e0d0e43d2c73e16303dde36f0fd427353484c7b469f23dffd6cdd4d",
+      "path": "oc/tool-preview-composer-child-subagents"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-composer-child-shell",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "93461b0356b16be16ef016c5d0c0eb96e67e6a6976e71e89dd5212becc0e56b2",
+      "png_sha256": "98cf2077a628ce9f7e01dc236eb9ce12abf321cd8f22e4538a65d7eaeb6f127f",
+      "render_sha256": "13ccb93c5ac026cb8edc410d3e7a7166871d11741f9697b16f99f8e5711aec3b",
+      "path": "oc/tool-preview-composer-child-shell"
+    },
+    {
+      "origin": "oc",
+      "scenario": "tool-preview-failure",
+      "status": "FAILED_STATE",
+      "environment_id": "253943e0f7ec19f4b7031de668e637c22f5e504dd418a6f5367b4c21db39ac8c",
+      "cells_sha256": "65a996506a347a2e8d33ac26c4daffd2c63f6dbd9d7c50d3fbb6053f9d4d09bc",
+      "png_sha256": "2975e6ca3809dfadcb90f0771c794ac914823d7d6bdf498c7a75446c51fe41b2",
+      "render_sha256": "d25bcff855c993ea364e57e3b6d90a47b743945d207e819b26054e873748a70d",
+      "path": "oc/tool-preview-failure"
+    }
+  ],
+  "upstream": {
+    "executable_path": "/home/opencode/.cache/opencode-tmp/opencode/t44-reference/package/bin/opencode",
+    "executable_sha256": "2b0825721cb12f9bca3d5099588087d557a21ed2b5b56efebea3f17dc5f79e6a",
+    "version": "opencode v2.0.12"
+  },
+  "profile": {
+    "frontend": "@xterm/xterm",
+    "frontend_version": "6.0.0",
+    "vt_parser": "xterm.js 6.0.0",
+    "chromium_version": "145.0.7632.6",
+    "playwright_version": "1.58.2",
+    "font_family": "DejaVu Sans Mono",
+    "font_match": "DejaVu Sans Mono|Book|/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf|155320",
+    "fallback_fonts": null,
+    "font_size": 14,
+    "device_scale_factor": 1,
+    "dpi": 96,
+    "padding": 0,
+    "opacity": 1,
+    "ligatures": false,
+    "columns": 120,
+    "rows": 40,
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "locale": "C.UTF-8",
+    "cursor_blink": false,
+    "cursor_temporal": null,
+    "cursor_renderer": "dom",
+    "cursor_case": "collapsed",
+    "cursor_sync": "supported",
+    "mcp_status": false,
+    "mcp_footer": null,
+    "prompt_caret": false,
+    "prompt_history": null,
+    "user_shell": false,
+    "combined_composer": true,
+    "refresh_before_capture": false,
+    "unicode_width_policy": "@xterm/addon-unicode11 0.9.0 (Unicode 11)",
+    "settings": {
+      "theme": "opencode",
+      "mode": "dark",
+      "sidebar": "hide",
+      "devtools": false,
+      "tabs": "horizontal",
+      "clock_policy": "real application wall clock; fixed provider created_at; no masking or clock claim",
+      "animations": "original supported animations=false; completed states only; terminal cursorBlink=false"
+    }
+  },
+  "tool_preview": {
+    "upstream": {
+      "origin": "upstream",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "composer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "reason": "Timed out waiting for composer-parent-subagents",
+      "failure_cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": true,
+        "shape": "block"
+      }
+    },
+    "oc": {
+      "origin": "oc",
+      "status": "FAILED",
+      "stages": [
+        {
+          "stage": "composer-home",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 26,
+            "y": 21,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 0,
+          "calls": 0,
+          "checks": {}
+        },
+        {
+          "stage": "composer-parent-subagents",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 15,
+            "y": 0,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 3,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "composer-parent-draft",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 30,
+            "y": 34,
+            "visible": true,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "composer-child-subagents",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 101,
+            "y": 38,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 2,
+          "checks": {}
+        },
+        {
+          "stage": "composer-child-shell",
+          "status": "CAPTURED_TOOL_PREVIEW",
+          "cursor": {
+            "x": 53,
+            "y": 38,
+            "visible": false,
+            "shape": "block"
+          },
+          "requests": 4,
+          "calls": 2,
+          "checks": {}
+        }
+      ],
+      "differences": [
+        "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+      ],
+      "reason": "Timed out waiting for composer-output-running",
+      "failure_cursor": {
+        "x": 101,
+        "y": 38,
+        "visible": false,
+        "shape": "block"
+      }
+    }
+  },
+  "qualification": {
+    "status": "DIAGNOSTIC_TOOL_PREVIEW_ONLY",
+    "actual_requests": "Two large real MCP calls, real command shell and genuine MCP isError; same configured12 lines/1024 bytes; local fake Responses only",
+    "replay": "Actual UI switch/reopen/restart with read-only SQLite/artifact/call audit",
+    "unresolved": [
+      "Whole-grid/PNG/cursor differences remain unmasked",
+      "Native 2048-byte presentation and compact status are disclosed differences",
+      "Actual history multi-page traversal and capture fault matrices remain separate gates"
+    ]
+  },
+  "finished": "2026-10-09T05:12:15.914Z",
+  "exit_code": 1
+}

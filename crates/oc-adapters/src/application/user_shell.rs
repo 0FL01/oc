@@ -21,6 +21,8 @@ pub(super) async fn run(
     inbox: &mut mpsc::Receiver<InboxMsg>,
     pending_inputs: &mut std::collections::VecDeque<InboxMsg>,
     title_rx: &mut mpsc::Receiver<AutomaticTitleResult>,
+    provider_work: &mut provider_catalog::ProviderWork,
+    reload_work: &mut reload::Coordinator,
     message: InboxMsg,
 ) -> Result<bool, oc_core::queries::ServiceDiagnostic> {
     let InboxMsg::UserShell {
@@ -114,7 +116,14 @@ pub(super) async fn run(
         );
         tokio::pin!(operation);
         loop {
+            reload_work.start(db, runtime, composition);
             tokio::select! {
+                ready = reload_work.wait(), if !shutdown => {
+                    if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(
+                        ready, db, runtime, composition, effective, registry, sessions,
+                        location_epoch, provider_work, events, Some((&session.0, &selected)),
+                    ).await? { receipt.reply(); }
+                }
                 result = &mut operation => break result,
                 () = runtime.shell_jobs.changed() => {
                     runtime.shell_jobs.deliver(events).map_err(|error| storage_diagnostic(db.root(), &error))?;
@@ -143,7 +152,6 @@ pub(super) async fn run(
                     }
                     Some(message @ (InboxMsg::SwitchLocation { .. }
                         | InboxMsg::SwitchLocationHome { .. }
-                        | InboxMsg::ReloadLocation { .. }
                         | InboxMsg::ChangeConversation { .. })) => {
                         cancel.store(true, Ordering::Release);
                         runtime.cancel_pending_approvals();
@@ -153,6 +161,7 @@ pub(super) async fn run(
                         let _ = (&mut operation).await;
                         break Err(RuntimeError::Cancelled);
                     }
+                    Some(InboxMsg::ReloadLocation { ack }) => reload_work.request(ack),
                     Some(message) => query(
                         db, runtime, composition, effective, registry, sessions,
                         home_choices, location_epoch, suggestion_queue, title_work,

@@ -1082,6 +1082,7 @@ impl Runtime<'_> {
             current: self.current.clone(),
             publication_commit: self.publication_commit.clone(),
             child_launch: None,
+            explicit_reload_generation: self.explicit_reload_generation.clone(),
             active: AtomicBool::new(false),
             protected: self.protected.clone(),
             files: self.files.clone(),

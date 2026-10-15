@@ -93,6 +93,8 @@ pub struct QuestionRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QuestionDecision {
     Answers(Vec<Vec<String>>),
+    /// The owning Location explicitly published a replacement source view.
+    Reloaded,
     Cancelled,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -209,6 +211,17 @@ impl QuestionQueue {
             .map_err(|_| QuestionReplyError::Stale)
     }
     pub fn cancel(&self, session: Option<&str>, events: &broadcast::Sender<CoreEvent>) {
+        self.settle(session, events, QuestionDecision::Cancelled);
+    }
+    pub fn reload(&self, session: Option<&str>, events: &broadcast::Sender<CoreEvent>) {
+        self.settle(session, events, QuestionDecision::Reloaded);
+    }
+    fn settle(
+        &self,
+        session: Option<&str>,
+        events: &broadcast::Sender<CoreEvent>,
+        decision: QuestionDecision,
+    ) {
         for request in self
             .pending()
             .into_iter()
@@ -218,7 +231,7 @@ impl QuestionQueue {
                 QuestionReply {
                     id: request.id,
                     binding: request.binding,
-                    decision: QuestionDecision::Cancelled,
+                    decision: decision.clone(),
                 },
                 events,
             );

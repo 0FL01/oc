@@ -13,7 +13,9 @@ mod tui_cmd;
 
 use clap::Parser as _;
 
-#[tokio::main]
+// A small fixed pool keeps the native host responsive without scaling one
+// process's resident stack footprint with the machine's CPU count.
+#[tokio::main(worker_threads = 2)]
 async fn main() -> std::process::ExitCode {
     let args = cli::Args::parse();
     bootstrap::run(args).await

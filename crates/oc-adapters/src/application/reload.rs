@@ -2,6 +2,36 @@
 //! owns this operation through ACK; it never creates a replacement runtime/owner.
 use super::*;
 use std::collections::BTreeSet;
+use std::path::PathBuf;
+
+mod coordinator;
+pub(super) use coordinator::Coordinator;
+
+pub(super) struct BuildInputs {
+    project: PathBuf,
+    env: BTreeMap<String, String>,
+    local: Option<Arc<composition::ReloadInputs>>,
+    catalogs: composition::CatalogReuse,
+}
+
+impl BuildInputs {
+    fn capture(composition: &Composition) -> Self {
+        Self {
+            project: composition.project.clone(),
+            env: composition.parent_env.clone(),
+            local: composition.local_inputs.clone(),
+            catalogs: composition.catalog_reuse(),
+        }
+    }
+}
+
+pub(super) struct Candidate {
+    next: Box<Composition>,
+    previous: Option<Arc<composition::ReloadInputs>>,
+    epoch: u64,
+    force: bool,
+    noop: bool,
+}
 
 fn configuration(failure: composition::LoadFailure) -> CoreError {
     let issue = SpawnIssue::configuration(failure);
@@ -45,56 +75,6 @@ fn retained_selections(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(super) async fn replace(
-    db: &Db,
-    runtime: &Runtime<'_>,
-    composition: &mut Composition,
-    effective: &mut Effective,
-    registry: &mut WorkspaceRegistry,
-    sessions: &BTreeMap<String, String>,
-    location_epoch: &AtomicU64,
-    provider_work: &mut provider_catalog::ProviderWork,
-    events: &broadcast::Sender<CoreEvent>,
-    force: bool,
-) -> Result<ReloadLocationSnapshot, CoreError> {
-    // Until the shared watch/manual coordinator owns this observer, the existing
-    // explicit operation owns it through joined cleanup. Never detach a watch
-    // thread or allow a failed candidate to leave a background observer behind.
-    let watch = composition::SourceWatch::start(&composition.watch_inputs)
-        .map_err(CoreError::Diagnostic)?;
-    let ready = watch.changed().await;
-    let result = async {
-        if ready.failed {
-            return Err(superseded());
-        }
-        if ready.rearm {
-            watch
-                .reconcile(&composition.watch_inputs, true)
-                .await
-                .map_err(CoreError::Diagnostic)?;
-        }
-        replace_observed(
-            db,
-            runtime,
-            composition,
-            effective,
-            registry,
-            sessions,
-            location_epoch,
-            provider_work,
-            events,
-            &watch,
-            force,
-        )
-        .await
-    }
-    .await;
-    let cleanup = watch.shutdown().await;
-    cleanup.map_err(CoreError::Diagnostic)?;
-    result
-}
-
 fn superseded() -> CoreError {
     CoreError::Diagnostic(crate::config::diagnostic::failure(
         "native reload candidate",
@@ -105,27 +85,16 @@ fn superseded() -> CoreError {
     ))
 }
 
-#[allow(clippy::too_many_arguments)]
-async fn replace_observed(
+pub(super) async fn build(
     db: &Db,
-    runtime: &Runtime<'_>,
-    composition: &mut Composition,
-    effective: &mut Effective,
-    registry: &mut WorkspaceRegistry,
-    sessions: &BTreeMap<String, String>,
-    location_epoch: &AtomicU64,
-    provider_work: &mut provider_catalog::ProviderWork,
-    events: &broadcast::Sender<CoreEvent>,
-    watch: &composition::SourceWatch,
+    base: BuildInputs,
+    watch: &composition::Observation,
     force: bool,
-) -> Result<ReloadLocationSnapshot, CoreError> {
-    let mut next = composition::load_reload_local_with_env(
-        &composition.project,
-        composition.parent_env.clone(),
-    )
-    .await
-    .map_err(configuration)?;
-    if next.project != composition.project {
+) -> Result<Candidate, CoreError> {
+    let mut next = composition::load_reload_local_with_env(&base.project, base.env.clone())
+        .await
+        .map_err(configuration)?;
+    if next.project != base.project {
         return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
             "native source publication",
             &["location"],
@@ -141,30 +110,26 @@ async fn replace_observed(
         .map_err(CoreError::Diagnostic)?;
     // Closing the load→watch registration window is a local admitted rescan,
     // not a second discovery or an expanded read capability.
-    let ready_inputs = composition::load_reload_local_with_env(
-        &composition.project,
-        composition.parent_env.clone(),
-    )
-    .await
-    .map_err(configuration)?
-    .reload_inputs()
-    .map_err(configuration)?;
+    let ready_inputs = composition::load_reload_local_with_env(&base.project, base.env.clone())
+        .await
+        .map_err(configuration)?
+        .reload_inputs()
+        .map_err(configuration)?;
     if ready_inputs != admitted_inputs {
         return Err(superseded());
     }
     let epoch = watch.epoch();
-    if !force && next.local_inputs == composition.local_inputs {
+    let noop = !force && next.local_inputs == base.local;
+    if noop {
         // A topology repair is still meaningful even when admitted source values
         // are unchanged. Do not replace resolved credentials/catalogs or revive
         // a manually disconnected MCP client just to acknowledge such an edit.
-        composition.watch_inputs = next.watch_inputs;
-        let generation = location_epoch.load(Ordering::SeqCst);
-        return Ok(ReloadLocationSnapshot {
-            location: runtime.location().into(),
-            generation,
-            catalog: effective.snapshot(composition, generation),
-            diagnostics: composition.diagnostics.clone(),
-            notices: composition.startup_notices.clone(),
+        return Ok(Candidate {
+            next: Box::new(next),
+            previous: base.local,
+            epoch,
+            force,
+            noop,
         });
     }
     next.attach_custom_connections(db).map_err(configuration)?;
@@ -173,7 +138,7 @@ async fn replace_observed(
     let retained = if force {
         BTreeSet::new()
     } else {
-        next.retain_provider_catalogs(composition)
+        next.retain_catalog_reuse(&base.catalogs)
     };
     if force
         || [crate::models_dev::PROVIDER, crate::models_dev::OPENAI]
@@ -186,16 +151,55 @@ async fn replace_observed(
     // Discovery is bounded but can outlive a file replacement. Re-admission is
     // local-only: no second discovery, credentials, MCP activation or effects.
     // Compare original resolved inputs, never the remote-merged model catalog.
-    let current_inputs = composition::load_reload_local_with_env(
-        &composition.project,
-        composition.parent_env.clone(),
-    )
-    .await
-    .map_err(configuration)?
-    .reload_inputs()
-    .map_err(configuration)?;
+    let current_inputs = composition::load_reload_local_with_env(&base.project, base.env.clone())
+        .await
+        .map_err(configuration)?
+        .reload_inputs()
+        .map_err(configuration)?;
     if current_inputs != admitted_inputs || watch.epoch() != epoch {
         return Err(superseded());
+    }
+    Ok(Candidate {
+        next: Box::new(next),
+        previous: base.local,
+        epoch,
+        force,
+        noop,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn publish(
+    db: &Db,
+    runtime: &Runtime<'_>,
+    composition: &mut Composition,
+    effective: &mut Effective,
+    registry: &mut WorkspaceRegistry,
+    sessions: &BTreeMap<String, String>,
+    location_epoch: &AtomicU64,
+    provider_work: &mut provider_catalog::ProviderWork,
+    events: &broadcast::Sender<CoreEvent>,
+    watch: &composition::Observation,
+    candidate: Candidate,
+    active: Option<(&str, &Effective)>,
+) -> Result<ReloadLocationSnapshot, CoreError> {
+    if candidate.previous != composition.local_inputs || watch.epoch() != candidate.epoch {
+        return Err(superseded());
+    }
+    let Candidate {
+        next, force, noop, ..
+    } = candidate;
+    let next = *next;
+    if noop {
+        composition.watch_inputs = next.watch_inputs;
+        let generation = location_epoch.load(Ordering::SeqCst);
+        return Ok(ReloadLocationSnapshot {
+            location: runtime.location().into(),
+            generation,
+            catalog: effective.snapshot(composition, generation),
+            diagnostics: composition.diagnostics.clone(),
+            notices: composition.startup_notices.clone(),
+        });
     }
     if next.provider_state.catalog_status == oc_core::queries::ProviderStatus::Failed {
         let diagnostic = next
@@ -219,12 +223,14 @@ async fn replace_observed(
             composition
                 .provider_state
                 .retain_failed_attempt(&next.provider_state, same_binding);
-            runtime
-                .publish_provider_state(
-                    composition.provider_state.clone(),
-                    composition.request_provider(&composition.catalog.provider),
-                )
-                .map_err(runtime_error)?;
+            if active.is_none() {
+                runtime
+                    .publish_provider_state(
+                        composition.provider_state.clone(),
+                        composition.request_provider(&composition.catalog.provider),
+                    )
+                    .map_err(runtime_error)?;
+            }
             let _ = events.send(CoreEvent::ProviderChanged);
         }
         return Err(CoreError::ProviderUnavailable(diagnostic));
@@ -264,9 +270,16 @@ async fn replace_observed(
         composition.question_consumer.load(Ordering::SeqCst),
         Ordering::SeqCst,
     );
+    // A running root keeps its accepted session/profile identity. Resolve its
+    // contents against G2, never substitute the worker's Home/default profile.
+    let request_effective = if let Some((session, accepted)) = active {
+        selection::for_reload(db, &next, &next_effective, session, accepted)?
+    } else {
+        next_effective.clone()
+    };
     let input = crate::runtime::SourcePublication {
         generation: next.generation.clone(),
-        workspace: workspace_publication(&next, &next_effective),
+        workspace: workspace_publication(&next, &request_effective),
         dcp_config: next.dcp_config.clone(),
         dcp_protected: next.dcp_protected.clone(),
         provider_state: next.provider_state.clone(),

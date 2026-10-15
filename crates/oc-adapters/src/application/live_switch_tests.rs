@@ -410,6 +410,216 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
     }
 }
 
+#[tokio::test]
+async fn hot01_automatic_source_keeps_accepted_primary_and_pending_issued_approval() {
+    let root = tempfile::tempdir().unwrap();
+    let project = root.path().join("project");
+    let data = root.path().join("data");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(
+        project.join("note"),
+        "G1_FIRST\nG1_SECOND\nG1_SETTLED_LAST\n",
+    )
+    .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}/v1", listener.local_addr().unwrap());
+    let path = project.join("opencode.json");
+    let mut source = serde_json::json!({
+        "model":"fixture/exact", "disabled_providers":["opencode-go","openai"],
+        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"synthetic"},"models":{"exact":{}}}},
+        "agents":{"build":{"prompt":"DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"},"review":{"mode":"primary","description":"REVIEW_G1","prompt":"REVIEW_G1"}},
+        "permissions":{"read":"ask"}, "tool_output":{"max_lines":10}
+    });
+    std::fs::write(&path, source.to_string()).unwrap();
+    let (arrived, arrival) = oneshot::channel();
+    let (release, gate) = oneshot::channel();
+    let peer = tokio::spawn(async move {
+        let mut requests = Vec::new();
+        let mut arrived = Some(arrived);
+        let mut gate = Some(gate);
+        for step in 0..2 {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            let mut buffer = [0; 4096];
+            let boundary = loop {
+                let count = stream.read(&mut buffer).await.unwrap();
+                assert!(count > 0);
+                bytes.extend_from_slice(&buffer[..count]);
+                if let Some(end) = bytes.windows(4).position(|bytes| bytes == b"\r\n\r\n") {
+                    break end + 4;
+                }
+            };
+            let length = String::from_utf8_lossy(&bytes[..boundary])
+                .lines()
+                .find_map(|line| {
+                    line.to_ascii_lowercase()
+                        .strip_prefix("content-length:")
+                        .map(|length| length.trim().parse::<usize>().unwrap())
+                })
+                .unwrap();
+            assert!(length <= 1_048_576);
+            while bytes.len() < boundary + length {
+                let count = stream.read(&mut buffer).await.unwrap();
+                assert!(count > 0);
+                bytes.extend_from_slice(&buffer[..count]);
+            }
+            requests.push(
+                serde_json::from_slice::<serde_json::Value>(&bytes[boundary..boundary + length])
+                    .unwrap(),
+            );
+            if step == 0 {
+                arrived.take().unwrap().send(()).unwrap();
+                gate.take().unwrap().await.unwrap();
+            }
+            let output = if step == 0 {
+                serde_json::json!([
+                    {"type":"function_call","id":"read-item","call_id":"issued-read","name":"read","arguments":"{\"path\":\"note\"}"},
+                    {"type":"function_call","id":"question-item","call_id":"issued-question","name":"question","arguments":"{\"questions\":[{\"question\":\"Retain G1?\",\"header\":\"G1\",\"options\":[]}]}","status":"completed"}
+                ])
+            } else {
+                serde_json::json!([{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}])
+            };
+            let event = serde_json::json!({"type":"response.completed","response":{"status":"completed","output":output}});
+            let body = format!("data: {event}\n\n");
+            stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).as_bytes()).await.unwrap();
+        }
+        requests
+    });
+    let (app, guard, _) = spawn_with_env(
+        &project,
+        &data,
+        BTreeMap::from([
+            (
+                "HOME".into(),
+                root.path().join("home").to_string_lossy().into_owned(),
+            ),
+            ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),
+        ]),
+    )
+    .await
+    .unwrap();
+    app.register_approval_consumer(false).await.unwrap();
+    app.register_question_consumer().await.unwrap();
+    let session = SessionId::new("auto-review").unwrap();
+    app.create_session(session.clone()).await.unwrap();
+    app.rename_session(session.clone(), "fixed".into())
+        .await
+        .unwrap();
+    app.session_selection(session.clone(), false, Action::Agent("review".into()))
+        .await
+        .unwrap();
+    let mut events = app.subscribe();
+    app.submit(session.clone(), "one autonomous task".into())
+        .await
+        .unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(3), arrival)
+        .await
+        .unwrap()
+        .unwrap();
+    let first_generation = app.catalog().await.unwrap().chrome.selection_generation;
+    {
+        let label = "REVIEW_G2";
+        source["agents"]["review"]["prompt"] = label.into();
+        source["agents"]["review"]["description"] = label.into();
+        source["permissions"]["read"] = "deny".into();
+        source["tool_output"]["max_lines"] = 1.into();
+        std::fs::write(&path, source.to_string()).unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                let catalog = app.catalog().await.unwrap();
+                if catalog
+                    .agents
+                    .iter()
+                    .any(|agent| agent.id == "review" && agent.description == label)
+                {
+                    break;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            }
+        })
+        .await
+        .unwrap();
+    }
+    release.send(()).unwrap();
+    let approval = next_approval(&app).await;
+    source["agents"]["review"]["prompt"] = "REVIEW_G3".into();
+    source["agents"]["review"]["description"] = "REVIEW_G3".into();
+    std::fs::write(&path, source.to_string()).unwrap();
+    app.reload_location().await.unwrap();
+    assert_eq!(
+        app.pending_approvals().await.unwrap(),
+        Vec::<oc_core::approval::ApprovalRequest>::new()
+    );
+    assert_eq!(
+        app.pending_questions().await.unwrap(),
+        Vec::<oc_core::question::QuestionRequest>::new()
+    );
+    let requests = tokio::time::timeout(std::time::Duration::from_secs(5), peer)
+        .await
+        .unwrap()
+        .unwrap();
+    let mut reloaded = false;
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        loop {
+            match events.recv().await.unwrap() {
+                CoreEvent::PermissionResolved { request, decision }
+                    if request == approval
+                        && decision == oc_core::approval::ApprovalDecision::Reloaded =>
+                {
+                    reloaded = true;
+                }
+                CoreEvent::TurnFinished { .. } => break,
+                CoreEvent::TurnFailed { error, .. } => panic!("{error}"),
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        reloaded,
+        "explicit reload must distinctly settle the issued approval"
+    );
+    let last_generation = app.catalog().await.unwrap().chrome.selection_generation;
+    app.shutdown().await.unwrap();
+    guard.join().await.unwrap();
+    assert!(last_generation > first_generation);
+    assert!(requests[0]["input"].to_string().contains("REVIEW_G1"));
+    let followup = requests[1]["input"].to_string();
+    assert!(followup.contains("REVIEW_G3"));
+    assert!(!followup.contains("DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"));
+    assert!(followup.contains("reloaded"));
+    assert!(
+        !requests[1]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|tool| tool["name"] == "read")
+    );
+    let db = Db::open(&data).unwrap();
+    let history = db.read_history_full(&session.0).unwrap();
+    assert_eq!(history.len(), 2); // one accepted user and its assistant result
+    let conn = rusqlite::Connection::open(data.join("oc.sqlite")).unwrap();
+    let raw: String = conn
+        .query_row(
+            "SELECT result FROM turns WHERE session_id='auto-review' AND status='completed'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let log = crate::tools::TurnLog::from_json(&serde_json::from_str(&raw).unwrap()).unwrap();
+    assert_eq!(log.requests.len(), 2);
+    assert_ne!(log.requests[0].profile, log.requests[1].profile);
+    let counts: (i64, i64) = conn
+        .query_row(
+            "SELECT count(*),sum(state='completed') FROM tool_operations",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(counts, (2, 0));
+}
+
 async fn next_approval(app: &CoreApp) -> oc_core::approval::ApprovalRequest {
     tokio::time::timeout(std::time::Duration::from_secs(5), async {
         loop {

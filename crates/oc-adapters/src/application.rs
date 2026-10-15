@@ -1431,7 +1431,6 @@ enum WorkerOutcome {
         old_deck: oc_core::queries::TabDeckSnapshot,
         ack: oneshot::Sender<Result<oc_core::queries::SessionPickerOpen, CoreError>>,
     },
-    Reload(oneshot::Sender<Result<ReloadLocationSnapshot, CoreError>>),
     /// The owner asked to switch Location; the supervisor owns the rebuild.
     Switch {
         /// Target project path.
@@ -1464,19 +1463,20 @@ async fn start_worker(
     let authentication = authentication::new(&db);
     let response_channels = db.response_channels.clone();
     let authentication_location = composition.project.to_string_lossy().into_owned();
+    let mut reload_work = reload::Coordinator::default();
     // Keep the complete application state on its owning task's heap. Source
     // admission carries bounded but large immutable values; nested inline
     // futures must not duplicate that state on each Tokio worker's poll stack.
-    let result = Box::pin(start_worker_inner(
+    let operation = Box::pin(start_worker_inner(
         db,
         composition,
-        inbox,
-        events.clone(),
-        ready,
+        (inbox, events.clone(), ready),
         children.clone(),
         &authentication,
-    ))
-    .await;
+        &mut reload_work,
+    ));
+    let result = operation.await;
+    let reload_stop = reload_work.shutdown().await;
     // Covers every return/failed publication, including errors after a move.
     let authentication_stop = authentication::shutdown(&authentication).await;
     let joined = children.shutdown().await;
@@ -1500,18 +1500,25 @@ async fn start_worker(
         )
         .diagnostic
     })?;
+    reload_stop?;
     result
 }
+
+type WorkerChannels = (
+    mpsc::Receiver<InboxMsg>,
+    broadcast::Sender<CoreEvent>,
+    oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
+);
 
 async fn start_worker_inner(
     db: Db,
     mut composition: Composition,
-    mut inbox: mpsc::Receiver<InboxMsg>,
-    events: broadcast::Sender<CoreEvent>,
-    ready: oneshot::Sender<Result<Vec<String>, SpawnIssue>>,
+    channels: WorkerChannels,
     children: Arc<crate::runtime::children::Jobs>,
     authentication: &authentication::Owner,
+    reload_work: &mut reload::Coordinator,
 ) -> Result<(), oc_core::queries::ServiceDiagnostic> {
+    let (mut inbox, events, ready) = channels;
     let mut runtime = match build_runtime(&db, &composition) {
         Ok(runtime) => runtime,
         Err(error) => {
@@ -1640,6 +1647,7 @@ async fn start_worker_inner(
             &mut provider_work,
             &terminals,
             authentication,
+            reload_work,
         )
         .await;
         let outcome = match outcome {
@@ -1749,6 +1757,7 @@ async fn start_worker_inner(
                     })?;
                     let next_registry = prepared.registry;
                     if current {
+                        let reload_stop = reload_work.shutdown().await;
                         let provider_stop = provider_work.stop().await;
                         let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|e| {
                             runtime_issue(runtime.location(), &["mcp"], &e).diagnostic
@@ -1760,6 +1769,7 @@ async fn start_worker_inner(
                         mcp_stop?;
                         title_stop?;
                         provider_stop?;
+                        reload_stop?;
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
@@ -2008,6 +2018,7 @@ async fn start_worker_inner(
                 };
                 // The route and both decks have committed. Cleanup cannot turn
                 // that accepted route back into a refusal or an old view.
+                let reload_stop = reload_work.shutdown().await;
                 let provider_stop = provider_work.stop().await;
                 let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|error| {
                     runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
@@ -2019,6 +2030,7 @@ async fn start_worker_inner(
                 mcp_stop?;
                 title_stop?;
                 provider_stop?;
+                reload_stop?;
                 remote_retry_quarantined |= runtime.remote_retry_quarantined();
                 if remote_retry_quarantined {
                     next.quarantine_remote_retries();
@@ -2084,32 +2096,6 @@ async fn start_worker_inner(
                 terminal_stop?;
                 break;
             }
-            WorkerOutcome::Reload(ack) => {
-                let result = reload::replace(
-                    &db,
-                    &runtime,
-                    &mut composition,
-                    &mut effective,
-                    &mut registry,
-                    &sessions,
-                    &location_epoch,
-                    &mut provider_work,
-                    &events,
-                    true,
-                )
-                .await;
-                if result.is_ok() {
-                    // Preserve explicit-reload title ownership: completed results
-                    // may settle, but unfinished old-source title jobs are joined.
-                    // A rejected candidate never invalidates their pending ticket.
-                    while let Ok(result) = title_rx.try_recv() {
-                        commit_automatic_title(&db, &events, &title_work, result);
-                    }
-                    stop_automatic_titles(&title_work).await?;
-                    home_choices.remove(runtime.location());
-                }
-                let _ = ack.send(result);
-            }
             WorkerOutcome::Switch { path, ack } => {
                 let home = !matches!(ack, SwitchAck::Session(_));
                 match switch_target(
@@ -2164,6 +2150,7 @@ async fn start_worker_inner(
                         };
                         // The target generation is complete: only now drop the
                         // old Location's MCP resources and swap the state.
+                        let reload_stop = reload_work.shutdown().await;
                         let provider_stop = provider_work.stop().await;
                         let mcp_stop = runtime.retire_or_shutdown_mcp().await.map_err(|error| {
                             runtime_issue(runtime.location(), &["mcp"], &error).diagnostic
@@ -2182,6 +2169,7 @@ async fn start_worker_inner(
                         mcp_stop?;
                         title_stop?;
                         provider_stop?;
+                        reload_stop?;
                         remote_retry_quarantined |= runtime.remote_retry_quarantined();
                         if remote_retry_quarantined {
                             next.quarantine_remote_retries();
@@ -4106,10 +4094,13 @@ async fn worker(
     provider_work: &mut provider_catalog::ProviderWork,
     terminals: &terminals::Owner,
     authentication: &authentication::Owner,
+    reload_work: &mut reload::Coordinator,
 ) -> Result<WorkerOutcome, oc_core::queries::ServiceDiagnostic> {
+    reload_work.ensure(composition).await?;
     runtime.set_compaction_events(events);
     let mut pending_inputs = std::collections::VecDeque::new();
     'worker: loop {
+        reload_work.start(db, runtime, composition);
         if let Some(prepared) = runtime.ready_session_move().await.map_err(|error| {
             runtime_issue(
                 runtime.location(),
@@ -4169,7 +4160,14 @@ async fn worker(
             let mut shutdown = false;
             let mut deferred = None;
             loop {
+                reload_work.start(db, runtime, composition);
                 tokio::select! {
+                    ready = reload_work.wait(), if !shutdown => {
+                        if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(
+                            ready, db, runtime, composition, effective, registry, sessions,
+                            location_epoch, provider_work, events, Some((&session, &selected)),
+                        ).await? { receipt.reply(); }
+                    }
                     result = &mut operation => {
                         if let Err(error) = result {
                             // Delivery publishes a Failed lifecycle on recoverable
@@ -4190,6 +4188,7 @@ async fn worker(
                             else if let InboxMsg::ChangeConversation { ack,.. } = command { let _=ack.send(Err(CoreError::TurnBusy)); }
                         }
                         Some(command @ (InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. })) if pending_inputs.len()<MAX_QUEUE_ITEMS => pending_inputs.push_back(command),
+                        Some(InboxMsg::ReloadLocation { ack }) => reload_work.request(ack),
                         Some(command) => query(db,runtime,composition,effective,registry,sessions,home_choices,location_epoch,suggestion_queue,title_work,terminals,authentication,command).await,
                     }
                 }
@@ -4217,8 +4216,8 @@ async fn worker(
             }
             continue;
         }
-        let message = if let Some(message) = pending_inputs.pop_front() {
-            message
+        let message = if !reload_work.forced() && !pending_inputs.is_empty() {
+            pending_inputs.pop_front().expect("queued input")
         } else {
             tokio::select! {
                 biased;
@@ -4230,12 +4229,52 @@ async fn worker(
                     continue;
                 }
                 result = provider_work.wait(), if provider_work.pending() => return Ok(WorkerOutcome::ProviderCatalog(result)),
+                ready = reload_work.wait() => {
+                    if let Some(ready) = ready?
+                        && let Some(receipt) = reload_work.finish(ready, db, runtime, composition, effective, registry, sessions, location_epoch, provider_work, events, None).await? {
+                        if receipt.retire_titles() {
+                            while let Ok(result) = title_rx.try_recv() { commit_automatic_title(db, events, title_work, result); }
+                            stop_automatic_titles(title_work).await?;
+                            home_choices.remove(runtime.location());
+                        }
+                        receipt.reply();
+                    }
+                    continue;
+                }
                 message = inbox.recv() => match message {
                     Some(message) => message,
                     None => break,
                 },
             }
         };
+        if reload_work.forced()
+            && matches!(
+                &message,
+                InboxMsg::Submit { .. } | InboxMsg::SubmitFresh { .. } | InboxMsg::UserShell { .. }
+            )
+        {
+            if pending_inputs.len() < MAX_QUEUE_ITEMS {
+                pending_inputs.push_back(message);
+            } else {
+                query(
+                    db,
+                    runtime,
+                    composition,
+                    effective,
+                    registry,
+                    sessions,
+                    home_choices,
+                    location_epoch,
+                    suggestion_queue,
+                    title_work,
+                    terminals,
+                    authentication,
+                    message,
+                )
+                .await;
+            }
+            continue;
+        }
         if (matches!(&message, InboxMsg::Catalog { .. }) && composition.go_catalog.is_some()
             || matches!(&message, InboxMsg::ProviderCatalog { provider, .. } if composition.public_provider(provider)))
             && !provider_work.pending()
@@ -4638,7 +4677,8 @@ async fn worker(
                     let _ = ack.send(Err(CoreError::ProviderUnavailable(diagnostic)));
                     continue;
                 }
-                return Ok(WorkerOutcome::Reload(ack));
+                reload_work.request(ack);
+                continue;
             }
             message @ InboxMsg::UserShell { .. } => {
                 if user_shell::run(
@@ -4658,6 +4698,8 @@ async fn worker(
                     inbox,
                     &mut pending_inputs,
                     title_rx,
+                    provider_work,
+                    reload_work,
                     message,
                 )
                 .await?
@@ -5148,7 +5190,14 @@ async fn worker(
                         Ok::<_, RuntimeError>(report)
                     });
                     result = loop {
+                        reload_work.start(db, runtime, composition);
                         tokio::select! {
+                            ready = reload_work.wait(), if !shutdown => {
+                                if let Some(ready) = ready? && let Some(receipt) = reload_work.finish(
+                                    ready, db, runtime, composition, effective, registry, sessions,
+                                    location_epoch, provider_work, events, Some((&session.0, &turn_selection)),
+                                ).await? { receipt.reply(); }
+                            }
                             result = &mut operation => break result,
                             () = runtime.shell_jobs.changed() => {
                                 runtime.shell_jobs.deliver(events).map_err(|_| runtime_issue(runtime.location(), &["shell", "delivery"], &RuntimeError::Storage).diagnostic)?;
@@ -5201,6 +5250,7 @@ async fn worker(
                                         let _ = ack.send(Err(CoreError::TurnBusy));
                                     }
                                 }
+                                Some(InboxMsg::ReloadLocation { ack }) => reload_work.request(ack),
                                 Some(command) => query(
                                     db,
                                     runtime,

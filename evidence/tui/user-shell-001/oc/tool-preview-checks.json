@@ -1,0 +1,68 @@
+{
+  "origin": "oc",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "user-shell-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-mode",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-escape",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 6,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "user-shell-input",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 33,
+        "y": 13,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Native direct-user Shell uses the existing bounded supervised Jobs owner, NULL model turn and data-only command/completion facts. Original uses session.shell. No model generation is a substitute. Full styled grids/PNGs/cursors remain unmasked; full parts/mode/Mini restoration is not claimed."
+  ],
+  "reason": "Shell mode/edit launched an effect",
+  "failure_cursor": {
+    "x": 33,
+    "y": 13,
+    "visible": true,
+    "shape": "block"
+  }
+}

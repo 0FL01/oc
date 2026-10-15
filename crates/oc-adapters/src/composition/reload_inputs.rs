@@ -36,7 +36,44 @@ struct InstructionInput {
     inode: u64,
 }
 
+/// Finite admitted provider captures needed by a read-only candidate build, not
+/// the application/Composition owner and not another catalog registry.
+pub(crate) struct CatalogReuse {
+    local: Option<std::sync::Arc<ReloadInputs>>,
+    requests: Option<provider::ResponsesConfig>,
+}
+
+fn same_leaf(left: Option<&ReloadInputs>, right: Option<&ReloadInputs>, id: &str) -> bool {
+    fn leaf(input: Option<&ReloadInputs>) -> Option<&provider::ResponsesConfig> {
+        input.and_then(|input| input.requests.as_ref())
+    }
+    let (Some(left), Some(right)) = (leaf(left), leaf(right)) else {
+        return false;
+    };
+    let (Some(left), Some(right)) = (left.wire.providers.get(id), right.wire.providers.get(id))
+    else {
+        return false;
+    };
+    let connection = |capture: &provider::CapturedProvider| {
+        let mut config = capture.config.clone();
+        let dynamic =
+            config.wire.provider_state.as_ref().is_some_and(|state| {
+                state.catalog_status == oc_core::queries::ProviderStatus::Pending
+            });
+        config.wire.provider_state = None;
+        config.wire.selection_scope = None;
+        (config, dynamic)
+    };
+    left.catalog == right.catalog && connection(left) == connection(right)
+}
+
 impl Composition {
+    pub(crate) fn catalog_reuse(&self) -> CatalogReuse {
+        CatalogReuse {
+            local: self.local_inputs.clone(),
+            requests: self.request_provider(&self.catalog.provider),
+        }
+    }
     pub(super) fn retain_local_inputs(&mut self) -> Result<(), LoadFailure> {
         self.local_inputs = Some(std::sync::Arc::new(self.reload_inputs()?));
         Ok(())
@@ -45,38 +82,13 @@ impl Composition {
     /// Compare actual admitted leaf captures, not the selected provider or a
     /// catalog already extended with remote models. Source-wide prompt/policy
     /// edits need not invalidate an unchanged provider's discovery result.
-    pub(crate) fn same_provider_inputs(&self, other: &Self, id: &str) -> bool {
-        fn leaf<'a>(
-            composition: &'a Composition,
-            id: &str,
-        ) -> Option<&'a provider::CapturedProvider> {
-            composition
-                .local_inputs
-                .as_ref()?
-                .requests
-                .as_ref()?
-                .wire
-                .providers
-                .get(id)
-        }
-        let (Some(left), Some(right)) = (leaf(self, id), leaf(other, id)) else {
-            return false;
-        };
-        let connection = |capture: &provider::CapturedProvider| {
-            let mut config = capture.config.clone();
-            let dynamic = config.wire.provider_state.as_ref().is_some_and(|state| {
-                state.catalog_status == oc_core::queries::ProviderStatus::Pending
-            });
-            config.wire.provider_state = None;
-            config.wire.selection_scope = None;
-            (config, dynamic)
-        };
-        left.catalog == right.catalog && connection(left) == connection(right)
+    pub(crate) fn same_provider_inputs(&self, other: &CatalogReuse, id: &str) -> bool {
+        same_leaf(self.local_inputs.as_deref(), other.local.as_deref(), id)
     }
 
     /// Called after resolving the candidate's current credentials. Configured
     /// equality alone cannot carry catalog/auth facts across an account change.
-    pub(crate) fn retain_provider_catalogs(&mut self, previous: &Self) -> BTreeSet<String> {
+    pub(crate) fn retain_catalog_reuse(&mut self, previous: &CatalogReuse) -> BTreeSet<String> {
         let ids = self
             .local_inputs
             .as_ref()
@@ -85,22 +97,23 @@ impl Composition {
             .unwrap_or_default();
         let mut retained = BTreeSet::new();
         for id in ids {
+            let old = previous
+                .requests
+                .as_ref()
+                .and_then(|request| request.wire.providers.get(&id));
             if !self.same_provider_inputs(previous, &id)
                 || !matches!(
-                    (self.provider_for(&id), previous.provider_for(&id)),
+                    (self.provider_for(&id), old.map(|old| &old.config)),
                     (Some(next), Some(old)) if next.same_request_binding(old).unwrap_or(false)
                 )
             {
                 continue;
             }
-            let Some(catalog) = previous.catalog_for(&id).cloned() else {
+            let Some(old) = old else {
                 continue;
             };
-            let state = if id == previous.catalog.provider {
-                previous.provider_state.clone()
-            } else if let Some(view) = previous.provider_views.get(&id) {
-                view.state.clone()
-            } else {
+            let catalog = old.catalog.clone();
+            let Some(state) = old.config.wire.provider_state.clone() else {
                 continue;
             };
             if id == self.catalog.provider {

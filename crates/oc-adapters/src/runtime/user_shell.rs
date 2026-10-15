@@ -100,6 +100,9 @@ impl Runtime<'_> {
                     }
                 }
                 AdmissionFailure::Cancelled => RuntimeError::Cancelled,
+                AdmissionFailure::Reloaded => {
+                    RuntimeError::InvalidArgs("source reloaded before approval".into())
+                }
                 AdmissionFailure::Invalid(_) => {
                     RuntimeError::InvalidArgs("shell admission prerequisites unavailable".into())
                 }

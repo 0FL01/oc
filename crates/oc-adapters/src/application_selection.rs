@@ -267,6 +267,23 @@ pub(super) fn for_turn(
     }
 }
 
+/// A source update re-resolves the accepted primary, not the worker's Home
+/// default. Before fresh admission stores a scoped choice, retain its exact
+/// model selection as well; unavailable definitions remain explicit.
+pub(super) fn for_reload(
+    db: &Db,
+    c: &Composition,
+    fallback: &Effective,
+    session: &str,
+    accepted: &Effective,
+) -> Result<Effective, CoreError> {
+    let mut selected = base_for_agent(c, fallback, accepted.agent_id.as_deref())?;
+    selected.model_id = accepted.model_id.clone();
+    selected.provider_id = accepted.provider_id.clone();
+    selected.variant = accepted.variant.clone();
+    for_turn(db, c, &selected, session)
+}
+
 /// Request-boundary read of the same durable owner record, scoped to the pinned
 /// agent/Location. No draft, registry or archive is loaded here.
 pub(crate) fn request_choice(

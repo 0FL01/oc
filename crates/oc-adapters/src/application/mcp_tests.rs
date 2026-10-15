@@ -373,14 +373,45 @@ async fn mcp08_controls_coalesce_before_activation_and_reuse_frozen_source() {
 
 #[tokio::test]
 async fn mcp08_manual_activation_uses_pinned_nofollow_root_not_replaced_path() {
+    async fn change(runtime: &Runtime<'_>, command: McpControl) -> Result<McpSnapshot, CoreError> {
+        runtime.mcp_control_server(&command).map_err(app_error)?;
+        let (ack, reply) = oneshot::channel();
+        runtime.enqueue_mcp_control(command, ack);
+        reply.await.unwrap()
+    }
+    async fn settled(runtime: &Runtime<'_>, status: McpStatus) -> McpSnapshot {
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                let snapshot = runtime.mcp_status();
+                if snapshot
+                    .servers
+                    .iter()
+                    .any(|row| row.id == mcp_id("pin") && row.status == status)
+                {
+                    break snapshot;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap()
+    }
     let fixture = Fixture::new();
     let report = fixture.project.join("pin.json");
     let mut entry = fixture.entry("pin", &report, "-", "-", true);
     entry["command"][0] = json!("{file:program}");
     fixture.config(json!({"servers":{"pin":entry}}));
     fs::write(fixture.global.join("program"), "/usr/bin/python3").unwrap();
-    let (app, guard) = fixture.spawn().await;
-    let disabled = app.mcp_status().await.unwrap();
+    // Exercise the actual retained activation owner. The automatic application
+    // coordinator may legitimately publish removal from a recreated empty root;
+    // that is distinct from this issued source's descriptor/no-follow authority.
+    let db = Db::open(&fixture.data).unwrap();
+    let composition = composition::load_local_with_env(&fixture.project, fixture.env.clone())
+        .await
+        .unwrap();
+    let runtime = build_runtime(&db, &composition).unwrap();
+    runtime.start_mcp().unwrap();
+    let disabled = runtime.mcp_status();
     let pinned = fixture.global.with_file_name("pinned-old");
     fs::rename(&fixture.global, &pinned).unwrap();
     fs::create_dir(&fixture.global).unwrap();
@@ -389,27 +420,26 @@ async fn mcp08_manual_activation_uses_pinned_nofollow_root_not_replaced_path() {
         "never-execute-replaced-root",
     )
     .unwrap();
-    app.mcp_control(control(&disabled, "pin", McpAction::Connect))
+    change(&runtime, control(&disabled, "pin", McpAction::Connect))
         .await
         .unwrap();
-    let (connected, _) = wait_status(&app, "pin", McpStatus::Connected).await;
-    app.mcp_control(control(&connected, "pin", McpAction::Disconnect))
+    let connected = settled(&runtime, McpStatus::Connected).await;
+    change(&runtime, control(&connected, "pin", McpAction::Disconnect))
         .await
         .unwrap();
-    wait_status(&app, "pin", McpStatus::Disabled).await;
+    settled(&runtime, McpStatus::Disabled).await;
     assert_reaped(&report);
     // The same source reader refuses a symlink in the pinned root.
     fs::remove_file(pinned.join("program")).unwrap();
     std::os::unix::fs::symlink(fixture.global.join("program"), pinned.join("program")).unwrap();
-    let disabled = app.mcp_status().await.unwrap();
+    let disabled = runtime.mcp_status();
     assert!(
-        app.mcp_control(control(&disabled, "pin", McpAction::Connect))
+        change(&runtime, control(&disabled, "pin", McpAction::Connect))
             .await
             .is_err()
     );
     assert_eq!(events(&report, "spawn"), 1);
-    app.shutdown().await.unwrap();
-    guard.join().await.unwrap();
+    runtime.shutdown_mcp().await.unwrap();
 }
 
 #[tokio::test]

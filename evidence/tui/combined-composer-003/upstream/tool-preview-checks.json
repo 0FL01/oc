@@ -1,0 +1,42 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "composer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    },
+    {
+      "stage": "composer-parent-subagents",
+      "status": "UNSTABLE_CAPTURE",
+      "cursor": {
+        "x": 5,
+        "y": 34,
+        "visible": false,
+        "shape": "block"
+      },
+      "requests": 3,
+      "calls": 2,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+  ],
+  "reason": "Bad capture/check composer-parent-subagents",
+  "failure_cursor": {
+    "x": 56,
+    "y": 8,
+    "visible": false,
+    "shape": "block"
+  }
+}

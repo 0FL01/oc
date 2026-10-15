@@ -1,0 +1,40 @@
+ ⠋ VIS39 parent                                                                                                         
+                                                          ┃                                                          ┃  
+  ┃                                                       ┃  Automatic background shell result (native durable    x  ┃  
+  ┃  VIS39_ROOT_MODEL_SHELL_TASK                          ┃  notice; not user                                        ┃  
+  ┃                                                       ┃  instructions):{"shellID":"ts-tui-18dcdca8586c4d26-3     ┃  
+                                                          ┃  58b8a-0-1791549367388-3509130-0-r1-c0-call_vis39_sh     ┃  
+  ┃                                                       ┃  ell_0","deliveryID":"shell-notice:ts-tui-18dcdca858     ┃  
+  ┃  $ python3 composer-probe.py first                    ┃  6c4d26-358b8a-0-1791549367388-3509130-0-r1-c0-call_     ┃  
+  ┃                                                       ┃  vis39_shell_0","command":"python3 composer-probe.py     ┃  
+  ┃   Background                                          ┃  first","status":"completed","exit":0,"signal":null,     ┃  
+  ┃                                                       ┃  "timeout":false,"cancelled":false,"truncated":false     ┃  
+                                                          ┃  ,"output":"status: completed\nexit:                     ┃  
+  ┃                                                       ┃  Some(0)\nsignal:                                        ┃  
+  ┃  ⋯ python3 composer-probe.py second                   ┃  None\nVIS39-LIVE-first\nVIS39-ROW-000\nVIS39-ROW-00     ┃  
+  ┃                                                       ┃  1\nVIS39-ROW-002\nVIS39-ROW-003\nVIS39-ROW-004\nVIS     ┃  
+  ┃  VIS39-LIVE-second                                    ┃  39-ROW-005\nVIS39-ROW-006\nVIS39-ROW-007\nVIS39-ROW     ┃  
+  ┃  VIS39-ROW-079                                        ┃  -008\nVIS39-ROW-009\nVIS39-ROW-010\nVIS39-ROW-011\n     ┃  
+  ┃  VIS39-STDERR-second                                  ┃  VIS39-ROW-012\nVIS39-ROW-013\nVIS39-ROW-014\nVIS39-     ┃  
+  ┃                                                       ┃  ROW-015\nVIS39-ROW-016\nVIS39-ROW-017\nVIS39-ROW-01     ┃  
+                                                          ┃  8\nVIS39-ROW-019\nVIS39-ROW-020\nVIS39-ROW-021\nVIS     ┃  
+                                                          ┃  39-ROW-022\nVIS39-ROW-023\nVIS39-ROW-024\nVIS39-ROW     ┃  
+                                                          ┃  -025\nVIS39-ROW-026\nVIS39-ROW-027\nVIS39-ROW-028\n     ┃  
+                                                          ┃  VIS39-ROW-029\nVIS39-ROW-030\nVIS39-ROW-031\nVIS39-     ┃  
+                                                          ┃  ROW-032\nVIS39-ROW-033\nVIS39-ROW-034\nVIS39-ROW-03     ┃  
+                                                          ┃  5\nVIS39-ROW-036\nVIS39-ROW-037\nVIS39-ROW-038\nVIS     ┃  
+                                                          ┃  39-ROW-039\nVIS39-ROW-040\nVIS39-ROW-041\nVIS39-ROW     ┃  
+                                                          ┃  -042\nVIS39-ROW-043\nVIS39-ROW-044\nVIS39-ROW-045\n     ┃  
+                                                          ┃  VIS39-ROW-046\nVIS39-ROW-047\nVIS39-ROW-048\nVIS39-     ┃  
+  ┃                                                       ┃  ROW-049\nVIS39-ROW-050\nVIS39-ROW-051\nVIS39-ROW-05     ┃  
+  ┃  Subagents  Shell  Terminals                          ┃  2\nVIS39-ROW-053\nVIS39-ROW-054\nVIS39-ROW-055\nVIS     ┃  
+  ┃                                                       ┃  39-ROW-056\nVIS39-ROW-057\nVIS39-ROW-058\nVIS39-ROW     ┃  
+  ┃  python3 composer-probe.py second                     ┃  -059\nVIS39-ROW-060\nVIS39-ROW-061\nVIS39-ROW-062\n     ┃  
+  ┃                                                       ┃  VIS39-ROW-063\nVIS39-ROW-064\nVIS39-ROW-065\nVIS39-     ┃  
+  ┃                                                       ┃  ROW-066\nVIS39-ROW-067\nVIS39-ROW-068\nVIS39-ROW-06     ┃  
+  ┃                                                       ┃  9\nVIS39-ROW-070\nVIS39-ROW-071\nVIS39-ROW-072\nVIS     ┃  
+  ┃                                                       ┃  39-ROW-073\nVIS39-ROW-074\nVIS39-ROW-075\nVIS39-ROW     ┃  
+  ┃                                                       ┃  -076\nVIS39-ROW-077\nVIS39-ROW-078\nVIS39-ROW-079\n     ┃  
+  ┃  output enter  kill ctrl+d  tabs ←/→                  ┃  VIS39-FINAL-FLUSH-first\n\n[stderr]\nVIS39-STDERR-f     ┃  
+  ┃                                                       ┃  irst\n","retainedOutputBytes":1235,"previewTruncate     ┃  
+                                                          ┃                                                          ┃  

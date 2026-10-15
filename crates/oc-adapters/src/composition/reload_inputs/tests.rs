@@ -39,10 +39,10 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
     let mut next = crate::composition::load_reload_local_with_env(&project, env.clone())
         .await
         .unwrap();
-    assert!(next.same_provider_inputs(&previous, "ludka2"));
-    assert!(next.same_provider_inputs(&previous, "other"));
+    assert!(next.same_provider_inputs(&previous.catalog_reuse(), "ludka2"));
+    assert!(next.same_provider_inputs(&previous.catalog_reuse(), "other"));
     assert!(next.local_inputs != previous.local_inputs);
-    let retained = next.retain_provider_catalogs(&previous);
+    let retained = next.retain_catalog_reuse(&previous.catalog_reuse());
     assert_eq!(retained, BTreeSet::from(["ludka2".into(), "other".into()]));
     assert!(
         next.catalog_for("ludka2")
@@ -66,10 +66,10 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
         .unwrap()
         .provider
         .api_key = "DIFFERENT_RESOLVED_ACCOUNT_KEY".into();
-    assert!(changed_account.same_provider_inputs(&previous, "ludka2"));
+    assert!(changed_account.same_provider_inputs(&previous.catalog_reuse(), "ludka2"));
     assert!(
         !changed_account
-            .retain_provider_catalogs(&previous)
+            .retain_catalog_reuse(&previous.catalog_reuse())
             .contains("ludka2")
     );
     for (field, value) in [
@@ -82,7 +82,7 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
         let changed = crate::composition::load_reload_local_with_env(&project, env.clone())
             .await
             .unwrap();
-        assert!(!changed.same_provider_inputs(&previous, "ludka2"));
+        assert!(!changed.same_provider_inputs(&previous.catalog_reuse(), "ludka2"));
         config["providers"]["ludka2"]["options"][field] = original;
     }
     config["providers"]["ludka2"]["models"]["exact"]["name"] = "CHANGED_LOCAL".into();
@@ -90,10 +90,10 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
     let mut changed = crate::composition::load_reload_local_with_env(&project, env)
         .await
         .unwrap();
-    assert!(!changed.same_provider_inputs(&previous, "ludka2"));
+    assert!(!changed.same_provider_inputs(&previous.catalog_reuse(), "ludka2"));
     assert!(
         !changed
-            .retain_provider_catalogs(&previous)
+            .retain_catalog_reuse(&previous.catalog_reuse())
             .contains("ludka2")
     );
     assert!(

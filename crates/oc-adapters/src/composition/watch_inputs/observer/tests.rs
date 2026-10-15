@@ -87,7 +87,7 @@ async fn hot02_source_watch_observes_writes_atomic_rename_and_joins_without_acce
     inputs.insert(&file, InputKind::File);
     let watch = SourceWatch::start(&inputs).unwrap();
     let ready = changed(&watch).await;
-    let ready_epoch = watch.epoch();
+    let ready_epoch = watch.observation().epoch();
     assert_eq!(ready_epoch, 1);
     assert!(!ready.failed);
     for _ in 0..10 {
@@ -98,7 +98,7 @@ async fn hot02_source_watch_observes_writes_atomic_rename_and_joins_without_acce
     quiet(&watch).await;
     std::fs::write(&file, "{\"theme\":\"native-source\"}").unwrap();
     let write = changed(&watch).await;
-    assert!(watch.epoch() > ready_epoch);
+    assert!(watch.observation().epoch() > ready_epoch);
     assert!(!write.failed);
     // Drain only coalesced notifications, never a lifetime event history.
     tokio::time::sleep(Duration::from_millis(10)).await;
@@ -108,11 +108,11 @@ async fn hot02_source_watch_observes_writes_atomic_rename_and_joins_without_acce
     std::fs::rename(&temporary, &file).unwrap();
     let rename = changed(&watch).await;
     assert!(rename.rearm);
-    watch.reconcile(&inputs, true).await.unwrap();
+    watch.observation().reconcile(&inputs, true).await.unwrap();
     assert!(!changed(&watch).await.failed); // readiness requires a rescan
-    let stable = watch.epoch();
-    watch.reconcile(&inputs, false).await.unwrap();
-    assert_eq!(watch.epoch(), stable); // same topology does not wake itself forever
+    let stable = watch.observation().epoch();
+    watch.observation().reconcile(&inputs, false).await.unwrap();
+    assert_eq!(watch.observation().epoch(), stable); // same topology does not wake itself forever
     quiet(&watch).await;
     let task = watch.task.as_ref().unwrap().abort_handle();
     watch.shutdown().await.unwrap();
@@ -144,7 +144,11 @@ async fn hot02_source_watch_rearms_missing_global_recursive_definitions_and_recr
     assert!(changed(&watch).await.rearm);
     let next = load().await.unwrap();
     assert!(next.agents.contains_key("deep/worker"));
-    watch.reconcile(&next.watch_inputs, true).await.unwrap();
+    watch
+        .observation()
+        .reconcile(&next.watch_inputs, true)
+        .await
+        .unwrap();
     changed(&watch).await;
     std::fs::write(
         global.join("agents/deep/worker.md"),
@@ -152,13 +156,17 @@ async fn hot02_source_watch_rearms_missing_global_recursive_definitions_and_recr
     )
     .unwrap();
     assert!(!changed(&watch).await.failed);
-    assert!(watch.epoch() > 1);
+    assert!(watch.observation().epoch() > 1);
     let local = project.join(".opencode");
     std::fs::create_dir_all(local.join("skills/kit")).unwrap();
     // A supported empty skill directory must be watched before SKILL.md exists.
     changed(&watch).await;
     let next = load().await.unwrap();
-    watch.reconcile(&next.watch_inputs, true).await.unwrap();
+    watch
+        .observation()
+        .reconcile(&next.watch_inputs, true)
+        .await
+        .unwrap();
     changed(&watch).await;
     std::fs::write(
         local.join("skills/kit/SKILL.md"),
@@ -169,12 +177,17 @@ async fn hot02_source_watch_rearms_missing_global_recursive_definitions_and_recr
     std::fs::rename(&local, project.join("retired-inputs")).unwrap();
     assert!(changed(&watch).await.rearm);
     let absent = load().await.unwrap();
-    watch.reconcile(&absent.watch_inputs, true).await.unwrap();
+    watch
+        .observation()
+        .reconcile(&absent.watch_inputs, true)
+        .await
+        .unwrap();
     changed(&watch).await;
     std::fs::create_dir(&local).unwrap();
     assert!(changed(&watch).await.rearm);
     let recreated = load().await.unwrap();
     watch
+        .observation()
         .reconcile(&recreated.watch_inputs, true)
         .await
         .unwrap();
@@ -201,7 +214,11 @@ async fn hot02_source_watch_failed_replacement_retains_live_observation_and_abor
     for index in 0..=super::super::MAX_TARGETS {
         oversized.insert(&root.path().join(format!("{index}.json")), InputKind::File);
     }
-    let failure = watch.reconcile(&oversized, false).await.unwrap_err();
+    let failure = watch
+        .observation()
+        .reconcile(&oversized, false)
+        .await
+        .unwrap_err();
     assert_eq!(failure.code, ServiceCode::CapacityExceeded);
     assert!(
         !failure
@@ -226,7 +243,11 @@ async fn hot02_source_watch_failed_replacement_retains_live_observation_and_abor
     let mut over = full.clone();
     over.insert(&root.path().join("extra.json"), InputKind::File);
     assert!(over.targets == full.targets);
-    let failure = watch.reconcile(&over, false).await.unwrap_err();
+    let failure = watch
+        .observation()
+        .reconcile(&over, false)
+        .await
+        .unwrap_err();
     assert_eq!(failure.code, ServiceCode::CapacityExceeded);
     watch.shutdown().await.unwrap();
 }

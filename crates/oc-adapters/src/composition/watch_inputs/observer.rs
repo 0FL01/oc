@@ -94,28 +94,17 @@ pub(crate) struct SourceWatch {
     task: Option<JoinHandle<Result<(), ServiceDiagnostic>>>,
 }
 
-impl SourceWatch {
-    pub(crate) fn start(inputs: &WatchInputs) -> Result<Self, ServiceDiagnostic> {
-        let live = Live::install(inputs.clone())?;
-        let dirty = Arc::new(Dirty::default());
-        let (commands, receiver) = mpsc::channel(1);
-        let task = tokio::spawn(run(live, receiver, Completion(dirty.clone(), false)));
-        // Readiness closes the load→watch window with an admitted rescan. This is
-        // one dirty bit, not a queued file-event history or an automatic force.
-        dirty.mark(0);
-        Ok(Self {
-            commands,
-            dirty,
-            task: Some(task),
-        })
-    }
+/// A bounded command/epoch handle, not an observer/task owner. Candidate builds
+/// may borrow observation while the Location coordinator retains joined cleanup.
+#[derive(Clone)]
+pub(crate) struct Observation {
+    commands: mpsc::Sender<Command>,
+    dirty: Arc<Dirty>,
+}
 
+impl Observation {
     pub(crate) fn epoch(&self) -> u64 {
         self.dirty.epoch.load(Ordering::Acquire)
-    }
-
-    pub(crate) async fn changed(&self) -> Change {
-        self.dirty.changed().await
     }
 
     pub(crate) async fn reconcile(
@@ -131,6 +120,33 @@ impl SourceWatch {
         received
             .await
             .map_err(|_| issue(ServiceCode::SourceUnavailable))?
+    }
+}
+
+impl SourceWatch {
+    pub(crate) fn observation(&self) -> Observation {
+        Observation {
+            commands: self.commands.clone(),
+            dirty: self.dirty.clone(),
+        }
+    }
+    pub(crate) fn start(inputs: &WatchInputs) -> Result<Self, ServiceDiagnostic> {
+        let live = Live::install(inputs.clone())?;
+        let dirty = Arc::new(Dirty::default());
+        let (commands, receiver) = mpsc::channel(1);
+        let task = tokio::spawn(run(live, receiver, Completion(dirty.clone(), false)));
+        // Readiness closes the load→watch window with an admitted rescan. This is
+        // one dirty bit, not a queued file-event history or an automatic force.
+        dirty.mark(0);
+        Ok(Self {
+            commands,
+            dirty,
+            task: Some(task),
+        })
+    }
+
+    pub(crate) async fn changed(&self) -> Change {
+        self.dirty.changed().await
     }
 
     pub(crate) async fn shutdown(mut self) -> Result<(), ServiceDiagnostic> {

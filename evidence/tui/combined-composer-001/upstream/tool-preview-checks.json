@@ -1,0 +1,29 @@
+{
+  "origin": "upstream",
+  "status": "FAILED",
+  "stages": [
+    {
+      "stage": "composer-home",
+      "status": "CAPTURED_TOOL_PREVIEW",
+      "cursor": {
+        "x": 26,
+        "y": 21,
+        "visible": true,
+        "shape": "block"
+      },
+      "requests": 0,
+      "calls": 0,
+      "checks": {}
+    }
+  ],
+  "differences": [
+    "Actual delegation/process/terminal owners supply the combined episode. Native terminal lifetime is the live oc process; original may use its service. Full styled grids/PNGs/cursors remain unmasked; behavior is not global pixel parity."
+  ],
+  "reason": "Timed out waiting for composer-parent-subagents",
+  "failure_cursor": {
+    "x": 5,
+    "y": 34,
+    "visible": true,
+    "shape": "block"
+  }
+}

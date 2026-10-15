@@ -270,6 +270,7 @@ enum AdmissionFailure {
     Required,
     Denied(String),
     Rejected(Option<String>),
+    Reloaded,
     Cancelled,
     Invalid(String),
 }
@@ -289,6 +290,7 @@ impl std::fmt::Display for AdmissionFailure {
             Self::Required => write!(f, "approval required: no consumer"),
             Self::Denied(tool) => write!(f, "denied {tool}"),
             Self::Rejected(_) => write!(f, "approval rejected"),
+            Self::Reloaded => write!(f, "source reloaded before approval"),
             Self::Cancelled => write!(f, "approval cancelled"),
             Self::Invalid(value) => f.write_str(value),
         }
@@ -1102,6 +1104,9 @@ pub struct Runtime<'a> {
     current: Arc<RwLock<Arc<ExecutionGeneration>>>,
     publication_commit: Arc<Mutex<()>>,
     child_launch: Option<Arc<children::LaunchCeiling>>,
+    // Latest explicit source publication. Automatic publication preserves
+    // unresolved interactions; explicit publication retires older admission.
+    explicit_reload_generation: Arc<AtomicU64>,
     active: AtomicBool,
     protected: ProtectedGlobs,
     files: crate::files::Files,
@@ -1189,7 +1194,7 @@ mod tests;
 mod media_tests;
 
 mod publication;
-pub(crate) use publication::{SourcePublication, WorkspacePublication};
+pub(crate) use publication::{SourcePublication, SourceStamp, WorkspacePublication};
 
 impl<'a> Runtime<'a> {
     /// Build a runtime over one Location and an initial generation.
@@ -1239,6 +1244,7 @@ impl<'a> Runtime<'a> {
             }))),
             publication_commit: Arc::new(Mutex::new(())),
             child_launch: None,
+            explicit_reload_generation: Arc::new(AtomicU64::new(0)),
             active: AtomicBool::new(false),
             protected,
             files,
@@ -1448,7 +1454,10 @@ impl<'a> Runtime<'a> {
         &self,
         reply: oc_core::question::QuestionReply,
     ) -> Result<(), oc_core::question::QuestionReplyError> {
-        use oc_core::question::QuestionReplyError;
+        use oc_core::question::{QuestionDecision, QuestionReplyError};
+        if matches!(reply.decision, QuestionDecision::Reloaded) {
+            return Err(QuestionReplyError::Unavailable);
+        }
         if reply.binding.location != self.location {
             if let Some(source) = self.child_jobs.source_for(&reply.binding) {
                 return source.reply_question(reply);
@@ -1467,6 +1476,14 @@ impl<'a> Runtime<'a> {
         if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
             self.approvals.cancel(None, events);
             self.questions.cancel(None, events);
+        }
+    }
+    pub(crate) fn reload_pending_interactions(&self) {
+        self.explicit_reload_generation
+            .store(self.generation_id(), Ordering::Release);
+        if let Some(events) = self.compaction_events.lock().expect("events lock").as_ref() {
+            self.approvals.reload(None, events);
+            self.questions.reload(None, events);
         }
     }
     /// Bind live hints to the same owner event bus used by application queries.
@@ -1506,9 +1523,12 @@ impl<'a> Runtime<'a> {
         {
             return Err(RuntimeError::InvalidArgs("approval project changed".into()));
         }
-        if matches!(reply.decision, ApprovalDecision::Cancelled) {
+        if matches!(
+            reply.decision,
+            ApprovalDecision::Reloaded | ApprovalDecision::Cancelled
+        ) {
             return Err(RuntimeError::InvalidArgs(
-                "consumer cannot synthesize cancellation".into(),
+                "consumer cannot synthesize owner interaction settlement".into(),
             ));
         }
         if let ApprovalDecision::Reject {

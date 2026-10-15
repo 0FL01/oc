@@ -75,6 +75,10 @@ impl Runtime<'_> {
                         .to_string(),
                 )),
                 Err(AdmissionFailure::Cancelled) => Some(("cancelled", "error: cancelled".into())),
+                Err(AdmissionFailure::Reloaded) => Some((
+                    "failed",
+                    serde_json::json!({"status":"reloaded"}).to_string(),
+                )),
                 Err(error) => Some(("failed", format!("error: {error}"))),
                 Ok(permitted) => permitted
                     .check_call(call)

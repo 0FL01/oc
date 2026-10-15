@@ -1,0 +1,5948 @@
+{
+  "name": "restored",
+  "started_ms": 36322.90000009537,
+  "samples": [
+    {
+      "at_ms": 36338.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1333.3280000000016,
+        "progress": 0.3333280000000016,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36355,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1349.899999999998,
+        "progress": 0.3498999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36372.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1366.5999999999983,
+        "progress": 0.36659999999999826,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36388.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1383.2999999999984,
+        "progress": 0.3832999999999984,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36405,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1399.9000000000024,
+        "progress": 0.39990000000000236,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36421.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1416.6000000000026,
+        "progress": 0.4166000000000025,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36438.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1433.1999999999994,
+        "progress": 0.43319999999999936,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36455.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1449.8999999999996,
+        "progress": 0.4498999999999995,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36471.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1466.5999999999997,
+        "progress": 0.4665999999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36488.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1483.1999999999966,
+        "progress": 0.4831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36505,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1499.8999999999967,
+        "progress": 0.4998999999999967,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36521.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1516.5000000000007,
+        "progress": 0.5165000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36540.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1533.299999999997,
+        "progress": 0.533299999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36555,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1549.9999999999973,
+        "progress": 0.5499999999999972,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36571.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1566.600000000001,
+        "progress": 0.5666000000000011,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36588.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1583.199999999998,
+        "progress": 0.5831999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36605.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1599.899999999998,
+        "progress": 0.5998999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36621.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1616.500000000002,
+        "progress": 0.616500000000002,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36638.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1633.200000000002,
+        "progress": 0.6332000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36655,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1649.9000000000024,
+        "progress": 0.6499000000000024,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36671.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1666.6000000000026,
+        "progress": 0.6666000000000025,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36688.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1683.1999999999994,
+        "progress": 0.6831999999999994,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36708.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1699.8999999999996,
+        "progress": 0.6998999999999995,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36721.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1716.5999999999997,
+        "progress": 0.7165999999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36738.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1733.1999999999966,
+        "progress": 0.7331999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36754.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1749.8000000000004,
+        "progress": 0.7498000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36771.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1766.5999999999967,
+        "progress": 0.7665999999999968,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36788.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1783.2000000000007,
+        "progress": 0.7832000000000008,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36805,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1799.900000000001,
+        "progress": 0.7999000000000009,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36821.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1816.600000000001,
+        "progress": 0.8166000000000011,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36838.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1833.199999999998,
+        "progress": 0.8331999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36855,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1849.899999999998,
+        "progress": 0.8498999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36871.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1866.5999999999983,
+        "progress": 0.8665999999999983,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36888.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1883.200000000002,
+        "progress": 0.8832000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36904.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1899.9000000000024,
+        "progress": 0.8999000000000024,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36921.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1916.6000000000026,
+        "progress": 0.9166000000000025,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36938.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1933.1999999999994,
+        "progress": 0.9331999999999994,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36955,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1949.8999999999996,
+        "progress": 0.9498999999999995,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36971.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1966.4999999999964,
+        "progress": 0.9664999999999964,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 36988.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1983.1999999999966,
+        "progress": 0.9831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37005.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 1999.8999999999967,
+        "progress": 0.9998999999999967,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37021.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2016.5000000000007,
+        "progress": 0.016500000000000625,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37038.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2033.299999999997,
+        "progress": 0.033299999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37055,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2049.900000000001,
+        "progress": 0.049900000000000944,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37071.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2066.6000000000013,
+        "progress": 0.0666000000000011,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37088.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2083.199999999998,
+        "progress": 0.08319999999999794,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37105,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2099.8999999999983,
+        "progress": 0.0998999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37122.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2116.599999999998,
+        "progress": 0.11659999999999826,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37138.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2133.200000000002,
+        "progress": 0.1332000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37155.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2149.9000000000024,
+        "progress": 0.14990000000000236,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37171.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2166.6000000000026,
+        "progress": 0.16660000000000252,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37188.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2183.1999999999994,
+        "progress": 0.18319999999999936,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37204.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2199.8999999999996,
+        "progress": 0.19989999999999952,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37221.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2216.4999999999964,
+        "progress": 0.21649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37238.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2233.2999999999997,
+        "progress": 0.23329999999999984,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37254.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2249.8000000000006,
+        "progress": 0.24980000000000047,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37271.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2266.5999999999967,
+        "progress": 0.26659999999999684,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37288.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2283.2000000000007,
+        "progress": 0.2832000000000008,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37304.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2299.900000000001,
+        "progress": 0.29990000000000094,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37321.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2316.4999999999977,
+        "progress": 0.3164999999999978,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37338.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2333.199999999998,
+        "progress": 0.33319999999999794,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37354.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2349.8999999999983,
+        "progress": 0.3498999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37371.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2366.500000000002,
+        "progress": 0.36650000000000205,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37388.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2383.200000000002,
+        "progress": 0.3832000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37404.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2399.7999999999993,
+        "progress": 0.39979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37422,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2416.499999999999,
+        "progress": 0.4164999999999992,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37438.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2433.1999999999994,
+        "progress": 0.43319999999999936,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37455.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2449.8000000000034,
+        "progress": 0.4498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37471.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2466.4999999999964,
+        "progress": 0.46649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37488.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2483.1999999999966,
+        "progress": 0.4831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37504.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2499.899999999997,
+        "progress": 0.4998999999999967,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37521.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2516.5000000000005,
+        "progress": 0.5165000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37538.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2533.2000000000007,
+        "progress": 0.5332000000000008,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37555,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2549.900000000001,
+        "progress": 0.5499000000000009,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37571.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2566.6000000000013,
+        "progress": 0.5666000000000011,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37588.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2583.199999999998,
+        "progress": 0.5831999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37605,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2599.8999999999983,
+        "progress": 0.5998999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37621.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2616.599999999998,
+        "progress": 0.6165999999999983,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37638.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2633.200000000002,
+        "progress": 0.6332000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37654.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2649.9000000000024,
+        "progress": 0.6499000000000024,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37671.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2666.6000000000026,
+        "progress": 0.6666000000000025,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37688.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2683.1999999999994,
+        "progress": 0.6831999999999994,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37705,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2699.8999999999996,
+        "progress": 0.6998999999999995,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37721.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2716.4999999999964,
+        "progress": 0.7164999999999964,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37738.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2733.1999999999966,
+        "progress": 0.7331999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37754.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2749.899999999997,
+        "progress": 0.7498999999999967,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37771.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2766.5999999999967,
+        "progress": 0.7665999999999968,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37788.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2783.2000000000007,
+        "progress": 0.7832000000000008,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37804.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2799.900000000001,
+        "progress": 0.7999000000000009,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37821.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2816.4999999999977,
+        "progress": 0.8164999999999978,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37838.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2833.199999999998,
+        "progress": 0.8331999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37854.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2849.800000000002,
+        "progress": 0.8498000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37871.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2866.500000000002,
+        "progress": 0.866500000000002,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37888.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2883.200000000002,
+        "progress": 0.8832000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37904.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2899.7999999999993,
+        "progress": 0.899799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37921.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2916.499999999999,
+        "progress": 0.9164999999999992,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37938.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2933.1999999999994,
+        "progress": 0.9331999999999994,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37955,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2949.8000000000034,
+        "progress": 0.9498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37971.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2966.4999999999964,
+        "progress": 0.9664999999999964,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 37988.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2983.1999999999966,
+        "progress": 0.9831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38004.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 2999.8000000000006,
+        "progress": 0.9998000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38021.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3016.5000000000005,
+        "progress": 0.016500000000000625,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38038.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3033.2000000000007,
+        "progress": 0.033200000000000784,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38055,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3049.900000000001,
+        "progress": 0.049900000000000944,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38071.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3066.4999999999977,
+        "progress": 0.06649999999999778,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38088.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3083.199999999998,
+        "progress": 0.08319999999999794,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38105,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3099.800000000002,
+        "progress": 0.09980000000000189,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38121.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3116.500000000002,
+        "progress": 0.11650000000000205,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38138.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3133.200000000002,
+        "progress": 0.1332000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38154.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3149.7999999999993,
+        "progress": 0.14979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38172.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3166.6000000000026,
+        "progress": 0.16660000000000252,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38188.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3183.1999999999994,
+        "progress": 0.18319999999999936,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38204.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3199.8999999999996,
+        "progress": 0.19989999999999952,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38222,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3216.4999999999964,
+        "progress": 0.21649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38238.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3233.1999999999966,
+        "progress": 0.23319999999999652,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38254.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3249.899999999997,
+        "progress": 0.24989999999999668,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38271.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3266.5000000000005,
+        "progress": 0.2665000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38288.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3283.2000000000007,
+        "progress": 0.2832000000000008,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38305.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3299.7999999999975,
+        "progress": 0.2997999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38321.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3316.4999999999977,
+        "progress": 0.3164999999999978,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38338.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3333.1000000000017,
+        "progress": 0.33310000000000173,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38355,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3349.8999999999983,
+        "progress": 0.3498999999999981,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38371.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3366.500000000002,
+        "progress": 0.36650000000000205,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38388.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3383.200000000002,
+        "progress": 0.3832000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38404.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3399.7999999999993,
+        "progress": 0.39979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38421.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3416.499999999999,
+        "progress": 0.4164999999999992,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38438.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3433.1999999999994,
+        "progress": 0.43319999999999936,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38454.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3449.8000000000034,
+        "progress": 0.4498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38471.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3466.4999999999964,
+        "progress": 0.46649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38488.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3483.1999999999966,
+        "progress": 0.4831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38504.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3499.899999999997,
+        "progress": 0.4998999999999967,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38521.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3516.5000000000005,
+        "progress": 0.5165000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38538.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3533.0999999999976,
+        "progress": 0.5330999999999975,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38554.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3549.7999999999975,
+        "progress": 0.5497999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38571.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3566.4999999999977,
+        "progress": 0.5664999999999978,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38588.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3583.199999999998,
+        "progress": 0.5831999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38604.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3599.800000000002,
+        "progress": 0.5998000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38621.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3616.500000000002,
+        "progress": 0.616500000000002,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38638.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3633.200000000002,
+        "progress": 0.6332000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38654.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3649.7999999999993,
+        "progress": 0.649799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38671.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3666.400000000003,
+        "progress": 0.666400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38688.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3683.100000000003,
+        "progress": 0.6831000000000031,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38704.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3699.8000000000034,
+        "progress": 0.6998000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38721.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3716.4999999999964,
+        "progress": 0.7164999999999964,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38738.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3733.1000000000004,
+        "progress": 0.7331000000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38754.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3749.8000000000006,
+        "progress": 0.7498000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38771.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3766.5000000000005,
+        "progress": 0.7665000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38788.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3783.0999999999976,
+        "progress": 0.7830999999999975,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38804.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3799.7999999999975,
+        "progress": 0.7997999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38821.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3816.4999999999977,
+        "progress": 0.8164999999999978,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38838.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3833.199999999998,
+        "progress": 0.8331999999999979,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38855,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3849.800000000002,
+        "progress": 0.8498000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38871.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3866.500000000002,
+        "progress": 0.866500000000002,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38888.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3883.099999999999,
+        "progress": 0.8830999999999989,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38904.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3899.7999999999993,
+        "progress": 0.899799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38921.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3916.400000000003,
+        "progress": 0.916400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38938.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3933.100000000003,
+        "progress": 0.9331000000000031,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38955,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3949.8000000000034,
+        "progress": 0.9498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38971.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3966.4999999999964,
+        "progress": 0.9664999999999964,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 38988.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3983.1999999999966,
+        "progress": 0.9831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39004.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 3999.8000000000006,
+        "progress": 0.9998000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39021.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4016.3999999999974,
+        "progress": 0.016399999999997306,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39038.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4033.0999999999976,
+        "progress": 0.033099999999997465,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39055.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4049.900000000001,
+        "progress": 0.049900000000000944,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39072.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4066.4000000000015,
+        "progress": 0.06640000000000157,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39088.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4083.1000000000017,
+        "progress": 0.08310000000000173,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39104.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4099.800000000002,
+        "progress": 0.09980000000000189,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39121.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4116.500000000002,
+        "progress": 0.11650000000000205,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39138.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4133.0999999999985,
+        "progress": 0.13309999999999889,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39155,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4149.799999999999,
+        "progress": 0.14979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39171.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4166.400000000003,
+        "progress": 0.166400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39188.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4183.100000000003,
+        "progress": 0.18310000000000315,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39205,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4199.800000000003,
+        "progress": 0.1998000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39221.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4216.499999999996,
+        "progress": 0.21649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39238.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4233.1,
+        "progress": 0.2331000000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39255.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4249.8,
+        "progress": 0.24980000000000047,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39271.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4266.399999999997,
+        "progress": 0.2663999999999973,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39288.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4283.099999999998,
+        "progress": 0.28309999999999746,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39304.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4299.799999999997,
+        "progress": 0.2997999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39321.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4316.4000000000015,
+        "progress": 0.31640000000000157,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39338.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4333.199999999998,
+        "progress": 0.33319999999999794,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39355,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4349.800000000002,
+        "progress": 0.3498000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39372.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4366.399999999999,
+        "progress": 0.3663999999999987,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39388.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4383.200000000003,
+        "progress": 0.3832000000000022,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39404.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4399.799999999999,
+        "progress": 0.39979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39421.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4416.400000000003,
+        "progress": 0.416400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39438.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4433.100000000003,
+        "progress": 0.43310000000000315,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39455,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4449.800000000003,
+        "progress": 0.4498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39471.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4466.499999999996,
+        "progress": 0.46649999999999636,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39488.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4483.199999999996,
+        "progress": 0.4831999999999965,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39505,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4499.8,
+        "progress": 0.49980000000000047,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39521.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4516.399999999997,
+        "progress": 0.5163999999999973,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39538.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4533.099999999998,
+        "progress": 0.5330999999999975,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39555,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4549.700000000002,
+        "progress": 0.5497000000000014,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39571.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4566.4000000000015,
+        "progress": 0.5664000000000016,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39588.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4583.100000000002,
+        "progress": 0.5831000000000017,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39605,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4599.800000000002,
+        "progress": 0.5998000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39621.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4616.399999999999,
+        "progress": 0.6163999999999987,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39638.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4633.0999999999985,
+        "progress": 0.6330999999999989,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39654.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4649.799999999999,
+        "progress": 0.649799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39671.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4666.499999999999,
+        "progress": 0.6664999999999992,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39688.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4683.100000000003,
+        "progress": 0.6831000000000031,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39704.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4699.800000000003,
+        "progress": 0.6998000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39722,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4716.400000000001,
+        "progress": 0.7164000000000001,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39738.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4733.1,
+        "progress": 0.7331000000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39755,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4749.8,
+        "progress": 0.7498000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39771.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4766.500000000001,
+        "progress": 0.7665000000000006,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39788.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4783.099999999998,
+        "progress": 0.7830999999999975,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39805,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4799.799999999997,
+        "progress": 0.7997999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39821.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4816.4000000000015,
+        "progress": 0.8164000000000016,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39838.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4833.100000000002,
+        "progress": 0.8331000000000017,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39854.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4849.800000000002,
+        "progress": 0.8498000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39871.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4866.399999999999,
+        "progress": 0.8663999999999987,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39888.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4883.0999999999985,
+        "progress": 0.8830999999999989,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39905,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4899.799999999999,
+        "progress": 0.899799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39921.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4916.400000000003,
+        "progress": 0.916400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39938.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4933.100000000003,
+        "progress": 0.9331000000000031,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39954.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4949.800000000003,
+        "progress": 0.9498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39971.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4966.400000000001,
+        "progress": 0.9664000000000001,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 39988.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4983.1,
+        "progress": 0.9831000000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40004.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 4999.8,
+        "progress": 0.9998000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40022.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5016.399999999997,
+        "progress": 0.016399999999997306,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40038.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5033.099999999998,
+        "progress": 0.033099999999997465,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40055,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5049.799999999997,
+        "progress": 0.049799999999997624,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40071.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5066.4000000000015,
+        "progress": 0.06640000000000157,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40088.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5083.100000000002,
+        "progress": 0.08310000000000173,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40104.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5099.800000000002,
+        "progress": 0.09980000000000189,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40121.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5116.399999999999,
+        "progress": 0.11639999999999873,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40138.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5133.0999999999985,
+        "progress": 0.13309999999999889,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40155.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5149.799999999999,
+        "progress": 0.14979999999999905,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40171.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5166.400000000003,
+        "progress": 0.166400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40188.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5183.100000000003,
+        "progress": 0.18310000000000315,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40204.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5199.800000000003,
+        "progress": 0.1998000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40221.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5216.400000000001,
+        "progress": 0.21640000000000015,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40238.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5233.1,
+        "progress": 0.2331000000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40254.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5249.8,
+        "progress": 0.24980000000000047,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40271.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5266.399999999997,
+        "progress": 0.2663999999999973,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40288.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5283.099999999998,
+        "progress": 0.28309999999999746,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40304.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5299.799999999997,
+        "progress": 0.2997999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40321.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5316.4000000000015,
+        "progress": 0.31640000000000157,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40338.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5333.100000000002,
+        "progress": 0.33310000000000173,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40355,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5349.800000000002,
+        "progress": 0.3498000000000019,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40372.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5366.399999999999,
+        "progress": 0.3663999999999987,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40388.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5383.000000000003,
+        "progress": 0.38300000000000267,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40404.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5399.700000000003,
+        "progress": 0.39970000000000283,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40421.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5416.499999999999,
+        "progress": 0.4164999999999992,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40438.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5433.100000000003,
+        "progress": 0.43310000000000315,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40454.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5449.800000000003,
+        "progress": 0.4498000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40471.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5466.400000000001,
+        "progress": 0.46640000000000015,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40488.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5482.999999999997,
+        "progress": 0.482999999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40504.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgb(238, 238, 238)",
+        "color": "rgb(0, 0, 0)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5499.699999999997,
+        "progress": 0.49969999999999715,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40521.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5516.399999999997,
+        "progress": 0.5163999999999973,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40538.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5533.000000000001,
+        "progress": 0.5330000000000013,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40555,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5549.799999999997,
+        "progress": 0.5497999999999976,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40571.700000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5566.4000000000015,
+        "progress": 0.5664000000000016,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40588.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5583.100000000002,
+        "progress": 0.5831000000000017,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40604.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5599.699999999999,
+        "progress": 0.5996999999999986,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40621.90000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5616.399999999999,
+        "progress": 0.6163999999999987,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40638.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5633.0999999999985,
+        "progress": 0.6330999999999989,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40655,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5649.799999999999,
+        "progress": 0.649799999999999,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40671.60000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5666.400000000003,
+        "progress": 0.666400000000003,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40688.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5683.100000000003,
+        "progress": 0.6831000000000031,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40704.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5699.800000000003,
+        "progress": 0.6998000000000033,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40721.40000009537,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5716.400000000001,
+        "progress": 0.7164000000000001,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40738.200000047684,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5732.999999999997,
+        "progress": 0.732999999999997,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40754.799999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5749.8,
+        "progress": 0.7498000000000005,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40771.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5766.399999999997,
+        "progress": 0.7663999999999973,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40788.299999952316,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5783.099999999998,
+        "progress": 0.7830999999999975,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40805.10000014305,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5799.700000000002,
+        "progress": 0.7997000000000014,
+        "duration_ms": 1000
+      }
+    },
+    {
+      "at_ms": 40821.5,
+      "cursor": {
+        "x": 21,
+        "y": 74,
+        "visible": true,
+        "shape": "block",
+        "synchronized": false,
+        "blink": true
+      },
+      "css": {
+        "background": "rgba(0, 0, 0, 0)",
+        "color": "rgb(238, 238, 238)",
+        "shadow": "none",
+        "border_bottom": "none"
+      },
+      "animation": {
+        "current_ms": 5816.4000000000015,
+        "progress": 0.8164000000000016,
+        "duration_ms": 1000
+      }
+    }
+  ],
+  "commands": [],
+  "finished_ms": 40831.5
+}
