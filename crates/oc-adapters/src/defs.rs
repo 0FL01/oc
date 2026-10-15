@@ -2475,17 +2475,17 @@ mod tests {
         merge_config_definitions(
             &mut loaded,
             &serde_json::json!({
-                "agent": {
+                "agents": {
                     "review": {
                         "description": "same",
-                        "prompt": "global prompt",
+                        "system": "global prompt",
                         "model": "old",
-                        "permission": {"write": "allow"},
-                        "mode": "primary"
+                        "mode": "primary",
+                        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}]
                     },
-                    "bad": {"prompt": "bad", "hooks": {"x": true}}
+                    "bad": {"system": "bad", "hooks": {"x": true}}
                 },
-                "command": {
+                "commands": {
                     "run": {"description": "global", "template": "Explain `cargo test` to $1"},
                     "bad": {"template": "delegate", "hooks": {"x": true}}
                 }
@@ -2495,16 +2495,16 @@ mod tests {
         merge_config_definitions(
             &mut loaded,
             &serde_json::json!({
-                "agent": {
+                "agents": {
                     "review": {
                         "description": "same",
                         "body": "local prompt",
                         "variant": "high",
-                        "permission": {"edit": "deny"}
+                        "permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]
                     }
                 },
-                "command": {
-                    "run": {"body": "literal subagent in a code fence:\n```sh\ncargo test\n```"},
+                "commands": {
+                    "run": {"template": "literal subagent in a code fence:\n```sh\ncargo test\n```"},
                     "delegate": {
                         "template": "delegate now",
                         "agent": "review",

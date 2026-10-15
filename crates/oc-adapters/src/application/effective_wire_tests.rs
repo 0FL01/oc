@@ -16,7 +16,7 @@ async fn go03_model_variant_and_title_bindings_use_api_ids_without_foreign_crede
     let project = root.path().join("project");
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
-    let config = json!({"model":"fixture/catalog#fast", "agent":{"title":{"model":"fixture/title"}},
+    let config = json!({"model":"fixture/catalog#fast", "agents":{"title":{"model":"fixture/title"}},
     "providers":{"fixture":{
         "package":"@ai-sdk/openai", "settings":{"baseURL":"https://example.com/parent","setCacheKey":true},
         "headers":{"X-Overlay":"provider"}, "body":{"nested":{"provider":1}},

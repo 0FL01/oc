@@ -64,17 +64,17 @@ for line in sys.stdin:
     );
     let mut config = serde_json::json!({
         "model":"fixture/main", "default_agent":"review",
-        "provider":{"fixture":{
-            "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+        "providers":{"fixture":{
+            "package":"@ai-sdk/openai", "settings":{"baseURL":base,"apiKey":"fixture-key"},
             "models":{"main":{"limit":{"context":65536,"output":4096}}}
         }},
-        "permission":"allow",
-        "agent":{
-            "build":{"mode":"primary", "prompt":"BUILD_PRIMARY", "permission":"allow"},
-            "review":{"mode":"primary", "prompt":"REVIEW_PRIMARY", "tools":{"bash":false,"fixture_query":false}},
-            "helper":{"mode":"subagent", "prompt":"HELPER_CHILD", "permission":"allow"}
+        "agents":{
+            "build":{"mode":"primary", "system":"BUILD_PRIMARY", "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]},
+            "review":{"mode":"primary", "system":"REVIEW_PRIMARY", "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "fixture_query", "resource": "*", "effect": "deny"}]},
+            "helper":{"mode":"subagent", "system":"HELPER_CHILD", "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}
         },
-        "mcp":{"fixture":{"type":"local", "command":["/usr/bin/python3",mcp_script,project.path().join("mcp-calls")], "timeout":2000}}
+        "mcp":{"servers": {"fixture": {"type":"local", "command":["/usr/bin/python3",mcp_script,project.path().join("mcp-calls")], "timeout":{"catalog": 2000, "execution": 2000}}}},
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
     });
     let config_path = project.path().join("opencode.json");
     std::fs::write(&config_path, config.to_string()).unwrap();
@@ -241,7 +241,7 @@ async fn primary_workspace_policy_also_bounds_manual_compress() {
         ..ProtectedSpec::default()
     };
     let rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"tools":{"compress":false}}),
+        &serde_json::json!({"permissions": [{"action": "compress", "resource": "*", "effect": "deny"}]}),
     )
     .unwrap();
     runtime
@@ -321,7 +321,7 @@ async fn t47_unknown_limits_use_configured_caps_without_variant_overlay() {
             .insert("gpt-fixture".into(), entry.clone());
         let mut generation = oc_adapters::config::assemble(&[oc_adapters::config::Source {
             path: "test.json".into(), trusted: true,
-            text: serde_json::json!({"provider":{"test":{"options":{"apiKey":"test-key", "nativeFallbackLimits":{"context":16_384,"output":256}}}}}).to_string(),
+            text: serde_json::json!({"providers":{"test":{"settings":{"apiKey":"test-key", "nativeFallbackLimits":{"context":16_384,"output":256}}}}}).to_string(),
         }], &BTreeMap::new(), None).unwrap();
         generation.permissions = allow_all();
         let runtime = runtime_of(&harness, generation, Vec::new());

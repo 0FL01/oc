@@ -43,13 +43,14 @@ async fn go05_qualified_child_pins_overrides_and_commands_capture_own_authority(
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         std::fs::write(project.join("opencode.json"),serde_json::json!({
-            "model":"alpha/same/slash","disabled_providers":["opencode-go"],"permission":{"*":"allow"},
-            "agent":{"scout":{"mode":"subagent","model":if mode=="profile" {"beta/same/slash"} else {"alpha/same/slash"}}},
-            "command":{"inspect":{"template":"child task","agent":"scout","model":"beta/same/slash","subtask":true}},
+            "model":"alpha/same/slash","agents":{"scout":{"mode":"subagent","model":if mode=="profile" {"beta/same/slash"} else {"alpha/same/slash"}}},
+            "commands":{"inspect":{"template":"child task","agent":"scout","model":"beta/same/slash","subtask":true}},
             "providers":{
                 "alpha":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("{base}/alpha"),"apiKey":"PARENT_KEY"},"models":{"same/slash":{"modelID":"parent-api","limit":{"context":100000,"output":2048}}}},
                 "beta":{"package":"@ai-sdk/anthropic","settings":{"baseURL":format!("{base}/beta"),"apiKey":"CHILD_KEY"},"models":{"same/slash":{"modelID":"child-api","limit":{"context":100000,"output":2048}}}}
-            }
+            },
+            "permissions": [{"action": "*", "resource": "*", "effect": "allow"}],
+            "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
         }).to_string()).unwrap();
         let peer = tokio::spawn(async move {
             let count = if mode == "command" { 1 } else { 3 };
@@ -182,11 +183,12 @@ async fn go05_qualified_busy_switch_keeps_prepared_authority_and_reopens_home_an
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "model":"alpha/same/slash","disabled_providers":["opencode-go"],"permission":{"*":"allow"},
-        "providers": {
+        "model":"alpha/same/slash","providers": {
             "alpha":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("{base}/alpha"),"apiKey":"ALPHA_CANARY"},"models":{"same/slash":{"modelID":"alpha-api","limit":{"context":100000,"output":2048}}}},
             "beta":{"package":"@ai-sdk/anthropic","settings":{"baseURL":format!("{base}/beta"),"apiKey":"BETA_CANARY"},"models":{"same/slash":{"modelID":"beta-api","limit":{"context":50000,"output":1024}}}}
-        }
+        },
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}],
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
     }).to_string()).unwrap();
     let (arrived, arrival) = tokio::sync::oneshot::channel();
     let (release, gate) = tokio::sync::oneshot::channel();

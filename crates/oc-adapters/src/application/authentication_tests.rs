@@ -45,10 +45,10 @@ async fn auth01_application_owns_attempts_across_locations_and_projects_method_m
     }
     std::fs::write(
         a.join("opencode.json"),
-        r#"{"disabled_providers":["opencode-go"]}"#,
+        r#"{"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
     )
     .unwrap();
-    std::fs::write(b.join("opencode.json"), r#"{"disabled_providers":["opencode-go"],"provider":{"openai":{"options":{"baseURL":"https://foreign.invalid/v1"},"models":{"m":{}}}}}"#).unwrap();
+    std::fs::write(b.join("opencode.json"), r#"{"providers":{"openai":{"settings":{"baseURL":"https://foreign.invalid/v1"},"models":{"m":{}}}}, "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#).unwrap();
     let scope = crate::auth::AuthScope::admit("openai", crate::auth::OPENAI_BASE_URL).unwrap();
     let id = {
         let db = Db::open(&data).unwrap();
@@ -235,8 +235,9 @@ async fn auth01_application_serves_auth_commands_during_a_held_native_request() 
     std::fs::create_dir(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "disabled_providers":["opencode-go"], "model":"fixture/m",
-        "provider":{"fixture":{"options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"synthetic"},"models":{"m":{"limit":{"context":100000,"output":2048}}}}}
+        "model":"fixture/m",
+        "providers":{"fixture":{"settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"synthetic"},"models":{"m":{"limit":{"context":100000,"output":2048}}}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
     }).to_string()).unwrap();
     let (arrived, arrival) = tokio::sync::oneshot::channel();
     let (release, gate) = tokio::sync::oneshot::channel();

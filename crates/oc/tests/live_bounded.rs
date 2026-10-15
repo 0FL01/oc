@@ -863,7 +863,7 @@ impl Fixture {
         permissions["crw_*"] = json!("allow");
         let mcp = guard.ready["mcp"].as_object().expect("owned routes").iter().map(|(name, entry)| (name.clone(), json!({"type":"remote", "codemode": false, "url":entry["url"], "headers":entry["headers"], "oauth":false, "enabled":true, "timeout":{"startup":30000,"catalog":30000,"execution":60000}}))).collect::<serde_json::Map<_,_>>();
         let config = json!({"model": self.model, "permissions":permissions, "dcp":{"enabled":true},
-            "provider": {provider: {"npm":"@ai-sdk/openai", "options":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":mcp});
+            "providers": {provider: {"package":"@ai-sdk/openai", "settings":{"baseURL":guard.ready["provider_base"], "apiKey":envelope::PLACEHOLDER, "headers":guard.ready["provider_headers"], "timeout":false, "setCacheKey":false, "nativeFallbackLimits":{"context":32768,"output":2048}}, "models":{model:{"limit":{"output":2048}}}}}, "mcp":mcp});
         let config_dir = self.config_dir.as_ref().expect("private config");
         std::fs::create_dir_all(config_dir).expect("private config directory");
         std::fs::write(config_dir.join("opencode.json"), config.to_string())
@@ -908,9 +908,9 @@ impl Fixture {
                 "model": "fixture/gpt-dry-run-model",
                 "permissions": permissions,
                 "dcp": {"enabled": true},
-                "provider": {"fixture": {
-                    "npm": "@ai-sdk/openai",
-                    "options": {"baseURL": peer.url, "apiKey": "dry-run-key",
+                "providers": {"fixture": {
+                    "package": "@ai-sdk/openai",
+                    "settings": {"baseURL": peer.url, "apiKey": "dry-run-key",
                                 "timeout": false, "setCacheKey": false},
                     "models": {"gpt-dry-run-model": {"name": "Dry run",
                         "limit": {"context": 128_000, "output": 8_000}}}
@@ -1611,7 +1611,7 @@ fn bounded_missing_catalog_model_variant_and_credentials_block_before_generation
     let fixture = Fixture::dry_run(false);
     let path = fixture.config_dir.as_ref().unwrap().join("opencode.json");
     let mut value: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    value["provider"]["fixture"]["options"]["apiKey"] = json!("{env:OC_BOUNDED_MISSING_TEST_KEY}");
+    value["providers"]["fixture"]["settings"]["apiKey"] = json!("{env:OC_BOUNDED_MISSING_TEST_KEY}");
     std::fs::write(path, value.to_string()).unwrap();
     assert!(fixture.preflight(CALL_TIMEOUT).is_err());
     assert!(
@@ -1665,7 +1665,8 @@ fn bounded_permission_preflight_rejects_before_generation() {
             "primary agent deny" => {
                 value["default_agent"] = json!("restricted");
                 value["agent"] = json!({"restricted": {
-                    "mode": "primary", "permission": {"bash": "deny"}
+                    "mode": "primary",
+                    "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]
                 }});
             }
             _ => unreachable!(),
@@ -1698,7 +1699,8 @@ fn bounded_permission_preflight_rejects_before_generation() {
     });
     value["default_agent"] = json!("restricted");
     value["agent"] = json!({"restricted": {
-        "mode": "primary", "permission": {"bash": {"cargo test": "allow"}}
+        "mode": "primary",
+        "permissions": [{"action": "shell", "resource": "cargo test", "effect": "allow"}]
     }});
     std::fs::write(path, value.to_string()).unwrap();
     let campaign = Campaign::new();

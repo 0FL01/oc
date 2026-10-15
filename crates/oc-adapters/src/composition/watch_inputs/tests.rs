@@ -62,19 +62,18 @@ async fn hot02_watch_inputs_follow_actual_admission_and_keep_missing_roots_inert
         std::fs::write(shared.join(name), "SYNTHETIC_KEY").unwrap();
     }
     let original = serde_json::json!({
-        "model":"fixture/m", "disabled_providers":["opencode-go","openai","skipped"],
-        "provider":{
-            "fixture":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:./selected-key}"},"models":{"m":{}}},
-            "other":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:other-key}"},"models":{"n":{}}},
-            "environment":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{env:CAPTURED}"},"models":{"n":{}}},
-            "missing":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:later-key}"},"models":{"n":{}}},
-            "escape":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:../NEVER_FOLLOW}"},"models":{"n":{}}},
-            "skipped":{"options":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:NEVER_READ}"},"models":{}}
+        "model":"fixture/m", "providers":{
+            "fixture":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:./selected-key}"},"models":{"m":{}}},
+            "other":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:other-key}"},"models":{"n":{}}},
+            "environment":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{env:CAPTURED}"},"models":{"n":{}}},
+            "missing":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:later-key}"},"models":{"n":{}}},
+            "escape":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:../NEVER_FOLLOW}"},"models":{"n":{}}},
+            "skipped":{"settings":{"baseURL":"https://example.invalid/v1", "apiKey":"{file:NEVER_READ}"},"models":{}}
         },
         "mcp":{
-            "enabled":{"type":"local","command":["/bin/true"],"environment":{"TOKEN":"{file:mcp-key}"}},
-            "disabled":{"type":"local","enabled":false,"command":["{file:NEVER_READ_DISABLED}"]}
-        }
+            "servers": {"enabled": {"type":"local","command":["/bin/true"],"environment":{"TOKEN":"{file:mcp-key}"}}, "disabled": {"type":"local","disabled":true,"command":["{file:NEVER_READ_DISABLED}"]}}
+        },
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}, {"action": "provider.use", "resource": "skipped", "effect": "deny"}]}
     });
     std::fs::write(shared.join("config.json"), original.to_string()).unwrap();
     symlink(shared.join("config.json"), project.join("opencode.json")).unwrap();

@@ -22,8 +22,8 @@ impl Fixture {
         std::fs::create_dir_all(&global).unwrap();
         let data = root.path().join(format!("{CANARY}-data"));
         let config = serde_json::json!({
-            "model": "fixture/main", "permissions": {"read": "deny"},
-            "provider": {"fixture": {"options": {"baseURL": "https://example.invalid/v1", "apiKey": CANARY},
+            "model": "fixture/main", "permissions": [{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers": {"fixture": {"settings": {"baseURL": "https://example.invalid/v1", "apiKey": CANARY},
                 "models": {"main": {}}}},
         });
         std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
@@ -84,7 +84,7 @@ async fn cfg10_optional_definition_failure_is_safe_but_policy_document_is_fatal_
             .map(|index| (format!("{CANARY}-{index}"), serde_json::Value::Null))
             .collect(),
     );
-    config["provider"]["fixture"]["options"][CANARY] = serde_json::json!(CANARY);
+    config["providers"]["fixture"]["settings"][CANARY] = serde_json::json!(CANARY);
     config["mcp"][CANARY] = serde_json::Value::Null;
     config["mcp"]["chrome-devtools"] = serde_json::json!({
         "type":"local", "command":["never-spawn-disabled"], "enabled":false,

@@ -10,13 +10,13 @@ async fn command_routing_invalid_metadata_has_no_acceptance_or_selection_effects
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&data).unwrap();
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "model":"fixture/m", "permission":{"subagent":"allow"},
-        "provider":{"fixture":{"options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}},
-        "agent":{"other":{"mode":"primary","prompt":"OTHER"}},
-        "command":{
+        "model":"fixture/m", "providers":{"fixture":{"settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}},
+        "agents":{"other":{"mode":"primary","system":"OTHER"}},
+        "commands":{
             "missing":{"template":"expanded $1","agent":"absent"},
             "badmodel":{"template":"expanded $1","agent":"other","model":"fixture/absent"}
-        }
+        },
+        "permissions": [{"action": "subagent", "resource": "*", "effect": "allow"}]
     }).to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), data.to_string_lossy().into_owned()),

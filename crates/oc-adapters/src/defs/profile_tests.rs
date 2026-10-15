@@ -114,7 +114,7 @@ fn r6_model_selection_precedence_and_whole_selection_replacement() {
         assert_eq!(defs.agents["team/reviewer"].variant.as_deref(), variant);
         merge_config_definitions(
             &mut defs,
-            &serde_json::json!({"agent":{"team/reviewer":{"model":"fixture/replacement"}}}),
+            &serde_json::json!({"agents":{"team/reviewer":{"model":"fixture/replacement"}}}),
             "project",
         );
         assert_eq!(defs.agents["team/reviewer"].variant, None);
@@ -173,7 +173,7 @@ fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals(
     merge_config_definitions(
         &mut defs,
         &serde_json::json!({
-            "agent":{"legacy":{"options":{"top_p":0.1,"seed":7},"temperature":0.3,"top_p":0.9}},
+            "agents":{"legacy":{"options":{"top_p":0.1,"seed":7},"temperature":0.3,"top_p":0.9}},
             "agents":{"team/tuned":{"request":{"headers":{"x-other":"json"},"body":{"seed":1}}}}
         }),
         "project",
@@ -253,7 +253,7 @@ fn r6_request_overlays_merge_by_key_with_legacy_migration_and_explicit_refusals(
     let mut defs = LoadedDefs::default();
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agent":{"bad":{"temperature":"hot"}}}),
+        &serde_json::json!({"agents":{"bad":{"temperature":"hot"}}}),
         "global",
     );
     assert!(!defs.agents.contains_key("bad"));
@@ -301,7 +301,7 @@ fn r6_color_native_pattern_legacy_theme_migration_and_supplied_merge() {
     merge_config_definitions(
         &mut defs,
         &serde_json::json!({
-            "agent":{"v1":{"color":"primary"}},
+            "agents":{"v1":{"color":"primary"}},
             "agents":{"native":{"description":"kept color"},"bad":{"color":"primary"}}
         }),
         "project",

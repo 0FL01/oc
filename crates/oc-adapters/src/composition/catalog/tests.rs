@@ -20,7 +20,7 @@ async fn conn05_saved_custom_catalog_is_read_only_complete_empty_and_revision_aw
     std::fs::create_dir(&project).unwrap();
     std::fs::write(
         project.join("opencode.json"),
-        r#"{"disabled_providers":["openai","opencode-go"]}"#,
+        r#"{"experimental": {"policies": [{"action": "provider.use", "resource": "openai", "effect": "deny"}, {"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
     )
     .unwrap();
     let data = root.path().join("data");
@@ -140,12 +140,12 @@ async fn catalog_static_is_selection_independent_and_does_not_resolve_connection
     ] {
         let (root, env) = fixture(json!({
             "model":selection, "default_agent":"missing",
-            "provider": {
-                "z": {"npm":"@ai-sdk/openai", "options":{"apiKey":"{file:do-not-read}","baseURL":"{file:do-not-read}"},"models":models},
+            "providers": {
+                "z": {"package":"@ai-sdk/openai", "settings":{"apiKey":"{file:do-not-read}","baseURL":"{file:do-not-read}"},"models":models},
                 "a": {"models":{"route/model":{}}},
-                "foreign": {"npm":"unsupported", "options":{"apiKey":"{file:do-not-read}"},"models":{"hidden":{}}}
+                "foreign": {"package":"unsupported", "settings":{"apiKey":"{file:do-not-read}"},"models":{"hidden":{}}}
             },
-            "mcp":{"browser":{"type":"local","enabled":true,"command":["{file:do-not-read}"]}}
+            "mcp":{"servers": {"browser": {"type":"local","disabled":false,"command":["{file:do-not-read}"]}}}
         }));
         let listing = load_catalog_with_env(root.path(), env).await.unwrap();
         assert!(listing.complete);
@@ -216,8 +216,10 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
         }
     }
     let (project, env) = fixture(
-        json!({"disabled_providers":["opencode-go"], "model":"openai/gpt-5.5",
-        "providers":{"openai":{"settings":{"apiKey":"{file:must-not-read}"}}}}),
+        json!({"model":"openai/gpt-5.5",
+        "providers":{"openai":{"settings":{"apiKey":"{file:must-not-read}"}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+    }),
     );
     let data = tempfile::tempdir().unwrap();
     let db = Db::open(data.path()).unwrap();
@@ -304,14 +306,14 @@ async fn auth04_catalog_only_applies_method_overlay_without_resolving_credential
 async fn catalog_empty_disabled_and_missing_dynamic_key_have_distinct_outcomes() {
     for config in [
         json!({}),
-        json!({"disabled_providers":["ludka2"],"provider":{"ludka2":{"options":{"apiKey":"{file:never}"},"models":{"hidden":{}}}}}),
+        json!({"providers":{"ludka2":{"settings":{"apiKey":"{file:never}"},"models":{"hidden":{}}}}, "experimental": {"policies": [{"action": "provider.use", "resource": "ludka2", "effect": "deny"}]}}),
     ] {
         let (root, env) = fixture(config);
         let listing = load_catalog_with_env(root.path(), env).await.unwrap();
         assert!(listing.complete);
         assert!(listing.references.is_empty());
     }
-    let (root, env) = fixture(json!({"provider":{"ludka2":{"models":{"known":{}}}}}));
+    let (root, env) = fixture(json!({"providers":{"ludka2":{"models":{"known":{}}}}}));
     let listing = load_catalog_with_env(root.path(), env).await.unwrap();
     assert!(!listing.complete);
     assert_eq!(listing.references, ["ludka2/known"]);
@@ -321,11 +323,11 @@ async fn catalog_empty_disabled_and_missing_dynamic_key_have_distinct_outcomes()
 #[tokio::test]
 async fn catalog_fatal_policy_metadata_caps_and_controls_publish_no_candidate() {
     for config in [
-        json!({"permission":{"read":17}}),
+        json!({"permissions": [{"action": "read", "resource": "*", "effect": 17}]}),
         json!({"model":17}),
         json!({"plugin":17}),
-        json!({"provider":{"p":{"models":{"ok":{},"bad\nline":{}}}}}),
-        json!({"provider":{"p":{"models":{"ok":{},"oversized":{"name":"x".repeat(12289)}}}}}),
+        json!({"providers":{"p":{"models":{"ok":{},"bad\nline":{}}}}}),
+        json!({"providers":{"p":{"models":{"ok":{},"oversized":{"name":"x".repeat(12289)}}}}}),
     ] {
         let (root, env) = fixture(config);
         assert!(load_catalog_with_env(root.path(), env).await.is_err());
@@ -336,7 +338,7 @@ async fn catalog_fatal_policy_metadata_caps_and_controls_publish_no_candidate() 
 async fn catalog_root_escape_and_dynamic_secret_escape_are_fatal() {
     use std::os::unix::fs::symlink;
     let (root, env) =
-        fixture(json!({"provider":{"ludka2":{"options":{"apiKey":"{file:../outside}"}}}}));
+        fixture(json!({"providers":{"ludka2":{"settings":{"apiKey":"{file:../outside}"}}}}));
     let error = load_catalog_with_env(root.path(), env.clone())
         .await
         .err()
@@ -376,10 +378,10 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
     let public = crate::models_dev::GoCatalog::read_only(None);
     let (root, env) = fixture(
         json!({"model":"unavailable/retired", "default_agent":"missing",
-        "provider":{
-            "static-chat":{"npm":"@ai-sdk/openai-compatible","options":{"apiKey":"{file:never}"},"models":{"chat":{}}},
-            "static-messages":{"npm":"@ai-sdk/anthropic","models":{"messages":{}}},
-            "opencode-go":{"options":{"apiKey":"{file:never}"},"models":{
+        "providers":{
+            "static-chat":{"package":"@ai-sdk/openai-compatible","settings":{"apiKey":"{file:never}"},"models":{"chat":{}}},
+            "static-messages":{"package":"@ai-sdk/anthropic","models":{"messages":{}}},
+            "opencode-go":{"settings":{"apiKey":"{file:never}"},"models":{
                 "local-only":{}, "remote/only":{"name":"Local Name"}}}
         }}),
     );
@@ -396,7 +398,7 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
         ]
     );
     assert_eq!(client.0.load(std::sync::atomic::Ordering::SeqCst), 1);
-    let (root, env) = fixture(json!({"disabled_providers":["opencode-go"]}));
+    let (root, env) = fixture(json!({"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}));
     let listing = load_catalog_inner(root.path(), env, Some(&public), &client, false, None)
         .await
         .unwrap();

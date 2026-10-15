@@ -22,7 +22,7 @@ fn fixture() -> (
         ),
         ("BENIGN_ALIAS".into(), "mcp09-higher-domain-canary".into()),
     ]);
-    fs::write(global.join("opencode.json"),json!({"model":"fixture/main","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"https://example.invalid/v1","apiKey":"{env:BENIGN_ALIAS}"},"models":{"main":{}}}}}).to_string()).unwrap();
+    fs::write(global.join("opencode.json"),json!({"model":"fixture/main","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"https://example.invalid/v1","apiKey":"{env:BENIGN_ALIAS}"},"models":{"main":{}}}}}).to_string()).unwrap();
     (temp, project, global, env)
 }
 
@@ -31,7 +31,7 @@ async fn mcp09_cwd_invalid_is_typed_but_escape_is_fatal_and_no_fallback() {
     let (_root, project, global, env) = fixture();
     fs::write(
         global.join("opencode.jsonc"),
-        json!({"mcp":{"local":{"type":"local","command":["/bin/true"],"cwd":"missing"}}})
+        json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"cwd":"missing"}}}})
             .to_string(),
     )
     .unwrap();
@@ -50,7 +50,7 @@ async fn mcp09_cwd_invalid_is_typed_but_escape_is_fatal_and_no_fallback() {
     std::os::unix::fs::symlink(&global, project.join("escaped")).unwrap();
     fs::write(
         project.join("opencode.json"),
-        json!({"mcp":{"local":{"type":"local","command":["/bin/true"],"cwd":"escaped"}}})
+        json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"cwd":"escaped"}}}})
             .to_string(),
     )
     .unwrap();
@@ -63,7 +63,7 @@ async fn mcp09_cwd_invalid_is_typed_but_escape_is_fatal_and_no_fallback() {
     );
     // The existing explicit resource policy admits the canonical external path;
     // it does not grant global credential inheritance to the project command.
-    fs::write(project.join("opencode.json"),json!({"permissions":{"external_directory":"allow"},"mcp":{"local":{"type":"local","command":["/bin/true"],"cwd":global}}}).to_string()).unwrap();
+    fs::write(project.join("opencode.json"),json!({"permissions":[{"action": "external_directory", "resource": "*", "effect": "allow"}],"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"cwd":global}}}}).to_string()).unwrap();
     let composition = load_with_env(&project, env.clone()).await.unwrap();
     let entry = &composition.generation.mcp["local"];
     assert!(entry.resource_admitted);
@@ -81,7 +81,7 @@ async fn mcp09_cwd_invalid_is_typed_but_escape_is_fatal_and_no_fallback() {
 #[tokio::test]
 async fn mcp09_project_overlay_cannot_acquire_higher_trust_credential() {
     let (_root, project, global, env) = fixture();
-    fs::write(project.join("opencode.json"),json!({"mcp":{"local":{"type":"local","command":["/bin/true"],"environment":{"BENIGN_NAME":"{env:BENIGN_ALIAS}"}}}}).to_string()).unwrap();
+    fs::write(project.join("opencode.json"),json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"environment":{"BENIGN_NAME":"{env:BENIGN_ALIAS}"}}}}}).to_string()).unwrap();
     let error = load_with_env(&project, env.clone()).await.err().unwrap();
     assert!(error.contains("trust_refused"));
     assert!(!error.contains("mcp09-higher-domain-canary"));
@@ -93,11 +93,11 @@ async fn mcp09_project_overlay_cannot_acquire_higher_trust_credential() {
         "ORPHAN_PASSWORD".into(),
         "mcp09-orphan-secret-canary".into(),
     );
-    fs::write(project.join("opencode.json"),json!({"mcp":{"local":{"type":"local","command":["/bin/true"],"environment":{"BENIGN_NAME":"{env:ORPHAN_PASSWORD}"}}}}).to_string()).unwrap();
+    fs::write(project.join("opencode.json"),json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"environment":{"BENIGN_NAME":"{env:ORPHAN_PASSWORD}"}}}}}).to_string()).unwrap();
     let error = load_with_env(&project, orphan_env).await.err().unwrap();
     assert!(error.contains("trust_refused"));
     assert!(!error.contains("mcp09-orphan-secret-canary"));
-    fs::write(project.join("opencode.json"),json!({"mcp":{"local":{"type":"local","command":["/bin/true"],"environment":{"LOCAL_TOKEN":"mcp09-explicit-local-canary"}}}}).to_string()).unwrap();
+    fs::write(project.join("opencode.json"),json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"],"environment":{"LOCAL_TOKEN":"mcp09-explicit-local-canary"}}}}}).to_string()).unwrap();
     let composition = load_with_env(&project, env.clone()).await.unwrap();
     let entry = &composition.generation.mcp["local"];
     let config = crate::mcp_stdio::StdioConfig::from_entry("local", entry, &project, &env).unwrap();
@@ -113,8 +113,8 @@ async fn mcp09_project_overlay_cannot_acquire_higher_trust_credential() {
             .all(|(_, value)| !value.contains("mcp09-higher-domain-canary"))
     );
     fs::write(project.join("opencode.json"),json!({
-        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"https://example.invalid/v1","apiKey":"local-key"},"models":{"main":{}}}},
-        "mcp":{"local":{"type":"local","command":["/bin/true"]}}
+        "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"https://example.invalid/v1","apiKey":"local-key"},"models":{"main":{}}}},
+        "mcp":{"servers": {"local": {"type":"local","command":["/bin/true"]}}}
     }).to_string()).unwrap();
     let composition = load_with_env(&project, env.clone()).await.unwrap();
     assert_eq!(
@@ -139,7 +139,7 @@ async fn mcp09_project_overlay_cannot_acquire_higher_trust_credential() {
     fs::create_dir(&nested).unwrap();
     fs::write(
         nested.join("opencode.json"),
-        json!({"mcp":{"local":{"type":"local","command":["/bin/true"]}}}).to_string(),
+        json!({"mcp":{"servers": {"local": {"type":"local","command":["/bin/true"]}}}}).to_string(),
     )
     .unwrap();
     let composition = load_with_env(&nested, env.clone()).await.unwrap();

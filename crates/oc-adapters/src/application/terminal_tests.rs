@@ -44,7 +44,7 @@ async fn term01_application_scopes_controls_and_keeps_original_pty_across_locati
         std::fs::create_dir(path).unwrap();
         std::fs::write(
             path.join("opencode.json"),
-            r#"{"disabled_providers":["opencode-go"],"keybinds":{"leader":"ctrl+b,ctrl+g","terminal.toggle":"<leader>t","terminal.close":false}}"#,
+            r#"{"keybinds":{"leader":"ctrl+b,ctrl+g","terminal.toggle":"<leader>t","terminal.close":false}, "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
         )
         .unwrap();
     }
@@ -207,7 +207,7 @@ async fn term01_terminal_recovery_failure_keeps_local_application_but_not_fake_s
     std::fs::create_dir(&project).unwrap();
     std::fs::write(
         project.join("opencode.json"),
-        r#"{"disabled_providers":["opencode-go"]}"#,
+        r#"{"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}"#,
     )
     .unwrap();
     {

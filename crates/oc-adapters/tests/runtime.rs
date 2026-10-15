@@ -753,9 +753,9 @@ async fn title_fixture(
     let home = tempfile::tempdir().unwrap();
     std::fs::write(project.path().join("opencode.json"), serde_json::json!({
         "model": "fixture/main",
-        "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+        "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
             "models": {"main": {}, "title-model": {}}}},
-        "agent": {"title": {"mode": "subagent", "model": "fixture/title-model", "prompt": "TITLE_AGENT_ONLY"}}
+        "agents": {"title": {"mode": "subagent", "model": "fixture/title-model", "system": "TITLE_AGENT_ONLY"}}
     }).to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.path().to_string_lossy().into_owned()),
@@ -793,15 +793,15 @@ async fn check_application_patch_replay(line: &str, count: usize) {
     );
     let config = serde_json::json!({
         "model": "fixture/gpt-fixture-model",
-        "provider": {"fixture": {
-            "npm": "@ai-sdk/openai",
-            "options": {"baseURL": base, "apiKey": "test-key"},
+        "providers": {"fixture": {
+            "package": "@ai-sdk/openai",
+            "settings": {"baseURL": base, "apiKey": "test-key"},
             "models": {"gpt-fixture-model": {
                 "name": "DTO fixture",
                 "limit": {"context": 65536, "output": 4096},
             }},
         }},
-        "permissions": {"apply_patch": "allow"},
+        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}],
     });
     std::fs::write(project.path().join("opencode.json"), config.to_string()).expect("config");
     let env: BTreeMap<String, String> = [

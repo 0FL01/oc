@@ -119,7 +119,7 @@ async fn question_real_core_binding_commit_and_restart_no_reask() {
         ],
         data.path().to_owned(),
     );
-    let config = serde_json::json!({"model":"fixture/main","compaction":{"auto":false},"agent":{"title":{"disable":true}}, "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":peer.url,"apiKey":"synthetic"},"models":{"main":{}}}}});
+    let config = serde_json::json!({"model":"fixture/main","compaction":{"auto":false},"agents":{"title":{"disabled":true}}, "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":peer.url,"apiKey":"synthetic"},"models":{"main":{}}}}});
     std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.path().display().to_string()),

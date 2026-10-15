@@ -215,7 +215,7 @@ async fn go05_scoped_account_commands_reject_foreign_ids_and_unconfirmed_removal
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"https://example.com/prefix"},"models":{"m":{}}}}
+        "model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"https://example.com/prefix"},"models":{"m":{}}}}
     }).to_string()).unwrap();
     let (app, guard, _) = spawn_with_env(&project, &data, BTreeMap::new())
         .await

@@ -13,12 +13,12 @@ async fn r4a_missing_saved_primary_keeps_home_and_both_tabs_without_rewriting_pr
     let config = |include: bool| {
         let mut config = serde_json::json!({
             "model":"fixture/main", "default_agent":"build",
-            "permissions":{"read":"deny"},
-            "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
+            "permissions":[{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
                 "models":{"main":{},"alternate":{}}}},
-            "agent":{"build":{"mode":"primary", "prompt":"BUILD_ONLY"},
-                "vanished":{"mode":"primary", "prompt":"VANISHED_ONLY"}}
+            "agents":{"build":{"mode":"primary", "system":"BUILD_ONLY"},
+                "vanished":{"mode":"primary", "system":"VANISHED_ONLY"}}
         });
         if !include {
             config["agent"].as_object_mut().unwrap().remove("vanished");
@@ -106,20 +106,20 @@ async fn r4a_retired_pinned_model_and_variant_refuse_before_effects_then_repair_
     let path = project.join("opencode.json");
     let config = |retired: bool| {
         let mut value = serde_json::json!({
-            "model":"fixture/main", "default_agent":"build", "permissions":{"read":"deny"},
-            "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
-                "models":{"main":{"variants":{"fast":{}}},"alternate":{"variants":{"fast":{}}}}}},
-            "agent":{"build":{"mode":"primary", "prompt":"BUILD_ONLY"},
-                "pinned":{"mode":"primary", "model":"fixture/alternate#fast", "prompt":"PINNED_ONLY"},
-                "think":{"mode":"primary", "model":"fixture/main#fast", "prompt":"THINK_ONLY"}}
+            "model":"fixture/main", "default_agent":"build", "permissions":[{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
+                "models":{"main":{"variants":[{"id": "fast"}]},"alternate":{"variants":[{"id": "fast"}]}}}},
+            "agents":{"build":{"mode":"primary", "system":"BUILD_ONLY"},
+                "pinned":{"mode":"primary", "model":"fixture/alternate#fast", "system":"PINNED_ONLY"},
+                "think":{"mode":"primary", "model":"fixture/main#fast", "system":"THINK_ONLY"}}
         });
         if retired {
-            value["provider"]["fixture"]["models"]
+            value["providers"]["fixture"]["models"]
                 .as_object_mut()
                 .unwrap()
                 .remove("alternate");
-            value["provider"]["fixture"]["models"]["main"]["variants"]["fast"]["disabled"] =
+            value["providers"]["fixture"]["models"]["main"]["variants"]["fast"]["disabled"] =
                 true.into();
         }
         value.to_string()
@@ -286,12 +286,12 @@ async fn r4a_existing_primary_with_invalid_pin_is_model_unavailable_in_home_and_
     let path = project.join("opencode.json");
     let config = |pin: &str| {
         serde_json::json!({
-            "model":"fixture/main", "default_agent":"build", "permissions":{"read":"deny"},
-            "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
+            "model":"fixture/main", "default_agent":"build", "permissions":[{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
                 "models":{"main":{}, "alternate":{}}}},
-            "agent":{"build":{"mode":"primary"},
-                "pinned":{"mode":"primary", "model":pin, "prompt":"PIN_ONLY"}}
+            "agents":{"build":{"mode":"primary"},
+                "pinned":{"mode":"primary", "model":pin, "system":"PIN_ONLY"}}
         })
         .to_string()
     };
@@ -336,7 +336,7 @@ async fn r4a_existing_primary_with_invalid_pin_is_model_unavailable_in_home_and_
     // different provider. It must never become a wire request or an agent error.
     let mut changed: serde_json::Value =
         serde_json::from_str(&config("foreign/secret-model")).unwrap();
-    changed["provider"]["fixture"]["models"]
+    changed["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()
         .remove("alternate");
@@ -482,11 +482,11 @@ async fn r4a_changed_nonprimary_is_agent_unavailable_but_malformed_default_stays
     let path = project.join("opencode.json");
     let config = |mode: &str, default: &str, pin: &str| {
         serde_json::json!({
-            "model":"fixture/main", "default_agent":default, "permissions":{"read":"deny"},
-            "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
+            "model":"fixture/main", "default_agent":default, "permissions":[{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
                 "models":{"main":{}}}},
-            "agent":{"build":{"mode":"primary", "model":pin},
+            "agents":{"build":{"mode":"primary", "model":pin},
                 "former":{"mode":mode}}
         })
         .to_string()
@@ -568,11 +568,11 @@ async fn r4a_malformed_nondefault_saved_pin_reports_model_not_agent_and_allows_r
     let path = project.join("opencode.json");
     let config = |pin: &str| {
         serde_json::json!({
-            "model":"fixture/main", "default_agent":"build", "permissions":{"read":"deny"},
-            "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
+            "model":"fixture/main", "default_agent":"build", "permissions":[{"action": "read", "resource": "*", "effect": "deny"}],
+            "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1", "apiKey":"fixture-key"},
                 "models":{"main":{}}}},
-            "agent":{"build":{"mode":"primary"},
+            "agents":{"build":{"mode":"primary"},
                 "pinned":{"mode":"primary", "model":pin}}
         })
         .to_string()

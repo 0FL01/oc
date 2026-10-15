@@ -100,7 +100,7 @@ fn tool18_models_does_not_open_locked_native_history_prefs_or_recover_pending_tu
         fixture.project_a.join("opencode.json"),
         json!({
             "model":"unavailable/retired", "default_agent":"unavailable",
-            "provider":{"fixture":{"models":{"route/model":{}}}}
+            "providers":{"fixture":{"models":{"route/model":{}}}}
         })
         .to_string(),
     )

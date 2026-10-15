@@ -9,15 +9,15 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
     let path = project.join("opencode.json");
     let mut config = serde_json::json!({
         "model":"ludka2/exact",
-        "disabled_providers":["opencode-go","openai"],
         "providers":{
-            "ludka2":{"npm":"@ai-sdk/openai","options":{
+            "ludka2":{"package":"@ai-sdk/openai","settings":{
                 "baseURL":"http://192.168.1.2/literal","apiKey":"CONFIGURED_KEY"
             },"models":{"exact":{"name":"LOCAL_OVERRIDE"}}},
-            "other":{"npm":"@ai-sdk/openai","options":{
+            "other":{"package":"@ai-sdk/openai","settings":{
                 "baseURL":"http://192.168.1.3/other","apiKey":"OTHER_KEY"
             },"models":{"other-model":{}}}
-        }
+        },
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
     });
     std::fs::write(&path, config.to_string()).unwrap();
     let mut previous = crate::composition::load_reload_local_with_env(&project, env.clone())
@@ -76,14 +76,14 @@ async fn hot02_provider_reuse_uses_original_leaf_inputs_not_selection_or_remote_
         ("baseURL", "http://192.168.1.2/different-prefix"),
         ("apiKey", "CHANGED_CONFIGURED_KEY"),
     ] {
-        let original = config["providers"]["ludka2"]["options"][field].clone();
-        config["providers"]["ludka2"]["options"][field] = value.into();
+        let original = config["providers"]["ludka2"]["settings"][field].clone();
+        config["providers"]["ludka2"]["settings"][field] = value.into();
         std::fs::write(&path, config.to_string()).unwrap();
         let changed = crate::composition::load_reload_local_with_env(&project, env.clone())
             .await
             .unwrap();
         assert!(!changed.same_provider_inputs(&previous.catalog_reuse(), "ludka2"));
-        config["providers"]["ludka2"]["options"][field] = original;
+        config["providers"]["ludka2"]["settings"][field] = original;
     }
     config["providers"]["ludka2"]["models"]["exact"]["name"] = "CHANGED_LOCAL".into();
     std::fs::write(&path, config.to_string()).unwrap();
@@ -121,13 +121,13 @@ async fn hot02_local_inputs_keep_original_models_and_resolved_dependencies_not_r
     let path = project.join("opencode.jsonc");
     let config = serde_json::json!({
         "model":"fixture/exact",
-        "disabled_providers":["opencode-go","openai"],
         "providers":{"fixture":{
-            "npm":"@ai-sdk/openai", "options":{
+            "package":"@ai-sdk/openai", "settings":{
                 "baseURL":"http://192.168.1.2/literal", "apiKey":"{file:key}"
             }, "models":{"exact":{"name":"LOCAL_OVERRIDE","limit":{"context":32000}}}
         }},
-        "mcp":{"disabled":{"type":"local","enabled":false,"command":["{file:NEVER_READ}"]}}
+        "mcp":{"servers": {"disabled": {"type":"local","disabled":true,"command":["{file:NEVER_READ}"]}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
     });
     std::fs::write(&path, config.to_string()).unwrap();
     std::fs::write(project.join("key"), "INPUT_KEY_CANARY").unwrap();

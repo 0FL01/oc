@@ -70,20 +70,20 @@ impl Server {
 }
 
 fn settings(base: &str) -> serde_json::Value {
-    serde_json::json!({"model":"fixture/m","compaction":{"auto":false},"permission":{"subagent":"allow"},
-        "provider":{"fixture":{"options":{"baseURL":base,"apiKey":"dummy"},"models":{
+    serde_json::json!({"model":"fixture/m","compaction":{"auto":false},"providers":{"fixture":{"settings":{"baseURL":base,"apiKey":"dummy"},"models":{
             "m":{"limit":{"context":500000,"output":4096}},
-            "profile":{"limit":{"context":500000,"output":4096},"variants":{"slow":{"reasoningEffort":"low"}}},
-            "family/override":{"limit":{"context":500000,"output":4096},"variants":{"fast":{"reasoningEffort":"high"}}}
+            "profile":{"limit":{"context":500000,"output":4096},"variants":[{"id": "slow", "settings": {"reasoningEffort": "low"}}]},
+            "family/override":{"limit":{"context":500000,"output":4096},"variants":[{"id": "fast", "settings": {"reasoningEffort": "high"}}]}
         }}},
-        "agent":{"build":{"system":"PRIVATE_PARENT","permission":{"shell":"deny"}},"reviewer":{"mode":"subagent","system":"PRIVATE_REVIEWER","model":"fixture/profile#slow"},"other":{"mode":"primary","system":"PRIVATE_OTHER","model":"fixture/profile#slow"}},
-        "command":{
+        "agents":{"build":{"system":"PRIVATE_PARENT", "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]},"reviewer":{"mode":"subagent","system":"PRIVATE_REVIEWER","model":"fixture/profile#slow"},"other":{"mode":"primary","system":"PRIVATE_OTHER","model":"fixture/profile#slow"}},
+        "commands":{
             "inferred":{"template":"EXPANDED $1","agent":"reviewer"},
             "true":{"template":"EXPANDED $1","agent":"other","subagent":true,"model":{"providerID":"fixture","modelID":"family/override#slow","variant":"fast"}},
             "legacy":{"template":"EXPANDED $1","subtask":true},
             "false":{"template":"EXPANDED $1","agent":"reviewer","subagent":false,"subtask":true,"model":"fixture/family/override#fast"},
             "inline":{"template":"EXPANDED $1","agent":"other","model":"fixture/family/override#fast"}
-        }
+        },
+        "permissions": [{"action": "subagent", "resource": "*", "effect": "allow"}]
     })
 }
 
@@ -329,7 +329,7 @@ async fn command_routing_native_admission_refuses_without_turn_child_or_dispatch
             "depth" => config["experimental"]["subagent_depth"] = 0.into(),
             "deny" | "ask" => config["permission"]["subagent"] = case.into(),
             "budget" => {
-                config["provider"]["fixture"]["models"]["profile"]["limit"] =
+                config["providers"]["fixture"]["models"]["profile"]["limit"] =
                     serde_json::json!({"context":1,"output":1})
             }
             _ => unreachable!(),

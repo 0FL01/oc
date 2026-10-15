@@ -160,19 +160,19 @@ fn tool12_alias_objects_intersect_across_singular_and_plural_config_keys() {
     use crate::config::Permission;
     for (config, expected) in [
         (
-            serde_json::json!({"permission":{"bash":"deny"},"permissions":{"shell":"allow"}}),
+            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
             Permission::Deny,
         ),
         (
-            serde_json::json!({"permission":{"shell":"deny"},"permissions":{"bash":"allow"}}),
+            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
             Permission::Deny,
         ),
         (
-            serde_json::json!({"permission":{"bash":"ask"},"permissions":{"shell":"allow"}}),
+            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
             Permission::Ask,
         ),
         (
-            serde_json::json!({"permission":{"shell":"ask"},"permissions":{"bash":"allow"}}),
+            serde_json::json!({"permissions":[{"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
             Permission::Ask,
         ),
     ] {
@@ -186,8 +186,7 @@ fn tool12_alias_objects_intersect_across_singular_and_plural_config_keys() {
         }
     }
     let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({
-        "permission":{"bash":{"*":"deny", "printf *":"allow"}},
-        "permissions":{"shell":{"*":"ask", "printf allowed":"allow"}}
+        "permissions":[{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "printf *", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "ask"}, {"action": "shell", "resource": "printf allowed", "effect": "allow"}]
     }))
     .unwrap();
     for name in ["shell", "bash"] {

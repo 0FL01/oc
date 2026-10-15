@@ -1873,9 +1873,9 @@ async fn variant_cycle_persists_and_next_real_request_uses_selected_overlay() {
     std::fs::write(
         project.join("opencode.json"),
         serde_json::json!({
-            "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
-                "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
-                "models":{"m":{"variants":{"custom":{"reasoningEffort":"high"}}}}}}
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+                "settings":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
+                "models":{"m":{"variants":[{"id": "custom", "settings": {"reasoningEffort": "high"}}]}}}}
         })
         .to_string(),
     )

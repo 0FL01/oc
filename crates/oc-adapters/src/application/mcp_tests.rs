@@ -48,7 +48,7 @@ impl Fixture {
 
     fn config(&self, mcp: Value) {
         fs::write(self.global.join("opencode.json"), json!({
-            "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"apiKey":"fixture-key","baseURL":"https://example.invalid/v1"},
+            "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"apiKey":"fixture-key","baseURL":"https://example.invalid/v1"},
                 "models":{"fixture":{"name":"Fixture","limit":{"context":65536,"output":4096}}}}},
             "model":"fixture/fixture", "mcp":mcp
         }).to_string()).unwrap();
@@ -218,9 +218,11 @@ async fn mcp08_label_protection_does_not_expand_local_launch_credential_authorit
     );
     fs::write(
         fixture.project.join("opencode.json"),
-        json!({"mcp":{"peer":{
+        json!({"mcp":{
+            "servers": {"peer": {
             "type":"local","command":["/bin/true"]
-        }}})
+        }}
+        }})
         .to_string(),
     )
     .unwrap();
@@ -503,7 +505,7 @@ async fn hot02_application_reload_commits_complete_source_on_the_same_supervisor
     fixture.config(json!({"servers":{"same":fixture.entry("same", &second, "-", "-", false)}}));
     let path = fixture.global.join("opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
-    config["provider"]["fixture"]["options"]["baseURL"] =
+    config["providers"]["fixture"]["settings"]["baseURL"] =
         json!(format!("http://{}/v1", listener.local_addr().unwrap()));
     config["agent"] = json!({"build":{"mode":"primary","prompt":"ATOMIC_APPLICATION_PROFILE"}});
     config["permissions"] = json!({"read":"deny", "skill":"allow", "compress":"allow"});

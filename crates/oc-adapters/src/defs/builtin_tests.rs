@@ -26,7 +26,7 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     merge_config_definitions(
         &mut defs,
         &serde_json::json!({"agents":{
-            "explore":{"model":{"providerID":"fixture","modelID":"own","variant":"careful"},"hidden":true,"permissions":{"custom_*":"ask"}},
+            "explore":{"model":{"providerID":"fixture","modelID":"own","variant":"careful"},"hidden":true,"permissions":[{"action": "custom_*", "resource": "*", "effect": "ask"}]},
             "new":{"description":"new profile"}
         }}),
         "global",
@@ -36,8 +36,8 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     assert_ne!(original, changed);
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agent":{
-            "explore":{"description":"local description","permission":{"custom__blocked":"deny"}},
+        &serde_json::json!({"agents":{
+            "explore":{"description":"local description", "permissions": [{"action": "custom__blocked", "resource": "*", "effect": "deny"}]},
             "build":{"mode":"all","system":"own Build system"}
         }}),
         "project",
@@ -63,7 +63,7 @@ fn builtin_registration_supplied_field_merge_and_explicit_eligibility() {
     );
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agent":{"explore":{"disabled":true}}}),
+        &serde_json::json!({"agents":{"explore":{"disabled":true}}}),
         "project",
     );
     assert!(!defs.agents.contains_key("explore"));
@@ -81,7 +81,7 @@ fn markdown_partial_override_retains_builtin_mode_system_and_prior_model() {
     let mut defs = seeded();
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agent":{"explore":{"model":"fixture/own","variant":"careful"}}}),
+        &serde_json::json!({"agents":{"explore":{"model":"fixture/own","variant":"careful"}}}),
         "global",
     );
     merge_definition_root(

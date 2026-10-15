@@ -9,13 +9,13 @@ const NAME: &str = "CONN04 supplied model";
 fn setup(fixture: &Fixture) -> (PathBuf, String, String) {
     let path = source(fixture);
     let config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-    let base = config["provider"]["fixture"]["options"]["baseURL"]
+    let base = config["providers"]["fixture"]["settings"]["baseURL"]
         .as_str()
         .unwrap()
         .to_owned();
     // No whitelist (which would correctly refuse onboarding); all native presets
     // are explicitly disabled, without relying on a public catalog/network failure.
-    let text = json!({"disabled_providers":["opencode-go","openai"]}).to_string();
+    let text = json!({"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}}).to_string();
     std::fs::write(&path, &text).unwrap();
     *fixture.expected_auth.lock().unwrap() = KEY.into();
     *fixture.models.lock().unwrap() = json!({"object":"list","data":[{

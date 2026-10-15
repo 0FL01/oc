@@ -57,7 +57,7 @@ async fn external_read_shared_boundary_and_action_admission_emit_only_genuine_as
             {"action":"external_directory","resource":cache.path().join("*"),"effect":if asks && mode!="read-ask" {"ask"} else {"allow"}}
         ]})).unwrap();
         let ceiling = PermissionRules::from_config(
-            &serde_json::json!({"permission":{"external_directory":"deny"}}),
+            &serde_json::json!({"permissions": [{"action": "external_directory", "resource": "*", "effect": "deny"}]}),
         )
         .unwrap();
         if mode == "source-deny" {
@@ -773,7 +773,7 @@ async fn approval_real_owner_queries_reconnect_and_replies_while_provider_turn_w
         ],
         Duration::ZERO,
     );
-    std::fs::write(project.path().join("opencode.json"), serde_json::json!({"model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai", "options":{"baseURL":base, "apiKey":"fixture"}, "models":{"m":{"limit":{"context":65536,"output":4096}}}}}, "permission":{"bash":"ask"}, "agent":{"title":{"disable":true}}}).to_string()).unwrap();
+    std::fs::write(project.path().join("opencode.json"), serde_json::json!({"model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai", "settings":{"baseURL":base, "apiKey":"fixture"}, "models":{"m":{"limit":{"context":65536,"output":4096}}}}}, "agents":{"title":{"disabled":true}}, "permissions": [{"action": "shell", "resource": "*", "effect": "ask"}]}).to_string()).unwrap();
     let (app, guard, _) = oc_adapters::application::spawn_with_env(
         project.path(),
         data.path(),

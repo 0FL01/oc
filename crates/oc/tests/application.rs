@@ -73,20 +73,20 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
     let model = "unseen-fixture-model";
     let mut configuration = serde_json::json!({
         "model": format!("fixture/{model}"),
-        "provider": {"fixture": {
-            "npm": "@ai-sdk/openai",
-            "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+        "providers": {"fixture": {
+            "package": "@ai-sdk/openai",
+            "settings": {"baseURL": format!("http://{addr}/proxy/v1"),
                         "apiKey": "{env:OC_FIXTURE_KEY}"},
             "models": {model: {"name": "Fixture model", "limit": {"context": 32768, "output": 4096}}}
         }}
     });
     if unknown_limits {
-        configuration["provider"]["fixture"]["models"][model] = serde_json::json!({
+        configuration["providers"]["fixture"]["models"][model] = serde_json::json!({
             "name": "Fixture model", "variants": {"low": {"reasoningEffort":"low"}}
         });
     }
     if unknown_limits || title.is_some() {
-        configuration["provider"]["fixture"]["options"]["nativeFallbackLimits"] =
+        configuration["providers"]["fixture"]["settings"]["nativeFallbackLimits"] =
             serde_json::json!({"context": 8192, "output": 64});
     }
     let title_model = if title.is_some() {
@@ -95,7 +95,7 @@ fn configured_responses_request(unknown_limits: bool, title: Option<TitleFixture
         model
     };
     if let Some(title) = &title {
-        configuration["provider"]["fixture"]["models"][title_model] = serde_json::json!({
+        configuration["providers"]["fixture"]["models"][title_model] = serde_json::json!({
             "limit": title.limit, "variants": {"low": {"reasoningEffort":"low"}}
         });
         configuration["agent"] = serde_json::json!({"title": {

@@ -73,7 +73,7 @@ fn cfg09_native_mixed_plugins_reload_reopen_and_effects_are_truthful() {
         .unwrap();
     let endpoint = provider["options"]["baseURL"].as_str().unwrap().to_string();
     config["provider"]["ludka2"] = provider;
-    config["provider"]["ludka2"]["models"] = json!({});
+    config["providers"]["ludka2"]["models"] = json!({});
     config["model"] = format!("ludka2/{MODEL}").into();
     config.as_object_mut().unwrap().remove("agent");
     config["plugin"] = json!([

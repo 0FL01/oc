@@ -21,7 +21,7 @@ async fn prm01_once_and_always_file_approvals_never_promote_source_ask() {
             generation
                 .permissions
                 .insert("read".into(), Permission::Ask);
-            generation.permission_rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permission":{"read":{"*":"ask","nested/file.txt":"ask","nested/AGENTS.md":source_effect}}})).unwrap();
+            generation.permission_rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions": [{"action": "read", "resource": "*", "effect": "ask"}, {"action": "read", "resource": "nested/file.txt", "effect": "ask"}, {"action": "read", "resource": "nested/AGENTS.md", "effect": source_effect}]})).unwrap();
             generation.compaction.auto = false;
             let runtime = runtime(&db, project.path(), generation);
             runtime.update_execution(|view| {

@@ -54,12 +54,12 @@ fn mcp09_withheld_credential_path_cannot_reenter_executable_resolution() {
     fixture.write_config(&responses, json!({}), json!({}));
     let global = fixture.home.join("config/opencode/opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&global).unwrap()).unwrap();
-    config["provider"]["fixture"]["options"]["apiKey"] = json!(bin);
+    config["providers"]["fixture"]["settings"]["apiKey"] = json!(bin);
     fs::write(&global, config.to_string()).unwrap();
     let project_config = fixture.project.join("opencode.json");
     fs::write(
         &project_config,
-        json!({"mcp":{"trap":{"type":"local", "codemode": false,"command":["mcp09-denied-executable"]}}}).to_string(),
+        json!({"mcp":{"servers": {"trap": {"type":"local", "codemode": false,"command":["mcp09-denied-executable"]}}}}).to_string(),
     )
     .unwrap();
     let before = [

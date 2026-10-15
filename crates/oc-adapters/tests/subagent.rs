@@ -594,19 +594,19 @@ async fn nested_resource_constraints_and_filtered_catalog_remain_inherited() {
     let (harness, mut generation) = make_harness(allow_all());
     generation.permission_rules =
         oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
-            "permission":{"*":"allow", "subagent":{"*":"allow", "blocked":"deny"}}
+            "permissions": [{"action": "*", "resource": "*", "effect": "allow"}, {"action": "subagent", "resource": "*", "effect": "allow"}, {"action": "subagent", "resource": "blocked", "effect": "deny"}]
         }))
         .unwrap();
     let runtime = runtime_of(&harness, generation);
     let mut restricted = agent("restricted", false, None);
     restricted.permission_rules =
         oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
-            "permission":{"bash":{"*":"deny", "/bin/echo hi":"allow"}}
+            "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "/bin/echo hi", "effect": "allow"}]
         }))
         .unwrap();
     let mut free = agent("free", false, None);
     free.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission":"allow"}),
+        &serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}),
     )
     .unwrap();
     let mut hidden = agent("hidden", false, None);
@@ -1888,7 +1888,7 @@ async fn r10_skill_preview_is_ordered_and_filtered_per_lane_policy() {
     .map(|(id, text)| (id.to_string(), text.to_string()))
     .to_vec();
     let rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission": {"skill": {"secret": "deny"}}}),
+        &serde_json::json!({"permissions": [{"action": "skill", "resource": "secret", "effect": "deny"}]}),
     )
     .unwrap();
     runtime
@@ -1907,7 +1907,7 @@ async fn r10_skill_preview_is_ordered_and_filtered_per_lane_policy() {
         .expect("workspace");
     let mut helper = agent("helper", false, None);
     helper.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission": {"skill": {"zeta": "deny"}}}),
+        &serde_json::json!({"permissions": [{"action": "skill", "resource": "zeta", "effect": "deny"}]}),
     )
     .unwrap();
     runtime

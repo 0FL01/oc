@@ -66,11 +66,11 @@ async fn scenario(
     let address = listener.local_addr().unwrap();
     let mut configuration = serde_json::json!({
         "model":"fixture/route/gpt-model/with/slashes", "default_agent":agent,
-        "agent":{agent.clone():{"description":"Review","mode":"primary","prompt":"Review carefully"},
-                 "title":{"mode":"subagent","prompt":"Generate a short session title. Output only the title."}},
-        "permissions":{"read":"allow","apply_patch":"allow"},
-        "provider":{"fixture":{"name":provider_name, "npm":"@ai-sdk/openai",
-          "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
+        "agents":{agent.clone():{"description":"Review","mode":"primary","system":"Review carefully"},
+                 "title":{"mode":"subagent","system":"Generate a short session title. Output only the title."}},
+        "permissions":[{"action": "read", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "allow"}],
+        "providers":{"fixture":{"name":provider_name, "package":"@ai-sdk/openai",
+          "settings":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
            "models":{"route/gpt-model/with/slashes":{"name":model_name,"cost":price.map(|(input,output)|serde_json::json!({"input":input,"output":output})),"limit":{"context":32768,"output":4096}}}}}
     });
     if label == "Changed" {
@@ -81,7 +81,7 @@ async fn scenario(
     } else {
         configuration["agent"]["title"]["model"] =
             "fixture/route/gpt-model/with/slashes#brief".into();
-        configuration["provider"]["fixture"]["models"]["route/gpt-model/with/slashes"]["variants"] =
+        configuration["providers"]["fixture"]["models"]["route/gpt-model/with/slashes"]["variants"] =
             serde_json::json!({"brief":{"reasoningEffort":"low"}});
     }
     std::fs::write(config.join("opencode.json"), configuration.to_string()).unwrap();
@@ -581,8 +581,8 @@ async fn scenario(
     std::fs::write(
         project_b.join("opencode.json"),
         serde_json::json!({
-            "provider":{"fixture":{"name":"Local B provider","npm":"@ai-sdk/openai",
-                "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
+            "providers":{"fixture":{"name":"Local B provider","package":"@ai-sdk/openai",
+                "settings":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-secret"},
                 // T53 supplied-field merge retains global limits unless this
                 // Location explicitly clears them. Keep B's unknown-limit case.
                 "models":{"route/gpt-model/with/slashes":{"name":"Local B model","limit":null}}}}

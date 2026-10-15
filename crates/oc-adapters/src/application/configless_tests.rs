@@ -93,11 +93,11 @@ async fn go05_missing_optional_provider_or_model_does_not_block_local_views() {
     let root = tempfile::tempdir().unwrap();
     for document in [
         serde_json::json!({"model":"unconfigured/exact/id"}),
-        serde_json::json!({"model":"fixture/retired", "provider":{"fixture":{
-            "options":{"baseURL":"https://example.com/v1","apiKey":"fixture"},"models":{}}}}),
-        serde_json::json!({"model":"opencode-go/disabled-choice", "disabled_providers":["opencode-go"]}),
-        serde_json::json!({"model":"fixture/m", "provider":{"fixture":{
-            "options":{"apiKey":"fixture-no-endpoint"},"models":{"m":{}}}}}),
+        serde_json::json!({"model":"fixture/retired", "providers":{"fixture":{
+            "settings":{"baseURL":"https://example.com/v1","apiKey":"fixture"},"models":{}}}}),
+        serde_json::json!({"model":"opencode-go/disabled-choice", "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}}),
+        serde_json::json!({"model":"fixture/m", "providers":{"fixture":{
+            "settings":{"apiKey":"fixture-no-endpoint"},"models":{"m":{}}}}}),
     ] {
         std::fs::write(root.path().join("opencode.json"), document.to_string()).unwrap();
         let (app, guard, _) =
@@ -127,7 +127,7 @@ async fn go05_missing_optional_provider_or_model_does_not_block_local_views() {
     }
     std::fs::write(
         root.path().join("opencode.json"),
-        r#"{"permission":{"read":123}}"#,
+        r#"{"permissions": [{"action": "read", "resource": "*", "effect": 123}]}"#,
     )
     .unwrap();
     assert!(

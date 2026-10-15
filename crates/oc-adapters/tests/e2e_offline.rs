@@ -288,11 +288,10 @@ fn snapshot_files(root: &std::path::Path) -> BTreeMap<String, String> {
     out
 }
 
-const G_CONFIG: &str = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-    "options": {"baseURL": "https://g.invalid", "apiKey": "gk",
+const G_CONFIG: &str = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+    "settings": {"baseURL": "https://g.invalid", "apiKey": "gk",
     "timeout": false, "chunkTimeout": 6000000}}},
-    "permissions": {"read": "allow", "apply_patch": "allow", "bash": "allow",
-    "webfetch": "allow", "skill": "allow", "compress": "allow"}}"#;
+    "permissions": [{"action": "read", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "allow"}, {"action": "webfetch", "resource": "*", "effect": "allow"}, {"action": "skill", "resource": "*", "effect": "allow"}, {"action": "compress", "resource": "*", "effect": "allow"}]}"#;
 
 #[tokio::test]
 async fn e2e05_configured_workspace_a_to_b() {

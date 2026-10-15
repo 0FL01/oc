@@ -23,9 +23,9 @@ async fn location_switch_carries_safe_category_and_keeps_detailed_api_error() {
     let config = |model: &str| {
         serde_json::json!({
             "model":format!("fixture/{model}"),
-            "provider":{"fixture":{
-                "npm":"@ai-sdk/openai", "name":"Offline",
-                "options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},
+            "providers":{"fixture":{
+                "package":"@ai-sdk/openai", "name":"Offline",
+                "settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},
                 "models":{"offline":{"name":"Offline","limit":{"context":10000,"output":1000}}}
             }}
         })

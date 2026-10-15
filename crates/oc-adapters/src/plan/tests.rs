@@ -44,7 +44,7 @@ fn plan_baseline_grants_never_erase_explicit_central_profile_or_parent_rules() {
     plan.expand_home("/fixture/home");
     for central in [
         serde_json::json!({}),
-        serde_json::json!({"permission":{"*":"allow"}}),
+        serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "allow"}]}),
     ] {
         let base = BTreeMap::new();
         let mut rules = PermissionRules::from_config(&central).unwrap();

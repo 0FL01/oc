@@ -157,7 +157,7 @@ async fn tool19_admitted_generation_recovery_rejects_changed_config_and_home_is_
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
     let config = project.join("opencode.json");
-    std::fs::write(&config,r#"{"model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}"#).unwrap();
+    std::fs::write(&config,r#"{"model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}"#).unwrap();
     let db = Db::open(&data).unwrap();
     db.create_bound_session("root", "/source").unwrap();
     let custom = db

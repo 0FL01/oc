@@ -22,10 +22,12 @@ impl Peer {
         .unwrap();
         fs::set_permissions(&server, fs::Permissions::from_mode(0o700)).unwrap();
         let report = root.path().join("effects.json");
-        let source = Source { path: root.path().join("opencode.json").to_string_lossy().into_owned(), trusted:true, text:json!({"mcp":{"probe":{
+        let source = Source { path: root.path().join("opencode.json").to_string_lossy().into_owned(), trusted:true, text:json!({"mcp":{
+            "servers": {"probe": {
             "type":"local","command":["mcp09-server",report,root.path(),"project",stage,"two words",""],
-            "environment":{"PATH":bin,"MCP09_OVERLAY":"mcp09-configured-canary"},"timeout":timeout
-        }}}).to_string() };
+            "environment":{"PATH":bin,"MCP09_OVERLAY":"mcp09-configured-canary"},"timeout":{"catalog": timeout, "execution": timeout}
+        }}
+        }}).to_string() };
         let env = BTreeMap::from([
             ("MCP09_INHERITED".into(), "mcp09-inherited-canary".into()),
             ("GLOBAL_PROVIDER_TOKEN".into(), "mcp09-domain-canary".into()),

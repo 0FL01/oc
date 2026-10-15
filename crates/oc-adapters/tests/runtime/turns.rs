@@ -2416,10 +2416,10 @@ async fn bare_title_regeneration_uses_title_agent_and_preserves_concurrent_manua
     let config = serde_json::json!({
         "model": "fixture/main",
         // Keep this title-only event probe independent of public catalog jobs.
-        "disabled_providers": ["opencode-go"],
-        "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+        "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
             "models": {"main": {}, "title-model": {}}}},
-        "agent": {"title": {"mode": "subagent", "model": "fixture/title-model", "prompt": "TITLE_AGENT_ONLY"}}
+        "agents": {"title": {"mode": "subagent", "model": "fixture/title-model", "system": "TITLE_AGENT_ONLY"}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
     });
     std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([
@@ -2549,8 +2549,8 @@ async fn bare_title_cancel_does_not_persist_or_emit_turn() {
     std::fs::write(
         project.path().join("opencode.json"),
         serde_json::json!({
-            "model": "fixture/main", "provider": {"fixture": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}}
+            "model": "fixture/main", "providers": {"fixture": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}}
         })
         .to_string(),
     )
@@ -2605,9 +2605,9 @@ async fn bare_title_invalid_configured_model_is_rejected_before_provider_io() {
     std::fs::write(
         project.path().join("opencode.json"),
         serde_json::json!({
-            "model": "fixture/main", "provider": {"fixture": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}},
-            "agent": {"title": {"mode": "subagent", "model": "fixture/retired", "prompt": "title"}}
+            "model": "fixture/main", "providers": {"fixture": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": url, "apiKey": "dummy"}, "models": {"main": {}}}},
+            "agents": {"title": {"mode": "subagent", "model": "fixture/retired", "system": "title"}}
         })
         .to_string(),
     )
@@ -2664,15 +2664,15 @@ async fn dto_application_events_surface_reasoning_and_usage() {
     );
     let config = serde_json::json!({
         "model": "fixture/fixture-model",
-        "provider": {"fixture": {
-            "npm": "@ai-sdk/openai",
-            "options": {"baseURL": base, "apiKey": "test-key"},
+        "providers": {"fixture": {
+            "package": "@ai-sdk/openai",
+            "settings": {"baseURL": base, "apiKey": "test-key"},
             "models": {"fixture-model": {
                 "name": "DTO fixture",
                 "limit": {"context": 65536, "output": 4096},
             }},
         }},
-        "permission": {"read": "allow"},
+        "permissions": [{"action": "read", "resource": "*", "effect": "allow"}]
     });
     std::fs::write(project.path().join("opencode.json"), config.to_string()).expect("config");
     std::fs::write(project.path().join("usage-fixture.txt"), "measured read").unwrap();
@@ -2855,8 +2855,8 @@ async fn anonymous_text_after_second_reasoning_keeps_unstreamed_first_message_on
     std::fs::write(
         project.path().join("opencode.json"),
         serde_json::json!({
-            "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
-            "options":{"baseURL":base,"apiKey":"test-key"}, "models":{"m":{}}}}
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+            "settings":{"baseURL":base,"apiKey":"test-key"}, "models":{"m":{}}}}
         })
         .to_string(),
     )
@@ -2983,19 +2983,19 @@ async fn application_fresh_turn_validates_and_atomically_pins_home_choice() {
     );
     let config = serde_json::json!({
         "model":"fixture/main", "default_agent":"build",
-        "provider":{"fixture":{
-            "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+        "providers":{"fixture":{
+            "package":"@ai-sdk/openai", "settings":{"baseURL":base,"apiKey":"fixture-key"},
             "models":{
                 "main":{"limit":{"context":65536,"output":4096},
-                    "variants":{"low":{"reasoningEffort":"low"}}},
+                    "variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]},
                 "other":{"limit":{"context":65536,"output":4096},
-                    "variants":{"deep":{"reasoningEffort":"high"}}}
+                    "variants":[{"id": "deep", "settings": {"reasoningEffort": "high"}}]}
             }
         }},
-        "agent":{
-            "build":{"mode":"primary","prompt":"BUILD_PRIMARY"},
-            "review":{"mode":"primary","prompt":"REVIEW_PRIMARY"},
-            "helper":{"mode":"subagent","prompt":"HELPER_CHILD"}
+        "agents":{
+            "build":{"mode":"primary","system":"BUILD_PRIMARY"},
+            "review":{"mode":"primary","system":"REVIEW_PRIMARY"},
+            "helper":{"mode":"subagent","system":"HELPER_CHILD"}
         }
     });
     std::fs::write(project.path().join("opencode.json"), config.to_string()).unwrap();
@@ -3187,18 +3187,18 @@ async fn application_home_actions_are_sessionless_and_fresh_turn_pins_current_lo
     let config = |model: &str| {
         serde_json::json!({
             "model":format!("fixture/{model}"), "default_agent":"build",
-            "provider":{"fixture":{
-                "npm":"@ai-sdk/openai", "options":{"baseURL":base,"apiKey":"fixture-key"},
+            "providers":{"fixture":{
+                "package":"@ai-sdk/openai", "settings":{"baseURL":base,"apiKey":"fixture-key"},
                 "models":{
                     "main":{"limit":{"context":65536,"output":4096},
-                        "variants":{"low":{"reasoningEffort":"low"}}},
+                        "variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]},
                     "other":{"limit":{"context":65536,"output":4096},
-                        "variants":{"deep":{"reasoningEffort":"high"}}}
+                        "variants":[{"id": "deep", "settings": {"reasoningEffort": "high"}}]}
                 }
             }},
-            "agent":{
-                "build":{"mode":"primary","prompt":"BUILD_PRIMARY"},
-                "review":{"mode":"primary","prompt":"REVIEW_PRIMARY"},
+            "agents":{
+                "build":{"mode":"primary","system":"BUILD_PRIMARY"},
+                "review":{"mode":"primary","system":"REVIEW_PRIMARY"},
                 "helper":{"mode":"subagent"}
             }
         })
@@ -3427,7 +3427,7 @@ async fn application_home_actions_are_sessionless_and_fresh_turn_pins_current_lo
     // choice, refuse a re-selection/first turn, and leave all existing rows and
     // preferences untouched until an explicit admitted replacement is chosen.
     let mut reduced = config("main");
-    reduced["provider"]["fixture"]["models"]
+    reduced["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()
         .remove("other");
@@ -3497,8 +3497,8 @@ async fn home_location_switch_restores_choices_without_roots_and_first_turn_bind
     let config = |default: &str| {
         serde_json::json!({
             "model": format!("fixture/{default}"),
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
                 "models": {"main": {"limit": {"context": 65536, "output": 4096}},
                            "other": {"limit": {"context": 65536, "output": 4096}}}
             }}
@@ -3667,8 +3667,8 @@ async fn home_current_reloads_config_after_location_roundtrip_without_explicit_c
     let config = |model: &str| {
         serde_json::json!({
             "model": format!("fixture/{model}"),
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
                 "models": {"main": {}, "other": {}}
             }}
         })
@@ -3743,20 +3743,20 @@ async fn home_draft_hydrates_after_restart_and_retirement_requires_explicit_repl
     let config = |retired: bool| {
         let mut config = serde_json::json!({
             "model": "fixture/main", "default_agent": "build",
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai", "options": {"baseURL": url, "apiKey": "dummy"},
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai", "settings": {"baseURL": url, "apiKey": "dummy"},
                 "models": {
-                    "main": {"variants": {"low": {"reasoningEffort": "low"}}},
-                    "other": {"variants": {"deep": {"reasoningEffort": "high"}}}
+                    "main": {"variants": [{"id": "low", "settings": {"reasoningEffort": "low"}}]},
+                    "other": {"variants": [{"id": "deep", "settings": {"reasoningEffort": "high"}}]}
                 }
             }},
-            "agent": {
-                "build": {"mode": "primary", "prompt": "BUILD_PRIMARY"},
-                "review": {"mode": "primary", "prompt": "REVIEW_PRIMARY"}
+            "agents": {
+                "build": {"mode": "primary", "system": "BUILD_PRIMARY"},
+                "review": {"mode": "primary", "system": "REVIEW_PRIMARY"}
             }
         });
         if retired {
-            config["provider"]["fixture"]["models"]
+            config["providers"]["fixture"]["models"]
                 .as_object_mut()
                 .unwrap()
                 .remove("other");

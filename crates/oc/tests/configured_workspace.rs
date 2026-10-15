@@ -88,9 +88,9 @@ impl Fixture {
     fn base_config(&self) -> Value {
         json!({
             "model": format!("fixture/{MODEL}"),
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": self.endpoint, "apiKey": "offline-fixture-key"},
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": self.endpoint, "apiKey": "offline-fixture-key"},
                 "models": {MODEL: {
                     "name": "Unknown static fixture model",
                     "limit": {"context": 65536, "output": 4096}
@@ -286,13 +286,13 @@ impl Drop for Process {
 fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
     let fixture = Fixture::new();
     fixture.write_base_config(json!({
-        "plugin": [
+        "plugins": [
             "@tarquinen/opencode-dcp@latest",
             "@tarquinen/opencode-dcp",
             "@tarquinen/opencode-dcp",
             "@prevalentware/opencode-goal-plugin@0.1.49"
         ],
-        "permissions": {"skill": "allow", "read": "allow"}
+        "permissions": [{"action": "skill", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "*", "effect": "allow"}]
     }));
     write(&fixture.global.join("AGENTS.md"), GLOBAL_RULE);
     write_skill(
@@ -492,11 +492,7 @@ fn aud14_aud15_aud17_binary_loads_isolated_a_b_workspace_and_pins_skill() {
 fn aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect() {
     let fixture = Fixture::new();
     fixture.write_base_config(json!({
-        "permissions": {
-            "apply_patch": "allow",
-            "write": "deny",
-            "edit": "deny"
-        }
+        "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "deny"}, {"action": "edit", "resource": "*", "effect": "deny"}]
     }));
     run_denied_patch(
         &fixture,
@@ -510,7 +506,7 @@ fn aud16_binary_legacy_write_edit_deny_blocks_apply_patch_side_effect() {
 #[test]
 fn aud16_binary_selected_agent_can_only_narrow_apply_patch_permission() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": {"apply_patch": "allow"}}));
+    fixture.write_base_config(json!({"permissions": [{"action": "edit", "resource": "*", "effect": "allow"}]}));
     write(
         &fixture.project_a.join("opencode.json"),
         "{\"default_agent\":\"narrow\"}",
@@ -540,7 +536,7 @@ fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
         fixture.listener.local_addr().expect("listener address")
     );
     let config = fixture
-        .write_base_config(json!({"plugin": [plugin.clone()], "permissions":{"skill":"allow"}}));
+        .write_base_config(json!({"plugins": [plugin.clone()], "permissions":[{"action": "skill", "resource": "*", "effect": "allow"}]}));
     let before = fs::read(&config).expect("config before");
     let mut process = fixture.spawn(
         &fixture.project_a,
@@ -572,7 +568,7 @@ fn aud17_binary_unknown_plugin_is_isolated_without_loader_side_effect() {
 #[test]
 fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": {"read": "allow"}}));
+    fixture.write_base_config(json!({"permissions": [{"action": "read", "resource": "*", "effect": "allow"}]}));
     write(
         &fixture.project_a.join("opencode.json"),
         "{\"default_agent\":\"broken\"}",
@@ -611,7 +607,7 @@ fn aud17_binary_selected_malformed_agent_is_hard_error_not_sibling_fallback() {
 #[test]
 fn aud17_binary_malformed_selected_skill_is_visible_and_valid_sibling_survives() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": {"skill": "allow"}}));
+    fixture.write_base_config(json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}));
     write_skill(
         &fixture.project_a.join(".opencode/skills/good/SKILL.md"),
         "good",
@@ -664,10 +660,10 @@ fn v07a_binary_refuses_discovered_external_root_before_any_effect() {
         &outside.join("opencode.json"),
         &json!({
             "model": format!("fixture/{MODEL}"),
-            "provider": {"fixture": {"options": {"baseURL": fixture.endpoint,
+            "providers": {"fixture": {"settings": {"baseURL": fixture.endpoint,
                 "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}},
-            "mcp": {"trap": {"type": "local", "codemode": false, "command": ["node", "trap"]}},
-            "command": {"trap": "node trap"}
+            "mcp": {"servers": {"trap": {"type": "local", "codemode": false, "command": ["node", "trap"]}}},
+            "commands": {"trap": "node trap"}
         })
         .to_string(),
     );
@@ -701,7 +697,7 @@ fn v07a_binary_discovered_external_root_is_refused_even_with_fifo_config() {
         &outside.join("opencode.jsonc"),
         &json!({
             "model": format!("fixture/{MODEL}"),
-            "provider": {"fixture": {"options": {"baseURL": fixture.endpoint,
+            "providers": {"fixture": {"settings": {"baseURL": fixture.endpoint,
                 "apiKey": "{file:local-secret-fixture}"}, "models": {MODEL: {}}}}
         })
         .to_string(),
@@ -766,7 +762,7 @@ fn v07a_binary_explicit_global_and_nested_local_jsonc_are_loaded() {
     let fixture = Fixture::new();
     write(&fixture.global.join("key"), "global-fixture-key");
     let mut config = fixture.base_config();
-    config["provider"]["fixture"]["options"]["apiKey"] = json!("{file:key}");
+    config["providers"]["fixture"]["settings"]["apiKey"] = json!("{file:key}");
     write(&fixture.global.join("opencode.json"), &config.to_string());
     let nested = fixture.project_a.join("nested");
     write(
@@ -791,7 +787,7 @@ fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
     write(&external.join("key"), "EXTERNAL_V07C_SECRET_734a");
     write(&fixture.global.join("nested/key"), "admitted-global-key");
     let mut config = fixture.base_config();
-    config["provider"]["fixture"]["options"]["apiKey"] = json!("{file:nested/key}");
+    config["providers"]["fixture"]["settings"]["apiKey"] = json!("{file:nested/key}");
     write(&fixture.global.join("opencode.json"), &config.to_string());
     let mut process = fixture.spawn(&fixture.project_a, "v07c-global", "hello", "v07c-global");
     let (mut socket, request) = fixture.accept(&mut process);
@@ -818,7 +814,7 @@ fn v07c_binary_nested_file_reference_no_follow_and_global_allowed() {
 #[test]
 fn v07a_binary_external_definition_subdirectories_never_reach_provider() {
     let fixture = Fixture::new();
-    fixture.write_base_config(json!({"permissions": {"skill": "allow"}}));
+    fixture.write_base_config(json!({"permissions": [{"action": "skill", "resource": "*", "effect": "allow"}]}));
     let local = fixture.project_a.join(".opencode");
     let outside = fixture.home.join("outside-definitions");
     write_skill(

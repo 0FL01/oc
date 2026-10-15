@@ -73,7 +73,8 @@ async fn auth04_cached_openai_views_accounts_readonly_listing_and_lookup_share_t
     std::fs::write(
         project.join("opencode.json"),
         json!({"model":"openai/gpt-5.5",
-        "disabled_providers":["opencode-go"]})
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+    })
         .to_string(),
     )
     .unwrap();
@@ -222,8 +223,10 @@ async fn auth04_cached_openai_views_accounts_readonly_listing_and_lookup_share_t
     std::fs::write(
         project.join("opencode.json"),
         json!({"model":"fixture/m",
-        "disabled_providers":["opencode-go"], "provider":{"fixture":{"npm":"@ai-sdk/openai",
-            "options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"FIXTURE"},"models":{"m":{}}}}})
+        "providers":{"fixture":{"package":"@ai-sdk/openai",
+            "settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"FIXTURE"},"models":{"m":{}}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+    })
         .to_string(),
     )
     .unwrap();
@@ -250,7 +253,8 @@ async fn auth04_cached_openai_views_accounts_readonly_listing_and_lookup_share_t
     std::fs::write(
         project.join("opencode.json"),
         json!({"model":"openai/gpt-5.5",
-        "disabled_providers":["opencode-go"]})
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
+    })
         .to_string(),
     )
     .unwrap();

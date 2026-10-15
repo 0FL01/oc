@@ -8,9 +8,9 @@ async fn hot02_coordinator_keeps_one_build_or_force_and_bounded_waiters() {
     std::fs::create_dir_all(&project).unwrap();
     let path = project.join("opencode.json");
     let config = serde_json::json!({
-        "model":"fixture/m", "disabled_providers":["opencode-go","openai"],
-        "provider":{"fixture":{"models":{"m":{}},
-            "options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"}}}
+        "model":"fixture/m", "providers":{"fixture":{"models":{"m":{}},
+            "settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
     })
     .to_string();
     std::fs::write(&path, &config).unwrap();

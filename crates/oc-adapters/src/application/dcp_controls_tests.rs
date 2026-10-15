@@ -5,9 +5,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 fn config(base: &str) -> serde_json::Value {
     serde_json::json!({"model":"fixture/m", "compaction":{"auto":false},
-        "permission":{"compress":"allow"}, "agent":{"title":{"disable":true}},
-        "provider":{"fixture":{"options":{"baseURL":base,"apiKey":"synthetic"},
-        "models":{"m":{"limit":{"context":100000,"output":2048}}}}}})
+        "agents":{"title":{"disabled":true}},
+        "providers":{"fixture":{"settings":{"baseURL":base,"apiKey":"synthetic"},
+        "models":{"m":{"limit":{"context":100000,"output":2048}}}}},
+        "permissions": [{"action": "compress", "resource": "*", "effect": "allow"}]
+    })
 }
 
 fn env(root: &std::path::Path) -> BTreeMap<String, String> {
@@ -219,15 +221,15 @@ async fn dcp12_zero_effect_command_refusals_query_and_reload_location() {
             DcpUnavailable::GlobalOff,
         ),
         (
-            serde_json::json!({"compress":{"enabled":false,"permission":"ask"}}),
+            serde_json::json!({"compress":{"enabled":false, "permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}}),
             DcpUnavailable::CompressOff,
         ),
         (
-            serde_json::json!({"compress":{"permission":"deny"}}),
+            serde_json::json!({"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}}),
             DcpUnavailable::Denied,
         ),
         (
-            serde_json::json!({"manualMode":{"enabled":true},"compress":{"permission":"ask"}}),
+            serde_json::json!({"manualMode":{"enabled":true},"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}}),
             DcpUnavailable::ApprovalConsumerRequired,
         ),
         (

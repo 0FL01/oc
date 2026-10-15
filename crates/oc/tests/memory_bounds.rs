@@ -181,10 +181,10 @@ impl Fixture {
             config.join("opencode.json"),
             serde_json::json!({
                 "model": format!("fixture/{MODEL}"),
-                "permissions": {"read": "allow"},
-                "provider": {"fixture": {
-                    "npm": "@ai-sdk/openai",
-                    "options": {
+                "permissions": [{"action": "read", "resource": "*", "effect": "allow"}],
+                "providers": {"fixture": {
+                    "package": "@ai-sdk/openai",
+                    "settings": {
                         "baseURL": format!("http://{addr}/proxy/v1"),
                         "apiKey": "fixture-key",
                         "timeout": false,

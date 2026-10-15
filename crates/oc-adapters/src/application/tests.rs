@@ -26,8 +26,8 @@ mod review_tests {
         std::fs::write(
             global.join("opencode.json"),
             serde_json::json!({
-                "model": "fixture/m", "provider": {"fixture": {
-                    "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                "model": "fixture/m", "providers": {"fixture": {
+                    "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
                     "models": {"m": {}}
                 }},
                 "keybinds": {"leader": "ctrl+a", "session_undo": "<leader>z"}
@@ -132,7 +132,7 @@ mod review_tests {
         for path in [&global, &project, &data] {
             std::fs::create_dir_all(path).unwrap();
         }
-        let model = serde_json::json!({"model":"fixture/m","tool_output":{"max_lines":20,"max_bytes":4096},"provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},"models":{"m":{}}}}});
+        let model = serde_json::json!({"model":"fixture/m","tool_output":{"max_lines":20,"max_bytes":4096},"providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},"models":{"m":{}}}}});
         std::fs::write(global.join("opencode.json"), model.to_string()).unwrap();
         let env = BTreeMap::from([(
             "OPENCODE_CONFIG_DIR".into(),
@@ -166,8 +166,8 @@ mod review_tests {
             std::fs::create_dir_all(path).unwrap();
         }
         let model = serde_json::json!({
-            "model": "fixture/m", "provider": {"fixture": {
-                "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+            "model": "fixture/m", "providers": {"fixture": {
+                "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
                 "models": {"m": {}}
             }}
         });
@@ -302,9 +302,9 @@ mod review_tests {
             std::fs::create_dir_all(path).unwrap();
         }
         let mut config = serde_json::json!({
-            "model": "fixture/m", "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
+            "model": "fixture/m", "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
                 "models": {"m": {}}
             }}
         });
@@ -375,11 +375,11 @@ mod review_tests {
         std::fs::write(
             project.join("opencode.json"),
             serde_json::json!({
-                "model": "fixture/m", "provider": {"fixture": {
-                    "options": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
+                "model": "fixture/m", "providers": {"fixture": {
+                    "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "dummy"},
                     "models": {"m": {}}
                 }},
-                "command": {"review": {"template": "local $1; all: $ARGUMENTS"}}
+                "commands": {"review": {"template": "local $1; all: $ARGUMENTS"}}
             })
             .to_string(),
         )
@@ -414,9 +414,9 @@ mod review_tests {
             .await
             .expect("fake provider");
         let config = serde_json::json!({
-            "model": "fixture/m", "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()),
+            "model": "fixture/m", "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()),
                             "apiKey": "dummy"},
                 "models": {"m": {}}
             }}
@@ -733,7 +733,7 @@ mod file_suggestion_tests {
         std::fs::create_dir_all(&a).unwrap();
         std::fs::create_dir_all(&b).unwrap();
         std::fs::create_dir_all(&data).unwrap();
-        let config = r#"{"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}"#;
+        let config = r#"{"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}"#;
         for project in [&a, &b] {
             std::fs::write(project.join("opencode.json"), config).unwrap();
         }
@@ -819,9 +819,9 @@ mod reload_tests {
         };
         serde_json::json!({
             "model": format!("{provider}/{model}"),
-            "provider": {(provider): {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": base_url, "apiKey": "dummy"},
+            "providers": {(provider): {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": base_url, "apiKey": "dummy"},
                 "models": models
             }}
         })
@@ -1116,7 +1116,7 @@ mod reload_tests {
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
         let mut value: serde_json::Value =
             serde_json::from_str(&config("m", &base, false)).unwrap();
-        value["provider"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":{
+        value["providers"]["ludka2"]["models"]["m"] = serde_json::json!({"variants":{
             "fast":{"reasoningEffort":"low"},
             "low":{"reasoningEffort":"custom-low"},
             "xhigh":{"disabled":true},
@@ -1262,7 +1262,7 @@ mod reload_tests {
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
         let mut config: serde_json::Value =
             serde_json::from_str(&config("old", &base, true)).unwrap();
-        config["provider"]["fixture"]["models"]["new"] =
+        config["providers"]["fixture"]["models"]["new"] =
             serde_json::json!({"name": "Readable New"});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let server = tokio::spawn(async move {
@@ -1377,7 +1377,7 @@ mod reload_tests {
         );
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
-        config["provider"]["fixture"]["models"]["new"]["name"] = serde_json::json!("Renamed Later");
+        config["providers"]["fixture"]["models"]["new"]["name"] = serde_json::json!("Renamed Later");
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let (reopened, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
         let replay = reopened
@@ -1574,7 +1574,7 @@ mod reload_tests {
             let mut value: serde_json::Value =
                 serde_json::from_str(&config("new", "http://127.0.0.1:9/v1", true)).unwrap();
             if !retired {
-                value["provider"]["fixture"]["models"]["old"] = serde_json::json!({});
+                value["providers"]["fixture"]["models"]["old"] = serde_json::json!({});
             }
             value.to_string()
         };

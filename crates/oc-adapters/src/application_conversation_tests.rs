@@ -14,7 +14,7 @@ async fn compaction_owner_automatic_failure_and_cancel_keep_promoted_user_and_hi
         let data = tmp.path().join("data");
         std::fs::create_dir_all(&project).unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":true,"keep":{"tokens":0},"buffer":20000},"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"SECRET-API","headers":{"x-tenant":"SECRET-TENANT"}},"models":{"m":{"limit":{"context":40000,"output":2048}}}}}});
+        let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":true,"keep":{"tokens":0},"buffer":20000},"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"SECRET-API","headers":{"x-tenant":"SECRET-TENANT"}},"models":{"m":{"limit":{"context":40000,"output":2048}}}}}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         {
             let db = Db::open(&data).unwrap();
@@ -193,7 +193,7 @@ async fn compaction_owner_measured_23000_context_survives_restart_and_history_co
         let data = tmp.path().join("data");
         std::fs::create_dir_all(&project).unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let config = serde_json::json!({"model":"fixture/m","compaction":settings,"permission":{"bash":"allow"},"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":40000,"output":2048}}}}}});
+        let config = serde_json::json!({"model":"fixture/m","compaction":settings,"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":40000,"output":2048}}}}}, "permissions": [{"action": "shell", "resource": "*", "effect": "allow"}]});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         {
             let db = Db::open(&data).unwrap();
@@ -432,7 +432,7 @@ async fn compaction_owner_manual_during_tool_delivers_before_next_request_and_sh
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":false,"keep":{"tokens":0}},"permission":{"bash":"allow"},"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":500000,"output":8000}}}}}});
+    let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":false,"keep":{"tokens":0}},"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":500000,"output":8000}}}}}, "permissions": [{"action": "shell", "resource": "*", "effect": "allow"}]});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     {
         let db = Db::open(&data).unwrap();
@@ -554,7 +554,7 @@ async fn compaction_owner_publication_failures_surface_and_allow_selection_conve
         let data = tmp.path().join("data");
         std::fs::create_dir_all(&project).unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":false,"keep":{"tokens":0}},"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":500000,"output":8000}}}}}});
+        let config = serde_json::json!({"model":"fixture/m","compaction":{"auto":false,"keep":{"tokens":0}},"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{"limit":{"context":500000,"output":8000}}}}}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         {
             let db = Db::open(&data).unwrap();
@@ -698,7 +698,7 @@ async fn conversation_fork_genuine_points_revert_redo_restart_and_real_wire() {
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let boundary;
     let original;
@@ -884,7 +884,7 @@ async fn held_title_action(explicit: bool, delete: bool) {
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let other = tmp.path().join("other-location");
     std::fs::create_dir_all(&other).unwrap();
@@ -1022,7 +1022,7 @@ async fn conversation_redo_restores_real_tool_pairs_without_reexecuting_shell() 
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","permission":{"*":"allow"},"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}, "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     {
         let db = Db::open(&data).unwrap();
@@ -1213,7 +1213,7 @@ async fn conversation_reverted_count_survives_reopen_independent_of_fifty_row_pa
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let first;
     {
@@ -1301,7 +1301,7 @@ async fn conversation_owner_restores_actual_wire_context_redo_is_request_free_an
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     std::fs::write(project.join("tracked"), "original").unwrap();
     git(&project, &["init", "-q"]);

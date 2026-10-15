@@ -57,10 +57,10 @@ async fn go03_openai_compatible_package_runs_a_complete_chat_tool_roundtrip() {
     let base = format!("http://{}/v1", listener.local_addr().unwrap());
     std::fs::write(project.join("opencode.json"), serde_json::json!({
         "model": "local/chat-model",
-        "provider": {"local": {"npm": "@ai-sdk/openai-compatible", "options": {"baseURL": base, "apiKey": "dummy"},
+        "providers": {"local": {"package": "@ai-sdk/openai-compatible", "settings": {"baseURL": base, "apiKey": "dummy"},
             "models": {"chat-model": {"limit": {"context": 100000, "output": 4000},
                 "compatibility": {"reasoningField": "reasoning_content", "maxTokensField": "max_completion_tokens"}}}}},
-        "permission": {"*": "allow"}
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
     }).to_string()).unwrap();
     let note = project.join("note.txt").to_string_lossy().into_owned();
     let server = tokio::spawn(async move {

@@ -376,7 +376,7 @@ mod usage_tests {
         let bad = [crate::config::Source {
             path: "bad".into(),
             trusted: true,
-            text: json!({"compaction":{"prune":true},"snapshot":true}).to_string(),
+            text: json!({"compaction":{"prune":true},"snapshots":true}).to_string(),
         }];
         assert!(crate::config::assemble(&bad, &Default::default(), None).is_err());
     }

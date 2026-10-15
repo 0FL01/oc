@@ -5,7 +5,7 @@ use serde_json::json;
 
 fn destination() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("opencode.json"),json!({"model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}).to_string()).unwrap();
+    std::fs::write(dir.path().join("opencode.json"),json!({"model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}).to_string()).unwrap();
     dir
 }
 
@@ -20,7 +20,7 @@ async fn tool19_ask_exact_target_directory_generation_refresh_and_no_intent_or_g
         .permissions
         .insert("external_directory".into(), Permission::Allow);
     generation.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-        &json!({"permission":{"opencode_session_move":"ask","external_directory":"allow"}}),
+        &json!({"permissions": [{"action": "opencode_session_move", "resource": "*", "effect": "ask"}, {"action": "external_directory", "resource": "*", "effect": "allow"}]}),
     )
     .unwrap();
     let runtime = runtime_of(&h, generation, vec![]);

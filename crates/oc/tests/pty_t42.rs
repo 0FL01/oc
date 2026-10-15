@@ -71,15 +71,15 @@ impl Fixture {
             config.join("opencode.json"),
             serde_json::json!({
                 "model": format!("fixture/{MODEL}"),
-                "provider": {"fixture": {
-                    "npm": "@ai-sdk/openai",
-                    "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+                "providers": {"fixture": {
+                    "package": "@ai-sdk/openai",
+                    "settings": {"baseURL": format!("http://{addr}/proxy/v1"),
                                 "apiKey": "{env:OC_FIXTURE_KEY}"},
                     "models": {
                         MODEL: {"name": "T42 model", "limit": {"context": 32768, "output": 4096}}
                     }
                 }},
-                "permissions": {"apply_patch": "allow"},
+                "permissions": [{"action": "edit", "resource": "*", "effect": "allow"}],
                 "dcp": {"enabled": false}
             })
             .to_string(),
@@ -91,9 +91,9 @@ impl Fixture {
         std::fs::write(
             project_a.join("opencode.json"),
             serde_json::json!({
-                "agent": {"aagent": {"description": "T42 A agent", "model": MODEL,
-                                     "mode": "primary", "prompt": "T42 A agent prompt."}},
-                "command": {"acmd": {"description": "A command",
+                "agents": {"aagent": {"description": "T42 A agent", "model": MODEL,
+                                     "mode": "primary", "system": "T42 A agent prompt."}},
+                "commands": {"acmd": {"description": "A command",
                                      "template": "A command payload for $1"}}
             })
             .to_string(),
@@ -111,12 +111,14 @@ impl Fixture {
         std::fs::write(
             project_b.join("opencode.json"),
             serde_json::json!({
-                "command": {"bcmd": {"description": "B command",
+                "commands": {"bcmd": {"description": "B command",
                                      "template": "B command payload for $1"}},
-                "mcp": {"t42mcp": {"type": "remote", "codemode": false, "url": mcp.url,
-                                   "enabled": true, "oauth": false,
+                "mcp": {
+                    "servers": {"t42mcp": {"type": "remote", "codemode": false, "url": mcp.url,
+                                   "disabled": false, "oauth": false,
                                    "headers": {"Authorization": "Bearer t42-not-a-secret"},
-                                   "timeout": 3000}}
+                                   "timeout": {"catalog": 3000, "execution": 3000}}}
+                }
             })
             .to_string(),
         )
@@ -2084,7 +2086,7 @@ fn persisted_deck_restores_order_home_close_and_explicit_session_without_new_wor
     // mandatory policy still exercises the atomic fatal-Location boundary.
     std::fs::write(
         bad.join("opencode.json"),
-        r#"{"model":"fixture/unknown","permission":{"read":123}}"#,
+        r#"{"model":"fixture/unknown", "permissions": [{"action": "read", "resource": "*", "effect": 123}]}"#,
     )
     .unwrap();
     restart.send(format!("/location {}\r", bad.display()).as_bytes());
@@ -2932,7 +2934,7 @@ fn retained_deck_busy_strip_add_keeps_command_guard_and_failed_location() {
     std::fs::create_dir(&bad).unwrap();
     std::fs::write(
         bad.join("opencode.json"),
-        r#"{"model":"fixture/unknown","permission":{"read":123}}"#,
+        r#"{"model":"fixture/unknown", "permissions": [{"action": "read", "resource": "*", "effect": 123}]}"#,
     )
     .unwrap();
     pty.send(&[0x7f; 64]);
@@ -3194,7 +3196,7 @@ fn home_location_refusal_and_a_b_a_b_remain_sessionless_until_first_submit() {
     std::fs::create_dir(&bad).unwrap();
     std::fs::write(
         bad.join("opencode.json"),
-        r#"{"model":"fixture/LEAKME-MODEL","permission":{"read":123}}"#,
+        r#"{"model":"fixture/LEAKME-MODEL", "permissions": [{"action": "read", "resource": "*", "effect": 123}]}"#,
     )
     .unwrap();
     let metrics = fixture.root.path().join("location-home-metrics.json");

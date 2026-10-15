@@ -851,7 +851,7 @@ fn v04_scoped_session_agent_and_model_preferences_survive_restart() {
     config["default_agent"] = "plain".into();
     config["agent"]["plain"] =
         serde_json::json!({"mode":"primary","prompt":"Plain fixture agent."});
-    config["provider"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
+    config["providers"]["fixture"]["models"][ALT_MODEL]["variants"]["none"] =
         serde_json::json!({"reasoningEffort":"low"});
     std::fs::write(path, config.to_string()).unwrap();
     seed_session(
@@ -1337,7 +1337,7 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
     let project = fixture.root.path().join("project");
     std::fs::write(project.join("dcp.jsonc"), serde_json::json!({
         "enabled":true,"autoUpdate":false,"pruneNotification":"detailed","pruneNotificationType":"chat",
-        "compress":{"mode":"range","permission":"allow","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000},
+        "compress":{"mode":"range","showCompression":true,"minContextLimit":1000000,"maxContextLimit":1000000, "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]},
         "strategies":{"deduplication":{"enabled":false},"purgeErrors":{"enabled":false}}
     }).to_string()).unwrap();
     let config = fixture
@@ -1346,7 +1346,7 @@ fn measure_vis38_dcp_display(archive: usize) -> ((u64, u64, u64), ProcSample) {
         .join("home/config/opencode/opencode.json");
     let mut settings: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&config).unwrap()).unwrap();
-    settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
+    settings["providers"]["fixture"]["models"][MODEL]["limit"]["context"] =
         serde_json::json!(262144);
     std::fs::write(config, settings.to_string()).unwrap();
     let session = "s-vis38-resource";

@@ -18,11 +18,11 @@ async fn cfg09_plugin_requests_are_safe_independent_and_generation_pinned() {
     let unsafe_identity =
         format!("https://user:{canary}@example.invalid/private/{canary}.js?token={canary}\x1b[31m");
     let mut config = json!({
-        "model": "fixture/m", "provider": {"fixture": {
-            "options": {"baseURL": "https://example.invalid/v1", "apiKey": "{env:CFG09_KEY}"},
+        "model": "fixture/m", "providers": {"fixture": {
+            "settings": {"baseURL": "https://example.invalid/v1", "apiKey": "{env:CFG09_KEY}"},
             "models": {"m": {}}
         }},
-        "plugin": [
+        "plugins": [
             "@tarquinen/opencode-dcp", "@tarquinen/opencode-dcp",
             "@tarquinen/opencode-dcp@latest", "@tarquinen/opencode-dcp@3.1.15",
             "@tarquinen/opencode-dcp@3.2.0",

@@ -86,7 +86,7 @@ fn profiles_and_parent_ceiling_narrow_registered_default_before_preview_or_dispa
             }
         }
         let parent = crate::permissions::PermissionRules::from_config(
-            &serde_json::json!({"permission":{"arbitrary_*":"deny"}}),
+            &serde_json::json!({"permissions": [{"action": "arbitrary_*", "resource": "*", "effect": "deny"}]}),
         )
         .unwrap();
         rules.extend(parent);
@@ -123,25 +123,25 @@ fn profile_explicit_resources_ask_and_tools_false_never_receive_builtin_exceptio
         .unwrap();
     for (config, allowed, blocked, visible) in [
         (
-            serde_json::json!({"permission":{"arbitrary_rotate_widget":"ask"}}),
+            serde_json::json!({"permissions": [{"action": "arbitrary_rotate_widget", "resource": "*", "effect": "ask"}]}),
             Permission::Ask,
             Permission::Ask,
             true,
         ),
         (
-            serde_json::json!({"permission":{"arbitrary_*":{"approved":"allow","blocked":"deny"}}}),
+            serde_json::json!({"permissions": [{"action": "arbitrary_*", "resource": "approved", "effect": "allow"}, {"action": "arbitrary_*", "resource": "blocked", "effect": "deny"}]}),
             Permission::Allow,
             Permission::Deny,
             true,
         ),
         (
-            serde_json::json!({"tools":{"arbitrary_rotate_widget":false}}),
+            serde_json::json!({"permissions": [{"action": "arbitrary_rotate_widget", "resource": "*", "effect": "deny"}]}),
             Permission::Deny,
             Permission::Deny,
             false,
         ),
         (
-            serde_json::json!({"permission":{"*":"deny"}}),
+            serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}),
             Permission::Deny,
             Permission::Deny,
             false,

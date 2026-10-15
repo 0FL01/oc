@@ -2234,7 +2234,7 @@ mod tests {
         std::fs::create_dir_all(&project).expect("project");
         let config = serde_json::json!({
             "model": "fixture/main",
-            "provider": {"fixture": {"options": {
+            "providers": {"fixture": {"settings": {
                 "baseURL": "https://example.invalid/v1", "apiKey": "fixture-key"
             }, "models": {"main": {}}}}
         });
@@ -2284,7 +2284,7 @@ mod tests {
         let project = dir.path().join("project");
         std::fs::create_dir_all(&global).expect("global");
         std::fs::create_dir_all(project.join(".opencode")).expect("local");
-        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
         let env = BTreeMap::from([(
             "XDG_CONFIG_HOME".into(),
             dir.path().join("config").to_string_lossy().into_owned(),
@@ -2349,7 +2349,7 @@ mod tests {
         let project = dir.path().join("project");
         std::fs::create_dir_all(&global).unwrap();
         std::fs::create_dir_all(&project).unwrap();
-        let mut config = serde_json::json!({"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{},"other":{}}}}});
+        let mut config = serde_json::json!({"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{},"other":{}}}}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let env = BTreeMap::from([(
             "XDG_CONFIG_HOME".into(),
@@ -2383,7 +2383,7 @@ mod tests {
             );
         }
         std::fs::remove_file(project.join("cli.jsonc")).unwrap();
-        config["agent"] = serde_json::json!({"build":{"prompt":"configured Build","model":"fixture/other","permission":{"bash":"deny"}}});
+        config["agent"] = serde_json::json!({"build":{"prompt":"configured Build","model":"fixture/other", "permissions": [{"action": "shell", "resource": "*", "effect": "deny"}]}});
         std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
         let configured = load().await.unwrap();
         assert_eq!(configured.default_agent.as_deref(), Some("build"));
@@ -2418,7 +2418,7 @@ mod tests {
         let project = dir.path().join("project");
         std::fs::create_dir_all(&global).unwrap();
         std::fs::create_dir_all(&project).unwrap();
-        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).unwrap();
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).unwrap();
         let env = BTreeMap::from([(
             "XDG_CONFIG_HOME".into(),
             dir.path().join("config").to_string_lossy().into_owned(),
@@ -2478,7 +2478,7 @@ mod tests {
         std::fs::write(outside.join("local-secret-fixture"), "external-key").expect("secret");
         std::fs::write(
             outside.join("opencode.json"),
-            r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:local-secret-fixture}"},"models":{"main":{}}}},"mcp":{"trap":{"type":"local","command":["never-run"]}},"command":{"trap":"never-run"}}"#,
+            r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"{file:local-secret-fixture}"},"models":{"main":{}}}},"mcp":{"servers": {"trap": {"type":"local","command":["never-run"]}}},"commands":{"trap":"never-run"}}"#,
         )
         .expect("outside config");
         std::os::unix::fs::symlink(&outside, project.join(".opencode")).expect("symlink");
@@ -2504,7 +2504,7 @@ mod tests {
         std::fs::create_dir_all(project.join("nested")).expect("nested");
         std::fs::create_dir_all(&global).expect("global");
         std::fs::write(global.join("key"), "global-key").expect("key");
-        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{}}}}}"#).expect("global config");
+        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{}}}}}"#).expect("global config");
         std::fs::write(
             project.join("nested/local.jsonc"),
             "{ // local override\n \"model\": \"fixture/alternate\",}\n",
@@ -2519,7 +2519,7 @@ mod tests {
         )
         .expect("config link");
         std::fs::write(global.join("opencode.jsonc"), r#"{// global JSONC overrides the preceding JSON
-            "provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{},"alternate":{}}}},}"#).expect("global jsonc");
+            "providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"{file:key}"},"models":{"main":{},"alternate":{}}}},}"#).expect("global jsonc");
         let env = BTreeMap::from([(
             "OPENCODE_CONFIG_DIR".into(),
             global.to_string_lossy().into_owned(),
@@ -2546,7 +2546,7 @@ mod tests {
         let config_path = project.join("branch/source/opencode.json");
         std::fs::write(
             &config_path,
-            r#"{"provider":{"fixture":{"options":{"apiKey":"{file:key}"}}}}"#,
+            r#"{"providers":{"fixture":{"settings":{"apiKey":"{file:key}"}}}}"#,
         )
         .unwrap();
         let root = admit_root(&project, &project, false).unwrap().unwrap();
@@ -2616,7 +2616,7 @@ mod tests {
         let global = dir.path().join("external-global");
         std::fs::create_dir_all(project.join(".opencode/nested/skills")).expect("local skills");
         std::fs::create_dir_all(global.join("nested/agents")).expect("global agents");
-        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        std::fs::write(global.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
         std::fs::write(
             project.join(".opencode/nested/skills/local.md"),
             "---\ndescription: local-in-root\n---\nlocal body",
@@ -2656,7 +2656,7 @@ mod tests {
         let dir = tempfile::tempdir().expect("fixture");
         let project = dir.path().join("project");
         std::fs::create_dir_all(&project).expect("project");
-        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
+        std::fs::write(project.join("opencode.json"), r#"{"model":"fixture/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"k"},"models":{"main":{}}}}}"#).expect("config");
         std::fs::write(project.join("inside.md"), "V07A_SAFE_INSTRUCTIONS_1033").expect("inside");
         let outside = dir.path().join("outside.md");
         std::fs::write(&outside, "V07A_EXTERNAL_INSTRUCTIONS_9b22").expect("outside");
@@ -2715,9 +2715,9 @@ mod tests {
         std::fs::write(
             global.join("opencode.json"),
             r#"{
-            "model": "unused/old", "provider": {
-                "unused": {"options": {"apiKey": "{env:ABSENT}"}},
-                "fixture": {"options": {
+            "model": "unused/old", "providers": {
+                "unused": {"settings": {"apiKey": "{env:ABSENT}"}},
+                "fixture": {"settings": {
                     "baseURL": "https://example.invalid/proxy/v1",
                     "apiKey": "{env:FIXTURE_KEY}", "chunkTimeout": 1234
                 }, "models": {"org/new": {"limit": {"context": 1000, "output": 100}}}}
@@ -2802,7 +2802,7 @@ mod tests {
         std::fs::write(outside.join("secret.txt"), "outside-secret-value").expect("secret");
         std::fs::write(
             outside.join("config.json"),
-            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+            r#"{"model":"fixture/org/new","providers":{"fixture":{"settings":{
                 "baseURL":"https://example.invalid/proxy/v1",
                 "apiKey":"{file:secret.txt}"
             },"models":{"org/new":{}}}}}"#,
@@ -2834,7 +2834,7 @@ mod tests {
         std::fs::create_dir_all(outside.join("command")).expect("outside root");
         std::fs::write(
             project.join("opencode.json"),
-            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+            r#"{"model":"fixture/org/new","providers":{"fixture":{"settings":{
                 "baseURL":"https://example.invalid/proxy/v1","apiKey":"k"
             },"models":{"org/new":{}}}}}"#,
         )
@@ -2868,7 +2868,7 @@ mod tests {
         std::fs::write(project.join("key.txt"), "in-root-key").expect("key");
         std::fs::write(
             project.join("real.json"),
-            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+            r#"{"model":"fixture/org/new","providers":{"fixture":{"settings":{
                 "baseURL":"https://example.invalid/proxy/v1",
                 "apiKey":"{file:key.txt}"
             },"models":{"org/new":{}}}}}"#,
@@ -2890,7 +2890,7 @@ mod tests {
         std::fs::create_dir_all(&project).expect("project");
         std::fs::write(
             project.join("opencode.json"),
-            r#"{"model":"fixture/org/new","provider":{"fixture":{"options":{
+            r#"{"model":"fixture/org/new","providers":{"fixture":{"settings":{
                 "baseURL":"https://example.invalid/proxy/v1","apiKey":"k"
             },"models":{"org/new":{}}}}}"#,
         )
@@ -2960,13 +2960,13 @@ mod tests {
         let config = dir.path().join("opencode.json");
         let base = r#"{
             "model": "fixture/main",
-            "provider": {"fixture": {"options": {
+            "providers": {"fixture": {"settings": {
                 "baseURL": "https://example.invalid/v1", "apiKey": "k"
             }, "models": {"main": {}}}},
-            "agent": {
-                "boss": {"prompt": "lead", "mode": "primary"},
-                "helper": {"prompt": "help", "mode": "subagent", "description": "Helper"},
-                "general": {"prompt": "any"}
+            "agents": {
+                "boss": {"system": "lead", "mode": "primary"},
+                "helper": {"system": "help", "mode": "subagent", "description": "Helper"},
+                "general": {"system": "any"}
             }
         }"#;
         std::fs::write(&config, base).expect("config");
@@ -3001,7 +3001,7 @@ mod tests {
 
         std::fs::write(
             &config,
-            r#"{"model":"fixture/main","provider":{"fixture":{"options":{
+            r#"{"model":"fixture/main","providers":{"fixture":{"settings":{
                 "baseURL":"https://example.invalid/v1","apiKey":"k"
             },"models":{"main":{}}}},"experimental":{"subagent_depth":"two"}}"#,
         )
@@ -3034,8 +3034,8 @@ mod tests {
             dir.path().join("opencode.json"),
             r#"{
                 "model": "ludka/org/static",
-                "provider": {"ludka": {
-                    "options": {
+                "providers": {"ludka": {
+                    "settings": {
                         "baseURL": "https://example.invalid/v1",
                         "apiKey": "fixture-key"
                     },
@@ -3098,7 +3098,7 @@ mod tests {
             format!(
                 r#"{{
                     "model": "ludka2/org/dynamic",
-                    "provider": {{"ludka2": {{"options": {{
+                    "providers": {{"ludka2": {{"settings": {{
                         "baseURL": "http://{address}/v1",
                         "apiKey": "fresh-key",
                         "headers": {{

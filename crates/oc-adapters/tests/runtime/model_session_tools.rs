@@ -8,7 +8,7 @@ async fn tool18_rename_real_owner_publication_rollback_and_exact_resource() {
     generation
         .permissions
         .insert("opencode_session_rename".into(), Permission::Allow);
-    generation.permission_rules=oc_adapters::permissions::PermissionRules::from_config(&json!({"permission":{"opencode_session_rename":{"*":"deny","current":"allow","other":"allow","rollback":"allow"}}})).unwrap();
+    generation.permission_rules=oc_adapters::permissions::PermissionRules::from_config(&json!({"permissions": [{"action": "opencode_session_rename", "resource": "*", "effect": "deny"}, {"action": "opencode_session_rename", "resource": "current", "effect": "allow"}, {"action": "opencode_session_rename", "resource": "other", "effect": "allow"}, {"action": "opencode_session_rename", "resource": "rollback", "effect": "allow"}]})).unwrap();
     let runtime = runtime_of(&h, generation, vec![]);
     for s in ["current", "other", "blocked", "rollback"] {
         runtime.create_session(s).unwrap();

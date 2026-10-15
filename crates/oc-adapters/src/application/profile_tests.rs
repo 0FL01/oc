@@ -1,7 +1,7 @@
 use super::*;
 
 fn config() -> serde_json::Value {
-    serde_json::json!({"model":"fixture/org/main","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"org/main":{"variants":{"fast":{"reasoningEffort":"high"}}}}}},"agents":{
+    serde_json::json!({"model":"fixture/org/main","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"org/main":{"variants":[{"id": "fast", "settings": {"reasoningEffort": "high"}}]}}}},"agents":{
         "hidden":{"hidden":true,"system":"hidden own"},
         "worker":{"mode":"subagent"},"removed":{"disabled":true},
         "z-first":{"system":"first"},"a-second":{"system":"second"}

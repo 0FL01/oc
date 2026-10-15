@@ -74,8 +74,9 @@ async fn go03_messages_package_runs_complete_tool_roundtrip_for_both_auth_scheme
         });
         options[if bearer { "authToken" } else { "apiKey" }] = "synthetic-key".into();
         std::fs::write(project.join("opencode.json"),json!({
-            "model":"local/messages-model","provider":{"local":{"npm":"@ai-sdk/anthropic","options":options,
-            "models":{"messages-model":{"limit":{"context":100000,"output":4000}}}}},"permission":{"*":"allow"}
+            "model":"local/messages-model","providers":{"local":{"package":"@ai-sdk/anthropic","settings":options,
+            "models":{"messages-model":{"limit":{"context":100000,"output":4000}}}}},
+            "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
         }).to_string()).unwrap();
         let note = project.join("note.txt").to_string_lossy().into_owned();
         let server = tokio::spawn(async move {

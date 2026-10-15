@@ -41,7 +41,7 @@ async fn conn01_attach_before_credentials_and_raw_config_collision_filters() {
         provider.wire.custom_scope.as_ref().unwrap().namespace()
     );
 
-    std::fs::write(project.join("opencode.json"), serde_json::json!({"disabled_providers":[connection.id], "providers":{connection.id.clone():{"npm":"@ai-sdk/openai-compatible", "options":{"baseURL":input.base_url}, "models":{}}}}).to_string()).unwrap();
+    std::fs::write(project.join("opencode.json"), serde_json::json!({"providers":{connection.id.clone():{"package":"@ai-sdk/openai-compatible", "settings":{"baseURL":input.base_url}, "models":{}}}, "experimental": {"policies": [{"action": "provider.use", "resource": connection.id, "effect": "deny"}]}}).to_string()).unwrap();
     let mut c = load_local_with_env(&project, env.clone()).await.unwrap();
     assert!(reserved(&c.mcp_activation.sources).contains(&connection.id));
     c.attach_custom_connections(&db).unwrap();

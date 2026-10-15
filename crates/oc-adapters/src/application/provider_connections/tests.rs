@@ -8,7 +8,7 @@ fn configless(root: &Path) -> std::path::PathBuf {
     std::fs::create_dir(&project).unwrap();
     std::fs::write(
         project.join("opencode.json"),
-        r#"{"disabled_providers":["opencode-go","openai"]}"#,
+        r#"{"experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}}"#,
     )
     .unwrap();
     project
@@ -53,8 +53,8 @@ async fn conn05_location_switch_joins_old_saved_refresh_and_attaches_scoped_key_
     std::fs::write(
         target.join("opencode.json"),
         serde_json::json!({
-            "disabled_providers":["opencode-go","openai"],
-            "model":format!("{}/saved/exact", row.id)
+            "model":format!("{}/saved/exact", row.id),
+            "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
         })
         .to_string(),
     )

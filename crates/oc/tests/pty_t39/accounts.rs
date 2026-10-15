@@ -201,7 +201,7 @@ fn go05_configless_go_then_explicit_custom_generation_cancel_and_reopen_share_ow
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     config.as_object_mut().unwrap().remove("model");
     config.as_object_mut().unwrap().remove("disabled_providers");
-    config["provider"]["fixture"]["options"]
+    config["providers"]["fixture"]["settings"]
         .as_object_mut()
         .unwrap()
         .remove("apiKey");

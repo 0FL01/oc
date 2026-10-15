@@ -55,9 +55,9 @@ impl Fixture {
         let addr = listener.local_addr().expect("endpoint address");
         let configuration = serde_json::json!({
             "model": format!("fixture/{FIXTURE_MODEL}"),
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": format!("http://{addr}/proxy/v1"),
                             "apiKey": "{env:OC_FIXTURE_KEY}"},
                 "models": {FIXTURE_MODEL: {"name": "PTY fixture", "limit": {
                     "context": 32768, "output": 4096
@@ -653,7 +653,7 @@ fn v07c_bare_tui_pty_redacts_refused_file_reference() {
     let config_path = config_dir.join("opencode.json");
     let mut config: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&config_path).expect("config")).expect("JSON");
-    config["provider"]["fixture"]["options"]["apiKey"] = serde_json::json!("{file:nested/key}");
+    config["providers"]["fixture"]["settings"]["apiKey"] = serde_json::json!("{file:nested/key}");
     std::fs::write(&config_path, config.to_string()).expect("config override");
 
     let (master, slave) = openpty_pair(100, 28);

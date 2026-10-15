@@ -25,10 +25,11 @@ impl Fixture {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         fs::write(config.join("opencode.json"), json!({
-            "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{
+            "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{
                 "apiKey":"fixture-key", "baseURL":format!("http://{}/v1", listener.local_addr().unwrap())},
                 "models":{"fixture":{"name":"Fixture","limit":{"context":65536,"output":4096}}}}},
-            "model":"fixture/fixture", "permission":{"*":"deny","shell":permission}
+            "model":"fixture/fixture",
+            "permissions": [{"action": "*", "resource": "*", "effect": "deny"}, {"action": "shell", "resource": "*", "effect": permission}]
         }).to_string()).unwrap();
         let env = BTreeMap::from([
             (

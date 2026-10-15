@@ -44,8 +44,8 @@ impl Fixture {
         std::fs::write(
             config.join("opencode.json"),
             json!({
-                "model": format!("fixture/{MODEL}"), "permissions": {"read": "allow"},
-                "provider": {"fixture": {"npm": "@ai-sdk/openai", "options": {
+                "model": format!("fixture/{MODEL}"), "permissions": [{"action": "read", "resource": "*", "effect": "allow"}],
+                "providers": {"fixture": {"package": "@ai-sdk/openai", "settings": {
                     "baseURL": format!("http://{addr}/proxy/v1"), "apiKey": "fixture-key",
                     "timeout": false, "chunkTimeout": 6000000, "setCacheKey": cache,
                     "headers": {"x-audit-trace": "configured-extra-header"}

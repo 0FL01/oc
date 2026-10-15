@@ -10,7 +10,7 @@ async fn dcp12_no_file_owner_panel_precedence_restart_location() {
     let config_path = global.join("opencode.json");
     let mut config: Value = serde_json::from_slice(&fs::read(&config_path).unwrap()).unwrap();
     config["agent"] = json!({"title":{"disable":true}});
-    config["provider"]["fixture"]["models"][MODEL]["limit"] =
+    config["providers"]["fixture"]["models"][MODEL]["limit"] =
         json!({"context":100003,"output":2048});
     fs::write(&config_path, config.to_string()).unwrap();
     let env = std::collections::BTreeMap::from([
@@ -139,7 +139,7 @@ async fn dcp12_no_file_owner_panel_precedence_restart_location() {
         json!({"output":2048}),
         json!({"context":100003}),
     ] {
-        config["provider"]["fixture"]["models"][MODEL]["limit"] = limits.clone();
+        config["providers"]["fixture"]["models"][MODEL]["limit"] = limits.clone();
         fs::write(&config_path, config.to_string()).unwrap();
         let (app, guard, _) = oc_adapters::application::spawn_with_env(
             &fixture.project,

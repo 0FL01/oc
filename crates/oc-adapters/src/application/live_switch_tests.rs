@@ -9,7 +9,7 @@ async fn go03_effort_selection_ack_is_atomic_noop_safe_and_not_history_text() {
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
     std::fs::write(project.join("opencode.json"),serde_json::json!({
-        "model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic","reasoningEffort":"high"},"models":{"m":{"variants":{"low":{"reasoningEffort":"low"}}}}}}
+        "model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic","reasoningEffort":"high"},"models":{"m":{"variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]}}}}
     }).to_string()).unwrap();
     let (app, guard, _) = spawn_with_env(
         &project,
@@ -78,9 +78,9 @@ async fn tool12_busy_owner_commit_reloads_next_request_without_another_prompt() 
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}/v1", listener.local_addr().unwrap());
         std::fs::write(project.join("opencode.json"),serde_json::json!({
-        "model":"fixture/gpt-fixture", "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"dummy"},
+        "model":"fixture/gpt-fixture", "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"dummy"},
         "models":{"gpt-fixture":{"compatibility":{"supportsEffortUpdates":true},"limit":{"context":100000,"output":10000}},"text-fixture":{"settings":{"reasoningEffort":"low"},"compatibility":{"supportsEffortUpdates":true},"limit":{"context":50000,"output":2000}}}}},
-        "permission":{"*":"allow","apply_patch":if ask {"ask"} else {"allow"}}
+        "permissions": [{"action": "*", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": if ask {"ask"} else {"allow"}}]
     }).to_string()).unwrap();
         let (arrived, arrival) = tokio::sync::oneshot::channel();
         let (release, gate) = tokio::sync::oneshot::channel();
@@ -425,10 +425,10 @@ async fn hot01_automatic_source_keeps_accepted_primary_and_pending_issued_approv
     let base = format!("http://{}/v1", listener.local_addr().unwrap());
     let path = project.join("opencode.json");
     let mut source = serde_json::json!({
-        "model":"fixture/exact", "disabled_providers":["opencode-go","openai"],
-        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"synthetic"},"models":{"exact":{}}}},
-        "agents":{"build":{"prompt":"DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"},"review":{"mode":"primary","description":"REVIEW_G1","prompt":"REVIEW_G1"}},
-        "permissions":{"read":"ask"}, "tool_output":{"max_lines":10}
+        "model":"fixture/exact", "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"synthetic"},"models":{"exact":{}}}},
+        "agents":{"build":{"system":"DEFAULT_BUILD_MUST_NOT_REPLACE_REVIEW"},"review":{"mode":"primary","description":"REVIEW_G1","system":"REVIEW_G1"}},
+        "permissions":[{"action": "read", "resource": "*", "effect": "ask"}], "tool_output":{"max_lines":10},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
     });
     std::fs::write(&path, source.to_string()).unwrap();
     let (arrived, arrival) = oneshot::channel();
@@ -639,7 +639,7 @@ async fn tool12_exact_commit_scope_noop_retired_variant_and_atomic_storage_refus
     let project = root.path().join("project");
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
-    std::fs::write(project.join("opencode.json"),serde_json::json!({"model":"fixture/gpt-fixture","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic"},"models":{"gpt-fixture":{},"text-fixture":{"variants":{"low":{"reasoningEffort":"low"}}}}}}}).to_string()).unwrap();
+    std::fs::write(project.join("opencode.json"),serde_json::json!({"model":"fixture/gpt-fixture","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic"},"models":{"gpt-fixture":{},"text-fixture":{"variants":[{"id": "low", "settings": {"reasoningEffort": "low"}}]}}}}}).to_string()).unwrap();
     let (app, guard, _) = spawn_with_env(
         &project,
         &data,

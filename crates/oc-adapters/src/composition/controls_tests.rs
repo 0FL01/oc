@@ -6,8 +6,8 @@ async fn hot02_reload_verdict_distinguishes_mandatory_inputs_from_optional_inven
     let project = root.path();
     let path = project.join("opencode.json");
     let original = serde_json::json!({
-        "model":"fixture/m", "disabled_providers":["opencode-go","openai"],
-        "provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}
+        "model":"fixture/m", "providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}},
+        "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}, {"action": "provider.use", "resource": "openai", "effect": "deny"}]}
     });
     std::fs::write(&path, original.to_string()).unwrap();
     let definitions = project.join(".opencode");
@@ -93,7 +93,7 @@ async fn dcp12_native_protection_source_arrays_replace_then_shared_scopes_union(
     let project = root.path().join("project");
     std::fs::create_dir(&project).unwrap();
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "model":"fixture/m", "provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}},
+        "model":"fixture/m", "providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}},
         "dcp":{"commands":{"protectedTools":["read"]},"compress":{"protectedTools":["read"]},
           "strategies":{"deduplication":{"protectedTools":["read"]},"purgeErrors":{"protectedTools":["read"]}}}
     }).to_string()).unwrap();
@@ -123,7 +123,7 @@ async fn dcp12_nested_diagnostics_keep_source_and_field_but_not_unknown_payload(
     let root = tempfile::tempdir().unwrap();
     let project = root.path().join("project");
     std::fs::create_dir(&project).unwrap();
-    std::fs::write(project.join("opencode.json"),r#"{"model":"fixture/m","provider":{"fixture":{"options":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}"#).unwrap();
+    std::fs::write(project.join("opencode.json"),r#"{"model":"fixture/m","providers":{"fixture":{"settings":{"baseURL":"https://example.invalid/v1","apiKey":"synthetic"},"models":{"m":{}}}}}"#).unwrap();
     let sidecar = project.join("dcp.jsonc");
     let source = crate::config::mcp::safe_source_id(&sidecar.to_string_lossy());
     std::fs::write(

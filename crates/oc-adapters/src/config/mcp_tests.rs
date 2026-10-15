@@ -263,10 +263,12 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
 fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
     let temp = tempfile::tempdir().unwrap();
     std::fs::write(temp.path().join("overlay"), "OVERLAY-CANARY").unwrap();
-    let mut src = source(serde_json::json!({"mcp":{"local":{
+    let mut src = source(serde_json::json!({"mcp":{
+        "servers": {"local": {
         "type":"local","command":["{env:PROGRAM}","two words", ""],"cwd":"{env:CWD}",
         "environment":{"OVERLAY":"{file:overlay}","INHERITED":"{env:CANARY}","PATH":"{env:PATH}"}
-    }}}));
+    }}
+    }}));
     src.path = temp
         .path()
         .join("opencode.json")
@@ -309,7 +311,7 @@ fn mcp09_substitution_and_no_follow_trust_are_not_optional_failure_catches() {
 #[test]
 fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_reads() {
     let src = source(serde_json::json!({
-        "provider":{"old":{"options":{"apiKey":"provider-protected"},
+        "providers":{"old":{"settings":{"apiKey":"provider-protected"},
             "api":"https://user:%6c%65%67%61%63%79-protected@example.invalid/mcp",
             "models":{"inactive":{"disabled":true,
                 "provider":{"api":"https://user:%6e%65%73%74%65%64-protected@example.invalid/mcp"}}}}},
@@ -356,7 +358,7 @@ fn mcp08_source_protection_observes_inactive_and_failed_fields_without_file_read
 fn mcp09_invalid_global_timeout_and_policy_remain_fatal() {
     for raw in [
         serde_json::json!({"mcp":{"timeout":{"startup":0}}}),
-        serde_json::json!({"permissions":{"read":"CANARY"},"mcp":{"broken":false}}),
+        serde_json::json!({"permissions":[{"action": "read", "resource": "*", "effect": "CANARY"}],"mcp":{"servers": {"broken": false}}}),
     ] {
         assert!(matches!(
             assemble(&[source(raw)], &BTreeMap::new(), None),

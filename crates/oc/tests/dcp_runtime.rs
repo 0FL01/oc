@@ -64,15 +64,11 @@ impl Fixture {
             config.join("opencode.json"),
             json!({
                 "model": format!("fixture/{MODEL}"),
-                "plugin": ["@tarquinen/opencode-dcp@3.1.15"],
-                "permissions": {
-                    "compress": "allow",
-                    "glob": "allow",
-                    "grep": "allow"
-                },
-                "provider": {"fixture": {
-                    "npm": "@ai-sdk/openai",
-                    "options": {
+                "plugins": ["@tarquinen/opencode-dcp@3.1.15"],
+                "permissions": [{"action": "compress", "resource": "*", "effect": "allow"}, {"action": "glob", "resource": "*", "effect": "allow"}, {"action": "grep", "resource": "*", "effect": "allow"}],
+                "providers": {"fixture": {
+                    "package": "@ai-sdk/openai",
+                    "settings": {
                         "baseURL": format!("http://{address}/proxy/v1"),
                         "apiKey": "offline-fixture-key"
                     },
@@ -106,12 +102,12 @@ impl Fixture {
                 "manualMode": {"enabled": manual_mode, "automaticStrategies": true},
                 "compress": {
                     "mode": "range",
-                    "permission": "allow",
                     "minContextLimit": 1,
                     "maxContextLimit": 1,
                     "nudgeFrequency": 3,
                     "iterationNudgeThreshold": 100,
-                    "nudgeForce": "soft"
+                    "nudgeForce": "soft",
+                    "permissions": [{"action": "*", "resource": "*", "effect": "allow"}]
                 },
                 "strategies": {
                     "deduplication": {"enabled": true},

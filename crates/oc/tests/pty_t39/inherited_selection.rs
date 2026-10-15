@@ -141,7 +141,7 @@ fn setup(f: &Fixture) -> PathBuf {
         "retired":{"mode":"primary", "model":format!("fixture/{ALT_MODEL}#fast"), "prompt":"R4A_RETIRED_BODY"},
         "variant":{"mode":"primary", "model":format!("fixture/{MODEL}#fast"), "prompt":"R4A_VARIANT_BODY"}
     });
-    cfg["provider"]["fixture"]["models"][MODEL]["variants"]["fast"] =
+    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"] =
         json!({"reasoningEffort":"high"});
     cfg["plugin"] = json!([
         "@tarquinen/opencode-dcp",
@@ -162,7 +162,7 @@ fn setup(f: &Fixture) -> PathBuf {
     std::fs::write(&path, cfg.to_string()).unwrap();
     std::fs::write(
         project(f).join("opencode.jsonc"),
-        json!({"permissions":{"read":"deny"}}).to_string(),
+        json!({"permissions":[{"action": "read", "resource": "*", "effect": "deny"}]}).to_string(),
     )
     .unwrap();
     std::fs::write(
@@ -243,11 +243,11 @@ fn retire(f: &Fixture) {
     let path = config_path(f);
     let mut cfg: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     cfg["agent"].as_object_mut().unwrap().remove("lost");
-    cfg["provider"]["fixture"]["models"]
+    cfg["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()
         .remove(ALT_MODEL);
-    cfg["provider"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
+    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
     std::fs::write(path, cfg.to_string()).unwrap();
 }
 
@@ -563,7 +563,7 @@ fn r4a_native_inherited_active_parked_home_refusal_repair_and_restart() {
             std::fs::create_dir(&other).unwrap();
             std::fs::write(
                 other.join("opencode.jsonc"),
-                json!({"permissions":{"read":"deny"}}).to_string(),
+                json!({"permissions":[{"action": "read", "resource": "*", "effect": "deny"}]}).to_string(),
             )
             .unwrap();
             app.switch_location_home(other.to_string_lossy().into_owned())
@@ -622,8 +622,8 @@ fn r4a_native_existing_primary_blocked_pin_is_model_cause_and_repairs_without_ag
     std::fs::write(&path, cfg.to_string()).unwrap();
     seed(&fixture);
     cfg["agent"]["lost"]["model"] = format!("foreign/{CANARY}\u{1b}[31m").into();
-    cfg["provider"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
-    cfg["provider"]["fixture"]["models"]
+    cfg["providers"]["fixture"]["models"][MODEL]["variants"]["fast"]["disabled"] = true.into();
+    cfg["providers"]["fixture"]["models"]
         .as_object_mut()
         .unwrap()
         .remove(ALT_MODEL);

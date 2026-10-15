@@ -36,9 +36,9 @@ fn setup(
     base: String,
 ) -> BTreeMap<String, String> {
     std::fs::write(project.join("opencode.json"), serde_json::json!({
-        "model":"fixture/fixture-model","compaction":{"auto":false},"permission":{"shell":"allow","read":"allow"},
-        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"synthetic"},
-            "models":{"fixture-model":{"limit":{"context":65536,"output":2048}}}}}
+        "model":"fixture/fixture-model","compaction":{"auto":false},"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"synthetic"},
+            "models":{"fixture-model":{"limit":{"context":65536,"output":2048}}}}},
+        "permissions": [{"action": "shell", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "*", "effect": "allow"}]
     }).to_string()).unwrap();
     BTreeMap::from([
         ("HOME".into(), home.to_string_lossy().into()),
@@ -328,9 +328,9 @@ async fn tool13_background_always_reopen_foreign_scope_and_retained_output() {
     );
     std::fs::write(project.path().join("opencode.json"), serde_json::json!({
         "model":"fixture/fixture-model","compaction":{"auto":false},
-        "permission":{"bash":"ask"},
-        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"synthetic"},
-            "models":{"fixture-model":{"limit":{"context":65536,"output":2048}}}}}
+        "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"synthetic"},
+            "models":{"fixture-model":{"limit":{"context":65536,"output":2048}}}}},
+        "permissions": [{"action": "shell", "resource": "*", "effect": "ask"}]
     }).to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.path().to_string_lossy().into_owned()),

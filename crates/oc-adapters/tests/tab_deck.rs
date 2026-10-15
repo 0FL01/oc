@@ -43,9 +43,9 @@ fn setup() -> (
     let data = tempfile::tempdir().unwrap();
     let config = serde_json::json!({
         "model": "fixture/m",
-        "provider": {"fixture": {
-            "npm": "@ai-sdk/openai",
-            "options": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
+        "providers": {"fixture": {
+            "package": "@ai-sdk/openai",
+            "settings": {"baseURL": "http://127.0.0.1:9/v1", "apiKey": "dummy"},
             "models": {"m": {}}
         }}
     })

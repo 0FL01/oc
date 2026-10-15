@@ -23,7 +23,7 @@ async fn rename_is_durable_visible_and_rejects_invalid_foreign_or_child() {
     let data = tempfile::tempdir().unwrap();
     let config = serde_json::json!({
         "model": "fixture/m",
-        "provider": {"fixture": {"npm":"@ai-sdk/openai", "options": {
+        "providers": {"fixture": {"package":"@ai-sdk/openai", "settings": {
             "baseURL":"http://127.0.0.1:9/v1", "apiKey":"dummy"
         }, "models":{"m":{}}}}
     })
@@ -312,7 +312,7 @@ async fn listed_picker_open_validates_before_publication_and_atomically_adopts_e
     let b = tempfile::tempdir().unwrap();
     let data = tempfile::tempdir().unwrap();
     let config = |model: &str| {
-        serde_json::json!({"model":format!("fixture/{model}"),"provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{model:{}}}}}).to_string()
+        serde_json::json!({"model":format!("fixture/{model}"),"providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{model:{}}}}}).to_string()
     };
     std::fs::write(a.path().join("opencode.json"), config("model-a")).unwrap();
     std::fs::write(b.path().join("opencode.json"), config("model-b")).unwrap();
@@ -467,7 +467,7 @@ async fn explicit_family_delete_is_atomic_busy_location_guarded_and_durable() {
     let a = tempfile::tempdir().unwrap();
     let b = tempfile::tempdir().unwrap();
     let data = tempfile::tempdir().unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}).to_string();
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"dummy"},"models":{"m":{}}}}}).to_string();
     std::fs::write(a.path().join("opencode.json"), &config).unwrap();
     std::fs::write(b.path().join("opencode.json"), config).unwrap();
     let env = BTreeMap::from([

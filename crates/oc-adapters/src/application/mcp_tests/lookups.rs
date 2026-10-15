@@ -163,7 +163,7 @@ async fn mcp11_core_session_agent_deny_and_ask_are_enforced_before_body_rpc() {
         &f,
         json!({"peer":entry(&f,"basic",&report,&f.project.join("gate"))}),
         json!({"mcp_lookup":"allow","read":"allow"}),
-        json!({"strict":{"mode":"primary","permission":{"read":"deny"}}}),
+        json!({"strict":{"mode":"primary", "permissions": [{"action": "read", "resource": "*", "effect": "deny"}]}}),
     );
     let (app, guard) = f.spawn().await;
     app.create_session(SessionId("strict-root".into()))

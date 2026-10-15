@@ -80,11 +80,7 @@ async fn resource_permissions_gate_real_dispatch_before_side_effects() {
     let (harness, mut generation) = make_harness(allow_all());
     generation.permission_rules =
         oc_adapters::permissions::PermissionRules::from_config(&serde_json::json!({
-            "permission": {
-                "read": {"*":"deny", "safe/*":"allow", "safe/secret*":"deny"},
-                "edit": {"safe/*":"allow", "safe/secret*":"deny"},
-                "bash": {"/bin/echo ok":"allow"}
-            }
+            "permissions": [{"action": "read", "resource": "*", "effect": "deny"}, {"action": "read", "resource": "safe/*", "effect": "allow"}, {"action": "read", "resource": "safe/secret*", "effect": "deny"}, {"action": "edit", "resource": "safe/*", "effect": "allow"}, {"action": "edit", "resource": "safe/secret*", "effect": "deny"}, {"action": "shell", "resource": "/bin/echo ok", "effect": "allow"}]
         }))
         .unwrap();
     std::fs::create_dir(harness._project.path().join("safe")).unwrap();
@@ -1110,7 +1106,7 @@ for line in sys.stdin:
     // Resource-specific authority cannot inherit the scalar compatibility allow
     // when projecting whole-server guidance into a turn.
     generation.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission":{"*":"deny","good__query":{"*":"deny","special":"allow"}}}),
+        &serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "deny"}, {"action": "good__query", "resource": "*", "effect": "deny"}, {"action": "good__query", "resource": "special", "effect": "allow"}]}),
     )
     .unwrap();
     runtime.reload(generation).await.unwrap();

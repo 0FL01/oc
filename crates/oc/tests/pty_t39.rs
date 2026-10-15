@@ -89,27 +89,27 @@ impl Fixture {
             "model": format!("fixture/{MODEL}"),
             // This peer qualifies the configured fixture connection, not the
             // public internet catalog. Go-specific PTYs explicitly enable it.
-            "disabled_providers": ["opencode-go"],
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": format!("http://{addr}/proxy/v1"),
                             "apiKey": "{env:OC_FIXTURE_KEY}"},
                 "models": {
                     MODEL: {"name": "T39 model", "limit": {"context": 32768, "output": 4096}},
                     ALT_MODEL: {"name": "T39 alt", "limit": {"context": 32768, "output": 4096},
-                                "variants": {"fast": {"reasoningEffort": "high"}}}
+                                "variants": [{"id": "fast", "settings": {"reasoningEffort": "high"}}]}
                 }
             }},
-            "agent": {
+            "agents": {
                 "t39agent": {"description": "T39 fixture agent", "model": format!("fixture/{ALT_MODEL}#fast"),
-                             "mode": "primary", "prompt": AGENT_PROMPT}
+                             "mode": "primary", "system": AGENT_PROMPT}
             },
-            "command": {
+            "commands": {
                 "t39cmd": {"description": "T39 custom command",
                            "template": "custom command payload for $1"}
             },
-            "permissions": {"compress": "allow"},
-            "dcp": {"enabled": true}
+            "permissions": [{"action": "compress", "resource": "*", "effect": "allow"}],
+            "dcp": {"enabled": true},
+            "experimental": {"policies": [{"action": "provider.use", "resource": "opencode-go", "effect": "deny"}]}
         });
         std::fs::write(config.join("opencode.json"), configuration.to_string())
             .expect("fixture config");
@@ -1816,7 +1816,7 @@ fn measure_s07(archive: usize) -> S07Run {
         .join("home/config/opencode/opencode.json");
     let mut settings: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&config).expect("S07 config")).expect("config JSON");
-    settings["provider"]["fixture"]["models"][MODEL]["limit"]["context"] =
+    settings["providers"]["fixture"]["models"][MODEL]["limit"]["context"] =
         serde_json::json!(262_144);
     settings["permissions"]["read"] = serde_json::json!("allow");
     // The two provider requests have identical active context. DCP's anchors

@@ -17,8 +17,8 @@ async fn vis15_finished_turn_immediately_renders_unstreamed_canonical_text_in_pa
     std::fs::write(
         project.join("opencode.json"),
         serde_json::json!({
-            "model":"fixture/m", "provider":{"fixture":{"npm":"@ai-sdk/openai",
-            "options":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
+            "model":"fixture/m", "providers":{"fixture":{"package":"@ai-sdk/openai",
+            "settings":{"baseURL":format!("http://{address}/v1"),"apiKey":"fixture-key"},
             "models":{"m":{}}}}
         })
         .to_string(),
@@ -1159,7 +1159,7 @@ async fn five_turn_reverted_tail_all_redo_entry_points_use_real_owner_without_ge
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
     let listener = std::sync::Arc::new(tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap());
-    std::fs::write(project.join("opencode.json"), serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"fixture"},"models":{"m":{}}}}}).to_string()).unwrap();
+    std::fs::write(project.join("opencode.json"), serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"fixture"},"models":{"m":{}}}}}).to_string()).unwrap();
     let session = SessionId::new("five-turn-redo").unwrap();
     let server_listener = listener.clone();
     let server = tokio::spawn(async move {

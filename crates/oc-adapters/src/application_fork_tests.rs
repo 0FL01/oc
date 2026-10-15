@@ -11,7 +11,7 @@ async fn fork_owner_refuses_foreign_provider_without_request_or_durable_root() {
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"current/m","provider":{"current":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"current/m","providers":{"current":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let boundary;
     {
@@ -88,7 +88,7 @@ async fn fork_owner_is_request_free_routes_rebased_tool_context_and_rejects_busy
     let data = tmp.path().join("data");
     std::fs::create_dir_all(&project).unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let config = serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
+    let config = serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":format!("http://{}/v1",listener.local_addr().unwrap()),"apiKey":"dummy"},"models":{"m":{}}}}});
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let source = SessionId("source".into());
     let boundary;

@@ -3,7 +3,7 @@ use crate::config::{Source, assemble};
 
 #[test]
 fn go02_legacy_and_canonical_provider_overlays_are_equivalent() {
-    let legacy = json!({"provider":{"p":{"npm":"@ai-sdk/openai-compatible", "api":"https://example.com/v1", "options":{"apiKey":"synthetic", "headers":{"X-A":"a"}, "extraBody":{"nested":{"one":1}}}, "models":{"catalog":{"id":"wire", "provider":{"npm":"@ai-sdk/anthropic", "api":"https://example.com/messages"}, "options":{"thinking":{"type":"adaptive"}}, "tool_call":true, "modalities":{"input":["text"],"output":["text"]}, "interleaved":{"field":"reasoning_content"}, "variants":{"high":{"reasoningEffort":"high"}}}}}}});
+    let legacy = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "api":"https://example.com/v1", "settings":{"apiKey":"synthetic", "headers":{"X-A":"a"}, "extraBody":{"nested":{"one":1}}}, "models":{"catalog":{"modelID":"wire", "provider":{"npm":"@ai-sdk/anthropic", "api":"https://example.com/messages"}, "settings":{"thinking":{"type":"adaptive"}}, "tool_call":true, "modalities":{"input":["text"],"output":["text"]}, "interleaved":{"field":"reasoning_content"}, "variants":[{"id": "high", "settings": {"reasoningEffort": "high"}}]}}}}});
     let canonical = json!({"providers":{"p":{"package":"@ai-sdk/openai-compatible", "settings":{"baseURL":"https://example.com/v1", "apiKey":"synthetic"}, "headers":{"X-A":"a"}, "body":{"nested":{"one":1}}, "models":{"catalog":{"modelID":"wire", "package":"@ai-sdk/anthropic", "settings":{"baseURL":"https://example.com/messages", "thinking":{"type":"adaptive"}}, "capabilities":{"tools":true,"input":["text"],"output":["text"]}, "compatibility":{"reasoningField":"reasoning_content"}, "variants":[{"id":"high","settings":{"reasoningEffort":"high"}}]}}}}});
     let a = document(legacy.as_object().unwrap()).unwrap();
     let b = document(canonical.as_object().unwrap()).unwrap();
@@ -56,7 +56,7 @@ fn go02_source_merge_preserves_fields_variants_and_connection_provenance() {
 
 #[test]
 fn go02_conflicting_roots_and_duplicate_variants_fail_without_echoing_inputs() {
-    let conflict = json!({"provider":{"p":{"options":{"apiKey":"SECRET_CANARY"}}},"providers":{"p":{"settings":{"apiKey":"OTHER_CANARY"}}}});
+    let conflict = json!({"providers":{"p":{"settings":{"apiKey":"SECRET_CANARY"}}},"providers":{"p":{"settings":{"apiKey":"OTHER_CANARY"}}}});
     let error = document(conflict.as_object().unwrap()).unwrap_err();
     assert!(!format!("{error:?}").contains("CANARY"));
     for variants in [

@@ -10,10 +10,10 @@ async fn cfg09_bounded_inventory_classifies_later_aliases_and_counts_omitted_fai
     std::fs::write(
         root.path().join("opencode.json"),
         json!({
-            "model":"fixture/m", "provider":{"fixture":{
-                "options":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},
+            "model":"fixture/m", "providers":{"fixture":{
+                "settings":{"baseURL":"https://example.invalid/v1","apiKey":"dummy"},
                 "models":{"m":{}}
-            }}, "plugin":aliases
+            }}, "plugins":aliases
         })
         .to_string(),
     )

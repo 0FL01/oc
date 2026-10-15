@@ -484,23 +484,21 @@ impl Fixture {
             config.join("opencode.json"),
             json!({
                 "model": format!("fixture/{MODEL}"),
-                "permissions": {
-                    "read": "allow", "apply_patch": "allow", "bash": "allow",
-                    "webfetch": "allow", "skill": "allow", "compress": "allow",
-                    "codex_web__search": "allow"
-                },
+                "permissions": [{"action": "read", "resource": "*", "effect": "allow"}, {"action": "edit", "resource": "*", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "allow"}, {"action": "webfetch", "resource": "*", "effect": "allow"}, {"action": "skill", "resource": "*", "effect": "allow"}, {"action": "compress", "resource": "*", "effect": "allow"}, {"action": "codex_web__search", "resource": "*", "effect": "allow"}],
                 "dcp": {"enabled": true},
-                "provider": {"fixture": {
-                    "npm": "@ai-sdk/openai",
-                    "options": {"baseURL": peer.url, "apiKey": "golden-key",
+                "providers": {"fixture": {
+                    "package": "@ai-sdk/openai",
+                    "settings": {"baseURL": peer.url, "apiKey": "golden-key",
                                 "timeout": false, "setCacheKey": false},
                     "models": {MODEL: {"name": "Golden fixture",
                                       "limit": {"context": 200_000, "output": 8_000}}}
                 }},
-                "mcp": {"codex_web": {"type": "remote", "codemode": false, "url": mcp.url,
-                                      "enabled": true, "oauth": false,
+                "mcp": {
+                    "servers": {"codex_web": {"type": "remote", "codemode": false, "url": mcp.url,
+                                      "disabled": false, "oauth": false,
                                       "headers": {"Authorization": "Bearer golden-token"},
-                                      "timeout": 3000}}
+                                      "timeout": {"catalog": 3000, "execution": 3000}}}
+                }
             })
             .to_string(),
         )

@@ -45,10 +45,10 @@ fn aud06_binary_kill_after_side_effect_recovers_unknown_without_replay() {
         config.join("opencode.json"),
         json!({
             "model": format!("fixture/{MODEL}"),
-            "permissions": {"bash": "allow"},
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": format!("http://{addr}/proxy/v1"),
+            "permissions": [{"action": "shell", "resource": "*", "effect": "allow"}],
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": format!("http://{addr}/proxy/v1"),
                             "apiKey": "fixture-not-a-secret"},
                 "models": {MODEL: {"name": "Durability fixture", "limit": {
                     "context": 32768, "output": 4096

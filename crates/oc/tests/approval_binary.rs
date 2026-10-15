@@ -72,7 +72,7 @@ fn run(auto_flag: Option<&str>, deny: bool) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let base = format!("http://{}/v1", listener.local_addr().unwrap());
-    std::fs::write(config.join("opencode.json"), serde_json::json!({"model":"fixture/m","provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":base,"apiKey":"fixture"},"models":{"m":{"limit":{"context":65536,"output":4096}}}}},"permission":{"bash":if deny { "deny" } else { "ask" }},"agent":{"title":{"disable":true}}}).to_string()).unwrap();
+    std::fs::write(config.join("opencode.json"), serde_json::json!({"model":"fixture/m","providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":base,"apiKey":"fixture"},"models":{"m":{"limit":{"context":65536,"output":4096}}}}},"agents":{"title":{"disabled":true}}, "permissions": [{"action": "shell", "resource": "*", "effect": if deny { "deny" } else { "ask" }}]}).to_string()).unwrap();
     let saved_cli = r#"{"session":{"permissions":"autoaccept"}}"#;
     std::fs::write(config.join("cli.json"), saved_cli).unwrap();
     let stop = Arc::new(AtomicBool::new(false));

@@ -22,8 +22,8 @@ async fn app_fixture(
     std::fs::create_dir(&project).unwrap();
     let config = serde_json::json!({
         "model":"fixture/m", "compaction":{"auto":false},"permission":permissions,
-        "agent":{"title":{"disable":true},"helper":{"mode":"subagent","model":"fixture/agent-model","system":"OWN_BACKGROUND_PROFILE"}},
-        "provider":{"fixture":{"npm":"@ai-sdk/openai","options":{"baseURL":peer.base,"apiKey":"synthetic"},"models":{"m":{"limit":{"context":500000,"output":4096}},"agent-model":{"limit":{"context":500000,"output":4096}}}}}
+        "agents":{"title":{"disabled":true},"helper":{"mode":"subagent","model":"fixture/agent-model","system":"OWN_BACKGROUND_PROFILE"}},
+        "providers":{"fixture":{"package":"@ai-sdk/openai","settings":{"baseURL":peer.base,"apiKey":"synthetic"},"models":{"m":{"limit":{"context":500000,"output":4096}},"agent-model":{"limit":{"context":500000,"output":4096}}}}}
     });
     std::fs::write(project.join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([

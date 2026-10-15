@@ -2598,7 +2598,7 @@ mod tests {
         let assemble_caps = |caps: serde_json::Value| {
             super::assemble(&[super::Source {
                 path: "fallback.json".into(), trusted: true,
-                text: serde_json::json!({"provider":{"fixture":{"options":{"apiKey":"fixture-key","nativeFallbackLimits":caps}}}}).to_string(),
+                text: serde_json::json!({"providers":{"fixture":{"settings":{"apiKey":"fixture-key","nativeFallbackLimits":caps}}}}).to_string(),
             }], &std::collections::BTreeMap::new(), None)
         };
         let generation =
@@ -2641,10 +2641,10 @@ mod tests {
     #[test]
     fn conversation_snapshots_default_off_and_false_aliases_are_safe() {
         for raw in [
-            serde_json::json!({"snapshot":false}),
+            serde_json::json!({"snapshots":false}),
             serde_json::json!({}),
             serde_json::json!({"snapshots":false}),
-            serde_json::json!({"snapshot":false,"snapshots":false}),
+            serde_json::json!({"snapshots":false,"snapshots":false}),
         ] {
             assemble(
                 &[Source {
@@ -2709,19 +2709,19 @@ mod tests {
     fn cfg01_user_forms_native_profile() {
         let text = r#"{
             // ludka static + ludka2 discovery
-            "enabled_providers": ["ludka2"],
-            "provider": {
-                "ludka": {"npm": "@ai-sdk/openai", "options": {
+            "providers": {
+                "ludka": {"package": "@ai-sdk/openai", "settings": {
                     "baseURL": "{env:LUDKA_API_URL}", "apiKey": "{env:LUDKA_API_KEY}",
                     "timeout": false, "setCacheKey": true, "chunkTimeout": 6000000}},
-                "ludka2": {"npm": "@ai-sdk/openai", "options": {
+                "ludka2": {"package": "@ai-sdk/openai", "settings": {
                     "baseURL": "{env:LUDKA2_API_URL}", "apiKey": "{env:LUDKA2_API_KEY}",
                     "timeout": false, "setCacheKey": true, "chunkTimeout": 6000000}}
             },
+            "experimental": {"policies": [{"action": "provider.use", "resource": "*", "effect": "deny"}, {"action": "provider.use", "resource": "ludka2", "effect": "allow"}]},
         }"#;
         let v = parse_jsonc(text, "t").expect("jsonc");
-        assert_eq!(v["provider"]["ludka"]["options"]["timeout"], false);
-        assert_eq!(v["provider"]["ludka"]["options"]["chunkTimeout"], 6000000);
+        assert_eq!(v["providers"]["ludka"]["settings"]["timeout"], false);
+        assert_eq!(v["providers"]["ludka"]["settings"]["chunkTimeout"], 6000000);
         let generation = assemble(
             &[src("g/opencode.json", text, true)],
             &env(&[
@@ -2751,12 +2751,12 @@ mod tests {
 
     #[test]
     fn cfg02_substitution_merge_byte_unchanged() {
-        let global = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "https://g.invalid", "apiKey": "gk",
+        let global = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "https://g.invalid", "apiKey": "gk",
             "timeout": false, "chunkTimeout": 6000000}}},
-            "permissions": {"read": "allow"}}"#;
-        let local = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "{env:OVER_URL}", "apiKey": "{env:OVER_KEY}",
+            "permissions": [{"action": "read", "resource": "*", "effect": "allow"}]}"#;
+        let local = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "{env:OVER_URL}", "apiKey": "{env:OVER_KEY}",
             "timeout": false, "chunkTimeout": 6000000}}}}"#;
         let before = (global.to_string(), local.to_string());
         let generation = assemble(
@@ -2775,8 +2775,8 @@ mod tests {
         assert_eq!(generation.provenance["provider.ludka2"], "P/opencode.json");
         assert_eq!((global.to_string(), local.to_string()), before);
         // Missing env template on a selected key fails with MissingCredential.
-        let needy = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "https://g.invalid", "apiKey": "{env:ABSENT_KEY}",
+        let needy = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "https://g.invalid", "apiKey": "{env:ABSENT_KEY}",
             "timeout": false, "chunkTimeout": 6000000}}}}"#;
         let err = assemble(&[src("G/opencode.json", needy, true)], &env(&[]), None)
             .expect_err("missing cred");
@@ -2787,7 +2787,7 @@ mod tests {
     /// visible warning, not a shape error that blocks the application.
     #[test]
     fn unknown_provider_option_is_a_warning() {
-        let config = r#"{"provider": {"p": {"options": {"vendorExtension": "x", "apiKey": "k"},
+        let config = r#"{"providers": {"p": {"settings": {"vendorExtension": "x", "apiKey": "k"},
             "models": {"m": {}}}}}"#;
         let generation = assemble(&[src("s", config, true)], &env(&[]), None).expect("assembled");
         assert_eq!(generation.providers["p"].options.api_key, "k");
@@ -2803,20 +2803,24 @@ mod tests {
 
     #[test]
     fn cfg03_capability_failures() {
-        let bad_npm = r#"{"provider": {"x": {"npm": "evil-pkg",
-            "options": {"baseURL": "https://x.invalid", "apiKey": "k"}}}}"#;
+        let bad_npm = r#"{"providers": {"x": {"package": "evil-pkg",
+            "settings": {"baseURL": "https://x.invalid", "apiKey": "k"}}}}"#;
         assert!(matches!(
             assemble(&[src("s", bad_npm, true)], &env(&[]), None),
             Err(ConfigError::UnsupportedCapability { .. })
         ));
         // Code Mode is native now: an explicit opt-in is an ordinary admitted entry.
-        let codemode = r#"{"mcp": {"m": {"type": "local",
-            "command": ["npx", "x"], "enabled": true, "codemode": true}}}"#;
+        let codemode = r#"{"mcp": {
+    "servers": {"m": {"type": "local",
+            "command": ["npx", "x"], "disabled": false, "codemode": true}}
+}}"#;
         let admitted = assemble(&[src("s", codemode, true)], &env(&[]), None).unwrap();
         assert!(admitted.mcp["m"].failure.is_none());
         assert_eq!(admitted.mcp["m"].codemode, Some(true));
-        let oauth = r#"{"mcp": {"w": {"type": "remote", "url": "https://w.invalid/mcp",
-            "enabled": true, "oauth": true}}}"#;
+        let oauth = r#"{"mcp": {
+    "servers": {"w": {"type": "remote", "url": "https://w.invalid/mcp",
+            "disabled": false, "oauth": true}}
+}}"#;
         assert_eq!(
             assemble(&[src("s", oauth, true)], &env(&[]), None)
                 .unwrap()
@@ -2913,13 +2917,15 @@ mod tests {
             );
         }
         // Disabled MCP launches nothing and needs no credential.
-        let text = r#"{"mcp": {"chrome-devtools": {"type": "local",
-            "command": ["npx", "-y", "chrome-devtools-mcp@latest"], "enabled": false}}}"#;
+        let text = r#"{"mcp": {
+    "servers": {"chrome-devtools": {"type": "local",
+            "command": ["npx", "-y", "chrome-devtools-mcp@latest"], "disabled": true}}
+}}"#;
         let generation = assemble(&[src("s", text, false)], &env(&[]), None).expect("disabled");
         assert!(!generation.mcp["chrome-devtools"].enabled);
         // Explain redacts secrets but keeps provenance.
-        let text = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "https://p.invalid", "apiKey": "SECRET",
+        let text = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "https://p.invalid", "apiKey": "SECRET",
             "timeout": false, "chunkTimeout": 6000000}}}}"#;
         let generation =
             assemble(&[src("G/opencode.json", text, true)], &env(&[]), None).expect("gen");
@@ -2955,7 +2961,7 @@ mod tests {
         let error = assemble(
             &[src(
                 &source,
-                r#"{"provider":{"fixture":{"options":{"apiKey":"{file:key}"}}}}"#,
+                r#"{"providers":{"fixture":{"settings":{"apiKey":"{file:key}"}}}}"#,
                 true,
             )],
             &env(&[]),
@@ -2978,11 +2984,11 @@ mod tests {
         let order = fixture["order_low_to_high"].as_array().expect("order");
         assert!(order.iter().any(|v| v == "G/opencode.json"));
         // Later source wins per provider id (canonical dedup per section).
-        let g = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "https://g.invalid", "apiKey": "gk",
+        let g = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "https://g.invalid", "apiKey": "gk",
             "timeout": false, "chunkTimeout": 6000000}}}}"#;
-        let p = r#"{"provider": {"ludka2": {"npm": "@ai-sdk/openai",
-            "options": {"baseURL": "https://p.invalid", "apiKey": "pk",
+        let p = r#"{"providers": {"ludka2": {"package": "@ai-sdk/openai",
+            "settings": {"baseURL": "https://p.invalid", "apiKey": "pk",
             "timeout": false, "chunkTimeout": 6000000}}}}"#;
         let generation = assemble(
             &[

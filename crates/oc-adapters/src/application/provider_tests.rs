@@ -17,7 +17,7 @@ async fn go01_auth_policy_conflicts_and_go_override_fail_before_publication() {
         std::fs::write(
             root.path().join("opencode.json"),
             json!({
-                "model":format!("{id}/m"), "provider":{id:{"options":options, "models":{"m":{}}}}
+                "model":format!("{id}/m"), "providers":{id:{"settings":options, "models":{"m":{}}}}
             })
             .to_string(),
         )
@@ -35,8 +35,8 @@ async fn go01_auth_policy_conflicts_and_go_override_fail_before_publication() {
         assert!(!format!("{error:?}").contains("GO01_ENV_SECRET_DO_NOT_SHOW"));
     }
     std::fs::write(root.path().join("opencode.json"), json!({
-        "model":"fixture/m", "provider":{"fixture":{
-            "options":{"baseURL":"https://example.com/v1", "authPolicy":"oauth"},"models":{"m":{}}
+        "model":"fixture/m", "providers":{"fixture":{
+            "settings":{"baseURL":"https://example.com/v1", "authPolicy":"oauth"},"models":{"m":{}}
         }}
     }).to_string()).unwrap();
     let (app, guard, _) = spawn_with_env(root.path(), &root.path().join("data"), BTreeMap::new())
@@ -65,8 +65,8 @@ async fn go01_application_resolves_scoped_accounts_on_restart_and_reload() {
     let project = root.path().join("project");
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
-    let mut document = json!({"model":"fixture/m", "provider":{"fixture":{
-        "options":{"baseURL":"https://example.com/v1"},
+    let mut document = json!({"model":"fixture/m", "providers":{"fixture":{
+        "settings":{"baseURL":"https://example.com/v1"},
         "models":{"m":{"limit":{"context":32768,"output":4096}}}
     }}});
     let path = project.join("opencode.json");
@@ -94,7 +94,7 @@ async fn go01_application_resolves_scoped_accounts_on_restart_and_reload() {
         );
         assert!(!format!("{catalog:?}").contains("GO01_STORED_SECRET_7b2"));
         if restart == 1 {
-            document["provider"]["fixture"]["options"]["baseURL"] =
+            document["providers"]["fixture"]["settings"]["baseURL"] =
                 "https://example.com/new-prefix".into();
             std::fs::write(&path, document.to_string()).unwrap();
             let changed = app.reload_location().await.unwrap();
@@ -115,7 +115,7 @@ async fn go01_application_resolves_scoped_accounts_on_restart_and_reload() {
         app.shutdown().await.unwrap();
         guard.join().await.unwrap();
     }
-    document["provider"]["fixture"]["options"]["baseURL"] = "https://example.com/v1".into();
+    document["providers"]["fixture"]["settings"]["baseURL"] = "https://example.com/v1".into();
     std::fs::write(&path, document.to_string()).unwrap();
     {
         let db = Db::open(&data).unwrap();
@@ -170,8 +170,8 @@ async fn go01_explicit_anonymous_application_sends_no_auth_and_completes() {
     std::fs::write(
         project.join("opencode.json"),
         json!({
-            "model":"fixture/m", "provider":{"fixture":{
-                "options":{"baseURL":format!("http://{address}/v1"), "authPolicy":"none"},
+            "model":"fixture/m", "providers":{"fixture":{
+                "settings":{"baseURL":format!("http://{address}/v1"), "authPolicy":"none"},
                 "models":{"m":{"limit":{"context":32768,"output":4096}}}
             }}
         })
@@ -274,8 +274,8 @@ async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_a
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let mut config = json!({
-        "model": "fixture/m", "provider": {"fixture": {
-            "options": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()), "apiKey": "{env:UI07_MISSING}", "headers": {"x-ui07": CANARY}},
+        "model": "fixture/m", "providers": {"fixture": {
+            "settings": {"baseURL": format!("http://{}/v1", listener.local_addr().unwrap()), "apiKey": "{env:UI07_MISSING}", "headers": {"x-ui07": CANARY}},
             "models": {"m": {"name": "Configured model", "limit": {"context": 32768, "output": 4096}}}
         }}
     });
@@ -312,7 +312,7 @@ async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_a
     );
     let compaction = app.compact_session(session.clone()).await;
     let compaction_history = app.compaction_history(session).await.unwrap();
-    config["provider"]["fixture"]["options"]["apiKey"] = CANARY.into();
+    config["providers"]["fixture"]["settings"]["apiKey"] = CANARY.into();
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
     let reloaded = app.reload_location().await.unwrap();
     assert!(reloaded.generation > 0);
@@ -327,8 +327,8 @@ async fn ui07_missing_selected_credential_keeps_local_owner_and_refuses_before_a
     assert!(!format!("{:?}", reloaded.catalog.chrome.provider).contains(CANARY));
     // Empty credentials cannot turn malformed mandatory transport syntax into
     // an optional-service failure or partially publish a new generation.
-    config["provider"]["fixture"]["options"]["apiKey"] = "{env:UI07_MISSING}".into();
-    config["provider"]["fixture"]["options"]["headers"]["x-ui07"] =
+    config["providers"]["fixture"]["settings"]["apiKey"] = "{env:UI07_MISSING}".into();
+    config["providers"]["fixture"]["settings"]["headers"]["x-ui07"] =
         format!("{CANARY}\r\nnot-a-header").into();
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
     assert!(matches!(
@@ -389,8 +389,8 @@ async fn ui07_pending_profile_selection_is_live_and_successful_catalog_retires_l
     std::fs::create_dir_all(&project).unwrap();
     std::fs::create_dir_all(&global).unwrap();
     let config = json!({"model":format!("ludka2/{DYNAMIC}"), "default_agent":"ui07-primary",
-        "agent":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}"), "variant":"fast", "prompt":"UI07 profile body"}},
-        "provider":{"ludka2":{"options":{"baseURL":format!("http://{addr}/v1"),"apiKey":"fixture"},
+        "agents":{"ui07-primary":{"mode":"primary", "model":format!("ludka2/{DYNAMIC}"), "variant":"fast", "system":"UI07 profile body"}},
+        "providers":{"ludka2":{"settings":{"baseURL":format!("http://{addr}/v1"),"apiKey":"fixture"},
             "models":{"retired-local":{"name":"Retired local override","limit":{"context":32768,"output":4096}}}}}});
     std::fs::write(global.join("opencode.json"), config.to_string()).unwrap();
     let env = BTreeMap::from([

@@ -227,7 +227,7 @@ fn cfg10_native_fatal_lock_trust_policy_recovery_and_caps_are_non_success() {
     let fixture = Fixture::new();
     let mut config: Value =
         serde_json::from_slice(&std::fs::read(config_path(&fixture)).unwrap()).unwrap();
-    let url = config["provider"]["fixture"]["options"]["baseURL"]
+    let url = config["providers"]["fixture"]["settings"]["baseURL"]
         .as_str()
         .unwrap()
         .to_string();

@@ -36,7 +36,7 @@ fn assert_sources_unchanged(fixture: &Fixture, config: &Path, original: &[u8]) {
 fn skill01_binary_embeds_the_full_manual_and_preserves_stricter_user_limits() {
     let fixture = Fixture::new();
     for strict in [false, true] {
-        let mut additions = json!({"permissions":{"skill":"allow"}});
+        let mut additions = json!({"permissions":[{"action": "skill", "resource": "*", "effect": "allow"}]});
         if strict {
             additions["tool_output"] = json!({"max_bytes":128,"max_lines":4});
         }

@@ -9,7 +9,7 @@ async fn plan_scoped_selection_reminder_atomic_failure_and_restart() {
     let data = root.path().join("data");
     std::fs::create_dir(&project).unwrap();
     std::fs::create_dir(&home).unwrap();
-    std::fs::write(project.join("opencode.json"),serde_json::json!({"model":"fixture/family/model","agents":{"plan":{"system":"custom system"}},"provider":{"fixture":{"options":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic"},"models":{"family/model":{}}}}}).to_string()).unwrap();
+    std::fs::write(project.join("opencode.json"),serde_json::json!({"model":"fixture/family/model","agents":{"plan":{"system":"custom system"}},"providers":{"fixture":{"settings":{"baseURL":"http://127.0.0.1:1/v1","apiKey":"synthetic"},"models":{"family/model":{}}}}}).to_string()).unwrap();
     let env = BTreeMap::from([
         ("HOME".into(), home.to_string_lossy().into_owned()),
         ("OC_TEST_ALLOW_LOOPBACK".into(), "1".into()),

@@ -119,13 +119,13 @@ async fn dcp10_actual_child_disabled_manual_deny_and_no_consumer_ask_keep_ids_an
             false,
         ),
         (
-            serde_json::json!({"compress":{"permission":"deny"}}),
+            serde_json::json!({"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}}),
             Permission::Allow,
             false,
             false,
         ),
         (
-            serde_json::json!({"compress":{"permission":"ask"}}),
+            serde_json::json!({"compress":{"permissions": [{"action": "*", "resource": "*", "effect": "ask"}]}}),
             Permission::Allow,
             false,
             false,
@@ -143,7 +143,7 @@ async fn dcp10_actual_child_disabled_manual_deny_and_no_consumer_ask_keep_ids_an
         let mut child = agent("child", false, Some("test/agent-model"));
         if profile {
             child.permission_rules = oc_adapters::permissions::PermissionRules::from_config(
-                &serde_json::json!({"permission":{"*":"deny"}}),
+                &serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}),
             )
             .unwrap();
         }

@@ -688,7 +688,7 @@ fn hot01_child_source_publication_is_shared_but_launch_authority_is_not() {
         .unwrap();
     owner.update_execution(|view| {
         view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
-            &json!({"permission":{"read":{"*":"allow","locked.txt":"deny"}}}),
+            &json!({"permissions": [{"action": "read", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "locked.txt", "effect": "deny"}]}),
         )
         .unwrap();
         view.generation.config.mcp.insert(
@@ -722,7 +722,7 @@ fn hot01_child_source_publication_is_shared_but_launch_authority_is_not() {
             .permissions
             .insert("shell".into(), Permission::Allow);
         view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
-            &json!({"permission":{"read":"allow","shell":"allow"}}),
+            &json!({"permissions": [{"action": "read", "resource": "*", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
         )
         .unwrap();
         let agent = view
@@ -915,7 +915,7 @@ async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals(
             .permissions
             .insert("subagent".into(), Permission::Allow);
         view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
-            &json!({"permission":{"subagent":"allow","read":{"*":"allow","locked.txt":"deny"}}}),
+            &json!({"permissions": [{"action": "subagent", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "locked.txt", "effect": "deny"}]}),
         )
         .unwrap();
     });
@@ -1035,7 +1035,7 @@ async fn hot01_child_fresh_requests_intersect_launch_and_route_issued_approvals(
                 .insert("shell".into(), Permission::Allow);
             view.generation.config.permission_rules =
                 crate::permissions::PermissionRules::from_config(
-                    &json!({"permission":{"subagent":"allow","read":"allow","shell":"allow"}}),
+                    &json!({"permissions": [{"action": "subagent", "resource": "*", "effect": "allow"}, {"action": "read", "resource": "*", "effect": "allow"}, {"action": "shell", "resource": "*", "effect": "allow"}]}),
                 )
                 .unwrap();
             let agent = view
@@ -1144,7 +1144,7 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
             .permissions
             .insert("opencode_session_rename".into(), Permission::Allow);
         view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
-            &json!({"permission":{"read":{"*":"ask","nested/AGENTS.md":"allow"},"opencode_session_rename":"allow","opencode_models":"allow","question":"allow"}}),
+            &json!({"permissions": [{"action": "read", "resource": "*", "effect": "ask"}, {"action": "read", "resource": "nested/AGENTS.md", "effect": "allow"}, {"action": "opencode_session_rename", "resource": "*", "effect": "allow"}, {"action": "opencode_models", "resource": "*", "effect": "allow"}, {"action": "question", "resource": "*", "effect": "allow"}]}),
         )
         .unwrap();
         view.generation.config.providers.insert("inventory".into(), crate::config::ProviderEntry {
@@ -1264,7 +1264,7 @@ async fn hot01_issued_batch_keeps_output_approval_and_instruction_sources() {
             view.workspace.fixed_input = vec![InputItem::message(InputRole::Developer, "G2_FRESH_PRIMARY")];
             view.generation.config.permissions.insert("read".into(), Permission::Deny);
             view.generation.config.permission_rules = crate::permissions::PermissionRules::from_config(
-                &json!({"permission":{"read":"deny","opencode_session_rename":"allow","opencode_models":"allow","question":"allow"}}),
+                &json!({"permissions": [{"action": "read", "resource": "*", "effect": "deny"}, {"action": "opencode_session_rename", "resource": "*", "effect": "allow"}, {"action": "opencode_models", "resource": "*", "effect": "allow"}, {"action": "question", "resource": "*", "effect": "allow"}]}),
             ).unwrap();
         });
         release.send(()).unwrap();

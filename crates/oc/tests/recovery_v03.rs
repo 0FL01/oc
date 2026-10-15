@@ -10,9 +10,9 @@ fn binary_viewport_resize_draft_sidebar_and_debug() {
     std::fs::create_dir_all(&config).unwrap();
     std::fs::create_dir_all(root.path().join("project")).unwrap();
     std::fs::write(config.join("opencode.json"), serde_json::json!({
-        "model":"fixture/geometry", "provider":{"fixture":{
-            "npm":"@ai-sdk/openai", "name":"Geometry provider",
-            "options":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"test"},
+        "model":"fixture/geometry", "providers":{"fixture":{
+            "package":"@ai-sdk/openai", "name":"Geometry provider",
+            "settings":{"baseURL":"http://127.0.0.1:9/v1","apiKey":"test"},
             "models":{"geometry":{"name":"Geometry model","limit":{"context":10000,"output":1000}}}
         }}
     }).to_string()).unwrap();

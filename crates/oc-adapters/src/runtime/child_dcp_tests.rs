@@ -29,7 +29,7 @@ fn dcp10_direct_child_query_and_api_cannot_use_root_authority() {
     let mut profile = crate::defs::builtin_build();
     profile.id = "denied-child".into();
     profile.permission_rules = crate::permissions::PermissionRules::from_config(
-        &serde_json::json!({"permission":{"compress":"deny"}}),
+        &serde_json::json!({"permissions": [{"action": "compress", "resource": "*", "effect": "deny"}]}),
     )
     .unwrap();
     runtime
@@ -221,8 +221,8 @@ fn dcp10_explore_preview_and_ceiling_follow_real_config_permission_and_consumer(
             assert!(preview.contains("Own-session compression: requires approval"));
         }
         for custom in [
-            serde_json::json!({"permission":{"compress":"deny"}}),
-            serde_json::json!({"permission":{"*":"deny"}}),
+            serde_json::json!({"permissions": [{"action": "compress", "resource": "*", "effect": "deny"}]}),
+            serde_json::json!({"permissions": [{"action": "*", "resource": "*", "effect": "deny"}]}),
         ] {
             let custom = crate::permissions::PermissionRules::from_config(&custom).unwrap();
             let mut narrowed = rules.clone();

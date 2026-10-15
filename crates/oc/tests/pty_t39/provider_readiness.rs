@@ -133,9 +133,9 @@ fn native_config(fixture: &Fixture) -> Value {
         "@tarquinen/opencode-dcp",
         format!("https://user:{CANARY}@private.invalid/{CANARY}\u{1b}[31m")
     ]);
-    config["provider"]["ludka2"]["options"]["headers"] = json!({"x-ui07-secret":CANARY});
-    config["provider"]["ludka2"]["models"][MODEL]["name"] = "UI07 stored model".into();
-    config["provider"]["ludka2"]["models"][ALT_MODEL]["name"] = "UI07 healthy alternative".into();
+    config["providers"]["ludka2"]["settings"]["headers"] = json!({"x-ui07-secret":CANARY});
+    config["providers"]["ludka2"]["models"][MODEL]["name"] = "UI07 stored model".into();
+    config["providers"]["ludka2"]["models"][ALT_MODEL]["name"] = "UI07 healthy alternative".into();
     config
 }
 
@@ -401,7 +401,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     assert_eq!(fixture.wait_requests(1)[0]["model"], ALT_MODEL);
     clean_exit(&mut initial);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 1);
-    config["provider"]["ludka2"]["options"]["apiKey"] = "{env:UI07_ABSENT_KEY}".into();
+    config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:UI07_ABSENT_KEY}".into();
     publish(&fixture, &config);
     let mut pty = spawn(fixture.clone(), "ui07-history");
     wait_screen_row(&pty, "echo: ui07 durable local history", DEADLINE);
@@ -414,7 +414,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     assert_eq!(main_count(&fixture), 1);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 1);
     pty.send(b"\x03");
-    config["provider"]["ludka2"]["options"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
+    config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
     publish(&fixture, &config);
     pty.send(b"/reload\r");
     wait_screen_row(&pty, "Configuration reloaded", DEADLINE);
@@ -425,7 +425,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     assert_eq!(fixture.wait_requests(2)[1]["model"], ALT_MODEL);
     clean_exit(&mut pty);
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 2);
-    config["provider"]["ludka2"]["options"]["apiKey"] = "{env:UI07_ABSENT_KEY}".into();
+    config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:UI07_ABSENT_KEY}".into();
     publish(&fixture, &config);
     let output = fixture
         .command()
@@ -535,7 +535,7 @@ fn ui07_native_missing_key_preserves_history_picker_and_repairs_exact_selection(
     assert_eq!(fixture.discoveries.load(Ordering::Relaxed), 2);
     // Headless resumes the explicit session choice, not the unavailable config
     // default. This is one actual request, never a silent fallback selection.
-    config["provider"]["ludka2"]["options"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
+    config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
     config["model"] = format!("ludka2/{DYNAMIC}").into();
     publish(&fixture, &config);
     let output = fixture
@@ -590,12 +590,12 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     fixture.catalog_control.status.store(403, Ordering::Relaxed);
     // The effective wire binding is identical despite a trailing slash and an
     // overridden reserved header; its auth rejection applies to current.
-    let original_url = config["provider"]["ludka2"]["options"]["baseURL"]
+    let original_url = config["providers"]["ludka2"]["settings"]["baseURL"]
         .as_str()
         .unwrap()
         .to_owned();
-    config["provider"]["ludka2"]["options"]["baseURL"] = format!("{original_url}/").into();
-    config["provider"]["ludka2"]["options"]["headers"]["Authorization"] = CANARY.into();
+    config["providers"]["ludka2"]["settings"]["baseURL"] = format!("{original_url}/").into();
+    config["providers"]["ludka2"]["settings"]["headers"]["Authorization"] = CANARY.into();
     publish(&fixture, &config);
     pty.send(b"/reload\r");
     // The current failure is a read-only owner fact, not unsolicited technical
@@ -619,8 +619,8 @@ fn ui07_native_auth_failures_are_pre_effect_and_failed_refresh_keeps_catalog() {
     assert_eq!(main_count(&fixture), 1);
     pty.send(b"\x03");
     fixture.catalog_control.status.store(200, Ordering::Relaxed);
-    config["provider"]["ludka2"]["options"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
-    config["provider"]["ludka2"]["options"]["headers"]
+    config["providers"]["ludka2"]["settings"]["apiKey"] = "{env:OC_FIXTURE_KEY}".into();
+    config["providers"]["ludka2"]["settings"]["headers"]
         .as_object_mut()
         .unwrap()
         .remove("Authorization");
@@ -696,7 +696,7 @@ fn ui07_native_refused_connection_keeps_picker_alive_without_generation() {
     let closed = TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = closed.local_addr().unwrap();
     drop(closed);
-    config["provider"]["ludka2"]["options"]["baseURL"] = format!("http://{addr}/proxy/v1").into();
+    config["providers"]["ludka2"]["settings"]["baseURL"] = format!("http://{addr}/proxy/v1").into();
     config["model"] =
         format!("ludka2/https://user:{CANARY}@private.invalid/{CANARY}?token={CANARY}\x1b[31m")
             .into();

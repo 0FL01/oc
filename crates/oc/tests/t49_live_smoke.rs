@@ -259,12 +259,12 @@ async fn one_shot_live_model_identity(rotated: bool) {
     fs::create_dir_all(&project).unwrap();
     let config_body = serde_json::json!({
         "model": format!("{provider}/{model}"),
-        "provider": { provider: {
-            "npm": "@ai-sdk/openai",
-            "options": {"baseURL": "{env:LUDKA2_API_URL}", "apiKey": "{env:LUDKA2_API_KEY}"},
+        "providers": { provider: {
+            "package": "@ai-sdk/openai",
+            "settings": {"baseURL": "{env:LUDKA2_API_URL}", "apiKey": "{env:LUDKA2_API_KEY}"},
             "models": { model: {"name": model, "limit": {"context": 32768, "output": MAIN_OUTPUT}} }
         }},
-        "permissions": {"*": "deny"},
+        "permissions": [{"action": "*", "resource": "*", "effect": "deny"}],
         "dcp": {"enabled": false}
     });
     fs::write(config.join("opencode.json"), config_body.to_string()).unwrap();

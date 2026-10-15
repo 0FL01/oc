@@ -445,7 +445,7 @@ impl FakeMcp {
                         write_json(
                             &mut socket,
                             id,
-                            json!({"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":true}},"serverInfo":{"name":"refresh","version":"fixture"}}),
+                            json!({"protocolVersion":"2025-11-25","capabilities":{"permissions": []},"serverInfo":{"name":"refresh","version":"fixture"}}),
                         );
                     }
                     "notifications/initialized" | "notifications/cancelled" => {
@@ -990,9 +990,9 @@ impl Fixture {
     fn write_config(&self, provider: &FakeResponses, mcp: Value, permissions: Value) {
         let config = json!({
             "model": format!("fixture/{MODEL}"),
-            "provider": {"fixture": {
-                "npm": "@ai-sdk/openai",
-                "options": {"baseURL": provider.base_url, "apiKey": "responses-key"},
+            "providers": {"fixture": {
+                "package": "@ai-sdk/openai",
+                "settings": {"baseURL": provider.base_url, "apiKey": "responses-key"},
                 "models": {MODEL: {
                     "name": "MCP application fixture",
                     "limit": {"context": 65536, "output": 4096},
@@ -3278,7 +3278,7 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     fs::create_dir_all(&c).unwrap();
     fs::write(
         b.join("opencode.json"),
-        json!({"permissions":{"bash":"deny"}}).to_string(),
+        json!({"permissions":[{"action": "shell", "resource": "*", "effect": "deny"}]}).to_string(),
     )
     .unwrap();
     let local = fixture.home.join("v07b-switch-stdio");
@@ -3287,9 +3287,11 @@ fn v07b_location_switch_keeps_remote_quarantine_but_allows_local_stdio() {
     write_stdio_server(&local, &local_log);
     fs::write(
         c.join("opencode.json"),
-        json!({"mcp":{"stall":{
-        "type":"local", "codemode": false, "command":[local], "enabled":true, "timeout":3000
-    }}, "permissions":{"stall__ping":"allow"}})
+        json!({"mcp":{
+            "servers": {"stall": {
+        "type":"local", "codemode": false, "command":[local], "disabled":false, "timeout":{"catalog": 3000, "execution": 3000}
+    }}
+        }, "permissions":[{"action": "stall__ping", "resource": "*", "effect": "allow"}]})
         .to_string(),
     )
     .unwrap();
