@@ -55,7 +55,7 @@ Dependencies — completed T24/T46/T51; qualified T45/T50/T57/T59/T60 seams
   - Primary evidence: HOT02 real filesystem + fake HTTP/stdio MCP/discovery barriers,
     last-good/effect/resource receipts, stale completion/control/late-unknown checks.
   - Status: in_progress.
-  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted observations `bdafd9d19`, cancellation-safe commit `322455183`, complete idle application publication `7ce43773e`, superseded-build rejection `ac96ef997`, joined source observation `e5de05bd7` and original-input discovery reuse `98458b124`; composed HOT02 pending.
+  - Evidence: partial mandatory reload admission `a9be5d0d4`, physical incarnation fences `823273e04`, same-supervisor desired reconciliation `e64e825a2`, finite admitted observations `bdafd9d19`, cancellation-safe commit `322455183`, complete idle application publication `7ce43773e`, superseded-build rejection `ac96ef997`, joined source observation `e5de05bd7`, original-input discovery reuse `98458b124` and same-task notification adoption `81d8fea50`; composed HOT02 pending.
 - R3: shared native service и безопасные client/lifecycle boundaries.
   - Source: явное «Также shared service», TUI/headless, `oc reload`, `oc mcp list`,
     `oc service restart`; согласованный local IPC и existing owner reuse.
@@ -522,18 +522,32 @@ OpenProxy-specific plugin отсутствует в donor core: native existing 
   real bounded HTTP counts remain one through both, then explicit force performs the second
   GET. No-op keeps generation/MCP/manual control state; topology alone can reconcile. No
   automatic dispatcher or persistent observer has been enabled by this private owner path.
-- Current gates: strict workspace all-target clippy; workspace tests1972 passed/0 failed/
+- Earlier `98458b124` gates: strict workspace all-target clippy; workspace tests1972 passed/0 failed/
   12 existing opt-in ignored,46 result records; both new owner cases and unchanged AUD32 pass.
   Fmt/docs/progress/diff checks pass. Logs `.local/evidence/t61-discovery-reuse-*.log`.
   AUD32 first caught worker-state RSS above the unchanged64MiB bound. Heap-pinning the
   existing whole-worker future reduced anonymous residency without changing runtime/threads/
   stacks/test limits: three measured large peaks63872/63932/65484KiB and final workspace pass.
   No threshold, baseline, assertion, deadline or ignore was changed.
+- Current `81d8fea50` evidence: the existing actor owns finite accepted main/title/summary/
+  shell catalog and context inputs instead of borrowing Composition through execution I/O.
+  The existing MCP owner drives dirty-only notification relists before fresh same-task
+  preparation, not during a prepared retry or issued batch. A real two-call G1 batch
+  finishes exactly once after a tools-changed notification; the next request advertises
+  only the new dirty-server catalog while preserving the unrelated server and both results.
+  Dirty initialize/list counts are1/2, unchanged server1/1; both processes are joined.
+- Current gates: strict workspace all-target clippy; workspace tests1973 passed/0 failed/
+  12 existing opt-in ignored,46 result records, including the actual same-task notification
+  case and existing three-turn notification regression. Fmt/docs/progress/diff checks pass.
+  Logs `.local/evidence/t61-active-notification-clippy.log`, `t61-active-notification-workspace.log`
+  and `t61-fresh-notification-*.log`. The red case missed next-request catalog adoption.
+  No assertion, cap, deadline, resource threshold or ignore was changed. Public busy reload
+  and continuous watching remain unimplemented; finite captures are a prerequisite only.
 - Next: persistent single watch/manual coordinator with100ms debounce, including observations
    from failed candidates and later admitted nested instructions/explicit activation.
-    Use the qualified original-input discovery identity and semantic no-op path. Busy operation
-  inputs must be finite owned captures, and workspace admission must retain the active
-  primary identity rather than a global fallback. Dynamic MCP notification adoption and
+    Use the qualified original-input discovery identity, finite operation captures and semantic
+  no-op path. Workspace admission must retain and re-resolve the active primary identity,
+  not a global fallback or stale profile. Automatic/manual interaction boundaries and
   poisoned-owner/late-quarantine lifetime remain part of that integration.
   R3–R5 remain pending.
 - Completion: все R1–R5 verified по HOT01–HOT04 и affected final gates на code commit,

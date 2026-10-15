@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T02:48:29+00:00
+State updated: 2026-10-15T03:22:55+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,38 +14,36 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: source98458b124 retains original admitted provider inputs and
-qualifies semantic no-op/catalog reuse through the existing reload owner entry.
-R1/R2 partial; R3–R5 pending. No continuous automatic reload claim.
+T61 IN_PROGRESS: source81d8fea50 owns finite accepted operation inputs and adopts
+MCP notifications at fresh same-task boundaries. R1/R2 partial; R3–R5 pending.
 
 ## Checks
 
-- One shared local snapshot precedes saved/custom/public/remote catalog mutations.
-  Provider reuse compares original leaf inputs and actual resolved binding, not
-  selected ID/raw formatting/old remote models. Credential/endpoint/local metadata
-  changes refuse reuse; saved custom-provider revision caching is unchanged.
-- Real HTTP counts remain one through nonforced no-op and profile-only publication;
-  explicit force performs GET2. Zero sessions/effects; watches/HTTP/MCP joined.
-- Current locked workspace1972 passed/0 failed/12 existing opt-in ignored,46 result
-  records. Strict workspace all-target clippy/fmt/docs/progress/diff checks pass.
-  Logs t61-discovery-reuse-*.log. No limits/assertions/ignores were changed.
-- Unchanged AUD32 caught excess RSS. Heap-pinning the existing whole-worker future
-  reduced residency without changing runtime/threads/stacks: large peaks63872,
-  63932,65484KiB and final workspace pass; memory_bounds.rs remains unchanged.
+- Main/title/summary/Shell keep admitted catalog/context captures in the same actor,
+  releasing Composition borrows without cloning the whole owner or changing authority.
+- Two real old MCP calls finish after a tools-changed notification. The next same-task
+  request advertises the new dirty-server catalog, retains the unchanged server and
+  both settled results. Exactly two effects; dirty initialize/list1/2, unchanged1/1;
+  both stdio processes reaped. Prepared attempts are not refreshed mid-retry.
+- Current locked workspace1973 passed/0 failed/12 existing opt-in ignored,46 records.
+  Strict workspace all-target clippy/fmt/docs/progress/diff checks pass; existing AUD23,
+  title, memory/AUD32, child, retry and actual debug binary regressions are included.
+  Logs t61-active-notification-*.log and t61-fresh-notification-*.log. No limits,
+  assertions, thresholds, baselines or ignores were changed.
 
 ## Risks
 
-Per-call observer and nonforced owner entry are building blocks, not a persistent
-100ms coordinator/public busy publication. Host/settings/release/current live/paired
-visual/HOT01–HOT04 completion remain unclaimed. No push/auth retry/live env/paid call.
-T44 remote blocker/VIS46 unchanged. No new dependency/schema/Core protocol this slice.
+No continuous watcher/coordinator or public busy reload has been enabled. The finite
+captures and existing notification owner are qualified prerequisites, not HOT01–HOT04
+completion. No new dependency/schema/Core protocol/public DTO this slice. No push/auth
+retry/live env/paid call; T44 remote blocker/VIS46 and live/visual owners unchanged.
 
 ## Next
 
-Retain one observer in a bounded watch/manual coordinator: one build, one OR-force
-pending trigger, bounded waiters, failed/nested/activation observations. Own finite
-active-operation inputs and resolve its accepted primary against the new source;
-then remaining MCP notification/quarantine, host/settings/debug-release qualification.
+Retain one observer in a100ms bounded watch/manual coordinator, with one active build,
+one OR-force pending trigger and bounded waiters. Re-resolve the actual accepted primary
+against the new source, qualify auto/manual interaction and late-quarantine boundaries;
+then host/settings/debug-release delivery. No T61 report/finish yet.
 
 
 Ready (до 5): нет
