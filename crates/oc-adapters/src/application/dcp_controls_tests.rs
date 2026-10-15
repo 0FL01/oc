@@ -144,10 +144,8 @@ async fn dcp12_explicit_manual_compress_is_real_scoped_and_ask_stays_captured() 
             .await
             .unwrap();
             assert_eq!(approval.action, "compress");
-            assert!(
-                app.reload_location().await.is_err(),
-                "captured Ask prevents reload"
-            );
+            // Explicit reload now settles an issued Ask as `Reloaded` (T61 R2); that
+            // contract is owned by live_switch_tests::hot01_*_pending_issued_approval.
             app.reply_approval(oc_core::approval::ApprovalReply {
                 id: approval.id,
                 binding: approval.binding,

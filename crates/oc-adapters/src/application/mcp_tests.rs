@@ -318,8 +318,8 @@ async fn mcp08_controls_coalesce_before_activation_and_reuse_frozen_source() {
     let initial = app.mcp_status().await.unwrap();
     assert_eq!(initial.servers[0].status, McpStatus::Disabled);
     assert!(!report.exists(), "disabled entry spawned");
-    // Disk edits alone cannot mutate this immutable source generation.
-    fixture.config(json!({"servers":{"dormant":{"type":"local","disabled":true,"command":["never-execute-new-source"]}}}));
+    // Config edits now hot-reload (T61 R2, hot02_continuous_source_watch_*); this
+    // scenario keeps the source unchanged and only proves frozen activation files.
     let disk = fs::read(fixture.global.join("opencode.json")).unwrap();
     let connect = control(&initial, "dormant", McpAction::Connect);
     app.mcp_control(connect.clone()).await.unwrap();

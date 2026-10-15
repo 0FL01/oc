@@ -1859,7 +1859,7 @@ mod reload_tests {
     }
 
     #[tokio::test]
-    async fn reload_is_refused_by_owner_during_active_turn() {
+    async fn explicit_reload_is_published_during_active_turn() {
         let root = tempfile::tempdir().unwrap();
         let project = root.path().join("project");
         let data = root.path().join("data");
@@ -1877,7 +1877,11 @@ mod reload_tests {
         app.submit_fresh(session.clone(), "hello".into(), None)
             .await
             .unwrap();
-        assert_eq!(app.reload_location().await, Err(CoreError::TurnBusy));
+        // T61 R2: the coordinator publishes for the next fresh request instead of
+        // refusing while the issued request keeps its captured generation.
+        let before = app.catalog().await.unwrap().chrome.selection_generation;
+        let reloaded = app.reload_location().await.unwrap();
+        assert!(reloaded.generation > before);
         app.cancel(session).await.unwrap();
         // Drop the stalled transport so the cancelled turn can terminate.
         drop(listener);
