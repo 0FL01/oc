@@ -255,7 +255,7 @@ fn dcp10_explore_own_compress_default_grant_fills_only_absent_authority() {
     for action in ["compress", "*"] {
         for effect in ["deny", "ask"] {
             let central = crate::permissions::PermissionRules::from_config(
-                &serde_json::json!({"permission":{action:effect}}),
+                &serde_json::json!({"permissions":[{"action":action,"resource":"*","effect":effect}]}),
             )
             .unwrap();
             let mut narrowed = central;

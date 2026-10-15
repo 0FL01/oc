@@ -1167,7 +1167,7 @@ fn drain_observed(
                     let generation = oc_adapters::config::assemble(
                         &[oc_adapters::config::Source {
                             path: "native-identity-fixture".into(),
-                            text: "{\"mcp\":{\"unavailable\":null}}".into(),
+                            text: "{\"mcp\":{\"servers\":{\"unavailable\":null}}}".into(),
                             trusted: true,
                         }],
                         &std::collections::BTreeMap::new(),
@@ -1849,7 +1849,7 @@ fn bounded_pipes_redact_output_drain_and_reap_on_timeout() {
             oc_adapters::config::assemble(
                 &[oc_adapters::config::Source {
                     path: "native-identity-fixture".into(),
-                    text: "{\"mcp\":{\"unavailable\":null}}".into(),
+                    text: "{\"mcp\":{\"servers\":{\"unavailable\":null}}}".into(),
                     trusted: true
                 }],
                 &std::collections::BTreeMap::new(),

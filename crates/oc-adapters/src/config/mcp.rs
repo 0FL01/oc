@@ -101,40 +101,24 @@ pub(super) fn merge_document(
         field: "mcp".into(),
         reason: "must be an object".into(),
     })?;
-    let direct = |raw: &Value| {
-        matches!(
-            raw.get("type").and_then(Value::as_str),
-            Some("local" | "remote")
-        )
-    };
-    // Pinned normalize.ts:269/275: these are legacy names only with a direct type.
-    for (id, raw) in map {
-        if id == "servers" && !direct(raw) {
-            continue;
-        }
-        if id == "timeout" && !direct(raw) {
-            let layer = parse_timeout(raw, false).map_err(|field| ConfigError::Invalid {
-                field: format!("mcp.timeout.{field}"),
-                reason: "must be positive milliseconds".into(),
-            })?;
-            for (field, leaf) in [
-                ("startup", layer.startup),
-                ("catalog", layer.catalog),
-                ("execution", layer.execution),
-            ] {
-                if leaf.is_some() {
-                    provenance.insert(format!("mcp.timeout.{field}"), source.path.clone());
-                }
+    // Canonical OpenCode 2 only: `mcp.timeout` and `mcp.servers` (T62).
+    if let Some(raw) = map.get("timeout") {
+        let layer = parse_timeout(raw).map_err(|field| ConfigError::Invalid {
+            field: format!("mcp.timeout.{field}"),
+            reason: "must be positive milliseconds".into(),
+        })?;
+        for (field, leaf) in [
+            ("startup", layer.startup),
+            ("catalog", layer.catalog),
+            ("execution", layer.execution),
+        ] {
+            if leaf.is_some() {
+                provenance.insert(format!("mcp.timeout.{field}"), source.path.clone());
             }
-            *timeout = timeout.overlay(layer);
-            continue;
         }
-        entries.insert(
-            id.clone(),
-            (normalize(id, &source.path, raw, false), source.path.clone()),
-        );
+        *timeout = timeout.overlay(layer);
     }
-    if let Some(raw) = map.get("servers").filter(|raw| !direct(raw)) {
+    if let Some(raw) = map.get("servers") {
         let servers = raw.as_object().ok_or_else(|| ConfigError::Invalid {
             field: "mcp.servers".into(),
             reason: "must be an object".into(),
@@ -142,7 +126,7 @@ pub(super) fn merge_document(
         for (id, raw) in servers {
             entries.insert(
                 id.clone(),
-                (normalize(id, &source.path, raw, true), source.path.clone()),
+                (normalize(id, &source.path, raw), source.path.clone()),
             );
         }
     }
@@ -458,7 +442,7 @@ fn positive_integer(raw: &Value) -> Option<u64> {
         .filter(|value| *value > 0)
 }
 
-fn parse_timeout(raw: &Value, numeric: bool) -> Result<McpTimeouts, &'static str> {
+fn parse_timeout(raw: &Value) -> Result<McpTimeouts, &'static str> {
     let positive = |v: &Value| {
         positive_integer(v).filter(|ms| {
             tokio::time::Instant::now()
@@ -466,14 +450,6 @@ fn parse_timeout(raw: &Value, numeric: bool) -> Result<McpTimeouts, &'static str
                 .is_some()
         })
     };
-    if numeric && raw.is_number() {
-        let ms = positive(raw).ok_or("timeout")?;
-        return Ok(McpTimeouts {
-            catalog: Some(ms),
-            execution: Some(ms),
-            ..Default::default()
-        });
-    }
     let map = raw.as_object().ok_or("timeout")?;
     let mut out = McpTimeouts::default();
     for (field, target) in [
@@ -488,20 +464,16 @@ fn parse_timeout(raw: &Value, numeric: bool) -> Result<McpTimeouts, &'static str
     Ok(out)
 }
 
-fn normalize(id: &str, source: &str, raw: &Value, canonical: bool) -> McpEntry {
+fn normalize(id: &str, source: &str, raw: &Value) -> McpEntry {
     let mut entry = McpEntry::default();
-    let parsed = parse_entry(raw, canonical, &mut entry);
+    let parsed = parse_entry(raw, &mut entry);
     if let Err((field, code)) = parsed {
         entry.failure = Some(failure(id, source, field, code));
     }
     entry
 }
 
-fn parse_entry(
-    raw: &Value,
-    canonical: bool,
-    entry: &mut McpEntry,
-) -> Result<(), (&'static str, ServiceCode)> {
+fn parse_entry(raw: &Value, entry: &mut McpEntry) -> Result<(), (&'static str, ServiceCode)> {
     use ServiceCode::{InvalidConfig, UnsupportedCapability, UnsupportedProtocol};
     let map = raw.as_object().ok_or(("entry", InvalidConfig))?;
     let string = |field: &'static str| {
@@ -514,13 +486,7 @@ fn parse_entry(
             .map(|v| v.as_bool().ok_or((field, InvalidConfig)))
             .transpose()
     };
-    entry.enabled = if canonical {
-        !boolean("disabled")?.unwrap_or(false)
-    } else {
-        boolean("enabled")?.unwrap_or(true)
-    };
-    boolean("enabled")?;
-    boolean("disabled")?;
+    entry.enabled = !boolean("disabled")?.unwrap_or(false);
     entry.kind = string("type")?.to_string();
     if !matches!(entry.kind.as_str(), "local" | "remote") {
         return Err(("type", InvalidConfig));
@@ -600,32 +566,23 @@ fn parse_entry(
         }
         if let Some(oauth) = map.get("oauth") {
             if oauth == &Value::Bool(false) {
-            } else if oauth == &Value::Bool(true) || oauth.is_object() {
-                if let Some(object) = oauth.as_object() {
-                    for (name, field) in [
-                        ("clientId", "oauth.clientId"),
-                        ("clientSecret", "oauth.clientSecret"),
-                        ("scope", "oauth.scope"),
-                        ("redirectUri", "oauth.redirectUri"),
-                        ("client_id", "oauth.client_id"),
-                        ("client_secret", "oauth.client_secret"),
-                        ("redirect_uri", "oauth.redirect_uri"),
-                        ("auth_server_metadata_url", "oauth.auth_server_metadata_url"),
-                    ] {
-                        if object.get(name).is_some_and(|v| !v.is_string()) {
-                            return Err((field, InvalidConfig));
-                        }
+            } else if let Some(object) = oauth.as_object() {
+                for (name, field) in [
+                    ("scope", "oauth.scope"),
+                    ("client_id", "oauth.client_id"),
+                    ("client_secret", "oauth.client_secret"),
+                    ("redirect_uri", "oauth.redirect_uri"),
+                    ("auth_server_metadata_url", "oauth.auth_server_metadata_url"),
+                ] {
+                    if object.get(name).is_some_and(|v| !v.is_string()) {
+                        return Err((field, InvalidConfig));
                     }
-                    for (name, field) in [
-                        ("callbackPort", "oauth.callbackPort"),
-                        ("callback_port", "oauth.callback_port"),
-                    ] {
-                        if object.get(name).is_some_and(|v| {
-                            !positive_integer(v).is_some_and(|p| (1..=65535).contains(&p))
-                        }) {
-                            return Err((field, InvalidConfig));
-                        }
-                    }
+                }
+                if object
+                    .get("callback_port")
+                    .is_some_and(|v| !positive_integer(v).is_some_and(|p| (1..=65535).contains(&p)))
+                {
+                    return Err(("oauth.callback_port", InvalidConfig));
                 }
                 return Err(("oauth", UnsupportedCapability));
             } else {
@@ -634,8 +591,7 @@ fn parse_entry(
         }
     }
     if let Some(raw) = map.get("timeout") {
-        entry.timeouts = parse_timeout(raw, !canonical).map_err(|_| ("timeout", InvalidConfig))?;
-        entry.timeout = positive_integer(raw);
+        entry.timeouts = parse_timeout(raw).map_err(|_| ("timeout", InvalidConfig))?;
     }
     entry.codemode = boolean("codemode")?;
     if let Some(raw) = map.get("protocol") {

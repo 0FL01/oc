@@ -193,8 +193,9 @@ impl CompactionConfig {
     }
 }
 
-/// Narrow pinned normalize.ts:318–374 port. Unknown keys are silently omitted;
-/// malformed recognized leaves do not erase valid neighbors or lower layers.
+/// Canonical OpenCode 2 compaction (`auto`, `keep.tokens`, `buffer`). Unknown keys
+/// are silently omitted; malformed recognized leaves do not erase valid neighbors
+/// or lower layers. OpenCode 1 keys never reach here (T62 gate).
 pub(crate) fn normalize_compaction(
     source: &str,
     value: &serde_json::Value,
@@ -217,15 +218,6 @@ pub(crate) fn normalize_compaction(
         note(&mut notes, &["compaction"], ConfigDiagnosticKind::Invalid);
         return (None, notes);
     };
-    for key in ["tail_turns", "prune"] {
-        if obj.contains_key(key) {
-            note(
-                &mut notes,
-                &["compaction", key],
-                ConfigDiagnosticKind::Unsupported,
-            );
-        }
-    }
     let mut result = Map::new();
     if let Some(auto) = obj.get("auto") {
         if auto.is_boolean() {
@@ -253,11 +245,6 @@ pub(crate) fn normalize_compaction(
             number
         })
     };
-    let legacy = integer(
-        obj.get("preserve_recent_tokens"),
-        &["compaction", "preserve_recent_tokens"],
-        &mut notes,
-    );
     let keep = obj.get("keep").and_then(|v| v.as_object());
     if obj.contains_key("keep") && keep.is_none() {
         note(
@@ -266,31 +253,14 @@ pub(crate) fn normalize_compaction(
             ConfigDiagnosticKind::Invalid,
         );
     }
-    let native = integer(
+    if let Some(tokens) = integer(
         keep.and_then(|k| k.get("tokens")),
         &["compaction", "keep", "tokens"],
         &mut notes,
-    );
-    if native.is_some() && legacy.is_some() && native != legacy {
-        note(
-            &mut notes,
-            &["compaction", "keep", "tokens"],
-            ConfigDiagnosticKind::Conflict,
-        );
-    }
-    if let Some(tokens) = native.or(legacy) {
+    ) {
         result.insert("keep".into(), serde_json::json!({"tokens":tokens}));
     }
-    let legacy = integer(obj.get("reserved"), &["compaction", "reserved"], &mut notes);
-    let native = integer(obj.get("buffer"), &["compaction", "buffer"], &mut notes);
-    if native.is_some() && legacy.is_some() && native != legacy {
-        note(
-            &mut notes,
-            &["compaction", "buffer"],
-            ConfigDiagnosticKind::Conflict,
-        );
-    }
-    if let Some(buffer) = native.or(legacy) {
+    if let Some(buffer) = integer(obj.get("buffer"), &["compaction", "buffer"], &mut notes) {
         result.insert("buffer".into(), buffer.into());
     }
     (
@@ -311,7 +281,13 @@ mod usage_tests {
             "../tests/fixtures/compaction_normalization.json"
         ))
         .unwrap();
-        for case in fixtures["cases"].as_array().unwrap() {
+        // Donor fixture cases with OpenCode 1 keys are refused by the T62 gate.
+        let legacy = ["preserve_recent_tokens", "reserved", "prune", "tail_turns"];
+        for case in fixtures["cases"].as_array().unwrap().iter().filter(|case| {
+            !case["input"]
+                .as_object()
+                .is_some_and(|input| legacy.iter().any(|key| input.contains_key(*key)))
+        }) {
             let (normalized, notes) = normalize_compaction("fixture", &case["input"]);
             let encoded = normalized
                 .map(|c| json!({"compaction":c}))
@@ -336,7 +312,7 @@ mod usage_tests {
         }
         let sources = [
             crate::config::Source { path:"global".into(),trusted:true,text:json!({"compaction":{"auto":false,"keep":{"tokens":11},"buffer":12}}).to_string() },
-            crate::config::Source { path:"project".into(),trusted:true,text:json!({"compaction":{"auto":null,"preserve_recent_tokens":13,"keep":{"tokens":-1},"reserved":14,"buffer":15,"prune":true,"future":"SECRET-VALUE"}}).to_string() },
+            crate::config::Source { path:"project".into(),trusted:true,text:json!({"compaction":{"auto":null,"keep":{"tokens":13},"buffer":15,"future":"SECRET-VALUE"}}).to_string() },
             crate::config::Source { path:"last".into(),trusted:true,text:json!({"compaction":{"auto":"SECRET-VALUE","buffer":false}}).to_string() },
         ];
         let generation = crate::config::assemble(&sources, &Default::default(), None).unwrap();
@@ -358,7 +334,7 @@ mod usage_tests {
                 .iter()
                 .map(|n| n.source.as_str())
                 .collect::<Vec<_>>(),
-            vec!["project", "project", "project", "project", "last", "last"]
+            vec!["project", "last", "last"]
         );
         assert!(
             !serde_json::to_string(&generation.config_diagnostics)
@@ -376,7 +352,7 @@ mod usage_tests {
         let bad = [crate::config::Source {
             path: "bad".into(),
             trusted: true,
-            text: json!({"compaction":{"prune":true},"snapshots":true}).to_string(),
+            text: json!({"compaction":{"auto":true},"snapshots":true}).to_string(),
         }];
         assert!(crate::config::assemble(&bad, &Default::default(), None).is_err());
     }

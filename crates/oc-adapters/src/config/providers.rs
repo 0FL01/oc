@@ -63,9 +63,8 @@ pub(super) fn merge(target: &mut Value, overlay: Value) {
     }
 }
 
-fn overlays(raw: &mut Map<String, Value>, legacy: bool, field: &str) -> Result<(), ConfigError> {
-    let name = if legacy { "options" } else { "settings" };
-    let mut settings = match raw.remove(name) {
+fn overlays(raw: &mut Map<String, Value>, field: &str) -> Result<(), ConfigError> {
+    let mut settings = match raw.remove("settings") {
         Some(value) => object(&value, field)?,
         None => Map::new(),
     };
@@ -98,68 +97,11 @@ fn overlays(raw: &mut Map<String, Value>, legacy: bool, field: &str) -> Result<(
     Ok(())
 }
 
-fn model(value: &Value, legacy: bool, field: &str) -> Result<Value, ConfigError> {
+fn model(value: &Value, field: &str) -> Result<Value, ConfigError> {
     let mut raw = object(value, field)?;
-    overlays(&mut raw, legacy, field)?;
-    if legacy {
-        if let Some(id) = raw.remove("id") {
-            raw.insert("modelID".into(), id);
-        }
-        if let Some(provider) = raw.remove("provider") {
-            let mut provider = object(&provider, field)?;
-            if let Some(package) = provider.remove("npm") {
-                raw.insert("package".into(), package);
-            }
-            if let Some(api) = provider.remove("api") {
-                raw.entry("settings").or_insert_with(|| json!({}))["baseURL"] = api;
-            }
-        }
-        let tools = raw.get("tool_call").cloned();
-        let modalities = raw.get("modalities").cloned();
-        if tools.is_some() || modalities.is_some() {
-            let mut capabilities = Map::new();
-            if let Some(tools) = tools {
-                capabilities.insert("tools".into(), tools);
-            }
-            if let Some(modalities) = modalities {
-                for (key, value) in object(&modalities, field)? {
-                    capabilities.insert(key, value);
-                }
-            }
-            raw.insert("capabilities".into(), Value::Object(capabilities));
-        }
-        if let Some(interleaved) = raw.get("interleaved") {
-            let reasoning = interleaved
-                .as_str()
-                .or_else(|| interleaved.get("field").and_then(Value::as_str));
-            if let Some(reasoning) = reasoning {
-                let reasoning = reasoning.to_owned();
-                raw.entry("compatibility").or_insert_with(|| json!({}))["reasoningField"] =
-                    json!(reasoning);
-            }
-        }
-        if raw.get("status").and_then(Value::as_str) == Some("deprecated") {
-            raw.insert("disabled".into(), json!(true));
-        }
-    }
+    overlays(&mut raw, field)?;
     if let Some(variants) = raw.remove("variants") {
-        let variants = if let Some(map) = variants.as_object() {
-            let mut out = Vec::new();
-            for (id, value) in map {
-                let mut variant = object(value, field)?;
-                let disabled = variant.remove("disabled");
-                let mut normalized = json!({"id":id, "settings":variant});
-                if let Some(disabled) = disabled {
-                    normalized["disabled"] = disabled;
-                }
-                let mut normalized = object(&normalized, field)?;
-                overlays(&mut normalized, false, field)?;
-                out.push(Value::Object(normalized));
-            }
-            out
-        } else {
-            variants.as_array().cloned().ok_or_else(|| invalid(field))?
-        };
+        let variants = variants.as_array().cloned().ok_or_else(|| invalid(field))?;
         let mut ids = std::collections::BTreeSet::new();
         let mut out = Vec::new();
         for variant in variants {
@@ -172,7 +114,7 @@ fn model(value: &Value, legacy: bool, field: &str) -> Result<Value, ConfigError>
             if !ids.insert(id.to_owned()) {
                 return Err(invalid(field));
             }
-            overlays(&mut variant, false, field)?;
+            overlays(&mut variant, field)?;
             out.push(Value::Object(variant));
         }
         raw.insert("variants".into(), Value::Array(out));
@@ -195,24 +137,13 @@ fn model(value: &Value, legacy: bool, field: &str) -> Result<Value, ConfigError>
     Ok(Value::Object(raw))
 }
 
-fn provider(value: &Value, legacy: bool, field: &str) -> Result<Value, ConfigError> {
+fn provider(value: &Value, field: &str) -> Result<Value, ConfigError> {
     let mut raw = object(value, field)?;
-    overlays(&mut raw, legacy, field)?;
-    if legacy {
-        if let Some(package) = raw.remove("npm") {
-            raw.insert("package".into(), package);
-        }
-        if let Some(api) = raw.remove("api") {
-            raw.entry("settings").or_insert_with(|| json!({}))["baseURL"] = api;
-        }
-    }
+    overlays(&mut raw, field)?;
     if let Some(models) = raw.get_mut("models") {
         let mut out = Map::new();
         for (id, value) in object(models, field)? {
-            out.insert(
-                id.clone(),
-                model(&value, legacy, &format!("{field}.models.{id}"))?,
-            );
+            out.insert(id.clone(), model(&value, &format!("{field}.models.{id}"))?);
         }
         *models = Value::Object(out);
     }
@@ -232,30 +163,13 @@ fn provider(value: &Value, legacy: bool, field: &str) -> Result<Value, ConfigErr
     Ok(Value::Object(raw))
 }
 
-/// Both roots may coexist only when their normalized overlapping fields agree.
+/// Canonical `providers` only; OpenCode 1 `provider` is refused by the T62 gate.
 pub(super) fn document(obj: &Map<String, Value>) -> Result<BTreeMap<String, Value>, ConfigError> {
     let mut out = BTreeMap::new();
-    for (root, legacy) in [("provider", true), ("providers", false)] {
-        if let Some(value) = obj.get(root) {
-            for (id, value) in object(value, root)? {
-                let value = provider(&value, legacy, &format!("{root}.{id}"))?;
-                if let Some(previous) = out.get_mut(&id) {
-                    fn conflicts(a: &Value, b: &Value) -> bool {
-                        match (a.as_object(), b.as_object()) {
-                            (Some(a), Some(b)) => b.iter().any(|(key, value)| {
-                                a.get(key).is_some_and(|old| conflicts(old, value))
-                            }),
-                            _ => a != b,
-                        }
-                    }
-                    if conflicts(previous, &value) {
-                        return Err(invalid(&format!("providers.{id}")));
-                    }
-                    merge(previous, value);
-                } else {
-                    out.insert(id, value);
-                }
-            }
+    if let Some(value) = obj.get("providers") {
+        for (id, value) in object(value, "providers")? {
+            let value = provider(&value, &format!("providers.{id}"))?;
+            out.insert(id, value);
         }
     }
     Ok(out)

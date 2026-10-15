@@ -179,14 +179,16 @@ mod review_tests {
         .unwrap();
         std::fs::write(
             global.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"manual"},"animations":false,"leader_timeout":500}"#,
+            r#"{"terminal":{"copy":"manual"},"animations":false}"#,
         )
         .unwrap();
+        std::fs::write(global.join("cli.jsonc"), r#"{"leader":{"timeout":500}}"#).unwrap();
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"select"},"animations":true,"leader":{"timeout":321}}"#,
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
         )
         .unwrap();
+        std::fs::write(b.join("cli.jsonc"), r#"{"leader":{"timeout":321}}"#).unwrap();
         let env = BTreeMap::from([(
             "OPENCODE_CONFIG_DIR".into(),
             global.to_string_lossy().into_owned(),
@@ -216,7 +218,7 @@ mod review_tests {
         assert_eq!(app.catalog().await.unwrap(), initial);
         std::fs::write(
             b.join("opencode.jsonc"),
-            r#"{"terminal":{"copy":"select"},"animations":true,"leader":{"timeout":321}}"#,
+            r#"{"terminal":{"copy":"select"},"animations":true}"#,
         )
         .unwrap();
         let switched = app
@@ -260,6 +262,7 @@ mod review_tests {
         assert_eq!(app.catalog().await.unwrap().chrome.animations, Some(true));
 
         std::fs::write(b.join("opencode.jsonc"), "{}").unwrap();
+        std::fs::write(b.join("cli.jsonc"), "{}").unwrap();
         let reloaded = app.reload_location().await.unwrap();
         assert!(reloaded.generation > switched.generation);
         assert_eq!(
@@ -283,6 +286,7 @@ mod review_tests {
         assert_eq!(returned.catalog.chrome.animations, Some(false));
 
         std::fs::write(global.join("opencode.jsonc"), "{}").unwrap();
+        std::fs::write(global.join("cli.jsonc"), "{}").unwrap();
         let unconfigured = app.reload_location().await.unwrap();
         assert_eq!(unconfigured.catalog.chrome.terminal_copy, None);
         assert_eq!(unconfigured.catalog.chrome.animations, None);
@@ -1864,6 +1868,48 @@ mod reload_tests {
         guard.join().await.unwrap();
         stop.send(()).unwrap();
         server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn cfg13_opencode1_key_on_reload_keeps_last_good_and_reports_every_key() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        let canonical = config("old", "https://example.invalid/v1", true);
+        std::fs::write(&path, &canonical).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let before = app.catalog().await.unwrap();
+        let mut legacy: serde_json::Value = serde_json::from_str(&canonical).unwrap();
+        legacy["permission"] = serde_json::json!({"read": "deny"});
+        legacy["provider"] = serde_json::json!({"other": {"npm": "@ai-sdk/openai"}});
+        std::fs::write(&path, legacy.to_string()).unwrap();
+        let Err(CoreError::LocationSwitch {
+            diagnostic: Some(diagnostic),
+            ..
+        }) = app.reload_location().await
+        else {
+            panic!("OpenCode 1 keys must refuse the reload");
+        };
+        assert_eq!(diagnostic.code, oc_core::queries::ServiceCode::LegacyConfig);
+        let details = diagnostic.details.as_deref().unwrap();
+        for expected in [
+            "location opencode.json: permission → permissions",
+            "location opencode.json: provider → providers",
+            "location opencode.json: provider.<id>.npm → package",
+        ] {
+            assert!(
+                details.iter().any(|line| line.starts_with(expected)),
+                "{details:?}"
+            );
+        }
+        assert_eq!(app.catalog().await.unwrap(), before, "last-good retained");
+        std::fs::write(&path, &canonical).unwrap();
+        assert!(app.reload_location().await.is_ok());
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
     }
 
     #[tokio::test]

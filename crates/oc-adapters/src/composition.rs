@@ -623,7 +623,7 @@ fn admit_settings(
     let mut native_modules = BTreeSet::new();
     let mut plugins = PluginInventory::default();
     let mut plugin_issues = false;
-    let mut conversation_keybinds = config::ConversationKeybinds::default();
+    let conversation_keybinds = config::ConversationKeybinds::default();
     for source in sources {
         let value = match config::parse_jsonc(&source.text, &source.path) {
             Ok(value) => value,
@@ -639,9 +639,6 @@ fn admit_settings(
                 return Err(document(&source.path));
             }
         };
-        conversation_keybinds
-            .merge(&value)
-            .map_err(|error| config_error(&source.path, &error))?;
         if let Some(model) = value.get("model") {
             let model = model
                 .as_str()

@@ -76,42 +76,38 @@ fn r6_recursive_source_order_nested_ids_and_flat_compatibility() {
 
 #[test]
 fn r6_model_selection_precedence_and_whole_selection_replacement() {
-    for (model, separate, id, variant) in [
+    // JSON agents carry the variant inside the canonical model selection (T62).
+    for (model, id, variant) in [
         (
             serde_json::json!("fixture/org/model#fast"),
-            "slow",
             "fixture/org/model",
             Some("fast"),
         ),
         (
             serde_json::json!({"providerID":"fixture","model":"org/model","variant":"fast"}),
-            "slow",
             "fixture/org/model",
             Some("fast"),
         ),
         (
             serde_json::json!({"providerID":"fixture","modelID":"org/model","variant":"fast"}),
-            "slow",
             "fixture/org/model",
             Some("fast"),
         ),
         (
             serde_json::json!({"providerID":"fixture","model":"org/model"}),
-            "slow",
             "fixture/org/model",
             None,
         ),
         (
             serde_json::json!("fixture/org/model"),
-            "slow",
             "fixture/org/model",
-            Some("slow"),
+            None,
         ),
     ] {
         let mut defs = LoadedDefs::default();
         merge_config_definitions(
             &mut defs,
-            &serde_json::json!({"agents":{"team/reviewer":{"model":model,"variant":separate,"system":"own"}}}),
+            &serde_json::json!({"agents":{"team/reviewer":{"model":model,"system":"own"}}}),
             "global",
         );
         assert!(defs.diagnostics.is_empty(), "{:?}", defs.diagnostics);

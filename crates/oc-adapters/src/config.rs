@@ -306,7 +306,6 @@ pub(crate) struct ConversationKeybinds {
     undo: String,
     redo: String,
     timeout: Option<u64>,
-    legacy_timeout: Option<u64>,
     palette: String,
     child_first: String,
     background: String,
@@ -325,7 +324,6 @@ impl Default for ConversationKeybinds {
             undo: "<leader>u".into(),
             redo: "<leader>r".into(),
             timeout: None,
-            legacy_timeout: None,
             palette: "ctrl+p".into(),
             child_first: "down".into(),
             background: "ctrl+b".into(),
@@ -354,26 +352,16 @@ impl ConversationKeybinds {
                 reason: "must be an object".into(),
             });
         }
-        for (field, leaf, target) in [
-            (
-                "leader.timeout",
-                value.pointer("/leader/timeout"),
-                &mut self.timeout,
-            ),
-            (
-                "leader_timeout",
-                value.get("leader_timeout"),
-                &mut self.legacy_timeout,
-            ),
-        ] {
-            if let Some(leaf) = leaf {
-                *target = Some(leaf.as_u64().filter(|ms| *ms > 0).ok_or_else(|| {
-                    ConfigError::Invalid {
-                        field: field.into(),
-                        reason: "must be a positive integer".into(),
-                    }
-                })?);
-            }
+        if let Some(leaf) = value.pointer("/leader/timeout") {
+            self.timeout =
+                Some(
+                    leaf.as_u64()
+                        .filter(|ms| *ms > 0)
+                        .ok_or_else(|| ConfigError::Invalid {
+                            field: "leader.timeout".into(),
+                            reason: "must be a positive integer".into(),
+                        })?,
+                );
         }
         let Some(bindings) = value.get("keybinds") else {
             return Ok(());
@@ -384,28 +372,13 @@ impl ConversationKeybinds {
         })?;
         for (names, target) in [
             (&["leader"][..], &mut self.leader),
-            (&["session_undo", "session.undo"][..], &mut self.undo),
-            (&["session_redo", "session.redo"][..], &mut self.redo),
-            (
-                &["command_list", "command.palette.show"][..],
-                &mut self.palette,
-            ),
-            (
-                &[
-                    "permission_prompt_fullscreen",
-                    "permission.prompt.fullscreen",
-                ][..],
-                &mut self.fullscreen,
-            ),
-            (&["app_exit", "app.exit"][..], &mut self.exit),
-            (
-                &["session_child_first", "session.child.first"][..],
-                &mut self.child_first,
-            ),
-            (
-                &["session_background", "session.background"][..],
-                &mut self.background,
-            ),
+            (&["session.undo"][..], &mut self.undo),
+            (&["session.redo"][..], &mut self.redo),
+            (&["command.palette.show"][..], &mut self.palette),
+            (&["permission.prompt.fullscreen"][..], &mut self.fullscreen),
+            (&["app.exit"][..], &mut self.exit),
+            (&["session.child.first"][..], &mut self.child_first),
+            (&["session.background"][..], &mut self.background),
         ] {
             for name in names {
                 if let Some(value) = bindings.get(*name) {
@@ -420,12 +393,9 @@ impl ConversationKeybinds {
                 }
             }
         }
-        for (index, names) in [
-            ["history_previous", "prompt.history.previous"],
-            ["history_next", "prompt.history.next"],
-        ]
-        .into_iter()
-        .enumerate()
+        for (index, names) in [["prompt.history.previous"], ["prompt.history.next"]]
+            .into_iter()
+            .enumerate()
         {
             for name in names {
                 if let Some(value) = bindings.get(name) {
@@ -508,7 +478,6 @@ impl ConversationKeybinds {
             fullscreen: String::new(),
             exit: String::new(),
             timeout: None,
-            legacy_timeout: None,
             palette: String::new(),
             child_first: String::new(),
             background: String::new(),
@@ -524,7 +493,7 @@ impl ConversationKeybinds {
         }
     }
     pub(crate) fn leader_timeout_ms(&self) -> Option<u64> {
-        self.timeout.or(self.legacy_timeout)
+        self.timeout
     }
     pub(crate) fn command_palette_shortcut(&self) -> String {
         Self {
@@ -1101,7 +1070,7 @@ fn assemble_with_admission(
     let mut mcp: BTreeMap<String, (McpEntry, String)> = BTreeMap::new();
     let mut mcp_timeout = McpTimeouts::default();
     let mut mcp_provenance = BTreeMap::new();
-    let mut permissions: BTreeMap<String, (Permission, String)> = BTreeMap::new();
+    let mut permissions_source = None;
     let mut permission_rules = crate::permissions::PermissionRules::default();
     let mut terminal_copy_source = None;
     let mut terminal_copy = None;
@@ -1131,8 +1100,17 @@ fn assemble_with_admission(
             field: source.path.clone(),
             reason: "root must be an object".to_string(),
         })?;
+        // T62 defense in depth: composition reports every key first; a direct
+        // assembler caller still cannot admit an OpenCode 1 shape.
+        if let Some(finding) = legacy::scan_document(&value).into_iter().next() {
+            return Err(ConfigError::Invalid {
+                field: finding.path,
+                reason: format!("OpenCode 1 key; use {}", finding.replacement),
+            });
+        }
 
-        for field in ["snapshot", "snapshots"] {
+        {
+            let field = "snapshots";
             if let Some(value) = obj.get(field) {
                 let enabled = value.as_bool().ok_or_else(|| ConfigError::Invalid {
                     field: field.to_string(),
@@ -1220,24 +1198,8 @@ fn assemble_with_admission(
             source_rules.expand_home(home);
         }
         permission_rules.extend(source_rules);
-        if let Some(perm_raw) = obj.get("permissions").filter(|raw| raw.is_object()) {
-            let map = perm_raw.as_object().ok_or_else(|| ConfigError::Invalid {
-                field: "permissions".to_string(),
-                reason: "must be an object".to_string(),
-            })?;
-            for (key, raw) in map {
-                let level = normalize_permission(key, raw)?;
-                let key = legacy_key(key).to_string();
-                permissions
-                    .entry(key)
-                    .and_modify(|(old, origin)| {
-                        if level == *old || more_restrictive(level, *old) {
-                            *old = level;
-                            *origin = source.path.clone();
-                        }
-                    })
-                    .or_insert((level, source.path.clone()));
-            }
+        if obj.get("permissions").is_some() {
+            permissions_source = Some(source.path.clone());
         }
 
         if let Some(dcp) = obj.get("dcp") {
@@ -1422,10 +1384,8 @@ fn assemble_with_admission(
         provenance.insert(format!("mcp.{id}"), path.clone());
     }
 
-    let mut out_perm = BTreeMap::new();
-    for (key, (level, path)) in &permissions {
-        out_perm.insert(key.clone(), *level);
-        provenance.insert(format!("permissions.{key}"), path.clone());
+    if let Some(path) = permissions_source {
+        provenance.insert("permissions".to_string(), path);
     }
     if let Some(path) = terminal_copy_source {
         provenance.insert("terminal.copy".to_string(), path);
@@ -1453,7 +1413,7 @@ fn assemble_with_admission(
             public_go_enabled: false,
             public_openai_enabled: false,
             mcp: out_mcp,
-            permissions: out_perm,
+            permissions: BTreeMap::new(),
             permission_rules,
             provenance,
             warnings: unknown_options,
@@ -1816,55 +1776,9 @@ fn validate_dcp(raw: &serde_json::Value) -> Result<(), ConfigError> {
     Ok(())
 }
 
-/// Legacy scalar summary for diagnostics and older callers. Runtime authority
-/// MUST use `PermissionRules`, which retains the ordered resource maps.
-///
-/// Upstream `Rule = Union([Action, Record(String, Action)])` with a
-/// `Record(String, Rule)` catch-all: a scalar `allow|ask|deny` is accepted
-/// for any identifier key (unknown action names never fail loading), and a
-/// glob→action map (the shape used for `external_directory`, `edit`,
-/// `apply_patch`, `bash` and `webfetch`) folds to the most restrictive
-/// level. An empty map keeps the conservative `ask`. Conflicting legacy
-/// policies resolve conservative deny → ask → allow at the caller
-/// (`assemble` keeps the most restrictive across sources).
-pub fn normalize_permission(key: &str, raw: &serde_json::Value) -> Result<Permission, ConfigError> {
-    match raw {
-        serde_json::Value::String(text) => action_level(key, text),
-        serde_json::Value::Object(rules) => {
-            let mut level: Option<Permission> = None;
-            for (glob, rule) in rules {
-                let text = rule.as_str().ok_or_else(|| ConfigError::Invalid {
-                    field: format!("permissions.{key}.{glob}"),
-                    reason: "must be allow/ask/deny".to_string(),
-                })?;
-                let next = action_level(&format!("{key}.{glob}"), text)?;
-                level = Some(match level {
-                    Some(current) if !more_restrictive(next, current) => current,
-                    _ => next,
-                });
-            }
-            Ok(level.unwrap_or(Permission::Ask))
-        }
-        _ => Err(ConfigError::Invalid {
-            field: format!("permissions.{key}"),
-            reason: "must be allow/ask/deny".to_string(),
-        }),
-    }
-}
-
-fn action_level(key: &str, text: &str) -> Result<Permission, ConfigError> {
-    match text {
-        "allow" => Ok(Permission::Allow),
-        "ask" => Ok(Permission::Ask),
-        "deny" => Ok(Permission::Deny),
-        _ => Err(ConfigError::Invalid {
-            field: format!("permissions.{key}"),
-            reason: "must be allow/ask/deny".to_string(),
-        }),
-    }
-}
-
-/// Legacy `write`/`edit` keys normalize to `apply_patch` operations.
+/// Internal permission action identity for native tools: canonical `edit` and
+/// `shell` rules (and tool names) resolve to the `apply_patch`/`bash` actions.
+/// Not OpenCode 1 config compatibility — those keys are refused by T62.
 pub fn legacy_key(key: &str) -> &str {
     match key {
         "write" | "edit" | "patch" => "apply_patch",
@@ -1873,17 +1787,6 @@ pub fn legacy_key(key: &str) -> &str {
         "task" => "subagent",
         _ => key,
     }
-}
-
-fn more_restrictive(next: Permission, current: Permission) -> bool {
-    fn rank(level: Permission) -> u8 {
-        match level {
-            Permission::Deny => 2,
-            Permission::Ask => 1,
-            Permission::Allow => 0,
-        }
-    }
-    rank(next) > rank(current)
 }
 
 /// Redacted explain output: secrets replaced, provenance kept.
@@ -2351,17 +2254,15 @@ mod tests {
         let mut bindings = ConversationKeybinds::default();
         assert_eq!(bindings.leader_timeout_ms(), None);
         bindings
-            .merge(&serde_json::json!({"leader_timeout": 500}))
+            .merge(&serde_json::json!({"leader": {"timeout": 500}}))
             .unwrap();
         assert_eq!(bindings.leader_timeout_ms(), Some(500));
         bindings
             .merge(&serde_json::json!({"leader": {"timeout": 321}}))
             .unwrap();
-        bindings
-            .merge(&serde_json::json!({"leader_timeout": 900}))
-            .unwrap();
         assert_eq!(bindings.leader_timeout_ms(), Some(321));
-        for field in ["leader.timeout", "leader_timeout"] {
+        {
+            let field = "leader.timeout";
             for invalid in [
                 serde_json::json!(0),
                 serde_json::json!(-1),
@@ -2369,11 +2270,7 @@ mod tests {
                 serde_json::json!("secret-fixture"),
                 serde_json::json!(null),
             ] {
-                let layer = if field == "leader.timeout" {
-                    serde_json::json!({"leader": {"timeout": invalid}})
-                } else {
-                    serde_json::json!({"leader_timeout": invalid})
-                };
+                let layer = serde_json::json!({"leader": {"timeout": invalid}});
                 assert_eq!(
                     bindings.merge(&layer).unwrap_err(),
                     ConfigError::Invalid {
@@ -2395,14 +2292,13 @@ mod tests {
         let mut bindings = super::ConversationKeybinds::default();
         bindings
             .merge(&serde_json::json!({"keybinds": {
-                "leader": "ctrl+a", "session_undo": "leader+z,alt+u",
-                "session_redo": "<leader>y,none", "command.palette.show": "<leader>p",
+                "leader": "ctrl+a", "session.undo": "<leader>z,alt+u",
+                "session.redo": "<leader>y,none", "command.palette.show": "<leader>p",
                 "dialog.select.next": "ctrl+j", "dialog.select.submit": "f3",
                 "dialog.mcp.toggle": "<leader>t,f2",
-                "history_previous": "alt+p", "history_next": "alt+n",
                 "prompt.history.previous": "<leader>h,f4", "prompt.history.next": "none,alt+j",
-                "session_child_first": "alt+s", "session.child.first": "<leader>s,f2",
-                "session_background": "alt+b", "session.background": "<leader>b,f5",
+                "session.child.first": "<leader>s,f2",
+                "session.background": "<leader>b,f5",
                 "composer.shell.kill": "<leader>k,f3", "composer.terminal.select": false
             }}))
             .unwrap();
@@ -2673,12 +2569,10 @@ mod tests {
     }
 
     #[test]
-    fn conversation_snapshots_default_off_and_false_aliases_are_safe() {
+    fn conversation_snapshots_default_off_and_false_is_safe() {
         for raw in [
             serde_json::json!({"snapshots":false}),
             serde_json::json!({}),
-            serde_json::json!({"snapshots":false}),
-            serde_json::json!({"snapshots":false,"snapshots":false}),
         ] {
             assemble(
                 &[Source {
@@ -2691,7 +2585,8 @@ mod tests {
             )
             .unwrap();
         }
-        for field in ["snapshot", "snapshots"] {
+        {
+            let field = "snapshots";
             for value in [serde_json::json!(true), serde_json::json!("false")] {
                 let raw = serde_json::json!({field:value});
                 let error = assemble(
@@ -2853,7 +2748,7 @@ mod tests {
         assert_eq!(admitted.mcp["m"].codemode, Some(true));
         let oauth = r#"{"mcp": {
     "servers": {"w": {"type": "remote", "url": "https://w.invalid/mcp",
-            "disabled": false, "oauth": true}}
+            "disabled": false, "oauth": {"client_id": "x"}}}
 }}"#;
         assert_eq!(
             assemble(&[src("s", oauth, true)], &env(&[]), None)
@@ -3052,10 +2947,43 @@ mod tests {
         }
         assert_eq!(effective, ["G/AGENTS.md", "P/AGENTS.md"]);
         // Generation provenance mirrors the same rule for config sections.
-        let g = r#"{"permissions": {"read": "allow"}}"#;
+        let g = r#"{"permissions": [{"action": "read", "resource": "*", "effect": "allow"}]}"#;
         let generation =
             assemble(&[src("G/opencode.json", g, true)], &env(&[]), None).expect("gen");
-        assert_eq!(generation.provenance["permissions.read"], "G/opencode.json");
+        assert_eq!(generation.provenance["permissions"], "G/opencode.json");
+    }
+
+    #[test]
+    fn canonical_permissions_per_source_intersect_and_order_within_a_source() {
+        let generation = assemble(
+            &[
+                src(
+                    "G/opencode.json",
+                    r#"{"permissions": [{"action": "shell", "resource": "*", "effect": "allow"},
+                        {"action": "edit", "resource": "*", "effect": "allow"}]}"#,
+                    true,
+                ),
+                src(
+                    "P/opencode.json",
+                    r#"{"permissions": [{"action": "shell", "resource": "*", "effect": "deny"},
+                        {"action": "shell", "resource": "git *", "effect": "allow"},
+                        {"action": "edit", "resource": "*", "effect": "allow"}]}"#,
+                    true,
+                ),
+            ],
+            &env(&[]),
+            None,
+        )
+        .expect("canonical permissions");
+        let decide = |action: &str, resource: &str| {
+            generation
+                .permission_rules
+                .evaluate(&generation.permissions, action, resource)
+        };
+        assert_eq!(decide("bash", "ls"), Permission::Deny);
+        assert_eq!(decide("bash", "git status"), Permission::Allow);
+        assert_eq!(decide("apply_patch", "src/x"), Permission::Allow);
+        assert_eq!(generation.provenance["permissions"], "P/opencode.json");
     }
 
     #[test]
@@ -3111,80 +3039,6 @@ mod tests {
             parse_skill("x", "---\nname: x\nname: dup\n---\nbody").is_err(),
             "duplicate keys stay a parse error"
         );
-        // Permissions merge most-restrictive across sources.
-        let generation = assemble(
-            &[
-                src(
-                    "G/opencode.json",
-                    r#"{"permissions": {"bash": "allow", "apply_patch": "allow"}}"#,
-                    true,
-                ),
-                src(
-                    "P/opencode.json",
-                    r#"{"permissions": {"bash": "deny", "write": "deny"}}"#,
-                    true,
-                ),
-                src(
-                    "L/opencode.json",
-                    r#"{"permissions": {"edit": "allow", "bash": "deny"}}"#,
-                    true,
-                ),
-            ],
-            &env(&[]),
-            None,
-        )
-        .expect("perm");
-        assert_eq!(generation.permissions["bash"], Permission::Deny);
-        assert_eq!(generation.provenance["permissions.bash"], "L/opencode.json");
-        assert_eq!(generation.permissions["apply_patch"], Permission::Deny);
-        assert!(!generation.permissions.contains_key("write"));
-        assert!(!generation.permissions.contains_key("edit"));
-        assert_eq!(
-            generation.provenance["permissions.apply_patch"],
-            "P/opencode.json"
-        );
-    }
-
-    #[test]
-    fn permission_glob_maps_fold_conservatively_and_unknown_actions_pass() {
-        // Owner shape: `external_directory` with glob → action entries.
-        let generation = assemble(
-            &[src(
-                "G/opencode.json",
-                r#"{"permissions": {
-                    "external_directory": {"*": "ask", "~/.cargo/**": "allow"},
-                    "bash": {"*": "deny", "git *": "allow"},
-                    "webfetch": {"*": "allow"},
-                    "some_future_action": "allow"
-                }}"#,
-                true,
-            )],
-            &env(&[]),
-            None,
-        )
-        .expect("glob maps");
-        assert_eq!(
-            generation.permissions["external_directory"],
-            Permission::Ask
-        );
-        assert_eq!(generation.permissions["bash"], Permission::Deny);
-        assert_eq!(generation.permissions["webfetch"], Permission::Allow);
-        assert_eq!(
-            generation.permissions["some_future_action"],
-            Permission::Allow
-        );
-        // A malformed nested action is still a precise error.
-        let bad = assemble(
-            &[src(
-                "G/opencode.json",
-                r#"{"permissions": {"bash": {"*": "maybe"}}}"#,
-                true,
-            )],
-            &env(&[]),
-            None,
-        )
-        .expect_err("bad action");
-        assert!(matches!(bad, ConfigError::Invalid { .. }));
     }
 
     #[test]

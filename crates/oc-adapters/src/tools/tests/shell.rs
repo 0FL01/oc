@@ -117,26 +117,6 @@ fn tool12_scalar_alias_deny_and_resource_spelling_are_distinct() {
     for name in ["shell", "bash"] {
         assert_eq!(policy.effect(name, "true"), Permission::Deny);
     }
-    for permission in [
-        serde_json::json!({"bash":"deny","shell":"allow"}),
-        serde_json::json!({"bash":"allow","shell":"deny"}),
-        serde_json::json!({"bash":"ask","shell":"allow"}),
-    ] {
-        let rules = crate::permissions::PermissionRules::from_config(
-            &serde_json::json!({"permission":permission}),
-        )
-        .unwrap();
-        for name in ["shell", "bash"] {
-            assert_eq!(
-                rules.evaluate(&BTreeMap::new(), name, "true"),
-                if permission["bash"] == "ask" {
-                    Permission::Ask
-                } else {
-                    Permission::Deny
-                }
-            );
-        }
-    }
     let command = call(
         "shell",
         serde_json::json!({"command":"printf '%s' 'a b' && true"}),

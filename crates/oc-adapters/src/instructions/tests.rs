@@ -29,7 +29,7 @@ fn prm01_automatic_ask_sources_are_not_opened_in_either_resource_form() {
         } else {
             "nested/AGENTS.md".into()
         };
-        let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permission":{"read":{"*":"allow","nested/file.txt":"allow",source_rule:"ask"}}})).unwrap();
+        let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"allow"},{"action":"read","resource":"nested/file.txt","effect":"allow"},{"action":"read","resource":source_rule,"effect":"ask"}]})).unwrap();
         let policy = RuntimePolicy::with_rules(&permissions, &rules).with_root(&project);
         let name = std::ffi::CString::new(source_path.as_os_str().as_bytes()).unwrap();
         // SAFETY: a new owned inotify fd, valid NUL path and IN_OPEN mask.
@@ -95,7 +95,7 @@ fn prm01_approved_ask_file_guard_keeps_permanent_allow_source_admission() {
             .to_string_lossy()
             .into_owned(),
     ] {
-        let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permission":{"read":{"*":"ask","nested/file.txt":"ask",source_rule:"allow"}}})).unwrap();
+        let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"ask"},{"action":"read","resource":"nested/file.txt","effect":"ask"},{"action":"read","resource":source_rule,"effect":"allow"}]})).unwrap();
         let policy = RuntimePolicy::with_rules(&permissions, &rules).with_root(&project);
         assert_eq!(policy.effect("read", "nested/file.txt"), Permission::Ask);
         // after_read is called only following the separate original approval.
@@ -319,7 +319,7 @@ fn prm01_future_directory_hook_and_source_guards_share_admitted_descriptors() {
         .content
         .is_none()
     );
-    let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permission":{"read":{"*":"allow",project.join("one/two/AGENTS.md").to_string_lossy():"deny"}}})).unwrap();
+    let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({"permissions":[{"action":"read","resource":"*","effect":"allow"},{"action":"read","resource":project.join("one/two/AGENTS.md").to_string_lossy(),"effect":"deny"}]})).unwrap();
     let denied = RuntimePolicy::with_rules(&permissions, &rules).with_root(&project);
     let sources = after_read(
         std::slice::from_ref(&root),

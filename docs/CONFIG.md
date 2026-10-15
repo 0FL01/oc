@@ -40,7 +40,7 @@ Discovery native enabled для ludka2; static ludka можно включить
 | `enabled_providers` / `disabled_providers` | `experimental.policies: [{"action": "provider.use", "resource", "effect"}]` |
 | `snapshot`, `autoupdate`, `autoshare`, `attachment`, `reference`, `small_model`, `subagent_depth` | `snapshots`, `update`, `share`, `media.image`, `references`, `agents.title.model`, `experimental.subagent_depth` |
 | compaction `reserved`, `preserve_recent_tokens` | `compaction.buffer`, `compaction.keep.tokens` |
-| `keybinds`/`theme`/`tui` в opencode.json | `cli.json` |
+| `keybinds`/`leader`/`theme`/`tui` в opencode.json | `cli.json` |
 | cli.json underscore keybinds, `leader_timeout`, `theme: "name"` | dotted keybinds, `leader.timeout`, `theme: {name}` |
 | `logLevel`, `server`, `layout`, compaction `prune`/`tail_turns` | удалить |
 

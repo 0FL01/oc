@@ -114,60 +114,43 @@ impl PermissionRules {
             }
         }
     }
-    /// Parse the legacy singular, native plural (or native-profile map), and
-    /// legacy boolean tool constraints without dropping order or resources.
+    /// Parse canonical ordered `permissions` rules without dropping order or
+    /// resources. OpenCode 1 `permission`/`tools` shapes are refused by T62.
     pub fn from_config(value: &serde_json::Value) -> Result<Self, ConfigError> {
         let mut result = Self::default();
-        let mut rules = Vec::new();
-        let has_object_alias = |action: &str| {
-            ["permission", "permissions"].iter().any(|key| {
-                value
-                    .get(key)
-                    .and_then(serde_json::Value::as_object)
-                    .is_some_and(|map| map.contains_key(action))
-            })
-        };
-        let intersect_shell_aliases = has_object_alias("bash") && has_object_alias("shell");
-        for key in ["permission", "permissions"] {
-            if let Some(raw) = value.get(key) {
-                // Object aliases are one policy identity, not an alternate
-                // route around the stricter legacy rule. Ordered rule arrays
-                // retain their existing explicit last-match semantics.
-                if let Some(map) = raw
-                    .as_object()
-                    .filter(|map| intersect_shell_aliases && map.contains_key("shell"))
-                {
-                    let mut rest = map.clone();
-                    let shell = rest.remove("shell").expect("present alias");
-                    rules.extend(parse(&serde_json::Value::Object(rest), key)?);
-                    result
-                        .constraints
-                        .push(parse(&serde_json::json!({"shell": shell}), key)?);
-                    continue;
-                }
-                rules.extend(parse(raw, key)?);
+        // Never silently drop an OpenCode 1 rule source: that would widen authority.
+        for legacy in ["permission", "tools"] {
+            if value.get(legacy).is_some() {
+                return Err(invalid(legacy));
             }
         }
-        if !rules.is_empty() {
-            result.authorities.push(rules);
+        if let Some(raw) = value.get("permissions") {
+            if !raw.is_array() {
+                return Err(invalid("permissions"));
+            }
+            let rules = parse(raw, "permissions")?;
+            if !rules.is_empty() {
+                result.authorities.push(rules);
+            }
         }
-        if let Some(tools) = value.get("tools") {
-            let tools = tools.as_object().ok_or_else(|| invalid("tools"))?;
-            let mut denied = Vec::new();
-            for (action, enabled) in tools {
-                let enabled = enabled.as_bool().ok_or_else(|| invalid("tools"))?;
-                // A legacy true flag does not grant authority by itself.
-                if !enabled {
-                    denied.push(Rule {
+        Ok(result)
+    }
+
+    /// Independent deny ceiling for built-in profiles; never a grant.
+    pub(crate) fn deny_actions(actions: &[&str]) -> Self {
+        Self {
+            constraints: vec![
+                actions
+                    .iter()
+                    .map(|action| Rule {
                         action: legacy_key(action).into(),
                         resource: "*".into(),
                         effect: Permission::Deny,
-                    });
-                }
-            }
-            result.constraints.push(denied);
+                    })
+                    .collect(),
+            ],
+            ..Self::default()
         }
-        Ok(result)
     }
 
     /// Add another central source, intersecting overlapping action authority.
@@ -180,7 +163,7 @@ impl PermissionRules {
     }
 
     pub(super) fn plan_defaults() -> Self {
-        let mut rules = Self::from_config(&serde_json::json!({"permission":[
+        let mut rules = Self::from_config(&serde_json::json!({"permissions":[
             {"action":"edit","resource":"*","effect":"deny"},
             {"action":"edit","resource":"~/.opencode/plan/*","effect":"allow"}
         ]}))
@@ -202,7 +185,7 @@ impl PermissionRules {
     }
 
     pub(super) fn explore_defaults() -> Self {
-        let mut rules = Self::from_config(&serde_json::json!({"permission":[
+        let mut rules = Self::from_config(&serde_json::json!({"permissions":[
             {"action":"*","resource":"*","effect":"deny"},
             {"action":"read","resource":"*","effect":"allow"},
             {"action":"glob","resource":"*","effect":"allow"},
@@ -548,55 +531,16 @@ fn invalid(field: &str) -> ConfigError {
 }
 
 fn parse(value: &serde_json::Value, field: &str) -> Result<Vec<Rule>, ConfigError> {
-    let effect = |raw: &serde_json::Value| {
-        serde_json::from_value::<Permission>(raw.clone()).map_err(|_| invalid(field))
-    };
-    if let Some(array) = value.as_array() {
-        return array
-            .iter()
-            .map(|raw| {
-                let mut rule: Rule =
-                    serde_json::from_value(raw.clone()).map_err(|_| invalid(field))?;
-                rule.action = legacy_key(&rule.action).into();
-                Ok(rule)
-            })
-            .collect();
-    }
-    if value.is_string() {
-        return Ok(vec![Rule {
-            action: "*".into(),
-            resource: "*".into(),
-            effect: effect(value)?,
-        }]);
-    }
-    let mut rules = Vec::new();
-    for (action, raw) in value.as_object().ok_or_else(|| invalid(field))? {
-        let action = legacy_key(action);
-        if let Some(map) = raw.as_object() {
-            // Empty resource maps still constrain the action to ask.
-            if map.is_empty() {
-                rules.push(Rule {
-                    action: action.into(),
-                    resource: "*".into(),
-                    effect: Permission::Ask,
-                });
-            }
-            for (resource, raw) in map {
-                rules.push(Rule {
-                    action: action.into(),
-                    resource: resource.clone(),
-                    effect: effect(raw)?,
-                });
-            }
-        } else {
-            rules.push(Rule {
-                action: action.into(),
-                resource: "*".into(),
-                effect: effect(raw)?,
-            });
-        }
-    }
-    Ok(rules)
+    value
+        .as_array()
+        .ok_or_else(|| invalid(field))?
+        .iter()
+        .map(|raw| {
+            let mut rule: Rule = serde_json::from_value(raw.clone()).map_err(|_| invalid(field))?;
+            rule.action = legacy_key(&rule.action).into();
+            Ok(rule)
+        })
+        .collect()
 }
 
 /// Upstream wildcard semantics: `*` spans separators, `?` one character, and

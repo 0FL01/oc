@@ -37,6 +37,7 @@ const TOP_LEVEL: &[(&str, &str)] = &[
     ("disabled_providers", POLICIES),
     ("subagent_depth", "experimental.subagent_depth"),
     ("keybinds", "cli.json keybinds"),
+    ("leader", "cli.json leader"),
     ("theme", "cli.json theme"),
     ("tui", "cli.json"),
     ("logLevel", REMOVED),

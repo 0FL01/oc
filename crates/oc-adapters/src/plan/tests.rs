@@ -78,7 +78,7 @@ fn plan_baseline_grants_never_erase_explicit_central_profile_or_parent_rules() {
         for action in ["*", "edit", "apply_patch", "write", "external_directory"] {
             for effect in ["deny", "ask"] {
                 let ceiling = PermissionRules::from_config(
-                    &serde_json::json!({"permission":{action:{"*":effect}}}),
+                    &serde_json::json!({"permissions":[{"action":action,"resource":"*","effect":effect}]}),
                 )
                 .unwrap();
                 let mut narrowed = rules.clone();
@@ -144,7 +144,7 @@ fn plan_location_contains_home_without_widening_ordinary_relative_paths() {
         Permission::Deny,
         "unexpanded HOME is not a Location-relative Plan grant"
     );
-    let rooted_glob = PermissionRules::from_config(&serde_json::json!({"permission":[
+    let rooted_glob = PermissionRules::from_config(&serde_json::json!({"permissions":[
         {"action":"edit","resource":"*","effect":"allow"},
         {"action":"edit","resource":"/fixture/*/home/.opencode/plan/*","effect":"deny"}
     ]}))
@@ -160,7 +160,7 @@ fn plan_location_contains_home_without_widening_ordinary_relative_paths() {
         "rooted glob remains authoritative for relative native resources"
     );
     for effect in ["deny", "ask"] {
-        let mut central = PermissionRules::from_config(&serde_json::json!({"permission":[
+        let mut central = PermissionRules::from_config(&serde_json::json!({"permissions":[
             {"action":"edit","resource":"*","effect":"allow"},
             {"action":"edit","resource":"/fixture/project/home/.opencode/plan/*","effect":effect}
         ]}))

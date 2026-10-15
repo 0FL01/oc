@@ -4,25 +4,24 @@ use oc_core::queries::{ServiceCode, ServiceStage};
 
 #[test]
 fn step_constraints_are_typed_source_fields_not_silent_profile_limits() {
-    for domain in ["agent", "agents"] {
+    {
+        let domain = "agents";
         let mut defs = LoadedDefs::default();
         merge_config_definitions(
             &mut defs,
-            &serde_json::json!({domain:{"constrained":{"steps":16,"maxSteps":8},
-                                      "sibling":{"prompt":"unchanged"}}}),
+            &serde_json::json!({domain:{"constrained":{"steps":16},
+                                      "sibling":{"system":"unchanged"}}}),
             "/admitted/opencode.jsonc",
         );
         assert!(!defs.agents.contains_key("constrained"));
-        if domain == "agent" {
-            assert_eq!(defs.agents["sibling"].body, "unchanged");
-        }
-        assert_eq!(defs.diagnostics.len(), 2);
+        assert_eq!(defs.agents["sibling"].body, "unchanged");
+        assert_eq!(defs.diagnostics.len(), 1);
         for diagnostic in &defs.diagnostics {
             assert_eq!(diagnostic.path, "/admitted/opencode.jsonc");
             assert_eq!(diagnostic.failure.code, ServiceCode::UnsupportedCapability);
             assert_eq!(diagnostic.failure.stage, ServiceStage::Capability);
             assert!(!diagnostic.failure.source.is_empty());
-            assert_eq!(diagnostic.failure.field[0], domain);
+            assert_eq!(diagnostic.failure.field[0], "agent");
             assert_eq!(diagnostic.failure.field[1], "entry");
             assert!(matches!(
                 diagnostic.failure.field[2].as_str(),

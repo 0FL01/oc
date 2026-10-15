@@ -773,17 +773,6 @@ fn discovery_headers(
     Ok(headers)
 }
 
-/// Provider gating: disabled wins, then an enabled-selection must include us.
-pub fn should_run(disabled: &[String], enabled: Option<&[String]>) -> bool {
-    if disabled.iter().any(|id| id == PROVIDER_ID) {
-        return false;
-    }
-    if let Some(list) = enabled {
-        return list.iter().any(|id| id == PROVIDER_ID);
-    }
-    true
-}
-
 /// Discovery outcome: replacement catalog plus sanitized warnings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveryOutcome {
@@ -1042,7 +1031,7 @@ mod tests {
     use super::{
         ATTEMPT_TIMEOUT_MS, Clock, DISCOVERY_BODY_CAP, DiscoveryClient, DiscoveryError,
         MAX_CONTEXT_TOKENS, RecordedRequest, Scripted, fetch_models, model_config,
-        pretty_model_name, should_retry_status, should_run,
+        pretty_model_name, should_retry_status,
     };
     use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
     use std::collections::{BTreeMap, VecDeque};
@@ -1445,10 +1434,6 @@ mod tests {
         assert_eq!(pretty_model_name("org/gpt-4o-mini"), "GPT-4o Mini");
         assert_eq!(pretty_model_name("org/name_with-parts"), "Name With Parts");
         assert_eq!(pretty_model_name("x/glm-4"), "GLM 4");
-        assert!(should_run(&[], None));
-        assert!(!should_run(&["ludka2".to_string()], None));
-        assert!(!should_run(&[], Some(&["other".to_string()])));
-        assert!(should_run(&[], Some(&["ludka2".to_string()])));
         assert_eq!(
             super::discovery_url("https://example.invalid/v1/").expect("url"),
             "https://example.invalid/v1/models"

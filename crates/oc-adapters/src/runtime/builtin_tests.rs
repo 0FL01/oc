@@ -28,7 +28,7 @@ fn registered_mcp_default_and_alias_visibility_obey_independent_constraints() {
         "arbitrary_*",
     ] {
         let rules = crate::permissions::PermissionRules::from_config(&serde_json::json!({
-            "permission": {action: "deny"}
+            "permissions": [{"action": action, "resource": "*", "effect": "deny"}]
         }))
         .unwrap();
         let policy = RuntimePolicy::with_rules(&permissions, &rules).with_mcp(&entries);

@@ -23,9 +23,7 @@ use std::os::unix::fs::OpenOptionsExt as _;
 use std::path::{Path, PathBuf};
 
 use crate::admitted_fs;
-use crate::config::{
-    Permission, legacy_key, normalize_permission, parse_skill, split_frontmatter_value,
-};
+use crate::config::{Permission, parse_skill, split_frontmatter_value};
 use sha2::Digest as _;
 use thiserror::Error;
 
@@ -210,14 +208,15 @@ pub(crate) fn register_builtins(defs: &mut LoadedDefs) {
 }
 
 fn profile_ceiling(id: &str) -> crate::permissions::PermissionRules {
-    let tools = match id {
-        "general" | "explore" => {
-            serde_json::json!({"question":false,"subagent":false,"opencode_session_rename":false,"opencode_session_move":false})
-        }
-        _ => return Default::default(),
-    };
-    crate::permissions::PermissionRules::from_config(&serde_json::json!({"tools": tools}))
-        .expect("builtin native profile ceiling")
+    match id {
+        "general" | "explore" => crate::permissions::PermissionRules::deny_actions(&[
+            "question",
+            "subagent",
+            "opencode_session_rename",
+            "opencode_session_move",
+        ]),
+        _ => Default::default(),
+    }
 }
 
 /// Non-executable command (literal expansion only, via `expand_command`).
@@ -411,14 +410,6 @@ fn field_model(
         None | Some(serde_json::Value::Null) => Ok(None),
         Some(value) if value.is_string() || value.is_object() => Ok(Some(value.clone())),
         Some(_) => Err(format!("{key} must be a string or object")),
-    }
-}
-
-fn permission_rank(level: Permission) -> u8 {
-    match level {
-        Permission::Allow => 0,
-        Permission::Ask => 1,
-        Permission::Deny => 2,
     }
 }
 
@@ -740,86 +731,11 @@ fn agent_selection(
     Ok((id, variant))
 }
 
-fn inline_body(
-    object: &serde_json::Map<String, serde_json::Value>,
-    first: &str,
-    second: &str,
-) -> Result<String, String> {
-    let first_value = optional_string(object, first)?;
-    let second_value = optional_string(object, second)?;
-    if first_value.is_some() && second_value.is_some() {
-        return Err(format!("{first} and {second} are mutually exclusive"));
-    }
-    Ok(first_value.or(second_value).unwrap_or_default())
-}
-
-/// Upstream legacy permissions are `Record(String, Rule)`: any action name
-/// (including custom/glob keys such as `tavily-local_*`) is accepted, so the
-/// key only has to be a YAML-safe scalar.
-fn valid_permission_key(key: &str) -> bool {
-    !key.is_empty()
-        && key.len() <= MAX_DEF_ID_LEN
-        && !key.chars().any(|c| c.is_whitespace() || c == ':')
-}
-
-/// Normalize a permission mapping (scalar actions or glob→action maps).
-fn permission_map(
-    value: Option<&serde_json::Value>,
-) -> Result<BTreeMap<String, Permission>, String> {
-    let Some(value) = value else {
-        return Ok(BTreeMap::new());
-    };
-    if value.is_null() {
-        return Ok(BTreeMap::new());
-    }
-    if value.is_string() {
-        return Ok(BTreeMap::from([(
-            "*".into(),
-            normalize_permission("*", value).map_err(|error| error.to_string())?,
-        )]));
-    }
-    let object = value
-        .as_object()
-        .ok_or_else(|| "must be an object".to_string())?;
-    let mut permissions = BTreeMap::new();
-    for (key, raw) in object {
-        if !valid_permission_key(key) {
-            return Err(format!("invalid permission key {key}"));
-        }
-        let level = normalize_permission(key, raw).map_err(|error| error.to_string())?;
-        let key = legacy_key(key).to_string();
-        permissions
-            .entry(key)
-            .and_modify(|old| {
-                if permission_rank(level) > permission_rank(*old) {
-                    *old = level;
-                }
-            })
-            .or_insert(level);
-    }
-    Ok(permissions)
-}
-
-/// Native `request` headers/body plus V1 `options`/`temperature`/`top_p`,
-/// migrated in donor `migrateAgent` order; native body fields win.
+/// Canonical `request` headers/body overlay.
 fn agent_request<'a>(
     get: impl Fn(&str) -> Option<&'a serde_json::Value>,
 ) -> Result<crate::provider::RequestOverlay, String> {
     let mut overlay = crate::provider::RequestOverlay::default();
-    match get("options") {
-        None | Some(serde_json::Value::Null) => {}
-        Some(serde_json::Value::Object(options)) => overlay.body.extend(options.clone()),
-        Some(_) => return Err("options must be an object".into()),
-    }
-    for key in ["temperature", "top_p"] {
-        match get(key) {
-            None => {}
-            Some(value @ serde_json::Value::Number(_)) => {
-                overlay.body.insert(key.into(), value.clone());
-            }
-            Some(_) => return Err(format!("{key} must be a number")),
-        }
-    }
     match get("request") {
         None | Some(serde_json::Value::Null) => {}
         Some(serde_json::Value::Object(request)) => {
@@ -863,18 +779,12 @@ fn agent_request<'a>(
 
 const MAX_REQUEST_OVERLAY_BYTES: usize = 64 * 1024;
 
-/// Donor `Config.Agent.Color` (`#RRGGBB`); the V1 migration maps a theme
-/// color name (no leading `#`) to `#aaaaaa` and re-validates the result.
-fn agent_color(value: Option<&serde_json::Value>, legacy: bool) -> Result<Option<String>, String> {
+/// Donor `Config.Agent.Color` (`#RRGGBB`); theme names are not migrated.
+fn agent_color(value: Option<&serde_json::Value>) -> Result<Option<String>, String> {
     let Some(value) = value.filter(|value| !value.is_null()) else {
         return Ok(None);
     };
     let color = value.as_str().ok_or("color must be a string")?;
-    let color = if legacy && !color.starts_with('#') {
-        "#aaaaaa"
-    } else {
-        color
-    };
     let digits = color.strip_prefix('#').unwrap_or_default();
     if digits.len() != 6 || !digits.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("color must be #RRGGBB".into());
@@ -882,9 +792,8 @@ fn agent_color(value: Option<&serde_json::Value>, legacy: bool) -> Result<Option
     Ok(Some(color.to_string()))
 }
 
-/// Pinned Markdown importer: any key outside the native agent schema selects
-/// the V1 decode/migration path.
-const NATIVE_AGENT_KEYS: [&str; 10] = [
+/// Canonical `ConfigAgent.Info` keys (Markdown frontmatter also admits `variant`).
+const CANONICAL_AGENT_KEYS: [&str; 10] = [
     "model",
     "request",
     "system",
@@ -927,26 +836,18 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
         origin: source.to_string(),
     };
 
-    // Both source spellings must explicitly diagnose the Long Horizon divergence,
-    // even while the remaining canonical profile semantics are a separate slice.
-    for domain in ["agent", "agents"] {
-        if let Some(agents) = config.get(domain).and_then(serde_json::Value::as_object) {
-            for (id, raw) in agents {
-                if let Some(object) = raw.as_object() {
-                    diagnose_step_constraints(
-                        &mut out.defs,
-                        source_path,
-                        domain,
-                        id,
-                        object.keys(),
-                    );
-                }
+    // Canonical `agents` only (T62); `steps` is the explicit Long Horizon divergence.
+    // Diagnostic fields keep the `agent.<id>` definition identity used by consumers.
+    if let Some(agents) = config.get("agents").and_then(serde_json::Value::as_object) {
+        for (id, raw) in agents {
+            if let Some(object) = raw.as_object() {
+                diagnose_step_constraints(&mut out.defs, source_path, "agent", id, object.keys());
             }
         }
     }
 
-    for domain in ["agent", "agents"] {
-        if let Some(raw_agents) = config.get(domain) {
+    {
+        if let Some(raw_agents) = config.get("agents") {
             if let Some(agents) = raw_agents.as_object() {
                 for (id, raw) in agents {
                     if !valid_agent_id(id) {
@@ -965,30 +866,12 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         ));
                         continue;
                     };
-                    if object.contains_key("steps") || object.contains_key("maxSteps") {
+                    if object.contains_key("steps") {
                         continue;
                     }
-                    let allowed = [
-                        "prompt",
-                        "body",
-                        "system",
-                        "description",
-                        "model",
-                        "variant",
-                        "permission",
-                        "permissions",
-                        "tools",
-                        "hidden",
-                        "disable",
-                        "disabled",
-                        "mode",
-                        "request",
-                        "options",
-                        "temperature",
-                        "top_p",
-                        "color",
-                    ];
-                    if let Some(field) = object.keys().find(|key| !allowed.contains(&key.as_str()))
+                    if let Some(field) = object
+                        .keys()
+                        .find(|key| !CANONICAL_AGENT_KEYS.contains(&key.as_str()))
                     {
                         out.defs.diagnostics.push(diag(
                             source_path,
@@ -998,13 +881,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                         continue;
                     }
                     let parsed = (|| {
-                        let mut body = inline_body(object, "prompt", "body")?;
-                        if let Some(system) = optional_string(object, "system")? {
-                            if object.contains_key("prompt") || object.contains_key("body") {
-                                return Err("system and prompt/body are mutually exclusive".into());
-                            }
-                            body = system;
-                        }
+                        let body = optional_string(object, "system")?.unwrap_or_default();
                         let description = optional_string(object, "description")?
                             .or_else(|| {
                                 body.lines()
@@ -1013,20 +890,16 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                                     .map(str::to_string)
                             })
                             .unwrap_or_default();
-                        let (model, variant) = agent_selection(
-                            object.get("model"),
-                            optional_string(object, "variant")?,
-                        )?;
+                        let (model, variant) = agent_selection(object.get("model"), None)?;
                         let mode = agent_mode(optional_string(object, "mode")?)?;
-                        let permissions = permission_map(object.get("permission"))?;
+                        let permissions = BTreeMap::new();
                         let permission_rules =
                             crate::permissions::PermissionRules::from_config(raw)
                                 .map_err(|error| error.to_string())?;
                         let hidden = metadata_bool(raw.get("hidden"))?;
-                        let disabled = metadata_bool(raw.get("disable"))?
-                            | metadata_bool(raw.get("disabled"))?;
+                        let disabled = metadata_bool(raw.get("disabled"))?;
                         let request = agent_request(|key| object.get(key))?;
-                        let color = agent_color(object.get("color"), domain == "agent")?;
+                        let color = agent_color(object.get("color"))?;
                         Ok::<_, String>((
                             color,
                             request,
@@ -1110,7 +983,6 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                 };
                 let allowed = [
                     "template",
-                    "body",
                     "description",
                     "agent",
                     "model",
@@ -1126,7 +998,7 @@ pub fn merge_config_definitions(defs: &mut LoadedDefs, config: &serde_json::Valu
                     continue;
                 }
                 let parsed = (|| {
-                    let body = inline_body(object, "template", "body")?;
+                    let body = optional_string(object, "template")?.unwrap_or_default();
                     let description = optional_string(object, "description")?
                         .or_else(|| {
                             body.lines()
@@ -1842,16 +1714,10 @@ fn load_entry(
                         "model",
                         "variant",
                         "mode",
-                        "permission",
                         "permissions",
-                        "tools",
                         "hidden",
-                        "disable",
                         "disabled",
                         "request",
-                        "options",
-                        "temperature",
-                        "top_p",
                         "color",
                     ],
                 ) {
@@ -1883,7 +1749,7 @@ fn load_entry(
                         model,
                         variant,
                         body: body.trim().to_string(),
-                        permissions: permission_map(frontmatter.fields.get("permission"))?,
+                        permissions: BTreeMap::new(),
                         permission_rules: crate::permissions::PermissionRules::from_config(
                             &serde_json::Value::Object(
                                 frontmatter.fields.clone().into_iter().collect(),
@@ -1891,21 +1757,14 @@ fn load_entry(
                         )
                         .map_err(|error| error.to_string())?,
                         hidden: metadata_bool(frontmatter.fields.get("hidden"))?,
-                        disabled: metadata_bool(frontmatter.fields.get("disable"))?
-                            | metadata_bool(frontmatter.fields.get("disabled"))?,
+                        disabled: metadata_bool(frontmatter.fields.get("disabled"))?,
                         mode: if compatibility {
                             Some("primary".into())
                         } else {
                             agent_mode(field_string(&frontmatter.fields, "mode")?)?
                         },
                         request: agent_request(|key| frontmatter.fields.get(key))?,
-                        color: agent_color(
-                            frontmatter.fields.get("color"),
-                            frontmatter
-                                .fields
-                                .keys()
-                                .any(|key| !NATIVE_AGENT_KEYS.contains(&key.as_str())),
-                        )?,
+                        color: agent_color(frontmatter.fields.get("color"))?,
                         supplied: frontmatter
                             .fields
                             .keys()
@@ -2519,8 +2378,7 @@ mod tests {
                 "agents": {
                     "review": {
                         "description": "same",
-                        "body": "local prompt",
-                        "variant": "high",
+                        "system": "local prompt",
                         "permissions": [{"action": "edit", "resource": "*", "effect": "deny"}]
                     }
                 },
@@ -2545,7 +2403,6 @@ mod tests {
             Some("old"),
             "omitted supplied fields retain prior values"
         );
-        assert_eq!(agent.variant.as_deref(), Some("high"));
         assert_eq!(decide(agent, "apply_patch", "src/x"), Permission::Deny);
         assert_eq!(loaded.commands["run"].origin, "P/opencode.jsonc");
         assert!(loaded.commands["run"].body.contains("```sh"));

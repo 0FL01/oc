@@ -1,48 +1,64 @@
-//! MCP09 fixtures derived from the pinned normalizer/schema, not Serde defaults.
+//! MCP09 canonical OpenCode 2 `mcp.servers`/`mcp.timeout` semantics (T62: no
+//! OpenCode 1 direct entries, `enabled` or numeric timeouts).
 use super::*;
 
-fn fixture_sources() -> Vec<Source> {
-    let fixture: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../../fixtures/mcp09-normalization.json"
-    ))
-    .unwrap();
-    assert_eq!(
-        fixture["source_commit"],
-        "2670273ff17da96f85c5826ced57aa1b368754fa"
-    );
-    fixture["documents"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .enumerate()
-        .map(|(index, value)| Source {
-            path: format!("layer-{index}/opencode.json"),
-            text: value.to_string(),
-            trusted: true,
-        })
-        .collect()
+fn source(value: serde_json::Value) -> Source {
+    Source {
+        path: "/private/source-CANARY/opencode.jsonc".into(),
+        text: value.to_string(),
+        trusted: true,
+    }
+}
+
+fn layer(index: usize, value: serde_json::Value) -> Source {
+    Source {
+        path: format!("layer-{index}/opencode.json"),
+        text: value.to_string(),
+        trusted: true,
+    }
 }
 
 #[test]
-fn mcp09_donor_forms_disabled_environment_and_whole_entry_precedence() {
-    let sources = fixture_sources();
+fn mcp09_canonical_layers_disabled_environment_and_whole_entry_precedence() {
+    let sources = [
+        layer(
+            0,
+            serde_json::json!({"mcp":{
+                "timeout":{"startup":101,"catalog":5000,"execution":5000},
+                "servers":{
+                    "chrome-devtools":{"type":"local","command":["npx","-y","chrome-devtools-mcp@latest"],
+                        "disabled":true,"environment":{"npm_config_offline":"true"}},
+                    "same":{"type":"local","command":["canonical"],"disabled":true,
+                        "environment":{"OLD":"old"},"timeout":{"execution":444}}
+                }
+            }}),
+        ),
+        layer(
+            1,
+            serde_json::json!({"mcp":{
+                "timeout":{"execution":303},
+                "servers":{
+                    "same":{"type":"local","command":["later"],"timeout":{"catalog":202}},
+                    "replacement":{"type":"local","command":["exact argv","two words"]}
+                }
+            }}),
+        ),
+    ];
     let before: Vec<_> = sources.iter().map(|s| s.text.clone()).collect();
-    let generation =
-        assemble(&sources, &BTreeMap::new(), None).expect("donor-shaped MCP must load");
-    assert_eq!(generation.mcp.len(), 4);
+    let generation = assemble(&sources, &BTreeMap::new(), None).unwrap();
+    assert_eq!(generation.mcp.len(), 3);
     assert!(!generation.mcp["chrome-devtools"].enabled);
-    assert_eq!(generation.mcp["same"].command, ["later"]);
-    assert!(generation.mcp["same"].enabled);
-    assert_eq!(generation.provenance["mcp.same"], "layer-1/opencode.json");
-    assert_eq!(
-        sources.iter().map(|s| s.text.clone()).collect::<Vec<_>>(),
-        before
-    );
     let same = &generation.mcp["same"];
+    assert_eq!(same.command, ["later"]);
+    assert!(
+        same.enabled,
+        "whole replacement drops the earlier disabled flag"
+    );
     assert!(
         same.environment.is_empty(),
         "whole replacement removes old env"
     );
+    assert_eq!(generation.provenance["mcp.same"], "layer-1/opencode.json");
     assert_eq!(
         same.timeouts,
         McpTimeouts {
@@ -58,8 +74,12 @@ fn mcp09_donor_forms_disabled_environment_and_whole_entry_precedence() {
         McpTimeouts {
             startup: Some(101),
             catalog: Some(5000),
-            execution: Some(5000)
+            execution: Some(303)
         }
+    );
+    assert_eq!(
+        generation.mcp["replacement"].command,
+        ["exact argv", "two words"]
     );
     assert_eq!(
         generation.provenance["mcp.timeout.startup"],
@@ -69,39 +89,30 @@ fn mcp09_donor_forms_disabled_environment_and_whole_entry_precedence() {
         generation.provenance["mcp.timeout.execution"],
         "layer-1/opencode.json"
     );
+    assert_eq!(
+        sources.iter().map(|s| s.text.clone()).collect::<Vec<_>>(),
+        before
+    );
     let first = assemble(&sources[..1], &BTreeMap::new(), None).unwrap();
     assert_eq!(first.mcp["same"].command, ["canonical"]);
     assert!(!first.mcp["same"].enabled);
     assert_eq!(first.mcp["same"].timeouts.execution, Some(444));
 }
 
-fn source(value: serde_json::Value) -> Source {
-    Source {
-        path: "/private/source-CANARY/opencode.jsonc".into(),
-        text: value.to_string(),
-        trusted: true,
-    }
-}
-
 #[test]
-fn mcp09_reserved_legacy_names_activation_defaults_and_donor_timeout_defaults() {
+fn mcp09_server_names_are_free_and_donor_timeout_defaults_apply() {
     let generation = assemble(
-        &[source(serde_json::json!({"mcp": {
+        &[source(serde_json::json!({"mcp": {"servers": {
             "servers":{"type":"local","command":["servers"]},
-            "timeout":{"type":"remote","url":"https://example.invalid/exact/mcp","oauth":false},
-            "enabled_only":{"enabled":false}
-        }}))],
+            "timeout":{"type":"remote","url":"https://example.invalid/exact/mcp","oauth":false}
+        }}}))],
         &BTreeMap::new(),
         None,
     )
     .unwrap();
-    assert_eq!(generation.mcp.len(), 3);
+    assert_eq!(generation.mcp.len(), 2);
     assert!(generation.mcp["servers"].enabled);
     assert!(generation.mcp["timeout"].enabled);
-    assert!(
-        generation.mcp["enabled_only"].failure.is_some(),
-        "donor unsupported enabled-only is visible failed inventory"
-    );
     let timeout = generation.mcp["timeout"].timeouts;
     assert_eq!(
         (
@@ -110,6 +121,17 @@ fn mcp09_reserved_legacy_names_activation_defaults_and_donor_timeout_defaults() 
             timeout.execution_ms(None)
         ),
         (30_000, 30_000, 43_200_000)
+    );
+    // OpenCode 1 direct entries never load (T62).
+    assert!(
+        assemble(
+            &[source(
+                serde_json::json!({"mcp":{"direct":{"type":"local","command":["x"]}}})
+            )],
+            &BTreeMap::new(),
+            None
+        )
+        .is_err()
     );
 }
 
@@ -123,7 +145,6 @@ fn mcp09_positive_integer_json_spellings_follow_pinned_number_semantics() {
             path: "numeric/opencode.json".into(),
             trusted: true,
             text: r#"{"mcp":{
-                "legacy":{"type":"local","command":["exact"],"timeout":NUMERIC},
                 "timeout":{"startup":NUMERIC},
                 "servers":{
                     "canonical":{"type":"local","command":["exact"],"timeout":{"catalog":NUMERIC,"execution":NUMERIC}},
@@ -133,14 +154,11 @@ fn mcp09_positive_integer_json_spellings_follow_pinned_number_semantics() {
             .replace("NUMERIC", numeric),
         };
         let generation = assemble(&[src], &BTreeMap::new(), None).unwrap();
-        for id in ["legacy", "canonical"] {
-            let entry = &generation.mcp[id];
-            assert!(entry.failure.is_none(), "{numeric}: {id} rejected");
-            assert_eq!(entry.timeouts.startup_ms(), 1000);
-            assert_eq!(entry.timeouts.catalog_ms(entry.timeout), 1000);
-            assert_eq!(entry.timeouts.execution_ms(entry.timeout), 1000);
-        }
-        assert_eq!(generation.mcp["legacy"].timeout, Some(1000));
+        let entry = &generation.mcp["canonical"];
+        assert!(entry.failure.is_none(), "{numeric}: rejected");
+        assert_eq!(entry.timeouts.startup_ms(), 1000);
+        assert_eq!(entry.timeouts.catalog_ms(entry.timeout), 1000);
+        assert_eq!(entry.timeouts.execution_ms(entry.timeout), 1000);
         assert_eq!(
             generation.mcp["oauth"].failure.as_ref().unwrap().code,
             ServiceCode::UnsupportedCapability,
@@ -169,22 +187,22 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"local","command":["x"],"environment":{"BAD=KEY":"CANARY"},"enabled":false}),
+            serde_json::json!({"type":"local","command":["x"],"environment":{"BAD=KEY":"CANARY"},"disabled":true}),
             "environment",
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"local","command":["x"],"timeout":0}),
+            serde_json::json!({"type":"local","command":["x"],"timeout":{"catalog":0}}),
             "timeout",
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"local","command":["x"],"timeout":-1}),
+            serde_json::json!({"type":"local","command":["x"],"timeout":{"catalog":-1}}),
             "timeout",
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"local","command":["x"],"timeout":1.5}),
+            serde_json::json!({"type":"local","command":["x"],"timeout":{"catalog":1.5}}),
             "timeout",
             ServiceCode::InvalidConfig,
         ),
@@ -204,7 +222,7 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
             ServiceCode::UnsupportedCapability,
         ),
         (
-            serde_json::json!({"type":"remote","url":"CANARY","enabled":false}),
+            serde_json::json!({"type":"remote","url":"CANARY","disabled":true}),
             "url",
             ServiceCode::InvalidConfig,
         ),
@@ -219,16 +237,6 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
             ServiceCode::InvalidConfig,
         ),
         (
-            serde_json::json!({"type":"remote","url":"https://example.invalid/mcp","oauth":true}),
-            "oauth",
-            ServiceCode::UnsupportedCapability,
-        ),
-        (
-            serde_json::json!({"type":"remote","url":"https://example.invalid/mcp","oauth":{"clientId":"CANARY","clientSecret":"CANARY","scope":"CANARY","callbackPort":3456,"redirectUri":"CANARY"}}),
-            "oauth",
-            ServiceCode::UnsupportedCapability,
-        ),
-        (
             serde_json::json!({"type":"remote","url":"https://example.invalid/mcp","oauth":{"client_id":"CANARY","client_secret":"CANARY","scope":"CANARY","callback_port":3456,"redirect_uri":"CANARY","auth_server_metadata_url":"CANARY"}}),
             "oauth",
             ServiceCode::UnsupportedCapability,
@@ -240,10 +248,10 @@ fn mcp09_failed_recognized_matrix_keeps_healthy_and_disabled_entries() {
         ),
     ];
     for (raw, field, code) in bad {
-        let generation = assemble(&[source(serde_json::json!({"mcp":{
+        let generation = assemble(&[source(serde_json::json!({"mcp":{"servers":{
             "broken":raw,"healthy":{"type":"local","command":["x"],"codemode":false,"metadata":"CANARY"},
-            "disabled":{"type":"local","command":["npx"],"enabled":false,"environment":{"TOKEN":"{file:missing}"}}
-        }}))], &BTreeMap::new(), None).unwrap();
+            "disabled":{"type":"local","command":["npx"],"disabled":true,"environment":{"TOKEN":"{file:missing}"}}
+        }}}))], &BTreeMap::new(), None).unwrap();
         assert_eq!(generation.mcp.len(), 3);
         let issue = generation.mcp["broken"].failure.as_ref().unwrap();
         assert!(issue.service.starts_with("server-") && issue.service.len() <= 64);

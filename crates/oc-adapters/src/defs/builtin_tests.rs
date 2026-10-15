@@ -81,7 +81,7 @@ fn markdown_partial_override_retains_builtin_mode_system_and_prior_model() {
     let mut defs = seeded();
     merge_config_definitions(
         &mut defs,
-        &serde_json::json!({"agents":{"explore":{"model":"fixture/own","variant":"careful"}}}),
+        &serde_json::json!({"agents":{"explore":{"model":"fixture/own#careful"}}}),
         "global",
     );
     merge_definition_root(

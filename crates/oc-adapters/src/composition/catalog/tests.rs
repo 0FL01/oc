@@ -405,3 +405,56 @@ async fn go02_catalog_public_read_view_is_selection_independent_and_source_quali
     assert!(listing.complete && listing.references.is_empty());
     assert_eq!(client.0.load(std::sync::atomic::Ordering::SeqCst), 1);
 }
+
+#[test]
+fn cfg12_provider_policies_follow_donor_last_match_with_global_last() {
+    let source = |path: &str, policies: serde_json::Value| config::Source {
+        path: path.into(),
+        trusted: true,
+        text: serde_json::json!({"experimental":{"policies":policies}}).to_string(),
+    };
+    let rule = |resource: &str, effect: &str| serde_json::json!({"action":"provider.use","resource":resource,"effect":effect});
+    // Sources arrive global → Location; the user-global rule wins a conflict.
+    let policy = provider_filters(&[
+        source(
+            "global",
+            serde_json::json!([rule("*", "deny"), rule("ludka*", "allow")]),
+        ),
+        source(
+            "location",
+            serde_json::json!([rule("ludka2", "deny"), rule("other", "allow")]),
+        ),
+    ])
+    .unwrap();
+    assert!(
+        policy.allows("ludka2"),
+        "global wildcard allow beats project deny"
+    );
+    assert!(
+        !policy.allows("other"),
+        "global catch-all deny beats project allow"
+    );
+    assert!(!policy.allows("opencode-go"));
+    assert!(!policy.allows_unlisted());
+    assert!(
+        !policy.names("ludka2"),
+        "a wildcard is not an explicit opt-in"
+    );
+    let named = provider_filters(&[source(
+        "global",
+        serde_json::json!([rule("openai", "allow")]),
+    )])
+    .unwrap();
+    assert!(named.names("openai") && !named.names("other"));
+    let open =
+        provider_filters(&[source("global", serde_json::json!([rule("x", "deny")]))]).unwrap();
+    assert!(open.allows_unlisted() && !open.allows("x") && open.allows("y"));
+    // A permission policy is a deny hook: refuse rather than silently widen.
+    let error = provider_filters(&[source(
+        "global",
+        serde_json::json!([{"action":"permission","resource":"shell:*","effect":"deny"}]),
+    )])
+    .unwrap_err();
+    let LoadFailure::Configuration(diagnostic) = error;
+    assert_eq!(diagnostic.code, ServiceCode::UnsupportedCapability);
+}

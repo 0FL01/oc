@@ -549,7 +549,8 @@ async fn r4a_changed_nonprimary_is_agent_unavailable_but_malformed_default_stays
     assert!(!format!("{failure:?}").contains("invalid-pin"));
     let mut malformed_policy: serde_json::Value =
         serde_json::from_str(&config("subagent", "build", "fixture/main")).unwrap();
-    malformed_policy["agent"]["build"]["permission"] = serde_json::json!({"read": 42});
+    malformed_policy["agents"]["build"]["permissions"] =
+        serde_json::json!([{"action": "read", "resource": "*", "effect": 42}]);
     std::fs::write(&path, malformed_policy.to_string()).unwrap();
     let failure = spawn_inner(&project, &data, BTreeMap::new(), false)
         .await

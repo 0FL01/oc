@@ -341,21 +341,31 @@ async fn compaction_invalid_summary_and_cancel_preserve_context() {
 }
 
 #[test]
-fn compaction_config_native_legacy_and_unsupported_prune() {
+fn compaction_config_canonical_layers_and_invalid_leaves() {
     let mut cfg = crate::compaction::CompactionConfig::default();
-    let notes = cfg.merge(&serde_json::json!({"auto":false,"reserved":1,"buffer":2,"preserve_recent_tokens":3,"keep":{"tokens":4}}));
-    assert_eq!(notes.len(), 2);
+    let notes = cfg.merge(&serde_json::json!({"auto":false,"buffer":2,"keep":{"tokens":4}}));
+    assert!(notes.is_empty());
     assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, 2, 4));
-    assert_eq!(
-        cfg.merge(&serde_json::json!({"prune":true}))[0].kind,
-        oc_core::queries::ConfigDiagnosticKind::Unsupported
-    );
     assert_eq!(
         cfg.merge(&serde_json::json!({"keep":{"tokens":-1}}))[0].kind,
         oc_core::queries::ConfigDiagnosticKind::Invalid
     );
     assert_eq!((cfg.auto, cfg.buffer, cfg.keep_tokens), (false, 2, 4));
-    let sources=[crate::config::Source { path:"global".into(),trusted:true,text:serde_json::json!({"compaction":{"reserved":123,"preserve_recent_tokens":321,"auto":false}}).to_string() },crate::config::Source { path:"project".into(),trusted:true,text:serde_json::json!({"compaction":{"buffer":456,"keep":{"tokens":654}}}).to_string() }];
+    let sources = [
+        crate::config::Source {
+            path: "global".into(),
+            trusted: true,
+            text:
+                serde_json::json!({"compaction":{"buffer":123,"keep":{"tokens":321},"auto":false}})
+                    .to_string(),
+        },
+        crate::config::Source {
+            path: "project".into(),
+            trusted: true,
+            text: serde_json::json!({"compaction":{"buffer":456,"keep":{"tokens":654}}})
+                .to_string(),
+        },
+    ];
     let generation = crate::config::assemble(&sources, &BTreeMap::new(), None).unwrap();
     assert_eq!(
         (
@@ -366,6 +376,13 @@ fn compaction_config_native_legacy_and_unsupported_prune() {
         (false, 456, 654)
     );
     assert_eq!(generation.provenance["compaction"], "project");
+    // OpenCode 1 compaction keys are refused, never folded into native values.
+    let legacy = [crate::config::Source {
+        path: "legacy".into(),
+        trusted: true,
+        text: serde_json::json!({"compaction":{"reserved":1}}).to_string(),
+    }];
+    assert!(crate::config::assemble(&legacy, &BTreeMap::new(), None).is_err());
 }
 
 #[tokio::test]
