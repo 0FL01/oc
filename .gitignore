@@ -15,3 +15,28 @@
 *.sqlite-wal
 __pycache__/
 *.pyc
+
+# Evidence run artifacts — keep reports/receipts, donor sources and live fixtures.
+# Tracked intermediates were removed from the index; these rules prevent re-adding.
+evidence/**/*.log
+evidence/**/*.gz
+evidence/**/*.jsonl
+evidence/**/*.png
+evidence/**/*.vt
+evidence/**/*.stdout
+evidence/**/*.stderr
+evidence/**/*.cells.json
+evidence/**/*.render.json
+evidence/**/*-diff.json
+evidence/tui/**/*.txt
+evidence/tui/**/*.json
+!evidence/tui/*.json
+!evidence/tui/**/*.archived.json
+!evidence/tui/**/*.inventory.json
+!evidence/tui/**/sources/**
+!evidence/tui/**/executable/**
+!evidence/tui/recovery-v00/compaction20260927-12/upstream/compaction-completed.cells.json
+!evidence/tui/recovery-v00/compaction20260927-12/upstream/compaction-queued.cells.json
+!evidence/tui/recovery-v00/compaction20260927-12/upstream/compaction-failed.cells.json
+!evidence/tui/recovery-v00/compaction20260927-13/upstream/compaction-threshold-completed.cells.json
+!evidence/tui/recovery-v00/compaction20260927-14/upstream/compaction-overflow-completed.cells.json
