@@ -1,6 +1,6 @@
 # NOW — актуальный handoff
 
-State updated: 2026-10-15T01:03:55+00:00
+State updated: 2026-10-15T01:46:46+00:00
 Active: T61
 
 Сверить Git status/diff до выполнения команд.
@@ -14,35 +14,38 @@ Owner-approved audited plan 2026-10-14, R1-R5/HOT01-HOT04: one task/five slices.
 
 ## Result
 
-T61 IN_PROGRESS: sourceac96ef997 rejects reload inputs superseded during discovery
-before source/MCP effects. R1/R2 remain partial, R3–R5 pending.
+T61 IN_PROGRESS: source e5de05bd7 adds joined admitted-source observation and
+event-epoch fencing for explicit reload candidates. R1/R2 partial, R3–R5 pending.
 
 ## Checks
 
-- New real held /models barrier was red: a file edit during discovery still published
-  the stale source. Local-only re-admission now rejects it, preserving exact catalog/
-  generation and zero sessions; the rejected MCP command never starts. A later explicit
-  reload recovers the latest source. Both HTTP requests and shutdown are joined.
-- Ephemeral typed inputs retain original local model overrides and resolved captures,
-  not remote-merged models. They are never logged/serialized and grant no authority.
-  Comments/formatting and inert files compare equal; used key/AGENTS/skill/model changes
-  differ. Freshness checking makes no extra discovery/credential/MCP request.
-- Current locked workspace:1966 passed/0 failed/12 existing opt-in ignored,46 result
-  records. Strict workspace all-target clippy,24 reload-filter owner cases, fmt/docs/
-  diff checks pass. Logs t61-source-freshness-*.log. No thresholds/guards/tests weakened.
+- Owned Linux descriptor + one Tokio task uses notify event/handler semantics without
+  detached threads. Loader authority remains separate; topology/anchor bounds unchanged.
+- Four real observer cases cover writes/atomic rename, missing and recreated roots,
+  recursive/flat definition shapes, access/unrelated filtering, overflow/rearm,
+  failed replacement and joined/non-successful cleanup. Identical-target overflow is
+  refused before the semantic no-op fast path.
+- The held discovery case now changes and restores candidate bytes. With only final
+  semantic comparison it was red; the event epoch rejects it before source/MCP effects.
+- Current locked workspace:1970 passed/0 failed/12 existing opt-in ignored,46 result
+  records. Strict workspace all-target clippy, fmt/docs/progress/diff checks pass.
+  Logs t61-source-watch-*.log. No cap, deadline, baseline or assertion was weakened.
 
 ## Risks
 
-Public busy reload remains refused; no actual watcher/coordinator, service/settings,
-release/current live/paired visual or HOT01–HOT04 completion claim. No push/auth retry,
-live env read/paid request. T44 remote blocker/VIS46 unchanged.
+Observer currently lives only for each idle explicit reload candidate. No continuous
+automatic watch/coordinator, public busy reload, host/settings, release/current live,
+paired visual or HOT01–HOT04 completion claim. No push/auth retry/live env/paid call.
+T44 remote blocker/VIS46 unchanged. Adapter-only notify dependency; no existing package
+version upgraded, no schema/store/Core protocol change.
 
 ## Next
 
-Implement admitted watch/re-arm and the single watch/manual coordinator with source
-freshness epochs and retained local discovery identity. Own finite active-operation
-inputs and preserve its exact primary profile before busy publication. Finish dynamic
-MCP notification/poisoned-owner shared late quarantine, then R3–R5.
+Retain this owner in one persistent100ms watch/manual coordinator; bound force/waiters
+and merge failed/nested/activation observations. Retain original per-provider local
+discovery identity for semantic no-op/reuse. Own finite active-operation inputs and
+preserve its actual primary before busy publication; then remaining MCP/host/settings/
+debug-release qualification.
 
 
 Ready (до 5): нет
