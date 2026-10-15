@@ -26,6 +26,7 @@ pub(crate) mod go_catalog;
 pub(crate) mod openai_catalog;
 mod provider_readiness;
 mod provider_views;
+mod reload_inputs;
 mod watch_inputs;
 pub use catalog::{CatalogListing, load_catalog, load_catalog_cached};
 pub(crate) use provider_readiness::ProviderState;

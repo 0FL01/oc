@@ -807,6 +807,7 @@ mod file_suggestion_tests {
 mod reload_tests {
     use super::*;
     use oc_core::queries::SessionSelectionAction as Action;
+    use std::time::Duration;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn config(model: &str, base_url: &str, static_model: bool) -> String {
@@ -1453,6 +1454,89 @@ mod reload_tests {
             .query_row("SELECT count(*) FROM turns", [], |row| row.get(0))
             .unwrap();
         assert_eq!(turns, 0);
+    }
+
+    #[tokio::test]
+    async fn hot02_source_changed_during_discovery_cannot_publish_or_start_rejected_mcp() {
+        let root = tempfile::tempdir().unwrap();
+        let project = root.path().join("project");
+        let data = root.path().join("data");
+        std::fs::create_dir_all(&project).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        let path = project.join("opencode.json");
+        std::fs::write(&path, config("old", "http://127.0.0.1:9/v1", true)).unwrap();
+        let (app, guard, _) = spawn_with_env(&project, &data, env(&data)).await.unwrap();
+        let initial = app.catalog().await.unwrap();
+        let initial_generation = app.file_suggestions("".into(), 1).await.unwrap().generation;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}/literal", listener.local_addr().unwrap());
+        let (entered, waiting) = tokio::sync::oneshot::channel();
+        let (release, released) = tokio::sync::oneshot::channel();
+        let server = tokio::spawn(async move {
+            let mut held = Some((entered, released));
+            for _ in 0..2 {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0; 1024];
+                while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                    let n = stream.read(&mut chunk).await.unwrap();
+                    assert!(n > 0);
+                    request.extend_from_slice(&chunk[..n]);
+                }
+                assert!(request.starts_with(b"GET /literal/models HTTP/1.1"));
+                if let Some((entered, released)) = held.take() {
+                    entered.send(()).unwrap();
+                    released.await.unwrap();
+                }
+                let body =
+                    serde_json::json!({"object":"list","data":[{"id":"remote"}]}).to_string();
+                stream.write_all(format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        });
+        let marker = project.join("rejected-mcp-started");
+        let mut candidate: serde_json::Value =
+            serde_json::from_str(&config("remote", &base, false)).unwrap();
+        candidate["mcp"] = serde_json::json!({"rejected":{
+            "type":"local","command":["/bin/sh","-c",format!("printf rejected > '{}'",marker.display())]
+        }});
+        std::fs::write(&path, candidate.to_string()).unwrap();
+        let request = app.clone();
+        let first = tokio::spawn(async move { request.reload_location().await });
+        tokio::time::timeout(Duration::from_secs(3), waiting)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut latest: serde_json::Value =
+            serde_json::from_str(&config("remote", &base, false)).unwrap();
+        latest["agents"] = serde_json::json!({"build":{"prompt":"LATEST_ADMITTED_PROFILE"}});
+        std::fs::write(&path, latest.to_string()).unwrap();
+        release.send(()).unwrap();
+        let rejected = tokio::time::timeout(Duration::from_secs(3), first)
+            .await
+            .unwrap()
+            .unwrap();
+        let retained = app.catalog().await.unwrap();
+        let retained_generation = app.file_suggestions("".into(), 1).await.unwrap().generation;
+        let recovered = app.reload_location().await;
+        app.shutdown().await.unwrap();
+        guard.join().await.unwrap();
+        tokio::time::timeout(Duration::from_secs(3), server)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            rejected.is_err(),
+            "superseded admitted source was published"
+        );
+        assert_eq!(retained, initial);
+        assert_eq!(retained_generation, initial_generation);
+        assert_eq!(recovered.unwrap().catalog.model_id, "remote");
+        assert!(
+            !marker.exists(),
+            "rejected candidate launched an MCP process"
+        );
+        let db = Db::open(&data).unwrap();
+        assert!(db.list_sessions().unwrap().is_empty());
     }
 
     #[tokio::test]

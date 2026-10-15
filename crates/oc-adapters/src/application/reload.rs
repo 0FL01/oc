@@ -71,11 +71,32 @@ pub(super) async fn replace(
             oc_core::queries::ServiceAction::ReviewConfiguration,
         )));
     }
+    let admitted_inputs = next.reload_inputs().map_err(configuration)?;
     next.attach_custom_connections(db).map_err(configuration)?;
     next.resolve_credentials(db).await.map_err(configuration)?;
     next.attach_public_catalog(db).await;
     next.refresh_public_catalog(db, true).await;
     next.refresh_provider().await.map_err(configuration)?;
+    // Discovery is bounded but can outlive a file replacement. Re-admission is
+    // local-only: no second discovery, credentials, MCP activation or effects.
+    // Compare original resolved inputs, never the remote-merged model catalog.
+    let current_inputs = composition::load_reload_local_with_env(
+        &composition.project,
+        composition.parent_env.clone(),
+    )
+    .await
+    .map_err(configuration)?
+    .reload_inputs()
+    .map_err(configuration)?;
+    if current_inputs != admitted_inputs {
+        return Err(CoreError::Diagnostic(crate::config::diagnostic::failure(
+            "native reload candidate",
+            &["source", "superseded"],
+            oc_core::queries::ServiceStage::Admission,
+            oc_core::queries::ServiceCode::SourceUnavailable,
+            oc_core::queries::ServiceAction::ReviewConfiguration,
+        )));
+    }
     if next.provider_state.catalog_status == oc_core::queries::ProviderStatus::Failed {
         let diagnostic = next
             .provider_state
